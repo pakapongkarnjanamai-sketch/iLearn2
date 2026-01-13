@@ -48,7 +48,6 @@ namespace iLearn.Application.Mappings
             return new EnrollmentDto
             {
                 Id = entity.Id,
-                UserId = entity.UserId,
                 CourseId = entity.CourseId,
                 CourseTitle = entity.Course?.Title ?? string.Empty, // ป้องกัน Null
                 EnrolledVersion = entity.EnrolledVersion,

@@ -1,11 +1,12 @@
-﻿using iLearn.Domain.Enums;
+﻿using iLearn.Domain.Common;
+using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace iLearn.Domain.Common
+namespace iLearn.Domain.Entities
 {
     public class Role : BaseEntity
     {

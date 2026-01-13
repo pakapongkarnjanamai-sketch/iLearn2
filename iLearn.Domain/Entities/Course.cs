@@ -17,5 +17,7 @@ namespace iLearn.Domain.Entities
         // Navigation
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
         public ICollection<AssignmentRule> AssignmentRules { get; set; } = new List<AssignmentRule>();
+
+        public virtual ICollection<CourseResource> CourseResources { get; set; } = new List<CourseResource>();
     }
 }
