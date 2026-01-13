@@ -1,5 +1,6 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -12,13 +13,15 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<Resource> _resourceRepo;
         private readonly IGenericRepository<FileStorage> _fileRepo;
-
+        private readonly IScormService _scormService;
         public ResourcesController(
-            IGenericRepository<Resource> resourceRepo,
-            IGenericRepository<FileStorage> fileRepo)
+     IGenericRepository<Resource> resourceRepo,
+     IGenericRepository<FileStorage> fileRepo,
+     IScormService scormService) // <--- เพิ่มตรงนี้
         {
             _resourceRepo = resourceRepo;
             _fileRepo = fileRepo;
+            _scormService = scormService;
         }
 
         [HttpGet]
@@ -79,18 +82,29 @@ namespace iLearn.API.Controllers
             // บันทึก FileStorage ก่อนเพื่อให้ได้ ID (หรือจะ Add พร้อมกันก็ได้ถ้า EF Config ไว้)
             var savedFile = await _fileRepo.AddAsync(fileStorage);
 
-            // 2. สร้าง Resource ผูกกับไฟล์
             var resource = new Resource
             {
-                Name = file.FileName, // หรือจะรับชื่อแยกจาก Frontend ก็ได้
+                Name = file.FileName,
                 TypeId = typeId,
                 IsActive = true,
                 FileStorageId = savedFile.Id
-                // ถ้าเป็น SCORM อาจต้อง set property อื่นๆ เพิ่ม
             };
 
-            var savedResource = await _resourceRepo.AddAsync(resource);
+            // --- เพิ่ม Logic SCORM ตรงนี้ ---
+            if (Path.GetExtension(file.FileName).ToLower() == ".zip")
+            {
+                // แตกไฟล์ไปที่ wwwroot/scorm/{resourceId} (ต้องใช้ ID ที่ยังไม่เกิด หรือใช้ GUID)
+                string folderName = Guid.NewGuid().ToString();
 
+                // เรียก Service ให้ทำงาน
+                string launchUrl = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
+
+                // บันทึก URL ลง Resource (ต้องไปเพิ่ม Property URL ใน Resource Entity ถ้ายังไม่มี)
+                resource.URL = $"scorm/{folderName}/{launchUrl}";
+            }
+            // ----------------------------
+
+            var savedResource = await _resourceRepo.AddAsync(resource);
             return Ok(savedResource.ToDto());
         }
 

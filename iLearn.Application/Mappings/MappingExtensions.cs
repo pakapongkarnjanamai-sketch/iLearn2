@@ -65,7 +65,7 @@ namespace iLearn.Application.Mappings
             {
                 Id = entity.Id,
                 Nid = entity.Nid,
-               
+
             };
         }
 
@@ -76,7 +76,7 @@ namespace iLearn.Application.Mappings
             return new User
             {
                 Nid = dto.Nid,
-             
+
             };
         }
         public static ResourceDto ToDto(this Resource entity)
@@ -93,5 +93,90 @@ namespace iLearn.Application.Mappings
                 ContentUrl = $"/api/resources/{entity.Id}/content"
             };
         }
-    }
+       public static DivisionDto ToDto(this Division entity)
+        {
+            if (entity == null) return null;
+            return new DivisionDto { Id = entity.Id, Name = entity.Name };
+        }
+
+        public static RoleDto ToDto(this Role entity)
+        {
+            if (entity == null) return null;
+            return new RoleDto
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                DivisionId = entity.DivisionId,
+                // ระวัง Null Reference ถ้าไม่ได้ Include Division มา
+                DivisionName = entity.Division?.Name ?? string.Empty
+            };
+        }
+
+        public static CategoryDto ToDto(this Category entity)
+        {
+            if (entity == null) return null;
+            return new CategoryDto
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                DivisionId = entity.DivisionId
+            };
+        }
+
+        // --- Assignment Rule Mappings ---
+        public static AssignmentRuleDto ToDto(this AssignmentRule entity)
+        {
+            if (entity == null) return null;
+            return new AssignmentRuleDto
+            {
+                Id = entity.Id,
+                CourseId = entity.CourseId,
+                DivisionId = entity.DivisionId,
+                DivisionName = entity.Division?.Name, // ถ้ามี Include
+                RoleId = entity.RoleId,
+                RoleName = entity.Role?.Name // ถ้ามี Include
+            };
+        }
+
+        public static AssignmentRule ToEntity(this CreateAssignmentRuleDto dto)
+        {
+            if (dto == null) return null;
+            return new AssignmentRule
+            {
+                CourseId = dto.CourseId,
+                DivisionId = dto.DivisionId,
+                RoleId = dto.RoleId
+            };
+        }
+
+        public static LearningLogDto ToDto(this LearningLog entity)
+        {
+            if (entity == null) return null;
+            return new LearningLogDto
+            {
+                Id = entity.Id,
+                StudentCode = entity.StudentCode,
+                CourseId = entity.CourseId,
+                ContentId = entity.ContentId,
+                CourseTime = entity.CourseTime,
+                ExamTime = entity.ExamTime,
+                CreatedDate = entity.CreatedDate
+            };
+        }
+
+        public static LearningLog ToEntity(this CreateLearningLogDto dto)
+        {
+            if (dto == null) return null;
+            return new LearningLog
+            {
+                StudentCode = dto.StudentCode,
+                CourseId = dto.CourseId,
+                ContentId = dto.ContentId,
+                QuestionId = dto.QuestionId,
+                CourseTime = dto.CourseTime,
+                ExamTime = dto.ExamTime,
+                // CreatedDate จะถูก Set โดย BaseEntity หรือ Database
+            };
+        }
+    } 
 }

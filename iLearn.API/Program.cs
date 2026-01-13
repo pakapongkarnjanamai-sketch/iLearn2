@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Infrastructure.Persistence;
 using iLearn.Infrastructure.Repositories;
+using iLearn.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
 using System;
@@ -22,7 +23,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-
+builder.Services.AddScoped<IScormService, ScormService>();
 
 builder.Services.AddOpenApi();
 
