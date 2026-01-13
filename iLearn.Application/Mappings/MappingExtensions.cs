@@ -48,8 +48,9 @@ namespace iLearn.Application.Mappings
             return new EnrollmentDto
             {
                 Id = entity.Id,
+                StudentCode = entity.StudentCode, // ✅ Map StudentCode
                 CourseId = entity.CourseId,
-                CourseTitle = entity.Course?.Title ?? string.Empty, // ป้องกัน Null
+                CourseTitle = entity.Course?.Title ?? string.Empty,
                 EnrolledVersion = entity.EnrolledVersion,
                 Status = entity.Status,
                 CompletedDate = entity.CompletedDate
@@ -76,6 +77,20 @@ namespace iLearn.Application.Mappings
             {
                 Nid = dto.Nid,
              
+            };
+        }
+        public static ResourceDto ToDto(this Resource entity)
+        {
+            if (entity == null) return null;
+
+            return new ResourceDto
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                TypeId = entity.TypeId,
+                IsActive = entity.IsActive,
+                // สร้าง URL จำลอง (เดี๋ยวเราต้องทำ Action 'Download' หรือ 'View' มารองรับ)
+                ContentUrl = $"/api/resources/{entity.Id}/content"
             };
         }
     }
