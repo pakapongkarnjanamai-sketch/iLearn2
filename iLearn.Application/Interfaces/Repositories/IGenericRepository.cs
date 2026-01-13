@@ -1,7 +1,7 @@
 ﻿using iLearn.Domain.Common;
 using System.Linq.Expressions;
 
-namespace iLearn.Application.Interfaces
+namespace iLearn.Application.Interfaces.Repositories
 {
     public interface IGenericRepository<T> where T : BaseEntity
     {

@@ -55,5 +55,28 @@ namespace iLearn.Application.Mappings
                 CompletedDate = entity.CompletedDate
             };
         }
+
+        public static UserDto ToDto(this User entity)
+        {
+            if (entity == null) return null;
+
+            return new UserDto
+            {
+                Id = entity.Id,
+                Nid = entity.Nid,
+               
+            };
+        }
+
+        public static User ToEntity(this CreateUserDto dto)
+        {
+            if (dto == null) return null;
+
+            return new User
+            {
+                Nid = dto.Nid,
+             
+            };
+        }
     }
 }

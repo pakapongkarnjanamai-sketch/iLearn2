@@ -1,6 +1,6 @@
 ﻿using iLearn.Domain.Entities;
 
-namespace iLearn.Application.Interfaces
+namespace iLearn.Application.Interfaces.Repositories
 {
     public interface ICourseRepository : IGenericRepository<Course>
     {

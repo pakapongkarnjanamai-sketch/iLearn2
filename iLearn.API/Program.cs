@@ -1,9 +1,11 @@
-﻿using iLearn.Application.Interfaces;
+﻿using iLearn.Application.Interfaces.Repositories; // Add this using directive
+using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Services;
 using iLearn.Infrastructure.Persistence;
 using iLearn.Infrastructure.Repositories;
-using System;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.SqlServer; // Add this using directive
+using Microsoft.EntityFrameworkCore.SqlServer;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,10 +18,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // --- 2. Register Repositories ---
-// ลงทะเบียน Generic แบบนี้เพื่อให้ใช้ได้กับทุก Entity
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-// ลงทะเบียน Repository เฉพาะทาง
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 
 

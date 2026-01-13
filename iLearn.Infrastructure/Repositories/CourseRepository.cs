@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Interfaces;
+﻿using iLearn.Application.Interfaces.Repositories;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
