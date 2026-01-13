@@ -5,6 +5,17 @@ VisualStudioVersion = 17.14.36811.4 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iLearn.API", "iLearn.API\iLearn.API.csproj", "{064849FF-33D5-438C-A211-072F31AAD9AC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iLearn.Domain", "iLearn.Domain\iLearn.Domain.csproj", "{38035A29-D1AC-41C2-BBF3-6CECD0C5EFA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iLearn.Application", "iLearn.Application\iLearn.Application.csproj", "{3C7BB623-E331-4B7F-950C-A105286908C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iLearn.Infrastructure", "iLearn.Infrastructure\iLearn.Infrastructure.csproj", "{0B4416EA-EE35-4C47-A872-B37E4483AA8E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DevExtreme NuGet.config", "DevExtreme NuGet.config", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		NuGet.config = NuGet.config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +26,18 @@ Global
 		{064849FF-33D5-438C-A211-072F31AAD9AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{064849FF-33D5-438C-A211-072F31AAD9AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{064849FF-33D5-438C-A211-072F31AAD9AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38035A29-D1AC-41C2-BBF3-6CECD0C5EFA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38035A29-D1AC-41C2-BBF3-6CECD0C5EFA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38035A29-D1AC-41C2-BBF3-6CECD0C5EFA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38035A29-D1AC-41C2-BBF3-6CECD0C5EFA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C7BB623-E331-4B7F-950C-A105286908C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C7BB623-E331-4B7F-950C-A105286908C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C7BB623-E331-4B7F-950C-A105286908C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C7BB623-E331-4B7F-950C-A105286908C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B4416EA-EE35-4C47-A872-B37E4483AA8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B4416EA-EE35-4C47-A872-B37E4483AA8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B4416EA-EE35-4C47-A872-B37E4483AA8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B4416EA-EE35-4C47-A872-B37E4483AA8E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
