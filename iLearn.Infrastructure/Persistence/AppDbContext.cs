@@ -1,12 +1,27 @@
-﻿using iLearn.Domain.Entities;
+﻿using iLearn.Application.Services;
+using iLearn.Domain.Common;
+using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace iLearn.Infrastructure.Persistence
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        private readonly IDateTime _dateTime;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ICurrentUserService _currentUserService;
+        public AppDbContext(
+          DbContextOptions<AppDbContext> options,
+          IDateTime dateTime,
+          IHttpContextAccessor httpContextAccessor,
+          ICurrentUserService currentUserService)
+          : base(options)
         {
+            _dateTime = dateTime;
+            _httpContextAccessor = httpContextAccessor;
+            _currentUserService = currentUserService;
         }
 
         public DbSet<Course> Courses { get; set; }
@@ -56,6 +71,41 @@ namespace iLearn.Infrastructure.Persistence
                 .HasOne(r => r.FileStorage)
                 .WithOne() // หรือ WithMany ถ้าไฟล์เดียวใช้หลาย Resource
                 .HasForeignKey<Resource>(r => r.FileStorageId);
+        }
+
+        public override int SaveChanges()
+        {
+            SetAuditFields();
+            return base.SaveChanges();
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            SetAuditFields();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        // ✅ แยก Logic ออกมาเป็น Private Method เพื่อลด Code Duplication
+        private void SetAuditFields()
+        {
+            var entries = ChangeTracker.Entries<BaseEntity>();
+            foreach (var entry in entries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = _dateTime.Now;
+                    entry.Entity.CreatedBy = _currentUserService.UserId;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.UpdatedAt = _dateTime.Now;
+                    entry.Entity.UpdatedBy = _currentUserService.UserId;
+
+                    // 🛡️ ป้องกันไม่ให้ CreatedAt และ CreatedBy ถูกแก้ไขโดยไม่ตั้งใจตอน Update
+                    entry.Property(x => x.CreatedAt).IsModified = false;
+                    entry.Property(x => x.CreatedBy).IsModified = false;
+                }
+            }
         }
     }
 }

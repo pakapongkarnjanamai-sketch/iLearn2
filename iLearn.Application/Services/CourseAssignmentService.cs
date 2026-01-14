@@ -127,7 +127,7 @@ namespace iLearn.Application.Services
                     CourseId = course.Id,
                     EnrolledVersion = course.Version,
                     Status = "Not Started",
-                    CreatedDate = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
             }
@@ -137,8 +137,7 @@ namespace iLearn.Application.Services
                 existing.EnrolledVersion = course.Version;
                 existing.Status = "Not Started";
                 existing.CompletedDate = null;
-                existing.LastModifiedDate = DateTime.UtcNow;
-
+             
                 await _enrollmentRepo.UpdateAsync(existing);
             }
         }

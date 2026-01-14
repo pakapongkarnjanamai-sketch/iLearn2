@@ -2,8 +2,6 @@
     ViewBag.Title = "Categories";
 }
 
-
-
 <div class="container-fluid page-full-height">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
@@ -27,31 +25,14 @@
                 showBorders: true,
                 scrolling: { mode: "virtual" },
                 height: "100%",
-                selection: {
-                    mode: 'single',
-                },
+                selection: { mode: 'single' },
                 hoverStateEnabled: true,
-                headerFilter: {
-                    visible: true,
-                    search: { enabled: true }
-                },
-                searchPanel: {
-                    visible: true,
-                    width: 300,
-                    placeholder: "Search categories..."
-                },
-                groupPanel: {
-                    visible: true,
-                    emptyPanelText: 'Drag a column header here to group by that column',
-                },
-                scrolling: {
-                    mode: 'virtual',
-                },
-                export: {
-                    enabled: true,
-                    allowExportSelectedData: false,
-                },
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300, placeholder: "Search categories..." },
+                groupPanel: { visible: true, emptyPanelText: 'Drag a column header here to group by that column' },
+                export: { enabled: true, allowExportSelectedData: false },
                 onExporting: (e) => handleExporting(e, 'Categories_Data'),
+
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
@@ -61,8 +42,8 @@
                     popup: {
                         title: "Category Info",
                         showTitle: true,
-                        width: 500, // ขนาด Popup เล็กกว่า Course เพราะข้อมูลน้อยกว่า
-                        height: 350
+                        width: 500,
+                        height: 450 // เพิ่มความสูงเล็กน้อยเพื่อรองรับ field ใหม่
                     },
                     form: {
                         items: [
@@ -79,6 +60,20 @@
                                         dataField: 'Name',
                                         validationRules: [{ type: "required" }]
                                     },
+                                    // [เพิ่ม] Field สำหรับเลือก Division
+                                    {
+                                        dataField: "DivisionId",
+                                        label: { text: "Division" },
+                                        editorType: "dxSelectBox",
+                                        editorOptions: {
+                                            // ใช้ createDataStore ดึงข้อมูลจาก DivisionsCRUD หรือ api/Divisions
+                                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'Id' }),
+                                            displayExpr: 'Name',
+                                            valueExpr: 'Id',
+                                            showClearButton: true,
+                                            placeholder: "Select Division (Optional)"
+                                        }
+                                    },
                                     {
                                         dataField: 'IsActive',
                                         editorType: 'dxCheckBox',
@@ -86,22 +81,7 @@
                                         editorOptions: {
                                             text: 'Is Active'
                                         }
-                                    },
-                                    // หากมี ParentId (หมวดหมู่แม่) สามารถเปิดใช้ส่วนนี้ได้
-                                    /*
-                                    {
-                                        dataField: "ParentId",
-                                        label: { text: "Parent Category" },
-                                        editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: createDataStore(serviceUrl, 'Categories', { key: 'Id' }),
-                                            displayExpr: 'Name',
-                                            valueExpr: 'Id',
-                                            showClearButton: true,
-                                            placeholder: "Select Parent Category (Optional)"
-                                        }
                                     }
-                                    */
                                 ]
                             }
                         ]
@@ -120,28 +100,24 @@
                         caption: "Category Name",
                         validationRules: [{ type: "required" }]
                     },
-                    /*
-                    // Column สำหรับแสดงชื่อหมวดหมู่แม่ (ถ้ามี)
+                    // [เพิ่ม] Column Division พร้อม Lookup
                     {
-                        dataField: "ParentId",
-                        caption: "Parent Category",
-                        visible: false,
+                        dataField: "DivisionId",
+                        caption: "Division",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'Categories', { key: 'Id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'Id' }),
                             displayExpr: 'Name',
                             valueExpr: 'Id',
                         }
                     },
-                    */
                     {
                         dataField: "IsActive",
                         caption: "Active",
                         dataType: "boolean",
                         width: 100
                     },
-                    // แสดงวันที่สร้าง/แก้ไข (Read-only)
                     {
-                        dataField: "CreatedDate",
+                        dataField: "CreatedAt",
                         caption: "Created Date",
                         dataType: "date",
                         format: "dd/MM/yyyy HH:mm",

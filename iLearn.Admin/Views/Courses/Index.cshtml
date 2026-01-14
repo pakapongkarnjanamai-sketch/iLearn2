@@ -15,10 +15,10 @@
 
 @section Scripts {
     <script>
-        // กำหนด Enum สำหรับ CourseType (อ้างอิงตาม iLearn.Domain.Enums.CourseType)
+        // กำหนด Enum ตาม iLearn.Domain.Enums.CourseType
         const courseTypes = [
-            { id: 0, name: 'Self Paced' },
-            { id: 1, name: 'Instructor Led' }
+            { id: 0, name: 'Special (Rule-based)' },
+            { id: 1, name: 'General (Auto-assign)' }
         ];
 
         $(() => {
@@ -31,28 +31,14 @@
                 showBorders: true,
                 scrolling: { mode: "virtual" },
                 height: "100%",
-                selection: {
-                    mode: 'single',
-                },
+                selection: { mode: 'single' },
                 hoverStateEnabled: true,
-                headerFilter: {
-                    visible: true,
-                    search: { enabled: true }
-                },
-                searchPanel: {
-                    visible: true,
-                    width: 300,
-                    placeholder: "Search courses..."
-                },
-                groupPanel: {
-                    emptyPanelText: 'Drag a column header here to group by that column',
-                    visible: true,
-                },
-                export: {
-                    enabled: true,
-                    allowExportSelectedData: false,
-                },
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300, placeholder: "Search courses..." },
+                groupPanel: { emptyPanelText: 'Drag a column header here to group by that column', visible: true },
+                export: { enabled: true, allowExportSelectedData: false },
                 onExporting: (e) => handleExporting(e, 'Courses_Data'),
+
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
@@ -62,33 +48,52 @@
                     popup: {
                         title: "Course Info",
                         showTitle: true,
-                        width: 800,
-                        height: 600
+                        width: 700,
+                        height: 500
                     },
                     form: {
                         items: [
                             {
                                 itemType: 'group',
+                                caption: "Basic Information",
                                 colCount: 2,
                                 colSpan: 2,
                                 items: [
                                     { dataField: 'Id', editorOptions: { disabled: true } },
                                     { dataField: 'IsActive' },
-                                    { dataField: 'Code' },
-                                    { dataField: 'Title' },
-                                    { dataField: 'CourseType' },
-                                    { dataField: 'CategoryId' },
+
                                     {
-                                        dataField: 'ExpiredDate',
-                                        editorType: 'dxDateBox',
-                                        editorOptions: { width: '100%' }
+                                        dataField: 'Code',
+                                        validationRules: [{ type: "required" }]
                                     },
-                                    { dataField: 'CoverImagePath' } // เพิ่มจัดการรูปภาพถ้ามี Upload Controller
+                                    {
+                                        dataField: 'Version',
+                                        editorType: 'dxNumberBox',
+                                        editorOptions: { min: 1, format: "#" }
+                                    },
+
+                                    {
+                                        dataField: 'Title',
+                                        colSpan: 2,
+                                        validationRules: [{ type: "required" }]
+                                    },
+
+                                    {
+                                        dataField: 'Type',
+                                        label: { text: "Course Type" },
+                                        editorType: "dxSelectBox",
+                                        editorOptions: {
+                                            dataSource: courseTypes,
+                                            displayExpr: 'name',
+                                            valueExpr: 'id',
+                                        },
+                                        validationRules: [{ type: "required" }]
+                                    }
                                 ]
                             },
                             {
                                 itemType: 'group',
-                                caption: "Description",
+                                caption: "Details",
                                 colCount: 1,
                                 colSpan: 2,
                                 items: [
@@ -101,22 +106,6 @@
                                         },
                                     },
                                 ]
-                            },
-                            {
-                                itemType: 'group',
-                                caption: "Mapping Resources",
-                                colCount: 2,
-                                colSpan: 2,
-                                items: [
-                                    {
-                                        dataField: 'ContentId',
-                                        helpText: "Select Learning Resource"
-                                    },
-                                    {
-                                        dataField: 'QuestionId',
-                                        helpText: "Select Exam Resource"
-                                    }
-                                ]
                             }
                         ]
                     }
@@ -124,28 +113,21 @@
                 columns: [
                     { dataField: "Id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
                     {
-                        dataField: "IsActive",
-                        caption: "Active",
-                        dataType: "boolean",
-                        width: 80
-                    },
-                    { dataField: "Code", caption: "Code", width: 100 },
-                    { dataField: "Title", caption: "Title", minWidth: 250 },
-                    {
-                        dataField: "CategoryId",
-                        caption: "Category",
-                        width: 150,
-                        lookup: {
-                            // ใช้ Controller Categories หรือ View ตามที่คุณมี
-                            dataSource: createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'Id' }),
-                            displayExpr: 'Name', // ตรวจสอบว่า Model Category ใช้ Field 'Name'
-                            valueExpr: 'Id',
-                        }
+                        dataField: "Code",
+                        caption: "Code",
+                        width: 100,
+                        validationRules: [{ type: "required" }]
                     },
                     {
-                        dataField: "CourseType",
+                        dataField: "Title",
+                        caption: "Title",
+                        minWidth: 200,
+                        validationRules: [{ type: "required" }]
+                    },
+                    {
+                        dataField: "Type",
                         caption: "Type",
-                        width: 120,
+                        width: 150,
                         lookup: {
                             dataSource: courseTypes,
                             displayExpr: 'name',
@@ -153,39 +135,17 @@
                         }
                     },
                     {
-                        dataField: "ExpiredDate",
-                        caption: "Expired",
-                        dataType: 'date',
-                        format: 'dd/MM/yyyy',
-                        visible: false
+                        dataField: "Version",
+                        caption: "Version",
+                        width: 80,
+                        alignment: "center"
                     },
                     {
-                        dataField: "ContentId",
-                        caption: "Content (Learn)",
-                        visible: false,
-                        lookup: {
-                            // Lookup ไปยัง Resources
-                            dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' }),
-                            // สามารถเพิ่ม filter ถ้าต้องการเฉพาะ Type=Learn (1)
-                            // filter: ['TypeId', '=', 1],
-                            displayExpr: 'Name',
-                            valueExpr: 'Id',
-                        }
+                        dataField: "IsActive",
+                        caption: "Active",
+                        dataType: "boolean",
+                        width: 80
                     },
-                    {
-                        dataField: "QuestionId",
-                        caption: "Exam",
-                        visible: false,
-                        lookup: {
-                            // Lookup ไปยัง Resources
-                            dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' }),
-                            // สามารถเพิ่ม filter ถ้าต้องการเฉพาะ Type=Exam (2)
-                            // filter: ['TypeId', '=', 2],
-                            displayExpr: 'Name',
-                            valueExpr: 'Id',
-                        }
-                    },
-                    { dataField: "CoverImagePath", visible: false },
                     { dataField: "Description", visible: false }
                 ],
             }).dxDataGrid('instance');

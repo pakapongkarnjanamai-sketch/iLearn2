@@ -2,7 +2,6 @@
     ViewBag.Title = "Resources";
 }
 
-
 <div class="container-fluid page-full-height">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
@@ -16,9 +15,10 @@
 
 @section Scripts {
     <script>
+        // กำหนด Resource Type (1=Learn, 2=Exam)
         const resourceTypes = [
-            { id: 1, name: 'Learn' },
-            { id: 2, name: 'Exam' }
+            { id: 1, name: 'Learn (Course Material)' },
+            { id: 2, name: 'Exam (Assessment)' }
         ];
 
         $(() => {
@@ -32,46 +32,122 @@
                 scrolling: { mode: "virtual" },
                 height: "100%",
                 headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300 },
-                export: { enabled: true },
-                onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+                searchPanel: { visible: true, width: 300, placeholder: "Search resources..." },
+                export: { enabled: true, allowExportSelectedData: false },
+                onExporting: (e) => handleExporting(e, 'Resources_Data'),
+
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
                     useIcons: true,
+                    popup: {
+                        title: "Resource Info",
+                        showTitle: true,
+                        width: 700,
+                        height: 550
+                    },
                     form: {
                         items: [
                             {
                                 itemType: 'group',
+                                caption: "General Info",
                                 colCount: 2,
                                 colSpan: 2,
                                 items: [
                                     { dataField: 'Id', editorOptions: { disabled: true } },
                                     { dataField: 'IsActive' },
-                                    { dataField: 'Name', colSpan: 2 },
-                                    { dataField: 'TypeId' },
-                                    { dataField: 'URL', colSpan: 2 },
-                                    { dataField: 'ResourceHref', colSpan: 2 },
-                                    { dataField: 'FileStorageId' }
+                                    {
+                                        dataField: 'Name',
+                                        colSpan: 2,
+                                        validationRules: [{ type: "required" }]
+                                    },
+                                    {
+                                        dataField: 'TypeId',
+                                        editorType: "dxSelectBox",
+                                        editorOptions: {
+                                            dataSource: resourceTypes,
+                                            valueExpr: 'id',
+                                            displayExpr: 'name'
+                                        },
+                                        validationRules: [{ type: "required" }]
+                                    }
+                                ]
+                            },
+                            {
+                                itemType: 'group',
+                                caption: "Source (External URL)",
+                                colCount: 1,
+                                colSpan: 2,
+                                items: [
+                                    {
+                                        dataField: 'URL',
+                                        label: { text: "External URL" },
+                                        editorOptions: { placeholder: "https://..." }
+                                    }
+                                ]
+                            },
+                            {
+                                itemType: 'group',
+                                caption: "System Metadata (Read Only)",
+                                colCount: 2,
+                                colSpan: 2,
+                                visible: true, // หรือเปลี่ยนเป็น false ถ้าไม่อยากให้เห็นตอนแก้
+                                items: [
+                                    {
+                                        dataField: 'FileStorageId',
+                                        editorOptions: { disabled: true },
+                                        helpText: "Generated automatically upon file upload"
+                                    },
+                                    {
+                                        dataField: 'SchemaVersion',
+                                        editorOptions: { disabled: true }
+                                    },
+                                    {
+                                        dataField: 'ResourceHref',
+                                        colSpan: 2,
+                                        editorOptions: { disabled: true }
+                                    }
                                 ]
                             }
                         ]
                     }
                 },
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
-                    { dataField: "Name", caption: "Resource Name" },
+                    { dataField: "Id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
+                    { dataField: "Name", caption: "Resource Name", minWidth: 200 },
                     {
                         dataField: "TypeId",
                         caption: "Type",
-                        lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' }
+                        width: 150,
+                        lookup: {
+                            dataSource: resourceTypes,
+                            valueExpr: 'id',
+                            displayExpr: 'name'
+                        }
                     },
-                    { dataField: "IsActive", caption: "Active", dataType: "boolean" },
-                    { dataField: "URL", caption: "External URL" },
+                    {
+                        dataField: "IsActive",
+                        caption: "Active",
+                        dataType: "boolean",
+                        width: 80
+                    },
+                    { dataField: "URL", caption: "External URL", visible: false },
+
+                    // Fields สำหรับ SCORM/File (ซ่อนไว้เป็น Default)
                     { dataField: "ResourceHref", caption: "Path/Href", visible: false },
-                    { dataField: "FileStorageId", caption: "File ID", visible: false }
+                    { dataField: "SchemaVersion", caption: "SCORM Version", visible: false },
+                    { dataField: "FileStorageId", caption: "File ID", width: 80, visible: false },
+
+                    {
+                        dataField: "CreatedAt",
+                        caption: "Created Date",
+                        dataType: "date",
+                        format: "dd/MM/yyyy HH:mm",
+                        allowEditing: false,
+                        visible: false
+                    }
                 ],
             }).dxDataGrid('instance');
         })

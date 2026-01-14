@@ -5,6 +5,7 @@ using iLearn.Application.Services;
 using iLearn.Infrastructure.Persistence;
 using iLearn.Infrastructure.Repositories;
 using iLearn.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
 using System;
@@ -20,23 +21,46 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+    .AddNegotiate();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = options.DefaultPolicy;
+
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin", "SuperAdmin"));
+
+    options.AddPolicy("SuperAdminOnly", policy =>
+        policy.RequireRole("SuperAdmin"));
+
+    options.AddPolicy("ManagerOrAbove", policy =>
+        policy.RequireRole("Manager", "Admin", "SuperAdmin"));
+
+    options.AddPolicy("UserOrAbove", policy =>
+        policy.RequireRole("User", "Manager", "Admin", "SuperAdmin"));
+
+    options.AddPolicy("DomainUser", policy =>
+        policy.RequireAssertion(context =>
+            context.User.Identity?.Name?.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase) == true));
+});
 
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "iLearn API", Version = "v1" });
 });
+builder.Services.AddHttpContextAccessor();
 // --- 1. Database Connection ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
 // --- 2. Register Repositories ---
-
+builder.Services.AddTransient<IDateTime, DateTimeService>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IScormService, ScormService>();
-
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddCors(options =>

@@ -160,7 +160,7 @@ namespace iLearn.Application.Mappings
                 ContentId = entity.ContentId,
                 CourseTime = entity.CourseTime,
                 ExamTime = entity.ExamTime,
-                CreatedDate = entity.CreatedDate
+                CreatedAt = entity.CreatedAt
             };
         }
 
@@ -175,7 +175,7 @@ namespace iLearn.Application.Mappings
                 QuestionId = dto.QuestionId,
                 CourseTime = dto.CourseTime,
                 ExamTime = dto.ExamTime,
-                // CreatedDate จะถูก Set โดย BaseEntity หรือ Database
+                // CreatedAt จะถูก Set โดย BaseEntity หรือ Database
             };
         }
     } 

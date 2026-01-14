@@ -11,7 +11,7 @@
         public string? CourseTime { get; set; }
         public string? ExamTime { get; set; }
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 
     public class CreateLearningLogDto

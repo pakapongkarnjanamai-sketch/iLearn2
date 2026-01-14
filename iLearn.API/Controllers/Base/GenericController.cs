@@ -3,6 +3,7 @@ using DevExtreme.AspNet.Mvc;
 
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Domain.Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -10,6 +11,7 @@ namespace iLearn.API.Controllers.Base
 {
     [ApiController]
     [Route("api/admin/[controller]")]
+    [Authorize]
     // แก้ไขบรรทัดนี้: เพิ่ม ", new()" ต่อท้าย
     public class GenericController<T> : ControllerBase where T : BaseEntity, new()
     {

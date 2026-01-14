@@ -1,11 +1,15 @@
-﻿namespace iLearn.Domain.Common
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace iLearn.Domain.Common
 {
     public abstract class BaseEntity
     {
         public int Id { get; set; }
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        [StringLength(100)]
         public string? CreatedBy { get; set; }
-        public DateTime? LastModifiedDate { get; set; }
-        public string? LastModifiedBy { get; set; }
+        [StringLength(100)]
+        public string? UpdatedBy { get; set; }
     }
 }

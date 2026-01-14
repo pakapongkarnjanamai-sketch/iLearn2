@@ -15,7 +15,7 @@ namespace iLearn.Infrastructure.Repositories
         {
             return await _dbSet
                 .Where(c => c.IsActive)
-                .OrderByDescending(c => c.CreatedDate)
+                .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
         }
 
