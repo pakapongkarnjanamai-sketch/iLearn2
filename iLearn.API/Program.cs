@@ -1,4 +1,5 @@
-﻿using iLearn.Application.Interfaces.Repositories; // Add this using directive
+﻿using iLearn.Application.Common;
+using iLearn.Application.Interfaces.Repositories; // Add this using directive
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Infrastructure.Persistence;
@@ -23,7 +24,7 @@ builder.Services.AddSwaggerGen(c =>
 // --- 1. Database Connection ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
 // --- 2. Register Repositories ---
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

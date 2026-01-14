@@ -1,4 +1,6 @@
-﻿using iLearn.Application.Interfaces.Services;
+﻿using iLearn.Application.Common;
+using iLearn.Application.Interfaces.Services;
+using Microsoft.Extensions.Options;
 using System.IO.Compression;
 using System.Xml.Linq;
 
@@ -6,14 +8,12 @@ namespace iLearn.Infrastructure.Services
 {
     public class ScormService : IScormService
     {
-        private readonly string _webRootPath;
+        private readonly FileSettings _settings;
 
-        public ScormService()
+        // Inject FileSettings ผ่าน IOptions (ค่ามาจาก appsettings.json)
+        public ScormService(IOptions<FileSettings> settings)
         {
-            // กำหนด Path ที่จะแตกไฟล์ (เช่น wwwroot/scorm)
-            // ในทางปฏิบัติคุณอาจรับค่านี้ผ่าน Constructor หรือ Configuration
-            var currentDirectory = Directory.GetCurrentDirectory();
-            _webRootPath = Path.Combine(currentDirectory, "wwwroot", "scorm");
+            _settings = settings.Value;
         }
 
         public async Task<string> ExtractAndParseScormAsync(byte[] fileContent, string folderName)
@@ -21,82 +21,85 @@ namespace iLearn.Infrastructure.Services
             if (fileContent == null || fileContent.Length == 0)
                 throw new ArgumentException("File content is empty.");
 
-            // 1. เตรียม Path ปลายทาง
-            var destinationPath = Path.Combine(_webRootPath, folderName);
+            // 1. ใช้ Path จาก Config (HostUnc) ผสมกับ CourseFolder
+            // ตัวอย่าง: \\ap-ntc2137-prwb\wwwroot\iLearn\course\{folderName}
+            var destinationPath = Path.Combine(_settings.FileUnc, folderName);
+
+            // ตรวจสอบและสร้างโฟลเดอร์ปลายทาง
             if (Directory.Exists(destinationPath))
             {
-                Directory.Delete(destinationPath, true); // ลบของเก่าถ้ามี (Re-upload)
+                Directory.Delete(destinationPath, true); // ลบของเก่าออกถ้ามี
             }
             Directory.CreateDirectory(destinationPath);
 
-            // 2. สร้างไฟล์ Zip ชั่วคราวเพื่อเตรียมแตกไฟล์
+            // 2. สร้างไฟล์ Zip ชั่วคราวในเครื่องที่รัน API (Temp Folder)
             var tempZipPath = Path.GetTempFileName();
             await File.WriteAllBytesAsync(tempZipPath, fileContent);
 
             try
             {
-                // 3. แตกไฟล์ (Unzip)
+                // 3. แตกไฟล์ไปยังโฟลเดอร์ปลายทาง (UNC Path)
                 ZipFile.ExtractToDirectory(tempZipPath, destinationPath);
             }
             finally
             {
-                // ลบไฟล์ zip ชั่วคราวทิ้งเสมอ
+                // ลบไฟล์ Zip ชั่วคราวทิ้งเสมอเพื่อประหยัดพื้นที่
                 if (File.Exists(tempZipPath)) File.Delete(tempZipPath);
             }
 
-            // 4. อ่าน imsmanifest.xml เพื่อหาทางเข้า (Launch URL)
+            // 4. อ่านไฟล์ imsmanifest.xml เพื่อหาไฟล์เริ่มต้น (Launch Page)
             var manifestPath = Path.Combine(destinationPath, "imsmanifest.xml");
-            if (!File.Exists(manifestPath))
-            {
-                throw new FileNotFoundException("imsmanifest.xml not found in the SCORM package.");
-            }
+            string launchPage = ParseManifest(manifestPath);
 
-            return ParseManifest(manifestPath);
+            // 5. คืนค่า URL เต็มรูปแบบสำหรับเรียกใช้งาน
+            // ตัวอย่าง: https://ap-ntc2137-prwb/iLearn/course/{folderName}/index.html
+            // ใช้ '/' เชื่อม URL เสมอ ไม่ใช้ Path.Combine เพราะเป็น HTTP Path
+            return $"{_settings.FileUrl}/{folderName}/{launchPage}";
         }
 
         private string ParseManifest(string manifestPath)
         {
-            var xDocument = XDocument.Load(manifestPath);
-            if (xDocument.Root == null) throw new Exception("Invalid manifest file.");
-
-            // ตรวจสอบ Version จาก xmlns
-            var defaultNamespace = xDocument.Root.GetDefaultNamespace().NamespaceName;
-            string? resourceHref = null;
-
-            if (defaultNamespace.Contains("imscp_v1p1")) // SCORM 1.2
+            if (!File.Exists(manifestPath))
             {
-                XNamespace ns = defaultNamespace;
-                XNamespace adlcp = "http://www.adlnet.org/xsd/adlcp_rootv1p2";
-
-                // หา Resource ที่เป็น scormtype="sco"
-                var resource = xDocument.Descendants(ns + "resource")
-                    .FirstOrDefault(x =>
-                        (string?)x.Attribute("type") == "webcontent" &&
-                        (string?)x.Attribute(adlcp + "scormtype") == "sco");
-
-                resourceHref = resource?.Attribute("href")?.Value;
-            }
-            else // SCORM 2004 or others
-            {
-                // ใช้ Logic กลางๆ หรือปรับตาม Namespace จริงของ 2004
-                XNamespace ns = xDocument.Root.GetDefaultNamespace();
-
-                // พยายามหา resource แรกที่มี href
-                var resource = xDocument.Descendants(ns + "resource")
-                    .FirstOrDefault(x =>
-                        (string?)x.Attribute("type") == "webcontent" &&
-                        x.Attribute("href") != null);
-
-                resourceHref = resource?.Attribute("href")?.Value;
-            }
-
-            if (string.IsNullOrEmpty(resourceHref))
-            {
-                // Fallback: ถ้าหาไม่เจอ ให้ลองหาไฟล์ index.html หรือ story.html (Articulate)
+                // ถ้าไม่มี manifest ให้เดาว่าเป็น index.html หรือ story.html (กรณีไม่ใช่ SCORM มาตรฐาน)
                 return "index.html";
             }
 
-            return resourceHref;
+            try
+            {
+                var xDocument = XDocument.Load(manifestPath);
+                if (xDocument.Root == null) return "index.html";
+
+                // ตรวจสอบ Namespace เพื่อรองรับทั้ง SCORM 1.2 และ 2004
+                XNamespace ns = xDocument.Root.GetDefaultNamespace();
+                string? resourceHref = null;
+
+                // ลองหาแบบ SCORM 1.2 / 2004 ทั่วไป
+                var resource = xDocument.Descendants(ns + "resource")
+                    .FirstOrDefault(x =>
+                        (string?)x.Attribute("type") == "webcontent" &&
+                        // เช็คทั้ง scormType (2004) และ scormtype (1.2)
+                        (x.Attributes().Any(a => a.Name.LocalName.ToLower() == "scormtype" && a.Value.ToLower() == "sco"))
+                    );
+
+                // ถ้าหาแบบเจาะจงไม่เจอ ให้เอา resource ตัวแรกที่มี href
+                if (resource == null)
+                {
+                    resource = xDocument.Descendants(ns + "resource")
+                        .FirstOrDefault(x =>
+                            (string?)x.Attribute("type") == "webcontent" &&
+                            x.Attribute("href") != null);
+                }
+
+                resourceHref = resource?.Attribute("href")?.Value;
+
+                return string.IsNullOrEmpty(resourceHref) ? "index.html" : resourceHref;
+            }
+            catch
+            {
+                // กรณีไฟล์ XML เสีย หรืออ่านไม่ได้ ให้ Default กลับไปที่ index.html
+                return "index.html";
+            }
         }
     }
 }
