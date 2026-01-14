@@ -1,11 +1,6 @@
 ﻿@{
     ViewBag.Title = "Enrollments";
 }
-@section ExternalDependencies {
-    <script src="~/lib/babel-polyfill/polyfill.min.js"></script>
-    <script src="~/lib/exceljs/exceljs.min.js"></script>
-    <script src="~/lib/filesaver.js/filesaver.min.js"></script>
-}
 
 <div class="container">
     <div class="gridContainer">
@@ -17,7 +12,7 @@
     <script>
         $(() => {
             const grid = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'Enrollments', {
+                dataSource: createDataStore(serviceUrl, 'EnrollmentsCRUD', {
                     key: 'Id',
                 }),
                 remoteOperations: true,

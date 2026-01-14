@@ -6,5 +6,23 @@
       "library": "font-awesome@7.0.1",
       "destination": "wwwroot/lib/font-awesome/"
     }
-  ]
+  ,
+{
+  "provider": "cdnjs",
+  "library": "babel-polyfill@7.12.1",
+  "destination": "wwwroot/lib/babel-polyfill/"
+}
+,
+{
+  "provider": "cdnjs",
+  "library": "exceljs@4.4.0",
+  "destination": "wwwroot/lib/exceljs/"
+}
+,
+{
+  "provider": "cdnjs",
+  "library": "FileSaver.js@2.0.5",
+  "destination": "wwwroot/lib/FileSaver.js/"
+}
+]
 }

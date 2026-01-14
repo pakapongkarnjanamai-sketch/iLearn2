@@ -2,7 +2,7 @@
 
 namespace iLearn.Admin.Controllers
 {
-    public class UserController : Controller
+    public class UsersController : Controller
     {
         public IActionResult Index()
         {

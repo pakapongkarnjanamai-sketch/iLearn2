@@ -5,54 +5,152 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QCS - @ViewData["Title"]</title>
-
-
-
-    @await RenderSectionAsync("ExternalDependencies", required: false)
-
+    <title>iLearn Admin - @ViewData["Title"]</title>
 
     <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
 
+    <!-- CSS -->
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/devextreme/dx.light.compact.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
-    <script src="~/js/devextreme/filesaver.min.js"></script>
-    <script src="~/js/devextreme/exceljs.min.js"></script>
 
+    <!-- JavaScript -->
     <script src="~/js/devextreme/jquery.js"></script>
-    <script src="~/js/devextreme/bootstrap.js"></script>
-    <script src="~/js/devextreme/dx.all.js"></script>
 
+    <!-- ✅ เปลี่ยนจาก bootstrap.js เป็น bootstrap.bundle.js -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="~/js/devextreme/filesaver.min.js"></script>
+    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
+    <script src="~/js/devextreme/dx.all.js"></script>
     <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
     <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
-
     <script src="~/src/devextreme-license.js"></script>
     <script src="~/js/site.js"></script>
     <script src="~/lib/font-awesome/js/all.min.js"></script>
 
+    @await RenderSectionAsync("ExternalDependencies", required: false)
+
     <style>
+        body {
+            padding-top: 4.5rem;
+        }
 
-
+        .navbar-brand {
+            font-weight: bold;
+            color: #007bff !important;
+        }
     </style>
 
     @await RenderSectionAsync("Styles", required: false)
-
 </head>
 
+
 <body>
-    <nav class="navbar navbar-light bg-light fixed-top navbar-expand-md">
-  
+    <nav class="navbar navbar-expand-md navbar-light bg-white fixed-top shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-graduation-cap"></i> iLearn Admin
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Courses" asp-action="Index">Courses</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-dark" href="#" id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Management
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="manageDropdown">
+                            <li><a class="dropdown-item" asp-controller="Users" asp-action="Index">Users</a></li>
+                            <li><a class="dropdown-item" asp-controller="Roles" asp-action="Index">Roles</a></li>
+                            <li><a class="dropdown-item" asp-controller="Divisions" asp-action="Index">Divisions</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" asp-controller="AssignmentRules" asp-action="Index">Assignment Rules</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Resources" asp-action="Index">Resources</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-dark" href="#" id="trackingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Tracking
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="trackingDropdown">
+                            <li><a class="dropdown-item" asp-controller="Enrollments" asp-action="Index">Enrollments</a></li>
+                            <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Learning Logs</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                </div>
+            </div>
+        </div>
     </nav>
 
-
-    @RenderBody()
-
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
 
     <script>
+        // กำหนด Base URL จาก AppSettings
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
+
+        // ใช้ serviceUrl เป็นตัวแปรกลางสำหรับหน้าต่างๆ (ถ้า API อยู่ที่เดียวกับ Admin ให้ใช้ว่างหรือ /api)
+        // กรณีแยก API Project:
+        const serviceUrl = API_BASE;
+        // กรณีรวม Project (Admin เรียก Controller ตัวเอง):
+        // const serviceUrl = "";
+
+        // Helper Function: สร้าง DataStore สำหรับ DevExtreme
+        function createDataStore(baseUrl, controllerName, options) {
+            const defaults = {
+                key: 'Id',
+                loadUrl: `${baseUrl}/${controllerName}`,
+                insertUrl: `${baseUrl}/${controllerName}`,
+                updateUrl: `${baseUrl}/${controllerName}`,
+                deleteUrl: `${baseUrl}/${controllerName}`,
+                onBeforeSend: function (method, ajaxOptions) {
+                    ajaxOptions.xhrFields = { withCredentials: true };
+                }
+            };
+
+            // กรณีใช้ Controller Action แบบ LoadAction (Custom)
+            if (options && options.action) {
+                defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
+                // ถ้ามี ParamKey ให้ต่อท้าย URL
+                if (options.ParamKey) {
+                     defaults.loadUrl += `/${options.ParamKey}`;
+                }
+            }
+
+            return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
+        }
+
+        // Helper Function: จัดการการ Export Excel
+        function handleExporting(e, fileName) {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: e.component,
+                worksheet: worksheet,
+                autoFilterEnabled: true
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), (fileName || 'Data') + '.xlsx');
+                });
+            });
+            e.cancel = true;
+        }
     </script>
-  
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
