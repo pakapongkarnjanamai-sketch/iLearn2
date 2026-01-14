@@ -16,6 +16,28 @@ namespace iLearn.Infrastructure.Services
             _settings = settings.Value;
         }
 
+        public void DeleteScormFolder(string folderName)
+        {
+            if (string.IsNullOrEmpty(folderName)) return;
+
+            // หา path จริงจาก URL หรือ ResourceID
+            // สมมติว่า folderName คือชื่อโฟลเดอร์ที่เรา Gen ไว้ตอน Upload (Guid)
+            var directoryPath = Path.Combine(_settings.FileUnc, folderName);
+
+            if (Directory.Exists(directoryPath))
+            {
+                try
+                {
+                    Directory.Delete(directoryPath, true); // true = ลบไฟล์ข้างในด้วย
+                }
+                catch (Exception ex)
+                {
+                    // Log warning แต่ไม่ต้อง throw error เพื่อให้การลบใน DB ทำงานต่อได้
+                    Console.WriteLine($"Cannot delete folder {directoryPath}: {ex.Message}");
+                }
+            }
+        }
+
         public async Task<string> ExtractAndParseScormAsync(byte[] fileContent, string folderName)
         {
             if (fileContent == null || fileContent.Length == 0)

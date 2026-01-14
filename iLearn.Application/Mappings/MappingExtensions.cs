@@ -64,7 +64,7 @@ namespace iLearn.Application.Mappings
             return new UserDto
             {
                 Id = entity.Id,
-                Nid = entity.Nid,
+                NID = entity.Nid,
 
             };
         }

@@ -161,17 +161,35 @@ namespace iLearn.API.Controllers
             var resource = await _resourceRepo.GetByIdAsync(id);
             if (resource == null) return NotFound();
 
-            // ลบ Resource
+            // 1. ลบไฟล์จริง (SCORM Folder) ถ้ามี
+            if (resource.IsActive && !string.IsNullOrEmpty(resource.URL))
+            {
+                // แกะชื่อ Folder ออกมาจาก URL
+                // URL เก็บรูปแบบ: "https://host/course/{Guid}/index.html"
+                // เราต้องการแค่ {Guid}
+
+                // วิธีแกะแบบง่าย (ถ้ามั่นใจ Format) หรือจะเก็บ FolderName แยกใน DB ก็ได้
+                // สมมติว่า URL เป็น Relative path หรือมี FolderName เป็นส่วนประกอบ
+                // แต่ในโค้ดเก่าคุณเก็บ URL = "scorm/{newGuid}/{launchUrl}"
+                // ดังนั้นเราต้องดึงค่า newGuid ออกมา
+
+                var parts = resource.URL.Split('/');
+                if (parts.Length >= 2)
+                {
+                    // parts[0] = "scorm", parts[1] = "Guid"
+                    _scormService.DeleteScormFolder(parts[1]);
+                }
+            }
+
+            // 2. ลบ Resource ใน DB
             await _resourceRepo.DeleteAsync(resource);
 
-            // ลบ FileStorage (Clean up)
+            // 3. ลบ FileStorage (Clean up)
             if (resource.FileStorageId.HasValue)
             {
                 var file = await _fileRepo.GetByIdAsync(resource.FileStorageId.Value);
                 if (file != null) await _fileRepo.DeleteAsync(file);
             }
-
-            // TODO: ควรลบโฟลเดอร์ SCORM ใน wwwroot ด้วยถ้ามี (ใช้ System.IO.Directory.Delete)
 
             return NoContent();
         }
