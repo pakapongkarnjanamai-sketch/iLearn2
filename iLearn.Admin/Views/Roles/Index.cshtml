@@ -1,0 +1,87 @@
+﻿@{
+    ViewBag.Title = "Roles";
+}
+@section ExternalDependencies {
+    <script src="~/lib/babel-polyfill/polyfill.min.js"></script>
+    <script src="~/lib/exceljs/exceljs.min.js"></script>
+    <script src="~/lib/filesaver.js/filesaver.min.js"></script>
+}
+
+<div class="container">
+    <div class="gridContainer">
+        <div id="grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // กำหนด Enum สำหรับ RoleType ใน Frontend (ปรับค่าตาม Enums จริงใน C#)
+        const roleTypes = [
+            { id: 0, name: 'Admin' },
+            { id: 1, name: 'Teacher' },
+            { id: 2, name: 'Student' }
+        ];
+
+        $(() => {
+            const grid = $("#grid").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, 'Roles', {
+                    key: 'Id',
+                }),
+                remoteOperations: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                width: '100%',
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300 },
+                groupPanel: { emptyPanelText: '@ViewBag.Title', visible: true },
+                scrolling: { mode: 'virtual' },
+                export: { enabled: true },
+                onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+                editing: {
+                    mode: "popup",
+                    allowUpdating: true,
+                    allowDeleting: true,
+                    allowAdding: true,
+                    useIcons: true,
+                    form: {
+                        items: [
+                            {
+                                itemType: 'group',
+                                colCount: 2,
+                                colSpan: 2,
+                                items: [
+                                    { dataField: 'Id', editorOptions: { disabled: true } },
+                                    { dataField: 'Name' },
+                                    { dataField: 'DivisionId' },
+                                    { dataField: 'RoleType' }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                columns: [
+                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "Name", caption: "Role Name" },
+                    {
+                        dataField: "DivisionId",
+                        caption: "Division",
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'Divisions', { key: 'Id' }),
+                            displayExpr: 'Name',
+                            valueExpr: 'Id'
+                        }
+                    },
+                    {
+                        dataField: "RoleType",
+                        caption: "Role Type",
+                        lookup: {
+                            dataSource: roleTypes,
+                            displayExpr: 'name',
+                            valueExpr: 'id'
+                        }
+                    }
+                ],
+            }).dxDataGrid('instance');
+        })
+    </script>
+}

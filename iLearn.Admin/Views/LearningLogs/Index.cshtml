@@ -1,0 +1,61 @@
+﻿@{
+    ViewBag.Title = "Learning Logs";
+}
+@section ExternalDependencies {
+    <script src="~/lib/babel-polyfill/polyfill.min.js"></script>
+    <script src="~/lib/exceljs/exceljs.min.js"></script>
+    <script src="~/lib/filesaver.js/filesaver.min.js"></script>
+}
+
+<div class="container">
+    <div class="gridContainer">
+        <div id="grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(() => {
+            const grid = $("#grid").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, 'LearningLogs', {
+                    key: 'Id',
+                }),
+                remoteOperations: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                width: '100%',
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300 },
+                export: { enabled: true },
+                onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+                editing: {
+                    mode: "popup",
+                    allowUpdating: true,
+                    allowDeleting: true,
+                    allowAdding: true,
+                    useIcons: true,
+                    form: {
+                        items: [
+                            { dataField: 'Id', editorOptions: { disabled: true } },
+                            { dataField: 'StudentCode' },
+                            { dataField: 'CourseId' },
+                            { dataField: 'ContentId' },
+                            { dataField: 'QuestionId' },
+                            { dataField: 'CourseTime' },
+                            { dataField: 'ExamTime' }
+                        ]
+                    }
+                },
+                columns: [
+                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "StudentCode", caption: "Student Code" },
+                    { dataField: "CourseId", caption: "Course ID" },
+                    { dataField: "ContentId", caption: "Content ID" },
+                    { dataField: "QuestionId", caption: "Question ID" },
+                    { dataField: "CourseTime", caption: "Time Spent (Course)" },
+                    { dataField: "ExamTime", caption: "Time Spent (Exam)" }
+                ],
+            }).dxDataGrid('instance');
+        })
+    </script>
+}

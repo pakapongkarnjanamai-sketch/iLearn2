@@ -1,0 +1,64 @@
+﻿@{
+    ViewBag.Title = "Enrollments";
+}
+@section ExternalDependencies {
+    <script src="~/lib/babel-polyfill/polyfill.min.js"></script>
+    <script src="~/lib/exceljs/exceljs.min.js"></script>
+    <script src="~/lib/filesaver.js/filesaver.min.js"></script>
+}
+
+<div class="container">
+    <div class="gridContainer">
+        <div id="grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(() => {
+            const grid = $("#grid").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, 'Enrollments', {
+                    key: 'Id',
+                }),
+                remoteOperations: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300 },
+                editing: {
+                    mode: "popup",
+                    allowUpdating: true,
+                    allowDeleting: true,
+                    allowAdding: true,
+                    useIcons: true,
+                    form: {
+                        items: [
+                            { dataField: 'Id', editorOptions: { disabled: true } },
+                            { dataField: 'StudentCode' },
+                            { dataField: 'CourseId' },
+                            { dataField: 'Status' },
+                            { dataField: 'DueDate', editorType: 'dxDateBox' },
+                            { dataField: 'CompletedDate', editorType: 'dxDateBox' }
+                        ]
+                    }
+                },
+                columns: [
+                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "StudentCode", caption: "Student Code" },
+                    {
+                        dataField: "CourseId",
+                        caption: "Course",
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'Courses', { key: 'Id' }),
+                            displayExpr: 'Title', // หรือ Name ตาม Model Course ของคุณ
+                            valueExpr: 'Id'
+                        }
+                    },
+                    { dataField: "Status", caption: "Status" },
+                    { dataField: "DueDate", caption: "Due Date", dataType: "date", format: "yyyy-MM-dd" },
+                    { dataField: "CompletedDate", caption: "Completed", dataType: "date", format: "yyyy-MM-dd HH:mm" }
+                ],
+            }).dxDataGrid('instance');
+        })
+    </script>
+}

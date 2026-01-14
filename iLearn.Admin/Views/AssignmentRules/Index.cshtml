@@ -1,0 +1,85 @@
+﻿@{
+    ViewBag.Title = "Assignment Rules";
+}
+@section ExternalDependencies {
+    <script src="~/lib/babel-polyfill/polyfill.min.js"></script>
+    <script src="~/lib/exceljs/exceljs.min.js"></script>
+    <script src="~/lib/filesaver.js/filesaver.min.js"></script>
+}
+
+<div class="container">
+    <div class="gridContainer">
+        <div id="grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(() => {
+            const grid = $("#grid").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, 'AssignmentRules', {
+                    key: 'Id',
+                }),
+                remoteOperations: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                headerFilter: { visible: true },
+                searchPanel: { visible: true, width: 300 },
+                editing: {
+                    mode: "popup",
+                    allowUpdating: true,
+                    allowDeleting: true,
+                    allowAdding: true,
+                    useIcons: true,
+                    form: {
+                        items: [
+                            { dataField: 'Id', editorOptions: { disabled: true } },
+                            { dataField: 'CourseId' },
+                            {
+                                dataField: 'DivisionId',
+                                editorOptions: { showClearButton: true },
+                                helpText: "Leave empty for All Divisions"
+                            },
+                            {
+                                dataField: 'RoleId',
+                                editorOptions: { showClearButton: true },
+                                helpText: "Leave empty for All Roles"
+                            }
+                        ]
+                    }
+                },
+                columns: [
+                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
+                    {
+                        dataField: "CourseId",
+                        caption: "Course",
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'Courses', { key: 'Id' }),
+                            displayExpr: 'Title',
+                            valueExpr: 'Id'
+                        },
+                        validationRules: [{ type: "required" }]
+                    },
+                    {
+                        dataField: "DivisionId",
+                        caption: "Division (Target)",
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'Divisions', { key: 'Id' }),
+                            displayExpr: 'Name',
+                            valueExpr: 'Id'
+                        }
+                    },
+                    {
+                        dataField: "RoleId",
+                        caption: "Role (Target)",
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'Roles', { key: 'Id' }),
+                            displayExpr: 'Name',
+                            valueExpr: 'Id'
+                        }
+                    }
+                ],
+            }).dxDataGrid('instance');
+        })
+    </script>
+}

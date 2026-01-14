@@ -1,0 +1,77 @@
+﻿@{
+    ViewBag.Title = "Resources";
+}
+@section ExternalDependencies {
+    <script src="~/lib/babel-polyfill/polyfill.min.js"></script>
+    <script src="~/lib/exceljs/exceljs.min.js"></script>
+    <script src="~/lib/filesaver.js/filesaver.min.js"></script>
+}
+
+<div class="container">
+    <div class="gridContainer">
+        <div id="grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const resourceTypes = [
+            { id: 1, name: 'Learn' },
+            { id: 2, name: 'Exam' }
+        ];
+
+        $(() => {
+            const grid = $("#grid").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, 'Resources', {
+                    key: 'Id',
+                }),
+                remoteOperations: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                width: '100%',
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300 },
+                export: { enabled: true },
+                onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+                editing: {
+                    mode: "popup",
+                    allowUpdating: true,
+                    allowDeleting: true,
+                    allowAdding: true,
+                    useIcons: true,
+                    form: {
+                        items: [
+                            {
+                                itemType: 'group',
+                                colCount: 2,
+                                colSpan: 2,
+                                items: [
+                                    { dataField: 'Id', editorOptions: { disabled: true } },
+                                    { dataField: 'IsActive' },
+                                    { dataField: 'Name', colSpan: 2 },
+                                    { dataField: 'TypeId' },
+                                    { dataField: 'URL', colSpan: 2 },
+                                    { dataField: 'ResourceHref', colSpan: 2 },
+                                    { dataField: 'FileStorageId' }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                columns: [
+                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "Name", caption: "Resource Name" },
+                    {
+                        dataField: "TypeId",
+                        caption: "Type",
+                        lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' }
+                    },
+                    { dataField: "IsActive", caption: "Active", dataType: "boolean" },
+                    { dataField: "URL", caption: "External URL" },
+                    { dataField: "ResourceHref", caption: "Path/Href", visible: false },
+                    { dataField: "FileStorageId", caption: "File ID", visible: false }
+                ],
+            }).dxDataGrid('instance');
+        })
+    </script>
+}
