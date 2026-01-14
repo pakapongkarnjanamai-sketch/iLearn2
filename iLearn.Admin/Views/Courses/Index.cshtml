@@ -2,11 +2,10 @@
     ViewBag.Title = "Courses";
 }
 
-
-<div class="container-fluid">
-    <div class="card shadow-sm mt-3">
+<div class="container-fluid page-full-height">
+    <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-book"></i> Course Management</h5>
+            <h5 class="mb-0">@ViewBag.Title</h5>
         </div>
         <div class="card-body">
             <div id="grid"></div>
@@ -30,7 +29,8 @@
                 remoteOperations: true,
                 columnAutoWidth: true,
                 showBorders: true,
-                width: '100%',
+                scrolling: { mode: "virtual" },
+                height: "100%",
                 selection: {
                     mode: 'single',
                 },
@@ -47,9 +47,6 @@
                 groupPanel: {
                     emptyPanelText: 'Drag a column header here to group by that column',
                     visible: true,
-                },
-                scrolling: {
-                    mode: 'virtual',
                 },
                 export: {
                     enabled: true,
@@ -133,7 +130,7 @@
                         width: 80
                     },
                     { dataField: "Code", caption: "Code", width: 100 },
-                    { dataField: "Title", caption: "Title", width: 250 },
+                    { dataField: "Title", caption: "Title", minWidth: 250 },
                     {
                         dataField: "CategoryId",
                         caption: "Category",

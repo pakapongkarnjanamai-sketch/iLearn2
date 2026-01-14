@@ -2,10 +2,14 @@
     ViewBag.Title = "Assignment Rules";
 }
 
-
-<div class="container">
-    <div class="gridContainer">
-        <div id="grid"></div>
+<div class="container-fluid page-full-height">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">@ViewBag.Title</h5>
+        </div>
+        <div class="card-body">
+            <div id="grid"></div>
+        </div>
     </div>
 </div>
 
@@ -21,6 +25,8 @@
                 showBorders: true,
                 headerFilter: { visible: true },
                 searchPanel: { visible: true, width: 300 },
+                scrolling: { mode: "virtual" },
+                height: "100%",
                 editing: {
                     mode: "popup",
                     allowUpdating: true,

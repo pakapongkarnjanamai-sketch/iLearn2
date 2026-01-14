@@ -3,9 +3,14 @@
 }
 
 
-<div class="container">
-    <div class="gridContainer">
-        <div id="grid"></div>
+<div class="container-fluid page-full-height">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">@ViewBag.Title</h5>
+        </div>
+        <div class="card-body">
+            <div id="grid"></div>
+        </div>
     </div>
 </div>
 
@@ -19,7 +24,8 @@
                 remoteOperations: true,
                 columnAutoWidth: true,
                 showBorders: true,
-                width: '100%',
+                scrolling: { mode: "virtual" },
+                height: "100%",
                 selection: { mode: 'single' },
                 hoverStateEnabled: true,
                 headerFilter: { visible: true, search: { enabled: true } },
