@@ -112,19 +112,18 @@
         function createDataStore(baseUrl, controllerName, options) {
             const defaults = {
                 key: 'Id',
-                loadUrl: `${baseUrl}/${controllerName}`,
-                insertUrl: `${baseUrl}/${controllerName}`,
-                updateUrl: `${baseUrl}/${controllerName}`,
-                deleteUrl: `${baseUrl}/${controllerName}`,
+                // API ของเราคือ baseUrl/controllerName/Get (เช่น .../api/admin/Courses/Get)
+                loadUrl: `${baseUrl}/${controllerName}/Get`,
+                insertUrl: `${baseUrl}/${controllerName}/Post`,
+                updateUrl: `${baseUrl}/${controllerName}/Put`,
+                deleteUrl: `${baseUrl}/${controllerName}/Delete`,
                 onBeforeSend: function (method, ajaxOptions) {
                     ajaxOptions.xhrFields = { withCredentials: true };
                 }
             };
 
-            // กรณีใช้ Controller Action แบบ LoadAction (Custom)
             if (options && options.action) {
                 defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
-                // ถ้ามี ParamKey ให้ต่อท้าย URL
                 if (options.ParamKey) {
                      defaults.loadUrl += `/${options.ParamKey}`;
                 }

@@ -12,7 +12,7 @@
     <script>
         $(() => {
             const grid = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'EnrollmentsCRUD', {
+                dataSource: createDataStore(serviceUrl, 'admin/EnrollmentsCRUD', {
                     key: 'Id',
                 }),
                 remoteOperations: true,
@@ -44,7 +44,7 @@
                         dataField: "CourseId",
                         caption: "Course",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'Courses', { key: 'Id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' }),
                             displayExpr: 'Title', // หรือ Name ตาม Model Course ของคุณ
                             valueExpr: 'Id'
                         }

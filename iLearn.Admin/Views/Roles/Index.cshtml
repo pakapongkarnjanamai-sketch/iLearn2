@@ -20,7 +20,7 @@
 
         $(() => {
             const grid = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'RolesCRUD', {
+                dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', {
                     key: 'Id',
                 }),
                 remoteOperations: true,
@@ -62,7 +62,7 @@
                         dataField: "DivisionId",
                         caption: "Division",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'Divisions', { key: 'Id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'Id' }),
                             displayExpr: 'Name',
                             valueExpr: 'Id'
                         }

@@ -24,7 +24,7 @@
 
         $(() => {
             const grid = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'CoursesCRUD', {
+                dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', {
                     key: 'Id',
                 }),
                 remoteOperations: true,
@@ -140,7 +140,7 @@
                         width: 150,
                         lookup: {
                             // ใช้ Controller Categories หรือ View ตามที่คุณมี
-                            dataSource: createDataStore(serviceUrl, 'CategoriesCRUD', { key: 'Id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'Id' }),
                             displayExpr: 'Name', // ตรวจสอบว่า Model Category ใช้ Field 'Name'
                             valueExpr: 'Id',
                         }
@@ -168,7 +168,7 @@
                         visible: false,
                         lookup: {
                             // Lookup ไปยัง Resources
-                            dataSource: createDataStore(serviceUrl, 'ResourcesCRUD', { key: 'Id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' }),
                             // สามารถเพิ่ม filter ถ้าต้องการเฉพาะ Type=Learn (1)
                             // filter: ['TypeId', '=', 1],
                             displayExpr: 'Name',
@@ -181,7 +181,7 @@
                         visible: false,
                         lookup: {
                             // Lookup ไปยัง Resources
-                            dataSource: createDataStore(serviceUrl, 'ResourcesCRUD', { key: 'Id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' }),
                             // สามารถเพิ่ม filter ถ้าต้องการเฉพาะ Type=Exam (2)
                             // filter: ['TypeId', '=', 2],
                             displayExpr: 'Name',
