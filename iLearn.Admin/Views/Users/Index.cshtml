@@ -2,7 +2,6 @@
     ViewBag.Title = "Users";
 }
 
-
 <div class="container-fluid page-full-height">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
@@ -31,24 +30,36 @@
                 headerFilter: { visible: true, search: { enabled: true } },
                 searchPanel: { visible: true, width: 300 },
                 groupPanel: { emptyPanelText: '@ViewBag.Title', visible: true },
-                scrolling: { mode: 'virtual' },
                 export: { enabled: true, allowExportSelectedData: false },
                 onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
                     useIcons: true,
+                    popup: {
+                        title: "User Info",
+                        showTitle: true,
+                        width: 700,
+                        height: 450
+                    },
                     form: {
                         items: [
                             {
                                 itemType: 'group',
-                                colCount: 1,
+                                colCount: 2,
                                 colSpan: 2,
                                 items: [
-                                    { dataField: 'Id', editorOptions: { disabled: true } },
-                                    { dataField: 'Nid' }
+                                    { dataField: 'Id', editorOptions: { disabled: true }, colSpan: 2 },
+                                    { dataField: 'Nid', colSpan: 2 },
+                                    // [แก้ไขจุดนี้] เปลี่ยนจาก Roles เป็น RoleIds เพื่อให้ตรงกับ Column
+                                    {
+                                        dataField: 'RoleIds',
+                                        colSpan: 2,
+                                        label: { text: 'Roles' }
+                                    }
                                 ]
                             }
                         ]
@@ -57,10 +68,67 @@
                 columns: [
                     { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
                     { dataField: "Nid", caption: "National ID / Username" },
-                    // สามารถเพิ่ม Audit fields เช่น CreatedDate ได้ถ้าต้องการ
+
+                    // --- ส่วนที่เพิ่มใหม่สำหรับ Roles ---
+                    {
+                        dataField: "RoleIds", // Virtual Column สำหรับจัดการ ID
+                        caption: "Roles",
+                        width: 300,
+                        allowSorting: false,
+
+                        // 1. แปลงข้อมูล UserRoles/Roles ให้เป็น Array [1, 2]
+                        calculateCellValue: function(rowData) {
+                            if (rowData.Roles) {
+                                return rowData.Roles.map(r => r.Id);
+                            }
+                            if (rowData.UserRoles) {
+                                return rowData.UserRoles.map(ur => ur.RoleId);
+                            }
+                            return [];
+                        },
+
+                        // 2. ใช้ TagBox Template
+                        editCellTemplate: tagBoxEditorTemplate,
+
+                        // 3. แสดงผลในตาราง (Lookup ID -> Name)
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'Id' }),
+                            displayExpr: 'Name',
+                            valueExpr: 'Id',
+                        },
+                        cellTemplate: function(container, options) {
+                            const items = options.value || [];
+                            // ใช้ lookup ช่วยแปลง ID เป็น Name เพื่อแสดงผล
+                            const text = items.map(id => options.column.lookup.calculateCellValue(id)).join(", ");
+                            container.text(text).attr('title', text);
+                        }
+                    },
+
                     { dataField: "CreatedDate", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false }
                 ],
             }).dxDataGrid('instance');
+
+            // ฟังก์ชันสร้าง TagBox
+            function tagBoxEditorTemplate(cellElement, cellInfo) {
+                return $('<div>').dxTagBox({
+                    dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'Id' }),
+                    value: cellInfo.value || [],
+                    valueExpr: 'Id',
+                    displayExpr: 'Name',
+                    showSelectionControls: true,
+                    maxDisplayedTags: 3,
+                    showMultiTagOnly: false,
+                    applyValueMode: 'useButtons',
+                    searchEnabled: true,
+                    placeholder: "Select Roles...",
+                    onValueChanged(e) {
+                        cellInfo.setValue(e.value); // ส่งค่า [1, 3] กลับไปที่ Grid
+                    },
+                    onSelectionChanged(e) {
+                        cellInfo.component.updateDimensions(); // Fix error dimension
+                    }
+                });
+            }
         })
     </script>
 }

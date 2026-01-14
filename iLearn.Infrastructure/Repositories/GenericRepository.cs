@@ -16,7 +16,10 @@ namespace iLearn.Infrastructure.Repositories
             _context = context;
             _dbSet = context.Set<T>();
         }
-
+        public IQueryable<T> GetQuery()
+        {
+            return _dbSet.AsQueryable();
+        }
         public async Task<IReadOnlyList<T>> GetAllAsync()
         {
             return await _dbSet.ToListAsync();
