@@ -361,4 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/iLearn.Admin/wwwroot/course/e17517ec-5e93-4aaa-9504-302f2ad5682e
+/iLearn.Admin/wwwroot/course
+/iLearn.API/wwwroot/course
