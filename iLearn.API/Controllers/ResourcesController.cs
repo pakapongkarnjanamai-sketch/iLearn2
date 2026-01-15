@@ -133,7 +133,7 @@ namespace iLearn.API.Controllers
                     string launchUrl = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
 
                     // อัปเดต URL และสถานะ
-                    resource.URL = $"scorm/{folderName}/{launchUrl}";
+                    resource.URL = $"{launchUrl}";
                     resource.IsActive = true;
                 }
                 else

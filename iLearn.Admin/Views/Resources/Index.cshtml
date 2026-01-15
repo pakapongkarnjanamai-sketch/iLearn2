@@ -76,38 +76,64 @@
                    $("#fileUploader").dxFileUploader({
             name: 'file',
             multiple: true,
-            accept: '.zip,.pdf,.mp4,.png,.jpg',
+            accept: '.zip',
             uploadMode: 'instantly',
-            uploadUrl: getUploadUrl(),
+            // uploadUrl: getUploadUrl(), <--- ลบบรรทัดนี้ออก (เราจะใช้ uploadFile แทน)
             maxFileSize: 100 * 1024 * 1024, // 100MB
 
-            // --- จุดที่แก้ไข ---
-            onUploadStarted: function(e) {
-                // วิธีที่ 1: ตรวจสอบสถานะก่อนตั้งค่า (ป้องกัน InvalidStateError)
-                // 0 = UNSENT, 1 = OPENED. เราแก้ไขได้เฉพาะตอนที่ยังไม่ถูกส่ง
-                if (e.request.readyState <= 1) {
-                    e.request.withCredentials = true;
-                }
+            // --- ใช้ Custom Upload แทน ---
+            uploadFile: function(file, progressCallback) {
+                var deferred = $.Deferred();
+                var formData = new FormData();
+                formData.append("file", file); // ชื่อ Parameter ต้องตรงกับที่ API รับ (เช่น IFormFile file)
 
-                // วิธีที่ 2 (แนะนำเพิ่ม): หากคุณใช้ Anti-Forgery Token ของ MVC ให้แนบไปด้วย
-                // const token = $('input[name="__RequestVerificationToken"]').val();
-                // if (token) {
-                //    e.request.setRequestHeader("RequestVerificationToken", token);
-                // }
+                var xhr = new XMLHttpRequest();
+                // ดึง URL ล่าสุดจากฟังก์ชัน
+                var url = getUploadUrl();
+
+                xhr.open("POST", url, true);
+
+                // จุดสำคัญ: ตั้งค่า Credentials ทันทีหลัง open()
+                xhr.withCredentials = true;
+
+                // ตั้งค่า Progress Bar
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        progressCallback(e.loaded, e.total);
+                    }
+                };
+
+                // ตรวจสอบผลลัพธ์เมื่อเสร็จสิ้น
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        deferred.resolve(); // สำเร็จ
+                    } else {
+                        deferred.reject(xhr.responseText || xhr.statusText); // แจ้ง Error
+                    }
+                };
+
+                xhr.onerror = function() {
+                    deferred.reject("Network Error");
+                };
+
+                xhr.send(formData);
+
+                return deferred.promise();
             },
-            // ------------------
+            // ---------------------------
+
+            // ไม่ต้องใช้ onUploadStarted แล้ว
+            // onUploadStarted: ...
 
             onUploaded: function (e) {
                 DevExpress.ui.notify("File uploaded successfully", "success", 2000);
                 $("#grid").dxDataGrid("instance").refresh();
             },
             onUploadError: function (e) {
-                // ดึง Error Message จาก Server มาแสดงให้ชัดเจนขึ้น
                 let msg = "Upload failed";
-                if (e.request && e.request.responseText) {
-                     msg = e.request.responseText;
-                } else if (e.error) {
-                     msg = e.error.message;
+                // ปรับการดึง Error message จาก Custom Upload (e.error จะเป็น string ที่เรา reject)
+                if (e.error) {
+                     msg = e.error;
                 }
                 console.error("Upload Error:", e);
                 DevExpress.ui.notify(msg, "error", 3000);
@@ -254,25 +280,77 @@
                         dataType: "boolean",
                         width: 80
                     },
-                    {
-                        type: "buttons",
-                        width: 100,
-                        buttons: [
                             {
-                                hint: "Open/Test Resource",
-                                icon: "video", // หรือ icon 'runner'
-                                visible: function(e) { return e.row.data.IsActive; },
-                                onClick: function(e) {
-                                    const resource = e.row.data;
-                                    const url = `${serviceUrl}/api/Resources/${resource.Id}/content`;
-                                    // เปิดหน้าต่างใหม่เพื่อดูเนื้อหา
-                                    window.open(url, '_blank');
-                                }
-                            },
-                            "edit",
-                            "delete"
-                        ]
+            type: "buttons",
+            width: 120, // ขยายความกว้างเล็กน้อยเพื่อให้ปุ่มแสดงผลได้สวยงาม
+            buttons: [
+                // 1. ปุ่มสำหรับ Publish (แสดงเฉพาะตอนยังไม่ Active)
+                {
+                    hint: "Publish / Activate (Extract Zip)",
+                    icon: "globe", // ใช้ icon รูปโลก หรือ 'check'
+                    cssClass: "dx-icon-globe text-success", // ใส่สีเขียวให้ดูว่าเป็นปุ่มเปิดใช้งาน
+                    visible: function(e) {
+                        // แสดงปุ่มนี้ก็ต่อเมื่อ IsActive เป็น false
+                        return !e.row.data.IsActive;
+                    },
+                    onClick: function(e) {
+                        // เรียกฟังก์ชัน JavaScript ที่เราจะสร้างด้านล่าง
+                        setResourcePublic(e.row.data.Id);
                     }
+                },
+
+                // 2. ปุ่มเดิมสำหรับเปิดดู (แสดงเฉพาะตอน Active แล้ว)
+                   {
+            hint: "View Content",
+            icon: "video",
+            visible: function(e) { return e.row.data.IsActive; },
+            onClick: function(e) {
+                const resource = e.row.data;
+                const apiUrl = `${serviceUrl}/Resources/${resource.Id}/content`;
+
+                // ตรวจสอบว่าเป็นไฟล์ Zip (SCORM) หรือไม่
+                if (resource.Name.toLowerCase().endsWith('.zip')) {
+
+                    // 1. เปิดหน้าต่างใหม่รอไว้ทันที (ป้องกัน Popup Blocker)
+                    // ต้องทำใน Event Loop เดียวกันกับการกดปุ่ม
+                    const win = window.open('about:blank', '_blank');
+
+                    if (win) {
+                        win.document.title = "Loading...";
+                        win.document.body.innerHTML = "<div style='text-align:center;margin-top:20%;font-family:sans-serif;'>Loading content, please wait...</div>";
+                    }
+
+                    // 2. เรียก AJAX ไปดึง URL ตัวจริงจาก JSON
+                    $.ajax({
+                        url: apiUrl,
+                        method: "GET",
+                        xhrFields: { withCredentials: true }, // ส่ง Cookie Auth ไปด้วย
+                        success: function(response) {
+                            if (response && response.url) {
+                                // 3. ได้ URL แล้ว สั่ง Redirect หน้าต่างที่เปิดรอไว้
+                                if (win) win.location.href = response.url;
+                            } else {
+                                if (win) win.close(); // ปิดถ้าไม่มี URL
+                                DevExpress.ui.notify("Content URL not found", "error", 3000);
+                            }
+                        },
+                        error: function(err) {
+                            if (win) win.close(); // ปิดถ้า Error
+                            console.error(err);
+                            DevExpress.ui.notify("Failed to load content information", "error", 3000);
+                        }
+                    });
+
+                } else {
+                    // กรณีไฟล์ทั่วไป (PDF, MP4) ที่ API ส่งไฟล์กลับมาโดยตรง ให้เปิดได้เลย
+                    window.open(apiUrl, '_blank');
+                }
+            }
+        },
+                "edit",
+                "delete"
+            ]
+        }
                 ],
             }).dxDataGrid('instance');
 
@@ -297,6 +375,42 @@
                     }
                 });
             }
+
+                    function setResourcePublic(id) {
+            // 1. ถามยืนยันก่อนการแตกไฟล์
+            var confirmDialog = DevExpress.ui.dialog.confirm(
+                "<i>Are you sure you want to publish this resource?</i><br>For .zip (SCORM) files, this will extract content and make it ready.",
+                "Confirm Publish"
+            );
+
+            confirmDialog.done(function(dialogResult) {
+                if (dialogResult) {
+                    // 2. แสดง Notification ว่ากำลังทำงาน
+                    DevExpress.ui.notify("Processing... Please wait.", "info", 2000);
+
+                    // 3. เรียก API SetPublic
+                    // URL ตรงกับ Controller: [HttpPost("SetPublic")] public async Task<IActionResult> SetPublic([FromQuery] int key)
+                    $.ajax({
+                        url: `${serviceUrl}/Resources/SetPublic?key=${id}`,
+                        type: "POST",
+                        xhrFields: {
+                            withCredentials: true // สำคัญ: ต้องส่ง Auth Cookie ไปด้วย
+                        },
+                        success: function(res) {
+                            DevExpress.ui.notify("Resource activated successfully!", "success", 2000);
+                            // 4. รีเฟรชตารางเพื่ออัปเดตสถานะปุ่มจาก "Globe" เป็น "Video"
+                            $("#grid").dxDataGrid("instance").refresh();
+                        },
+                        error: function(xhr) {
+                            let msg = "Activation failed";
+                            if (xhr.responseText) msg = xhr.responseText;
+                            DevExpress.ui.notify(msg, "error", 3000);
+                            console.error(xhr);
+                        }
+                    });
+                }
+            });
+        }
         })
     </script>
 }
