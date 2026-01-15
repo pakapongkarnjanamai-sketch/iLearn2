@@ -25,7 +25,7 @@ namespace iLearn.Application.Services
 
         public ApiUserService(IHttpClientFactory httpClientFactory, ILogger<ApiUserService> logger, IMemoryCache cache)
         {
-            _httpClient = httpClientFactory.CreateClient("DocTrackerAPI");
+            _httpClient = httpClientFactory.CreateClient("iLearnAPI");
             _logger = logger;
             _cache = cache;
             _jsonOptions = new JsonSerializerOptions

@@ -1,7 +1,9 @@
-﻿namespace iLearn.Domain.Entities
+﻿using iLearn.Domain.Common;
+
+namespace iLearn.Domain.Entities
 {
     // Class นี้อาจจะไม่สืบทอด BaseEntity ถ้าใช้เป็นแค่ตารางเชื่อม (Join Table)
-    public class CourseResource
+    public class CourseResource : BaseEntity
     {
         public int Id { get; set; }
 

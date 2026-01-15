@@ -2,12 +2,41 @@
     ViewBag.Title = "Resources";
 }
 
+<style>
+    .uploader-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border: 1px dashed #ced4da;
+    }
+    .note {
+        font-size: 0.9em;
+        color: #6c757d;
+        margin-top: 10px;
+        display: block;
+    }
+</style>
+
 <div class="container-fluid page-full-height">
+
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">@ViewBag.Title</h5>
+            <h5 class="mb-0">@ViewBag.Title List</h5>
         </div>
         <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Resource Type for Upload:</label>
+                        <div id="uploadTypeSelect"></div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div id="fileUploader"></div>
+                    <span class="note">Supported: <b>.zip (SCORM), .pdf, .mp4</b> | Max size: 100MB</span>
+                </div>
+            </div>
             <div id="grid"></div>
         </div>
     </div>
@@ -15,13 +44,77 @@
 
 @section Scripts {
     <script>
-        // กำหนด Resource Type (1=Learn, 2=Exam)
         const resourceTypes = [
             { id: 1, name: 'Learn (Course Material)' },
             { id: 2, name: 'Exam (Assessment)' }
         ];
 
+        // ค่า Default สำหรับการอัปโหลด
+        let selectedUploadTypeId = 1;
+
         $(() => {
+
+            // 1. ตัวเลือกประเภทไฟล์ก่อนอัปโหลด
+            $("#uploadTypeSelect").dxSelectBox({
+                dataSource: resourceTypes,
+                valueExpr: 'id',
+                displayExpr: 'name',
+                value: selectedUploadTypeId,
+                onValueChanged: function(e) {
+                    selectedUploadTypeId = e.value;
+                    // อัปเดต URL ของ Uploader เมื่อเปลี่ยนประเภท
+                    const uploader = $("#fileUploader").dxFileUploader("instance");
+                    uploader.option("uploadUrl", getUploadUrl());
+                }
+            });
+
+            function getUploadUrl() {
+                return `${serviceUrl}/Resources/upload?typeId=${selectedUploadTypeId}`;
+            }
+
+            // 2. File Uploader Configuration
+                   $("#fileUploader").dxFileUploader({
+            name: 'file',
+            multiple: true,
+            accept: '.zip,.pdf,.mp4,.png,.jpg',
+            uploadMode: 'instantly',
+            uploadUrl: getUploadUrl(),
+            maxFileSize: 100 * 1024 * 1024, // 100MB
+
+            // --- จุดที่แก้ไข ---
+            onUploadStarted: function(e) {
+                // วิธีที่ 1: ตรวจสอบสถานะก่อนตั้งค่า (ป้องกัน InvalidStateError)
+                // 0 = UNSENT, 1 = OPENED. เราแก้ไขได้เฉพาะตอนที่ยังไม่ถูกส่ง
+                if (e.request.readyState <= 1) {
+                    e.request.withCredentials = true;
+                }
+
+                // วิธีที่ 2 (แนะนำเพิ่ม): หากคุณใช้ Anti-Forgery Token ของ MVC ให้แนบไปด้วย
+                // const token = $('input[name="__RequestVerificationToken"]').val();
+                // if (token) {
+                //    e.request.setRequestHeader("RequestVerificationToken", token);
+                // }
+            },
+            // ------------------
+
+            onUploaded: function (e) {
+                DevExpress.ui.notify("File uploaded successfully", "success", 2000);
+                $("#grid").dxDataGrid("instance").refresh();
+            },
+            onUploadError: function (e) {
+                // ดึง Error Message จาก Server มาแสดงให้ชัดเจนขึ้น
+                let msg = "Upload failed";
+                if (e.request && e.request.responseText) {
+                     msg = e.request.responseText;
+                } else if (e.error) {
+                     msg = e.error.message;
+                }
+                console.error("Upload Error:", e);
+                DevExpress.ui.notify(msg, "error", 3000);
+            }
+        });
+
+            // 3. DataGrid Configuration
             const grid = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', {
                     key: 'Id',
@@ -30,23 +123,21 @@
                 columnAutoWidth: true,
                 showBorders: true,
                 scrolling: { mode: "virtual" },
-                height: "100%",
+                height: "600px",
                 headerFilter: { visible: true, search: { enabled: true } },
                 searchPanel: { visible: true, width: 300, placeholder: "Search resources..." },
-                export: { enabled: true, allowExportSelectedData: false },
-                onExporting: (e) => handleExporting(e, 'Resources_Data'),
 
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
-                    allowAdding: true,
+                    allowAdding: false, // ให้เพิ่มผ่านการ Upload แทนการกดปุ่ม Add
                     useIcons: true,
                     popup: {
                         title: "Resource Info",
                         showTitle: true,
                         width: 700,
-                        height: 550
+                        height: 600
                     },
                     form: {
                         items: [
@@ -77,37 +168,27 @@
                             },
                             {
                                 itemType: 'group',
+                                caption: "Mappings",
+                                colCount: 1,
+                                colSpan: 2,
+                                items: [
+                                    // Field สำหรับผูกกับวิชา (Virtual Column)
+                                    {
+                                        dataField: 'CourseIds',
+                                        label: { text: 'Related Courses' }
+                                    }
+                                ]
+                            },
+                            {
+                                itemType: 'group',
                                 caption: "Source (External URL)",
                                 colCount: 1,
                                 colSpan: 2,
                                 items: [
                                     {
                                         dataField: 'URL',
-                                        label: { text: "External URL" },
-                                        editorOptions: { placeholder: "https://..." }
-                                    }
-                                ]
-                            },
-                            {
-                                itemType: 'group',
-                                caption: "System Metadata (Read Only)",
-                                colCount: 2,
-                                colSpan: 2,
-                                visible: true, // หรือเปลี่ยนเป็น false ถ้าไม่อยากให้เห็นตอนแก้
-                                items: [
-                                    {
-                                        dataField: 'FileStorageId',
-                                        editorOptions: { disabled: true },
-                                        helpText: "Generated automatically upon file upload"
-                                    },
-                                    {
-                                        dataField: 'SchemaVersion',
-                                        editorOptions: { disabled: true }
-                                    },
-                                    {
-                                        dataField: 'ResourceHref',
-                                        colSpan: 2,
-                                        editorOptions: { disabled: true }
+                                        label: { text: "External URL / Launch Path" },
+                                        editorOptions: { placeholder: "https://... or generated path" }
                                     }
                                 ]
                             }
@@ -116,40 +197,106 @@
                 },
                 columns: [
                     { dataField: "Id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
-                    { dataField: "Name", caption: "Resource Name", minWidth: 200 },
+                    {
+                        dataField: "Name",
+                        caption: "Resource Name",
+                        minWidth: 200,
+                        cellTemplate: function(container, options) {
+                            // แสดง Icon ตามนามสกุลไฟล์
+                            let icon = '<i class="far fa-file"></i>';
+                            if(options.data.Name.endsWith('.zip')) icon = '<i class="far fa-file-archive text-warning"></i>';
+                            else if(options.data.Name.endsWith('.pdf')) icon = '<i class="far fa-file-pdf text-danger"></i>';
+                            else if(options.data.Name.endsWith('.mp4')) icon = '<i class="far fa-file-video text-info"></i>';
+
+                            container.html(`${icon} ${options.data.Name}`);
+                        }
+                    },
                     {
                         dataField: "TypeId",
                         caption: "Type",
-                        width: 150,
+                        width: 120,
                         lookup: {
                             dataSource: resourceTypes,
                             valueExpr: 'id',
                             displayExpr: 'name'
                         }
                     },
+
+                    // --- Virtual Column สำหรับ Course Mapping ---
+                    {
+                        dataField: "CourseIds",
+                        caption: "Assigned Courses",
+                        width: 250,
+                        allowSorting: false,
+                        calculateCellValue: function(rowData) {
+                            if (rowData.CourseResources) {
+                                return rowData.CourseResources.map(cr => cr.CourseId);
+                            }
+                            return [];
+                        },
+                        editCellTemplate: tagBoxCourseTemplate,
+                        lookup: {
+                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' }),
+                            displayExpr: 'Title', // ใช้ Title ตาม Model Course
+                            valueExpr: 'Id',
+                        },
+                        cellTemplate: function(container, options) {
+                            const items = options.value || [];
+                            const text = items.map(id => options.column.lookup.calculateCellValue(id)).join(", ");
+                            container.text(text).attr('title', text);
+                        }
+                    },
+                    // -------------------------------------------
+
                     {
                         dataField: "IsActive",
                         caption: "Active",
                         dataType: "boolean",
                         width: 80
                     },
-                    { dataField: "URL", caption: "External URL", visible: false },
-
-                    // Fields สำหรับ SCORM/File (ซ่อนไว้เป็น Default)
-                    { dataField: "ResourceHref", caption: "Path/Href", visible: false },
-                    { dataField: "SchemaVersion", caption: "SCORM Version", visible: false },
-                    { dataField: "FileStorageId", caption: "File ID", width: 80, visible: false },
-
                     {
-                        dataField: "CreatedAt",
-                        caption: "Created Date",
-                        dataType: "date",
-                        format: "dd/MM/yyyy HH:mm",
-                        allowEditing: false,
-                        visible: false
+                        type: "buttons",
+                        width: 100,
+                        buttons: [
+                            {
+                                hint: "Open/Test Resource",
+                                icon: "video", // หรือ icon 'runner'
+                                visible: function(e) { return e.row.data.IsActive; },
+                                onClick: function(e) {
+                                    const resource = e.row.data;
+                                    const url = `${serviceUrl}/api/Resources/${resource.Id}/content`;
+                                    // เปิดหน้าต่างใหม่เพื่อดูเนื้อหา
+                                    window.open(url, '_blank');
+                                }
+                            },
+                            "edit",
+                            "delete"
+                        ]
                     }
                 ],
             }).dxDataGrid('instance');
+
+            // Template สำหรับ TagBox เลือกวิชา
+            function tagBoxCourseTemplate(cellElement, cellInfo) {
+                return $('<div>').dxTagBox({
+                    dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' }),
+                    value: cellInfo.value || [],
+                    valueExpr: 'Id',
+                    displayExpr: 'Title', // ใช้ Title
+                    showSelectionControls: true,
+                    maxDisplayedTags: 3,
+                    showMultiTagOnly: false,
+                    applyValueMode: 'useButtons',
+                    searchEnabled: true,
+                    placeholder: "Assign to courses...",
+                    onValueChanged(e) {
+                        cellInfo.setValue(e.value);
+                    },
+                    onSelectionChanged(e) {
+                        cellInfo.component.updateDimensions();
+                    }
+                });
+            }
         })
     </script>
 }

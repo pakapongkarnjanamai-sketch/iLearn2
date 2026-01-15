@@ -1,9 +1,13 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.API.Controllers.Base;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
+using iLearn.Application.Services;
+using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace iLearn.API.Controllers
 {
@@ -13,13 +17,16 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<User> _userRepo;
         private readonly ICourseAssignmentService _assignmentService;
-
+        public readonly IDateTime _dateTime;
+        private readonly ILogger<UsersController> _logger;
         public UsersController(
             IGenericRepository<User> userRepo,
-            ICourseAssignmentService assignmentService)
+            ICourseAssignmentService assignmentService,IDateTime dateTime, ILogger<UsersController> logger)
         {
+            _dateTime = dateTime;
             _userRepo = userRepo;
             _assignmentService = assignmentService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -63,6 +70,97 @@ namespace iLearn.API.Controllers
 
             await _userRepo.DeleteAsync(user);
             return NoContent();
+        }
+
+        [HttpPost("windows-auth")]
+        public async Task<ActionResult<ApiResponse<UserDto>>> GetOrCreateUserFromWindows([FromBody] CreateUserRequest request)
+        {
+            try
+            {
+                // 1. Validate input และ extract NID
+                if (string.IsNullOrWhiteSpace(request?.WindowsIdentity))
+                {
+                    return BadRequest(new ApiResponse<UserDto>
+                    {
+                        Success = false,
+                        Message = "Windows identity is required"
+                    });
+                }
+
+                string nid = request.WindowsIdentity.Split('\\').LastOrDefault();
+                if (string.IsNullOrWhiteSpace(nid))
+                {
+                    return BadRequest(new ApiResponse<UserDto>
+                    {
+                        Success = false,
+                        Message = "Invalid Windows identity format"
+                    });
+                }
+
+                // 2. Query optimization - เลือกเฉพาะ field ที่ต้องการ
+                var user = await _userRepo.GetQuery()
+                    .Where(u => u.Nid == nid)
+                    .Select(u => new
+                    {
+                        u.Id,
+                     
+                        u.LastLogin,
+                        Roles = u.UserRoles.Select(ur => new RoleDto
+                        {
+                            Id = ur.Role.Id,
+                            Name = ur.Role.Name,
+                            //Description = ur.Role.Description,
+                            //IsActive = ur.Role.IsActive
+                        }).ToList()
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    return NotFound(new ApiResponse<UserDto>
+                    {
+                        Success = false,
+                        Message = "User not found"
+                    });
+                }
+
+                // 3. Update LastLogin แยกต่างหาก (เพื่อ performance)
+                await _userRepo.GetQuery()
+                    .Where(u => u.Nid == nid)
+                    .ExecuteUpdateAsync(u => u.SetProperty(x => x.LastLogin, _dateTime.Now));
+
+                // 4. Create UserDto โดยใช้ AutoMapper หรือ direct mapping
+                var userDto = new UserDto
+                {
+                    Id = user.Id,
+                    //NID = user.NID,
+                    //EmployeeID = user.EmployeeID,
+                    //FirstName = user.FirstName,
+                    //LastName = user.LastName,
+                    //Email = user.Email,
+                    //PhoneNumber = user.PhoneNumber,
+                    LastLogin = _dateTime.Now,
+                    Roles = user.Roles
+                };
+
+                return Ok(new ApiResponse<UserDto>
+                {
+                    Success = true,
+                    Data = userDto,
+                    Message = "User retrieved successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetOrCreateUserFromWindows for identity: {Identity}",
+                    request?.WindowsIdentity);
+
+                return StatusCode(500, new ApiResponse<UserDto>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
         }
     }
 }

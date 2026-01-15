@@ -11,7 +11,7 @@ namespace iLearn.Domain.Entities
     {
 
         public string Nid { get; set; }
-
+        public DateTime LastLogin { get; set; }
         // Navigation property
         public ICollection<UserRole> UserRoles { get; set; }
         public User() { UserRoles = new HashSet<UserRole>(); }
