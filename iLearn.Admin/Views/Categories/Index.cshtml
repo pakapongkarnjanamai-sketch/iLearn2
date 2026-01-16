@@ -32,13 +32,9 @@
                 groupPanel: { visible: true, emptyPanelText: 'Drag a column header here to group by that column' },
                 export: { enabled: true, allowExportSelectedData: false },
                 onExporting: (e) => handleExporting(e, 'Categories_Data'),
-               onRowDblClick: function(e) {
+              onRowDblClick: function(e) {
                     if (e.data && e.data.Id) {
-                        // 1. บันทึก ID ลงใน Session Storage ของ Browser
-                        sessionStorage.setItem('SelectedCategoryId', e.data.Id);
-
-                        // 2. ย้ายหน้าโดยไม่ต้องแนบ Parameter ไปใน URL
-                        window.location.href = '@Url.Action("Index", "Courses")';
+                        window.location.href = '@Url.Action("Index", "Courses")?categoryId=' + e.data.Id;
                     }
                 },
                 editing: {

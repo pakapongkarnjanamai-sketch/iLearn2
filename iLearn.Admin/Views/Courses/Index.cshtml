@@ -1,11 +1,12 @@
 ﻿@{
     ViewBag.Title = "Courses Management";
+    var categoryId = ViewBag.categoryId;
 }
 
 <div class="container-fluid page-full-height">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">@ViewBag.Title</h5>
+            <h5 class="mb-0">@ViewBag.Title (Category ID: @categoryId)</h5>
         </div>
         <div class="card-body">
             <div id="grid"></div>
@@ -21,18 +22,14 @@
             { id: 0, name: 'Special (Rule-based)' },
             { id: 1, name: 'General (Auto-assign)' }
         ];
-        const hiddenCategoryId = sessionStorage.getItem('SelectedCategoryId');
-            let initialFilter = null;
-
-            if (hiddenCategoryId) {
-                // สร้าง Filter
-                initialFilter = ["CategoryId", "=", parseInt(hiddenCategoryId)];
-
-                // [สำคัญ] ลบค่าทิ้งทันที เพื่อไม่ให้ Filter ค้าง
-                // กรณีผู้ใช้กด Refresh หรือเข้ามาหน้านี้ใหม่จากเมนูอื่น จะได้เห็นข้อมูลทั้งหมดตามปกติ
-                sessionStorage.removeItem('SelectedCategoryId');
-            }
+     
         $(() => {
+
+              let initialFilter = null;
+
+            if (@categoryId) {
+                initialFilter = ["categoryId", "=", parseInt(@categoryId)];
+            }
             // ใช้ createDataStore เชื่อมต่อกับ API CRUD มาตรฐาน (admin/CoursesCRUD)
             const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' });
 
@@ -47,11 +44,7 @@
                 searchPanel: { visible: true, width: 300 },
                onRowDblClick: function(e) {
                     if (e.data && e.data.Id) {
-                        // 1. บันทึก CourseId ลง Session
-                        sessionStorage.setItem('SelectedCourseId', e.data.Id);
-
-                        // 2. ไปยังหน้า Version โดยไม่ต้องแนบ Query String
-                        window.location.href = '@Url.Action("Version", "Courses")';
+                        window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.data.Id;
                     }
                 },
                 // เปิดใช้งานการแก้ไขแบบ Popup มาตรฐาน

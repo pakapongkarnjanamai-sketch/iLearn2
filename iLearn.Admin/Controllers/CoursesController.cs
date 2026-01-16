@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace iLearn.Admin.Controllers
@@ -12,17 +13,17 @@ namespace iLearn.Admin.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int categoryId)
         {
+            ViewBag.categoryId = categoryId;
             return View();
         }
 
         // [เพิ่ม] Action สำหรับหน้าจัดการ Course Versions
         [HttpGet]
-        public IActionResult Version()
+        public IActionResult Version(int courseId)
         {
-            // ไม่ต้องรับค่า courseId จาก URL แล้ว
-            // ปล่อยให้ View จัดการอ่านจาก SessionStorage เอง
+            ViewBag.CourseId = courseId;
             return View();
         }
     }

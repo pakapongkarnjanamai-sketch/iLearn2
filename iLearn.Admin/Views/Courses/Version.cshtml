@@ -1,15 +1,12 @@
 ﻿@{
     ViewBag.Title = "Course Versions";
+    var courseId = ViewBag.CourseId;
 }
-
 <div class="container-fluid page-full-height">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
-                <a href="@Url.Action("Index", "Courses")" class="btn btn-sm btn-light me-3">
-                    <i class="fas fa-arrow-left"></i> Back
-                </a>
-                <h5 class="mb-0" id="headerTitle">@ViewBag.Title</h5>
+                <h5 class="mb-0">@ViewBag.Title (Course ID: @courseId)</h5>
             </div>
         </div>
         <div class="card-body">
@@ -24,7 +21,7 @@
         let selectedLearnIds = [];
         let selectedExamIds = [];
         let currentCourseId = 0;
-
+        
         // 2. Stores สำหรับ Dropdown และ Grid ย่อย
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' });
 
@@ -47,25 +44,19 @@
                 onSelectionChanged: onSelectionChangeCallback
             };
         }
-
+        
         $(() => {
-            // อ่านค่า CourseId จาก Session (เหมือนเดิม)
-            const hiddenCourseId = sessionStorage.getItem('SelectedCourseId');
-            if (!hiddenCourseId) {
-                window.location.href = '@Url.Action("Index", "Courses")';
-                return;
+          
+            let initialFilter = null;
+
+            if (@courseId) {
+                initialFilter = ["CourseId", "=", parseInt(@courseId)];
             }
-            currentCourseId = parseInt(hiddenCourseId);
-            sessionStorage.removeItem('SelectedCourseId');
-
-            $("#headerTitle").text('@ViewBag.Title' + ' (Course ID: ' + currentCourseId + ')');
-
-            // 3. สร้าง CustomStore สำหรับ Versions เพื่อจัดการ ResourceIds
             const versionsDataSource = new DevExpress.data.CustomStore({
                 key: "Id",
                 load: function(loadOptions) {
                     // ส่ง Filter CourseId ไปด้วยเสมอ
-                    const filter = loadOptions.filter ? [loadOptions.filter, "and", ["CourseId", "=", currentCourseId]] : ["CourseId", "=", currentCourseId];
+                    const filter = initialFilter;
 
                     // ปรับ params ให้รองรับ DevExtreme LoadOptions
                     const params = {
