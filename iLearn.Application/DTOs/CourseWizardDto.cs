@@ -1,5 +1,7 @@
 ﻿using iLearn.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace iLearn.Application.DTOs
 {
@@ -24,3 +26,6 @@ namespace iLearn.Application.DTOs
         public List<CreateAssignmentRuleDto> Rules { get; set; } = new List<CreateAssignmentRuleDto>();
     }
 }
+
+
+
