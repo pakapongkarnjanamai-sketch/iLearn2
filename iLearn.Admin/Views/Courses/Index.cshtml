@@ -1,10 +1,10 @@
 ﻿@{
-    ViewBag.Title = "Courses";
+    ViewBag.Title = "Courses Management";
 }
 
 <div class="container-fluid page-full-height">
     <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">@ViewBag.Title</h5>
         </div>
         <div class="card-body">
@@ -15,140 +15,149 @@
 
 @section Scripts {
     <script>
-        // กำหนด Enum ตาม iLearn.Domain.Enums.CourseType
         const courseTypes = [
             { id: 0, name: 'Special (Rule-based)' },
             { id: 1, name: 'General (Auto-assign)' }
         ];
 
+        // API Endpoints
+        const urls = {
+            courses: 'admin/CoursesCRUD',
+            versions: 'admin/CourseVersionsCRUD',
+            courseResources: 'admin/CourseResourcesCRUD',
+            resources: 'admin/ResourcesCRUD'
+        };
+
         $(() => {
-            const grid = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', {
-                    key: 'Id',
-                }),
+            $("#grid").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, urls.courses, { key: 'Id' }),
                 remoteOperations: true,
                 columnAutoWidth: true,
                 showBorders: true,
                 scrolling: { mode: "virtual" },
                 height: "100%",
-                selection: { mode: 'single' },
-                hoverStateEnabled: true,
-                headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300, placeholder: "Search courses..." },
-                groupPanel: { emptyPanelText: 'Drag a column header here to group by that column', visible: true },
-                export: { enabled: true, allowExportSelectedData: false },
-                onExporting: (e) => handleExporting(e, 'Courses_Data'),
+                headerFilter: { visible: true },
+                searchPanel: { visible: true, width: 300, placeholder: "Search..." },
+
+                // [1] เพิ่มปุ่มเข้าหน้า Wizard ที่ Toolbar
+                onToolbarPreparing: function(e) {
+                    e.toolbarOptions.items.unshift({
+                        location: "before",
+                        widget: "dxButton",
+                        options: {
+                            icon: "fas fa-magic", // หรือใช้ icon: "add"
+                            text: "New Course (Wizard)",
+                            type: "default",
+                            stylingMode: "contained",
+                            onClick: function() {
+                                // ลิงก์ไปหน้า Wizard (Create Mode)
+                                window.location.href = '@Url.Action("Wizard", "Courses")';
+                            }
+                        }
+                    });
+                },
 
                 editing: {
                     mode: "popup",
-                    allowUpdating: true,
-                    allowDeleting: true,
-                    allowAdding: true,
+                    allowAdding: false,   // ปิดปุ่ม Add เดิม (ใช้ Wizard แทน)
+                    allowUpdating: false, // ปิดปุ่ม Edit เดิม (ใช้ Wizard แทน)
+                    allowDeleting: true,  // อนุญาตให้ลบได้
                     useIcons: true,
-                    popup: {
-                        title: "Course Info",
-                        showTitle: true,
-                        width: 700,
-                        height: 500
-                    },
-                    form: {
-                        items: [
-                            {
-                                itemType: 'group',
-                                caption: "Basic Information",
-                                colCount: 2,
-                                colSpan: 2,
-                                items: [
-                                    { dataField: 'Id', editorOptions: { disabled: true } },
-                                    { dataField: 'IsActive' },
-
-                                    {
-                                        dataField: 'Code',
-                                        validationRules: [{ type: "required" }]
-                                    },
-                                    {
-                                        dataField: 'Version',
-                                        editorType: 'dxNumberBox',
-                                        editorOptions: { min: 1, format: "#" }
-                                    },
-
-                                    {
-                                        dataField: 'Title',
-                                        colSpan: 2,
-                                        validationRules: [{ type: "required" }]
-                                    },
-
-                                    {
-                                        dataField: 'Type',
-                                        label: { text: "Course Type" },
-                                        editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: courseTypes,
-                                            displayExpr: 'name',
-                                            valueExpr: 'id',
-                                        },
-                                        validationRules: [{ type: "required" }]
-                                    }
-                                ]
-                            },
-                            {
-                                itemType: 'group',
-                                caption: "Details",
-                                colCount: 1,
-                                colSpan: 2,
-                                items: [
-                                    {
-                                        dataField: 'Description',
-                                        editorType: 'dxTextArea',
-                                        editorOptions: {
-                                            height: 100,
-                                            placeholder: 'Enter course description here...',
-                                        },
-                                    },
-                                ]
-                            }
-                        ]
-                    }
                 },
+
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
                     {
-                        dataField: "Code",
-                        caption: "Code",
-                        width: 100,
-                        validationRules: [{ type: "required" }]
+                        type: "buttons",
+                        width: 110,
+                        buttons: [
+                            // [2] ปุ่ม Edit Custom เพื่อไปหน้า Wizard
+                            {
+                                hint: "Edit / New Version",
+                                icon: "edit",
+                                onClick: function(e) {
+                                    // ลิงก์ไปหน้า Wizard (Update Mode)
+                                    window.location.href = '@Url.Action("Wizard", "Courses")?courseId=' + e.row.data.Id;
+                                }
+                            },
+                            "delete"
+                        ]
                     },
+                    { dataField: "Id", caption: "ID", width: 60, sortOrder: 'desc' },
+                    { dataField: "Code", caption: "Code", width: 120 },
+                    { dataField: "Title", caption: "Title", minWidth: 200 },
                     {
-                        dataField: "Title",
-                        caption: "Title",
-                        minWidth: 200,
-                        validationRules: [{ type: "required" }]
-                    },
-                    {
-                        dataField: "Type",
-                        caption: "Type",
-                        width: 150,
-                        lookup: {
-                            dataSource: courseTypes,
-                            displayExpr: 'name',
-                            valueExpr: 'id',
-                        }
+                        dataField: "Type", caption: "Type", width: 150,
+                        lookup: { dataSource: courseTypes, displayExpr: 'name', valueExpr: 'id' }
                     },
                     {
                         dataField: "Version",
-                        caption: "Version",
-                        width: 80,
-                        alignment: "center"
+                        caption: "Ver.",
+                        width: 70,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                             $("<span>").addClass("badge bg-info text-dark").text(options.value).appendTo(container);
+                        }
                     },
-                    {
-                        dataField: "IsActive",
-                        caption: "Active",
-                        dataType: "boolean",
-                        width: 80
-                    },
-                    { dataField: "Description", visible: false }
+                    { dataField: "IsActive", caption: "Active", dataType: "boolean", width: 80 }
                 ],
-            }).dxDataGrid('instance');
-        })
+
+                // [3] Master-Detail สำหรับดูประวัติ Version (Read-Only หรือแก้ไขเล็กน้อย)
+                masterDetail: {
+                    enabled: true,
+                    template: function(container, options) {
+                        const courseId = options.key;
+
+                        $("<div>").addClass("p-3 bg-light border rounded").append(
+                            $("<h6>").addClass("mb-2 text-primary").html(`<i class="fas fa-history"></i> Version History: <b>${options.data.Code}</b>`)
+                        ).appendTo(container);
+
+                        $("<div>").dxDataGrid({
+                            dataSource: {
+                                store: createDataStore(serviceUrl, urls.versions, { key: 'Id' }),
+                                filter: ["CourseId", "=", courseId]
+                            },
+                            showBorders: true,
+                            columnAutoWidth: true,
+                            columns: [
+                                { dataField: "VersionNumber", caption: "Ver No.", width: 80, sortOrder: "desc" },
+                                { dataField: "Note", caption: "Release Note" },
+                                { dataField: "IsActive", caption: "Current", dataType: "boolean", width: 80 },
+                                { dataField: "CreatedAt", caption: "Date", dataType: "date", width: 120 }
+                            ],
+                            // Nested Detail: ดู Resource ของแต่ละ Version
+                            masterDetail: {
+                                enabled: true,
+                                template: function(subContainer, subOptions) {
+                                    const versionId = subOptions.key;
+                                    $("<div>").addClass("ps-4 py-2").append(
+                                        $("<small>").addClass("text-muted").html(`<i class="fas fa-file-alt"></i> Resources in Ver. ${subOptions.data.VersionNumber}`)
+                                    ).appendTo(subContainer);
+
+                                    $("<div>").dxDataGrid({
+                                        dataSource: {
+                                            store: createDataStore(serviceUrl, urls.courseResources, { key: 'Id' }),
+                                            filter: ["CourseVersionId", "=", versionId]
+                                        },
+                                        showBorders: true,
+                                        columnAutoWidth: true,
+                                        columns: [
+                                            {
+                                                dataField: "ResourceId",
+                                                caption: "Resource",
+                                                lookup: {
+                                                    dataSource: createDataStore(serviceUrl, urls.resources, { key: 'Id' }),
+                                                    displayExpr: "Name",
+                                                    valueExpr: "Id"
+                                                }
+                                            }
+                                        ]
+                                    }).appendTo(subContainer);
+                                }
+                            }
+                        }).appendTo(container);
+                    }
+                }
+            });
+        });
     </script>
 }

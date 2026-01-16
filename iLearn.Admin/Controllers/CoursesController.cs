@@ -8,5 +8,10 @@ namespace iLearn.Admin.Controllers
         {
             return View();
         }
+
+        public IActionResult Wizard()
+        {
+            return View();
+        }
     }
 }

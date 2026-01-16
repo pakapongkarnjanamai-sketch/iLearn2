@@ -30,6 +30,7 @@ namespace iLearn.Infrastructure.Persistence
         // --- เพิ่ม DbSet ใหม่ ---
         public DbSet<Category> Categories { get; set; }
         public DbSet<Resource> Resources { get; set; }
+        public DbSet<CourseVersion> CourseVersions { get; set; }
         public DbSet<CourseResource> CourseResources { get; set; }
         public DbSet<FileStorage> FileStorages { get; set; }
         public DbSet<LearningLog> LearningLogs { get; set; }
@@ -54,23 +55,28 @@ namespace iLearn.Infrastructure.Persistence
 
             // 2. Config CourseResource (Many-to-Many)
             modelBuilder.Entity<CourseResource>()
-                .HasKey(cr => cr.Id); // หรือจะใช้ Composite Key ก็ได้
-
+                   .HasKey(cr => cr.Id);
             modelBuilder.Entity<CourseResource>()
-                .HasOne(cr => cr.Course)
-                .WithMany(c => c.CourseResources) // ต้องไปเพิ่ม Property นี้ใน Course.cs ด้วย
-                .HasForeignKey(cr => cr.CourseId);
-
+                .HasOne(cr => cr.CourseVersion)      // เปลี่ยนจาก Course เป็น CourseVersion
+                .WithMany(cv => cv.CourseResources) // ต้องตรงกับ Property ใน CourseVersion
+                .HasForeignKey(cr => cr.CourseVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<CourseResource>()
                 .HasOne(cr => cr.Resource)
                 .WithMany(r => r.CourseResources)
-                .HasForeignKey(cr => cr.ResourceId);
-
+                .HasForeignKey(cr => cr.ResourceId)
+                .OnDelete(DeleteBehavior.Restrict);
             // 3. Config Resource <-> FileStorage (1-to-1 or 1-to-Many)
             modelBuilder.Entity<Resource>()
                 .HasOne(r => r.FileStorage)
                 .WithOne() // หรือ WithMany ถ้าไฟล์เดียวใช้หลาย Resource
                 .HasForeignKey<Resource>(r => r.FileStorageId);
+
+            modelBuilder.Entity<CourseVersion>()
+                .HasOne(cv => cv.Course)
+                .WithMany(c => c.Versions)
+                .HasForeignKey(cv => cv.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         public override int SaveChanges()

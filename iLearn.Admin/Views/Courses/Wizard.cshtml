@@ -1,0 +1,304 @@
+﻿@{
+    ViewBag.Title = "Course Wizard";
+    // รับ CourseId มาเผื่อกรณี Edit Mode (New Version)
+    var courseId = Context.Request.Query["courseId"];
+}
+
+<div class="container-fluid">
+    <div class="card shadow-sm mt-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-magic me-2"></i>
+                @(string.IsNullOrEmpty(courseId) ? "Create New Course" : "Update Course (New Version)")
+            </h5>
+        </div>
+        <div class="card-body">
+            <div id="wizard-tabs"></div>
+
+            <div id="wizard-content" class="mt-4">
+
+                <div id="step-info" class="wizard-step">
+                    <div id="form-info"></div>
+                </div>
+
+                <div id="step-resources" class="wizard-step d-none">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Requirement: Select at least <b>1 Learn</b> and <b>1 Exam</b> resource.
+                    </div>
+                    <div id="grid-resources"></div>
+                    <div id="resource-summary" class="mt-2 text-end fw-bold text-danger"></div>
+                </div>
+
+                <div id="step-rules" class="wizard-step d-none">
+                    <div id="rules-container">
+                        <p class="text-muted">Configure assignment rules for this course.</p>
+                        <div id="grid-rules"></div>
+                    </div>
+                    <div id="auto-assign-msg" class="d-none">
+                        <div class="alert alert-success text-center">
+                            <h4><i class="fas fa-check-circle"></i> General Course</h4>
+                            <p>This course will be automatically available to <b>All Users</b>.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="card-footer bg-white text-end">
+            <button id="btn-back" class="btn btn-secondary me-2" disabled>Back</button>
+            <button id="btn-next" class="btn btn-primary">Next</button>
+            <button id="btn-finish" class="btn btn-success d-none">Finish & Save</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const courseId = '@courseId';
+        let currentStep = 0;
+        const steps = [
+            { id: 'step-info', title: '1. Course Info' },
+            { id: 'step-resources', title: '2. Resources' },
+            { id: 'step-rules', title: '3. Assignment Rules' }
+        ];
+
+        // Store Data
+        let wizardData = {
+            CourseId: courseId ? parseInt(courseId) : null,
+            Code: '', Title: '', Description: '', Type: 1, CategoryId: null, VersionNote: '',
+            ResourceIds: [],
+            Rules: []
+        };
+
+        // Resource Validation State
+        let resourceCounts = { learn: 0, exam: 0 };
+
+        $(() => {
+            initWizard();
+        });
+
+        function initWizard() {
+            // 1. Initialize Tabs (Visual Only)
+            $("#wizard-tabs").dxTabPanel({
+                items: steps,
+                selectedIndex: 0,
+                swipeEnabled: false,
+                onSelectionChanged: (e) => e.component.option("selectedIndex", currentStep) // Prevent click
+            });
+
+            // 2. Initialize Components
+            initFormInfo();
+            initGridResources();
+            initGridRules();
+
+            // 3. Button Events
+            $("#btn-next").click(() => navigate(1));
+            $("#btn-back").click(() => navigate(-1));
+            $("#btn-finish").click(submitWizard);
+
+            // 4. Load Data if Edit Mode
+            if (courseId) {
+                loadCourseData(courseId);
+            }
+        }
+
+        function initFormInfo() {
+            $("#form-info").dxForm({
+                formData: wizardData,
+                colCount: 2,
+                items: [
+                    { itemType: "group", caption: "Course Details", items: [
+                        { dataField: "Code", validationRules: [{ type: "required" }] },
+                        { dataField: "Title", validationRules: [{ type: "required" }] },
+                        {
+                            dataField: "CategoryId",
+                            label: { text: "Category" },
+                            editorType: "dxSelectBox",
+                            editorOptions: {
+                                dataSource: createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'Id' }),
+                                displayExpr: "Name", valueExpr: "Id"
+                            },
+                            validationRules: [{ type: "required" }]
+                        },
+                        {
+                            dataField: "Type",
+                            label: { text: "Course Type" },
+                            editorType: "dxSelectBox",
+                            editorOptions: {
+                                dataSource: [ { id: 0, name: 'Special (Rules)' }, { id: 1, name: 'General (All)' } ],
+                                displayExpr: 'name', valueExpr: 'id',
+                                onValueChanged: (e) => toggleRuleStep(e.value)
+                            },
+                            validationRules: [{ type: "required" }]
+                        }
+                    ]},
+                    { itemType: "group", caption: "Version Control", items: [
+                        {
+                            dataField: "VersionNote",
+                            editorType: "dxTextArea",
+                            editorOptions: { height: 100, placeholder: "What's new in this version?" }
+                        },
+                        {
+                            dataField: "Description",
+                            editorType: "dxTextArea",
+                            editorOptions: { height: 100 },
+                            colSpan: 2
+                        }
+                    ]}
+                ]
+            });
+        }
+
+        function initGridResources() {
+            $("#grid-resources").dxDataGrid({
+                dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' }),
+                keyExpr: "Id",
+                showBorders: true,
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                searchPanel: { visible: true },
+                columns: [
+                    { dataField: "Name", caption: "Resource Name" },
+                    {
+                        dataField: "TypeId", caption: "Type", width: 100,
+                        lookup: {
+                            dataSource: [{id:1, name:'Learn'}, {id:2, name:'Exam'}], // **แก้ ID ตาม Enum จริงของคุณ**
+                            displayExpr: 'name', valueExpr: 'id'
+                        }
+                    },
+                    { dataField: "IsActive", dataType: "boolean", width: 80 }
+                ],
+                onSelectionChanged: (e) => {
+                    const selectedRows = e.selectedRowsData;
+                    wizardData.ResourceIds = selectedRows.map(r => r.Id);
+
+                    // Validate Count
+                    // สมมติ TypeId: 1=Learn, 2=Exam
+                    resourceCounts.learn = selectedRows.filter(r => r.TypeId === 1).length;
+                    resourceCounts.exam = selectedRows.filter(r => r.TypeId === 2).length;
+
+                    updateResourceSummary();
+                }
+            });
+        }
+
+        function updateResourceSummary() {
+            const el = $("#resource-summary");
+            const isValid = resourceCounts.learn >= 1 && resourceCounts.exam >= 1;
+
+            let text = `Selected: Learn (${resourceCounts.learn}), Exam (${resourceCounts.exam})`;
+            if (!isValid) text += " - Requirement not met!";
+
+            el.text(text).removeClass(isValid ? "text-danger" : "text-success")
+                         .addClass(isValid ? "text-success" : "text-danger");
+
+            return isValid;
+        }
+
+        function initGridRules() {
+            $("#grid-rules").dxDataGrid({
+                dataSource: [], // Local data logic for wizard
+                editing: { mode: "row", allowAdding: true, allowDeleting: true, allowUpdating: true },
+                columns: [
+                    {
+                        dataField: "RoleId", caption: "Role",
+                        lookup: { dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'Id' }), displayExpr: "Name", valueExpr: "Id" }
+                    },
+                    {
+                        dataField: "DivisionId", caption: "Division",
+                        lookup: { dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'Id' }), displayExpr: "Name", valueExpr: "Id" }
+                    }
+                ],
+                onOptionChanged: (e) => {
+                    // Update wizardData.Rules when grid changes (Need manual sync if using local array)
+                }
+            });
+        }
+
+        function toggleRuleStep(typeId) {
+            if (typeId === 1) { // General
+                $("#rules-container").addClass("d-none");
+                $("#auto-assign-msg").removeClass("d-none");
+            } else { // Special
+                $("#rules-container").removeClass("d-none");
+                $("#auto-assign-msg").addClass("d-none");
+            }
+        }
+
+        function navigate(dir) {
+            // Validate Current Step before Next
+            if (dir === 1) {
+                if (currentStep === 0) {
+                    const form = $("#form-info").dxForm("instance");
+                    if (!form.validate().isValid) return;
+                }
+                if (currentStep === 1) {
+                    if (!updateResourceSummary()) {
+                        DevExpress.ui.notify("You must select at least 1 Learn and 1 Exam resource.", "error", 2000);
+                        return;
+                    }
+                }
+            }
+
+            currentStep += dir;
+
+            // UI Updates
+            $("#wizard-tabs").dxTabPanel("instance").option("selectedIndex", currentStep);
+            $(".wizard-step").addClass("d-none");
+            $(`#${steps[currentStep].id}`).removeClass("d-none");
+
+            // Buttons
+            $("#btn-back").prop("disabled", currentStep === 0);
+            if (currentStep === steps.length - 1) {
+                $("#btn-next").addClass("d-none");
+                $("#btn-finish").removeClass("d-none");
+            } else {
+                $("#btn-next").removeClass("d-none");
+                $("#btn-finish").addClass("d-none");
+            }
+        }
+
+        function loadCourseData(id) {
+            $.get(serviceUrl + `/admin/CoursesCRUD/Get?key=${id}`, (data) => {
+                // Populate Form
+                // Populate Resource Selection (Need API to fetch existing resources for current version)
+                // Populate Rules
+            });
+        }
+
+        function submitWizard() {
+             // 1. ดึงข้อมูล Rules จาก Grid
+             const rulesGrid = $("#grid-rules").dxDataGrid("instance");
+             // หมายเหตุ: กรณีใช้ Local Array DataSource ต้องดึงแบบนี้
+             wizardData.Rules = rulesGrid.getDataSource().items();
+
+             // 2. ซิงค์ข้อมูลจาก Form อีกครั้งเพื่อให้ได้ค่าล่าสุด
+             const formData = $("#form-info").dxForm("instance").option("formData");
+             Object.assign(wizardData, formData);
+
+             // 3. ส่งข้อมูลไปยัง API
+             $.ajax({
+                 url: serviceUrl + "/admin/CourseWizard/Submit",
+                 method: "POST",
+                 contentType: "application/json",
+                 data: JSON.stringify(wizardData),
+
+                 // [จุดสำคัญ] เพิ่มบรรทัดนี้เพื่อให้ส่ง Windows Auth / Cookies ไปด้วย
+                 xhrFields: { withCredentials: true },
+
+                 success: (res) => {
+                     DevExpress.ui.notify("Course saved successfully!", "success", 2000);
+                     // กลับไปหน้า Index หลังจากบันทึกสำเร็จ
+                     setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
+                 },
+                 error: (err) => {
+                     let msg = "Error saving course.";
+                     if (err.status === 401) msg = "Unauthorized (401): Please check permissions.";
+                     else if (err.responseText) msg = err.responseText;
+
+                     DevExpress.ui.notify(msg, "error", 3000);
+                     console.error(err);
+                 }
+             });
+         }
+    </script>
+}

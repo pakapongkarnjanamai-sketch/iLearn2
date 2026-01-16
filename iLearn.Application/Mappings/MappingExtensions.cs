@@ -1,5 +1,6 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Domain.Entities;
+using System.Linq; // จำเป็นสำหรับการใช้ LINQ กับ Versions
 
 namespace iLearn.Application.Mappings
 {
@@ -11,6 +12,13 @@ namespace iLearn.Application.Mappings
         {
             if (entity == null) return null;
 
+            // [Modified] หา Version ปัจจุบันจาก Collection Versions
+            // ถ้าไม่มีให้ Default เป็น 0 หรือค่าที่เหมาะสม
+            var currentVersion = entity.Versions?
+                .Where(v => v.IsActive)
+                .OrderByDescending(v => v.VersionNumber)
+                .FirstOrDefault();
+
             return new CourseDto
             {
                 Id = entity.Id,
@@ -19,8 +27,8 @@ namespace iLearn.Application.Mappings
                 Description = entity.Description,
                 IsActive = entity.IsActive,
                 Type = entity.Type,
-                TypeName = entity.Type.ToString(), // แปลง Enum เป็น String
-                Version = entity.Version
+                TypeName = entity.Type.ToString(),
+                Version = currentVersion?.VersionNumber ?? 0
             };
         }
 
@@ -28,15 +36,24 @@ namespace iLearn.Application.Mappings
         {
             if (dto == null) return null;
 
-            return new Course
+            var course = new Course
             {
                 Code = dto.Code,
                 Title = dto.Title,
                 Description = dto.Description,
                 Type = dto.Type,
-                IsActive = true, // Default
-                Version = 1      // Default
+                IsActive = true
             };
+
+            // [New] สร้าง Version แรก (v1) ให้โดยอัตโนมัติเมื่อสร้างคอร์ส
+            course.Versions.Add(new CourseVersion
+            {
+                VersionNumber = 1,
+                IsActive = true,
+                Note = "Initial Release"
+            });
+
+            return course;
         }
 
         // --- Enrollment Mappings ---
@@ -48,7 +65,7 @@ namespace iLearn.Application.Mappings
             return new EnrollmentDto
             {
                 Id = entity.Id,
-                StudentCode = entity.StudentCode, // ✅ Map StudentCode
+                StudentCode = entity.StudentCode,
                 CourseId = entity.CourseId,
                 CourseTitle = entity.Course?.Title ?? string.Empty,
                 EnrolledVersion = entity.EnrolledVersion,
@@ -56,6 +73,8 @@ namespace iLearn.Application.Mappings
                 CompletedDate = entity.CompletedDate
             };
         }
+
+        // --- User Mappings ---
 
         public static UserDto ToDto(this User entity)
         {
@@ -65,7 +84,7 @@ namespace iLearn.Application.Mappings
             {
                 Id = entity.Id,
                 NID = entity.Nid,
-
+                // Map fields อื่นๆ ตาม UserDto
             };
         }
 
@@ -76,9 +95,12 @@ namespace iLearn.Application.Mappings
             return new User
             {
                 Nid = dto.Nid,
-
+                // Map fields อื่นๆ
             };
         }
+
+        // --- Resource Mappings ---
+
         public static ResourceDto ToDto(this Resource entity)
         {
             if (entity == null) return null;
@@ -89,11 +111,13 @@ namespace iLearn.Application.Mappings
                 Name = entity.Name,
                 TypeId = entity.TypeId,
                 IsActive = entity.IsActive,
-                // สร้าง URL จำลอง (เดี๋ยวเราต้องทำ Action 'Download' หรือ 'View' มารองรับ)
                 ContentUrl = $"/api/resources/{entity.Id}/content"
             };
         }
-       public static DivisionDto ToDto(this Division entity)
+
+        // --- Division & Role Mappings ---
+
+        public static DivisionDto ToDto(this Division entity)
         {
             if (entity == null) return null;
             return new DivisionDto { Id = entity.Id, Name = entity.Name };
@@ -107,7 +131,6 @@ namespace iLearn.Application.Mappings
                 Id = entity.Id,
                 Name = entity.Name,
                 DivisionId = entity.DivisionId,
-                // ระวัง Null Reference ถ้าไม่ได้ Include Division มา
                 DivisionName = entity.Division?.Name ?? string.Empty
             };
         }
@@ -132,9 +155,9 @@ namespace iLearn.Application.Mappings
                 Id = entity.Id,
                 CourseId = entity.CourseId,
                 DivisionId = entity.DivisionId,
-                DivisionName = entity.Division?.Name, // ถ้ามี Include
+                DivisionName = entity.Division?.Name,
                 RoleId = entity.RoleId,
-                RoleName = entity.Role?.Name // ถ้ามี Include
+                RoleName = entity.Role?.Name
             };
         }
 
@@ -148,6 +171,8 @@ namespace iLearn.Application.Mappings
                 RoleId = dto.RoleId
             };
         }
+
+        // --- Learning Log Mappings ---
 
         public static LearningLogDto ToDto(this LearningLog entity)
         {
@@ -175,8 +200,7 @@ namespace iLearn.Application.Mappings
                 QuestionId = dto.QuestionId,
                 CourseTime = dto.CourseTime,
                 ExamTime = dto.ExamTime,
-                // CreatedAt จะถูก Set โดย BaseEntity หรือ Database
             };
         }
-    } 
+    }
 }

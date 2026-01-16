@@ -15,7 +15,8 @@ namespace iLearn.Application.Services
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<AssignmentRule> _ruleRepo;
-        private readonly IGenericRepository<UserRole> _userRoleRepo; // เพิ่มเพื่อดึง Role ของ User
+        private readonly IGenericRepository<UserRole> _userRoleRepo;
+        // [Optional] ถ้า Course ไม่ได้ Include Versions มา อาจต้อง Inject Repository ของ CourseVersion เพิ่ม
 
         public CourseAssignmentService(
             IGenericRepository<User> userRepo,
@@ -37,7 +38,7 @@ namespace iLearn.Application.Services
             var user = await _userRepo.GetByIdAsync(userId);
             if (user == null) return;
 
-            // ดึงคอร์ส General ที่ Active ทั้งหมด
+            // หมายเหตุ: ต้องมั่นใจว่า Method นี้ Include Versions มาด้วย
             var activeCourses = await _courseRepo.GetActiveCoursesAsync();
             var generalCourses = activeCourses.Where(c => c.Type == CourseType.General);
 
@@ -50,13 +51,11 @@ namespace iLearn.Application.Services
         // กรณี 2: Admin กด Assign หรือสร้างคอร์สใหม่ -> ระบบวิ่งหาคน
         public async Task ProcessAssignmentForCourseAsync(int courseId)
         {
+            // หมายเหตุ: ต้องมั่นใจว่า Method นี้ Include Versions มาด้วย
             var course = await _courseRepo.GetByIdAsync(courseId);
             if (course == null || !course.IsActive) return;
 
-            // ดึง User ทั้งหมด
             var users = await _userRepo.GetAllAsync();
-
-            // ดึงกฎของคอร์สนี้ (สำหรับ Special)
             var rules = await _ruleRepo.GetAsync(r => r.CourseId == courseId);
 
             foreach (var user in users)
@@ -65,11 +64,10 @@ namespace iLearn.Application.Services
 
                 if (course.Type == CourseType.General)
                 {
-                    shouldAssign = true; // General = ทุกคน
+                    shouldAssign = true;
                 }
                 else if (course.Type == CourseType.Special)
                 {
-                    // Special = ต้องตรงตามกฎข้อใดข้อหนึ่ง
                     shouldAssign = await CheckIfUserMatchesRules(user, rules);
                 }
 
@@ -86,22 +84,15 @@ namespace iLearn.Application.Services
         {
             if (rules == null || !rules.Any()) return false;
 
-            // ดึง Role ของ User คนนี้มาเช็ค
-            var userRoles = await _userRoleRepo.GetAsync(ur => ur.UserId == user.Id); // ต้องแน่ใจว่า Repo รองรับ Include Role หรือเราต้องดึง Role แยกถ้าจำเป็น
+            var userRoles = await _userRoleRepo.GetAsync(ur => ur.UserId == user.Id);
 
             foreach (var rule in rules)
             {
-                // 1. ตรวจ Role (ถ้ากฎระบุ RoleId)
-                // เช็คว่า User มี RoleId ที่ตรงกับกฎไหม
                 bool roleMatch = !rule.RoleId.HasValue ||
                                  userRoles.Any(ur => ur.RoleId == rule.RoleId);
 
-                // 2. ตรวจ Division (ถ้ากฎระบุ DivisionId)
-                // เนื่องจาก UserRole เก็บ RoleId เราอาจต้องเช็ค Division ผ่าน Role อีกที 
-                // ในที่นี้สมมติว่าเช็คผ่าน RoleId ไปก่อน หรือถ้าจะให้แม่นยำต้อง Join ตาราง Role มาดู DivisionId
-                // เพื่อความง่ายในขั้นตอนนี้ ผมจะข้ามการเช็ค Division ลึกๆ ไปก่อน หรือคุณอาจต้องเพิ่ม Logic การดึง Role ที่มี DivisionId มาด้วย
                 bool divisionMatch = !rule.DivisionId.HasValue;
-                // TODO: เพิ่ม Logic เช็ค DivisionId โดยละเอียดถ้าจำเป็น (ต้องดึง Role.DivisionId)
+                // TODO: ถ้าต้องการเช็ค DivisionId ให้แม่นยำ ต้อง Join Role หรือ User มาเช็ค
 
                 if (roleMatch && divisionMatch) return true;
             }
@@ -109,9 +100,27 @@ namespace iLearn.Application.Services
             return false;
         }
 
+        // [Updated] Logic การหา Version ล่าสุด
+        private int GetCurrentActiveVersion(Course course)
+        {
+            if (course.Versions == null || !course.Versions.Any())
+            {
+                // Fallback กรณีหาไม่เจอ ให้ return 1 หรือ throw exception ตาม Business Logic
+                return 1;
+            }
+
+            return course.Versions
+                .Where(v => v.IsActive)
+                .OrderByDescending(v => v.VersionNumber)
+                .Select(v => v.VersionNumber)
+                .FirstOrDefault();
+        }
+
         private async Task CreateOrUpdateEnrollment(User user, Course course)
         {
-            // ตรวจสอบว่าเคยเรียนไปหรือยัง (ใช้ StudentCode จับคู่)
+            // หา Version ปัจจุบันของ Course ที่จะ Assign
+            int currentVersion = GetCurrentActiveVersion(course);
+
             var existingEnrollments = await _enrollmentRepo.GetAsync(e =>
                 e.StudentCode == user.Nid &&
                 e.CourseId == course.Id);
@@ -120,24 +129,24 @@ namespace iLearn.Application.Services
 
             if (existing == null)
             {
-                // ยังไม่เคยเรียน -> สร้างใหม่
+                // ยังไม่เคยเรียน -> สร้างใหม่ด้วย Version ปัจจุบัน
                 var newEnrollment = new Enrollment
                 {
                     StudentCode = user.Nid,
                     CourseId = course.Id,
-                    EnrolledVersion = course.Version,
+                    EnrolledVersion = currentVersion, // ใช้ Version จาก Logic ใหม่
                     Status = "Not Started",
                     CreatedAt = DateTime.UtcNow
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
             }
-            else if (existing.EnrolledVersion < course.Version)
+            else if (existing.EnrolledVersion < currentVersion)
             {
-                // เคยเรียนแล้ว แต่คอร์สอัปเดตเวอร์ชัน -> รีเซ็ตให้เรียนใหม่ (Retake)
-                existing.EnrolledVersion = course.Version;
+                // เคยเรียนแล้ว แต่มี Version ใหม่ -> Reset ให้ Retake
+                existing.EnrolledVersion = currentVersion; // อัปเดต Version
                 existing.Status = "Not Started";
                 existing.CompletedDate = null;
-             
+
                 await _enrollmentRepo.UpdateAsync(existing);
             }
         }

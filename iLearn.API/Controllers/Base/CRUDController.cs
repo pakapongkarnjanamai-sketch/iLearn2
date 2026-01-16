@@ -61,16 +61,19 @@ namespace iLearn.API.Controllers.Base
     public class ResourcesCRUDController : GenericController<Resource>
     {
         private readonly IGenericRepository<CourseResource> _courseResourceRepo;
+        private readonly IGenericRepository<Course> _courseRepo; // [New] เพิ่มเพื่อดึง Version ของ Course
         private readonly IGenericRepository<FileStorage> _fileRepo;
         private readonly IScormService _scormService;
 
         public ResourcesCRUDController(
             IGenericRepository<Resource> repository,
             IGenericRepository<CourseResource> courseResourceRepo,
+            IGenericRepository<Course> courseRepo,
             IGenericRepository<FileStorage> fileRepo,
             IScormService scormService) : base(repository)
         {
             _courseResourceRepo = courseResourceRepo;
+            _courseRepo = courseRepo;
             _fileRepo = fileRepo;
             _scormService = scormService;
         }
@@ -78,10 +81,11 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            // Override เพื่อ Include ข้อมูลที่จำเป็น
-            // - CourseResources: เพื่อแสดงว่า Resource นี้ผูกกับวิชาอะไรบ้าง (ใน TagBox)
+            // [Modified] Include ผ่าน CourseVersion เพื่อให้ได้ข้อมูล Course
             var query = _repository.GetQuery()
-                .Include(r => r.CourseResources);
+                .Include(r => r.CourseResources)
+                    .ThenInclude(cr => cr.CourseVersion)
+                        .ThenInclude(cv => cv.Course);
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
@@ -89,44 +93,66 @@ namespace iLearn.API.Controllers.Base
         [HttpPut("Put")]
         public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
         {
+            // [Modified] Include CourseVersion เพื่อเช็ค ID
             var resource = await _repository.GetQuery()
                                 .Include(r => r.CourseResources)
+                                    .ThenInclude(cr => cr.CourseVersion)
                                 .FirstOrDefaultAsync(r => r.Id == key);
 
             if (resource == null) return NotFound();
 
-            // 1. อัปเดตข้อมูลพื้นฐาน (Name, IsActive, TypeId, URL)
+            // 1. อัปเดตข้อมูลพื้นฐาน
             JsonConvert.PopulateObject(values, resource);
 
-            // 2. จัดการ Course Mappings (CourseIds)
+            // 2. จัดการ Course Mappings
             var valuesDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(values);
             if (valuesDict.ContainsKey("CourseIds"))
             {
                 var courseIdsJson = valuesDict["CourseIds"].ToString();
-                var newCourseIds = JsonConvert.DeserializeObject<List<int>>(courseIdsJson) ?? new List<int>();
+                var selectedCourseIds = JsonConvert.DeserializeObject<List<int>>(courseIdsJson) ?? new List<int>();
 
-                // 2.1 ดึงรายการเดิม
-                var existingLinks = await _courseResourceRepo.GetAsync(cr => cr.ResourceId == key);
+                // 2.1 ดึงลิงก์เดิมที่มีอยู่
+                var currentLinks = resource.CourseResources.ToList();
 
-                // 2.2 ลบรายการที่ไม่อยู่ในลิสต์ใหม่
-                foreach (var link in existingLinks)
+                // 2.2 ลบ Resource ออกจาก Course ที่ไม่ได้เลือกแล้ว (ลบทุก Version ของ Course นั้น)
+                foreach (var link in currentLinks)
                 {
-                    if (!newCourseIds.Contains(link.CourseId))
+                    // เช็คว่า CourseId ของ Version ที่ผูกอยู่ ยังอยู่ในรายการที่เลือกไหม
+                    if (link.CourseVersion != null && !selectedCourseIds.Contains(link.CourseVersion.CourseId))
                     {
                         await _courseResourceRepo.DeleteAsync(link);
                     }
                 }
 
-                // 2.3 เพิ่มรายการใหม่ที่ยังไม่มี
-                foreach (var courseId in newCourseIds)
+                // 2.3 เพิ่ม Resource ให้กับ Course ใหม่ (ผูกกับ Version ล่าสุด)
+                foreach (var courseId in selectedCourseIds)
                 {
-                    if (!existingLinks.Any(cr => cr.CourseId == courseId))
+                    // ตรวจสอบว่าผูกกับ Version ใดๆ ของ Course นี้ไปแล้วหรือยัง
+                    bool alreadyLinked = currentLinks.Any(cr => cr.CourseVersion != null && cr.CourseVersion.CourseId == courseId);
+
+                    if (!alreadyLinked)
                     {
-                        await _courseResourceRepo.AddAsync(new CourseResource
+                        // ดึง Course และ Version ทั้งหมดเพื่อหาตัวล่าสุด
+                        var course = await _courseRepo.GetQuery()
+                            .Include(c => c.Versions)
+                            .FirstOrDefaultAsync(c => c.Id == courseId);
+
+                        if (course != null && course.Versions.Any())
                         {
-                            ResourceId = key,
-                            CourseId = courseId
-                        });
+                            // หา Version ล่าสุด (เรียงจากเลขมากสุด หรือจะใช้ IsActive ก็ได้)
+                            var latestVersion = course.Versions
+                                .OrderByDescending(v => v.VersionNumber)
+                                .FirstOrDefault();
+
+                            if (latestVersion != null)
+                            {
+                                await _courseResourceRepo.AddAsync(new CourseResource
+                                {
+                                    ResourceId = key,
+                                    CourseVersionId = latestVersion.Id // [Key Change] ผูกกับ Version แทน CourseId
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -144,10 +170,8 @@ namespace iLearn.API.Controllers.Base
             // 1. ลบไฟล์จริง/Folder (Cleanup)
             try
             {
-                // ถ้าเป็น SCORM (มี URL และ IsActive) ให้ลบ Folder
                 if (resource.IsActive && !string.IsNullOrEmpty(resource.URL) && resource.URL.StartsWith("scorm/"))
                 {
-                    // URL Format: "scorm/{Guid}/{launchFile}"
                     var parts = resource.URL.Split('/');
                     if (parts.Length >= 2)
                     {
@@ -155,7 +179,6 @@ namespace iLearn.API.Controllers.Base
                     }
                 }
 
-                // ลบ FileStorage ที่ผูกอยู่ (ถ้ามี)
                 if (resource.FileStorageId.HasValue)
                 {
                     var file = await _fileRepo.GetByIdAsync(resource.FileStorageId.Value);
@@ -167,7 +190,7 @@ namespace iLearn.API.Controllers.Base
             }
             catch (Exception)
             {
-                // Log error but continue to delete record
+                // Log error but continue
             }
 
             // 2. ลบ Record ใน DB
@@ -175,7 +198,6 @@ namespace iLearn.API.Controllers.Base
             return Ok();
         }
     }
-
     public class RolesCRUDController : GenericController<Role>
     {
         public RolesCRUDController(IGenericRepository<Role> repository) : base(repository)
@@ -261,6 +283,19 @@ namespace iLearn.API.Controllers.Base
         public UserRolesCRUDController(IGenericRepository<UserRole> repository) : base(repository)
         {
         }
+    }
+    // เพิ่มในไฟล์ CRUDController.cs หรือแยกไฟล์ใหม่
+
+    public class CourseVersionsCRUDController : GenericController<CourseVersion>
+    {
+        public CourseVersionsCRUDController(IGenericRepository<CourseVersion> repository) : base(repository) { }
+    }
+
+    public class CourseResourcesCRUDController : GenericController<CourseResource>
+    {
+        // จำเป็นต้อง Include Resource เพื่อแสดงชื่อใน Grid (ถ้าไม่ได้ใช้ Lookup) 
+        // แต่ใน View เราใช้ Lookup ไปหา ResourcesCRUD แล้ว ดังนั้น Generic ธรรมดาก็พอใช้ได้
+        public CourseResourcesCRUDController(IGenericRepository<CourseResource> repository) : base(repository) { }
     }
 
 }
