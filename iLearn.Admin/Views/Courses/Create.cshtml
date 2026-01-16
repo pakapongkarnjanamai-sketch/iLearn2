@@ -3,7 +3,7 @@
     ViewData["Title"] = "สร้างหลักสูตรใหม่ (Create Course)";
     Layout = "_DevExtremeLayout";
 
-    // 1. แปลง Enum CourseType เป็น JSON สำหรับ JavaScript
+    // แปลง Enum CourseType เป็น JSON
     var courseTypes = Html.GetEnumSelectList<CourseType>()
         .Select(e => new { id = int.Parse(e.Value), text = e.Text });
 }
@@ -21,7 +21,6 @@
                 </h5>
             </div>
             <div class="col-12 col-xl-auto">
-                @* ปุ่ม Action จะถูก Inject ที่นี่โดย JavaScript *@
                 <div id="actionButtons"></div>
             </div>
         </div>
@@ -32,28 +31,44 @@
         <div id="dxFormContainer"></div>
     </div>
 </div>
-
 @section Scripts {
     <script>
         $(function () {
-            // รับค่า Enum จาก Razor มาเป็นตัวแปร JS
             const courseTypeData = @Html.Raw(Json.Serialize(courseTypes));
 
-            // กำหนด URL ของ API หมวดหมู่ (ปรับตามที่คุณใช้งานจริง)
-            // ถ้าคุณมีฟังก์ชัน createDataStore เหมือนใน Wizard ให้ใช้ตัวนั้นแทน
-            const categoryDataSource = DevExpress.data.AspNet.createStore({
-                key: "id",
-                loadUrl: "/api/Categories/GetAll", // หรือ URL ที่ถูกต้องของคุณ
-                onBeforeSend: function(method, ajaxOptions) {
-                    ajaxOptions.xhrFields = { withCredentials: true };
-                }
-            });
+            // ตัวแปรเก็บ ID แยกตามประเภท
+            let selectedLearnIds = [];
+            let selectedExamIds = [];
+
+       
+            const resourceStore = createDataStore(serviceUrl, "admin/ResourcesCRUD");
+
+            const categoryDataSource = createDataStore(serviceUrl, "admin/CategoriesCRUD");
+
+            // --- ฟังก์ชันสร้าง Grid Settings (คงเดิม) ---
+            function createGridConfig(typeId, onSelectionChangeCallback) {
+                return {
+                    dataSource: {
+                        store: resourceStore,
+                        filter: ["TypeId", "=", typeId] // กรองข้อมูล: 1=Learn, 2=Exam
+                    },
+                    keyExpr: "Id",
+                    showBorders: true,
+                    height: 300,
+                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                    searchPanel: { visible: true, width: 200 },
+                    scrolling: { mode: "virtual" },
+                    columns: [
+                        { dataField: "Name", caption: "Resource Name" },
+                        { dataField: "IsActive", dataType: "boolean", width: 80, caption: "Active" }
+                    ],
+                    onSelectionChanged: onSelectionChangeCallback
+                };
+            }
 
             // --- สร้าง dxForm ---
             const formInstance = $("#dxFormContainer").dxForm({
-                formData: {
-                    CourseType: 1 // ค่าเริ่มต้น: General
-                },
+                formData: { CourseType: 1 },
                 labelMode: "floating",
                 validationGroup: "courseGroup",
                 items: [
@@ -66,19 +81,12 @@
                                 dataField: "CourseCode",
                                 label: { text: "รหัสวิชา" },
                                 editorType: "dxTextBox",
-                                editorOptions: {
-                                    placeholder: "เช่น CS101",
-                                    showClearButton: true
-                                },
                                 validationRules: [{ type: "required", message: "กรุณาระบุรหัสวิชา" }]
                             },
                             {
                                 dataField: "CourseName",
                                 label: { text: "ชื่อวิชา" },
                                 editorType: "dxTextBox",
-                                editorOptions: {
-                                    showClearButton: true
-                                },
                                 validationRules: [{ type: "required", message: "กรุณาระบุชื่อวิชา" }]
                             },
                             {
@@ -88,25 +96,20 @@
                                 editorOptions: {
                                     dataSource: courseTypeData,
                                     valueExpr: "id",
-                                    displayExpr: "text",
-                                    placeholder: "เลือกประเภท"
+                                    displayExpr: "text"
                                 },
-                                validationRules: [{ type: "required", message: "กรุณาเลือกประเภท" }]
+                                validationRules: [{ type: "required" }]
                             },
                             {
-                                // [เพิ่มเติม] ฟิลด์หมวดหมู่
                                 dataField: "CategoryId",
                                 label: { text: "หมวดหมู่" },
                                 editorType: "dxSelectBox",
                                 editorOptions: {
-                                    dataSource: categoryDataSource, // เชื่อมกับ API
-                                    valueExpr: "id",
-                                    displayExpr: "name", // ตรวจสอบว่า API ส่งกลับมาเป็น 'name' หรือ 'text'
-                                    placeholder: "เลือกหมวดหมู่",
+                                    dataSource: categoryDataSource, // ✅ ใช้ตัวแปรที่สร้างจาก createDataStore
+                                    valueExpr: "Id",
+                                    displayExpr: "Name",
                                     showClearButton: true
                                 }
-                                // ถ้าบังคับเลือกให้เอา comment ออก
-                                // validationRules: [{ type: "required", message: "กรุณาเลือกหมวดหมู่" }]
                             }
                         ]
                     },
@@ -119,30 +122,49 @@
                                 dataField: "Description",
                                 label: { text: "รายละเอียด" },
                                 editorType: "dxTextArea",
-                                editorOptions: {
-                                    height: 100
-                                }
+                                editorOptions: { height: 100 }
                             }
                         ]
                     },
                     {
                         itemType: "group",
                         caption: "เอกสารประกอบ (Resources)",
+                        colCount: 2,
                         items: [
+                            // --- ส่วนที่ 1: Learn Resources ---
                             {
                                 template: function (data, itemElement) {
                                     itemElement.append(
-                                        $("<div class='mb-2'>").append(
-                                            $("<label class='form-label fw-bold'>").text("ไฟล์แนบ (Attachments)"),
-                                            $("<div>").dxFileUploader({
-                                                elementAttr: { id: "fileUploaderResource" },
-                                                selectButtonText: "เลือกไฟล์",
-                                                labelText: "หรือลากไฟล์มาวางที่นี่",
-                                                multiple: true,
-                                                uploadMode: "useForm" // ใช้ Form Submit
-                                            })
+                                        $("<div class='p-2 border rounded bg-light'>").append(
+                                            $("<h6 class='fw-bold text-primary mb-2'>")
+                                                .html('<i class="fas fa-book-reader me-1"></i> สื่อการเรียนรู้ (Learn)'),
+                                            $("<div>").attr("id", "gridLearn")
                                         )
                                     );
+
+                                    setTimeout(() => {
+                                        $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
+                                            selectedLearnIds = e.selectedRowsData.map(r => r.Id);
+                                        }));
+                                    }, 0);
+                                }
+                            },
+                            // --- ส่วนที่ 2: Exam Resources ---
+                            {
+                                template: function (data, itemElement) {
+                                    itemElement.append(
+                                        $("<div class='p-2 border rounded bg-light'>").append(
+                                            $("<h6 class='fw-bold text-danger mb-2'>")
+                                                .html('<i class="fas fa-pen-alt me-1"></i> แบบทดสอบ (Exam)'),
+                                            $("<div>").attr("id", "gridExam")
+                                        )
+                                    );
+
+                                    setTimeout(() => {
+                                        $("#gridExam").dxDataGrid(createGridConfig(2, (e) => {
+                                            selectedExamIds = e.selectedRowsData.map(r => r.Id);
+                                        }));
+                                    }, 0);
                                 }
                             }
                         ]
@@ -150,96 +172,65 @@
                 ]
             }).dxForm("instance");
 
-            // --- สร้างปุ่ม Save / Cancel ---
+            // --- ปุ่ม Save / Cancel ---
             const btnGroup = $("<div>").addClass("d-flex gap-2");
 
-            // ปุ่มบันทึก (Save)
             $("<div>").dxButton({
                 text: "บันทึก (Save)",
                 icon: "save",
                 type: "default",
                 stylingMode: "contained",
-                onClick: function() {
-                    submitForm();
-                }
+                onClick: submitForm
             }).appendTo(btnGroup);
 
-            // ปุ่มยกเลิก (Cancel)
             $("<div>").dxButton({
                 text: "ยกเลิก (Cancel)",
                 icon: "close",
                 type: "normal",
                 stylingMode: "text",
-                onClick: function () {
-                    // กลับไปหน้า Index หรือ Dashboard
-                    window.location.href = '@Url.Action("Index", "Courses")';
-                }
+                onClick: () => window.location.href = '@Url.Action("Index", "Courses")'
             }).appendTo(btnGroup);
 
             $("#actionButtons").append(btnGroup);
 
-            // --- ฟังก์ชัน Submit Form (AJAX) ---
+            // --- ฟังก์ชัน Submit Form ---
             function submitForm() {
-                // 1. Validate ข้อมูล
                 const validateResult = formInstance.validate();
                 if (!validateResult.isValid) {
                     DevExpress.ui.notify("กรุณากรอกข้อมูลให้ครบถ้วน", "error", 2000);
                     return;
                 }
 
-                // 2. ดึงค่าจาก Form
+                const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
                 const formDataObj = formInstance.option("formData");
 
-                // 3. เตรียม FormData สำหรับส่งไฟล์
-                const dataToSend = new FormData();
+                const dataToSend = {
+                    CourseCode: formDataObj.CourseCode,
+                    CourseName: formDataObj.CourseName,
+                    Description: formDataObj.Description,
+                    CourseType: formDataObj.CourseType,
+                    CategoryId: formDataObj.CategoryId,
+                    ResourceIds: allResourceIds
+                };
 
-                // ใส่ข้อมูล Text
-                dataToSend.append("CourseCode", formDataObj.CourseCode || "");
-                dataToSend.append("CourseName", formDataObj.CourseName || "");
-                dataToSend.append("Description", formDataObj.Description || "");
-                dataToSend.append("CourseType", formDataObj.CourseType);
-
-                if (formDataObj.CategoryId) {
-                    dataToSend.append("CategoryId", formDataObj.CategoryId);
-                }
-
-                // ใส่ข้อมูลไฟล์ (ดึงจาก dxFileUploader โดยตรง)
-                const uploaderInstance = $("#fileUploaderResource").dxFileUploader("instance");
-                const files = uploaderInstance.option("value"); // ได้ array ของ File objects
-
-                if (files && files.length > 0) {
-                    for (let i = 0; i < files.length; i++) {
-                        // ชื่อ "Resources" ต้องตรงกับ Property ใน DTO (List<IFormFile> Resources)
-                        dataToSend.append("Resources", files[i]);
-                    }
-                }
-
-                // 4. ส่ง AJAX ไปยัง Controller
                 DevExpress.ui.notify("กำลังบันทึกข้อมูล...", "info", 1000);
 
                 $.ajax({
-                    url: '@Url.Action("Create", "Courses")', // ไปที่ CoursesController > Action Create [POST]
+                    url: serviceUrl + "/Courses/Create",
                     type: 'POST',
-                    data: dataToSend,
-                    processData: false, // สำคัญ: ห้าม jQuery process data
-                    contentType: false, // สำคัญ: ห้าม set content-type
-                    headers: {
-                        // ส่ง Token ป้องกัน CSRF (ถ้ามี)
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify(dataToSend),
+                    // headers: {
+                    //     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    // },
+                    xhrFields: { withCredentials: true },
                     success: function (response) {
                         DevExpress.ui.notify("บันทึกสำเร็จ!", "success", 2000);
-                        setTimeout(() => {
-                            // บันทึกเสร็จแล้วให้ไปที่หน้า Index
-                            window.location.href = '@Url.Action("Index", "Courses")';
-                        }, 1000);
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
                     },
                     error: function (xhr) {
-                        console.error(xhr);
                         let msg = "เกิดข้อผิดพลาดในการบันทึก";
-                        if(xhr.responseJSON && xhr.responseJSON.message) {
-                            msg = xhr.responseJSON.message;
-                        }
+                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
                         DevExpress.ui.notify(msg, "error", 3000);
                     }
                 });

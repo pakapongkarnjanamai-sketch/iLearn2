@@ -5,7 +5,7 @@ using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.IO;
+using System.Collections.Generic; // เพิ่มสำหรับการใช้ List
 using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
@@ -15,24 +15,24 @@ namespace iLearn.API.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly ICourseRepository _courseRepo;
-        private readonly IGenericRepository<Resource> _resourceRepository;
+        // private readonly IGenericRepository<Resource> _resourceRepository; // ไม่ได้ใช้สร้าง Resource ใหม่แล้ว
         private readonly IGenericRepository<CourseResource> _courseResourceRepository;
-        private readonly IGenericRepository<FileStorage> _fileStorageRepository;
+        // private readonly IGenericRepository<FileStorage> _fileStorageRepository; // ไม่ได้ใช้สร้าง FileStorage แล้ว
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly ICourseAssignmentService _assignmentService;
 
         public CoursesController(
             ICourseRepository courseRepository,
-            IGenericRepository<Resource> resourceRepository,
+            IGenericRepository<Resource> resourceRepository, // คงไว้หากมีการใช้งานอื่น หรือลบออกถ้าไม่ใช้
             IGenericRepository<CourseResource> courseResourceRepository,
-            IGenericRepository<FileStorage> fileStorageRepository,
+            IGenericRepository<FileStorage> fileStorageRepository, // คงไว้หากมีการใช้งานอื่น หรือลบออกถ้าไม่ใช้
             IGenericRepository<CourseVersion> courseVersionRepository,
             ICourseAssignmentService assignmentService)
         {
             _courseRepo = courseRepository;
-            _resourceRepository = resourceRepository;
+            // _resourceRepository = resourceRepository;
             _courseResourceRepository = courseResourceRepository;
-            _fileStorageRepository = fileStorageRepository;
+            // _fileStorageRepository = fileStorageRepository;
             _courseVersionRepository = courseVersionRepository;
             _assignmentService = assignmentService;
         }
@@ -52,9 +52,9 @@ namespace iLearn.API.Controllers
             return Ok(course);
         }
 
-        [HttpPost]
-        [Consumes("multipart/form-data")]
-        public async Task<IActionResult> Create([FromForm] CourseCreateDto model)
+        [HttpPost("Create")]
+        // [Consumes("multipart/form-data")] // [ลบออก] ไม่ได้รับไฟล์แล้ว
+        public async Task<IActionResult> Create([FromForm] CourseCreateDto model) // [แก้ไข] เปลี่ยนเป็น [FromBody]
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -73,7 +73,6 @@ namespace iLearn.API.Controllers
                     Title = model.CourseName,
                     Description = model.Description,
                     Type = (CourseType)model.CourseType,
-                    // CategoryId = model.CategoryId, // [ลบออก] เพราะ Entity Course ไม่มี CategoryId
                     IsActive = true,
                     CreatedAt = DateTime.Now
                 };
@@ -85,54 +84,24 @@ namespace iLearn.API.Controllers
                 {
                     CourseId = course.Id,
                     VersionNumber = 1,
-                    Note = "Initial Create", // [แก้ไข] เปลี่ยนจาก VersionNote เป็น Note
+                    Note = "Initial Create",
                     IsActive = true,
                     CreatedAt = DateTime.Now
                 };
                 await _courseVersionRepository.AddAsync(courseVersion);
 
-                // 4. จัดการไฟล์แนบ
-                if (model.Resources != null && model.Resources.Count > 0)
+                // 4. [แก้ไข] เชื่อมโยง Resources (จาก ID)
+                if (model.ResourceIds != null && model.ResourceIds.Count > 0)
                 {
-                    foreach (var file in model.Resources)
+                    foreach (var resourceId in model.ResourceIds)
                     {
-                        if (file.Length > 0)
+                        var courseResource = new CourseResource
                         {
-                            byte[] fileData;
-                            using (var ms = new MemoryStream())
-                            {
-                                await file.CopyToAsync(ms);
-                                fileData = ms.ToArray();
-                            }
-
-                            var fileStorage = new FileStorage
-                            {
-                                Name = file.FileName,
-                                ContentType = file.ContentType,
-                                Data = fileData,
-                                Length = file.Length,
-                                CreatedAt = DateTime.Now
-                            };
-                            await _fileStorageRepository.AddAsync(fileStorage);
-
-                            var resource = new Resource
-                            {
-                                Name = file.FileName,
-                                IsActive = true,
-                                TypeId = 1,
-                                FileStorageId = fileStorage.Id,
-                                CreatedAt = DateTime.Now
-                            };
-                            await _resourceRepository.AddAsync(resource);
-
-                            var courseResource = new CourseResource
-                            {
-                                CourseVersionId = courseVersion.Id,
-                                ResourceId = resource.Id,
-                                CreatedAt = DateTime.Now
-                            };
-                            await _courseResourceRepository.AddAsync(courseResource);
-                        }
+                            CourseVersionId = courseVersion.Id,
+                            ResourceId = resourceId,
+                            CreatedAt = DateTime.Now
+                        };
+                        await _courseResourceRepository.AddAsync(courseResource);
                     }
                 }
 
@@ -151,14 +120,14 @@ namespace iLearn.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromForm] CourseCreateDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] CourseCreateDto dto) // [แก้ไข] เปลี่ยนเป็น [FromBody]
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null) return NotFound();
 
             course.Title = dto.CourseName;
             course.Description = dto.Description;
-            // course.CategoryId = dto.CategoryId; // [ลบออก] เพราะ Entity Course ไม่มี CategoryId
+            // course.CategoryId = dto.CategoryId;
 
             if (course.Type != (CourseType)dto.CourseType)
             {
@@ -166,6 +135,10 @@ namespace iLearn.API.Controllers
             }
 
             await _courseRepo.UpdateAsync(course);
+
+            // หมายเหตุ: การ Update ปกติมักจะไม่ยุ่งกับ ResourceIds หรือ CourseVersion 
+            // หากต้องการแก้ไข Resource ควรทำผ่าน API แยกหรือการสร้าง Version ใหม่ (ตาม Logic ของ Wizard)
+
             return Ok(new { success = true, message = "อัปเดตข้อมูลสำเร็จ" });
         }
 

@@ -1,10 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace iLearn.Application.DTOs
 {
@@ -22,13 +17,13 @@ namespace iLearn.Application.DTOs
         public string Description { get; set; }
 
         [Display(Name = "ประเภทหลักสูตร")]
-        public int CourseType { get; set; } // ควร map กับ Enum CourseType
+        public int CourseType { get; set; }
 
         [Display(Name = "หมวดหมู่")]
         public int? CategoryId { get; set; }
 
-        // ส่วนสำคัญ: สำหรับอัปโหลดไฟล์
-        [Display(Name = "เอกสารประกอบ (Resources)")]
-        public List<IFormFile> Resources { get; set; }
+        // [แก้ไข] เปลี่ยนจาก List<IFormFile> เป็น List<int> เพื่อรับ ID
+        [Display(Name = "เอกสารประกอบ (Resource IDs)")]
+        public List<int> ResourceIds { get; set; } = new List<int>();
     }
 }
