@@ -12,202 +12,49 @@
         </div>
     </div>
 </div>
+
 @section Scripts {
     <script>
-        let selectedLearnIds = [];
-        let selectedExamIds = [];
+        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'Id' });
 
         const courseTypes = [
             { id: 0, name: 'Special (Rule-based)' },
             { id: 1, name: 'General (Auto-assign)' }
         ];
+        const hiddenCategoryId = sessionStorage.getItem('SelectedCategoryId');
+            let initialFilter = null;
 
-        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' });
-        const versionsStore = createDataStore(serviceUrl, 'admin/CourseVersionsCRUD', { key: 'Id' });
-        const courseResourcesStore = createDataStore(serviceUrl, 'admin/CourseResourcesCRUD', { key: 'Id' });
-        const resourcesLookupStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' });
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'Id' });
+            if (hiddenCategoryId) {
+                // สร้าง Filter
+                initialFilter = ["CategoryId", "=", parseInt(hiddenCategoryId)];
 
-        function createGridConfig(typeId, onSelectionChangeCallback) {
-            return {
-                dataSource: {
-                    store: resourcesStore,
-                    filter: ["TypeId", "=", typeId]
-                },
-                showBorders: true,
-                height: 250,
-                selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                searchPanel: { visible: true, width: 150 },
-                scrolling: { mode: "virtual" },
-                columns: [
-                    { dataField: "Name", caption: "Resource Name" },
-                    { dataField: "IsActive", dataType: "boolean", width: 60 }
-                ],
-                onSelectionChanged: onSelectionChangeCallback
-            };
-        }
-
-        const coursesDataSource = new DevExpress.data.CustomStore({
-            key: "Id",
-            load: function(loadOptions) {
-                return $.ajax({
-                    url: serviceUrl + "/Courses",
-                    method: "GET",
-                    xhrFields: { withCredentials: true }
-                }).then(function(data) {
-
-                    return data.map(item => ({
-                        Id: item.Id,
-                        Code: item.Code,
-                        Title: item.Title,
-                        Description: item.Description,
-                        Type: item.Type,
-                        CategoryId: item.CategoryId,
-                        IsActive: item.IsActive,
-                        Version: item.Version || 1
-                    }));
-                });
-            },
-            byKey: function(key) {
-                return $.ajax({
-                    url: serviceUrl + "/Courses/" + key,
-                    method: "GET",
-                    xhrFields: { withCredentials: true }
-                }).then(function(data) {
-                    // ✅ แปลงจาก API format เป็น Grid format
-                    return {
-                        Id: data.Id,
-                        Code: data.CourseCode,
-                        Title: data.CourseName,
-                        Description: data.Description ,
-                        Type: data.CourseType,
-                        CategoryId: data.CategoryId,
-                        IsActive: data.IsActive,
-                        ResourceIds: data.ResourceIds || []
-                    };
-                });
-            },
-            insert: function(values) {
-                console.log("Values:",values);
-                const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
-
-                const payload = {
-                    CourseCode: values.Code,
-                    CourseName: values.Title,
-                    Description: values.Description ,
-                    CourseType: values.Type,
-                    CategoryId: values.CategoryId,
-                    ResourceIds: allResourceIds
-                };
-
-                console.log("Insert Payload:", payload);
-
-                return $.ajax({
-                    url: serviceUrl + "/Courses/Create",
-                    method: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify(payload),
-                    xhrFields: { withCredentials: true }
-                });
-            },
-            update: function(key, values) {
-                const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
-
-                // ✅ ใช้ byKey แทน ajax โดยตรง
-                return this.byKey(key).then(oldItem => {
-                    const payload = {
-                        CourseCode: values.Code !== undefined ? values.Code : oldItem.Code,
-                        CourseName: values.Title !== undefined ? values.Title : oldItem.Title,
-                        Description: values.Description !== undefined ? values.Description : oldItem.Description,
-                        CourseType: values.Type !== undefined ? values.Type : oldItem.Type,
-                        CategoryId: values.CategoryId !== undefined ? values.CategoryId : oldItem.CategoryId,
-                        ResourceIds: allResourceIds
-                    };
-
-                    console.log("Update Payload:", payload);
-
-                    return $.ajax({
-                        url: serviceUrl + "/Courses/" + key,
-                        method: "PUT",
-                        contentType: "application/json",
-                        data: JSON.stringify(payload),
-                        xhrFields: { withCredentials: true }
-                    });
-                });
-            },
-            remove: function(key) {
-                return $.ajax({
-                    url: serviceUrl + "/Courses/" + key,
-                    method: "DELETE",
-                    xhrFields: { withCredentials: true }
-                });
+                // [สำคัญ] ลบค่าทิ้งทันที เพื่อไม่ให้ Filter ค้าง
+                // กรณีผู้ใช้กด Refresh หรือเข้ามาหน้านี้ใหม่จากเมนูอื่น จะได้เห็นข้อมูลทั้งหมดตามปกติ
+                sessionStorage.removeItem('SelectedCategoryId');
             }
-        });
-
         $(() => {
+            // ใช้ createDataStore เชื่อมต่อกับ API CRUD มาตรฐาน (admin/CoursesCRUD)
+            const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' });
+
             $("#grid").dxDataGrid({
-                dataSource: coursesDataSource,
-                remoteOperations: false,
+                dataSource: coursesStore,
+                filterValue: initialFilter,
+                remoteOperations: true,
                 columnAutoWidth: true,
                 showBorders: true,
                 height: "100%",
                 scrolling: { mode: "virtual" },
                 searchPanel: { visible: true, width: 300 },
-
-                onEditingStart: function(e) {
-                    selectedLearnIds = [];
-                    selectedExamIds = [];
-
+               onRowDblClick: function(e) {
                     if (e.data && e.data.Id) {
-                        // ✅ ใช้ byKey ที่เราสร้างไว้
-                        coursesDataSource.byKey(e.data.Id).done(function(detailData) {
-                            console.log("Loaded course data:", detailData);
+                        // 1. บันทึก CourseId ลง Session
+                        sessionStorage.setItem('SelectedCourseId', e.data.Id);
 
-                            if (detailData.ResourceIds && detailData.ResourceIds.length > 0) {
-                                const resourcePromises = detailData.ResourceIds.map(id =>
-                                    resourcesStore.byKey(id)
-                                );
-
-                                Promise.all(resourcePromises).then(resources => {
-                                    selectedLearnIds = resources
-                                        .filter(r => r && r.TypeId === 1)
-                                        .map(r => r.Id);
-
-                                    selectedExamIds = resources
-                                        .filter(r => r && r.TypeId === 2)
-                                        .map(r => r.Id);
-
-                                    console.log("Loaded Learn IDs:", selectedLearnIds);
-                                    console.log("Loaded Exam IDs:", selectedExamIds);
-
-                                    setTimeout(() => {
-                                        const gridLearn = $("#gridLearn").dxDataGrid("instance");
-                                        if (gridLearn) {
-                                            gridLearn.option("selectedRowKeys", selectedLearnIds);
-                                        }
-
-                                        const gridExam = $("#gridExam").dxDataGrid("instance");
-                                        if (gridExam) {
-                                            gridExam.option("selectedRowKeys", selectedExamIds);
-                                        }
-                                    }, 300);
-                                }).catch(err => {
-                                    console.error("Error loading resources:", err);
-                                });
-                            }
-                        }).fail(function(err) {
-                            console.error("Error loading course details:", err);
-                        });
+                        // 2. ไปยังหน้า Version โดยไม่ต้องแนบ Query String
+                        window.location.href = '@Url.Action("Version", "Courses")';
                     }
                 },
-
-                onInitNewRow: function(e) {
-                    selectedLearnIds = [];
-                    selectedExamIds = [];
-                    e.data.IsActive = true;
-
-                },
-
+                // เปิดใช้งานการแก้ไขแบบ Popup มาตรฐาน
                 editing: {
                     mode: "popup",
                     allowAdding: true,
@@ -215,121 +62,61 @@
                     allowDeleting: true,
                     useIcons: true,
                     popup: {
-                        title: "Course Info & Resources",
+                        title: "Course Info",
                         showTitle: true,
-                        width: 1200,
-                        height: 800
+                        width: 700, // ลดความกว้างลงเพราะไม่มี Resources แล้ว
+                        height: 550
                     },
                     form: {
                         items: [
                             {
                                 itemType: "group",
                                 caption: "Basic Info",
-                                colSpan: 2,
-                                colCount: 2,
+                                colCount: 1,
                                 items: [
                                     {
                                         dataField: "Code",
-                                        caption: "Course Code",
                                         validationRules: [{ type: "required" }]
                                     },
                                     {
                                         dataField: "Title",
-                                        caption: "Course Title",
                                         validationRules: [{ type: "required" }]
                                     },
                                     {
                                         dataField: "Type",
-                                        caption: "Course Type",
-                                        validationRules: [{ type: "required" }],
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             dataSource: courseTypes,
                                             displayExpr: 'name',
                                             valueExpr: 'id'
-                                        }
+                                        },
+                                        validationRules: [{ type: "required" }]
                                     },
                                     {
                                         dataField: "CategoryId",
-                                        caption: "Category",
-                                        validationRules: [{ type: "required" }],
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             dataSource: categoriesStore,
                                             displayExpr: 'Name',
                                             valueExpr: 'Id',
-                                            searchEnabled: true
-                                        }
-                                    },
-                                    // {
-                                    //     dataField: "IsActive",
-                                    //     caption: "Active Status",
-                                    //     editorType: "dxCheckBox"
-                                    // },
-                                      {
-                                dataField: "Description",
-                                caption: "Description",
-                                colSpan: 2,
-                                editorType: "dxTextArea",
-                                editorOptions: {
-                                    height: 80,
-                                    placeholder: "Enter course description..."
-                                }
-                            },
-                                ]
-                            },
-
-                            {
-                                itemType: "group",
-                                caption: "เอกสารประกอบ (Resources)",
-                                colSpan: 2,
-                                colCount: 2,
-                                items: [
-                                    {
-                                        colSpan: 1,
-                                        template: function (data, itemElement) {
-                                            itemElement.append(
-                                                $("<div class='p-2 border rounded bg-light'>").append(
-                                                    $("<h6 class='fw-bold text-primary mb-2'>")
-                                                        .html('<i class="fas fa-book-reader me-1"></i> สื่อการเรียนรู้ (Learn)'),
-                                                    $("<div>").attr("id", "gridLearn")
-                                                )
-                                            );
-
-                                            setTimeout(() => {
-                                                const grid = $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
-                                                    selectedLearnIds = e.selectedRowsData.map(r => r.Id);
-                                                    console.log("Selected Learn IDs:", selectedLearnIds);
-                                                })).dxDataGrid("instance");
-
-                                                if (selectedLearnIds.length > 0) {
-                                                    grid.option("selectedRowKeys", selectedLearnIds);
-                                                }
-                                            }, 100);
-                                        }
+                                            searchEnabled: true,
+                                            placeholder: "Select Category"
+                                        },
+                                        validationRules: [{ type: "required" }]
                                     },
                                     {
-                                        colSpan: 1,
-                                        template: function (data, itemElement) {
-                                            itemElement.append(
-                                                $("<div class='p-2 border rounded bg-light'>").append(
-                                                    $("<h6 class='fw-bold text-danger mb-2'>")
-                                                        .html('<i class="fas fa-pen-alt me-1"></i> แบบทดสอบ (Exam)'),
-                                                    $("<div>").attr("id", "gridExam")
-                                                )
-                                            );
-
-                                            setTimeout(() => {
-                                                const grid = $("#gridExam").dxDataGrid(createGridConfig(2, (e) => {
-                                                    selectedExamIds = e.selectedRowsData.map(r => r.Id);
-                                                    console.log("Selected Exam IDs:", selectedExamIds);
-                                                })).dxDataGrid("instance");
-
-                                                if (selectedExamIds.length > 0) {
-                                                    grid.option("selectedRowKeys", selectedExamIds);
-                                                }
-                                            }, 100);
-                                        }
+                                        dataField: "Description",
+                                        editorType: "dxTextArea",
+                                        editorOptions: {
+                                            height: 100,
+                                            placeholder: "Enter course description..."
+                                        },
+                                        colSpan: 1
+                                    },
+                                    {
+                                        dataField: "IsActive",
+                                        editorType: "dxCheckBox",
+                                        editorOptions: { text: "Is Active" }
                                     }
                                 ]
                             }
@@ -345,9 +132,10 @@
                             "edit",
                             "delete",
                             {
-                                hint: "Add Version",
+                                hint: "Manage Versions",
                                 icon: "fas fa-code-branch",
                                 onClick: function(e) {
+                                    // ลิงก์ไปยังหน้า Version พร้อมแนบ courseId
                                     window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.row.data.Id;
                                 }
                             }
@@ -369,11 +157,6 @@
                         dataField: "Title",
                         caption: "Title",
                         minWidth: 200
-                    },{
-                        dataField: "Description",
-                        caption: "Description",
-                        minWidth: 200,
-                        visible:false
                     },
                     {
                         dataField: "CategoryId",
@@ -396,25 +179,12 @@
                         }
                     },
                     {
-                        dataField: "Version",
-                        caption: "Ver.",
-                        width: 70,
-                        alignment: "center",
-                        allowEditing: false,
-                        cellTemplate: (c, o) => $("<span>")
-                            .addClass("badge bg-info text-dark")
-                            .text(o.value || 1)
-                            .appendTo(c)
-                    },
-                    {
                         dataField: "IsActive",
                         caption: "Active",
                         dataType: "boolean",
-                        allowEditing: false,
                         width: 80
                     }
                 ],
-
             });
         });
     </script>

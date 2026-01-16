@@ -1,0 +1,313 @@
+﻿@{
+    ViewBag.Title = "Course Versions";
+}
+
+<div class="container-fluid page-full-height">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <a href="@Url.Action("Index", "Courses")" class="btn btn-sm btn-light me-3">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+                <h5 class="mb-0" id="headerTitle">@ViewBag.Title</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="grid-version"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 1. ประกาศตัวแปรเก็บ ID ที่เลือก
+        let selectedLearnIds = [];
+        let selectedExamIds = [];
+        let currentCourseId = 0;
+
+        // 2. Stores สำหรับ Dropdown และ Grid ย่อย
+        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' });
+
+        // ฟังก์ชันสร้าง Config สำหรับ Grid ย่อย (เหมือนหน้า Courses เดิม)
+        function createGridConfig(typeId, onSelectionChangeCallback) {
+            return {
+                dataSource: {
+                    store: resourcesStore,
+                    filter: ["TypeId", "=", typeId] // 1=Learn, 2=Exam
+                },
+                showBorders: true,
+                height: 250,
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                searchPanel: { visible: true, width: 150 },
+                scrolling: { mode: "virtual" },
+                columns: [
+                    { dataField: "Name", caption: "Resource Name" },
+                    { dataField: "IsActive", dataType: "boolean", width: 60 }
+                ],
+                onSelectionChanged: onSelectionChangeCallback
+            };
+        }
+
+        $(() => {
+            // อ่านค่า CourseId จาก Session (เหมือนเดิม)
+            const hiddenCourseId = sessionStorage.getItem('SelectedCourseId');
+            if (!hiddenCourseId) {
+                window.location.href = '@Url.Action("Index", "Courses")';
+                return;
+            }
+            currentCourseId = parseInt(hiddenCourseId);
+            sessionStorage.removeItem('SelectedCourseId');
+
+            $("#headerTitle").text('@ViewBag.Title' + ' (Course ID: ' + currentCourseId + ')');
+
+            // 3. สร้าง CustomStore สำหรับ Versions เพื่อจัดการ ResourceIds
+            const versionsDataSource = new DevExpress.data.CustomStore({
+                key: "Id",
+                load: function(loadOptions) {
+                    // ส่ง Filter CourseId ไปด้วยเสมอ
+                    const filter = loadOptions.filter ? [loadOptions.filter, "and", ["CourseId", "=", currentCourseId]] : ["CourseId", "=", currentCourseId];
+
+                    // ปรับ params ให้รองรับ DevExtreme LoadOptions
+                    const params = {
+                        filter: JSON.stringify(filter),
+                        sort: JSON.stringify(loadOptions.sort),
+                        skip: loadOptions.skip,
+                        take: loadOptions.take,
+                        requireTotalCount: loadOptions.requireTotalCount
+                    };
+
+                    return $.ajax({
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Get", // ใช้ API CRUD ปกติ หรือ Generic Controller
+                        method: "GET",
+                        data: params,
+                        xhrFields: { withCredentials: true }
+                    });
+                },
+                byKey: function(key) {
+                    return $.ajax({
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Get/" + key,
+                        method: "GET",
+                        xhrFields: { withCredentials: true }
+                    });
+                },
+                insert: function(values) {
+                    // รวม ResourceIds ทั้งหมด
+                    const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
+
+                    const payload = {
+                        ...values,
+                        CourseId: currentCourseId, // บังคับใส่ CourseId
+                        ResourceIds: allResourceIds // ส่งรายการ ResourceIds ไปที่ API
+                    };
+
+                    return $.ajax({
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Post", // หรือ Endpoint เฉพาะถ้า API Generic ไม่รับ ResourceIds
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        xhrFields: { withCredentials: true }
+                    });
+                },
+                update: function(key, values) {
+                    const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
+
+                    // ดึงข้อมูลเก่าก่อนเพื่อ merge (ถ้าจำเป็น) หรือส่ง values ไปเลย
+                    // ในที่นี้สมมติว่า API ต้องการ ResourceIds ใน Body
+                    const payload = {
+                        ...values,
+                        ResourceIds: allResourceIds
+                    };
+
+                    return $.ajax({
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Put/" + key,
+                        method: "PUT",
+                        contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        xhrFields: { withCredentials: true }
+                    });
+                },
+                remove: function(key) {
+                    return $.ajax({
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Delete/" + key,
+                        method: "DELETE",
+                        xhrFields: { withCredentials: true }
+                    });
+                }
+            });
+
+            // 4. ตั้งค่า Main Grid
+            $("#grid-version").dxDataGrid({
+                dataSource: versionsDataSource,
+                remoteOperations: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                height: "100%",
+
+                // Reset ค่าตัวแปรเมื่อเริ่มเพิ่มแถวใหม่
+                onInitNewRow: function(e) {
+                    selectedLearnIds = [];
+                    selectedExamIds = [];
+                    e.data.CourseId = currentCourseId;
+                    e.data.IsActive = true;
+                    // Auto run version number logic can be added here if needed
+                },
+
+                // โหลดข้อมูล Resources เมื่อเริ่มแก้ไข
+                onEditingStart: function(e) {
+                    selectedLearnIds = [];
+                    selectedExamIds = [];
+
+                    if (e.data && e.data.Id) {
+                        // เรียก API เพื่อดึงข้อมูล Detail (รวม ResourceIds)
+                        versionsDataSource.byKey(e.data.Id).done(function(detailData) {
+
+                            if (detailData.ResourceIds && detailData.ResourceIds.length > 0) {
+                                // ดึงข้อมูล Resources ทั้งหมดที่อยู่ใน Version นี้เพื่อแยกประเภท
+                                const resourcePromises = detailData.ResourceIds.map(id => resourcesStore.byKey(id));
+
+                                Promise.all(resourcePromises).then(resources => {
+                                    // แยก Learn (Type 1) และ Exam (Type 2)
+                                    selectedLearnIds = resources.filter(r => r && r.TypeId === 1).map(r => r.Id);
+                                    selectedExamIds = resources.filter(r => r && r.TypeId === 2).map(r => r.Id);
+
+                                    // อัปเดต Selection ใน Grid ย่อย (รอ UI render แป๊บหนึ่ง)
+                                    setTimeout(() => {
+                                        const gridLearn = $("#gridLearn").dxDataGrid("instance");
+                                        if (gridLearn) gridLearn.option("selectedRowKeys", selectedLearnIds);
+
+                                        const gridExam = $("#gridExam").dxDataGrid("instance");
+                                        if (gridExam) gridExam.option("selectedRowKeys", selectedExamIds);
+                                    }, 500);
+                                });
+                            }
+                        });
+                    }
+                },
+
+                editing: {
+                    mode: "popup",
+                    allowAdding: true,
+                    allowUpdating: true,
+                    allowDeleting: true,
+                    useIcons: true,
+                    popup: {
+                        title: "Version Info & Resources",
+                        showTitle: true,
+                        width: 900,
+                        height: 750
+                    },
+                    form: {
+                        items: [
+                            {
+                                itemType: "group",
+                                caption: "Version Info",
+                                colCount: 2,
+                                items: [
+                                    {
+                                        dataField: "VersionNumber",
+                                        caption: "Version No.",
+                                        dataType: "number",
+                                        validationRules: [{ type: "required" }]
+                                    },
+                                    {
+                                        dataField: "Name",
+                                        caption: "Version Name",
+                                        validationRules: [{ type: "required" }]
+                                    },
+                                    {
+                                        dataField: "IsActive",
+                                        editorType: "dxCheckBox",
+                                        colSpan: 2
+                                    }
+                                ]
+                            },
+                            {
+                                itemType: "group",
+                                caption: "Resources Assignment",
+                                colCount: 2,
+                                items: [
+                                    {
+                                        colSpan: 1,
+                                        template: function (data, itemElement) {
+                                            itemElement.append(
+                                                $("<div class='p-2 border rounded bg-light'>").append(
+                                                    $("<h6 class='fw-bold text-primary mb-2'>").html('<i class="fas fa-book-reader me-1"></i> สื่อการเรียนรู้ (Learn)'),
+                                                    $("<div>").attr("id", "gridLearn")
+                                                )
+                                            );
+                                            // สร้าง Grid ย่อย Learn
+                                            setTimeout(() => {
+                                                const grid = $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
+                                                    selectedLearnIds = e.selectedRowsData.map(r => r.Id);
+                                                })).dxDataGrid("instance");
+
+                                                // Pre-select ถ้ามีข้อมูล
+                                                if (selectedLearnIds.length > 0) grid.option("selectedRowKeys", selectedLearnIds);
+                                            }, 100);
+                                        }
+                                    },
+                                    {
+                                        colSpan: 1,
+                                        template: function (data, itemElement) {
+                                            itemElement.append(
+                                                $("<div class='p-2 border rounded bg-light'>").append(
+                                                    $("<h6 class='fw-bold text-danger mb-2'>").html('<i class="fas fa-pen-alt me-1"></i> แบบทดสอบ (Exam)'),
+                                                    $("<div>").attr("id", "gridExam")
+                                                )
+                                            );
+                                            // สร้าง Grid ย่อย Exam
+                                            setTimeout(() => {
+                                                const grid = $("#gridExam").dxDataGrid(createGridConfig(2, (e) => {
+                                                    selectedExamIds = e.selectedRowsData.map(r => r.Id);
+                                                })).dxDataGrid("instance");
+
+                                                // Pre-select ถ้ามีข้อมูล
+                                                if (selectedExamIds.length > 0) grid.option("selectedRowKeys", selectedExamIds);
+                                            }, 100);
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+
+                columns: [
+                    {
+                        dataField: "Id",
+                        caption: "ID",
+                        width: 60,
+                        sortOrder: 'desc',
+                        allowEditing: false
+                    },
+                    {
+                        dataField: "VersionNumber",
+                        caption: "Version No.",
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: (c, o) => $("<span>").addClass("badge bg-info text-dark").text(o.value).appendTo(c)
+                    },
+                    {
+                        dataField: "Name",
+                        caption: "Version Name",
+                        validationRules: [{ type: "required" }]
+                    },
+                    {
+                        dataField: "IsActive",
+                        caption: "Active",
+                        dataType: "boolean",
+                        width: 80
+                    },
+                    {
+                        dataField: "CreatedAt",
+                        caption: "Created Date",
+                        dataType: "date",
+                        format: "dd/MM/yyyy HH:mm",
+                        allowEditing: false,
+                        width: 150
+                    }
+                ]
+            });
+        });
+    </script>
+}
