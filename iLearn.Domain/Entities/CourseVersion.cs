@@ -4,7 +4,6 @@ namespace iLearn.Domain.Entities
 {
     public class CourseVersion : BaseEntity
     {
-        public int Id { get; set; }
 
         public int CourseId { get; set; }
         public Course? Course { get; set; }

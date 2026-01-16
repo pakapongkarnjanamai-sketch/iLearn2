@@ -183,7 +183,7 @@ namespace iLearn.Application.Mappings
                 StudentCode = entity.StudentCode,
                 CourseId = entity.CourseId,
                 ContentId = entity.ContentId,
-                CourseTime = entity.CourseTime,
+                LearnTime = entity.LearnTime,
                 ExamTime = entity.ExamTime,
                 CreatedAt = entity.CreatedAt
             };
@@ -198,7 +198,7 @@ namespace iLearn.Application.Mappings
                 CourseId = dto.CourseId,
                 ContentId = dto.ContentId,
                 QuestionId = dto.QuestionId,
-                CourseTime = dto.CourseTime,
+                LearnTime = dto.LearnTime,
                 ExamTime = dto.ExamTime,
             };
         }

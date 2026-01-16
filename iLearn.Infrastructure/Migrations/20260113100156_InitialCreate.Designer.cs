@@ -304,7 +304,7 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CourseTime")
+                    b.Property<string>("LearnTime")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CreatedBy")

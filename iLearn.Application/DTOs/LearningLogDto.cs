@@ -5,10 +5,9 @@
         public int Id { get; set; }
         public string StudentCode { get; set; } = string.Empty;
         public int CourseId { get; set; }
-        public int ContentId { get; set; } // หรือ ResourceId
+        public int ContentId { get; set; } 
 
-        // เวลาที่ใช้เรียน (ส่งมาเป็น String Format เช่น "00:30:00")
-        public string? CourseTime { get; set; }
+        public string? LearnTime { get; set; }
         public string? ExamTime { get; set; }
 
         public DateTime CreatedAt { get; set; }
@@ -19,8 +18,8 @@
         public string StudentCode { get; set; } = string.Empty;
         public int CourseId { get; set; }
         public int ContentId { get; set; }
-        public int QuestionId { get; set; } // ถ้ามี
-        public string? CourseTime { get; set; }
+        public int QuestionId { get; set; } 
+        public string? LearnTime { get; set; }
         public string? ExamTime { get; set; }
     }
 }

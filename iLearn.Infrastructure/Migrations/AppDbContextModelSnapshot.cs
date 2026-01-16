@@ -61,7 +61,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AssignmentRules");
+                    b.ToTable("AssignmentRules", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Category", b =>
@@ -100,7 +100,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("DivisionId");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Course", b =>
@@ -149,7 +149,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Courses");
+                    b.ToTable("Courses", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.CourseResource", b =>
@@ -186,7 +186,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("ResourceId");
 
-                    b.ToTable("CourseResources");
+                    b.ToTable("CourseResources", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.CourseVersion", b =>
@@ -227,7 +227,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("CourseVersions");
+                    b.ToTable("CourseVersions", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Division", b =>
@@ -258,7 +258,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Divisions");
+                    b.ToTable("Divisions", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Enrollment", b =>
@@ -307,7 +307,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Enrollments");
+                    b.ToTable("Enrollments", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.FileStorage", b =>
@@ -348,7 +348,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FileStorages");
+                    b.ToTable("FileStorages", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.LearningLog", b =>
@@ -365,9 +365,6 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CourseTime")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -376,6 +373,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ExamTime")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LearnTime")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("QuestionId")
@@ -394,7 +394,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LearningLogs");
+                    b.ToTable("LearningLogs", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Resource", b =>
@@ -447,7 +447,7 @@ namespace iLearn.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[FileStorageId] IS NOT NULL");
 
-                    b.ToTable("Resources");
+                    b.ToTable("Resources", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Role", b =>
@@ -486,7 +486,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("DivisionId");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.User", b =>
@@ -520,7 +520,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.UserRole", b =>
@@ -557,7 +557,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.AssignmentRule", b =>

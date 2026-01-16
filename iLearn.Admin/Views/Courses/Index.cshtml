@@ -55,12 +55,12 @@
                     method: "GET",
                     xhrFields: { withCredentials: true }
                 }).then(function(data) {
-        
+
                     return data.map(item => ({
                         Id: item.Id,
                         Code: item.Code,
                         Title: item.Title,
-                        Description: item.Description,  
+                        Description: item.Description,
                         Type: item.Type,
                         CategoryId: item.CategoryId,
                         IsActive: item.IsActive,
@@ -94,7 +94,7 @@
                 const payload = {
                     CourseCode: values.Code,
                     CourseName: values.Title,
-                    Description: values.Description ,  
+                    Description: values.Description ,
                     CourseType: values.Type,
                     CategoryId: values.CategoryId,
                     ResourceIds: allResourceIds
@@ -205,7 +205,7 @@
                     selectedLearnIds = [];
                     selectedExamIds = [];
                     e.data.IsActive = true;
-                
+
                 },
 
                 editing: {
@@ -278,7 +278,7 @@
                             },
                                 ]
                             },
-                          
+
                             {
                                 itemType: "group",
                                 caption: "เอกสารประกอบ (Resources)",
@@ -415,79 +415,6 @@
                     }
                 ],
 
-                masterDetail: {
-                    enabled: true,
-                    template: function(container, options) {
-                        const courseId = options.key;
-                        $("<div>").addClass("p-3 bg-light border rounded").append(
-                            $("<h6>").addClass("mb-2 text-primary")
-                                .html(`<i class="fas fa-history"></i> Version History: <b>${options.data.Code}</b>`)
-                        ).appendTo(container);
-
-                        $("<div>").dxDataGrid({
-                            dataSource: {
-                                store: versionsStore,
-                                filter: ["CourseId", "=", courseId]
-                            },
-                            showBorders: true,
-                            columnAutoWidth: true,
-                            columns: [
-                                {
-                                    dataField: "VersionNumber",
-                                    caption: "Ver No.",
-                                    width: 80,
-                                    sortOrder: "desc"
-                                },
-                                {
-                                    dataField: "Note",
-                                    caption: "Release Note"
-                                },
-                                {
-                                    dataField: "IsActive",
-                                    caption: "Current",
-                                    dataType: "boolean",
-                                    width: 80
-                                },
-                                {
-                                    dataField: "CreatedAt",
-                                    caption: "Date",
-                                    dataType: "date",
-                                    width: 120
-                                }
-                            ],
-                            masterDetail: {
-                                enabled: true,
-                                template: function(subContainer, subOptions) {
-                                    const versionId = subOptions.key;
-                                    $("<div>").addClass("ps-4 py-2").append(
-                                        $("<small>").addClass("text-muted")
-                                            .html(`<i class="fas fa-file-alt"></i> Resources in Ver. ${subOptions.data.VersionNumber}`)
-                                    ).appendTo(subContainer);
-
-                                    $("<div>").dxDataGrid({
-                                        dataSource: {
-                                            store: courseResourcesStore,
-                                            filter: ["CourseVersionId", "=", versionId]
-                                        },
-                                        showBorders: true,
-                                        columnAutoWidth: true,
-                                        columns: [
-                                            {
-                                                dataField: "ResourceId",
-                                                caption: "Resource",
-                                                lookup: {
-                                                    dataSource: resourcesLookupStore,
-                                                    displayExpr: "Name",
-                                                    valueExpr: "Id"
-                                                }
-                                            }
-                                        ]
-                                    }).appendTo(subContainer);
-                                }
-                            }
-                        }).appendTo(container);
-                    }
-                }
             });
         });
     </script>
