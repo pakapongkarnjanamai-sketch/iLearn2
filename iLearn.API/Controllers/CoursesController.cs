@@ -5,7 +5,8 @@ using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic; // เพิ่มสำหรับการใช้ List
+using System.Collections.Generic;
+using System.Linq; // จำเป็นสำหรับ LINQ
 using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
@@ -15,24 +16,18 @@ namespace iLearn.API.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly ICourseRepository _courseRepo;
-        // private readonly IGenericRepository<Resource> _resourceRepository; // ไม่ได้ใช้สร้าง Resource ใหม่แล้ว
         private readonly IGenericRepository<CourseResource> _courseResourceRepository;
-        // private readonly IGenericRepository<FileStorage> _fileStorageRepository; // ไม่ได้ใช้สร้าง FileStorage แล้ว
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly ICourseAssignmentService _assignmentService;
 
         public CoursesController(
             ICourseRepository courseRepository,
-            IGenericRepository<Resource> resourceRepository, // คงไว้หากมีการใช้งานอื่น หรือลบออกถ้าไม่ใช้
             IGenericRepository<CourseResource> courseResourceRepository,
-            IGenericRepository<FileStorage> fileStorageRepository, // คงไว้หากมีการใช้งานอื่น หรือลบออกถ้าไม่ใช้
             IGenericRepository<CourseVersion> courseVersionRepository,
             ICourseAssignmentService assignmentService)
         {
             _courseRepo = courseRepository;
-            // _resourceRepository = resourceRepository;
             _courseResourceRepository = courseResourceRepository;
-            // _fileStorageRepository = fileStorageRepository;
             _courseVersionRepository = courseVersionRepository;
             _assignmentService = assignmentService;
         }
@@ -44,33 +39,57 @@ namespace iLearn.API.Controllers
             return Ok(courses);
         }
 
+        // [ปรับปรุง] GetById ให้ส่ง ResourceIds กลับไปแสดงผลด้วย
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null) return NotFound();
-            return Ok(course);
+
+            // หา Version ปัจจุบันที่ Active อยู่
+            var versions = await _courseVersionRepository.GetAllAsync();
+            var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
+
+            var resourceIds = new List<int>();
+            if (activeVersion != null)
+            {
+                var allCourseResources = await _courseResourceRepository.GetAllAsync();
+                resourceIds = allCourseResources
+                    .Where(cr => cr.CourseVersionId == activeVersion.Id)
+                    .Select(cr => cr.ResourceId)
+                    .ToList();
+            }
+
+            // ส่งข้อมูลกลับในรูปแบบเดียวกับ DTO หรือ Anonymous Object ที่ Frontend ใช้ง่ายๆ
+            return Ok(new
+            {
+                course.Id,
+                CourseCode = course.Code,
+                CourseName = course.Title,
+                course.Description,
+                CourseType = (int)course.Type,
+                course.IsActive,
+                ResourceIds = resourceIds // ส่งรายการ ID ของ Resource กลับไป
+            });
         }
 
         [HttpPost("Create")]
-        // [Consumes("multipart/form-data")] // [ลบออก] ไม่ได้รับไฟล์แล้ว
-        public async Task<IActionResult> Create([FromForm] CourseCreateDto model) // [แก้ไข] เปลี่ยนเป็น [FromBody]
+        public async Task<IActionResult> Create([FromBody] CourseCreateDto model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             try
             {
-                // 1. ตรวจสอบรหัสซ้ำ
                 if (!await _courseRepo.IsCourseCodeUniqueAsync(model.CourseCode))
                 {
                     return BadRequest(new { message = $"รหัสวิชา '{model.CourseCode}' มีอยู่ในระบบแล้ว" });
                 }
 
-                // 2. สร้าง Entity Course
                 var course = new Course
                 {
                     Code = model.CourseCode,
                     Title = model.CourseName,
+                    CategoryId = model.CategoryId,
                     Description = model.Description,
                     Type = (CourseType)model.CourseType,
                     IsActive = true,
@@ -79,7 +98,6 @@ namespace iLearn.API.Controllers
 
                 await _courseRepo.AddAsync(course);
 
-                // 3. สร้าง CourseVersion แรก
                 var courseVersion = new CourseVersion
                 {
                     CourseId = course.Id,
@@ -90,7 +108,6 @@ namespace iLearn.API.Controllers
                 };
                 await _courseVersionRepository.AddAsync(courseVersion);
 
-                // 4. [แก้ไข] เชื่อมโยง Resources (จาก ID)
                 if (model.ResourceIds != null && model.ResourceIds.Count > 0)
                 {
                     foreach (var resourceId in model.ResourceIds)
@@ -105,7 +122,6 @@ namespace iLearn.API.Controllers
                     }
                 }
 
-                // 5. Trigger Assignment
                 if (course.Type == CourseType.General)
                 {
                     await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);
@@ -119,16 +135,18 @@ namespace iLearn.API.Controllers
             }
         }
 
+        // [ปรับปรุง] Update ให้รองรับการแก้ไข Resources
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CourseCreateDto dto) // [แก้ไข] เปลี่ยนเป็น [FromBody]
+        public async Task<IActionResult> Update(int id, [FromBody] CourseCreateDto dto)
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null) return NotFound();
 
+            // 1. อัปเดตข้อมูลทั่วไป
             course.Title = dto.CourseName;
             course.Description = dto.Description;
-            // course.CategoryId = dto.CategoryId;
-
+            course.Code = dto.CourseCode;
+            course.CategoryId = dto.CategoryId;
             if (course.Type != (CourseType)dto.CourseType)
             {
                 course.Type = (CourseType)dto.CourseType;
@@ -136,10 +154,39 @@ namespace iLearn.API.Controllers
 
             await _courseRepo.UpdateAsync(course);
 
-            // หมายเหตุ: การ Update ปกติมักจะไม่ยุ่งกับ ResourceIds หรือ CourseVersion 
-            // หากต้องการแก้ไข Resource ควรทำผ่าน API แยกหรือการสร้าง Version ใหม่ (ตาม Logic ของ Wizard)
+            // 2. [เพิ่ม] จัดการ ResourceIds (อัปเดตใน Version ปัจจุบัน)
+            // หมายเหตุ: วิธีที่ดีที่สุดคือสร้าง Version ใหม่ แต่ถ้าต้องการแก้ทันทีให้ทำดังนี้:
+            var versions = await _courseVersionRepository.GetAllAsync();
+            var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
 
-            return Ok(new { success = true, message = "อัปเดตข้อมูลสำเร็จ" });
+            if (activeVersion != null)
+            {
+                // ดึงรายการเดิม
+                var allCourseResources = await _courseResourceRepository.GetAllAsync();
+                var currentResources = allCourseResources.Where(cr => cr.CourseVersionId == activeVersion.Id).ToList();
+
+                // ลบรายการเดิมทั้งหมดทิ้ง (หรือจะทำ Diff ก็ได้ แต่วิธีนี้ง่ายกว่าสำหรับข้อมูลไม่เยอะ)
+                foreach (var item in currentResources)
+                {
+                    await _courseResourceRepository.DeleteAsync(item);
+                }
+
+                // เพิ่มรายการใหม่ที่เลือกมา
+                if (dto.ResourceIds != null && dto.ResourceIds.Count > 0)
+                {
+                    foreach (var resourceId in dto.ResourceIds)
+                    {
+                        await _courseResourceRepository.AddAsync(new CourseResource
+                        {
+                            CourseVersionId = activeVersion.Id,
+                            ResourceId = resourceId,
+                            CreatedAt = DateTime.Now
+                        });
+                    }
+                }
+            }
+
+            return Ok(new { success = true, message = "อัปเดตข้อมูลและเอกสารสำเร็จ" });
         }
 
         [HttpDelete("{id}")]

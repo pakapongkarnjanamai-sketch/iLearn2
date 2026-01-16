@@ -23,16 +23,8 @@ namespace iLearn.Admin.Controllers
         {
             return View();
         }
-        [HttpGet]
-        public IActionResult Wizard()
-        {
-            return View();
-        }
-        [HttpGet]
-        public IActionResult Create()
-        {
-            return View();
-        }
+        
+       
 
     }
 }

@@ -14,7 +14,7 @@ namespace iLearn.Application.DTOs
         public string CourseName { get; set; }
 
         [Display(Name = "รายละเอียด")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Display(Name = "ประเภทหลักสูตร")]
         public int CourseType { get; set; }

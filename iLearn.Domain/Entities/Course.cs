@@ -12,6 +12,8 @@ namespace iLearn.Domain.Entities
         public bool IsActive { get; set; } = true;
         public CourseType Type { get; set; }
 
+        public int? CategoryId { get; set; }
+        public virtual Category? Category { get; set; }
 
         public ICollection<CourseVersion> Versions { get; set; } = new List<CourseVersion>();
 
