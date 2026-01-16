@@ -34,7 +34,7 @@
                 </div>
                 <div class="col-md-8">
                     <div id="fileUploader"></div>
-                    <span class="note">Supported: <b>.zip (SCORM), .pdf, .mp4</b> | Max size: 100MB</span>
+                    <span class="note">Supported: <b>.zip (SCORM)</b> | Max size: 100MB</span>
                 </div>
             </div>
             <div id="grid"></div>
@@ -45,8 +45,8 @@
 @section Scripts {
     <script>
         const resourceTypes = [
-            { id: 1, name: 'Learn (Course Material)' },
-            { id: 2, name: 'Exam (Assessment)' }
+            { id: 1, name: 'Learn' },
+            { id: 2, name: 'Exam' }
         ];
 
         // ค่า Default สำหรับการอัปโหลด
@@ -149,7 +149,7 @@
                 columnAutoWidth: true,
                 showBorders: true,
                 scrolling: { mode: "virtual" },
-                height: "600px",
+                height: "Auto",
                 headerFilter: { visible: true, search: { enabled: true } },
                 searchPanel: { visible: true, width: 300, placeholder: "Search resources..." },
 
@@ -192,32 +192,7 @@
                                     }
                                 ]
                             },
-                            {
-                                itemType: 'group',
-                                caption: "Mappings",
-                                colCount: 1,
-                                colSpan: 2,
-                                items: [
-                                    // Field สำหรับผูกกับวิชา (Virtual Column)
-                                    {
-                                        dataField: 'CourseIds',
-                                        label: { text: 'Related Courses' }
-                                    }
-                                ]
-                            },
-                            {
-                                itemType: 'group',
-                                caption: "Source (External URL)",
-                                colCount: 1,
-                                colSpan: 2,
-                                items: [
-                                    {
-                                        dataField: 'URL',
-                                        label: { text: "External URL / Launch Path" },
-                                        editorOptions: { placeholder: "https://... or generated path" }
-                                    }
-                                ]
-                            }
+                           
                         ]
                     }
                 },
