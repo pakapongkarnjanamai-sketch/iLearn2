@@ -3,12 +3,12 @@
     ViewData["Title"] = "สร้างหลักสูตรใหม่ (Create Course)";
     Layout = "_DevExtremeLayout";
 
-    // แปลง Enum เป็น JSON เพื่อนำไปใช้ใน JavaScript
+    // 1. แปลง Enum CourseType เป็น JSON สำหรับ JavaScript
     var courseTypes = Html.GetEnumSelectList<CourseType>()
         .Select(e => new { id = int.Parse(e.Value), text = e.Text });
 }
 
-@* --- Header Section --- *@
+@* --- ส่วน Header --- *@
 <div class="container mt-4 mb-5">
     <div class="qcs-card mb-3">
         <div class="row align-items-center g-3">
@@ -21,12 +21,13 @@
                 </h5>
             </div>
             <div class="col-12 col-xl-auto">
+                @* ปุ่ม Action จะถูก Inject ที่นี่โดย JavaScript *@
                 <div id="actionButtons"></div>
             </div>
         </div>
     </div>
 
-    @* --- Form Container (สร้าง dxForm ที่นี่) --- *@
+    @* --- ส่วน Form Container (dxForm) --- *@
     <div class="qcs-card">
         <div id="dxFormContainer"></div>
     </div>
@@ -35,14 +36,23 @@
 @section Scripts {
     <script>
         $(function () {
-            // รับค่า Enum จาก Server (Razor) มาใส่ตัวแปร JS
+            // รับค่า Enum จาก Razor มาเป็นตัวแปร JS
             const courseTypeData = @Html.Raw(Json.Serialize(courseTypes));
 
-            // สร้าง dxForm
+            // กำหนด URL ของ API หมวดหมู่ (ปรับตามที่คุณใช้งานจริง)
+            // ถ้าคุณมีฟังก์ชัน createDataStore เหมือนใน Wizard ให้ใช้ตัวนั้นแทน
+            const categoryDataSource = DevExpress.data.AspNet.createStore({
+                key: "id",
+                loadUrl: "/api/Categories/GetAll", // หรือ URL ที่ถูกต้องของคุณ
+                onBeforeSend: function(method, ajaxOptions) {
+                    ajaxOptions.xhrFields = { withCredentials: true };
+                }
+            });
+
+            // --- สร้าง dxForm ---
             const formInstance = $("#dxFormContainer").dxForm({
                 formData: {
-                    // กำหนดค่าเริ่มต้น (ถ้ามี)
-                    CourseType: 1
+                    CourseType: 1 // ค่าเริ่มต้น: General
                 },
                 labelMode: "floating",
                 validationGroup: "courseGroup",
@@ -80,7 +90,23 @@
                                     valueExpr: "id",
                                     displayExpr: "text",
                                     placeholder: "เลือกประเภท"
+                                },
+                                validationRules: [{ type: "required", message: "กรุณาเลือกประเภท" }]
+                            },
+                            {
+                                // [เพิ่มเติม] ฟิลด์หมวดหมู่
+                                dataField: "CategoryId",
+                                label: { text: "หมวดหมู่" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: categoryDataSource, // เชื่อมกับ API
+                                    valueExpr: "id",
+                                    displayExpr: "name", // ตรวจสอบว่า API ส่งกลับมาเป็น 'name' หรือ 'text'
+                                    placeholder: "เลือกหมวดหมู่",
+                                    showClearButton: true
                                 }
+                                // ถ้าบังคับเลือกให้เอา comment ออก
+                                // validationRules: [{ type: "required", message: "กรุณาเลือกหมวดหมู่" }]
                             }
                         ]
                     },
@@ -104,17 +130,16 @@
                         caption: "เอกสารประกอบ (Resources)",
                         items: [
                             {
-                                // ใช้ Template สำหรับ FileUploader
                                 template: function (data, itemElement) {
                                     itemElement.append(
                                         $("<div class='mb-2'>").append(
                                             $("<label class='form-label fw-bold'>").text("ไฟล์แนบ (Attachments)"),
                                             $("<div>").dxFileUploader({
-                                                elementAttr: { id: "fileUploaderResource" }, // ID สำหรับอ้างอิงตอน Save
+                                                elementAttr: { id: "fileUploaderResource" },
                                                 selectButtonText: "เลือกไฟล์",
                                                 labelText: "หรือลากไฟล์มาวางที่นี่",
                                                 multiple: true,
-                                                uploadMode: "useForm" // เราจะจัดการส่งเองตอนกด Save
+                                                uploadMode: "useForm" // ใช้ Form Submit
                                             })
                                         )
                                     );
@@ -146,6 +171,7 @@
                 type: "normal",
                 stylingMode: "text",
                 onClick: function () {
+                    // กลับไปหน้า Index หรือ Dashboard
                     window.location.href = '@Url.Action("Index", "Courses")';
                 }
             }).appendTo(btnGroup);
@@ -172,7 +198,10 @@
                 dataToSend.append("CourseName", formDataObj.CourseName || "");
                 dataToSend.append("Description", formDataObj.Description || "");
                 dataToSend.append("CourseType", formDataObj.CourseType);
-                // dataToSend.append("CategoryId", ...); // ถ้ามี
+
+                if (formDataObj.CategoryId) {
+                    dataToSend.append("CategoryId", formDataObj.CategoryId);
+                }
 
                 // ใส่ข้อมูลไฟล์ (ดึงจาก dxFileUploader โดยตรง)
                 const uploaderInstance = $("#fileUploaderResource").dxFileUploader("instance");
@@ -180,32 +209,37 @@
 
                 if (files && files.length > 0) {
                     for (let i = 0; i < files.length; i++) {
-                        dataToSend.append("Resources", files[i]); // ชื่อต้องตรงกับ Model ใน Controller (List<IFormFile> Resources)
+                        // ชื่อ "Resources" ต้องตรงกับ Property ใน DTO (List<IFormFile> Resources)
+                        dataToSend.append("Resources", files[i]);
                     }
                 }
 
-                // 4. ส่ง AJAX
-                const loadPanel = DevExpress.ui.notify("กำลังบันทึกข้อมูล...", "info", 500); // หรือใช้ LoadPanel จริงๆ ก็ได้
+                // 4. ส่ง AJAX ไปยัง Controller
+                DevExpress.ui.notify("กำลังบันทึกข้อมูล...", "info", 1000);
 
                 $.ajax({
-                    url: '@Url.Action("Create", "Courses")', // หรือ API Route
+                    url: '@Url.Action("Create", "Courses")', // ไปที่ CoursesController > Action Create [POST]
                     type: 'POST',
                     data: dataToSend,
                     processData: false, // สำคัญ: ห้าม jQuery process data
-                    contentType: false, // สำคัญ: ห้าม set content-type (browser จะจัดการ boundary เอง)
+                    contentType: false, // สำคัญ: ห้าม set content-type
                     headers: {
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() // ถ้าเปิด CSRF Protection ไว้
+                        // ส่ง Token ป้องกัน CSRF (ถ้ามี)
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                     },
                     success: function (response) {
                         DevExpress.ui.notify("บันทึกสำเร็จ!", "success", 2000);
                         setTimeout(() => {
+                            // บันทึกเสร็จแล้วให้ไปที่หน้า Index
                             window.location.href = '@Url.Action("Index", "Courses")';
                         }, 1000);
                     },
                     error: function (xhr) {
                         console.error(xhr);
-                        let msg = "เกิดข้อผิดพลาด";
-                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        let msg = "เกิดข้อผิดพลาดในการบันทึก";
+                        if(xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
                         DevExpress.ui.notify(msg, "error", 3000);
                     }
                 });

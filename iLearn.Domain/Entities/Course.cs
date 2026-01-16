@@ -5,7 +5,7 @@ namespace iLearn.Domain.Entities
 {
     public class Course : BaseEntity
     {
-        // ... Properties เดิม ...
+      
         public string Code { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
