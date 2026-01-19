@@ -7,31 +7,24 @@
 @section Styles {
     <style>
         /* =========================================
-                           1. ปรับพื้นที่แสดงผล (Player Container)
-                           ========================================= */
+                   1. ปรับพื้นที่แสดงผล (Player Container)
+                   ========================================= */
         .viewer-container {
             display: grid;
-            grid-template-columns: 1fr 350px; /* ซ้าย: เนื้อหา, ขวา: เมนู */
+            grid-template-columns: 1fr 400px; /* ขยายด้านขวาเล็กน้อยเพื่อให้แสดงข้อมูลได้ชัดเจน */
             gap: 20px;
-            /* คำนวณความสูงให้พอดีหน้าจอ (ลบความสูง Header/Footer โดยประมาณออก)
-                               - Header ปกติสูงประมาณ 70-80px
-                               - Footer ปกติสูงประมาณ 60px
-                               - Padding/Margin อื่นๆ
-                            */
             height: calc(100vh - 100px);
             box-sizing: border-box;
             background-color: #f5f7fa;
-            /* เพิ่ม Margin หรือ Padding ถ้าต้องการให้ไม่ติดขอบ */
-            /* margin-top: 10px; */
         }
 
         /* =========================================
-                           2. LEFT PANE: SCORM CONTENT
-                           ========================================= */
+                   2. LEFT PANE: SCORM CONTENT
+                   ========================================= */
         .scorm-section {
             background: #fff;
-            border-radius: 8px; /* เพิ่มความโค้งมนให้เข้ากับธีมหลัก */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* เพิ่มเงา */
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -57,6 +50,9 @@
             align-items: center;
             gap: 10px;
             font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .scorm-body {
@@ -111,12 +107,12 @@
             }
 
         /* =========================================
-                           3. RIGHT PANE: INFO & TOC
-                           ========================================= */
+                   3. RIGHT PANE: INFO & TOC
+                   ========================================= */
         .info-section {
             background: #fff;
-            border-radius: 8px; /* เพิ่มความโค้งมน */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* เพิ่มเงา */
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -124,33 +120,67 @@
             border: 1px solid #dee2e6;
         }
 
-        .info-header {
-            padding: 15px;
+        .course-header-panel {
+            padding: 20px;
+            background-color: #fff;
             border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-status-bar {
+            padding: 10px 15px;
             background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 0.9rem;
+            border-top: 4px solid #007bff; /* Highlight strip */
+        }
+
+        .toc-header {
+            padding: 10px 15px;
+            background-color: #e9ecef;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #495057;
         }
 
         .course-toc {
             flex: 1;
             overflow-y: auto;
             padding: 15px;
+            background-color: #fff;
         }
+
+        .resource-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+            .resource-item:hover {
+                background-color: #f8f9fa;
+                border-left-color: #dee2e6;
+            }
+
+            .resource-item.active {
+                background-color: #ebf5ff;
+                border-left-color: #007bff !important;
+                border-color: #b3d7ff !important;
+            }
 
         /* Mobile Responsive */
         @@media (max-width: 992px) {
             .viewer-container {
                 grid-template-columns: 1fr;
-                height: auto; /* ปล่อยสูงตามเนื้อหาในมือถือ */
+                height: auto;
                 gap: 15px;
             }
 
             .scorm-section {
-                height: 500px; /* กำหนดความสูงขั้นต่ำของ Player ในมือถือ */
+                height: 500px;
             }
 
             .info-section {
                 height: auto;
-                max-height: 400px;
+                max-height: 500px;
             }
         }
     </style>
@@ -159,12 +189,13 @@
 <div class="container-fluid viewer-container">
     <div class="scorm-section" id="fullscreenArea">
         <div class="scorm-toolbar">
-            <div class="scorm-title">
-                <span id="lessonTitle">กำลังโหลดข้อมูล...</span>
+            <div class="scorm-title" title="Lesson Title">
+                <i class="fas fa-book-open text-primary me-2"></i>
+                <span id="lessonTitle">...</span>
             </div>
             <div>
                 <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()">
-                    <i class="fas fa-expand"></i> เต็มจอ
+                    <i class="fas fa-expand"></i>
                 </button>
             </div>
         </div>
@@ -174,7 +205,8 @@
                 <button class="start-btn" onclick="startCourse()">
                     <i class="fas fa-play ps-1"></i>
                 </button>
-                <h5 class="mt-3 text-muted">กดเพื่อเริ่มบทเรียน</h5>
+                <h5 class="mt-3 text-muted">เริ่มบทเรียน</h5>
+                <p id="overlayMessage" class="small text-muted">เลือกหัวข้อทางขวาเพื่อเริ่ม</p>
             </div>
 
             <iframe id="scormFrame"
@@ -184,35 +216,55 @@
     </div>
 
     <div class="info-section">
-        <div class="info-header">
-            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-list"></i> โครงสร้างหลักสูตร</h6>
-        </div>
-        <div class="course-toc">
-            <div class="p-2 border rounded mb-2 bg-light">
-                <div class="d-flex align-items-center text-primary fw-bold">
-                    <i class="far fa-play-circle me-2"></i> บทเรียนปัจจุบัน
-                </div>
-                <div class="small text-muted ms-4 mt-1">Status: <span id="statusDisplay">-</span></div>
-                <div class="small text-muted ms-4">Score: <span id="scoreDisplay">-</span></div>
-            </div>
 
-            <div class="alert alert-info small mt-3">
-                <i class="fas fa-info-circle"></i> Log การเรียนจะถูกบันทึกเมื่อจบบทเรียน
+        <div class="course-header-panel">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary me-2" id="courseCodeDisplay">CODE</span>
+                <span class="badge bg-secondary" id="courseVersionDisplay">v.1</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-2" id="courseTitleDisplay">กำลังโหลดข้อมูล...</h5>
+            <div class="d-flex align-items-center text-muted small mb-2">
+                <i class="far fa-folder me-1"></i>
+                <span id="courseCategoryDisplay">-</span>
+            </div>
+            <p class="text-muted small mb-0" id="courseDescDisplay" style="line-height: 1.4;">
+                -
+            </p>
+        </div>
+
+        <div class="info-status-bar">
+            <div class="row">
+                <div class="col-6 border-end text-center">
+                    <div class="text-muted small">Status</div>
+                    <div id="statusDisplay" class="fw-bold text-primary">-</div>
+                </div>
+                <div class="col-6 text-center">
+                    <div class="text-muted small">Score</div>
+                    <div id="scoreDisplay" class="fw-bold text-success">-</div>
+                </div>
             </div>
         </div>
+
+        <div class="toc-header">
+            <i class="fas fa-list-ul me-1"></i> เนื้อหาบทเรียน
+        </div>
+        <div class="course-toc" id="courseTocList">
+            <div class="text-center text-muted mt-4">
+                <div class="spinner-border text-primary spinner-border-sm mb-2" role="status"></div>
+                <div>กำลังโหลดโครงสร้าง...</div>
+            </div>
+        </div>
+
     </div>
 </div>
 
 @section Scripts {
     <script>
-        const VERSION_ID = "@ViewBag.versionId";
+        const VERSION_ID = "@ViewBag.VersionId";
         let scormLaunchUrl = "";
+        let currentResources = [];
+        let apiBaseUrl = "https://localhost:7128/api";
 
-        // const versionsStore = createDataStore(serviceUrl, 'admin/CourseVersionsCRUD', { key: 'Id' });
-
-        //"https://localhost:7128/api/admin/CourseVersionsCRUD/Get/"+VERSION_ID
-
-   
         $(function() {
             initScormAdapter();
             prepareContent();
@@ -220,38 +272,156 @@
 
         async function prepareContent() {
             try {
-                // Mock Data (เปลี่ยนเป็น fetch จริงภายหลัง)
-                const data = {
-                    title: "ความปลอดภัยในการทำงาน (Demo)",
-                    url: "https://localhost:7270/course/02eb9397-751f-40f8-abf6-35438d3f342f/res/index.html"
-                };
+                // Fetch ข้อมูลจาก API
+                const apiUrl = `${apiBaseUrl}/admin/CourseVersionsCRUD/Get/${VERSION_ID}`;
 
-                $("#lessonTitle").text(data.title);
-                scormLaunchUrl = data.url;
+                const response = await $.ajax({
+                    url: apiUrl,
+                    method: 'GET',
+                    dataType: 'json',
+                    xhrFields: { withCredentials: true }
+                });
+
+                // ตรวจสอบโครงสร้างข้อมูล (API Return Array)
+                let data = null;
+                if (Array.isArray(response) && response.length > 0) {
+                    data = response[0];
+                } else if (response && !Array.isArray(response)) {
+                    data = response;
+                }
+
+                if (data) {
+                    // 1. แสดงข้อมูล Course Details (เพิ่มส่วนนี้ตามที่ขอ)
+                    if (data.Course) {
+                        $("#courseTitleDisplay").text(data.Course.Title || "ไม่มีชื่อหลักสูตร");
+                        $("#courseCodeDisplay").text(data.Course.Code || "N/A");
+                        $("#courseCategoryDisplay").text(data.Course.Category ? data.Course.Category.Name : "General");
+                        $("#courseDescDisplay").text(data.Course.Description || "ไม่มีคำอธิบาย");
+                    }
+
+                    // แสดง Version info
+                    $("#courseVersionDisplay").text("v." + (data.VersionNumber || "1"));
+
+                    // 2. แสดงรายการ Resources
+                    if (data.CourseResources && data.CourseResources.length > 0) {
+                        currentResources = data.CourseResources;
+                        renderCourseContent(currentResources);
+                    } else {
+                        $("#courseTocList").html('<div class="alert alert-warning m-2 small">ไม่พบเนื้อหาหลักสูตร</div>');
+                        $("#lessonTitle").text("ไม่พบข้อมูล");
+                    }
+                } else {
+                    DevExpress.ui.notify("ไม่พบข้อมูลหลักสูตร", "error", 3000);
+                }
 
             } catch (err) {
+                console.error(err);
                 DevExpress.ui.notify("Error: " + err.message, "error", 3000);
+                $("#courseTocList").html('<div class="text-danger text-center p-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>');
             }
         }
 
+        function renderCourseContent(resources) {
+            const container = $("#courseTocList");
+            container.empty();
+
+            resources.forEach((item, index) => {
+                const res = item.Resource;
+                if (!res) return;
+
+                // กำหนด icon ตามประเภทไฟล์ (ตัวอย่าง)
+                let iconClass = "far fa-file-alt";
+                if(res.TypeId === 1) iconClass = "fas fa-file-lines"; // SCORM
+                else if(res.TypeId === 2) iconClass = "fas fa-file-pen";
+                // else if(res.Name.endsWith(".mp4")) iconClass = "far fa-play-circle";
+
+                // สร้าง HTML Item
+                const html = `
+                    <div class="p-2 border rounded mb-2 resource-item"
+                         id="res-item-${index}"
+                         onclick="loadResource(${index})">
+                        <div class="d-flex align-items-center text-dark">
+                            <div class="me-3 text-secondary" style="font-size: 1.2rem;">
+                                <i class="${iconClass}"></i>
+                            </div>
+                            <div style="overflow: hidden;">
+                                <div class="fw-bold text-truncate" title="${res.Name}" style="font-size: 0.9rem;">${res.Name}</div>
+                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                    ${res.TypeId == 1 ? 'Learn' : 'Exam'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(html);
+            });
+
+            // Auto-select รายการแรก
+            if (resources.length > 0) {
+                loadResource(0);
+            }
+        }
+
+        function loadResource(index) {
+            const item = currentResources[index];
+            if (!item || !item.Resource) return;
+
+            const res = item.Resource;
+
+            // Highlight Active Item
+            $(".resource-item").removeClass("active");
+            $(`#res-item-${index}`).addClass("active");
+
+            // Update UI
+            $("#lessonTitle").text(res.Name);
+            scormLaunchUrl = res.URL;
+
+            // Reset Player State
+            $("#startOverlay").fadeIn(200);
+            $("#scormFrame").attr("src", "");
+            $("#scormFrame").hide();
+
+            // Reset SCORM displays
+            $("#scoreDisplay").text("-");
+            $("#statusDisplay").text("Not Attempted");
+
+            console.log("Resource Selected:", res.Name);
+        }
+
         function startCourse() {
-            if (!scormLaunchUrl) return;
+            if (!scormLaunchUrl) {
+                DevExpress.ui.notify("URL ไม่ถูกต้อง", "warning", 2000);
+                return;
+            }
+
             $("#startOverlay").fadeOut(200);
             const iframe = document.getElementById("scormFrame");
             iframe.style.display = "block";
             iframe.src = scormLaunchUrl;
-            log("Course Started: " + scormLaunchUrl);
+
+            log("Course Launched: " + scormLaunchUrl);
         }
 
-        // SCORM API ADAPTER
+        // ==========================================
+        // SCORM API ADAPTER (MOCK for frontend)
+        // ==========================================
         function initScormAdapter() {
             const Adapter = {
                 LMSInitialize: function(p) { log("LMSInitialize"); return "true"; },
                 LMSGetValue: function(e) { log("LMSGetValue: " + e); return ""; },
                 LMSSetValue: function(e, v) {
                     log("LMSSetValue: " + e + " = " + v);
+                    // Update UI Realtime
                     if (e === "cmi.core.score.raw") $("#scoreDisplay").text(v);
-                    if (e === "cmi.core.lesson_status") $("#statusDisplay").text(v);
+                    if (e === "cmi.core.lesson_status") {
+                        let statusText = v;
+                        // แปลง status เป็นภาษาที่เข้าใจง่าย (Optional)
+                        if(v === 'passed') statusText = 'Passed';
+                        if(v === 'completed') statusText = 'Completed';
+                        if(v === 'failed') statusText = 'Failed';
+                        if(v === 'incomplete') statusText = 'Incomplete';
+                        $("#statusDisplay").text(statusText);
+                    }
                     return "true";
                 },
                 LMSCommit: function(p) { log("LMSCommit"); return "true"; },
@@ -277,8 +447,12 @@
             const elem = document.getElementById("fullscreenArea");
             if (!document.fullscreenElement) {
                 if(elem.requestFullscreen) elem.requestFullscreen();
+                else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+                else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
             } else {
                 if(document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
             }
         }
     </script>

@@ -291,7 +291,12 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get/{id}")]
         public override async Task<IActionResult> Get(int id)
         {
-            var entity = await _repository.GetQuery().Include(r => r.CourseResources).ThenInclude(c => c.Resource).Where(i => i.Id == id).ToListAsync();
+            var entity = await _repository.GetQuery()
+                .Include(c => c.Course)
+                .ThenInclude(c => c.Category)
+                .Include(r => r.CourseResources)
+                .ThenInclude(c => c.Resource)
+                .Where(i => i.Id == id).ToListAsync();
             if (entity == null) return NotFound();
             return Ok(entity);
         }
