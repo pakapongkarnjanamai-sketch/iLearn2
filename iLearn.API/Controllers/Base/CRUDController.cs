@@ -284,11 +284,17 @@ namespace iLearn.API.Controllers.Base
         {
         }
     }
-    // เพิ่มในไฟล์ CRUDController.cs หรือแยกไฟล์ใหม่
 
     public class CourseVersionsCRUDController : GenericController<CourseVersion>
     {
         public CourseVersionsCRUDController(IGenericRepository<CourseVersion> repository) : base(repository) { }
+        [HttpGet("Get/{id}")]
+        public override async Task<IActionResult> Get(int id)
+        {
+            var entity = await _repository.GetQuery().Include(r => r.CourseResources).ThenInclude(c => c.Resource).Where(i => i.Id == id).ToListAsync();
+            if (entity == null) return NotFound();
+            return Ok(entity);
+        }
     }
 
     public class CourseResourcesCRUDController : GenericController<CourseResource>

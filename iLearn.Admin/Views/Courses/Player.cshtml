@@ -1,0 +1,285 @@
+﻿@{
+    ViewData["Title"] = "Learning Player";
+    Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
+    var versionId = ViewBag.VersionId;
+}
+
+@section Styles {
+    <style>
+        /* =========================================
+                           1. ปรับพื้นที่แสดงผล (Player Container)
+                           ========================================= */
+        .viewer-container {
+            display: grid;
+            grid-template-columns: 1fr 350px; /* ซ้าย: เนื้อหา, ขวา: เมนู */
+            gap: 20px;
+            /* คำนวณความสูงให้พอดีหน้าจอ (ลบความสูง Header/Footer โดยประมาณออก)
+                               - Header ปกติสูงประมาณ 70-80px
+                               - Footer ปกติสูงประมาณ 60px
+                               - Padding/Margin อื่นๆ
+                            */
+            height: calc(100vh - 100px);
+            box-sizing: border-box;
+            background-color: #f5f7fa;
+            /* เพิ่ม Margin หรือ Padding ถ้าต้องการให้ไม่ติดขอบ */
+            /* margin-top: 10px; */
+        }
+
+        /* =========================================
+                           2. LEFT PANE: SCORM CONTENT
+                           ========================================= */
+        .scorm-section {
+            background: #fff;
+            border-radius: 8px; /* เพิ่มความโค้งมนให้เข้ากับธีมหลัก */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* เพิ่มเงา */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #dee2e6;
+        }
+
+        .scorm-toolbar {
+            height: 50px;
+            padding: 0 15px;
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .scorm-title {
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+        }
+
+        .scorm-body {
+            flex: 1;
+            background: #e9ecef;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        iframe#scormFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+        }
+
+        /* Start Overlay */
+        .start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .start-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--dx-color-primary, #007bff);
+            color: white;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .start-btn:hover {
+                transform: scale(1.1);
+                background: #0056b3;
+            }
+
+        /* =========================================
+                           3. RIGHT PANE: INFO & TOC
+                           ========================================= */
+        .info-section {
+            background: #fff;
+            border-radius: 8px; /* เพิ่มความโค้งมน */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* เพิ่มเงา */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+
+        .info-header {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        .course-toc {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        /* Mobile Responsive */
+        @@media (max-width: 992px) {
+            .viewer-container {
+                grid-template-columns: 1fr;
+                height: auto; /* ปล่อยสูงตามเนื้อหาในมือถือ */
+                gap: 15px;
+            }
+
+            .scorm-section {
+                height: 500px; /* กำหนดความสูงขั้นต่ำของ Player ในมือถือ */
+            }
+
+            .info-section {
+                height: auto;
+                max-height: 400px;
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid viewer-container">
+    <div class="scorm-section" id="fullscreenArea">
+        <div class="scorm-toolbar">
+            <div class="scorm-title">
+                <span id="lessonTitle">กำลังโหลดข้อมูล...</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()">
+                    <i class="fas fa-expand"></i> เต็มจอ
+                </button>
+            </div>
+        </div>
+
+        <div class="scorm-body">
+            <div id="startOverlay" class="start-overlay">
+                <button class="start-btn" onclick="startCourse()">
+                    <i class="fas fa-play ps-1"></i>
+                </button>
+                <h5 class="mt-3 text-muted">กดเพื่อเริ่มบทเรียน</h5>
+            </div>
+
+            <iframe id="scormFrame"
+                    sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
+            </iframe>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-header">
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-list"></i> โครงสร้างหลักสูตร</h6>
+        </div>
+        <div class="course-toc">
+            <div class="p-2 border rounded mb-2 bg-light">
+                <div class="d-flex align-items-center text-primary fw-bold">
+                    <i class="far fa-play-circle me-2"></i> บทเรียนปัจจุบัน
+                </div>
+                <div class="small text-muted ms-4 mt-1">Status: <span id="statusDisplay">-</span></div>
+                <div class="small text-muted ms-4">Score: <span id="scoreDisplay">-</span></div>
+            </div>
+
+            <div class="alert alert-info small mt-3">
+                <i class="fas fa-info-circle"></i> Log การเรียนจะถูกบันทึกเมื่อจบบทเรียน
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const VERSION_ID = "@ViewBag.versionId";
+        let scormLaunchUrl = "";
+
+        // const versionsStore = createDataStore(serviceUrl, 'admin/CourseVersionsCRUD', { key: 'Id' });
+
+        //"https://localhost:7128/api/admin/CourseVersionsCRUD/Get/"+VERSION_ID
+
+   
+        $(function() {
+            initScormAdapter();
+            prepareContent();
+        });
+
+        async function prepareContent() {
+            try {
+                // Mock Data (เปลี่ยนเป็น fetch จริงภายหลัง)
+                const data = {
+                    title: "ความปลอดภัยในการทำงาน (Demo)",
+                    url: "https://localhost:7270/course/02eb9397-751f-40f8-abf6-35438d3f342f/res/index.html"
+                };
+
+                $("#lessonTitle").text(data.title);
+                scormLaunchUrl = data.url;
+
+            } catch (err) {
+                DevExpress.ui.notify("Error: " + err.message, "error", 3000);
+            }
+        }
+
+        function startCourse() {
+            if (!scormLaunchUrl) return;
+            $("#startOverlay").fadeOut(200);
+            const iframe = document.getElementById("scormFrame");
+            iframe.style.display = "block";
+            iframe.src = scormLaunchUrl;
+            log("Course Started: " + scormLaunchUrl);
+        }
+
+        // SCORM API ADAPTER
+        function initScormAdapter() {
+            const Adapter = {
+                LMSInitialize: function(p) { log("LMSInitialize"); return "true"; },
+                LMSGetValue: function(e) { log("LMSGetValue: " + e); return ""; },
+                LMSSetValue: function(e, v) {
+                    log("LMSSetValue: " + e + " = " + v);
+                    if (e === "cmi.core.score.raw") $("#scoreDisplay").text(v);
+                    if (e === "cmi.core.lesson_status") $("#statusDisplay").text(v);
+                    return "true";
+                },
+                LMSCommit: function(p) { log("LMSCommit"); return "true"; },
+                LMSFinish: function(p) { log("LMSFinish"); return "true"; },
+                LMSGetLastError: function() { return "0"; },
+                LMSGetErrorString: function(e) { return "No error"; },
+                LMSGetDiagnostic: function(e) { return "No error"; },
+                Initialize: function(p) { return this.LMSInitialize(p); },
+                Terminate: function(p) { return this.LMSFinish(p); },
+                GetValue: function(e) { return this.LMSGetValue(e); },
+                SetValue: function(e, v) { return this.LMSSetValue(e, v); },
+                Commit: function(p) { return this.LMSCommit(p); }
+            };
+            window.API = Adapter;
+            window.API_1484_11 = Adapter;
+        }
+
+        function log(msg) {
+            console.log(`%c[LMS] ${msg}`, "color: #28a745; font-weight: bold;");
+        }
+
+        function toggleFullscreen() {
+            const elem = document.getElementById("fullscreenArea");
+            if (!document.fullscreenElement) {
+                if(elem.requestFullscreen) elem.requestFullscreen();
+            } else {
+                if(document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+    </script>
+}

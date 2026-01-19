@@ -26,5 +26,13 @@ namespace iLearn.Admin.Controllers
             ViewBag.CourseId = courseId;
             return View();
         }
+        [HttpGet]
+        public IActionResult Player(int versionId)
+        {
+            ViewBag.VersionId = versionId;
+            return View();
+        }
+
+
     }
 }

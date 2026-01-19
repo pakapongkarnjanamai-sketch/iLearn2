@@ -142,7 +142,11 @@
                     e.data.IsActive = true;
                     // Auto run version number logic can be added here if needed
                 },
-
+                  onRowDblClick: function(e) {
+                    if (e.data && e.data.Id) {
+                        window.location.href = '@Url.Action("Player", "Courses")?versionId=' + e.data.Id;
+                    }
+                },
                 // โหลดข้อมูล Resources เมื่อเริ่มแก้ไข
                 onEditingStart: function(e) {
                     selectedLearnIds = [];
