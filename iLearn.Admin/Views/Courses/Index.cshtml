@@ -118,22 +118,7 @@
                 },
 
                 columns: [
-                    {
-                        type: "buttons",
-                        width: 110,
-                        buttons: [
-                            "edit",
-                            "delete",
-                            {
-                                hint: "Manage Versions",
-                                icon: "fas fa-code-branch",
-                                onClick: function(e) {
-                                    // ลิงก์ไปยังหน้า Version พร้อมแนบ courseId
-                                    window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.row.data.Id;
-                                }
-                            }
-                        ]
-                    },
+                   
                     {
                         dataField: "Id",
                         caption: "ID",
@@ -176,7 +161,23 @@
                         caption: "Active",
                         dataType: "boolean",
                         width: 80
-                    }
+                    }, 
+                    {
+                        type: "buttons",
+                        width: 110,
+                        buttons: [
+                            "edit",
+                            "delete",
+                            {
+                                hint: "Manage Versions",
+                                icon: "fas fa-code-branch",
+                                onClick: function(e) {
+                                    // ลิงก์ไปยังหน้า Version พร้อมแนบ courseId
+                                    window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.row.data.Id;
+                                }
+                            }
+                        ]
+                    },
                 ],
             });
         });
