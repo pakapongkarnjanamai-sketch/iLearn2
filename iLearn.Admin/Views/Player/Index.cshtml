@@ -1,0 +1,267 @@
+﻿@{
+    ViewData["Title"] = "SCORM Player";
+    // เรายังใช้ Layout หลัก เพื่อโหลด Script/CSS ของ DevExtreme
+    Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* --- Override Global Layout Styles for Full Screen App --- */
+        body {
+            padding-top: 0 !important; /* ยกเลิก padding ของ Navbar เดิม */
+            overflow: hidden; /* ซ่อน Scrollbar หลักของ Browser */
+        }
+        nav.navbar, footer {
+            display: none !important; /* ซ่อน Navbar และ Footer ของ Admin */
+        }
+
+        /* --- Player Layout Styles (Adapted from PDF Viewer) --- */
+        .viewer-container {
+            display: grid;
+            grid-template-columns: 1fr 350px; /* แบ่งซ้ายขวา (เนื้อหา 1fr : เมนู 350px) */
+            gap: 0;
+            height: 100vh;
+            background-color: #f5f7fa;
+        }
+
+        /* SCORM Section (Left) */
+        .scorm-section {
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #dee2e6;
+            overflow: hidden;
+        }
+
+        .scorm-toolbar {
+            padding: 10px 15px;
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 50px;
+        }
+
+        .scorm-title {
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scorm-body {
+            flex: 1;
+            background: #e9ecef;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Iframe styling */
+        iframe#scormFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Info Section (Right) */
+        .info-section {
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .info-header {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        .course-toc {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .toc-item {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        .toc-item:hover { background-color: #f1f3f5; }
+        .toc-item.active { background-color: #e3f2fd; color: #0d6efd; font-weight: 600; }
+        .toc-item.completed i { color: #28a745; }
+
+        /* Debug Console (Optional) */
+        .debug-console {
+            height: 150px;
+            background: #212529;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 10px;
+            overflow-y: auto;
+            border-top: 1px solid #444;
+        }
+
+        /* Mobile Responsive */
+        @@media (max-width: 768px) {
+            .viewer-container { grid-template-columns: 1fr; }
+            .info-section { display: none; /* ซ่อน Sidebar ในมือถือ (หรือทำปุ่ม Toggle) */ }
+        }
+    </style>
+}
+
+<div class="viewer-container">
+    <div class="scorm-section">
+        <div class="scorm-toolbar">
+            <div class="scorm-title">
+                <button class="btn btn-sm btn-light border me-2" onclick="history.back()">
+                    <i class="fas fa-arrow-left"></i> กลับ
+                </button>
+                <span id="lessonTitle">กำลังโหลดบทเรียน...</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" id="btnFullscreen">
+                    <i class="fas fa-expand"></i> เต็มจอ
+                </button>
+            </div>
+        </div>
+        <div class="scorm-body">
+            <iframe id="scormFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+
+            <div id="loaderPlaceholder" class="text-center text-muted" style="position:absolute;">
+                <i class="fas fa-circle-notch fa-spin fa-3x mb-3"></i>
+                <div>Loading Content...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-header">
+            <h6 class="m-0 font-weight-bold"><i class="fas fa-list"></i> โครงสร้างหลักสูตร</h6>
+        </div>
+        <div class="course-toc" id="tocList">
+            <div class="toc-item active">
+                <i class="far fa-circle"></i> <span>บทนำ (Introduction)</span>
+            </div>
+            <div class="toc-item">
+                <i class="far fa-circle"></i> <span>เนื้อหาบทที่ 1</span>
+            </div>
+        </div>
+
+        <div class="debug-console" id="scormLog">
+            <div>> SCORM API Adapter Ready...</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const RESOURCE_ID = "@ViewBag.ResourceId";
+        const API = {
+            // เปลี่ยนเป็น Endpoint จริงของคุณ
+            GET_SCORM_URL: `${API_BASE}/Courses/GetScormUrl`
+        };
+
+        $(function() {
+            initScormAdapter();
+            loadContent();
+            $("#btnFullscreen").on("click", toggleFullscreen);
+        });
+
+        async function loadContent() {
+            try {
+                // 1. จำลองการดึง URL (ในการใช้งานจริง ให้ uncomment fetch)
+                /*
+                const res = await fetch(`${API.GET_SCORM_URL}?id=${RESOURCE_ID}`);
+                if (!res.ok) throw new Error("Load failed");
+                const data = await res.json();
+                const launchUrl = data.url; // URL ที่ได้จาก ScormService
+                const title = data.title;
+                */
+
+                // --- MOCK DATA (ลบส่วนนี้เมื่อต่อ API) ---
+                const launchUrl = "https://localhost:7270/course/02eb9397-751f-40f8-abf6-35438d3f342f/res/index.html"; // ตัวอย่างไฟล์ทดสอบ
+                const title = "ตัวอย่างบทเรียน SCORM";
+                // ------------------------------------
+
+                $("#lessonTitle").text(title);
+
+                // 2. โหลด Iframe
+                const iframe = document.getElementById('scormFrame');
+                iframe.src = launchUrl;
+
+                iframe.onload = function() {
+                    $("#loaderPlaceholder").hide();
+                    log("Iframe loaded: " + launchUrl);
+                };
+
+            } catch (err) {
+                DevExpress.ui.notify("ไม่สามารถโหลดเนื้อหาได้: " + err.message, "error", 3000);
+            }
+        }
+
+        // === SCORM API ADAPTER (หัวใจสำคัญ) ===
+        // นี่คือตัวแปรที่เนื้อหา SCORM ใน Iframe จะมองหาเพื่อสื่อสารกับเรา
+        function initScormAdapter() {
+            const Adapter = {
+                // SCORM 1.2
+                LMSInitialize: function(a) { log("LMSInitialize"); return "true"; },
+                LMSGetValue: function(element) {
+                    log("LMSGetValue: " + element);
+                    return ""; // คืนค่าว่างไปก่อน (หรือดึงจาก DB มาตอบ)
+                },
+                LMSSetValue: function(element, value) {
+                    log("LMSSetValue: " + element + " = " + value);
+                    // TODO: บันทึก cmi.core.score.raw หรือ cmi.core.lesson_status ลง DB ตรงนี้
+                    return "true";
+                },
+                LMSCommit: function(a) { log("LMSCommit"); return "true"; },
+                LMSFinish: function(a) { log("LMSFinish"); return "true"; },
+                LMSGetLastError: function() { return "0"; },
+                LMSGetErrorString: function(e) { return "No error"; },
+                LMSGetDiagnostic: function(e) { return "No error"; },
+
+                // SCORM 2004 (เผื่อรองรับ)
+                Initialize: function(a) { log("Initialize (2004)"); return "true"; },
+                GetValue: function(e) { log("GetValue: " + e); return ""; },
+                SetValue: function(e, v) { log("SetValue: " + e + " = " + v); return "true"; },
+                Commit: function(a) { log("Commit"); return "true"; },
+                Terminate: function(a) { log("Terminate"); return "true"; }
+            };
+
+            // Expose ให้ window เพื่อให้ Iframe มองเห็น (ต้องชื่อ API หรือ API_1484_11)
+            window.API = Adapter;          // สำหรับ SCORM 1.2
+            window.API_1484_11 = Adapter;  // สำหรับ SCORM 2004
+        }
+
+        function log(msg) {
+            const $console = $("#scormLog");
+            $console.append(`<div>> ${msg}</div>`);
+            $console.scrollTop($console[0].scrollHeight);
+        }
+
+        function toggleFullscreen() {
+            const elem = document.querySelector(".scorm-section");
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    </script>
+}
