@@ -1,4 +1,5 @@
-﻿@{
+﻿
+@{
     ViewData["Title"] = "Learning Player";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
     var versionId = ViewBag.VersionId;
@@ -6,21 +7,16 @@
 
 @section Styles {
     <style>
-        /* =========================================
-                   1. ปรับพื้นที่แสดงผล (Player Container)
-                   ========================================= */
+       
         .viewer-container {
             display: grid;
-            grid-template-columns: 1fr 400px; /* ขยายด้านขวาเล็กน้อยเพื่อให้แสดงข้อมูลได้ชัดเจน */
+            grid-template-columns: 1fr 400px; 
             gap: 20px;
             height: calc(100vh - 100px);
             box-sizing: border-box;
             background-color: #f5f7fa;
         }
 
-        /* =========================================
-                   2. LEFT PANE: SCORM CONTENT
-                   ========================================= */
         .scorm-section {
             background: #fff;
             border-radius: 8px;
@@ -236,11 +232,11 @@
             <div class="row">
                 <div class="col-6 border-end text-center">
                     <div class="text-muted small">Status</div>
-                    <div id="statusDisplay" class="fw-bold text-primary">-</div>
+                    <div id="statusDisplay" class="fw-bold text-muted">-</div>
                 </div>
                 <div class="col-6 text-center">
                     <div class="text-muted small">Score</div>
-                    <div id="scoreDisplay" class="fw-bold text-success">-</div>
+                    <div id="scoreDisplay" class="fw-bold text-dark">-</div>
                 </div>
             </div>
         </div>
@@ -272,17 +268,15 @@
 
         async function prepareContent() {
             try {
-                // Fetch ข้อมูลจาก API
                 const apiUrl = `${apiBaseUrl}/admin/CourseVersionsCRUD/Get/${VERSION_ID}`;
 
                 const response = await $.ajax({
                     url: apiUrl,
                     method: 'GET',
                     dataType: 'json',
-                    xhrFields: { withCredentials: true }
+                       xhrFields: { withCredentials: true }
                 });
 
-                // ตรวจสอบโครงสร้างข้อมูล (API Return Array)
                 let data = null;
                 if (Array.isArray(response) && response.length > 0) {
                     data = response[0];
@@ -291,7 +285,6 @@
                 }
 
                 if (data) {
-                    // 1. แสดงข้อมูล Course Details (เพิ่มส่วนนี้ตามที่ขอ)
                     if (data.Course) {
                         $("#courseTitleDisplay").text(data.Course.Title || "ไม่มีชื่อหลักสูตร");
                         $("#courseCodeDisplay").text(data.Course.Code || "N/A");
@@ -299,10 +292,8 @@
                         $("#courseDescDisplay").text(data.Course.Description || "ไม่มีคำอธิบาย");
                     }
 
-                    // แสดง Version info
                     $("#courseVersionDisplay").text("v." + (data.VersionNumber || "1"));
 
-                    // 2. แสดงรายการ Resources
                     if (data.CourseResources && data.CourseResources.length > 0) {
                         currentResources = data.CourseResources;
                         renderCourseContent(currentResources);
@@ -329,13 +320,10 @@
                 const res = item.Resource;
                 if (!res) return;
 
-                // กำหนด icon ตามประเภทไฟล์ (ตัวอย่าง)
                 let iconClass = "far fa-file-alt";
-                if(res.TypeId === 1) iconClass = "fas fa-file-lines"; // SCORM
+                if(res.TypeId === 1) iconClass = "fas fa-file-lines"; 
                 else if(res.TypeId === 2) iconClass = "fas fa-file-pen";
-                // else if(res.Name.endsWith(".mp4")) iconClass = "far fa-play-circle";
 
-                // สร้าง HTML Item
                 const html = `
                     <div class="p-2 border rounded mb-2 resource-item"
                          id="res-item-${index}"
@@ -356,7 +344,6 @@
                 container.append(html);
             });
 
-            // Auto-select รายการแรก
             if (resources.length > 0) {
                 loadResource(0);
             }
@@ -368,22 +355,18 @@
 
             const res = item.Resource;
 
-            // Highlight Active Item
             $(".resource-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
 
-            // Update UI
             $("#lessonTitle").text(res.Name);
             scormLaunchUrl = res.URL;
 
-            // Reset Player State
             $("#startOverlay").fadeIn(200);
             $("#scormFrame").attr("src", "");
             $("#scormFrame").hide();
 
-            // Reset SCORM displays
-            $("#scoreDisplay").text("-");
-            $("#statusDisplay").text("Not Attempted");
+            $("#scoreDisplay").text("-").removeClass("text-success").addClass("text-dark");
+            $("#statusDisplay").text("Not Attempted").removeClass("text-success text-danger text-warning").addClass("text-muted");
 
             console.log("Resource Selected:", res.Name);
         }
@@ -403,32 +386,57 @@
         }
 
         // ==========================================
-        // SCORM API ADAPTER (MOCK for frontend)
+        // SCORM API ADAPTER
         // ==========================================
         function initScormAdapter() {
             const Adapter = {
                 LMSInitialize: function(p) { log("LMSInitialize"); return "true"; },
                 LMSGetValue: function(e) { log("LMSGetValue: " + e); return ""; },
+
                 LMSSetValue: function(e, v) {
                     log("LMSSetValue: " + e + " = " + v);
-                    // Update UI Realtime
-                    if (e === "cmi.core.score.raw") $("#scoreDisplay").text(v);
-                    if (e === "cmi.core.lesson_status") {
-                        let statusText = v;
-                        // แปลง status เป็นภาษาที่เข้าใจง่าย (Optional)
-                        if(v === 'passed') statusText = 'Passed';
-                        if(v === 'completed') statusText = 'Completed';
-                        if(v === 'failed') statusText = 'Failed';
-                        if(v === 'incomplete') statusText = 'Incomplete';
-                        $("#statusDisplay").text(statusText);
+
+                    // 1. Handle Score
+                    if (e === "cmi.core.score.raw" || e === "cmi.score.raw") {
+                        $("#scoreDisplay").text(v);
                     }
+
+                    // 2. Handle Status (SCORM 1.2 or 2004)
+                    // เพิ่มการเช็ค cmi.completion_status ตามที่ขอ
+                    if (e === "cmi.core.lesson_status" || e === "cmi.completion_status") {
+                        const statusDisplay = $("#statusDisplay");
+                        let statusText = v;
+
+                        // ล้าง Class สีเดิมออกก่อน
+                        statusDisplay.removeClass("text-primary text-success text-danger text-warning text-muted");
+
+                        // เช็คค่าเพื่อเปลี่ยนสี
+                        if (v === 'completed' || v === 'passed') {
+                            statusDisplay.addClass("text-success"); // สีเขียว
+                            statusText = "Completed"; // ปรับข้อความให้สวยงาม
+                        } else if (v === 'failed') {
+                            statusDisplay.addClass("text-danger"); // สีแดง
+                            statusText = "Failed";
+                        } else if (v === 'incomplete') {
+                            statusDisplay.addClass("text-warning"); // สีเหลือง/ส้ม
+                            statusText = "Incomplete";
+                        } else {
+                            statusDisplay.addClass("text-primary"); // สีน้ำเงิน (ค่าอื่นๆ)
+                        }
+
+                        statusDisplay.text(statusText);
+                    }
+
                     return "true";
                 },
+
                 LMSCommit: function(p) { log("LMSCommit"); return "true"; },
                 LMSFinish: function(p) { log("LMSFinish"); return "true"; },
                 LMSGetLastError: function() { return "0"; },
                 LMSGetErrorString: function(e) { return "No error"; },
                 LMSGetDiagnostic: function(e) { return "No error"; },
+
+                // Mappings for SCORM 2004 / 1.2 compatibility
                 Initialize: function(p) { return this.LMSInitialize(p); },
                 Terminate: function(p) { return this.LMSFinish(p); },
                 GetValue: function(e) { return this.LMSGetValue(e); },

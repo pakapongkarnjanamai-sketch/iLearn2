@@ -293,8 +293,8 @@ namespace iLearn.API.Controllers.Base
         {
             var entity = await _repository.GetQuery()
                 .Include(c => c.Course)
-                .ThenInclude(c => c.Category)
-                .Include(r => r.CourseResources)
+                .ThenInclude(ca => ca.Category)
+                .Include(cr => cr.CourseResources)
                 .ThenInclude(c => c.Resource)
                 .Where(i => i.Id == id).ToListAsync();
             if (entity == null) return NotFound();

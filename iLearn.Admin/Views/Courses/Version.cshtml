@@ -132,8 +132,9 @@
                 remoteOperations: true,
                 columnAutoWidth: true,
                 showBorders: true,
-                height: "100%",
-
+                    height: "100%",
+                scrolling: { mode: "virtual" },
+                selection: { mode: 'single' },
                 // Reset ค่าตัวแปรเมื่อเริ่มเพิ่มแถวใหม่
                 onInitNewRow: function(e) {
                     selectedLearnIds = [];

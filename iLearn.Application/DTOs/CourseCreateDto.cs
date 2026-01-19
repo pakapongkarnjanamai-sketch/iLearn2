@@ -20,7 +20,7 @@ namespace iLearn.Application.DTOs
         public int CourseType { get; set; }
 
         [Display(Name = "หมวดหมู่")]
-        public int? CategoryId { get; set; }
+        public int CategoryId { get; set; }
 
         // [แก้ไข] เปลี่ยนจาก List<IFormFile> เป็น List<int> เพื่อรับ ID
         [Display(Name = "เอกสารประกอบ (Resource IDs)")]
