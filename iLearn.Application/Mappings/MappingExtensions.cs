@@ -174,6 +174,8 @@ namespace iLearn.Application.Mappings
 
         // --- Learning Log Mappings ---
 
+        // --- Learning Log Mappings (Updated for SCORM) ---
+
         public static LearningLogDto ToDto(this LearningLog entity)
         {
             if (entity == null) return null;
@@ -182,10 +184,22 @@ namespace iLearn.Application.Mappings
                 Id = entity.Id,
                 StudentCode = entity.StudentCode,
                 CourseId = entity.CourseId,
-                ContentId = entity.ContentId,
-                LearnTime = entity.LearnTime,
-                ExamTime = entity.ExamTime,
-                CreatedAt = entity.CreatedAt
+                CourseVersionId = entity.CourseVersionId, // New
+                ResourceId = entity.ResourceId,           // New (แทน ContentId)
+
+                // SCORM Fields
+                LessonStatus = entity.LessonStatus,
+                LessonLocation = entity.LessonLocation,
+                ScoreRaw = entity.ScoreRaw,
+                TotalTime = entity.TotalTime, // New (แทน LearnTime/ExamTime)
+
+                // Metadata
+                AttemptCount = entity.AttemptCount,
+                LastAccessDate = entity.LastAccessDate,
+                CompletedDate = entity.CompletedDate,
+                IsFinalized = entity.IsFinalized,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt
             };
         }
 
@@ -196,10 +210,17 @@ namespace iLearn.Application.Mappings
             {
                 StudentCode = dto.StudentCode,
                 CourseId = dto.CourseId,
-                ContentId = dto.ContentId,
-                QuestionId = dto.QuestionId,
-                LearnTime = dto.LearnTime,
-                ExamTime = dto.ExamTime,
+                CourseVersionId = dto.CourseVersionId, // New
+                ResourceId = dto.ResourceId,           // New
+
+                // Optional initial values
+                LessonStatus = dto.LessonStatus ?? "not attempted",
+                ScoreRaw = dto.ScoreRaw,
+                TotalTime = dto.TotalTime ?? "00:00:00",
+
+                // Default values for new log
+                AttemptCount = 1,
+                IsFinalized = false
             };
         }
     }

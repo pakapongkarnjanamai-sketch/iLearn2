@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Learning Logs";
+    ViewBag.Title = "Learning Logs (SCORM)";
 }
 
 <div class="container-fluid page-full-height">
@@ -29,32 +29,76 @@
                 searchPanel: { visible: true, width: 300 },
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+
+                // ปรับปรุง Form สำหรับการแก้ไข (ถ้าอนุญาตให้แก้)
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
-                    allowAdding: true,
+                    allowAdding: false, // Log มักจะเกิดจากระบบ ไม่ควร Add เอง
                     useIcons: true,
                     form: {
+                        colCount: 2,
                         items: [
-                            { dataField: 'Id', editorOptions: { disabled: true } },
-                            { dataField: 'StudentCode' },
-                            { dataField: 'CourseId' },
-                            { dataField: 'ContentId' },
-                            { dataField: 'QuestionId' },
-                            { dataField: 'CourseTime' },
-                            { dataField: 'ExamTime' }
+                            { dataField: 'Id', editorOptions: { disabled: true }, colSpan: 2 },
+                            { dataField: 'StudentCode', editorOptions: { disabled: true } },
+                            { dataField: 'CourseId', editorOptions: { disabled: true } },
+                            { dataField: 'CourseVersionId', editorOptions: { disabled: true } },
+                            { dataField: 'ResourceId', editorOptions: { disabled: true } },
+
+                            // SCORM Data (อนุญาตให้แก้ Status/Score ได้กรณีมีปัญหา)
+                            { dataField: 'LessonStatus' },
+                            { dataField: 'ScoreRaw' },
+                            { dataField: 'TotalTime' },
+                            { dataField: 'AttemptCount' },
+                            { dataField: 'CompletedDate', editorType: "dxDateBox" }
                         ]
                     }
                 },
+
+                // ปรับปรุง Columns ให้ตรงกับ DTO ใหม่
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "Id", caption: "ID", width: 60, allowUpdating: false },
                     { dataField: "StudentCode", caption: "Student Code" },
-                    { dataField: "CourseId", caption: "Course ID" },
-                    { dataField: "ContentId", caption: "Content ID" },
-                    { dataField: "QuestionId", caption: "Question ID" },
-                    { dataField: "CourseTime", caption: "Time Spent (Course)" },
-                    { dataField: "ExamTime", caption: "Time Spent (Exam)" }
+
+                    // Course Info
+                    { dataField: "CourseId", caption: "Course ID", width: 80 },
+                    { dataField: "CourseVersionId", caption: "Ver.", width: 60 },
+                    { dataField: "ResourceId", caption: "Resource ID", width: 100 },
+
+                    // SCORM Status
+                    {
+                        dataField: "LessonStatus",
+                        caption: "Status",
+                        cellTemplate: function(container, options) {
+                            let color = 'secondary';
+                            const status = (options.value || '').toLowerCase();
+                            if (status === 'passed' || status === 'completed') color = 'success';
+                            else if (status === 'failed') color = 'danger';
+                            else if (status === 'incomplete') color = 'warning';
+
+                            $("<span class='badge bg-" + color + "'>")
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "ScoreRaw", caption: "Score", dataType: "number" },
+                    { dataField: "TotalTime", caption: "Total Time" },
+                    { dataField: "AttemptCount", caption: "Attempts", dataType: "number" },
+
+                    // Dates
+                    {
+                        dataField: "LastAccessDate",
+                        caption: "Last Access",
+                        dataType: "datetime",
+                        format: "dd/MM/yyyy HH:mm"
+                    },
+                    {
+                        dataField: "CompletedDate",
+                        caption: "Completed",
+                        dataType: "datetime",
+                        format: "dd/MM/yyyy HH:mm"
+                    }
                 ],
             }).dxDataGrid('instance');
         })
