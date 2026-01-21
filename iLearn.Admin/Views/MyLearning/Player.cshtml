@@ -1,5 +1,13 @@
 ﻿@{
-    Layout = null; // หน้า Player ไม่ควรมี Header/Footer ของเว็บหลัก
+    Layout = null;
+    // แปลงข้อมูลจาก ViewBag เป็น JSON เพื่อใช้ใน JavaScript
+    var jsonData = Json.Serialize(new
+    {
+        courseVersionId = ViewBag.CourseVersionId,
+        studentCode = ViewBag.StudentCode,
+        serviceUrl = ViewBag.ServiceUrl,
+        resources = ViewBag.Resources // ส่ง List Resources มาด้วย (ต้องแก้ Controller ฝั่ง Admin ด้วยนะ)
+    });
 }
 
 <!DOCTYPE html>
@@ -9,6 +17,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Course Player</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
     <style>
         body, html {
             height: 100%;
@@ -17,10 +26,64 @@
             background-color: #f0f2f5;
         }
 
-        #scorm-frame {
-            width: 100%;
-            height: calc(100vh - 50px);
-            border: none;
+        .player-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .player-sidebar {
+            width: 300px;
+            min-width: 300px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .course-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .course-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+            .course-item:hover {
+                background-color: #f1f3f5;
+            }
+
+            .course-item.active {
+                background-color: #e7f1ff;
+                border-left: 4px solid #0d6efd;
+                color: #0d6efd;
+                font-weight: 500;
+            }
+
+            .course-item i {
+                margin-right: 8px;
+                width: 20px;
+                text-align: center;
+            }
+
+        /* Main Content */
+        .player-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .player-header {
@@ -32,43 +95,128 @@
             justify-content: space-between;
             border-bottom: 1px solid #ddd;
         }
+
+        #scorm-frame {
+            width: 100%;
+            flex-grow: 1;
+            border: none;
+            background: #fff;
+        }
     </style>
 </head>
 <body>
 
-    <div class="player-header">
-        <span class="fw-bold"><i class="fa fa-play-circle"></i> Learning Player</span>
-        <button class="btn btn-sm btn-outline-danger" onclick="exitCourse()">
-            Exit / Save & Close
-        </button>
-    </div>
+    <div class="player-container">
+        <div class="player-sidebar">
+            <div class="sidebar-header">
+                <h6 class="mb-0 text-truncate" id="courseTitle">Course Title</h6>
+                <small class="text-muted">Content List</small>
+            </div>
+            <ul class="course-list" id="playlist">
+            </ul>
+        </div>
 
-    <iframe id="scorm-frame" src=""></iframe>
+        <div class="player-content">
+            <div class="player-header">
+                <span class="fw-bold" id="currentLessonTitle">
+                    <i class="fa fa-play-circle text-primary me-2"></i>Loading...
+                </span>
+                <button class="btn btn-sm btn-outline-danger" onclick="exitCourse()">
+                    <i class="fa fa-sign-out-alt"></i> Exit / Save & Close
+                </button>
+            </div>
+            <iframe id="scorm-frame" src=""></iframe>
+        </div>
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/js/scorm-adapter.js"></script>
 
     <script>
+        // รับข้อมูลจาก Server (แปลงเป็น Object)
+        // ** ต้องแก้ MyLearningController.cs ให้ส่ง Model มาให้ถูกต้องก่อน **
+        // ในที่นี้ผมสมมติว่าคุณส่ง PlayerInfoDto ผ่าน JSON มาเลยจะง่ายกว่า ViewBag แยก
+        var playerData = @Html.Raw(jsonData);
+        // ถ้าใช้ ViewBag แบบเดิม: var resources = @Html.Raw(Json.Serialize(ViewBag.Resources));
+
+        var currentResourceIndex = -1;
+
         $(document).ready(function () {
-             const settings = {
-                 courseVersionId: @ViewBag.CourseVersionId,
-                 resourceId: @ViewBag.ResourceId,
-                 studentCode: '@ViewBag.StudentCode',
-                 serviceUrl: '@ViewBag.ServiceUrl'
-             };
+            initPlaylist();
+        });
 
-             // โหลด Adapter (ตอนนี้รองรับทั้ง window.API และ window.API_1484_11)
-             ScormAdapter.initAdapter(settings);
+        function initPlaylist() {
+            // ตั้งชื่อคอร์ส
+            // (ถ้าข้อมูล CourseTitle ไม่มีใน JSON ให้ดึงจาก Model หรือ ViewBag)
+            // $("#courseTitle").text(playerData.courseTitle);
 
-             // เริ่มโหลด iframe
-             const launchUrl = '@Html.Raw(ViewBag.LaunchUrl)';
-             $("#scorm-frame").attr("src", launchUrl);
-         });
+            const listContainer = $("#playlist");
+            listContainer.empty();
+
+            if (!playerData.resources || playerData.resources.length === 0) {
+                alert("ไม่พบเนื้อหาบทเรียน");
+                return;
+            }
+
+            // วนลูปสร้างรายการ
+            playerData.resources.forEach((item, index) => {
+                const icon = item.Type === 'Exam' ? 'fa-pen-square' : 'fa-book-open';
+                const li = $(`
+                    <li class="course-item" onclick="loadResource(${index})">
+                        <i class="fas ${icon} text-muted"></i> ${item.Name}
+                    </li>
+                `);
+                listContainer.append(li);
+            });
+
+            // เริ่มเล่นไฟล์แรก
+            loadResource(0);
+        }
+
+        function loadResource(index) {
+            if (currentResourceIndex === index) return;
+
+            // 1. Save & Close บทเรียนเก่าก่อน (ถ้ามี)
+            if (currentResourceIndex !== -1) {
+                console.log("Saving previous resource...");
+                if (window.API) window.API.LMSFinish("");
+                if (window.API_1484_11) window.API_1484_11.Terminate("");
+            }
+
+            currentResourceIndex = index;
+            const resource = playerData.resources[index];
+
+            // 2. Update UI
+            $(".course-item").removeClass("active");
+            $(".course-item").eq(index).addClass("active");
+            $("#currentLessonTitle").text(resource.Name);
+
+            // 3. Initialize Adapter สำหรับไฟล์ใหม่
+            const settings = {
+                courseVersionId: playerData.courseVersionId,
+                resourceId: resource.ResourceId,
+                studentCode: playerData.studentCode,
+                serviceUrl: playerData.serviceUrl
+            };
+
+            // เรียก Adapter ให้เตรียมพร้อม (Reset State ภายใน)
+            ScormAdapter.initAdapter(settings);
+
+            // 4. โหลด iframe
+            // ต้องเช็คว่า URL เป็น Absolute หรือ Relative
+            // ถ้า LaunchUrl มาเป็น "files/course1/index.html" อาจต้องเติม BaseUrl
+            $("#scorm-frame").attr("src", "about:blank"); // Clear old content
+            setTimeout(() => {
+                $("#scorm-frame").attr("src", resource.LaunchUrl);
+            }, 100);
+        }
 
         function exitCourse() {
-            // สั่ง Commit ครั้งสุดท้ายและปิดหน้าต่าง
-            window.API.LMSFinish("");
-            window.location.href = '/MyLearning'; // กลับไปหน้ารวม
+            // Save & Close ตัวปัจจุบัน
+            if (window.API) window.API.LMSFinish("");
+            if (window.API_1484_11) window.API_1484_11.Terminate("");
+
+            window.location.href = '/MyLearning';
         }
     </script>
 </body>

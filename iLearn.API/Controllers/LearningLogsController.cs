@@ -88,14 +88,13 @@ namespace iLearn.API.Controllers
             if (enrollment == null)
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
 
-            // 2. Security Check: ป้องกันไม่ให้คนอื่นแอบดูคอร์สเรา
-            // เช็คว่า StudentCode ของ Enrollment ตรงกับ User ที่ Login อยู่ไหม
+            // 2. Security Check (Case-insensitive)
             if (!string.Equals(enrollment.StudentCode, _currentUser.UserId, StringComparison.OrdinalIgnoreCase))
             {
                 return Unauthorized(new ApiResponse<string> { Success = false, Message = "Unauthorized access" });
             }
 
-            // 3. ค้นหา Version และ Resource (ไฟล์ SCORM)
+            // 3. ค้นหา Version และ Resources ทั้งหมด
             var versions = await _versionRepo.GetAsync(
                 filter: v => v.CourseId == enrollment.CourseId && v.VersionNumber == enrollment.EnrolledVersion,
                 includeProperties: "CourseResources.Resource,Course"
@@ -105,19 +104,26 @@ namespace iLearn.API.Controllers
             if (version == null)
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Course content not found" });
 
-            // สมมติ: เลือก Resource ตัวแรกมาเล่น (ถ้ามีหลายตัวอาจต้องส่ง List ไปให้เลือก)
-            var firstResource = version.CourseResources.FirstOrDefault()?.Resource;
-            if (firstResource == null)
-                return NotFound(new ApiResponse<string> { Success = false, Message = "SCORM package not found" });
+            if (version.CourseResources == null || !version.CourseResources.Any())
+                return NotFound(new ApiResponse<string> { Success = false, Message = "No resources found in this course" });
 
-            // 4. ส่งข้อมูลกลับไปให้ Frontend
+            // 4. Map ข้อมูลลง DTO (เรียงตามลำดับ Id หรือ Sequence ถ้ามี)
+            var resourcesDto = version.CourseResources
+                .OrderBy(cr => cr.Id) // หรือ cr.Sequence ถ้ามี
+                .Select(cr => new PlayerResourceDto
+                {
+                    ResourceId = cr.Resource.Id,
+                    Name = cr.Resource.Name,
+                    Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
+                    LaunchUrl = cr.Resource.URL
+                }).ToList();
+
             var dto = new PlayerInfoDto
             {
                 CourseVersionId = version.Id,
-                ResourceId = firstResource.Id,
-                LaunchUrl = firstResource.URL, // URL เต็ม หรือ Path ที่ Frontend รู้จัก
                 StudentCode = enrollment.StudentCode,
-                CourseTitle = version.Course?.Title ?? "Unknown Course"
+                CourseTitle = version.Course?.Title ?? "Unknown Course",
+                Resources = resourcesDto
             };
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
