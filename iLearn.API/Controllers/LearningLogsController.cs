@@ -83,39 +83,52 @@ namespace iLearn.API.Controllers
         [HttpGet("player-info/{enrollmentId}")]
         public async Task<IActionResult> GetPlayerInfo(int enrollmentId)
         {
-            // 1. ดึงข้อมูลการลงทะเบียน
+            // 1. ดึง Enrollment
             var enrollment = await _enrollmentRepo.GetByIdAsync(enrollmentId);
             if (enrollment == null)
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
 
-            // 2. Security Check (Case-insensitive)
+            // 2. Security Check (ตรวจสอบความเป็นเจ้าของ)
             if (!string.Equals(enrollment.StudentCode, _currentUser.UserId, StringComparison.OrdinalIgnoreCase))
             {
                 return Unauthorized(new ApiResponse<string> { Success = false, Message = "Unauthorized access" });
             }
 
-            // 3. ค้นหา Version และ Resources ทั้งหมด
+            // 3. ดึง CourseVersion พร้อม Resources
             var versions = await _versionRepo.GetAsync(
                 filter: v => v.CourseId == enrollment.CourseId && v.VersionNumber == enrollment.EnrolledVersion,
                 includeProperties: "CourseResources.Resource,Course"
             );
 
             var version = versions.FirstOrDefault();
-            if (version == null)
-                return NotFound(new ApiResponse<string> { Success = false, Message = "Course content not found" });
+            if (version == null) return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found" });
 
-            if (version.CourseResources == null || !version.CourseResources.Any())
-                return NotFound(new ApiResponse<string> { Success = false, Message = "No resources found in this course" });
+            // [ใหม่] 3.5 ดึง LearningLog ของ User ใน Version นี้ทั้งหมดมาตรวจสอบสถานะ
+            var resourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+            var userLogs = await _logRepo.GetAsync(l =>
+                l.StudentCode == enrollment.StudentCode &&
+                l.CourseVersionId == version.Id &&
+                resourceIds.Contains(l.ResourceId)
+            );
 
-            // 4. Map ข้อมูลลง DTO (เรียงตามลำดับ Id หรือ Sequence ถ้ามี)
-            var resourcesDto = version.CourseResources
-                .OrderBy(cr => cr.Id) // หรือ cr.Sequence ถ้ามี
-                .Select(cr => new PlayerResourceDto
-                {
-                    ResourceId = cr.Resource.Id,
-                    Name = cr.Resource.Name,
-                    Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
-                    LaunchUrl = cr.Resource.URL
+            // 4. Map ข้อมูลลง DTO พร้อมระบุสถานะ IsCompleted
+            var resources = version.CourseResources
+                .Select(cr => {
+                    var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
+                    // ถือว่าจบถ้า status เป็น completed หรือ passed
+                    var isDone = log != null && (
+                        log.LessonStatus.Equals("completed", StringComparison.OrdinalIgnoreCase) ||
+                        log.LessonStatus.Equals("passed", StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    return new PlayerResourceDto
+                    {
+                        Id = cr.Resource.Id,
+                        Name = cr.Resource.Name,
+                        Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
+                        LaunchUrl = cr.Resource.URL,
+                        IsCompleted = isDone // ส่งค่ากลับไป
+                    };
                 }).ToList();
 
             var dto = new PlayerInfoDto
@@ -123,7 +136,7 @@ namespace iLearn.API.Controllers
                 CourseVersionId = version.Id,
                 StudentCode = enrollment.StudentCode,
                 CourseTitle = version.Course?.Title ?? "Unknown Course",
-                Resources = resourcesDto
+                Resources = resources
             };
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
