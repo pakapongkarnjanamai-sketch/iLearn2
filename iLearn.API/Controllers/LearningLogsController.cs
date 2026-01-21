@@ -1,6 +1,8 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Mappings;
+using iLearn.Application.Services;
+using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,13 +14,18 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
-
+        private readonly IGenericRepository<CourseVersion> _versionRepo;
+        private readonly ICurrentUserService _currentUser;
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
-            IGenericRepository<Enrollment> enrollmentRepo)
+            IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<CourseVersion> versionRepo,
+            ICurrentUserService currentUserService)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
+            _versionRepo = versionRepo;
+            _currentUser = currentUserService;
         }
 
         // GET: api/learninglogs?studentCode=EMP001&courseId=5
@@ -71,6 +78,49 @@ namespace iLearn.API.Controllers
                 enrollment.Status = "In Progress";
                 await _enrollmentRepo.UpdateAsync(enrollment);
             }
+        }
+
+        [HttpGet("player-info/{enrollmentId}")]
+        public async Task<IActionResult> GetPlayerInfo(int enrollmentId)
+        {
+            // 1. ดึงข้อมูลการลงทะเบียน
+            var enrollment = await _enrollmentRepo.GetByIdAsync(enrollmentId);
+            if (enrollment == null)
+                return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
+
+            // 2. Security Check: ป้องกันไม่ให้คนอื่นแอบดูคอร์สเรา
+            // เช็คว่า StudentCode ของ Enrollment ตรงกับ User ที่ Login อยู่ไหม
+            if (!string.Equals(enrollment.StudentCode, _currentUser.UserId, StringComparison.OrdinalIgnoreCase))
+            {
+                return Unauthorized(new ApiResponse<string> { Success = false, Message = "Unauthorized access" });
+            }
+
+            // 3. ค้นหา Version และ Resource (ไฟล์ SCORM)
+            var versions = await _versionRepo.GetAsync(
+                filter: v => v.CourseId == enrollment.CourseId && v.VersionNumber == enrollment.EnrolledVersion,
+                includeProperties: "CourseResources.Resource,Course"
+            );
+
+            var version = versions.FirstOrDefault();
+            if (version == null)
+                return NotFound(new ApiResponse<string> { Success = false, Message = "Course content not found" });
+
+            // สมมติ: เลือก Resource ตัวแรกมาเล่น (ถ้ามีหลายตัวอาจต้องส่ง List ไปให้เลือก)
+            var firstResource = version.CourseResources.FirstOrDefault()?.Resource;
+            if (firstResource == null)
+                return NotFound(new ApiResponse<string> { Success = false, Message = "SCORM package not found" });
+
+            // 4. ส่งข้อมูลกลับไปให้ Frontend
+            var dto = new PlayerInfoDto
+            {
+                CourseVersionId = version.Id,
+                ResourceId = firstResource.Id,
+                LaunchUrl = firstResource.URL, // URL เต็ม หรือ Path ที่ Frontend รู้จัก
+                StudentCode = enrollment.StudentCode,
+                CourseTitle = version.Course?.Title ?? "Unknown Course"
+            };
+
+            return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
         }
     }
 }

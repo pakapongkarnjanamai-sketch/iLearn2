@@ -12,6 +12,9 @@ namespace iLearn.Application.Interfaces.Repositories
         Task DeleteAsync(T entity);
         IQueryable<T> GetQuery();
         // เพิ่มฟังก์ชันค้นหาแบบ Custom
-        Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate);
+        Task<IReadOnlyList<T>> GetAsync(
+            Expression<Func<T, bool>>? filter = null,
+            string? includeProperties = null
+        );
     }
 }

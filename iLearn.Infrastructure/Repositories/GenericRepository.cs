@@ -49,9 +49,30 @@ namespace iLearn.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate)
+       
+
+        public async Task<IReadOnlyList<T>> GetAsync(
+            Expression<Func<T, bool>>? filter = null,
+            string? includeProperties = null)
         {
-            return await _dbSet.Where(predicate).ToListAsync();
+            IQueryable<T> query = _dbSet;
+
+            // 1. Apply Filter (ถ้ามี)
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            // 2. Apply Includes (ถ้ามี ส่งมาเป็น string คั่นด้วย comma เช่น "Course,User")
+            if (!string.IsNullOrEmpty(includeProperties))
+            {
+                foreach (var includeProperty in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    query = query.Include(includeProperty.Trim());
+                }
+            }
+
+            return await query.ToListAsync();
         }
     }
 }

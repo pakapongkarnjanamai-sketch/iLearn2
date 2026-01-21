@@ -1,0 +1,77 @@
+﻿@{
+    Layout = null; // หน้า Player ไม่ควรมี Header/Footer ของเว็บหลัก
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Course Player</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f2f5;
+        }
+
+        #scorm-frame {
+            width: 100%;
+            height: calc(100vh - 50px);
+            border: none;
+        }
+
+        .player-header {
+            height: 50px;
+            background: #fff;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-header">
+        <span class="fw-bold"><i class="fa fa-play-circle"></i> Learning Player</span>
+        <button class="btn btn-sm btn-outline-danger" onclick="exitCourse()">
+            Exit / Save & Close
+        </button>
+    </div>
+
+    <iframe id="scorm-frame" src=""></iframe>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/scorm-adapter.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // 1. รับค่าจาก Server (ViewBag)
+            const settings = {
+                courseVersionId: @ViewBag.CourseVersionId,
+                resourceId: @ViewBag.ResourceId,
+                studentCode: '@ViewBag.StudentCode',
+                serviceUrl: '@ViewBag.ServiceUrl' // URL ของ API Backend
+            };
+
+            // 2. Initialize Adapter
+            window.API.initAdapter(settings);
+
+            // 3. เริ่มโหลด SCORM Content
+            // LaunchUrl เช่น "https://.../content/story.html"
+            const launchUrl = '@Html.Raw(ViewBag.LaunchUrl)';
+            $("#scorm-frame").attr("src", launchUrl);
+        });
+
+        function exitCourse() {
+            // สั่ง Commit ครั้งสุดท้ายและปิดหน้าต่าง
+            window.API.LMSFinish("");
+            window.location.href = '/MyLearning'; // กลับไปหน้ารวม
+        }
+    </script>
+</body>
+</html>
