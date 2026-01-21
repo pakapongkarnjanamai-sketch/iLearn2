@@ -50,22 +50,20 @@
 
     <script>
         $(document).ready(function () {
-            // 1. รับค่าจาก Server (ViewBag)
-            const settings = {
-                courseVersionId: @ViewBag.CourseVersionId,
-                resourceId: @ViewBag.ResourceId,
-                studentCode: '@ViewBag.StudentCode',
-                serviceUrl: '@ViewBag.ServiceUrl' // URL ของ API Backend
-            };
+             const settings = {
+                 courseVersionId: @ViewBag.CourseVersionId,
+                 resourceId: @ViewBag.ResourceId,
+                 studentCode: '@ViewBag.StudentCode',
+                 serviceUrl: '@ViewBag.ServiceUrl'
+             };
 
-            // 2. Initialize Adapter
-            window.API.initAdapter(settings);
+             // โหลด Adapter (ตอนนี้รองรับทั้ง window.API และ window.API_1484_11)
+             ScormAdapter.initAdapter(settings);
 
-            // 3. เริ่มโหลด SCORM Content
-            // LaunchUrl เช่น "https://.../content/story.html"
-            const launchUrl = '@Html.Raw(ViewBag.LaunchUrl)';
-            $("#scorm-frame").attr("src", launchUrl);
-        });
+             // เริ่มโหลด iframe
+             const launchUrl = '@Html.Raw(ViewBag.LaunchUrl)';
+             $("#scorm-frame").attr("src", launchUrl);
+         });
 
         function exitCourse() {
             // สั่ง Commit ครั้งสุดท้ายและปิดหน้าต่าง
