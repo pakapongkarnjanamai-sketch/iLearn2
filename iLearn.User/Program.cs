@@ -1,5 +1,8 @@
-﻿using iLearn.Application.Middleware;
+﻿using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Middleware;
 using iLearn.Application.Services;
+using iLearn.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,38 +23,34 @@ builder.Services.AddSession(options =>
 builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
     .AddNegotiate();
 
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options => {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
+
 // IIS Integration for Windows Authentication
 builder.Services.Configure<IISOptions>(options =>
 {
     options.AutomaticAuthentication = true;
     options.AuthenticationDisplayName = "Windows";
 });
+// ในส่วนการลงทะเบียน Services
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        // เมื่อไม่มีสิทธิ์ หรือยังไม่ได้ Login ให้เด้งไปที่ HomeController Action Index (หน้าแรก)
+        options.LoginPath = "/Home/Index";
+        options.AccessDeniedPath = "/Home/Index";
 
-// Authorization with Role-based policies
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = options.DefaultPolicy;
+        // กำหนดระยะเวลาของ Cookie (เช่น 30 นาที)
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    });
 
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("Admin", "SuperAdmin"));
-
-    options.AddPolicy("SuperAdminOnly", policy =>
-        policy.RequireRole("SuperAdmin"));
-
-    options.AddPolicy("ManagerOrAbove", policy =>
-        policy.RequireRole("Manager", "Admin", "SuperAdmin"));
-
-    options.AddPolicy("UserOrAbove", policy =>
-        policy.RequireRole("User", "Manager", "Admin", "SuperAdmin"));
-
-    options.AddPolicy("DomainUser", policy =>
-        policy.RequireAssertion(context =>
-            context.User.Identity?.Name?.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase) == true));
-});
 
 // Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IApiUserService, ApiUserService>();
+builder.Services.AddHttpClient<IEmployeeApiService, EmployeeApiService>();
 
 // HTTP Client for API calls
 builder.Services.AddHttpClient("iLearnAPI", client =>
