@@ -1,0 +1,126 @@
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iLearn</title>
+
+    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+
+    <!-- CSS -->
+    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
+    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+
+    <!-- JavaScript -->
+    <script src="~/js/devextreme/jquery.js"></script>
+
+    <!-- ✅ เปลี่ยนจาก bootstrap.js เป็น bootstrap.bundle.js -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="~/js/devextreme/filesaver.min.js"></script>
+    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
+    <script src="~/js/devextreme/dx.all.js"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
+    <script src="~/src/devextreme-license.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="~/lib/font-awesome/js/all.min.js"></script>
+
+    @await RenderSectionAsync("ExternalDependencies", required: false)
+
+    <style>
+        body {
+            padding-top: 4.5rem;
+            background-color: #f5f7fa;
+        }
+
+      
+
+        .page-full-height {
+            height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
+            /* padding: 1rem; */
+            box-sizing: border-box;
+        }
+
+            .page-full-height .card {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+            }
+
+    </style>
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+
+<body>
+ 
+
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
+    <footer class="text-center text-muted py-3 mt-auto">
+        <small>&copy; @DateTime.Now.Year - iLearn System (Admin)</small>
+    </footer>
+    <script>
+        // กำหนด Base URL จาก AppSettings
+        const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
+
+        // ใช้ serviceUrl เป็นตัวแปรกลางสำหรับหน้าต่างๆ (ถ้า API อยู่ที่เดียวกับ Admin ให้ใช้ว่างหรือ /api)
+        // กรณีแยก API Project:
+        const serviceUrl = API_BASE;
+        // กรณีรวม Project (Admin เรียก Controller ตัวเอง):
+        // const serviceUrl = "";
+
+        // Helper Function: สร้าง DataStore สำหรับ DevExtreme
+        function createDataStore(baseUrl, controllerName, options) {
+            const defaults = {
+                key: 'Id',
+                // API ของเราคือ baseUrl/controllerName/Get (เช่น .../api/admin/Courses/Get)
+                loadUrl: `${baseUrl}/${controllerName}/Get`,
+                insertUrl: `${baseUrl}/${controllerName}/Post`,
+                updateUrl: `${baseUrl}/${controllerName}/Put`,
+                deleteUrl: `${baseUrl}/${controllerName}/Delete`,
+                onBeforeSend: function (method, ajaxOptions) {
+                    ajaxOptions.xhrFields = { withCredentials: true };
+                }
+            };
+
+            if (options && options.action) {
+                defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
+                if (options.ParamKey) {
+                     defaults.loadUrl += `/${options.ParamKey}`;
+                }
+            }
+
+            return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
+        }
+
+        // Helper Function: จัดการการ Export Excel
+        function handleExporting(e, fileName) {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: e.component,
+                worksheet: worksheet,
+                autoFilterEnabled: true
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), (fileName || 'Data') + '.xlsx');
+                });
+            });
+            e.cancel = true;
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
