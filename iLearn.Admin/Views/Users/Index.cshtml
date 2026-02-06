@@ -18,7 +18,7 @@
         $(() => {
             const grid = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD', {
-                    key: 'Id',
+                    key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
@@ -52,11 +52,11 @@
                                 colCount: 2,
                                 colSpan: 2,
                                 items: [
-                                    { dataField: 'Id', editorOptions: { disabled: true }, colSpan: 2 },
-                                    { dataField: 'Nid', colSpan: 2 },
+                                    { dataField: 'id', editorOptions: { disabled: true }, colSpan: 2 },
+                                    { dataField: 'nid', colSpan: 2 },
                                     // [แก้ไขจุดนี้] เปลี่ยนจาก Roles เป็น RoleIds เพื่อให้ตรงกับ Column
                                     {
-                                        dataField: 'RoleIds',
+                                        dataField: 'roleIds',
                                         colSpan: 2,
                                         label: { text: 'Roles' }
                                     }
@@ -66,23 +66,23 @@
                     }
                 },
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
-                    { dataField: "Nid", caption: "National ID / Username" },
+                    { dataField: "id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "nid", caption: "National ID / Username" },
 
                     // --- ส่วนที่เพิ่มใหม่สำหรับ Roles ---
                     {
-                        dataField: "RoleIds", // Virtual Column สำหรับจัดการ ID
+                        dataField: "roleIds", // Virtual Column สำหรับจัดการ ID
                         caption: "Roles",
                         width: 300,
                         allowSorting: false,
 
                         // 1. แปลงข้อมูล UserRoles/Roles ให้เป็น Array [1, 2]
                         calculateCellValue: function(rowData) {
-                            if (rowData.Roles) {
-                                return rowData.Roles.map(r => r.Id);
+                            if (rowData.roles) {
+                                return rowData.roles.map(r => r.id);
                             }
-                            if (rowData.UserRoles) {
-                                return rowData.UserRoles.map(ur => ur.RoleId);
+                            if (rowData.userRoles) {
+                                return rowData.userRoles.map(ur => ur.roleId);
                             }
                             return [];
                         },
@@ -92,9 +92,9 @@
 
                         // 3. แสดงผลในตาราง (Lookup ID -> Name)
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'Id' }),
-                            displayExpr: 'Name',
-                            valueExpr: 'Id',
+                            dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
+                            displayExpr: 'name',
+                            valueExpr: 'id',
                         },
                         cellTemplate: function(container, options) {
                             const items = options.value || [];
@@ -104,17 +104,17 @@
                         }
                     },
 
-                    { dataField: "CreatedAt", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false }
+            { dataField: "createdAt", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false }
                 ],
             }).dxDataGrid('instance');
 
             // ฟังก์ชันสร้าง TagBox
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
-                    dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'Id' }),
+                    dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
                     value: cellInfo.value || [],
-                    valueExpr: 'Id',
-                    displayExpr: 'Name',
+                    valueExpr: 'id',
+                    displayExpr: 'name',
                     showSelectionControls: true,
                     maxDisplayedTags: 3,
                     showMultiTagOnly: false,

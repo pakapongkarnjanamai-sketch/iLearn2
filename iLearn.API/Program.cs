@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     // เพิ่มบรรทัดนี้เพื่อตัดวงจร Loop Reference
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
@@ -69,7 +69,8 @@ if (builder.Environment.IsDevelopment())
         builder =>
         {
             builder.WithOrigins(
-                    "https://localhost:7270"
+                    "https://localhost:7270",
+                    "https://localhost:7078"
 
                 )
                 .AllowAnyMethod()

@@ -143,7 +143,7 @@
             // 3. DataGrid Configuration
             const grid = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', {
-                    key: 'Id',
+                    key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
@@ -173,15 +173,15 @@
                                 colCount: 2,
                                 colSpan: 2,
                                 items: [
-                                    { dataField: 'Id', editorOptions: { disabled: true } },
-                                    { dataField: 'IsActive' },
+                                    { dataField: 'id', editorOptions: { disabled: true } },
+                                    { dataField: 'isActive' },
                                     {
-                                        dataField: 'Name',
+                                        dataField: 'name',
                                         colSpan: 2,
                                         validationRules: [{ type: "required" }]
                                     },
                                     {
-                                        dataField: 'TypeId',
+                                        dataField: 'typeId',
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             dataSource: resourceTypes,
@@ -197,23 +197,23 @@
                     }
                 },
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
+                    { dataField: "id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
                     {
-                        dataField: "Name",
+                        dataField: "name",
                         caption: "Resource Name",
                         minWidth: 200,
                         cellTemplate: function(container, options) {
                             // แสดง Icon ตามนามสกุลไฟล์
                             let icon = '<i class="far fa-file"></i>';
-                            if(options.data.Name.endsWith('.zip')) icon = '<i class="far fa-file-archive text-warning"></i>';
-                            else if(options.data.Name.endsWith('.pdf')) icon = '<i class="far fa-file-pdf text-danger"></i>';
-                            else if(options.data.Name.endsWith('.mp4')) icon = '<i class="far fa-file-video text-info"></i>';
+                            if(options.data.name.endsWith('.zip')) icon = '<i class="far fa-file-archive text-warning"></i>';
+                            else if(options.data.name.endsWith('.pdf')) icon = '<i class="far fa-file-pdf text-danger"></i>';
+                            else if(options.data.name.endsWith('.mp4')) icon = '<i class="far fa-file-video text-info"></i>';
 
-                            container.html(`${icon} ${options.data.Name}`);
+                            container.html(`${icon} ${options.data.name}`);
                         }
                     },
                     {
-                        dataField: "TypeId",
+                        dataField: "typeId",
                         caption: "Type",
                         width: 120,
                         lookup: {
@@ -225,21 +225,21 @@
 
                     // --- Virtual Column สำหรับ Course Mapping ---
                     {
-                        dataField: "CourseIds",
+                        dataField: "courseIds",
                         caption: "Assigned Courses",
                         width: 250,
                         allowSorting: false,
                         calculateCellValue: function(rowData) {
-                            if (rowData.CourseResources) {
-                                return rowData.CourseResources.map(cr => cr.CourseId);
+                            if (rowData.courseResources) {
+                                return rowData.courseResources.map(cr => cr.courseId);
                             }
                             return [];
                         },
                         editCellTemplate: tagBoxCourseTemplate,
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' }),
-                            displayExpr: 'Title', // ใช้ Title ตาม Model Course
-                            valueExpr: 'Id',
+                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
+                            displayExpr: 'title', // ใช้ Title ตาม Model Course
+                            valueExpr: 'id',
                         },
                         cellTemplate: function(container, options) {
                             const items = options.value || [];
@@ -250,7 +250,7 @@
                     // -------------------------------------------
 
                     {
-                        dataField: "IsActive",
+                        dataField: "isActive",
                         caption: "Active",
                         dataType: "boolean",
                         width: 80
@@ -265,26 +265,26 @@
                     icon: "globe", // ใช้ icon รูปโลก หรือ 'check'
                     cssClass: "dx-icon-globe text-success", // ใส่สีเขียวให้ดูว่าเป็นปุ่มเปิดใช้งาน
                     visible: function(e) {
-                        // แสดงปุ่มนี้ก็ต่อเมื่อ IsActive เป็น false
-                        return !e.row.data.IsActive;
+                        // แสดงปุ่มนี้ก็ต่อเมื่อ isActive เป็น false
+                        return !e.row.data.isActive;
                     },
                     onClick: function(e) {
                         // เรียกฟังก์ชัน JavaScript ที่เราจะสร้างด้านล่าง
-                        setResourcePublic(e.row.data.Id);
+                        setResourcePublic(e.row.data.id);
                     }
                 },
 
                 // 2. ปุ่มเดิมสำหรับเปิดดู (แสดงเฉพาะตอน Active แล้ว)
-                   {
+            {
             hint: "View Content",
             icon: "video",
-            visible: function(e) { return e.row.data.IsActive; },
+            visible: function(e) { return e.row.data.isActive; },
             onClick: function(e) {
                 const resource = e.row.data;
-                const apiUrl = `${serviceUrl}/Resources/${resource.Id}/content`;
+                const apiUrl = `${serviceUrl}/Resources/${resource.id}/content`;
 
                 // ตรวจสอบว่าเป็นไฟล์ Zip (SCORM) หรือไม่
-                if (resource.Name.toLowerCase().endsWith('.zip')) {
+                if (resource.name.toLowerCase().endsWith('.zip')) {
 
                     // 1. เปิดหน้าต่างใหม่รอไว้ทันที (ป้องกัน Popup Blocker)
                     // ต้องทำใน Event Loop เดียวกันกับการกดปุ่ม
@@ -332,10 +332,10 @@
             // Template สำหรับ TagBox เลือกวิชา
             function tagBoxCourseTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
-                    dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' }),
+                    dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
                     value: cellInfo.value || [],
-                    valueExpr: 'Id',
-                    displayExpr: 'Title', // ใช้ Title
+                    valueExpr: 'id',
+                    displayExpr: 'title', // ใช้ Title
                     showSelectionControls: true,
                     maxDisplayedTags: 3,
                     showMultiTagOnly: false,

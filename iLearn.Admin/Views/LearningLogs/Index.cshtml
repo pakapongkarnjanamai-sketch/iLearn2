@@ -18,7 +18,7 @@
         $(() => {
             const grid = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/LearningLogsCRUD', {
-                    key: 'Id',
+                    key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
@@ -40,11 +40,11 @@
                     form: {
                         colCount: 2,
                         items: [
-                            { dataField: 'Id', editorOptions: { disabled: true }, colSpan: 2 },
-                            { dataField: 'StudentCode', editorOptions: { disabled: true } },
-                            { dataField: 'CourseId', editorOptions: { disabled: true } },
-                            { dataField: 'CourseVersionId', editorOptions: { disabled: true } },
-                            { dataField: 'ResourceId', editorOptions: { disabled: true } },
+                            { dataField: 'id', editorOptions: { disabled: true }, colSpan: 2 },
+                            { dataField: 'studentCode', editorOptions: { disabled: true } },
+                            { dataField: 'courseId', editorOptions: { disabled: true } },
+                            { dataField: 'courseVersionId', editorOptions: { disabled: true } },
+                            { dataField: 'resourceId', editorOptions: { disabled: true } },
 
                             // SCORM Data (อนุญาตให้แก้ Status/Score ได้กรณีมีปัญหา)
                             { dataField: 'LessonStatus' },
@@ -58,17 +58,17 @@
 
                 // ปรับปรุง Columns ให้ตรงกับ DTO ใหม่
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 60, allowUpdating: false },
-                    { dataField: "StudentCode", caption: "Student Code" },
+                    { dataField: "id", caption: "ID", width: 60, allowUpdating: false },
+                    { dataField: "studentCode", caption: "Student Code" },
 
                     // Course Info
-                    { dataField: "CourseId", caption: "Course ID", width: 80 },
-                    { dataField: "CourseVersionId", caption: "Ver.", width: 60 },
-                    { dataField: "ResourceId", caption: "Resource ID", width: 100 },
+                    { dataField: "courseId", caption: "Course ID", width: 80 },
+                    { dataField: "courseVersionId", caption: "Ver.", width: 60 },
+                    { dataField: "resourceId", caption: "Resource ID", width: 100 },
 
                     // SCORM Status
                     {
-                        dataField: "LessonStatus",
+                        dataField: "lessonStatus",
                         caption: "Status",
                         cellTemplate: function(container, options) {
                             let color = 'secondary';
@@ -82,19 +82,19 @@
                                 .appendTo(container);
                         }
                     },
-                    { dataField: "ScoreRaw", caption: "Score", dataType: "number" },
-                    { dataField: "TotalTime", caption: "Total Time" },
-                    { dataField: "AttemptCount", caption: "Attempts", dataType: "number" },
+                    { dataField: "scoreRaw", caption: "Score", dataType: "number" },
+                    { dataField: "totalTime", caption: "Total Time" },
+                    { dataField: "attemptCount", caption: "Attempts", dataType: "number" },
 
                     // Dates
                     {
-                        dataField: "LastAccessDate",
+                        dataField: "lastAccessDate",
                         caption: "Last Access",
                         dataType: "datetime",
                         format: "dd/MM/yyyy HH:mm"
                     },
                     {
-                        dataField: "CompletedDate",
+                        dataField: "completedDate",
                         caption: "Completed",
                         dataType: "datetime",
                         format: "dd/MM/yyyy HH:mm"

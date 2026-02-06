@@ -23,7 +23,7 @@
         let currentCourseId = 0;
         
         // 2. Stores สำหรับ Dropdown และ Grid ย่อย
-        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'Id' });
+        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
         // ฟังก์ชันสร้าง Config สำหรับ Grid ย่อย (เหมือนหน้า Courses เดิม)
         function createGridConfig(typeId, onSelectionChangeCallback) {
@@ -53,7 +53,7 @@
                 initialFilter = ["CourseId", "=", parseInt(@courseId)];
             }
             const versionsDataSource = new DevExpress.data.CustomStore({
-                key: "Id",
+                key: "id",
                 load: function(loadOptions) {
                     // ส่ง Filter CourseId ไปด้วยเสมอ
                     const filter = initialFilter;
@@ -83,12 +83,13 @@
                 },
                 insert: function(values) {
                     // รวม ResourceIds ทั้งหมด
+
                     const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
 
                     const payload = {
                         ...values,
-                        CourseId: currentCourseId, // บังคับใส่ CourseId
-                        ResourceIds: allResourceIds // ส่งรายการ ResourceIds ไปที่ API
+                        courseId: currentCourseId, // บังคับใส่ CourseId
+                        resourceIds: allResourceIds // ส่งรายการ ResourceIds ไปที่ API
                     };
 
                     return $.ajax({
@@ -106,7 +107,7 @@
                     // ในที่นี้สมมติว่า API ต้องการ ResourceIds ใน Body
                     const payload = {
                         ...values,
-                        ResourceIds: allResourceIds
+                        resourceIds: allResourceIds
                     };
 
                     return $.ajax({
@@ -139,13 +140,13 @@
                 onInitNewRow: function(e) {
                     selectedLearnIds = [];
                     selectedExamIds = [];
-                    e.data.CourseId = currentCourseId;
+                    e.data.courseId = currentCourseId;
                     e.data.IsActive = true;
                     // Auto run version number logic can be added here if needed
                 },
                   onRowDblClick: function(e) {
-                    if (e.data && e.data.Id) {
-                        window.location.href = '@Url.Action("Player", "Courses")?versionId=' + e.data.Id;
+                    if (e.data && e.data.id) {
+                        window.location.href = '@Url.Action("Player", "Courses")?versionId=' + e.data.id;
                     }
                 },
                 // โหลดข้อมูล Resources เมื่อเริ่มแก้ไข
@@ -153,18 +154,18 @@
                     selectedLearnIds = [];
                     selectedExamIds = [];
 
-                    if (e.data && e.data.Id) {
+                    if (e.data && e.data.id) {
                         // เรียก API เพื่อดึงข้อมูล Detail (รวม ResourceIds)
                         versionsDataSource.byKey(e.data.Id).done(function(detailData) {
 
-                            if (detailData.ResourceIds && detailData.ResourceIds.length > 0) {
+                            if (detailData.resourceIds && detailData.resourceIds.length > 0) {
                                 // ดึงข้อมูล Resources ทั้งหมดที่อยู่ใน Version นี้เพื่อแยกประเภท
-                                const resourcePromises = detailData.ResourceIds.map(id => resourcesStore.byKey(id));
+                                const resourcePromises = detailData.resourceIds.map(id => resourcesStore.byKey(id));
 
                                 Promise.all(resourcePromises).then(resources => {
                                     // แยก Learn (Type 1) และ Exam (Type 2)
-                                    selectedLearnIds = resources.filter(r => r && r.TypeId === 1).map(r => r.Id);
-                                    selectedExamIds = resources.filter(r => r && r.TypeId === 2).map(r => r.Id);
+                                    selectedLearnIds = resources.filter(r => r && r.typeId === 1).map(r => r.id);
+                                    selectedExamIds = resources.filter(r => r && r.typeId === 2).map(r => r.id);
 
                                     // อัปเดต Selection ใน Grid ย่อย (รอ UI render แป๊บหนึ่ง)
                                     setTimeout(() => {
@@ -234,7 +235,7 @@
                                             // สร้าง Grid ย่อย Learn
                                             setTimeout(() => {
                                                 const grid = $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
-                                                    selectedLearnIds = e.selectedRowsData.map(r => r.Id);
+                                                    selectedLearnIds = e.selectedRowsData.map(r => r.id);
                                                 })).dxDataGrid("instance");
 
                                                 // Pre-select ถ้ามีข้อมูล
@@ -254,7 +255,7 @@
                                             // สร้าง Grid ย่อย Exam
                                             setTimeout(() => {
                                                 const grid = $("#gridExam").dxDataGrid(createGridConfig(2, (e) => {
-                                                    selectedExamIds = e.selectedRowsData.map(r => r.Id);
+                                                    selectedExamIds = e.selectedRowsData.map(r => r.id);
                                                 })).dxDataGrid("instance");
 
                                                 // Pre-select ถ้ามีข้อมูล

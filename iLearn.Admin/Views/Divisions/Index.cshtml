@@ -19,7 +19,7 @@
         $(() => {
             const grid = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', {
-                    key: 'Id',
+                    key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
@@ -36,14 +36,14 @@
                     useIcons: true,
                     form: {
                         items: [
-                             { dataField: 'Id', editorOptions: { disabled: true } },
-                             { dataField: 'Name' }
+                             { dataField: 'id', editorOptions: { disabled: true } },
+                             { dataField: 'name' }
                         ]
                     }
                 },
                 columns: [
-                    { dataField: "Id", caption: "ID", width: 50, allowUpdating: false },
-                    { dataField: "Name", caption: "Division Name" }
+                    { dataField: "id", caption: "ID", width: 50, allowUpdating: false },
+                    { dataField: "name", caption: "Division Name" }
                 ],
             }).dxDataGrid('instance');
         })

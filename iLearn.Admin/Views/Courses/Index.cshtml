@@ -16,7 +16,7 @@
 
 @section Scripts {
     <script>
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'Id' });
+        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
 
         const courseTypes = [
             { id: 0, name: 'Special (Rule-based)' },
@@ -31,7 +31,7 @@
                 initialFilter = ["categoryId", "=", parseInt(@categoryId)];
             }
             // ใช้ createDataStore เชื่อมต่อกับ API CRUD มาตรฐาน (admin/CoursesCRUD)
-            const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'Id' });
+            const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
             $("#grid").dxDataGrid({
                 dataSource: coursesStore,
@@ -43,9 +43,9 @@
                 scrolling: { mode: "virtual" },
                 selection: { mode: 'single' },
                 searchPanel: { visible: true, width: 300 },
-               onRowDblClick: function(e) {
-                    if (e.data && e.data.Id) {
-                        window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.data.Id;
+                    onRowDblClick: function(e) {
+                    if (e.data && e.data.id) {
+                        window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.data.id;
                     }
                 },
                 // เปิดใช้งานการแก้ไขแบบ Popup มาตรฐาน
@@ -87,12 +87,12 @@
                                         validationRules: [{ type: "required" }]
                                     },
                                     {
-                                        dataField: "CategoryId",
+                                        dataField: "categoryId",
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             dataSource: categoriesStore,
-                                            displayExpr: 'Name',
-                                            valueExpr: 'Id',
+                                            displayExpr: 'name',
+                                            valueExpr: 'id',
                                             searchEnabled: true,
                                             placeholder: "Select Category"
                                         },
@@ -121,7 +121,7 @@
                 columns: [
                    
                     {
-                        dataField: "Id",
+                        dataField: "id",
                         caption: "ID",
                         width: 60,
                         sortOrder: 'desc',
@@ -138,17 +138,17 @@
                         minWidth: 200
                     },
                     {
-                        dataField: "CategoryId",
+                        dataField: "categoryId",
                         caption: "Category",
                         width: 150,
                         lookup: {
                             dataSource: categoriesStore,
-                            displayExpr: 'Name',
-                            valueExpr: 'Id'
+                            displayExpr: 'name',
+                            valueExpr: 'id'
                         }
                     },
                     {
-                        dataField: "Type",
+                        dataField: "type",
                         caption: "Type",
                         width: 150,
                         lookup: {

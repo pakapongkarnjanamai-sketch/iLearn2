@@ -18,7 +18,7 @@
         $(() => {
             const grid = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/CategoriesCRUD', {
-                    key: 'Id',
+                    key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
@@ -57,11 +57,11 @@
                                 colSpan: 2,
                                 items: [
                                     {
-                                        dataField: 'Id',
+                                        dataField: 'id',
                                         editorOptions: { disabled: true }
                                     },
                                     {
-                                        dataField: 'Name',
+                                        dataField: 'name',
                                         validationRules: [{ type: "required" }]
                                     },
                                     // [เพิ่ม] Field สำหรับเลือก Division
@@ -71,9 +71,9 @@
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             // ใช้ createDataStore ดึงข้อมูลจาก DivisionsCRUD หรือ api/Divisions
-                                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'Id' }),
-                                            displayExpr: 'Name',
-                                            valueExpr: 'Id',
+                                        dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                                            displayExpr: 'name',
+                                            valueExpr: 'id',
                                             showClearButton: true,
                                             placeholder: "Select Division (Optional)"
                                         }
@@ -93,35 +93,35 @@
                 },
                 columns: [
                     {
-                        dataField: "Id",
+                        dataField: "id",
                         caption: "ID",
                         width: 60,
                         allowUpdating: false,
                         sortOrder: 'desc'
                     },
                     {
-                        dataField: "Name",
+                        dataField: "name",
                         caption: "Category Name",
                         validationRules: [{ type: "required" }]
                     },
                     // [เพิ่ม] Column Division พร้อม Lookup
                     {
-                        dataField: "DivisionId",
+                        dataField: "divisionId",
                         caption: "Division",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'Id' }),
-                            displayExpr: 'Name',
-                            valueExpr: 'Id',
+                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                            displayExpr: 'name',
+                            valueExpr: 'id',
                         }
                     },
                     {
-                        dataField: "IsActive",
+                        dataField: "isActive",
                         caption: "Active",
                         dataType: "boolean",
                         width: 100
                     },
                     {
-                        dataField: "CreatedAt",
+                        dataField: "createdAt",
                         caption: "Created Date",
                         dataType: "date",
                         format: "dd/MM/yyyy HH:mm",

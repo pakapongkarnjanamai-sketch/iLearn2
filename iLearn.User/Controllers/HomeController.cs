@@ -1,8 +1,8 @@
-﻿using iLearn.Application.Interfaces.Services;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using iLearn.Application.Interfaces.Services; // สมมติว่ามี Interface นี้จากขั้นตอนก่อนหน้า
 
 namespace iLearn.User.Controllers
 {
@@ -17,13 +17,13 @@ namespace iLearn.User.Controllers
 
         public IActionResult Index()
         {
+            // ถ้า Login อยู่แล้ว ให้ข้ามไปหน้า MyLearning เลย
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("Index", "MyLearning");
             }
             return View();
         }
-
 
         [HttpPost]
         public async Task<IActionResult> VerifyEmployee(string employeeCode)
@@ -32,19 +32,17 @@ namespace iLearn.User.Controllers
 
             if (employee != null)
             {
-                // สร้างรายการ Claims (ข้อมูลพนักงานที่จะฝังไว้ใน Cookie)
+                // เก็บข้อมูลเข้า Claims เพื่อใช้ในหน้า MyLearning
                 var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, employee.Code),
-            new Claim(ClaimTypes.Name, employee.Name),
-            new Claim("Department", employee.Department),
-            new Claim("Division", employee.Division),
-            new Claim("Section", employee.Section)
-        };
+                {
+                    new Claim(ClaimTypes.NameIdentifier, employee.Code),
+                    new Claim(ClaimTypes.Name, employee.Name),
+                    new Claim("Department", employee.Department ?? "-"),
+                    new Claim("Division", employee.Division ?? "-")
+                };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                // ทำการ Sign In เข้าสู่ระบบ
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
                     new ClaimsPrincipal(claimsIdentity));
 
@@ -56,11 +54,8 @@ namespace iLearn.User.Controllers
 
         public async Task<IActionResult> Logout()
         {
-            // ล้าง Cookie Authentication
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // ส่งกลับไปหน้าแรก
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index");
         }
     }
 }

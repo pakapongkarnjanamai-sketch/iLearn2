@@ -65,51 +65,29 @@
             }).dxPopup("instance");
 
             // 3. ฟังก์ชันจัดการการ Login และเรียก API ผ่าน Backend
-            function validateAndLogin(btnEvent) {
-                const empInput = $("#employee-id-input").dxTextBox("instance");
-                const employeeCode = empInput.option("value");
+                   // ส่วนหนึ่งของไฟล์ Index.cshtml ในหัวข้อก่อนหน้า
+        function validateAndLogin(btnEvent) {
+            const employeeCode = $("#employee-id-input").dxTextBox("instance").option("value");
 
-                if (!employeeCode || employeeCode.trim() === "") {
-                    DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
-                    empInput.focus();
-                    return;
-                }
-
-                // แสดง Loading ที่ปุ่ม
-                btnEvent.component.option("disabled", true);
-                btnEvent.component.option("text", "กำลังตรวจสอบ...");
-
-                // เรียกไปที่ HomeController ของ iLearn.User
-                $.ajax({
-                    url: '@Url.Action("VerifyEmployee", "Home")', // Action ที่คุณต้องสร้างเพิ่มใน Controller
-                    type: 'POST',
-                    data: { employeeCode: employeeCode },
-                    success: function (response) {
-                        if (response.success) {
-                            // กรณีสำเร็จ: แสดงข้อมูลที่ได้จาก API ภายนอก
-                            $("#employee-preview").fadeIn();
-                            $("#txt-name").text(response.data.name);
-                            $("#txt-dept").text(response.data.department);
-
-                            DevExpress.ui.notify("ยินดีต้อนรับคุณ " + response.data.name, "success", 2000);
-
-                            // รอสักครู่แล้วย้ายหน้า (เช่น ไปหน้า MyLearning)
-                            setTimeout(function() {
-                                window.location.href = '@Url.Action("Index", "MyLearning")';
-                            }, 1500);
-                        } else {
-                            DevExpress.ui.notify(response.message || "ไม่พบข้อมูลพนักงาน", "error", 3000);
-                            btnEvent.component.option("disabled", false);
-                            btnEvent.component.option("text", "เข้าสู่ระบบ");
-                        }
-                    },
-                    error: function () {
-                        DevExpress.ui.notify("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์", "error", 3000);
-                        btnEvent.component.option("disabled", false);
-                        btnEvent.component.option("text", "เข้าสู่ระบบ");
-                    }
-                });
+            if (!employeeCode) {
+                DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
+                return;
             }
+
+            btnEvent.component.option("disabled", true);
+            btnEvent.component.option("text", "กำลังตรวจสอบ...");
+
+            $.post('/Home/VerifyEmployee', { employeeCode: employeeCode }, function(response) {
+                if (response.success) {
+                    DevExpress.ui.notify("ยินดีต้อนรับคุณ " + response.data.name, "success", 1500);
+                    setTimeout(() => window.location.href = '/MyLearning/Index', 1000);
+                } else {
+                    DevExpress.ui.notify(response.message, "error", 2000);
+                    btnEvent.component.option("disabled", false);
+                    btnEvent.component.option("text", "เข้าสู่ระบบ");
+                }
+            });
+        }
         });
     </script>
 }
