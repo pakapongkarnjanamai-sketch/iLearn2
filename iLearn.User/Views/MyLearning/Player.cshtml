@@ -260,7 +260,7 @@
 
 @section Scripts {
     <script>
-        const ENROLLMENT_ID = "@ViewBag.EnrollmentId";
+    const enrollmentId = "@ViewBag.EnrollmentId";
         // ปรับ Base URL API ให้ตรงกับ Environment ของคุณ
         const apiBaseUrl = "https://localhost:7128/api";
 
@@ -269,13 +269,13 @@
         let activeResource = null;
         let currentCourseVersionId = 0;
 
-        // ตัวแปรเก็บ Session Data ของ SCORM ปัจจุบันที่จะส่งไป API
+        // ตัวแปรเก็บ Session Data ของ SCORM ปัจจุบันที่จะส่งไป API (camelCase)
         let scormSessionData = {
-            LessonStatus: null,
-            ScoreRaw: null,
-            LessonLocation: null,
-            SuspendData: null,
-            SessionTime: null
+            lessonStatus: null,
+            scoreRaw: null,
+            lessonLocation: null,
+            suspendData: null,
+            sessionTime: null
         };
 
         $(function() {
@@ -286,7 +286,7 @@
         async function fetchPlayerInfo() {
             try {
                 // เรียก endpoint: /api/LearningLogs/player-info/{enrollmentId}
-                const apiUrl = `${apiBaseUrl}/LearningLogs/player-info/${ENROLLMENT_ID}`;
+                const apiUrl = `${apiBaseUrl}/Enrollments/player-info/${enrollmentId}`;
 
                 const response = await $.ajax({
                     url: apiUrl,
@@ -295,21 +295,24 @@
                     xhrFields: { withCredentials: true }
                 });
 
-                if (response && response.Success && response.Data) {
-                    const data = response.Data;
-                    currentCourseVersionId = data.CourseVersionId;
+                // support both PascalCase and camelCase response shapes
+                const ok = response && (response.Success || response.success);
+                const data = (response && (response.Data || response.data)) || null;
+                if (ok && data) {
+                    currentCourseVersionId = data.courseVersionId || data.CourseVersionId || 0;
 
                     renderHeaderInfo(data);
 
-                    if (data.Resources && data.Resources.length > 0) {
-                        currentResources = data.Resources;
+                    const resources = data.resources || data.Resources || [];
+                    if (resources && resources.length > 0) {
+                        currentResources = resources;
                         renderToc(currentResources);
                     } else {
                         $("#courseTocList").html('<div class="alert alert-warning m-2 small">ไม่พบเนื้อหาในคอร์สนี้</div>');
                     }
                 } else {
                     console.error("API Error:", response);
-                    $("#courseTocList").html('<div class="text-danger text-center p-3">' + (response.Message || "ไม่พบข้อมูล") + '</div>');
+                    $("#courseTocList").html('<div class="text-danger text-center p-3">' + ((response && (response.Message || response.message)) || "ไม่พบข้อมูล") + '</div>');
                 }
 
             } catch (err) {
@@ -320,15 +323,15 @@
         }
 
         function renderHeaderInfo(data) {
-            $("#courseTitleDisplay").text(data.CourseTitle || "Course Title");
-            $("#studentCodeDisplay").text(data.StudentCode || "Student");
-            $("#courseVersionDisplay").text("v." + (data.CourseVersionId || "-"));
-            updateOverallProgress(data.Resources);
+            $("#courseTitleDisplay").text(data.courseTitle || data.CourseTitle || "Course Title");
+            $("#studentCodeDisplay").text(data.studentCode || data.StudentCode || "Student");
+            $("#courseVersionDisplay").text("v." + (data.courseVersionId || data.CourseVersionId || "-"));
+            updateOverallProgress(data.resources || data.Resources);
         }
 
         function updateOverallProgress(resources) {
             if(resources && resources.length > 0){
-                const completedCount = resources.filter(r => r.IsCompleted).length;
+                const completedCount = resources.filter(r => r.isCompleted || r.IsCompleted).length;
                 const total = resources.length;
                 const percent = Math.round((completedCount / total) * 100);
 
@@ -343,10 +346,11 @@
 
             resources.forEach((res, index) => {
                 let iconClass = "far fa-file-alt";
-                if(res.Type === "Lesson") iconClass = "fas fa-play-circle";
-                else if(res.Type === "Exam") iconClass = "fas fa-pen-fancy";
+                const type = res.type || res.Type;
+                if(type === "Lesson") iconClass = "fas fa-play-circle";
+                else if(type === "Exam") iconClass = "fas fa-pen-fancy";
 
-                const activeClass = res.IsCompleted ? "completed" : "";
+                const activeClass = (res.isCompleted || res.IsCompleted) ? "completed" : "";
 
                 const html = `
                     <div class="p-2 border rounded mb-2 resource-item ${activeClass}"
@@ -357,9 +361,9 @@
                                 <i class="${iconClass}"></i>
                             </div>
                             <div style="overflow: hidden; flex:1;">
-                                <div class="fw-bold text-truncate" title="${res.Name}" style="font-size: 0.9rem;">${res.Name}</div>
+                                <div class="fw-bold text-truncate" title="${res.name || res.Name}" style="font-size: 0.9rem;">${res.name || res.Name}</div>
                                 <div class="small text-muted" style="font-size: 0.75rem;">
-                                    ${res.Type}
+                                    ${type}
                                 </div>
                             </div>
                             <div class="ms-2 text-success icon-check">
@@ -373,7 +377,7 @@
 
             // Auto select first uncompleted
             if (resources.length > 0) {
-                let nextIdx = resources.findIndex(r => !r.IsCompleted);
+                let nextIdx = resources.findIndex(r => !(r.isCompleted || r.IsCompleted));
                 if (nextIdx === -1) nextIdx = 0;
                 selectResource(nextIdx);
             }
@@ -387,18 +391,18 @@
 
             // Reset Session Data for new resource
             scormSessionData = {
-                LessonStatus: null,
-                ScoreRaw: null,
-                LessonLocation: null,
-                SuspendData: null,
-                SessionTime: null
+                lessonStatus: null,
+                scoreRaw: null,
+                lessonLocation: null,
+                suspendData: null,
+                sessionTime: null
             };
 
             $(".resource-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
 
-            $("#lessonTitle").text(res.Name);
-            scormLaunchUrl = res.LaunchUrl;
+            $("#lessonTitle").text(res.name || res.Name);
+            scormLaunchUrl = res.launchUrl || res.LaunchUrl;
 
             // Reset Status UI
             $("#scoreDisplay").text("-").removeClass("text-success");
@@ -420,7 +424,7 @@
             iframe.style.display = "block";
             iframe.src = scormLaunchUrl;
 
-            console.log("Launching Resource ID:", activeResource.Id);
+            console.log("Launching Resource ID:", activeResource.id || activeResource.Id);
         }
 
         function toggleFullscreen() {
@@ -457,25 +461,25 @@
                         case "cmi.core.lesson_status":
                         case "cmi.completion_status": // SCORM 2004
                         case "cmi.success_status":    // SCORM 2004
-                            scormSessionData.LessonStatus = value;
+                            scormSessionData.lessonStatus = value;
                             updateStatusUI(value);
                             checkCompletion(value);
                             break;
                         case "cmi.core.score.raw":
                         case "cmi.score.raw":
-                            scormSessionData.ScoreRaw = parseFloat(value);
+                            scormSessionData.scoreRaw = parseFloat(value);
                             $("#scoreDisplay").text(value);
                             break;
                         case "cmi.core.lesson_location":
                         case "cmi.location":
-                            scormSessionData.LessonLocation = value;
+                            scormSessionData.lessonLocation = value;
                             break;
                         case "cmi.suspend_data":
-                            scormSessionData.SuspendData = value;
+                            scormSessionData.suspendData = value;
                             break;
                         case "cmi.core.session_time":
                         case "cmi.session_time":
-                            scormSessionData.SessionTime = value;
+                            scormSessionData.sessionTime = value;
                             break;
                     }
 
@@ -544,13 +548,13 @@
             if (!activeResource) return;
 
             const payload = {
-                CourseVersionId: currentCourseVersionId,
-                ResourceId: activeResource.Id,
-                LessonStatus: scormSessionData.LessonStatus,
-                LessonLocation: scormSessionData.LessonLocation,
-                SuspendData: scormSessionData.SuspendData,
-                ScoreRaw: scormSessionData.ScoreRaw,
-                SessionTime: scormSessionData.SessionTime
+                courseVersionId: currentCourseVersionId,
+                resourceId: activeResource.id || activeResource.Id,
+                lessonStatus: scormSessionData.lessonStatus,
+                lessonLocation: scormSessionData.lessonLocation,
+                suspendData: scormSessionData.suspendData,
+                scoreRaw: scormSessionData.scoreRaw,
+                sessionTime: scormSessionData.sessionTime
             };
 
             $.ajax({
