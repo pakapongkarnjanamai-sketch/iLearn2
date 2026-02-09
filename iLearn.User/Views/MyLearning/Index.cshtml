@@ -84,8 +84,9 @@
             container.empty();
 
             courses.forEach(enrollment => {
-                // ตรวจสอบค่า Status (ใช้ตัวพิมพ์เล็กตาม camelCase)
-                const isCompleted = enrollment.status === 'Completed' || enrollment.status === 'Passed';
+                // ตรวจสอบค่า Status (ไม่สนใจตัวพิมพ์)
+                const statusVal = (enrollment.status || enrollment.Status || '').toString().toLowerCase();
+                const isCompleted = statusVal === 'completed' || statusVal === 'passed' || statusVal === 'finished';
                 const statusBadge = isCompleted
                     ? '<span class="badge bg-success">เรียนจบแล้ว</span>'
                     : '<span class="badge bg-warning text-dark">กำลังเรียน</span>';
@@ -102,7 +103,7 @@
                 const cardHtml = `
                     <div class="col-md-6 col-lg-4 col-xl-3">
                         <div class="card h-100 shadow-sm border-0 hover-shadow">
-                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 160px;">
+                            <div class="bg-gradient text-white d-flex align-items-center justify-content-center" style="height: 160px; background: linear-gradient(135deg,#0069d9 0%,#6610f2 100%);">
                                 <i class="fa fa-book fa-3x"></i>
                             </div>
 
@@ -118,8 +119,8 @@
                                     ลงทะเบียนเมื่อ: ${createdDate}
                                 </p>
 
-                                <div class="mt-auto">
-                                    <a href="/MyLearning/Player?enrollmentId=${enrollmentId}" class="btn ${btnClass} w-100 rounded-pill">
+                                <div class="mt-auto d-grid">
+                                    <a href="/MyLearning/Player?enrollmentId=${enrollmentId}" role="button" aria-label="Open course ${title}" class="btn ${btnClass} w-100 rounded-pill">
                                         <i class="fa fa-play-circle me-1"></i> ${btnText}
                                     </a>
                                 </div>

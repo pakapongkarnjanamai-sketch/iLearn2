@@ -285,17 +285,20 @@
                 }
 
                 if (data) {
-                    if (data.Course) {
-                        $("#courseTitleDisplay").text(data.Course.Title || "ไม่มีชื่อหลักสูตร");
-                        $("#courseCodeDisplay").text(data.Course.Code || "N/A");
-                        $("#courseCategoryDisplay").text(data.Course.Category ? data.Course.Category.Name : "General");
-                        $("#courseDescDisplay").text(data.Course.Description || "ไม่มีคำอธิบาย");
-                    }
+                    // Support both camelCase (preferred) and PascalCase (legacy) shapes
+                    const course = data.course || data.Course || {};
+                    const versionNumber = data.versionNumber ?? data.VersionNumber ?? "1";
+                    const resources = data.courseResources || data.CourseResources || [];
 
-                    $("#courseVersionDisplay").text("v." + (data.VersionNumber || "1"));
+                    $("#courseTitleDisplay").text(course.title || course.Title || "ไม่มีชื่อหลักสูตร");
+                    $("#courseCodeDisplay").text(course.code || course.Code || "N/A");
+                    $("#courseCategoryDisplay").text((course.category && (course.category.name || course.category.Name)) ? (course.category.name || course.category.Name) : "General");
+                    $("#courseDescDisplay").text(course.description || course.Description || "ไม่มีคำอธิบาย");
 
-                    if (data.CourseResources && data.CourseResources.length > 0) {
-                        currentResources = data.CourseResources;
+                    $("#courseVersionDisplay").text("v." + (versionNumber));
+
+                    if (resources && resources.length > 0) {
+                        currentResources = resources;
                         renderCourseContent(currentResources);
                     } else {
                         $("#courseTocList").html('<div class="alert alert-warning m-2 small">ไม่พบเนื้อหาหลักสูตร</div>');
@@ -317,12 +320,18 @@
             container.empty();
 
             resources.forEach((item, index) => {
-                const res = item.Resource;
+                // Support both shapes: { Resource: {...} } or { resource: {...} }
+                const wrapper = item || {};
+                const res = wrapper.resource || wrapper.Resource || null;
                 if (!res) return;
 
+                const typeId = res.typeId ?? res.TypeId;
+                const name = res.name || res.Name || "-";
+                const url = res.url || res.URL || "";
+
                 let iconClass = "far fa-file-alt";
-                if(res.TypeId === 1) iconClass = "fas fa-file-lines"; 
-                else if(res.TypeId === 2) iconClass = "fas fa-file-pen";
+                if (typeId === 1) iconClass = "fas fa-file-lines";
+                else if (typeId === 2) iconClass = "fas fa-file-pen";
 
                 const html = `
                     <div class="p-2 border rounded mb-2 resource-item"
@@ -333,9 +342,9 @@
                                 <i class="${iconClass}"></i>
                             </div>
                             <div style="overflow: hidden;">
-                                <div class="fw-bold text-truncate" title="${res.Name}" style="font-size: 0.9rem;">${res.Name}</div>
+                                <div class="fw-bold text-truncate" title="${name}" style="font-size: 0.9rem;">${name}</div>
                                 <div class="small text-muted" style="font-size: 0.75rem;">
-                                    ${res.TypeId == 1 ? 'Learn' : 'Exam'}
+                                    ${typeId == 1 ? 'Learn' : 'Exam'}
                                 </div>
                             </div>
                         </div>
@@ -350,16 +359,20 @@
         }
 
         function loadResource(index) {
-            const item = currentResources[index];
-            if (!item || !item.Resource) return;
+            const wrapper = currentResources[index];
+            if (!wrapper) return;
 
-            const res = item.Resource;
+            const res = wrapper.resource || wrapper.Resource || null;
+            if (!res) return;
+
+            const name = res.name || res.Name || "-";
+            const url = res.url || res.URL || "";
 
             $(".resource-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
 
-            $("#lessonTitle").text(res.Name);
-            scormLaunchUrl = res.URL;
+            $("#lessonTitle").text(name);
+            scormLaunchUrl = url;
 
             $("#startOverlay").fadeIn(200);
             $("#scormFrame").attr("src", "");

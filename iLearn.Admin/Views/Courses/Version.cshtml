@@ -30,7 +30,7 @@
             return {
                 dataSource: {
                     store: resourcesStore,
-                    filter: ["TypeId", "=", typeId] // 1=Learn, 2=Exam
+                    filter: ["typeId", "=", typeId] // 1=Learn, 2=Exam
                 },
                 showBorders: true,
                 height: 250,
@@ -38,8 +38,8 @@
                 searchPanel: { visible: true, width: 150 },
                 scrolling: { mode: "virtual" },
                 columns: [
-                    { dataField: "Name", caption: "Resource Name" },
-                    { dataField: "IsActive", dataType: "boolean", width: 60 }
+                    { dataField: "name", caption: "Resource Name" },
+                    { dataField: "isActive", dataType: "boolean", width: 60 }
                 ],
                 onSelectionChanged: onSelectionChangeCallback
             };
@@ -50,7 +50,9 @@
             let initialFilter = null;
 
             if (@courseId) {
-                initialFilter = ["CourseId", "=", parseInt(@courseId)];
+                initialFilter = ["courseId", "=", parseInt(@courseId)];
+                // ตั้งค่า currentCourseId ให้ตรงกับค่าที่ส่งมาจากเซิร์ฟเวอร์
+                currentCourseId = parseInt(@courseId);
             }
             const versionsDataSource = new DevExpress.data.CustomStore({
                 key: "id",
@@ -156,7 +158,7 @@
 
                     if (e.data && e.data.id) {
                         // เรียก API เพื่อดึงข้อมูล Detail (รวม ResourceIds)
-                        versionsDataSource.byKey(e.data.Id).done(function(detailData) {
+                        versionsDataSource.byKey(e.data.id).done(function(detailData) {
 
                             if (detailData.resourceIds && detailData.resourceIds.length > 0) {
                                 // ดึงข้อมูล Resources ทั้งหมดที่อยู่ใน Version นี้เพื่อแยกประเภท
@@ -271,32 +273,32 @@
 
                 columns: [
                     {
-                        dataField: "Id",
+                        dataField: "id",
                         caption: "ID",
                         width: 60,
                         sortOrder: 'desc',
                         allowEditing: false
                     },
                     {
-                        dataField: "VersionNumber",
+                        dataField: "versionNumber",
                         caption: "Version No.",
                         width: 100,
                         alignment: "center",
                         cellTemplate: (c, o) => $("<span>").addClass("badge bg-info text-dark").text(o.value).appendTo(c)
                     },
                     {
-                        dataField: "Name",
+                        dataField: "name",
                         caption: "Version Name",
                         validationRules: [{ type: "required" }]
                     },
                     {
-                        dataField: "IsActive",
+                        dataField: "isActive",
                         caption: "Active",
                         dataType: "boolean",
                         width: 80
                     },
                     {
-                        dataField: "CreatedAt",
+                        dataField: "createdAt",
                         caption: "Created Date",
                         dataType: "date",
                         format: "dd/MM/yyyy HH:mm",
