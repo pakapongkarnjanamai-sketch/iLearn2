@@ -33,7 +33,7 @@
 
     <style>
         body {
-            padding-top: 4.5rem;
+            /* padding-top: 4.5rem; */
             background-color: #f5f7fa;
         }
 
@@ -66,9 +66,7 @@
     <main role="main" class="pb-3">
         @RenderBody()
     </main>
-    <footer class="text-center text-muted py-3 mt-auto">
-        <small>&copy; @DateTime.Now.Year - iLearn System (Admin)</small>
-    </footer>
+
     <script>
         // กำหนด Base URL จาก AppSettings
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';

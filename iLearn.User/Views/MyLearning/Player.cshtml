@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Learning Player (Full Debug)";
+    ViewData["Title"] = "Learning Player (Detailed Summary)";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
     var playerId = ViewBag.PlayerId ?? 1;
 }
@@ -10,6 +10,7 @@
             --sidebar-width: 400px;
             --primary-color: #007bff;
             --secondary-bg: #f5f7fa;
+            --success-color: #28a745;
         }
 
         body {
@@ -20,7 +21,7 @@
             display: grid;
             grid-template-columns: 1fr var(--sidebar-width);
             gap: 0;
-            height: calc(100vh - 60px);
+            height: calc(100vh);
             background-color: var(--secondary-bg);
         }
 
@@ -88,6 +89,54 @@
                 transform: scale(1.05);
                 background: #0056b3;
                 box-shadow: 0 8px 25px rgba(0,123,255,0.4);
+            }
+
+        /* --- Summary Modal (Updated) --- */
+        .summary-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .summary-card {
+            background: white;
+            width: 450px; /* ขยายความกว้างนิดหน่อย */
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh; /* กันล้นจอ */
+        }
+
+        .summary-details-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 15px 0;
+            text-align: left;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+
+        .summary-item-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            border-bottom: 1px dashed #dee2e6;
+            padding-bottom: 4px;
+        }
+
+            .summary-item-row:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
             }
 
         /* --- Right Side: Info & TOC --- */
@@ -163,6 +212,22 @@
                     background-color: var(--primary-color);
                 }
 
+        /* Small Progress Bar inside Item */
+        .item-progress-track {
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .item-progress-fill {
+            height: 100%;
+            background: var(--success-color);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
         .resource-type-badge {
             font-size: 0.7rem;
             padding: 2px 6px;
@@ -173,8 +238,42 @@
             display: inline-block;
         }
 
+        /* Save Button */
+        .save-btn-container {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            background: #fff;
+        }
+
+        .btn-save-course {
+            width: 100%;
+            background-color: var(--success-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+            .btn-save-course:disabled {
+                background-color: #ccc;
+                cursor: not-allowed;
+            }
+
+            .btn-save-course:hover:not(:disabled) {
+                background-color: #218838;
+                transform: translateY(-2px);
+            }
+
         /* Responsive */
         @@media (max-width: 992px) {
+
+            body {
+                overflow: visible;
+            }
+
+
             .viewer-container
 
         {
@@ -206,7 +305,7 @@
                 <button class="btn btn-sm btn-light me-2 d-lg-none" onclick="scrollToToc()">
                     <i class="fas fa-list"></i>
                 </button>
-                <div class="fw-bold text-truncate" id="lessonTitle" style="max-width: 300px;">
+                <div class="fw-bold text-truncate" id="lessonTitle" style="max-width: 600px;">
                     Loading...
                 </div>
             </div>
@@ -222,8 +321,27 @@
                 <button class="start-btn" onclick="startCourse()">
                     <i class="fas fa-play ps-1"></i>
                 </button>
-                <h4 class="mt-4 fw-bold text-dark">พร้อมที่จะเรียนรู้?</h4>
-                <p id="overlayMessage" class="text-muted">กดปุ่ม Play เพื่อเริ่มบทเรียน</p>
+                <h4 class="mt-4 fw-bold text-dark">เริ่มเรียนบทนี้?</h4>
+                <p id="overlayMessage" class="text-muted">กดปุ่ม Play เพื่อเข้าสู่เนื้อหา</p>
+            </div>
+
+            <div id="summaryModal" class="summary-overlay">
+                <div class="summary-card">
+                    <div class="mb-2 text-success">
+                        <i class="fas fa-check-circle fa-3x"></i>
+                    </div>
+                    <h5 class="fw-bold mb-3">บันทึกผลการเรียนเรียบร้อย!</h5>
+
+                    <div class="text-start w-100">
+                        <small class="text-muted">นักเรียน:</small> <span id="sumStudentName" class="fw-bold text-dark"></span><br>
+                        <small class="text-muted">หลักสูตร:</small> <span id="sumCourseName" class="fw-bold text-primary"></span>
+                    </div>
+
+                    <div class="summary-details-box w-100" id="summaryDetailsList">
+                    </div>
+
+                    <button class="btn btn-primary w-100 mt-auto" onclick="closeSummary()">ตกลง</button>
+                </div>
             </div>
 
             <iframe id="scormFrame"
@@ -240,7 +358,7 @@
                     <h5 class="fw-bold text-dark mb-1" id="courseTitleDisplay">...</h5>
                     <div class="text-muted small">
                         <i class="fas fa-user-circle me-1"></i>
-                        Student: <span id="studentCodeDisplay" class="fw-bold text-primary">-</span>
+                        <span id="studentCodeDisplay" class="fw-bold text-primary">-</span>
                     </div>
                 </div>
                 <span class="badge bg-secondary" id="versionDisplay">v.1</span>
@@ -249,17 +367,13 @@
 
         <div class="info-status-bar">
             <div class="row g-0 text-center bg-white border rounded overflow-hidden">
-                <div class="col-4 border-end p-2">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Status</small>
+                <div class="col-6 border-end p-2">
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Total Status</small>
                     <div id="statusDisplay" class="fw-bold mt-1 text-secondary" style="font-size: 0.9rem;">-</div>
                 </div>
-                <div class="col-4 border-end p-2">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Progress</small>
-                    <div id="scoreDisplay" class="fw-bold mt-1 text-dark" style="font-size: 0.9rem;">-</div>
-                </div>
-                <div class="col-4 p-2">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Time</small>
-                    <div id="timeDisplay" class="fw-bold mt-1 text-primary" style="font-size: 0.9rem;">-</div>
+                <div class="col-6 p-2">
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Total Progress</small>
+                    <div id="totalProgressDisplay" class="fw-bold mt-1 text-dark" style="font-size: 0.9rem;">0%</div>
                 </div>
             </div>
         </div>
@@ -273,6 +387,13 @@
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 text-muted small">กำลังโหลดข้อมูล...</p>
             </div>
+        </div>
+
+        <div class="save-btn-container">
+            <button id="btnSaveCourse" class="btn-save-course" disabled onclick="saveCourseData()">
+                <i class="fas fa-save me-2"></i> บันทึกการเรียนรู้
+            </button>
+        
         </div>
     </div>
 </div>
@@ -288,8 +409,8 @@
         let selectedResourceIndex = -1;
 
         $(function() {
-            initScormAdapter(); // Prepare SCORM API (Logging Mode)
-            loadCourseData();   // Fetch Data
+            initScormAdapter();
+            loadCourseData();
         });
 
         // 1. Fetch Data
@@ -304,7 +425,18 @@
 
                 if (response && response.success) {
                     currentData = response.data;
+
+                    // Initialize Progress & Time Data
+                    if(currentData.resources) {
+                        currentData.resources.forEach(r => {
+                            r.clientProgress = 0; // 0-100
+                            r.clientStatus = "incomplete";
+                            r.scormTime = "00:00:00"; // Store time string from SCORM
+                        });
+                    }
+
                     renderUI(currentData);
+                    recalcTotalProgress(); // Initial check
                 } else {
                     showError("ไม่สามารถโหลดข้อมูลได้: " + (response.message || "Unknown error"));
                 }
@@ -315,7 +447,7 @@
             }
         }
 
-        // 2. Render UI (No isCompleted Checks)
+        // 2. Render UI
         function renderUI(data) {
             $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
             $("#studentCodeDisplay").text(data.studentCode || "-");
@@ -334,19 +466,26 @@
                 if (item.type === "Lesson") iconClass = "fas fa-book-open text-primary";
                 else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-warning";
 
-                // แสดงรายการทั้งหมดโดยไม่มีเงื่อนไข isCompleted
                 const html = `
-                    <div class="resource-item d-flex align-items-center"
+                    <div class="resource-item"
                          id="res-item-${index}"
                          onclick="selectResource(${index})">
 
-                        <div class="me-3 fs-4" style="width: 30px; text-align: center;">
-                            <i class="${iconClass}"></i>
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 fs-4" style="width: 30px; text-align: center;">
+                                <i class="${iconClass}"></i>
+                            </div>
+
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
+                                <span class="resource-type-badge">${item.type}</span>
+                            </div>
+
+                            <div class="ms-2 fw-bold small text-muted" id="res-percent-${index}">0%</div>
                         </div>
 
-                        <div class="flex-grow-1 overflow-hidden">
-                            <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
-                            <span class="resource-type-badge">${item.type}</span>
+                        <div class="item-progress-track">
+                            <div class="item-progress-fill" id="res-bar-${index}"></div>
                         </div>
                     </div>
                 `;
@@ -373,18 +512,13 @@
             // Update Header Title
             $("#lessonTitle").text(resource.name);
 
-            // Reset Info Display
-            $("#scoreDisplay").text("-");
-            $("#timeDisplay").text("00:00:00");
-            $("#statusDisplay").text("Ready").addClass("text-muted").removeClass("text-success text-danger text-primary");
-
             // Show Overlay
             $("#scormFrame").attr("src", "");
             $("#scormFrame").hide();
             $("#startOverlay").fadeIn(200);
 
             if(window.innerWidth < 992) {
-                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                 // Mobile scroll logic
             }
         }
 
@@ -402,37 +536,123 @@
             const iframe = document.getElementById("scormFrame");
             iframe.style.display = "block";
             iframe.src = resource.launchUrl;
-
-            console.log("--- Launching Course ---");
-            console.log("URL:", resource.launchUrl);
         }
 
-        // --- Helper: Parse ISO 8601 Duration (PT#H#M#S) ---
-        function parseISODuration(isoDuration) {
-            if(!isoDuration) return "00:00:00";
+        // 5. Calculate Total Progress & Update UI
+        function recalcTotalProgress() {
+            if(!currentData || !currentData.resources) return;
 
-            // Regex match PT..H..M..S
-            const matches = isoDuration.match(/PT(\d+H)?(\d+M)?(\d+(\.\d+)?S)?/);
-            if (!matches) return isoDuration;
+            let totalP = 0;
+            const count = currentData.resources.length;
 
-            const hours = (matches[1] ? parseFloat(matches[1]) : 0);
-            const minutes = (matches[2] ? parseFloat(matches[2]) : 0);
-            const seconds = (matches[3] ? parseFloat(matches[3]) : 0);
+            currentData.resources.forEach((r, idx) => {
+                // Update Individual Bar
+                const p = r.clientProgress || 0;
+                totalP += p;
 
-            const f = (num) => num.toString().padStart(2, '0');
-            return `${f(hours)}:${f(minutes)}:${f(Math.floor(seconds))}`;
+                $(`#res-percent-${idx}`).text(p + "%");
+                $(`#res-bar-${idx}`).css("width", p + "%");
+
+                // Change color if completed
+                if (p === 100) {
+                    $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
+                }
+            });
+
+            // Calc Average
+            const avg = count > 0 ? Math.floor(totalP / count) : 0;
+
+            // Update Total UI
+            $("#totalProgressDisplay").text(avg + "%");
+
+            const statusElem = $("#statusDisplay");
+            if (avg === 100) {
+                statusElem.text("COMPLETED").addClass("text-success").removeClass("text-secondary");
+                // Enable Save Button
+                $("#btnSaveCourse").prop("disabled", false);
+              
+            } else {
+                statusElem.text("INCOMPLETE").addClass("text-secondary").removeClass("text-success");
+                // Disable Save Button
+                $("#btnSaveCourse").prop("disabled", true);
+               
+            }
         }
 
-        // --- Other Helpers ---
+        // 6. Save Function & Show Modal with Time Detail
+        function saveCourseData() {
+            // Set Header Info
+            $("#sumStudentName").text(currentData.studentCode);
+            $("#sumCourseName").text(currentData.courseTitle);
+
+            // Generate Detail List
+            const listContainer = $("#summaryDetailsList");
+            listContainer.empty();
+
+            let totalHTML = "";
+            currentData.resources.forEach((r, index) => {
+                // Safe formatting for name length
+                const shortName = r.name.length > 35 ? r.name.substring(0, 32) + "..." : r.name;
+
+                // Display Time stored in r.scormTime
+                const displayTime = r.scormTime || "00:00:00";
+
+                totalHTML += `
+                    <div class="summary-item-row">
+                        <span class="text-truncate" title="${r.name}">${shortName}</span>
+                        <span class="fw-bold text-success">${displayTime}</span>
+                    </div>
+                `;
+            });
+            listContainer.html(totalHTML);
+
+            // Show Modal
+            $("#summaryModal").css("display", "flex").hide().fadeIn();
+
+            // Simulate AJAX Save
+            console.log("Saving data...", currentData.resources.map(r => ({
+                id: r.id,
+                progress: r.clientProgress,
+                time: r.scormTime
+            })));
+        }
+
+        function closeSummary() {
+             $("#summaryModal").fadeOut();
+        }
+
+        // --- Helper: Parse Time String (Handles SCORM 1.2 & 2004) ---
+        function formatScormTime(timeStr) {
+            if (!timeStr) return "00:00:00";
+
+            // Check if SCORM 2004 ISO Format (PT...)
+            if (timeStr.indexOf("P") === 0) {
+                 const matches = timeStr.match(/PT(\d+H)?(\d+M)?(\d+(\.\d+)?S)?/);
+                 if (!matches) return timeStr;
+                 const h = (matches[1] ? parseFloat(matches[1]) : 0);
+                 const m = (matches[2] ? parseFloat(matches[2]) : 0);
+                 const s = (matches[3] ? parseFloat(matches[3]) : 0);
+                 const f = (n) => n.toString().padStart(2, '0');
+                 return `${f(h)}:${f(m)}:${f(Math.floor(s))}`;
+            }
+
+            // Assume SCORM 1.2 HH:MM:SS
+            // Simple validation: if it has colons
+            if(timeStr.indexOf(":") > -1) {
+                // Optional: Round seconds if needed, but usually fine to return as is
+                return timeStr.split(".")[0]; // remove milliseconds if any
+            }
+
+            return timeStr;
+        }
+
         function showError(msg) {
             $("#courseTocList").html(`<div class="text-danger p-3 text-center"><i class="fas fa-exclamation-triangle me-1"></i> ${msg}</div>`);
             $("#courseTitleDisplay").text("Error");
         }
-
         function scrollToToc() {
              document.getElementById('tocSection').scrollIntoView({ behavior: 'smooth' });
         }
-
         function toggleFullscreen() {
             const elem = document.getElementById("fullscreenArea");
             if (!document.fullscreenElement) {
@@ -443,61 +663,57 @@
         }
 
         // ==========================================
-        // SCORM ADAPTER (1.2 & 2004) with LOGGING
+        // SCORM ADAPTER (Logic Updated for Time Tracking)
         // ==========================================
         function initScormAdapter() {
 
-            // 1. ฟังก์ชันอัปเดต UI เมื่อ SCORM ส่งค่ามา
-            function updateScormUI(element, value) {
+            // Helper to update specific resource data
+            function updateResourceData(type, value) {
+                if(selectedResourceIndex === -1 || !currentData) return;
 
-                // --- A. Status (สถานะ) ---
-                if (element === "cmi.completion_status" || element === "cmi.success_status" || element === "cmi.core.lesson_status") {
-                     const statusDisplay = $("#statusDisplay");
-                     statusDisplay.removeClass("text-muted text-success text-danger text-primary");
+                const resource = currentData.resources[selectedResourceIndex];
+                let needsRecalc = false;
 
-                     const lowerVal = value.toString().toLowerCase();
-                     if(lowerVal === "completed" || lowerVal === "passed") {
-                         statusDisplay.text("COMPLETED").addClass("text-success");
-                     } else if (lowerVal === "failed") {
-                         statusDisplay.text("FAILED").addClass("text-danger");
-                     } else if (lowerVal === "incomplete") {
-                         statusDisplay.text("INCOMPLETE").addClass("text-warning");
-                     } else {
-                         statusDisplay.text(value).addClass("text-primary");
+                // 1. Completion Status
+                if (type === "status") {
+                     const val = value.toString().toLowerCase();
+                     resource.clientStatus = val;
+
+                     if (val === "completed" || val === "passed") {
+                         resource.clientProgress = 100;
+                         needsRecalc = true;
                      }
                 }
 
-                // --- B. Progress/Score (เปอร์เซ็นต์) ---
-                // SCORM 2004: cmi.progress_measure (0.0 - 1.0)
-                if (element === "cmi.progress_measure") {
-                    const percent = Math.round(parseFloat(value) * 100);
-                    $("#scoreDisplay").text(percent + "%");
-                }
-                // SCORM 1.2: cmi.core.score.raw
-                else if (element === "cmi.score.raw" || element === "cmi.core.score.raw") {
-                    $("#scoreDisplay").text("Score: " + value);
+                // 2. Progress Measure
+                if (type === "progress") {
+                    let p = parseFloat(value);
+                    if (p <= 1.0) p = p * 100;
+                    if (p > resource.clientProgress) {
+                        resource.clientProgress = Math.round(p);
+                        needsRecalc = true;
+                    }
                 }
 
-                // --- C. Time (เวลาที่ใช้) ---
-                // SCORM 2004: cmi.session_time (PT..H..M..S)
-                if (element === "cmi.session_time") {
-                    const readableTime = parseISODuration(value);
-                    $("#timeDisplay").text(readableTime);
-                    console.log(`%c[Time Updated] ${readableTime}`, "color: #17a2b8");
+                // 3. Session Time (New!)
+                if (type === "time") {
+                    // Convert to consistent format (00:00:00)
+                    resource.scormTime = formatScormTime(value);
                 }
-                // SCORM 1.2: cmi.core.session_time (HH:MM:SS) -> ใช้ได้เลย
-                else if (element === "cmi.core.session_time") {
-                    $("#timeDisplay").text(value);
+
+                if (needsRecalc) {
+                    recalcTotalProgress();
                 }
             }
 
-            // 2. SCORM 1.2 API
+            // --- SCORM 1.2 ---
             window.API = {
                 LMSInitialize: function(p) { return "true"; },
                 LMSGetValue: function(e) { return ""; },
                 LMSSetValue: function(e, v) {
-                    console.log(`[SCORM 1.2] Set ${e} = ${v}`);
-                    updateScormUI(e, v);
+                    if (e === "cmi.core.lesson_status") updateResourceData("status", v);
+                    if (e === "cmi.core.score.raw") updateResourceData("progress", v);
+                    if (e === "cmi.core.session_time") updateResourceData("time", v);
                     return "true";
                 },
                 LMSCommit: function(p) { return "true"; },
@@ -507,39 +723,30 @@
                 LMSGetDiagnostic: function(e) { return "No error"; }
             };
 
-            // 3. SCORM 2004 API
+            // --- SCORM 2004 ---
             window.API_1484_11 = {
-                Initialize: function(p) {
-                    console.log("%c[SCORM 2004] Initialize", "background: #28a745; color: white;");
-                    return true;
-                },
-                Terminate: function(p) {
-                    console.log("%c[SCORM 2004] Terminate", "background: #dc3545; color: white;");
-                    return true;
-                },
-                GetValue: function(element) {
-                    console.log(`[SCORM 2004] GetValue: ${element}`);
-                    return "";
-                },
+                Initialize: function(p) { return true; },
+                Terminate: function(p) { return true; },
+                GetValue: function(element) { return ""; },
                 SetValue: function(element, value) {
-                    // Log แบบละเอียด
-                    console.log(`%c[SCORM 2004] SetValue`, "color: #007bff", `${element} =`, value);
-
-                    // Update หน้าจอ
-                    updateScormUI(element, value);
-
+                    if (element === "cmi.completion_status" || element === "cmi.success_status") {
+                        updateResourceData("status", value);
+                    }
+                    if (element === "cmi.progress_measure") {
+                        updateResourceData("progress", value);
+                    }
+                    if (element === "cmi.session_time") {
+                        updateResourceData("time", value);
+                    }
                     return true;
                 },
-                Commit: function(p) {
-                    console.log("[SCORM 2004] Commit");
-                    return true;
-                },
+                Commit: function(p) { return true; },
                 GetLastError: function() { return 0; },
                 GetErrorString: function(e) { return "No error"; },
                 GetDiagnostic: function(e) { return "No error"; }
             };
 
-            console.log("SCORM MOCK ADAPTER READY (Tracking Status, Progress, Time)");
+            console.log("SCORM ADAPTER READY (Status, Progress, & Time Tracking)");
         }
     </script>
 }
