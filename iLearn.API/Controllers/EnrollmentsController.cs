@@ -145,30 +145,24 @@ namespace iLearn.API.Controllers
             if (version == null) return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found" });
 
             // [ใหม่] 3.5 ดึง LearningLog ของ User ใน Version นี้ทั้งหมดมาตรวจสอบสถานะ
-            var resourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
-            var userLogs = await _logRepo.GetAsync(l =>
-                l.StudentCode == enrollment.StudentCode &&
-                l.CourseVersionId == version.Id &&
-                resourceIds.Contains(l.ResourceId)
-            );
+            //var resourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+            //var userLogs = await _logRepo.GetAsync(l =>
+            //    l.StudentCode == enrollment.StudentCode &&
+            //    l.CourseVersionId == version.Id &&
+            //    resourceIds.Contains(l.ResourceId)
+            //);
 
-            // 4. Map ข้อมูลลง DTO พร้อมระบุสถานะ IsCompleted
+            // 4. Map ข้อมูลลง DTO 
             var resources = version.CourseResources
                 .Select(cr => {
-                    var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
-                    // ถือว่าจบถ้า status เป็น completed หรือ passed
-                    var isDone = log != null && (
-                        log.LessonStatus.Equals("completed", StringComparison.OrdinalIgnoreCase) ||
-                        log.LessonStatus.Equals("passed", StringComparison.OrdinalIgnoreCase)
-                    );
-
+                  
                     return new PlayerResourceDto
                     {
                         Id = cr.Resource.Id,
                         Name = cr.Resource.Name,
                         Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
                         LaunchUrl = cr.Resource.URL,
-                        IsCompleted = isDone // ส่งค่ากลับไป
+                    
                     };
                 }).ToList();
 

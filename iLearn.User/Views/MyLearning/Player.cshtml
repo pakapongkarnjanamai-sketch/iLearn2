@@ -1,7 +1,6 @@
 ﻿@{
-    ViewData["Title"] = "Learning Player";
+    ViewData["Title"] = "Learning Player (Full Debug)";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
-    // สมมติว่าส่ง ID มาจาก Controller (ในตัวอย่าง URL คือเลข 1)
     var playerId = ViewBag.PlayerId ?? 1;
 }
 
@@ -16,13 +15,12 @@
         body {
             overflow: hidden;
         }
-        /* ป้องกัน Scroll ซ้อน */
 
         .viewer-container {
             display: grid;
             grid-template-columns: 1fr var(--sidebar-width);
-            gap: 0; /* ติดกันเลยเพื่อให้ดูเหมือนแอป */
-            height: calc(100vh - 60px); /* ปรับความสูงตาม Header ของ Layout คุณ */
+            gap: 0;
+            height: calc(100vh - 60px);
             background-color: var(--secondary-bg);
         }
 
@@ -30,7 +28,7 @@
         .scorm-section {
             display: flex;
             flex-direction: column;
-            background: #000; /* พื้นหลังสีดำเวลาโหลด */
+            background: #000;
             position: relative;
         }
 
@@ -175,29 +173,27 @@
             display: inline-block;
         }
 
-        .status-icon-check {
-            color: #28a745;
-            font-size: 1.1rem;
-        }
-
         /* Responsive */
         @@media (max-width: 992px) {
-            .viewer-container {
-                grid-template-columns: 1fr;
-                height: auto;
-                overflow-y: auto;
-            }
+            .viewer-container
 
-            .scorm-section {
-                height: 50vh;
-                min-height: 300px;
-            }
+        {
+            grid-template-columns: 1fr;
+            height: auto;
+            overflow-y: auto;
+        }
 
-            .info-section {
-                height: auto;
-                border-left: none;
-                border-top: 1px solid #dee2e6;
-            }
+        .scorm-section {
+            height: 50vh;
+            min-height: 300px;
+        }
+
+        .info-section {
+            height: auto;
+            border-left: none;
+            border-top: 1px solid #dee2e6;
+        }
+
         }
     </style>
 }
@@ -253,13 +249,17 @@
 
         <div class="info-status-bar">
             <div class="row g-0 text-center bg-white border rounded overflow-hidden">
-                <div class="col-6 border-end p-2">
-                    <small class="text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">Status</small>
-                    <div id="statusDisplay" class="fw-bold mt-1 text-secondary">-</div>
+                <div class="col-4 border-end p-2">
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Status</small>
+                    <div id="statusDisplay" class="fw-bold mt-1 text-secondary" style="font-size: 0.9rem;">-</div>
                 </div>
-                <div class="col-6 p-2">
-                    <small class="text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">Score</small>
-                    <div id="scoreDisplay" class="fw-bold mt-1 text-dark">-</div>
+                <div class="col-4 border-end p-2">
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Progress</small>
+                    <div id="scoreDisplay" class="fw-bold mt-1 text-dark" style="font-size: 0.9rem;">-</div>
+                </div>
+                <div class="col-4 p-2">
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Time</small>
+                    <div id="timeDisplay" class="fw-bold mt-1 text-primary" style="font-size: 0.9rem;">-</div>
                 </div>
             </div>
         </div>
@@ -288,8 +288,8 @@
         let selectedResourceIndex = -1;
 
         $(function() {
-            initScormAdapter(); // เตรียม SCORM API ไว้ก่อน
-            loadCourseData();   // ดึงข้อมูล
+            initScormAdapter(); // Prepare SCORM API (Logging Mode)
+            loadCourseData();   // Fetch Data
         });
 
         // 1. Fetch Data
@@ -315,14 +315,12 @@
             }
         }
 
-        // 2. Render UI
+        // 2. Render UI (No isCompleted Checks)
         function renderUI(data) {
-            // Header Info
             $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
             $("#studentCodeDisplay").text(data.studentCode || "-");
             $("#versionDisplay").text("v." + (data.courseVersionId || "1"));
 
-            // Render Resources List
             const listContainer = $("#courseTocList");
             listContainer.empty();
 
@@ -332,16 +330,11 @@
             }
 
             data.resources.forEach((item, index) => {
-                // Determine Icon based on Type
                 let iconClass = "far fa-file";
                 if (item.type === "Lesson") iconClass = "fas fa-book-open text-primary";
                 else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-warning";
 
-                // Check Completion
-                const completedBadge = item.isCompleted
-                    ? `<i class="fas fa-check-circle status-icon-check ms-auto" title="Completed"></i>`
-                    : ``;
-
+                // แสดงรายการทั้งหมดโดยไม่มีเงื่อนไข isCompleted
                 const html = `
                     <div class="resource-item d-flex align-items-center"
                          id="res-item-${index}"
@@ -355,8 +348,6 @@
                             <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
                             <span class="resource-type-badge">${item.type}</span>
                         </div>
-
-                        ${completedBadge}
                     </div>
                 `;
                 listContainer.append(html);
@@ -382,23 +373,16 @@
             // Update Header Title
             $("#lessonTitle").text(resource.name);
 
-            // Reset SCORM Info Display
-            $("#scoreDisplay").text("-").removeClass("text-success");
+            // Reset Info Display
+            $("#scoreDisplay").text("-");
+            $("#timeDisplay").text("00:00:00");
+            $("#statusDisplay").text("Ready").addClass("text-muted").removeClass("text-success text-danger text-primary");
 
-            // Set Status Display based on history
-            const statusElem = $("#statusDisplay");
-            if (resource.isCompleted) {
-                statusElem.text("Completed").addClass("text-success").removeClass("text-muted");
-            } else {
-                statusElem.text("Not Attempted").addClass("text-muted").removeClass("text-success");
-            }
-
-            // Show Overlay (Ready to play)
-            $("#scormFrame").attr("src", ""); // Clear old iframe
+            // Show Overlay
+            $("#scormFrame").attr("src", "");
             $("#scormFrame").hide();
             $("#startOverlay").fadeIn(200);
 
-            // Scroll to top on mobile
             if(window.innerWidth < 992) {
                  window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -419,10 +403,27 @@
             iframe.style.display = "block";
             iframe.src = resource.launchUrl;
 
-            console.log("Launching:", resource.launchUrl);
+            console.log("--- Launching Course ---");
+            console.log("URL:", resource.launchUrl);
         }
 
-        // --- Helper ---
+        // --- Helper: Parse ISO 8601 Duration (PT#H#M#S) ---
+        function parseISODuration(isoDuration) {
+            if(!isoDuration) return "00:00:00";
+
+            // Regex match PT..H..M..S
+            const matches = isoDuration.match(/PT(\d+H)?(\d+M)?(\d+(\.\d+)?S)?/);
+            if (!matches) return isoDuration;
+
+            const hours = (matches[1] ? parseFloat(matches[1]) : 0);
+            const minutes = (matches[2] ? parseFloat(matches[2]) : 0);
+            const seconds = (matches[3] ? parseFloat(matches[3]) : 0);
+
+            const f = (num) => num.toString().padStart(2, '0');
+            return `${f(hours)}:${f(minutes)}:${f(Math.floor(seconds))}`;
+        }
+
+        // --- Other Helpers ---
         function showError(msg) {
             $("#courseTocList").html(`<div class="text-danger p-3 text-center"><i class="fas fa-exclamation-triangle me-1"></i> ${msg}</div>`);
             $("#courseTitleDisplay").text("Error");
@@ -435,72 +436,110 @@
         function toggleFullscreen() {
             const elem = document.getElementById("fullscreenArea");
             if (!document.fullscreenElement) {
-                elem.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                });
+                elem.requestFullscreen().catch(err => console.log(err));
             } else {
                 document.exitFullscreen();
             }
         }
 
         // ==========================================
-        // SCORM 1.2 / 2004 MOCK ADAPTER
+        // SCORM ADAPTER (1.2 & 2004) with LOGGING
         // ==========================================
         function initScormAdapter() {
-            const Adapter = {
-                // Initialize
+
+            // 1. ฟังก์ชันอัปเดต UI เมื่อ SCORM ส่งค่ามา
+            function updateScormUI(element, value) {
+
+                // --- A. Status (สถานะ) ---
+                if (element === "cmi.completion_status" || element === "cmi.success_status" || element === "cmi.core.lesson_status") {
+                     const statusDisplay = $("#statusDisplay");
+                     statusDisplay.removeClass("text-muted text-success text-danger text-primary");
+
+                     const lowerVal = value.toString().toLowerCase();
+                     if(lowerVal === "completed" || lowerVal === "passed") {
+                         statusDisplay.text("COMPLETED").addClass("text-success");
+                     } else if (lowerVal === "failed") {
+                         statusDisplay.text("FAILED").addClass("text-danger");
+                     } else if (lowerVal === "incomplete") {
+                         statusDisplay.text("INCOMPLETE").addClass("text-warning");
+                     } else {
+                         statusDisplay.text(value).addClass("text-primary");
+                     }
+                }
+
+                // --- B. Progress/Score (เปอร์เซ็นต์) ---
+                // SCORM 2004: cmi.progress_measure (0.0 - 1.0)
+                if (element === "cmi.progress_measure") {
+                    const percent = Math.round(parseFloat(value) * 100);
+                    $("#scoreDisplay").text(percent + "%");
+                }
+                // SCORM 1.2: cmi.core.score.raw
+                else if (element === "cmi.score.raw" || element === "cmi.core.score.raw") {
+                    $("#scoreDisplay").text("Score: " + value);
+                }
+
+                // --- C. Time (เวลาที่ใช้) ---
+                // SCORM 2004: cmi.session_time (PT..H..M..S)
+                if (element === "cmi.session_time") {
+                    const readableTime = parseISODuration(value);
+                    $("#timeDisplay").text(readableTime);
+                    console.log(`%c[Time Updated] ${readableTime}`, "color: #17a2b8");
+                }
+                // SCORM 1.2: cmi.core.session_time (HH:MM:SS) -> ใช้ได้เลย
+                else if (element === "cmi.core.session_time") {
+                    $("#timeDisplay").text(value);
+                }
+            }
+
+            // 2. SCORM 1.2 API
+            window.API = {
                 LMSInitialize: function(p) { return "true"; },
-                Initialize: function(p) { return "true"; },
-
-                // Get Value
-                LMSGetValue: function(element) { return ""; },
-                GetValue: function(element) { return ""; },
-
-                // Set Value (Updates UI Immediately)
-                LMSSetValue: function(element, value) {
-                    console.log(`[SCORM] Set ${element} = ${value}`);
-
-                    // Update Score
-                    if (element.includes("score.raw")) {
-                        $("#scoreDisplay").text(value);
-                    }
-
-                    // Update Status
-                    if (element.includes("lesson_status") || element.includes("completion_status")) {
-                         const statusDisplay = $("#statusDisplay");
-                         statusDisplay.removeClass("text-muted text-success text-danger text-warning");
-
-                         if(value === "completed" || value === "passed") {
-                             statusDisplay.text("Completed").addClass("text-success");
-                             // Optional: Mark sidebar as checked immediately
-                             $(`#res-item-${selectedResourceIndex} .status-icon-check`).remove();
-                             $(`#res-item-${selectedResourceIndex}`).append(`<i class="fas fa-check-circle status-icon-check ms-auto" title="Completed"></i>`);
-                         } else if (value === "failed") {
-                             statusDisplay.text("Failed").addClass("text-danger");
-                         } else {
-                             statusDisplay.text(value).addClass("text-primary");
-                         }
-                    }
+                LMSGetValue: function(e) { return ""; },
+                LMSSetValue: function(e, v) {
+                    console.log(`[SCORM 1.2] Set ${e} = ${v}`);
+                    updateScormUI(e, v);
                     return "true";
                 },
-                SetValue: function(e, v) { return this.LMSSetValue(e, v); },
-
-                // Commit/Finish
                 LMSCommit: function(p) { return "true"; },
-                Commit: function(p) { return "true"; },
-
                 LMSFinish: function(p) { return "true"; },
-                Terminate: function(p) { return "true"; },
-
-                // Error Handling
                 LMSGetLastError: function() { return "0"; },
                 LMSGetErrorString: function(e) { return "No error"; },
                 LMSGetDiagnostic: function(e) { return "No error"; }
             };
 
-            // Expose to window
-            window.API = Adapter;      // SCORM 1.2
-            window.API_1484_11 = Adapter; // SCORM 2004
+            // 3. SCORM 2004 API
+            window.API_1484_11 = {
+                Initialize: function(p) {
+                    console.log("%c[SCORM 2004] Initialize", "background: #28a745; color: white;");
+                    return true;
+                },
+                Terminate: function(p) {
+                    console.log("%c[SCORM 2004] Terminate", "background: #dc3545; color: white;");
+                    return true;
+                },
+                GetValue: function(element) {
+                    console.log(`[SCORM 2004] GetValue: ${element}`);
+                    return "";
+                },
+                SetValue: function(element, value) {
+                    // Log แบบละเอียด
+                    console.log(`%c[SCORM 2004] SetValue`, "color: #007bff", `${element} =`, value);
+
+                    // Update หน้าจอ
+                    updateScormUI(element, value);
+
+                    return true;
+                },
+                Commit: function(p) {
+                    console.log("[SCORM 2004] Commit");
+                    return true;
+                },
+                GetLastError: function() { return 0; },
+                GetErrorString: function(e) { return "No error"; },
+                GetDiagnostic: function(e) { return "No error"; }
+            };
+
+            console.log("SCORM MOCK ADAPTER READY (Tracking Status, Progress, Time)");
         }
     </script>
 }

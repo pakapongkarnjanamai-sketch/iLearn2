@@ -19,6 +19,5 @@ namespace iLearn.Application.DTOs
         public string Type { get; set; } = "Lesson"; // Exam or Lesson
         public string LaunchUrl { get; set; } = string.Empty;
 
-        public bool IsCompleted { get; set; }
     }
 }
