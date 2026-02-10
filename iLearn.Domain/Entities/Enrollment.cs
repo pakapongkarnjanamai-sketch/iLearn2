@@ -10,8 +10,13 @@ namespace iLearn.Domain.Entities
         public Course? Course { get; set; }
 
         public int EnrolledVersion { get; set; }
-        public string Status { get; set; } = "Not Started";
+        public string Status { get; set; } = "Not Started"; // Not Started, In Progress, Completed
         public DateTime? DueDate { get; set; }
         public DateTime? CompletedDate { get; set; }
+
+        // [เพิ่มใหม่] เพื่อเก็บข้อมูลสรุป
+        public double Progress { get; set; } = 0;       // ความคืบหน้า % (0-100)
+        public int TotalScore { get; set; } = 0;        // คะแนนรวม
+        public int TotalTimeSpent { get; set; } = 0;    // เวลาเรียนรวม (วินาที)
     }
 }

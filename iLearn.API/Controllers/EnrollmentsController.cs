@@ -122,7 +122,7 @@ namespace iLearn.API.Controllers
         [HttpGet("player-info/{enrollmentId}")]
         public async Task<IActionResult> GetPlayerInfo(int enrollmentId, [FromQuery] string studentCode)
         {
-            // 1. ดึงข้อมูล Enrollment พร้อม Course (ใช้ GetAsync เพื่อ Include Course ได้ง่าย)
+            // 1. ดึง Enrollment
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.Id == enrollmentId,
                 includeProperties: "Course"
@@ -130,68 +130,80 @@ namespace iLearn.API.Controllers
             var enrollment = enrollments.FirstOrDefault();
 
             if (enrollment == null)
-            {
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
-            }
 
-            // 2. ตรวจสอบว่า StudentCode ตรงกันหรือไม่ (Security Check)
+            // 2. Security Check
             if (string.IsNullOrEmpty(studentCode) || !string.Equals(enrollment.StudentCode, studentCode, StringComparison.OrdinalIgnoreCase))
-            {
-                return Unauthorized(new ApiResponse<string> { Success = false, Message = "Unauthorized access: Student code mismatch." });
-            }
+                return Unauthorized(new ApiResponse<string> { Success = false, Message = "Unauthorized access" });
 
             // 3. ดึง CourseVersion
-            // [แก้ไข] ใช้ CourseId และ EnrolledVersion (เลขเวอร์ชัน) ในการค้นหา
             var targetVersionNumber = enrollment.EnrolledVersion;
-
             var versions = await _versionRepo.GetAsync(
                 filter: v => v.CourseId == enrollment.CourseId && v.VersionNumber == targetVersionNumber,
                 includeProperties: "CourseResources.Resource,Course"
             );
-
             var targetVersion = versions.FirstOrDefault();
 
-            // Fallback: ถ้าหาเวอร์ชันที่ระบุไม่เจอ ให้ลองดึงเวอร์ชันล่าสุดที่ Active (เผื่อกรณีข้อมูลเก่า)
+            // (Fallback logic เดิมของคุณ...)
             if (targetVersion == null)
             {
                 var activeVersions = await _versionRepo.GetAsync(
-                   filter: v => v.CourseId == enrollment.CourseId && v.IsActive,
-                 
-                   includeProperties: "CourseResources.Resource,Course"
-               );
-                targetVersion = activeVersions
-                                .OrderByDescending(v => v.VersionNumber)
-                                .FirstOrDefault();
+                  filter: v => v.CourseId == enrollment.CourseId && v.IsActive,
+                  includeProperties: "CourseResources.Resource,Course"
+              );
+                targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
-
 
             if (targetVersion == null)
-            {
-                return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found for this course version." });
-            }
+                return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found" });
 
-            // 4. Map ข้อมูลลง DTO
+            // -------------------------------------------------------------------------
+            // 4. [สำคัญ] ดึงประวัติการเรียน (LearningLogs) ของ User คนนี้ ใน Version นี้
+            // -------------------------------------------------------------------------
+            var userLogs = await _logRepo.GetAsync(l =>
+                l.StudentCode == studentCode &&
+                l.CourseVersionId == targetVersion.Id
+            );
+
+            // 5. Map ข้อมูลลง DTO ผสมกันระหว่าง Resource + Log
             var resources = targetVersion.CourseResources
-                .Select(cr => new PlayerResourceDto
-                {
-                    Id = cr.Resource.Id,
-                    Name = cr.Resource.Name,
-                    Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson", // ปรับตาม TypeId ของคุณ
-                    LaunchUrl = cr.Resource.URL
-                }).ToList();
+                .Select(cr => {
+                    // หา Log ที่ตรงกับ Resource นี้
+                    var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
+
+                    // ตรวจสอบว่าผ่านหรือยัง
+                    bool isDone = log != null && (
+                        log.Status.ToLower() == "completed" ||
+                        log.Status.ToLower() == "passed"
+                    );
+
+                    return new PlayerResourceDto
+                    {
+                        Id = cr.Resource.Id,
+                        Name = cr.Resource.Name,
+                        Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
+                        LaunchUrl = cr.Resource.URL,
+
+                        // ใส่ข้อมูลจาก Log (ถ้ามี)
+                        IsCompleted = isDone,
+                        Score = log?.Score,
+                        Time = log?.SessionTime // ส่งเวลาเดิมกลับไปแสดง
+                    };
+                })
+                .ToList();
 
             var dto = new PlayerInfoDto
             {
-                CourseVersionId = targetVersion.Id, // ส่ง ID จริงของ Version กลับไป
+                CourseVersionId = targetVersion.Id,
                 StudentCode = enrollment.StudentCode,
                 CourseTitle = targetVersion.Course?.Title ?? "Unknown Course",
+                EnrollmentStatus = enrollment.Status, // ส่งสถานะกลับไปเช็ค Read-only
                 Resources = resources
             };
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
         }
 
-   
 
     }
 }

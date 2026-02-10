@@ -129,7 +129,7 @@ namespace iLearn.API.Controllers
                 {
                     enrollment.Status = "Completed";
                     //enrollment.Progress = 100;
-                    // enrollment.CompletedDate = DateTime.Now;
+                    //enrollment.CompletedDate = DateTime.Now;
                     await _enrollmentRepo.UpdateAsync(enrollment);
                 }
                 else
