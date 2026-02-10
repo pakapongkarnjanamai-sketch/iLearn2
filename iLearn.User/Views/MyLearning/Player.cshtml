@@ -33,7 +33,7 @@
             display: grid;
             grid-template-columns: 1fr var(--sidebar-width);
             gap: 0;
-            height: calc(100vh);
+            height: calc(100vh); /* หักความสูง Navbar ออก (ถ้ามี) หรือใช้ 100vh ถ้าไม่มี Navbar */
             background-color: var(--secondary-bg);
             margin-top: 0;
         }
@@ -269,7 +269,7 @@
 
         .summary-card {
             background: white;
-            width: 450px;
+            width: 600px;
             border-radius: 12px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.2);
             overflow: hidden;
@@ -303,6 +303,33 @@
             overflow-y: auto;
         }
 
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+            .summary-table th {
+                text-align: left;
+                padding: 8px;
+                border-bottom: 2px solid #dee2e6;
+                color: #495057;
+            }
+
+            .summary-table td {
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+                vertical-align: middle;
+            }
+
+                .summary-table td:last-child {
+                    text-align: right;
+                    font-family: monospace;
+                    font-size: 1.1em;
+                    color: #555;
+                }
+
         .summary-footer {
             padding: 15px 20px;
             background: #f8f9fa;
@@ -310,6 +337,24 @@
             display: flex;
             justify-content: flex-end;
             gap: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .info-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #212529;
+            font-weight: 600;
+            text-align: right;
         }
 
         /* --- Responsive --- */
@@ -337,6 +382,7 @@
         }
     </style>
 }
+
 <div class="container-fluid p-0 viewer-container">
 
     <div class="scorm-section" id="fullscreenArea">
@@ -388,6 +434,7 @@
                             <i class="fas fa-info-circle me-1"></i> คุณทำครบทุกบทเรียนแล้ว ตรวจสอบเวลาเรียนและกด "ยืนยัน" เพื่อบันทึก
                         </div>
 
+                        <div class="info-row">
                         <table class="summary-table">
                             <thead>
                                 <tr>
@@ -398,6 +445,7 @@
                             <tbody id="summaryDetailsList">
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     <div class="summary-footer">
@@ -479,8 +527,9 @@
             initScormAdapter();
             loadCourseData();
 
+            // Handle Tab Close
             window.addEventListener("beforeunload", function (e) {
-               // Optional handle
+               // Optional: แจ้งเตือนถ้ายังไม่ Save
             });
         });
 
@@ -499,7 +548,7 @@
                 if (response && response.success) {
                     currentData = response.data;
 
-                    // Check Read Only
+                    // Check Read Only (Completed or Passed)
                     if (currentData.enrollmentStatus === "Completed" || currentData.enrollmentStatus === "Passed") {
                         isReadOnly = true;
                         $("#statusDisplay").text("COMPLETED").addClass("text-success");
@@ -515,8 +564,7 @@
                             r.clientStatus = r.isCompleted ? "passed" : "incomplete";
                             r.clientProgress = r.isCompleted ? 100 : 0;
                             r.clientScore = r.score || 0;
-                            // ถ้ามีเวลาเดิมจาก DB อาจจะโหลดมาใส่ตรงนี้ แต่ตอนนี้เริ่มที่ 00:00:00
-                            r.clientTime = "00:00:00";
+                            r.clientTime = "00:00:00"; // เริ่มต้นด้วย 0 หรือค่าเดิมถ้ามี
                         });
                     }
 
@@ -559,10 +607,10 @@
                             </div>
                             <div class="flex-grow-1 overflow-hidden">
                                 <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
-                           
+                                <span class="resource-type-badge">${item.type}</span>
                             </div>
                             <div class="ms-2 fw-bold small text-muted text-end">
-                                
+                            
                                 <div id="res-status-icon-${index}" style="font-size:0.7rem;"></div>
                             </div>
                         </div>
@@ -605,14 +653,14 @@
             }
 
             $("#startOverlay").fadeOut(200);
-            sessionStartTime = new Date();
+            sessionStartTime = new Date(); // เริ่มจับเวลา
 
             const iframe = document.getElementById("scormFrame");
             iframe.style.display = "block";
             iframe.src = resource.launchUrl;
         }
 
-        // 5. Update Data
+        // 5. Update Data (SCORM Callbacks)
         function updateResourceData(key, value) {
             if (isReadOnly) return;
             if (selectedResourceIndex === -1 || !currentData) return;
@@ -625,7 +673,7 @@
                 if (v === "passed" || v === "completed") {
                     resource.clientStatus = "passed";
                     needsRecalc = true;
-                    captureSessionTime(resource);
+                    captureSessionTime(resource); // หยุดเวลาเมื่อจบ
                 } else if (!resource.isCompleted && resource.clientStatus !== "passed") {
                     resource.clientStatus = v;
                 }
@@ -655,13 +703,13 @@
         }
 
         function captureSessionTime(resource) {
-            // ถ้าเคยผ่านแล้ว ไม่ต้องบันทึกเวลาเพิ่ม
-            if (resource.isCompleted) return;
+            if (resource.isCompleted) return; // ถ้าเคยจบแล้วไม่บันทึกเวลาเพิ่ม
 
             if (sessionStartTime) {
                 const now = new Date();
                 const diffSec = Math.round((now - sessionStartTime) / 1000);
 
+                // Format HH:MM:SS
                 const date = new Date(0);
                 date.setSeconds(diffSec);
                 const timeString = date.toISOString().substr(11, 8);
@@ -670,7 +718,7 @@
             }
         }
 
-        // 6. Recalculate & Check
+        // 6. Recalculate & UI Update
         function recalcTotalProgress() {
             if(!currentData || !currentData.resources) return;
 
@@ -679,18 +727,18 @@
             let totalP = 0;
 
             currentData.resources.forEach((r, idx) => {
-                // $(`#res-percent-${idx}`).text(Math.round(r.clientProgress) + "%");
+      
                 $(`#res-bar-${idx}`).css("width", r.clientProgress + "%");
 
                 const isPassed = (r.clientStatus === "passed" || r.clientStatus === "completed" || r.clientProgress >= 100);
 
                 if (isPassed) {
                     passedCount++;
-                    // $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
+                    $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
                     $(`#res-bar-${idx}`).addClass("bg-success").removeClass("bg-primary");
-                    $(`#res-status-icon-${idx}`).html('<i class="fas fa-check-circle text-success"></i>');
+                    $(`#res-status-icon-${idx}`).html('');
                 } else {
-                    // $(`#res-percent-${idx}`).removeClass("text-success").addClass("text-muted");
+                    $(`#res-percent-${idx}`).removeClass("text-success").addClass("text-muted");
                     $(`#res-status-icon-${idx}`).html('');
                 }
 
@@ -715,11 +763,11 @@
             }
         }
 
-        // 7. Show Summary Before Save
+        // 7. Show Summary
         function showSummaryBeforeSave() {
             if (!currentData) return;
 
-            // อัปเดตเวลาล่าสุดของ Resource ปัจจุบันก่อน
+            // Capture time for current resource if not done
             if (selectedResourceIndex !== -1) {
                 const r = currentData.resources[selectedResourceIndex];
                 if (!r.isCompleted) captureSessionTime(r);
@@ -732,7 +780,6 @@
             tbody.empty();
 
             currentData.resources.forEach(r => {
-                // [แก้ไข] ดึงเวลามาแสดงแทนสถานะและคะแนน
                 const timeDisplay = r.clientTime || "00:00:00";
 
                 const row = `
@@ -749,7 +796,7 @@
 
         function closeSummary() { $("#summaryModal").fadeOut(); }
 
-        // 8. Execute Save
+        // 8. Execute Save (Batch)
         function executeSave() {
             if (!currentData) return;
 
