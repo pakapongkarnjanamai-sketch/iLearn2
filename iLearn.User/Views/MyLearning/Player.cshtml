@@ -1,7 +1,12 @@
-﻿@{
-    ViewData["Title"] = "Learning Player (Detailed Summary)";
+﻿@using System.Security.Claims
+@{
+    ViewData["Title"] = "Learning Player";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
-    var playerId = ViewBag.PlayerId ?? 1;
+
+    // รับ EnrollmentId
+    var enrollmentId = ViewBag.EnrollmentId ?? ViewBag.PlayerId ?? 0;
+    // รับ StudentCode
+    var studentCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 }
 
 @section Styles {
@@ -25,7 +30,7 @@
             background-color: var(--secondary-bg);
         }
 
-        /* --- Left Side: Player --- */
+        /* --- Player Section --- */
         .scorm-section {
             display: flex;
             flex-direction: column;
@@ -57,7 +62,7 @@
             background: #fff;
         }
 
-        /* Start Overlay */
+        /* Overlay */
         .start-overlay {
             position: absolute;
             inset: 0;
@@ -91,55 +96,125 @@
                 box-shadow: 0 8px 25px rgba(0,123,255,0.4);
             }
 
-        /* --- Summary Modal (Updated) --- */
+        /* --- Summary Modal (ปรับปรุงใหม่) --- */
         .summary-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 20;
+            z-index: 999; /* Z-index สูงๆ */
+            backdrop-filter: blur(2px);
         }
 
         .summary-card {
             background: white;
-            width: 450px; /* ขยายความกว้างนิดหน่อย */
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            text-align: center;
+            width: 500px;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
-            max-height: 80vh; /* กันล้นจอ */
+            max-height: 85vh;
+            overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+        @@keyframes slideUp {
+            from
+
+        {
+            transform: translateY(20px);
+            opacity: 0;
         }
 
-        .summary-details-box {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 15px 0;
-            text-align: left;
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        }
+
+        .summary-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-content {
+            padding: 20px;
             overflow-y: auto;
-            max-height: 200px;
+            flex: 1;
         }
 
-        .summary-item-row {
+        .summary-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            background: #f8f9fa;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .info-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.9rem;
-            margin-bottom: 6px;
-            border-bottom: 1px dashed #dee2e6;
-            padding-bottom: 4px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
         }
 
-            .summary-item-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
+        .info-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #212529;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+            .summary-table th {
+                text-align: left;
+                padding: 8px;
+                border-bottom: 2px solid #dee2e6;
+                color: #495057;
             }
 
-        /* --- Right Side: Info & TOC --- */
+            .summary-table td {
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+                vertical-align: middle;
+            }
+
+                .summary-table td:last-child {
+                    text-align: right;
+                    font-family: monospace;
+                    font-size: 1rem;
+                }
+
+        .total-time-box {
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        /* --- Sidebar --- */
         .info-section {
             background: #fff;
             border-left: 1px solid #dee2e6;
@@ -178,7 +253,6 @@
             background-color: #fcfcfc;
         }
 
-        /* Resource Item Styling */
         .resource-item {
             cursor: pointer;
             transition: all 0.2s;
@@ -191,28 +265,11 @@
             overflow: hidden;
         }
 
-            .resource-item:hover {
-                border-color: #b3d7ff;
-                transform: translateY(-1px);
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            }
-
             .resource-item.active {
                 border-color: var(--primary-color);
                 background-color: #f0f7ff;
             }
 
-                .resource-item.active::before {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 4px;
-                    background-color: var(--primary-color);
-                }
-
-        /* Small Progress Bar inside Item */
         .item-progress-track {
             height: 4px;
             background: #e9ecef;
@@ -234,11 +291,10 @@
             border-radius: 4px;
             background: #e2e6ea;
             color: #6c757d;
-            margin-top: 4px;
             display: inline-block;
+            margin-top: 4px;
         }
 
-        /* Save Button */
         .save-btn-container {
             padding: 15px;
             border-top: 1px solid #dee2e6;
@@ -251,9 +307,10 @@
             color: white;
             font-weight: bold;
             border: none;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 6px;
             transition: all 0.3s;
+            font-size: 1rem;
         }
 
             .btn-save-course:disabled {
@@ -264,35 +321,30 @@
             .btn-save-course:hover:not(:disabled) {
                 background-color: #218838;
                 transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(40,167,69,0.3);
             }
 
-        /* Responsive */
         @@media (max-width: 992px) {
-
             body {
                 overflow: visible;
             }
 
+            .viewer-container {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow-y: auto;
+            }
 
-            .viewer-container
+            .scorm-section {
+                height: 50vh;
+                min-height: 300px;
+            }
 
-        {
-            grid-template-columns: 1fr;
-            height: auto;
-            overflow-y: auto;
-        }
-
-        .scorm-section {
-            height: 50vh;
-            min-height: 300px;
-        }
-
-        .info-section {
-            height: auto;
-            border-left: none;
-            border-top: 1px solid #dee2e6;
-        }
-
+            .info-section {
+                height: auto;
+                border-left: none;
+                border-top: 1px solid #dee2e6;
+            }
         }
     </style>
 }
@@ -321,37 +373,59 @@
                 <button class="start-btn" onclick="startCourse()">
                     <i class="fas fa-play ps-1"></i>
                 </button>
-                <h4 class="mt-4 fw-bold text-dark">เริ่มเรียนบทนี้?</h4>
-                <p id="overlayMessage" class="text-muted">กดปุ่ม Play เพื่อเข้าสู่เนื้อหา</p>
+            
+                <p id="overlayMessage" class="text-muted mt-4 ">กดปุ่ม Play เพื่อเข้าสู่เนื้อหา</p>
             </div>
 
             <div id="summaryModal" class="summary-overlay">
                 <div class="summary-card">
-                    <div class="mb-2 text-success">
-                        <i class="fas fa-check-circle fa-3x"></i>
+                    <div class="summary-header">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> สรุปผลการเรียน</h5>
                     </div>
-                    <h5 class="fw-bold mb-3">บันทึกผลการเรียนเรียบร้อย!</h5>
+                    <div class="summary-content">
+                        <div class="info-row">
+                            <span class="info-label">ผู้เรียน:</span>
+                            <span class="info-value" id="sumStudentName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">หลักสูตร:</span>
+                            <span class="info-value text-primary text-truncate" style="max-width: 300px;" id="sumCourseName">-</span>
+                        </div>
 
-                    <div class="text-start w-100">
-                        <small class="text-muted">นักเรียน:</small> <span id="sumStudentName" class="fw-bold text-dark"></span><br>
-                        <small class="text-muted">หลักสูตร:</small> <span id="sumCourseName" class="fw-bold text-primary"></span>
+                        <hr class="my-3 text-muted" style="opacity: 0.2;">
+
+                        <h6 class="text-muted small text-uppercase fw-bold mb-2">รายละเอียดเนื้อหา</h6>
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>หัวข้อเรื่อง</th>
+                                    <th width="80" class="text-end">เวลา</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryDetailsList">
+                            </tbody>
+                        </table>
+
+                        <div class="total-time-box">
+                            <span>เวลารวมทั้งหมด</span>
+                            <span id="sumTotalTime">00:00:00</span>
+                        </div>
                     </div>
 
-                    <div class="summary-details-box w-100" id="summaryDetailsList">
+                    <div class="summary-footer">
+                        <button class="btn btn-light" onclick="closeSummary()">ยกเลิก</button>
+                        <button class="btn btn-primary px-4" id="btnConfirmSave" onclick="executeSave()">
+                            <i class="fas fa-check me-1"></i> ตกลง
+                        </button>
                     </div>
-
-                    <button class="btn btn-primary w-100 mt-auto" onclick="closeSummary()">ตกลง</button>
                 </div>
             </div>
 
-            <iframe id="scormFrame"
-                    sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
-            </iframe>
+            <iframe id="scormFrame" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
         </div>
     </div>
 
     <div class="info-section" id="tocSection">
-
         <div class="course-header-panel">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -390,10 +464,9 @@
         </div>
 
         <div class="save-btn-container">
-            <button id="btnSaveCourse" class="btn-save-course" disabled onclick="saveCourseData()">
+            <button id="btnPreSave" class="btn-save-course" disabled onclick="showSummaryBeforeSave()">
                 <i class="fas fa-save me-2"></i> บันทึกการเรียนรู้
             </button>
-        
         </div>
     </div>
 </div>
@@ -401,8 +474,9 @@
 @section Scripts {
     <script>
         // --- Configuration ---
-        const PLAYER_ID = "@playerId";
-        const API_URL = `https://localhost:7128/api/Enrollments/player-info/${PLAYER_ID}`;
+        const ENROLLMENT_ID = "@enrollmentId";
+        const currentStudentCode = '@studentCode';
+        const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
 
         // --- State ---
         let currentData = null;
@@ -413,34 +487,32 @@
             loadCourseData();
         });
 
-        // 1. Fetch Data
+        // 1. Load Data
         async function loadCourseData() {
+            if(!ENROLLMENT_ID || ENROLLMENT_ID == 0) {
+                 showError("ไม่พบ Enrollment ID");
+                 return;
+            }
             try {
+                const url = `${baseUrl}/enrollments/player-info/${ENROLLMENT_ID}?studentCode=${encodeURIComponent(currentStudentCode)}`;
                 const response = await $.ajax({
-                    url: API_URL,
-                    method: 'GET',
-                    dataType: 'json',
-                    xhrFields: { withCredentials: true }
+                    url: url, method: 'GET', dataType: 'json', xhrFields: { withCredentials: true }
                 });
 
                 if (response && response.success) {
                     currentData = response.data;
-
-                    // Initialize Progress & Time Data
                     if(currentData.resources) {
                         currentData.resources.forEach(r => {
-                            r.clientProgress = 0; // 0-100
+                            r.clientProgress = 0;
                             r.clientStatus = "incomplete";
-                            r.scormTime = "00:00:00"; // Store time string from SCORM
+                            r.scormTime = "00:00:00";
                         });
                     }
-
                     renderUI(currentData);
-                    recalcTotalProgress(); // Initial check
+                    recalcTotalProgress();
                 } else {
                     showError("ไม่สามารถโหลดข้อมูลได้: " + (response.message || "Unknown error"));
                 }
-
             } catch (err) {
                 console.error(err);
                 showError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
@@ -450,7 +522,7 @@
         // 2. Render UI
         function renderUI(data) {
             $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
-            $("#studentCodeDisplay").text(data.studentCode || "-");
+            $("#studentCodeDisplay").text(currentStudentCode || "-");
             $("#versionDisplay").text("v." + (data.courseVersionId || "1"));
 
             const listContainer = $("#courseTocList");
@@ -467,23 +539,17 @@
                 else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-warning";
 
                 const html = `
-                    <div class="resource-item"
-                         id="res-item-${index}"
-                         onclick="selectResource(${index})">
-
+                    <div class="resource-item" id="res-item-${index}" onclick="selectResource(${index})">
                         <div class="d-flex align-items-center">
                             <div class="me-3 fs-4" style="width: 30px; text-align: center;">
                                 <i class="${iconClass}"></i>
                             </div>
-
                             <div class="flex-grow-1 overflow-hidden">
                                 <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
                                 <span class="resource-type-badge">${item.type}</span>
                             </div>
-
                             <div class="ms-2 fw-bold small text-muted" id="res-percent-${index}">0%</div>
                         </div>
-
                         <div class="item-progress-track">
                             <div class="item-progress-fill" id="res-bar-${index}"></div>
                         </div>
@@ -491,54 +557,39 @@
                 `;
                 listContainer.append(html);
             });
-
-            // Select first item automatically
-            if (data.resources.length > 0) {
-                selectResource(0);
-            }
+            if (data.resources.length > 0) selectResource(0);
         }
 
-        // 3. Handle Selection
+        // 3. Select Resource
         function selectResource(index) {
             if (!currentData || !currentData.resources[index]) return;
-
             selectedResourceIndex = index;
             const resource = currentData.resources[index];
 
-            // Update Active UI
             $(".resource-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
-
-            // Update Header Title
             $("#lessonTitle").text(resource.name);
 
-            // Show Overlay
             $("#scormFrame").attr("src", "");
             $("#scormFrame").hide();
             $("#startOverlay").fadeIn(200);
-
-            if(window.innerWidth < 992) {
-                 // Mobile scroll logic
-            }
         }
 
-        // 4. Start Content
+        // 4. Start Course
         function startCourse() {
             if (selectedResourceIndex === -1) return;
-
             const resource = currentData.resources[selectedResourceIndex];
             if (!resource || !resource.launchUrl) {
                 DevExpress.ui.notify("Invalid Launch URL", "error", 2000);
                 return;
             }
-
             $("#startOverlay").fadeOut(200);
             const iframe = document.getElementById("scormFrame");
             iframe.style.display = "block";
             iframe.src = resource.launchUrl;
         }
 
-        // 5. Calculate Total Progress & Update UI
+        // 5. Recalculate Progress (Logic: 100% Only to Save)
         function recalcTotalProgress() {
             if(!currentData || !currentData.resources) return;
 
@@ -546,146 +597,173 @@
             const count = currentData.resources.length;
 
             currentData.resources.forEach((r, idx) => {
-                // Update Individual Bar
                 const p = r.clientProgress || 0;
                 totalP += p;
-
                 $(`#res-percent-${idx}`).text(p + "%");
                 $(`#res-bar-${idx}`).css("width", p + "%");
-
-                // Change color if completed
-                if (p === 100) {
-                    $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
-                }
+                if (p === 100) $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
             });
 
-            // Calc Average
             const avg = count > 0 ? Math.floor(totalP / count) : 0;
-
-            // Update Total UI
             $("#totalProgressDisplay").text(avg + "%");
 
             const statusElem = $("#statusDisplay");
             if (avg === 100) {
                 statusElem.text("COMPLETED").addClass("text-success").removeClass("text-secondary");
-                // Enable Save Button
-                $("#btnSaveCourse").prop("disabled", false);
-              
+                $("#btnPreSave").prop("disabled", false);
             } else {
                 statusElem.text("INCOMPLETE").addClass("text-secondary").removeClass("text-success");
-                // Disable Save Button
-                $("#btnSaveCourse").prop("disabled", true);
-               
+                $("#btnPreSave").prop("disabled", true);
             }
         }
 
-        // 6. Save Function & Show Modal with Time Detail
-        function saveCourseData() {
-            // Set Header Info
-            $("#sumStudentName").text(currentData.studentCode);
+        // 6. [NEW] Show Summary Before Save
+        function showSummaryBeforeSave() {
+            if (!currentData) return;
+
+            // 6.1 Set Header Info
+            $("#sumStudentName").text(currentStudentCode);
             $("#sumCourseName").text(currentData.courseTitle);
 
-            // Generate Detail List
+            // 6.2 Loop Resources and Calculate Total Time
             const listContainer = $("#summaryDetailsList");
             listContainer.empty();
 
-            let totalHTML = "";
-            currentData.resources.forEach((r, index) => {
-                // Safe formatting for name length
-                const shortName = r.name.length > 35 ? r.name.substring(0, 32) + "..." : r.name;
+            let totalSeconds = 0;
 
-                // Display Time stored in r.scormTime
-                const displayTime = r.scormTime || "00:00:00";
+            currentData.resources.forEach((r) => {
+                const timeStr = r.scormTime || "00:00:00";
+                const sec = timeToSeconds(timeStr);
+                totalSeconds += sec;
 
-                totalHTML += `
-                    <div class="summary-item-row">
-                        <span class="text-truncate" title="${r.name}">${shortName}</span>
-                        <span class="fw-bold text-success">${displayTime}</span>
-                    </div>
+                const shortName = r.name.length > 40 ? r.name.substring(0, 38) + "..." : r.name;
+
+                const row = `
+                    <tr>
+                        <td>
+                            <div class="text-truncate" title="${r.name}">${shortName}</div>
+                        </td>
+                        <td>${formatTime(sec)}</td>
+                    </tr>
                 `;
+                listContainer.append(row);
             });
-            listContainer.html(totalHTML);
 
-            // Show Modal
+            // 6.3 Set Total Time
+            $("#sumTotalTime").text(formatTime(totalSeconds));
+
+            // 6.4 Show Modal
             $("#summaryModal").css("display", "flex").hide().fadeIn();
-
-            // Simulate AJAX Save
-            console.log("Saving data...", currentData.resources.map(r => ({
-                id: r.id,
-                progress: r.clientProgress,
-                time: r.scormTime
-            })));
         }
 
-        function closeSummary() {
-             $("#summaryModal").fadeOut();
+        // 7. [NEW] Execute Real Save (Called when clicking "ตกลง")
+        function executeSave() {
+             if (selectedResourceIndex === -1 || !currentData) return;
+             const resource = currentData.resources[selectedResourceIndex];
+
+             // Payload
+             const payload = {
+                StudentCode: currentStudentCode,
+                EnrollmentId: parseInt(ENROLLMENT_ID),
+                ResourceId: resource.id,
+                Status: resource.clientStatus,
+                Progress: resource.clientProgress,
+                SessionTime: resource.scormTime
+            };
+
+            const btn = $("#btnConfirmSave");
+            const oldHtml = btn.html();
+            btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
+
+            $.ajax({
+                url: baseUrl + '/learninglogs/update-progress',
+                method: 'POST',
+                contentType: 'application/json',
+                xhrFields: { withCredentials: true },
+                data: JSON.stringify(payload),
+                success: function(res) {
+                    btn.prop("disabled", false).html(oldHtml);
+                    closeSummary();
+                    DevExpress.ui.notify("บันทึกข้อมูลเรียบร้อยแล้ว", "success", 3000);
+                },
+                error: function(err) {
+                    console.error("Save Error:", err);
+                    btn.prop("disabled", false).html(oldHtml);
+                    DevExpress.ui.notify("เกิดข้อผิดพลาดในการบันทึก", "error", 3000);
+                }
+            });
         }
 
-        // --- Helper: Parse Time String (Handles SCORM 1.2 & 2004) ---
+        function closeSummary() { $("#summaryModal").fadeOut(); }
+
+        // --- Helpers ---
+        function timeToSeconds(timeStr) {
+            // รองรับ "00:00:00" หรือ "HH:MM:SS"
+            if (!timeStr) return 0;
+            // ถ้าเป็น SCORM 2004 PT..H..M..S ให้แปลงก่อน (แต่ในโค้ดนี้เราแปลงตอนรับค่าแล้ว)
+            // สมมติว่าเป็น HH:MM:SS
+            const parts = timeStr.split(':');
+            let s = 0;
+            if (parts.length === 3) {
+                s += parseInt(parts[0]) * 3600;
+                s += parseInt(parts[1]) * 60;
+                s += parseInt(parts[2]);
+            } else if (parts.length === 2) {
+                s += parseInt(parts[0]) * 60;
+                s += parseInt(parts[1]);
+            }
+            return isNaN(s) ? 0 : s;
+        }
+
+        function formatTime(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60);
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+
         function formatScormTime(timeStr) {
+            // Helper เพื่อแปลง SCORM PT... เป็น HH:MM:SS เก็บไว้ในตัวแปร
             if (!timeStr) return "00:00:00";
-
-            // Check if SCORM 2004 ISO Format (PT...)
             if (timeStr.indexOf("P") === 0) {
                  const matches = timeStr.match(/PT(\d+H)?(\d+M)?(\d+(\.\d+)?S)?/);
-                 if (!matches) return timeStr;
+                 if (!matches) return "00:00:00";
                  const h = (matches[1] ? parseFloat(matches[1]) : 0);
                  const m = (matches[2] ? parseFloat(matches[2]) : 0);
                  const s = (matches[3] ? parseFloat(matches[3]) : 0);
-                 const f = (n) => n.toString().padStart(2, '0');
-                 return `${f(h)}:${f(m)}:${f(Math.floor(s))}`;
+                 const pad = (n) => n.toString().padStart(2, '0');
+                 return `${pad(h)}:${pad(m)}:${pad(Math.floor(s))}`;
             }
-
-            // Assume SCORM 1.2 HH:MM:SS
-            // Simple validation: if it has colons
-            if(timeStr.indexOf(":") > -1) {
-                // Optional: Round seconds if needed, but usually fine to return as is
-                return timeStr.split(".")[0]; // remove milliseconds if any
-            }
-
+            if(timeStr.indexOf(":") > -1) { return timeStr.split(".")[0]; }
             return timeStr;
         }
 
         function showError(msg) {
             $("#courseTocList").html(`<div class="text-danger p-3 text-center"><i class="fas fa-exclamation-triangle me-1"></i> ${msg}</div>`);
-            $("#courseTitleDisplay").text("Error");
         }
-        function scrollToToc() {
-             document.getElementById('tocSection').scrollIntoView({ behavior: 'smooth' });
-        }
+        function scrollToToc() { document.getElementById('tocSection').scrollIntoView({ behavior: 'smooth' }); }
         function toggleFullscreen() {
             const elem = document.getElementById("fullscreenArea");
-            if (!document.fullscreenElement) {
-                elem.requestFullscreen().catch(err => console.log(err));
-            } else {
-                document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) elem.requestFullscreen().catch(err => console.log(err));
+            else document.exitFullscreen();
         }
 
-        // ==========================================
-        // SCORM ADAPTER (Logic Updated for Time Tracking)
-        // ==========================================
+        // --- SCORM Adapter ---
         function initScormAdapter() {
-
-            // Helper to update specific resource data
             function updateResourceData(type, value) {
                 if(selectedResourceIndex === -1 || !currentData) return;
-
                 const resource = currentData.resources[selectedResourceIndex];
                 let needsRecalc = false;
 
-                // 1. Completion Status
                 if (type === "status") {
                      const val = value.toString().toLowerCase();
                      resource.clientStatus = val;
-
                      if (val === "completed" || val === "passed") {
                          resource.clientProgress = 100;
                          needsRecalc = true;
                      }
                 }
-
-                // 2. Progress Measure
                 if (type === "progress") {
                     let p = parseFloat(value);
                     if (p <= 1.0) p = p * 100;
@@ -694,19 +772,13 @@
                         needsRecalc = true;
                     }
                 }
-
-                // 3. Session Time (New!)
                 if (type === "time") {
-                    // Convert to consistent format (00:00:00)
                     resource.scormTime = formatScormTime(value);
                 }
 
-                if (needsRecalc) {
-                    recalcTotalProgress();
-                }
+                if (needsRecalc) recalcTotalProgress();
             }
 
-            // --- SCORM 1.2 ---
             window.API = {
                 LMSInitialize: function(p) { return "true"; },
                 LMSGetValue: function(e) { return ""; },
@@ -719,34 +791,26 @@
                 LMSCommit: function(p) { return "true"; },
                 LMSFinish: function(p) { return "true"; },
                 LMSGetLastError: function() { return "0"; },
-                LMSGetErrorString: function(e) { return "No error"; },
-                LMSGetDiagnostic: function(e) { return "No error"; }
+                LMSGetErrorString: function(e) { return ""; },
+                LMSGetDiagnostic: function(e) { return ""; }
             };
 
-            // --- SCORM 2004 ---
             window.API_1484_11 = {
                 Initialize: function(p) { return true; },
                 Terminate: function(p) { return true; },
                 GetValue: function(element) { return ""; },
                 SetValue: function(element, value) {
-                    if (element === "cmi.completion_status" || element === "cmi.success_status") {
-                        updateResourceData("status", value);
-                    }
-                    if (element === "cmi.progress_measure") {
-                        updateResourceData("progress", value);
-                    }
-                    if (element === "cmi.session_time") {
-                        updateResourceData("time", value);
-                    }
+                    if (element === "cmi.completion_status" || element === "cmi.success_status") updateResourceData("status", value);
+                    if (element === "cmi.progress_measure") updateResourceData("progress", value);
+                    if (element === "cmi.session_time") updateResourceData("time", value);
                     return true;
                 },
                 Commit: function(p) { return true; },
                 GetLastError: function() { return 0; },
-                GetErrorString: function(e) { return "No error"; },
-                GetDiagnostic: function(e) { return "No error"; }
+                GetErrorString: function(e) { return ""; },
+                GetDiagnostic: function(e) { return ""; }
             };
-
-            console.log("SCORM ADAPTER READY (Status, Progress, & Time Tracking)");
+            console.log("SCORM ADAPTER READY");
         }
     </script>
 }

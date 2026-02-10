@@ -1,66 +1,92 @@
-﻿@{
-    ViewBag.Title = "คอร์สเรียนของฉัน";
-    // ดึงข้อมูลพนักงานจาก Claims ที่ฝังไว้ใน Cookie ตอน Login
-    var empName = User.Identity?.Name;
-    var empCode = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var dept = User.FindFirst("Department")?.Value;
+﻿@using System.Security.Claims
+@{
+    ViewData["Title"] = "หน้าหลัก";
+    bool isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
 }
 
 <div class="container-fluid py-4">
-    <div class="card shadow-sm mb-4 border-0 bg-light">
-        <div class="card-body d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                    <i class="fa fa-user fa-lg"></i>
+    @if (!isAuthenticated)
+    {
+   
+    }
+    else
+    {
+     
+        var empName = User.Identity.Name;
+        var empCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var dept = User.FindFirst("Department")?.Value;
+
+        <div class="card shadow-sm mb-4 border-0 bg-light">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                        <i class="fa fa-user fa-lg"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 text-primary">@empName</h5>
+                        <small class="text-muted">
+                            รหัสพนักงาน: <strong>@empCode</strong> |
+                            แผนก: <strong>@dept</strong>
+                        </small>
+                    </div>
                 </div>
-                <div>
-                    <h5 class="mb-0 text-primary">@empName</h5>
-                    <small class="text-muted">รหัสพนักงาน: <strong>@empCode</strong> | แผนก: <strong>@dept</strong></small>
-                </div>
+                <a href="@Url.Action("Logout", "Home")" class="btn btn-outline-danger btn-sm rounded-pill">
+                    <i class="fa fa-sign-out"></i> ออกจากระบบ
+                </a>
             </div>
-            <a href="@Url.Action("Logout", "Home")" class="btn btn-outline-danger btn-sm rounded-pill">
-                <i class="fa fa-sign-out"></i> ออกจากระบบ
-            </a>
         </div>
-    </div>
 
-    <h2 class="mb-4"><i class="fa fa-graduation-cap"></i> @ViewBag.Title</h2>
 
-    <div id="loading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">กำลังโหลดข้อมูลวิชาเรียน...</p>
         </div>
-        <p class="mt-2 text-muted">กำลังโหลดข้อมูลวิชาเรียน...</p>
-    </div>
 
-    <div id="courseList" class="row g-4" style="display:none;">
-    </div>
-
-    <div id="emptyState" class="text-center py-5" style="display:none;">
-        <div class="mb-3">
-            <i class="fa fa-folder-open-o fa-4x text-muted"></i>
+        <div id="courseList" class="row g-4" style="display:none;">
         </div>
-        <h4>คุณยังไม่มีคอร์สเรียน</h4>
-        <p class="text-muted">โปรดติดต่อ HR หรือ Admin เพื่อลงทะเบียนเรียน</p>
-    </div>
+
+        <div id="emptyState" class="text-center py-5" style="display:none;">
+            <div class="mb-3">
+                <i class="fa fa-folder-open-o fa-4x text-muted"></i>
+            </div>
+            <h4>คุณยังไม่มีคอร์สเรียน</h4>
+            <p class="text-muted">โปรดติดต่อ HR หรือ Admin เพื่อลงทะเบียนเรียน</p>
+        </div>
+    }
 </div>
 
 @section Scripts {
     <script>
+   
         $(document).ready(function () {
-            loadMyCourses();
+            var isAuth = '@isAuthenticated'.toLowerCase() === 'true';
+
+            if (isAuth) {
+                // --- LOGIC สำหรับคน Login แล้ว (โหลดคอร์ส) ---
+                var currentEmpCode = '@(User.FindFirst(ClaimTypes.NameIdentifier)?.Value)';
+                loadMyCourses(currentEmpCode);
+            } else {
+                // --- LOGIC สำหรับคนยังไม่ Login (แสดง Popup) ---
+                initLoginPopup();
+            }
         });
 
-        function loadMyCourses() {
-            // serviceUrl ถูกกำหนดไว้ใน _DevExtremeLayout.cshtml
+        // ================= Functions ฝั่ง Course List =================
+        function loadMyCourses(empCode) {
+            if (!empCode) {
+                $('#loading').hide();
+                return;
+            }
+
+            // เรียก API แบบที่ปรับปรุงแล้ว (ส่ง studentCode ไปด้วย)
             $.ajax({
-                url: serviceUrl + '/enrollments/my-courses',
+                url: serviceUrl + '/enrollments/my-courses?studentCode=' + encodeURIComponent(empCode),
                 method: 'GET',
                 xhrFields: { withCredentials: true },
                 success: function (response) {
                     $('#loading').hide();
-
-                    // เนื่องจากเราตั้งค่า camelCase ใน Backend ข้อมูลที่ได้จะเป็น property ตัวพิมพ์เล็ก
                     const courses = response.data || response;
 
                     if (!courses || courses.length === 0) {
@@ -84,7 +110,6 @@
             container.empty();
 
             courses.forEach(enrollment => {
-                // ตรวจสอบค่า Status (ไม่สนใจตัวพิมพ์)
                 const statusVal = (enrollment.status || enrollment.Status || '').toString().toLowerCase();
                 const isCompleted = statusVal === 'completed' || statusVal === 'passed' || statusVal === 'finished';
                 const statusBadge = isCompleted
@@ -94,7 +119,6 @@
                 const btnText = isCompleted ? 'ทบทวนบทเรียน' : 'เข้าเรียน';
                 const btnClass = isCompleted ? 'btn-outline-primary' : 'btn-primary';
 
-                // ดึงข้อมูล CourseTitle และรหัสวิชา
                 const title = enrollment.courseTitle || 'ไม่มีชื่อวิชา';
                 const courseId = enrollment.courseId || '-';
                 const enrollmentId = enrollment.id;
@@ -106,7 +130,6 @@
                             <div class="bg-gradient text-white d-flex align-items-center justify-content-center" style="height: 160px; background: linear-gradient(135deg,#0069d9 0%,#6610f2 100%);">
                                 <i class="fa fa-book fa-3x"></i>
                             </div>
-
                             <div class="card-body d-flex flex-column">
                                 <div class="mb-2">
                                     ${statusBadge}
@@ -118,9 +141,8 @@
                                     รหัสวิชา: ${courseId} <br>
                                     ลงทะเบียนเมื่อ: ${createdDate}
                                 </p>
-
                                 <div class="mt-auto d-grid">
-                                    <a href="/MyLearning/Player?enrollmentId=${enrollmentId}" role="button" aria-label="Open course ${title}" class="btn ${btnClass} w-100 rounded-pill">
+                                    <a href="/MyLearning/Player?enrollmentId=${enrollmentId}" class="btn ${btnClass} w-100 rounded-pill">
                                         <i class="fa fa-play-circle me-1"></i> ${btnText}
                                     </a>
                                 </div>
@@ -134,6 +156,24 @@
     </script>
 
     <style>
+        /* Styles สำหรับ Login */
+        .dx-field {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .dx-field-label {
+            width: 35%;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .dx-field-value {
+            width: 65%;
+        }
+
+        /* Styles สำหรับ Course Card */
         .hover-shadow:hover {
             transform: translateY(-5px);
             box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;

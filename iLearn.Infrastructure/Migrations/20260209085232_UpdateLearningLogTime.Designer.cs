@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iLearn.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iLearn.Infrastructure.Persistence;
 namespace iLearn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260209085232_UpdateLearningLogTime")]
+    partial class UpdateLearningLogTime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -369,6 +372,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime>("LastAccessed")
+                        .HasColumnType("datetime2");
+
                     b.Property<double>("Progress")
                         .HasColumnType("float");
 
@@ -380,6 +386,9 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.Property<string>("SessionTime")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
