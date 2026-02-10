@@ -110,7 +110,7 @@
 
         .summary-card {
             background: white;
-            width: 500px;
+            width: 600px;
             border-radius: 12px;
             padding: 0;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
@@ -285,15 +285,6 @@
             transition: width 0.5s ease;
         }
 
-        .resource-type-badge {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: #e2e6ea;
-            color: #6c757d;
-            display: inline-block;
-            margin-top: 4px;
-        }
 
         .save-btn-container {
             padding: 15px;
@@ -401,7 +392,6 @@
                             <i class="fas fa-info-circle me-1"></i> คุณทำครบทุกบทเรียนแล้ว ตรวจสอบเวลาเรียนและกด "ยืนยัน" เพื่อบันทึก
                         </div>
 
-                        <h6 class="text-muted small text-uppercase fw-bold mb-2">สรุปเวลาเรียน</h6>
                         <table class="summary-table">
                             <thead>
                                 <tr>
@@ -415,7 +405,7 @@
                     </div>
 
                     <div class="summary-footer">
-                        <button class="btn btn-light" onclick="closeSummary()">กลับไปแก้ไข</button>
+                        <button class="btn btn-light" onclick="closeSummary()">กลับ</button>
                         <button class="btn btn-primary px-4" id="btnConfirmSave" onclick="executeSave()">
                             <i class="fas fa-save me-1"></i> ยืนยัน
                         </button>
@@ -563,7 +553,7 @@
             data.resources.forEach((item, index) => {
                 let iconClass = "far fa-file";
                 if (item.type === "Lesson") iconClass = "fas fa-book-open text-primary";
-                else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-warning";
+                else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-primary";
 
                 const html = `
                     <div class="resource-item" id="res-item-${index}" onclick="selectResource(${index})">
@@ -573,10 +563,10 @@
                             </div>
                             <div class="flex-grow-1 overflow-hidden">
                                 <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
-                                <span class="resource-type-badge">${item.type}</span>
+                           
                             </div>
                             <div class="ms-2 fw-bold small text-muted text-end">
-                                <div id="res-percent-${index}">0%</div>
+                                
                                 <div id="res-status-icon-${index}" style="font-size:0.7rem;"></div>
                             </div>
                         </div>
@@ -693,18 +683,18 @@
             let totalP = 0;
 
             currentData.resources.forEach((r, idx) => {
-                $(`#res-percent-${idx}`).text(Math.round(r.clientProgress) + "%");
+                // $(`#res-percent-${idx}`).text(Math.round(r.clientProgress) + "%");
                 $(`#res-bar-${idx}`).css("width", r.clientProgress + "%");
 
                 const isPassed = (r.clientStatus === "passed" || r.clientStatus === "completed" || r.clientProgress >= 100);
 
                 if (isPassed) {
                     passedCount++;
-                    $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
+                    // $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
                     $(`#res-bar-${idx}`).addClass("bg-success").removeClass("bg-primary");
-                    $(`#res-status-icon-${idx}`).html('<i class="fas fa-check-circle text-success"></i> Passed');
+                    $(`#res-status-icon-${idx}`).html('<i class="fas fa-check-circle text-success"></i>');
                 } else {
-                    $(`#res-percent-${idx}`).removeClass("text-success").addClass("text-muted");
+                    // $(`#res-percent-${idx}`).removeClass("text-success").addClass("text-muted");
                     $(`#res-status-icon-${idx}`).html('');
                 }
 
