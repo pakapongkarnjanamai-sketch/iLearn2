@@ -96,7 +96,7 @@
                 box-shadow: 0 8px 25px rgba(0,123,255,0.4);
             }
 
-        /* --- Summary Modal (ปรับปรุงใหม่) --- */
+        /* --- Summary Modal --- */
         .summary-overlay {
             position: absolute;
             inset: 0;
@@ -104,7 +104,7 @@
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 999; /* Z-index สูงๆ */
+            z-index: 999;
             backdrop-filter: blur(2px);
         }
 
@@ -120,19 +120,17 @@
             overflow: hidden;
             animation: slideUp 0.3s ease-out;
         }
+
         @@keyframes slideUp {
-            from
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
 
-        {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .summary-header {
@@ -194,24 +192,21 @@
                 border-bottom: 1px solid #eee;
                 vertical-align: middle;
             }
-
+                /* จัดเวลาให้ชิดขวาและใช้ font แบบตัวเลข */
                 .summary-table td:last-child {
                     text-align: right;
                     font-family: monospace;
-                    font-size: 1rem;
+                    font-size: 1.1em;
+                    color: #555;
                 }
 
-        .total-time-box {
-            background-color: #e8f5e9;
-            border: 1px solid #c8e6c9;
-            color: #2e7d32;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .status-pass {
+            color: var(--success-color);
             font-weight: bold;
+        }
+
+        .status-fail {
+            color: #dc3545;
         }
 
         /* --- Sidebar --- */
@@ -270,6 +265,11 @@
                 background-color: #f0f7ff;
             }
 
+            .resource-item.disabled {
+                opacity: 0.6;
+                pointer-events: none;
+            }
+
         .item-progress-track {
             height: 4px;
             background: #e9ecef;
@@ -314,7 +314,8 @@
         }
 
             .btn-save-course:disabled {
-                background-color: #ccc;
+                background-color: #e9ecef;
+                color: #adb5bd;
                 cursor: not-allowed;
             }
 
@@ -373,14 +374,16 @@
                 <button class="start-btn" onclick="startCourse()">
                     <i class="fas fa-play ps-1"></i>
                 </button>
-            
-                <p id="overlayMessage" class="text-muted mt-4 ">กดปุ่ม Play เพื่อเข้าสู่เนื้อหา</p>
+                <p id="overlayMessage" class="text-muted mt-4">กดปุ่ม Play เพื่อเข้าสู่เนื้อหา</p>
+                <div id="readOnlyBadge" class="mt-2 badge bg-warning text-dark d-none" style="font-size: 0.9rem;">
+                    <i class="fas fa-eye me-1"></i> View Only Mode
+                </div>
             </div>
 
             <div id="summaryModal" class="summary-overlay">
                 <div class="summary-card">
                     <div class="summary-header">
-                        <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> สรุปผลการเรียน</h5>
+                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> ยืนยันการบันทึกข้อมูล</h5>
                     </div>
                     <div class="summary-content">
                         <div class="info-row">
@@ -394,28 +397,27 @@
 
                         <hr class="my-3 text-muted" style="opacity: 0.2;">
 
-                        <h6 class="text-muted small text-uppercase fw-bold mb-2">รายละเอียดเนื้อหา</h6>
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle me-1"></i> คุณทำครบทุกบทเรียนแล้ว ตรวจสอบเวลาเรียนและกด "ยืนยัน" เพื่อบันทึก
+                        </div>
+
+                        <h6 class="text-muted small text-uppercase fw-bold mb-2">สรุปเวลาเรียน</h6>
                         <table class="summary-table">
                             <thead>
                                 <tr>
-                                    <th>หัวข้อเรื่อง</th>
-                                    <th width="80" class="text-end">เวลา</th>
+                                    <th>บทเรียน</th>
+                                    <th class="text-end">เวลาที่ใช้</th>
                                 </tr>
                             </thead>
                             <tbody id="summaryDetailsList">
                             </tbody>
                         </table>
-
-                        <div class="total-time-box">
-                            <span>เวลารวมทั้งหมด</span>
-                            <span id="sumTotalTime">00:00:00</span>
-                        </div>
                     </div>
 
                     <div class="summary-footer">
-                        <button class="btn btn-light" onclick="closeSummary()">ยกเลิก</button>
+                        <button class="btn btn-light" onclick="closeSummary()">กลับไปแก้ไข</button>
                         <button class="btn btn-primary px-4" id="btnConfirmSave" onclick="executeSave()">
-                            <i class="fas fa-check me-1"></i> ตกลง
+                            <i class="fas fa-save me-1"></i> ยืนยัน
                         </button>
                     </div>
                 </div>
@@ -442,7 +444,7 @@
         <div class="info-status-bar">
             <div class="row g-0 text-center bg-white border rounded overflow-hidden">
                 <div class="col-6 border-end p-2">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Total Status</small>
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Course Status</small>
                     <div id="statusDisplay" class="fw-bold mt-1 text-secondary" style="font-size: 0.9rem;">-</div>
                 </div>
                 <div class="col-6 p-2">
@@ -465,8 +467,11 @@
 
         <div class="save-btn-container">
             <button id="btnPreSave" class="btn-save-course" disabled onclick="showSummaryBeforeSave()">
-                <i class="fas fa-save me-2"></i> บันทึกการเรียนรู้
+                <i class="fas fa-check-circle me-2"></i> บันทึกการเรียนรู้
             </button>
+            <div class="text-center mt-2">
+                <small id="saveHintText" class="text-danger" style="font-size: 0.75rem;">* กรุณาเรียนให้ครบทุกบทเรียนเพื่อบันทึกข้อมูล</small>
+            </div>
         </div>
     </div>
 </div>
@@ -481,10 +486,16 @@
         // --- State ---
         let currentData = null;
         let selectedResourceIndex = -1;
+        let isReadOnly = false;
+        let sessionStartTime = null;
 
         $(function() {
             initScormAdapter();
             loadCourseData();
+
+            window.addEventListener("beforeunload", function (e) {
+               // Optional handle
+            });
         });
 
         // 1. Load Data
@@ -501,15 +512,31 @@
 
                 if (response && response.success) {
                     currentData = response.data;
+
+                    // Check Read Only
+                    if (currentData.enrollmentStatus === "Completed" || currentData.enrollmentStatus === "Passed") {
+                        isReadOnly = true;
+                        $("#statusDisplay").text("COMPLETED").addClass("text-success");
+                        $("#readOnlyBadge").removeClass("d-none");
+                        $("#btnPreSave").hide();
+                        $("#saveHintText").text("หลักสูตรนี้เรียนจบแล้ว (View Only)");
+                        $("#saveHintText").removeClass("text-danger").addClass("text-success");
+                    }
+
+                    // Prepare Local Data
                     if(currentData.resources) {
                         currentData.resources.forEach(r => {
-                            r.clientProgress = 0;
-                            r.clientStatus = "incomplete";
-                            r.scormTime = "00:00:00";
+                            r.clientStatus = r.isCompleted ? "passed" : "incomplete";
+                            r.clientProgress = r.isCompleted ? 100 : 0;
+                            r.clientScore = r.score || 0;
+                            // ถ้ามีเวลาเดิมจาก DB อาจจะโหลดมาใส่ตรงนี้ แต่ตอนนี้เริ่มที่ 00:00:00
+                            r.clientTime = "00:00:00";
                         });
                     }
+
                     renderUI(currentData);
                     recalcTotalProgress();
+
                 } else {
                     showError("ไม่สามารถโหลดข้อมูลได้: " + (response.message || "Unknown error"));
                 }
@@ -548,7 +575,10 @@
                                 <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
                                 <span class="resource-type-badge">${item.type}</span>
                             </div>
-                            <div class="ms-2 fw-bold small text-muted" id="res-percent-${index}">0%</div>
+                            <div class="ms-2 fw-bold small text-muted text-end">
+                                <div id="res-percent-${index}">0%</div>
+                                <div id="res-status-icon-${index}" style="font-size:0.7rem;"></div>
+                            </div>
                         </div>
                         <div class="item-progress-track">
                             <div class="item-progress-fill" id="res-bar-${index}"></div>
@@ -557,6 +587,7 @@
                 `;
                 listContainer.append(html);
             });
+
             if (data.resources.length > 0) selectResource(0);
         }
 
@@ -573,102 +604,181 @@
             $("#scormFrame").attr("src", "");
             $("#scormFrame").hide();
             $("#startOverlay").fadeIn(200);
+
+            sessionStartTime = null;
         }
 
         // 4. Start Course
         function startCourse() {
             if (selectedResourceIndex === -1) return;
             const resource = currentData.resources[selectedResourceIndex];
-            if (!resource || !resource.launchUrl) {
+
+            if (!resource.launchUrl) {
                 DevExpress.ui.notify("Invalid Launch URL", "error", 2000);
                 return;
             }
+
             $("#startOverlay").fadeOut(200);
+            sessionStartTime = new Date();
+
             const iframe = document.getElementById("scormFrame");
             iframe.style.display = "block";
             iframe.src = resource.launchUrl;
         }
 
-        // 5. Recalculate Progress (Logic: 100% Only to Save)
-        function recalcTotalProgress() {
-            if(!currentData || !currentData.resources) return;
+        // 5. Update Data
+        function updateResourceData(key, value) {
+            if (isReadOnly) return;
+            if (selectedResourceIndex === -1 || !currentData) return;
 
-            let totalP = 0;
-            const count = currentData.resources.length;
+            let resource = currentData.resources[selectedResourceIndex];
+            let needsRecalc = false;
 
-            currentData.resources.forEach((r, idx) => {
-                const p = r.clientProgress || 0;
-                totalP += p;
-                $(`#res-percent-${idx}`).text(p + "%");
-                $(`#res-bar-${idx}`).css("width", p + "%");
-                if (p === 100) $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
-            });
+            if (key === "status") {
+                const v = value.toLowerCase();
+                if (v === "passed" || v === "completed") {
+                    resource.clientStatus = "passed";
+                    needsRecalc = true;
+                    captureSessionTime(resource);
+                } else if (!resource.isCompleted && resource.clientStatus !== "passed") {
+                    resource.clientStatus = v;
+                }
+            }
+            else if (key === "progress") {
+                let prog = parseFloat(value) || 0;
+                if (prog > 100) prog = 100;
 
-            const avg = count > 0 ? Math.floor(totalP / count) : 0;
-            $("#totalProgressDisplay").text(avg + "%");
+                if (prog >= 100 && resource.clientStatus !== "passed") {
+                    resource.clientStatus = "passed";
+                    needsRecalc = true;
+                    captureSessionTime(resource);
+                }
 
-            const statusElem = $("#statusDisplay");
-            if (avg === 100) {
-                statusElem.text("COMPLETED").addClass("text-success").removeClass("text-secondary");
-                $("#btnPreSave").prop("disabled", false);
-            } else {
-                statusElem.text("INCOMPLETE").addClass("text-secondary").removeClass("text-success");
-                $("#btnPreSave").prop("disabled", true);
+                if (prog > resource.clientProgress) {
+                    resource.clientProgress = prog;
+                    needsRecalc = true;
+                }
+            }
+            else if (key === "score") {
+                resource.clientScore = parseInt(value) || 0;
+            }
+
+            if (needsRecalc) {
+                recalcTotalProgress();
             }
         }
 
-        // 6. [NEW] Show Summary Before Save
+        function captureSessionTime(resource) {
+            // ถ้าเคยผ่านแล้ว ไม่ต้องบันทึกเวลาเพิ่ม
+            if (resource.isCompleted) return;
+
+            if (sessionStartTime) {
+                const now = new Date();
+                const diffSec = Math.round((now - sessionStartTime) / 1000);
+
+                const date = new Date(0);
+                date.setSeconds(diffSec);
+                const timeString = date.toISOString().substr(11, 8);
+
+                resource.clientTime = timeString;
+            }
+        }
+
+        // 6. Recalculate & Check
+        function recalcTotalProgress() {
+            if(!currentData || !currentData.resources) return;
+
+            let totalResources = currentData.resources.length;
+            let passedCount = 0;
+            let totalP = 0;
+
+            currentData.resources.forEach((r, idx) => {
+                $(`#res-percent-${idx}`).text(Math.round(r.clientProgress) + "%");
+                $(`#res-bar-${idx}`).css("width", r.clientProgress + "%");
+
+                const isPassed = (r.clientStatus === "passed" || r.clientStatus === "completed" || r.clientProgress >= 100);
+
+                if (isPassed) {
+                    passedCount++;
+                    $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
+                    $(`#res-bar-${idx}`).addClass("bg-success").removeClass("bg-primary");
+                    $(`#res-status-icon-${idx}`).html('<i class="fas fa-check-circle text-success"></i> Passed');
+                } else {
+                    $(`#res-percent-${idx}`).removeClass("text-success").addClass("text-muted");
+                    $(`#res-status-icon-${idx}`).html('');
+                }
+
+                totalP += r.clientProgress;
+            });
+
+            const avg = totalResources > 0 ? Math.floor(totalP / totalResources) : 0;
+            $("#totalProgressDisplay").text(avg + "%");
+
+            const allPassed = (passedCount === totalResources);
+
+            if (isReadOnly) return;
+
+            if (allPassed) {
+                $("#statusDisplay").text("READY TO SAVE").addClass("text-primary");
+                $("#btnPreSave").prop("disabled", false);
+                $("#saveHintText").hide();
+            } else {
+                $("#statusDisplay").text("IN PROGRESS").removeClass("text-primary");
+                $("#btnPreSave").prop("disabled", true);
+                $("#saveHintText").show();
+            }
+        }
+
+        // 7. Show Summary Before Save
         function showSummaryBeforeSave() {
             if (!currentData) return;
 
-            // 6.1 Set Header Info
+            // อัปเดตเวลาล่าสุดของ Resource ปัจจุบันก่อน
+            if (selectedResourceIndex !== -1) {
+                const r = currentData.resources[selectedResourceIndex];
+                if (!r.isCompleted) captureSessionTime(r);
+            }
+
             $("#sumStudentName").text(currentStudentCode);
             $("#sumCourseName").text(currentData.courseTitle);
 
-            // 6.2 Loop Resources and Calculate Total Time
-            const listContainer = $("#summaryDetailsList");
-            listContainer.empty();
+            const tbody = $("#summaryDetailsList");
+            tbody.empty();
 
-            let totalSeconds = 0;
-
-            currentData.resources.forEach((r) => {
-                const timeStr = r.scormTime || "00:00:00";
-                const sec = timeToSeconds(timeStr);
-                totalSeconds += sec;
-
-                const shortName = r.name.length > 40 ? r.name.substring(0, 38) + "..." : r.name;
+            currentData.resources.forEach(r => {
+                // [แก้ไข] ดึงเวลามาแสดงแทนสถานะและคะแนน
+                const timeDisplay = r.clientTime || "00:00:00";
 
                 const row = `
                     <tr>
-                        <td>
-                            <div class="text-truncate" title="${r.name}">${shortName}</div>
-                        </td>
-                        <td>${formatTime(sec)}</td>
+                        <td><div class="text-truncate" style="max-width: 350px;">${r.name}</div></td>
+                        <td class="text-end" style="font-family: monospace;">${timeDisplay}</td>
                     </tr>
                 `;
-                listContainer.append(row);
+                tbody.append(row);
             });
 
-            // 6.3 Set Total Time
-            $("#sumTotalTime").text(formatTime(totalSeconds));
-
-            // 6.4 Show Modal
             $("#summaryModal").css("display", "flex").hide().fadeIn();
         }
 
-        // 7. [NEW] Execute Real Save (Called when clicking "ตกลง")
-        function executeSave() {
-             if (selectedResourceIndex === -1 || !currentData) return;
-             const resource = currentData.resources[selectedResourceIndex];
+        function closeSummary() { $("#summaryModal").fadeOut(); }
 
-             // Payload
-             const payload = {
+        // 8. Execute Save
+        function executeSave() {
+            if (!currentData) return;
+
+            const resourcesPayload = currentData.resources.map(r => ({
+                ResourceId: r.id,
+                Status: r.clientStatus,
+                Progress: r.clientProgress,
+                Score: r.clientScore,
+                SessionTime: r.clientTime
+            }));
+
+            const payload = {
                 StudentCode: currentStudentCode,
                 EnrollmentId: parseInt(ENROLLMENT_ID),
-                ResourceId: resource.id,
-                Status: resource.clientStatus,
-                Progress: resource.clientProgress,
-                SessionTime: resource.scormTime
+                Resources: resourcesPayload
             };
 
             const btn = $("#btnConfirmSave");
@@ -684,7 +794,13 @@
                 success: function(res) {
                     btn.prop("disabled", false).html(oldHtml);
                     closeSummary();
-                    DevExpress.ui.notify("บันทึกข้อมูลเรียบร้อยแล้ว", "success", 3000);
+
+                    if (res.success) {
+                        DevExpress.ui.notify("บันทึกข้อมูลเรียบร้อยแล้ว", "success", 3000);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        DevExpress.ui.notify(res.message, "error", 3000);
+                    }
                 },
                 error: function(err) {
                     console.error("Save Error:", err);
@@ -694,98 +810,14 @@
             });
         }
 
-        function closeSummary() { $("#summaryModal").fadeOut(); }
-
-        // --- Helpers ---
-        function timeToSeconds(timeStr) {
-            // รองรับ "00:00:00" หรือ "HH:MM:SS"
-            if (!timeStr) return 0;
-            // ถ้าเป็น SCORM 2004 PT..H..M..S ให้แปลงก่อน (แต่ในโค้ดนี้เราแปลงตอนรับค่าแล้ว)
-            // สมมติว่าเป็น HH:MM:SS
-            const parts = timeStr.split(':');
-            let s = 0;
-            if (parts.length === 3) {
-                s += parseInt(parts[0]) * 3600;
-                s += parseInt(parts[1]) * 60;
-                s += parseInt(parts[2]);
-            } else if (parts.length === 2) {
-                s += parseInt(parts[0]) * 60;
-                s += parseInt(parts[1]);
-            }
-            return isNaN(s) ? 0 : s;
-        }
-
-        function formatTime(totalSeconds) {
-            const h = Math.floor(totalSeconds / 3600);
-            const m = Math.floor((totalSeconds % 3600) / 60);
-            const s = Math.floor(totalSeconds % 60);
-            const pad = (n) => n.toString().padStart(2, '0');
-            return `${pad(h)}:${pad(m)}:${pad(s)}`;
-        }
-
-        function formatScormTime(timeStr) {
-            // Helper เพื่อแปลง SCORM PT... เป็น HH:MM:SS เก็บไว้ในตัวแปร
-            if (!timeStr) return "00:00:00";
-            if (timeStr.indexOf("P") === 0) {
-                 const matches = timeStr.match(/PT(\d+H)?(\d+M)?(\d+(\.\d+)?S)?/);
-                 if (!matches) return "00:00:00";
-                 const h = (matches[1] ? parseFloat(matches[1]) : 0);
-                 const m = (matches[2] ? parseFloat(matches[2]) : 0);
-                 const s = (matches[3] ? parseFloat(matches[3]) : 0);
-                 const pad = (n) => n.toString().padStart(2, '0');
-                 return `${pad(h)}:${pad(m)}:${pad(Math.floor(s))}`;
-            }
-            if(timeStr.indexOf(":") > -1) { return timeStr.split(".")[0]; }
-            return timeStr;
-        }
-
-        function showError(msg) {
-            $("#courseTocList").html(`<div class="text-danger p-3 text-center"><i class="fas fa-exclamation-triangle me-1"></i> ${msg}</div>`);
-        }
-        function scrollToToc() { document.getElementById('tocSection').scrollIntoView({ behavior: 'smooth' }); }
-        function toggleFullscreen() {
-            const elem = document.getElementById("fullscreenArea");
-            if (!document.fullscreenElement) elem.requestFullscreen().catch(err => console.log(err));
-            else document.exitFullscreen();
-        }
-
-        // --- SCORM Adapter ---
+        // --- SCORM ADAPTER ---
         function initScormAdapter() {
-            function updateResourceData(type, value) {
-                if(selectedResourceIndex === -1 || !currentData) return;
-                const resource = currentData.resources[selectedResourceIndex];
-                let needsRecalc = false;
-
-                if (type === "status") {
-                     const val = value.toString().toLowerCase();
-                     resource.clientStatus = val;
-                     if (val === "completed" || val === "passed") {
-                         resource.clientProgress = 100;
-                         needsRecalc = true;
-                     }
-                }
-                if (type === "progress") {
-                    let p = parseFloat(value);
-                    if (p <= 1.0) p = p * 100;
-                    if (p > resource.clientProgress) {
-                        resource.clientProgress = Math.round(p);
-                        needsRecalc = true;
-                    }
-                }
-                if (type === "time") {
-                    resource.scormTime = formatScormTime(value);
-                }
-
-                if (needsRecalc) recalcTotalProgress();
-            }
-
             window.API = {
                 LMSInitialize: function(p) { return "true"; },
                 LMSGetValue: function(e) { return ""; },
                 LMSSetValue: function(e, v) {
                     if (e === "cmi.core.lesson_status") updateResourceData("status", v);
-                    if (e === "cmi.core.score.raw") updateResourceData("progress", v);
-                    if (e === "cmi.core.session_time") updateResourceData("time", v);
+                    if (e === "cmi.core.score.raw") updateResourceData("score", v);
                     return "true";
                 },
                 LMSCommit: function(p) { return "true"; },
@@ -801,8 +833,8 @@
                 GetValue: function(element) { return ""; },
                 SetValue: function(element, value) {
                     if (element === "cmi.completion_status" || element === "cmi.success_status") updateResourceData("status", value);
-                    if (element === "cmi.progress_measure") updateResourceData("progress", value);
-                    if (element === "cmi.session_time") updateResourceData("time", value);
+                    if (element === "cmi.progress_measure") updateResourceData("progress", parseFloat(value) * 100);
+                    if (element === "cmi.score.raw") updateResourceData("score", value);
                     return true;
                 },
                 Commit: function(p) { return true; },
@@ -811,6 +843,25 @@
                 GetDiagnostic: function(e) { return ""; }
             };
             console.log("SCORM ADAPTER READY");
+        }
+
+        function toggleFullscreen() {
+            const elem = document.getElementById("fullscreenArea");
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function scrollToToc() {
+            document.getElementById("tocSection").scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showError(msg) {
+            DevExpress.ui.notify(msg, "error", 3000);
         }
     </script>
 }

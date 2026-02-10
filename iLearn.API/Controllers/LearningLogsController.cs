@@ -28,138 +28,9 @@ namespace iLearn.API.Controllers
             _currentUser = currentUserService;
         }
 
-        //// GET: api/learninglogs?studentCode=EMP001&courseId=5
-        //[HttpGet]
-        //public async Task<IActionResult> Get([FromQuery] string? studentCode, [FromQuery] int? courseId)
-        //{
-        //    IReadOnlyList<LearningLog> logs;
-
-        //    if (!string.IsNullOrEmpty(studentCode) && courseId.HasValue)
-        //    {
-        //        logs = await _logRepo.GetAsync(l => l.StudentCode == studentCode && l.CourseVersionId == courseId.Value);
-        //    }
-        //    else if (!string.IsNullOrEmpty(studentCode))
-        //    {
-        //        logs = await _logRepo.GetAsync(l => l.StudentCode == studentCode);
-        //    }
-        //    else
-        //    {
-        //        // ไม่ควรอนุญาตให้ดึงทั้งหมดโดยไม่มีเงื่อนไขถ้าข้อมูลเยอะ (อาจต้องทำ Pagination)
-        //        logs = await _logRepo.GetAllAsync();
-        //    }
-
-        //    return Ok(logs.Select(l => l.ToDto()));
-        //}
-
-        //// POST: api/learninglogs
-        //// API นี้จะถูกเรียกโดย SCORM Player หรือ Video Player ทุกๆ x วินาที หรือเมื่อจบ
-        //[HttpPost]
-        //public async Task<IActionResult> Create([FromBody] CreateLearningLogDto dto)
-        //{
-        //    var log = dto.ToEntity();
-        //    var createdLog = await _logRepo.AddAsync(log);
-
-        //    // [Optional] Update Enrollment Status?
-        //    // ถ้าเป็นการส่ง log ครั้งสุดท้ายว่าเรียนจบแล้ว อาจจะไปอัปเดต Enrollment เลยก็ได้
-        //    // await UpdateEnrollmentProgress(dto.StudentCode, dto.CourseId);
-
-        //    return Ok(createdLog.ToDto());
-        //}
-
-        // ตัวอย่าง Helper Function สำหรับอัปเดต Enrollment (ถ้าต้องการ)
-        private async Task UpdateEnrollmentProgress(string studentCode, int courseId)
-        {
-            var enrollments = await _enrollmentRepo.GetAsync(e => e.StudentCode == studentCode && e.CourseId == courseId);
-            var enrollment = enrollments.FirstOrDefault();
-
-            if (enrollment != null && enrollment.Status != "Completed")
-            {
-                // Logic ง่ายๆ: มี Log เข้ามาถือว่า In Progress
-                enrollment.Status = "In Progress";
-                await _enrollmentRepo.UpdateAsync(enrollment);
-            }
-        }
-
-        //[HttpGet("player-info/{enrollmentId}")]
-        //public async Task<IActionResult> GetPlayerInfo(int enrollmentId)
-        //{
-        //    // 1. ดึง Enrollment
-        //    var enrollment = await _enrollmentRepo.GetByIdAsync(enrollmentId);
-        //    if (enrollment == null)
-        //        return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
-
-        //    // 2. Security Check (ตรวจสอบความเป็นเจ้าของ)
-        //    if (!string.Equals(enrollment.StudentCode, _currentUser.UserId, StringComparison.OrdinalIgnoreCase))
-        //    {
-        //        return Unauthorized(new ApiResponse<string> { Success = false, Message = "Unauthorized access" });
-        //    }
-
-        //    // 3. ดึง CourseVersion พร้อม Resources
-        //    var versions = await _versionRepo.GetAsync(
-        //        filter: v => v.CourseId == enrollment.CourseId && v.VersionNumber == enrollment.EnrolledVersion,
-        //        includeProperties: "CourseResources.Resource,Course"
-        //    );
-
-        //    var version = versions.FirstOrDefault();
-        //    if (version == null) return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found" });
-
-        //    // [ใหม่] 3.5 ดึง LearningLog ของ User ใน Version นี้ทั้งหมดมาตรวจสอบสถานะ
-        //    var resourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
-        //    var userLogs = await _logRepo.GetAsync(l =>
-        //        l.StudentCode == enrollment.StudentCode &&
-        //        l.CourseVersionId == version.Id &&
-        //        resourceIds.Contains(l.ResourceId)
-        //    );
-
-        //    // 4. Map ข้อมูลลง DTO พร้อมระบุสถานะ IsCompleted
-        //    var resources = version.CourseResources
-        //        .Select(cr => {
-        //            var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
-        //            // ถือว่าจบถ้า status เป็น completed หรือ passed
-        //            var isDone = log != null && (
-        //                log.LessonStatus.Equals("completed", StringComparison.OrdinalIgnoreCase) ||
-        //                log.LessonStatus.Equals("passed", StringComparison.OrdinalIgnoreCase)
-        //            );
-
-        //            return new PlayerResourceDto
-        //            {
-        //                Id = cr.Resource.Id,
-        //                Name = cr.Resource.Name,
-        //                Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
-        //                LaunchUrl = cr.Resource.URL,
-        //                IsCompleted = isDone // ส่งค่ากลับไป
-        //            };
-        //        }).ToList();
-
-        //    var dto = new PlayerInfoDto
-        //    {
-        //        CourseVersionId = version.Id,
-        //        StudentCode = enrollment.StudentCode,
-        //        CourseTitle = version.Course?.Title ?? "Unknown Course",
-        //        Resources = resources
-        //    };
-
-        //    return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
-        //}
-
-        // POST: api/learninglogs/update-progress
         [HttpPost("update-progress")]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
-            // ------------------------------------------------------------------
-            // [จุดสำคัญ] กรองข้อมูล: บันทึกเฉพาะเมื่อเรียนจบ หรือครบ 100% เท่านั้น
-            // ------------------------------------------------------------------
-            bool isCompleted =
-                (input.Progress >= 100) ||
-                (input.Status?.ToLower() == "passed") ||
-                (input.Status?.ToLower() == "completed");
-
-            if (!isCompleted)
-            {
-                // ถ้ายังเรียนไม่จบ ให้ตอบกลับว่าสำเร็จ (หลอก Frontend) แต่ไม่บันทึกลง DB
-                return Ok(new ApiResponse<string> { Success = true, Message = "Progress ignored (not completed)." });
-            }
-
             // 1. ตรวจสอบ Enrollment และสิทธิ์
             var enrollment = await _enrollmentRepo.GetByIdAsync(input.EnrollmentId);
             if (enrollment == null)
@@ -168,58 +39,111 @@ namespace iLearn.API.Controllers
             if (!string.Equals(enrollment.StudentCode, input.StudentCode, StringComparison.OrdinalIgnoreCase))
                 return Unauthorized(new ApiResponse<string> { Success = false, Message = "Student code mismatch" });
 
-            // 2. ค้นหา Log เดิม (ถ้ามี)
-            // ใช้ CourseVersionId (หรือ EnrolledVersion) เพื่อแยกเวอร์ชันของบทเรียน
+            // --- NEW: Read Only Mode ---
+            // ถ้าเรียนจบไปแล้ว ไม่ให้บันทึกเพิ่ม (ตามข้อ 1.1)
+            if (enrollment.Status == "Completed" || enrollment.Status == "Passed")
+            {
+                return Ok(new ApiResponse<string> { Success = true, Message = "Course is already completed. No updates allowed." });
+            }
+
+            // 2. เตรียมข้อมูล Version
             int versionId = enrollment.EnrolledVersion;
 
-            var logs = await _logRepo.GetAsync(l =>
+            // ดึง Log เดิมทั้งหมดของ User ใน Version นี้มาเพื่อเปรียบเทียบ
+            var existingLogs = await _logRepo.GetAsync(l =>
                 l.StudentCode == input.StudentCode &&
-                l.ResourceId == input.ResourceId &&
                 l.CourseVersionId == versionId
             );
 
-            var existingLog = logs.FirstOrDefault();
-
-            if (existingLog != null)
+            // 3. วนลูปบันทึกราย Resource (ตามข้อ 2)
+            foreach (var resInput in input.Resources)
             {
-                // -- อัปเดตข้อมูลเดิม --
-                existingLog.Status = "completed"; // บังคับเป็น completed เพราะผ่านเงื่อนไขด้านบนมาแล้ว
-                existingLog.Progress = 100;       // บังคับเป็น 100%
-                existingLog.Score = input.Score ?? existingLog.Score;
-                existingLog.SessionTime = input.SessionTime;
-                //existingLog.LastAccessed = DateTime.Now;
+                var log = existingLogs.FirstOrDefault(l => l.ResourceId == resInput.ResourceId);
 
-                // (Optional) ถ้าเรียนซ้ำ ให้ปรับวันที่ล่าสุด
-                // existingLog.CompletedDate = DateTime.Now; 
+                // ตรวจสอบสถานะผ่าน (Passed/Completed)
+                bool isInputPassed = resInput.Status?.ToLower() == "passed" ||
+                                     resInput.Status?.ToLower() == "completed" ||
+                                     resInput.Progress >= 100;
 
-                await _logRepo.UpdateAsync(existingLog);
-            }
-            else
-            {
-                // -- สร้างใหม่ (Create) --
-                var newLog = new LearningLog
+                if (log != null)
                 {
-                    StudentCode = input.StudentCode,
-                    ResourceId = input.ResourceId,
-                    CourseVersionId = versionId,
+                    // --- กรณีมี Log เดิม ---
 
-                    // กำหนดค่าเริ่มต้นเป็น Completed/100% ทันที
-                    Status = "completed",
-                    Progress = 100,
+                    // Logic เวลา: ถ้าของเดิมผ่านแล้ว จะไม่บันทึกเวลาใหม่ (ตามข้อ 2)
+                    bool isAlreadyPassed = log.Status?.ToLower() == "passed" || log.Status?.ToLower() == "completed";
 
-                    Score = input.Score,
-                    SessionTime = input.SessionTime,
-                    //StartDate = DateTime.Now,
-                    //LastAccessed = DateTime.Now
-                };
+                    if (!isAlreadyPassed)
+                    {
+                        // ถ้ายังไม่เคยผ่าน ให้บันทึกสถานะล่าสุด
+                        log.Status = isInputPassed ? "passed" : (resInput.Status ?? "incomplete");
+                        log.Progress = isInputPassed ? 100 : (resInput.Progress ?? 0);
+                        log.Score = resInput.Score ?? log.Score;
 
-                await _logRepo.AddAsync(newLog);
+                        // บันทึกเวลาเฉพาะตอนที่ยังไม่ผ่าน
+                        if (!string.IsNullOrEmpty(resInput.SessionTime))
+                        {
+                            log.SessionTime = resInput.SessionTime;
+                        }
+                    }
+                    // ถ้า isAlreadyPassed = true -> เราจะไม่ update อะไรเลย (Read only for this resource)
+
+                    await _logRepo.UpdateAsync(log);
+                }
+                else
+                {
+                    // --- กรณีไม่มี Log (สร้างใหม่) ---
+                    var newLog = new LearningLog
+                    {
+                        StudentCode = input.StudentCode,
+                        ResourceId = resInput.ResourceId,
+                        CourseVersionId = versionId,
+                        Status = isInputPassed ? "passed" : (resInput.Status ?? "incomplete"),
+                        Progress = isInputPassed ? 100 : (resInput.Progress ?? 0),
+                        Score = resInput.Score,
+                        SessionTime = resInput.SessionTime,
+                        // CreateDate = DateTime.Now 
+                    };
+                    await _logRepo.AddAsync(newLog);
+                }
             }
 
-            // (เพิ่มเติม) คุณอาจจะไปอัปเดตสถานะของ Enrollment หลักให้เป็น Completed ด้วยก็ได้
-            // ถ้าเช็คแล้วว่าครบทุก Resource ในคอร์สนั้นแล้ว
+            // 4. ตรวจสอบว่าเรียนจบทั้ง Course หรือยัง?
+            // ดึง Log ล่าสุดอีกรอบ (รวมที่เพิ่งบันทึกไป)
+            var allLogs = await _logRepo.GetAsync(l => l.StudentCode == input.StudentCode && l.CourseVersionId == versionId);
+
+            // ดึงจำนวน Resource ทั้งหมดใน Version นี้
+            var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseResources")).FirstOrDefault();
+
+            if (version != null && version.CourseResources != null)
+            {
+                var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+
+                // นับจำนวน Resource ที่ผ่านแล้ว (Status = passed/completed)
+                int passedCount = allLogs.Count(l =>
+                    allResourceIds.Contains(l.ResourceId) &&
+                    (l.Status == "passed" || l.Status == "completed")
+                );
+
+                // ถ้าผ่านครบทุกตัว
+                if (passedCount >= allResourceIds.Count)
+                {
+                    enrollment.Status = "Completed";
+                    //enrollment.Progress = 100;
+                    // enrollment.CompletedDate = DateTime.Now;
+                    await _enrollmentRepo.UpdateAsync(enrollment);
+                }
+                else
+                {
+                    // ถ้ายังไม่ครบ อาจจะอัปเดต % รวม
+                    double courseProgress = ((double)passedCount / allResourceIds.Count) * 100;
+                    //enrollment.Progress = courseProgress;
+                    await _enrollmentRepo.UpdateAsync(enrollment);
+                }
+            }
 
             return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved successfully." });
         }
+
+   
     }
 }

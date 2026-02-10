@@ -28,7 +28,11 @@ namespace iLearn.Domain.Entities
 
         // เวลาที่ใช้เรียน (เช่น "00:45:00")
         public string? SessionTime { get; set; }
+        // [เพิ่ม] เก็บเวลาสะสม (วินาที) เพื่อนำไปรวมยอดได้ง่ายขึ้น
+        public int TotalSecondsPlayed { get; set; }
 
+        // [เพิ่ม] นับจำนวนครั้งที่เข้าเรียน
+        public int AttemptCount { get; set; }
 
     }
 }
