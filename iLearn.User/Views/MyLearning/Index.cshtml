@@ -96,6 +96,26 @@
             color: var(--brand-color);
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+
+        /* Responsive Logout Section */
+        @@media (max-width: 768px) {
+            .profile-stats {
+                border-left: none !important;
+                border-top: 1px solid #eee;
+                padding-left: 0 !important;
+                padding-top: 15px;
+                margin-top: 10px;
+                width: 100%;
+                justify-content: space-around;
+            }
+
+            .logout-section {
+                border-left: none !important;
+                padding-left: 0 !important;
+                margin-top: 10px;
+                width: 100%;
+            }
+        }
     </style>
 }
 
@@ -104,7 +124,7 @@
     <div class="d-flex justify-content-center align-items-center vh-100">
         <div class="text-center">
             <h2 class="text-muted">กรุณาเข้าสู่ระบบ</h2>
-            <a href="/Home/Login" class="dx-btn dx-btn-default mt-3">Login</a>
+            <a href="/Home/Index" class="dx-btn dx-btn-default mt-3">Login</a>
         </div>
     </div>
 }
@@ -126,7 +146,7 @@ else
                             </div>
                         </div>
 
-                        <div class="d-flex gap-4 border-start ps-4">
+                        <div class="d-flex gap-4 border-start px-4 profile-stats">
                             <div class="text-center">
                                 <h2 class="fw-bold text-brand mb-0" id="statEnrolled">-</h2>
                                 <small class="text-muted">กำลังเรียน</small>
@@ -136,6 +156,11 @@ else
                                 <small class="text-muted">เรียนจบแล้ว</small>
                             </div>
                         </div>
+
+                        <div class="border-start ps-4 logout-section">
+                            <div id="btnLogout"></div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -176,6 +201,24 @@ else
         let allCoursesData = [];
 
         $(function() {
+            // [เพิ่มใหม่] Init Logout Button
+            $("#btnLogout").dxButton({
+                icon: "runner", // Icon รูปคนวิ่งออก
+                text: "ออกจากระบบ",
+                type: "danger", // สีแดง
+                stylingMode: "text", // แบบไม่มีขอบ (Minimal)
+                width: "100%",
+                onClick: function() {
+                    // ใช้ DevExtreme Dialog ถามยืนยัน
+                    DevExpress.ui.dialog.confirm("คุณต้องการออกจากระบบใช่หรือไม่?", "ยืนยันการออกจากระบบ").done(function(dialogResult) {
+                        if (dialogResult) {
+                            // เรียก Action Logout
+                            window.location.href = '@Url.Action("Logout", "Home")';
+                        }
+                    });
+                }
+            });
+
             // Init Search Box (DevExtreme)
             $("#searchBoxContainer").dxTextBox({
                 placeholder: "ค้นหาหลักสูตร...",
@@ -196,7 +239,7 @@ else
             $.ajax({
                 url: `${baseUrl}/enrollments/my-courses?studentCode=${studentCode}`,
                 method: 'GET',
-                xhrFields: { withCredentials: true }, // [ADDED] Credentials
+                xhrFields: { withCredentials: true },
                 success: function(res) {
                     $("#myCoursesLoading").hide();
                     if (res.success && res.data && res.data.length > 0) {
@@ -225,7 +268,6 @@ else
                 const isCompleted = en.status === 'Completed';
                 const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80';
 
-                // Card HTML Structure
                 const $col = $("<div>").addClass("col-md-6 col-lg-4 col-xl-3");
                 const cardHtml = `
                     <div class="dx-card hoverable h-100 d-flex flex-column position-relative">
@@ -255,7 +297,6 @@ else
                 $col.append(cardHtml);
                 $container.append($col);
 
-                // Initialize DevExtreme Button
                 setTimeout(() => {
                     $(`#btn-action-${en.id}`).dxButton({
                         text: isCompleted ? "ทบทวนบทเรียน" : (progress > 0 ? "เรียนต่อ" : "เริ่มเรียน"),
@@ -264,7 +305,6 @@ else
                         stylingMode: isCompleted ? "outlined" : "contained",
                         width: "100%",
                         elementAttr: {
-                             // ถ้าเป็น Default ให้ใช้สี Brand
                              class: isCompleted ? "" : "bg-brand text-white border-0"
                         },
                         onClick: function() {
@@ -288,7 +328,7 @@ else
                 url: `${baseUrl}/courses`,
                 method: 'GET',
                 data: { isActive: true },
-                xhrFields: { withCredentials: true }, // [ADDED] Credentials
+                xhrFields: { withCredentials: true },
                 success: function(res) {
                     $("#allCoursesLoading").hide();
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);
@@ -309,7 +349,6 @@ else
                 return;
             }
 
-            // Group by Category
             const grouped = courses.reduce((acc, course) => {
                 const catName = course.category ? course.category.name : (course.categoryName || 'General');
                 if (!acc[catName]) acc[catName] = [];
@@ -320,7 +359,6 @@ else
             Object.keys(grouped).forEach(catName => {
                 const catCourses = grouped[catName];
 
-                // Section Title per Category
                 const $sectionHtml = $(`
                     <div class="category-group mb-5">
                         <h5 class="fw-bold text-secondary mb-3"><i class="fas fa-folder me-2"></i>${catName}</h5>
@@ -361,7 +399,6 @@ else
                             width: "100%",
                             elementAttr: { class: "text-brand border-brand" },
                             onClick: function() {
-                                // Logic แสดงรายละเอียด หรือ Enroll
                                 DevExpress.ui.notify("ดูรายละเอียด: " + c.title, "info", 1000);
                             }
                         });
@@ -377,14 +414,12 @@ else
             const keyword = text.toLowerCase();
             const $container = $("#catalogContainer");
 
-            // Filter Items
             $container.find(".course-item").each(function() {
                 const title = $(this).attr("data-title");
                 if (title.includes(keyword)) $(this).show();
                 else $(this).hide();
             });
 
-            // Hide Empty Groups
             $container.find(".category-group").each(function() {
                 const visibleCount = $(this).find(".course-item:visible").length;
                 if (visibleCount === 0) $(this).hide();

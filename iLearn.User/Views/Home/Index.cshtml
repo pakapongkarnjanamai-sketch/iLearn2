@@ -1,73 +1,99 @@
 ﻿@{
-    ViewData["Title"] = "เข้าสู่ระบบ - iLearn";
+    ViewData["Title"] = "เข้าสู่ระบบ";
+    Layout = "~/Views/Shared/_DevExtremeLayout.cshtml"; // ใช้ Layout แต่จะ Override สไตล์
 }
 
-<div class="container-fluid">
-    <div class="text-center mt-5">
-        <h1 class="display-4">iLearn System</h1>
-        <p class="lead">ระบบจัดการการเรียนรู้สำหรับพนักงาน</p>
-    </div>
-</div>
+@section Styles {
+    <style>
+        /* Override Background เฉพาะหน้านี้ */
+        body {
+            background: linear-gradient(135deg, var(--brand-color) 0%, #004d40 100%) !important;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ซ่อน Navbar/Footer ในหน้า Login ถ้าต้องการให้ Clean */
+        header, footer {
+            display: none !important;
+        }
+
+        /* ปรับแต่ง Popup */
+        .dx-popup-content {
+            padding: 30px !important;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-icon {
+            font-size: 3rem;
+            color: var(--brand-color);
+            margin-bottom: 10px;
+        }
+    </style>
+}
 
 <div id="login-popup"></div>
+<script>
+    $(function () {
+        // Template ภายใน Popup
+        const popupContent = function() {
+            return $("<div>").append(
+                // Logo Header
+                $("<div class='login-header'>").append(
+                    $("<i class='fas fa-graduation-cap login-icon'>"),
+                    $("<h3 class='fw-bold text-dark'>").text("iLearn Login"),
+                    $("<p class='text-muted small'>").text("ระบบการเรียนรู้ออนไลน์สำหรับพนักงาน")
+                ),
 
-@section Scripts {
-    <script>
-        $(function () {
-            // 1. โครงสร้างภายใน Popup (Template)
-            const popupContent = function() {
-                return $("<div>").append(
-                    $("<div class='dx-field'>").append(
-                        $("<div class='dx-field-label'>").text("รหัสพนักงาน"),
-                        $("<div class='dx-field-value'>").append($("<div id='employee-id-input'>"))
-                    ),
-                    $("<div class='login-info-section mt-3 text-muted' id='employee-preview' style='display:none;'>").append(
-                        $("<small>").html("<strong>ชื่อ:</strong> <span id='txt-name'>-</span><br><strong>แผนก:</strong> <span id='txt-dept'>-</span>")
-                    ),
-                    $("<div class='mt-4'>").append($("<div id='login-button'>"))
-                );
-            };
+                // [จุดที่แก้ไข 1] Form Inputs: ใส่ ID ให้ div
+                $("<div id='employee-code-box' class='mb-4'>").dxTextBox({
+                    placeholder: "กรอกรหัสพนักงาน (Employee Code)",
+                    label: "รหัสพนักงาน",
+                    labelMode: "floating",
+                    mode: "text",
+                    height: 50
+                }),
 
-            // 2. สร้าง Popup ด้วย DevExtreme jQuery
-            const loginPopup = $("#login-popup").dxPopup({
-                width: 450,
-                height: "auto",
-                showTitle: true,
-                title: "Login with Employee ID",
-                visible: true,
-                dragEnabled: false,
-                closeOnOutsideClick: false,
-                showCloseButton: false,
-                contentTemplate: popupContent,
-                onShown: function() {
-                    // สร้าง TextBox รับรหัสพนักงาน
-                    $("#employee-id-input").dxTextBox({
-                        placeholder: "ระบุรหัสพนักงาน (เช่น 610034)",
-                        mode: "text",
-                        stylingMode: "outlined",
-                        onInitialized: function(e) {
-                            setTimeout(() => e.component.focus(), 100);
-                        }
-                    });
+                // Preview Area
+                $("<div id='employee-preview' class='alert alert-light border text-center mb-4' style='display:none;'>").html(
+                    "<div class='spinner-border spinner-border-sm text-secondary' role='status'></div>"
+                ),
 
-                    // สร้างปุ่มยืนยัน
-                    $("#login-button").dxButton({
-                        text: "เข้าสู่ระบบ",
-                        type: "default",
-                        stylingMode: "contained",
-                        width: "100%",
-                        useSubmitBehavior: false,
-                        onClick: function(e) {
-                            validateAndLogin(e);
-                        }
-                    });
-                }
-            }).dxPopup("instance");
+                // Login Button
+                $("<div>").dxButton({
+                    text: "เข้าสู่ระบบ",
+                    type: "default",
+                    width: "100%",
+                    height: 50,
+                    elementAttr: { class: "bg-brand border-0 fw-bold shadow-sm" },
+                    onClick: function(e) {
+                        validateAndLogin(e);
+                    }
+                })
+            );
+        };
 
-            // 3. ฟังก์ชันจัดการการ Login และเรียก API ผ่าน Backend
-                   // ส่วนหนึ่งของไฟล์ Index.cshtml ในหัวข้อก่อนหน้า
+        // สร้าง Popup
+        const loginPopup = $("#login-popup").dxPopup({
+            width: 400,
+            height: "auto",
+            visible: true,
+            showTitle: false,
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            contentTemplate: popupContent,
+            position: { my: "center", at: "center", of: window }
+        }).dxPopup("instance");
+
+        // Logic Login
         function validateAndLogin(btnEvent) {
-            const employeeCode = $("#employee-id-input").dxTextBox("instance").option("value");
+            // [จุดที่แก้ไข 2] เรียก instance จาก ID ของ div
+            const employeeCode = $("#employee-code-box").dxTextBox("instance").option("value");
 
             if (!employeeCode) {
                 DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
@@ -77,42 +103,36 @@
             btnEvent.component.option("disabled", true);
             btnEvent.component.option("text", "กำลังตรวจสอบ...");
 
-            $.post('/Home/VerifyEmployee', { employeeCode: employeeCode }, function(response) {
-                if (response.success) {
-                    DevExpress.ui.notify("ยินดีต้อนรับคุณ " + response.data.name, "success", 1500);
-                    setTimeout(() => window.location.href = '/MyLearning/Index', 1000);
-                } else {
-                    DevExpress.ui.notify(response.message, "error", 2000);
-                    btnEvent.component.option("disabled", false);
-                    btnEvent.component.option("text", "เข้าสู่ระบบ");
+            $("#employee-preview").show().html(`<span class="text-muted">กำลังยืนยันตัวตน: <strong>${employeeCode}</strong></span>`);
+
+            // AJAX Call
+            $.ajax({
+                url: '/Home/VerifyEmployee',
+                method: 'POST',
+                data: { employeeCode: employeeCode },
+                xhrFields: { withCredentials: true },
+                success: function(response) {
+                    if (response.success) {
+                        $("#employee-preview").removeClass("alert-light").addClass("alert-success")
+                            .html(`<i class="fas fa-check-circle me-1"></i> ยินดีต้อนรับ <strong>${response.data.name}</strong>`);
+
+                        DevExpress.ui.notify("เข้าสู่ระบบสำเร็จ", "success", 1500);
+                        setTimeout(() => window.location.href = '/MyLearning/Index', 1000);
+                    } else {
+                        handleLoginError(response.message, btnEvent);
+                    }
+                },
+                error: function() {
+                    handleLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อ", btnEvent);
                 }
             });
         }
-        });
-    </script>
-}
 
-<style>
-    .dx-field {
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-    }
-
-    .dx-field-label {
-        width: 35%;
-        font-weight: bold;
-        font-size: 0.9rem;
-    }
-
-    .dx-field-value {
-        width: 65%;
-    }
-
-    .login-info-section {
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 5px;
-        border-left: 4px solid #337ab7;
-    }
-</style>
+        function handleLoginError(msg, btnEvent) {
+            DevExpress.ui.notify(msg, "error", 2000);
+            $("#employee-preview").hide();
+            btnEvent.component.option("disabled", false);
+            btnEvent.component.option("text", "เข้าสู่ระบบ");
+        }
+    });
+</script>
