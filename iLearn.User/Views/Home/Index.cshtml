@@ -91,48 +91,57 @@
         }).dxPopup("instance");
 
         // Logic Login
-        function validateAndLogin(btnEvent) {
-            // [จุดที่แก้ไข 2] เรียก instance จาก ID ของ div
-            const employeeCode = $("#employee-code-box").dxTextBox("instance").option("value");
+           function validateAndLogin(btnEvent) {
+        // [จุดที่แก้ไข 2] เรียก instance จาก ID ของ div
+        const employeeCode = $("#employee-code-box").dxTextBox("instance").option("value");
 
-            if (!employeeCode) {
-                DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
-                return;
-            }
+        if (!employeeCode) {
+            DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
+            return;
+        }
 
-            btnEvent.component.option("disabled", true);
-            btnEvent.component.option("text", "กำลังตรวจสอบ...");
+        btnEvent.component.option("disabled", true);
+        btnEvent.component.option("text", "กำลังตรวจสอบ...");
 
-            $("#employee-preview").show().html(`<span class="text-muted">กำลังยืนยันตัวตน: <strong>${employeeCode}</strong></span>`);
+        // [จุดที่แก้ไข 3] ซ่อน employee-code-box และแสดง employee-preview
+        $("#employee-code-box").hide();
+        $("#employee-preview").show().html(`
+            <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+            <span class="text-muted">กำลังยืนยันตัวตน: <strong>${employeeCode}</strong></span>
+        `);
 
-            // AJAX Call
-            $.ajax({
-                url: '/Home/VerifyEmployee',
-                method: 'POST',
-                data: { employeeCode: employeeCode },
-                xhrFields: { withCredentials: true },
-                success: function(response) {
-                    if (response.success) {
-                        $("#employee-preview").removeClass("alert-light").addClass("alert-success")
-                            .html(`<i class="fas fa-check-circle me-1"></i> ยินดีต้อนรับ <strong>${response.data.name}</strong>`);
+        // AJAX Call
+        $.ajax({
+            url: '/Home/VerifyEmployee',
+            method: 'POST',
+            data: { employeeCode: employeeCode },
+            xhrFields: { withCredentials: true },
+            success: function(response) {
+                if (response.success) {
+                    $("#employee-preview").removeClass("alert-light").addClass("alert-success")
+                        .html(`<i class="fas fa-check-circle me-1"></i> ยินดีต้อนรับ <strong>${response.data.name}</strong>`);
 
-                        DevExpress.ui.notify("เข้าสู่ระบบสำเร็จ", "success", 1500);
-                        setTimeout(() => window.location.href = '/MyLearning/Index', 1000);
-                    } else {
-                        handleLoginError(response.message, btnEvent);
-                    }
-                },
-                error: function() {
-                    handleLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อ", btnEvent);
+                    // DevExpress.ui.notify("เข้าสู่ระบบสำเร็จ", "success", 1500);
+                    setTimeout(() => window.location.href = '/MyLearning/Index', 1000);
+                } else {
+                    handleLoginError(response.message, btnEvent);
                 }
-            });
-        }
+            },
+            error: function() {
+                handleLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อ", btnEvent);
+            }
+        });
+    }
 
-        function handleLoginError(msg, btnEvent) {
-            DevExpress.ui.notify(msg, "error", 2000);
-            $("#employee-preview").hide();
-            btnEvent.component.option("disabled", false);
-            btnEvent.component.option("text", "เข้าสู่ระบบ");
-        }
+    function handleLoginError(msg, btnEvent) {
+        DevExpress.ui.notify(msg, "error", 2000);
+
+        // แสดง employee-code-box กลับมา และซ่อน employee-preview
+        $("#employee-preview").hide();
+        $("#employee-code-box").show();
+
+        btnEvent.component.option("disabled", false);
+        btnEvent.component.option("text", "เข้าสู่ระบบ");
+    }
     });
 </script>

@@ -11,6 +11,7 @@
 
 @section Styles {
     <style>
+
         :root {
             --sidebar-width: 400px;
             /* Theme Colors */
@@ -24,6 +25,9 @@
             --text-muted: #6c757d;
         }
 
+        footer {
+            display: none !important;
+        }
         body {
             overflow: hidden;
             font-family: 'Sarabun', sans-serif; /* แนะนำให้ใช้ Font ไทย */
@@ -33,7 +37,7 @@
             display: grid;
             grid-template-columns: 1fr var(--sidebar-width);
             gap: 0;
-            height: calc(100vh); /* หักความสูง Navbar ออก (ถ้ามี) หรือใช้ 100vh ถ้าไม่มี Navbar */
+            height: calc(100vh - 60px); /* หักความสูง Navbar ออก (ถ้ามี) หรือใช้ 100vh ถ้าไม่มี Navbar */
             background-color: var(--secondary-bg);
             margin-top: 0;
         }
@@ -357,6 +361,9 @@
             text-align: right;
         }
 
+        .view-only-mode .item-progress-track {
+            display: none !important;
+        }
         /* --- Responsive --- */
         @@media (max-width: 992px) {
             body {
@@ -475,13 +482,13 @@
             </div>
         </div>
 
-        <div class="info-status-bar">
+        <div class="info-status-bar" id="statusBarSection">
             <div class="row g-0 text-center bg-white border rounded overflow-hidden">
-                <div class="col-6 border-end p-2">
+                <div class="col-6 border-end p-2" id="statusCol">
                     <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Course Status</small>
                     <div id="statusDisplay" class="fw-bold mt-1 text-secondary" style="font-size: 0.9rem;">-</div>
                 </div>
-                <div class="col-6 p-2">
+                <div class="col-6 p-2" id="progressCol">
                     <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Total Progress</small>
                     <div id="totalProgressDisplay" class="fw-bold mt-1 text-dark" style="font-size: 0.9rem;">0%</div>
                 </div>
@@ -534,7 +541,7 @@
         });
 
         // 1. Load Data
-        async function loadCourseData() {
+              async function loadCourseData() {
             if(!ENROLLMENT_ID || ENROLLMENT_ID == 0) {
                  showError("ไม่พบ Enrollment ID");
                  return;
@@ -548,9 +555,14 @@
                 if (response && response.success) {
                     currentData = response.data;
 
-                    // Check Read Only (Completed or Passed)
+                    // ✅ Check Read Only (Completed or Passed)
                     if (currentData.enrollmentStatus === "Completed" || currentData.enrollmentStatus === "Passed") {
                         isReadOnly = true;
+
+                        // ซ่อน Progress Column และทำให้ Status ใช้เต็มความกว้าง
+                        $("#progressCol").hide();
+                        $("#statusCol").removeClass("col-6 border-end").addClass("col-12");
+
                         $("#statusDisplay").text("COMPLETED").addClass("text-success");
                         $("#readOnlyBadge").removeClass("d-none");
                         $("#btnPreSave").hide();
@@ -564,7 +576,7 @@
                             r.clientStatus = r.isCompleted ? "passed" : "incomplete";
                             r.clientProgress = r.isCompleted ? 100 : 0;
                             r.clientScore = r.score || 0;
-                            r.clientTime = "00:00:00"; // เริ่มต้นด้วย 0 หรือค่าเดิมถ้ามี
+                            r.clientTime = "00:00:00";
                         });
                     }
 
@@ -580,14 +592,20 @@
             }
         }
 
+
         // 2. Render UI
-        function renderUI(data) {
+               function renderUI(data) {
             $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
             $("#studentCodeDisplay").text(currentStudentCode || "-");
             $("#versionDisplay").text("v." + (data.courseVersionId || "1"));
 
             const listContainer = $("#courseTocList");
             listContainer.empty();
+
+            // ✅ เพิ่ม Class สำหรับโหมด View Only
+            if (isReadOnly) {
+                listContainer.addClass("view-only-mode");
+            }
 
             if (!data.resources || data.resources.length === 0) {
                 listContainer.html('<div class="alert alert-warning m-3">ไม่พบเนื้อหาในหลักสูตรนี้</div>');
@@ -610,7 +628,6 @@
                                 <span class="resource-type-badge">${item.type}</span>
                             </div>
                             <div class="ms-2 fw-bold small text-muted text-end">
-                            
                                 <div id="res-status-icon-${index}" style="font-size:0.7rem;"></div>
                             </div>
                         </div>
@@ -624,6 +641,7 @@
 
             if (data.resources.length > 0) selectResource(0);
         }
+
 
         // 3. Select Resource
         function selectResource(index) {
@@ -719,7 +737,7 @@
         }
 
         // 6. Recalculate & UI Update
-        function recalcTotalProgress() {
+             function recalcTotalProgress() {
             if(!currentData || !currentData.resources) return;
 
             let totalResources = currentData.resources.length;
@@ -727,41 +745,43 @@
             let totalP = 0;
 
             currentData.resources.forEach((r, idx) => {
-      
-                $(`#res-bar-${idx}`).css("width", r.clientProgress + "%");
+                // ✅ ไม่อัพเดท Progress Bar ในโหมด View Only
+                if (!isReadOnly) {
+                    $(`#res-bar-${idx}`).css("width", r.clientProgress + "%");
+                }
 
                 const isPassed = (r.clientStatus === "passed" || r.clientStatus === "completed" || r.clientProgress >= 100);
 
                 if (isPassed) {
                     passedCount++;
-                    $(`#res-percent-${idx}`).addClass("text-success").removeClass("text-muted");
                     $(`#res-bar-${idx}`).addClass("bg-success").removeClass("bg-primary");
                     $(`#res-status-icon-${idx}`).html('');
                 } else {
-                    $(`#res-percent-${idx}`).removeClass("text-success").addClass("text-muted");
                     $(`#res-status-icon-${idx}`).html('');
                 }
 
                 totalP += r.clientProgress;
             });
 
-            const avg = totalResources > 0 ? Math.floor(totalP / totalResources) : 0;
-            $("#totalProgressDisplay").text(avg + "%");
+            // ✅ อัพเดท Total Progress เฉพาะเมื่อไม่ใช่ View Only
+            if (!isReadOnly) {
+                const avg = totalResources > 0 ? Math.floor(totalP / totalResources) : 0;
+                $("#totalProgressDisplay").text(avg + "%");
 
-            const allPassed = (passedCount === totalResources);
+                const allPassed = (passedCount === totalResources);
 
-            if (isReadOnly) return;
-
-            if (allPassed) {
-                $("#statusDisplay").text("READY TO SAVE").addClass("text-primary");
-                $("#btnPreSave").prop("disabled", false);
-                $("#saveHintText").hide();
-            } else {
-                $("#statusDisplay").text("IN PROGRESS").removeClass("text-primary");
-                $("#btnPreSave").prop("disabled", true);
-                $("#saveHintText").show();
+                if (allPassed) {
+                    $("#statusDisplay").text("READY TO SAVE").addClass("text-primary");
+                    $("#btnPreSave").prop("disabled", false);
+                    $("#saveHintText").hide();
+                } else {
+                    $("#statusDisplay").text("IN PROGRESS").removeClass("text-primary");
+                    $("#btnPreSave").prop("disabled", true);
+                    $("#saveHintText").show();
+                }
             }
         }
+
 
         // 7. Show Summary
         function showSummaryBeforeSave() {

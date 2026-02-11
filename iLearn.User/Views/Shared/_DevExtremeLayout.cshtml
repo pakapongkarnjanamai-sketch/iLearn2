@@ -9,17 +9,14 @@
 
     <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
 
-    <!-- CSS -->
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
 
-    <!-- JavaScript -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <script src="~/js/devextreme/jquery.js"></script>
-
-    <!-- ✅ เปลี่ยนจาก bootstrap.js เป็น bootstrap.bundle.js -->
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
     <script src="~/js/devextreme/filesaver.min.js"></script>
     <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
     <script src="~/js/devextreme/dx.all.js"></script>
@@ -33,6 +30,7 @@
 
     <style>
         :root {
+            /* Theme Colors */
             --brand-color: #027d83;
             --brand-dark: #004d40;
             --brand-light: #e0f2f1;
@@ -46,61 +44,91 @@
         /* Navbar Styling */
         .navbar-custom {
             background-color: var(--brand-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* เพิ่มเงาให้นุ่มขึ้น */
+            /* padding: 0.8rem 1rem; */
         }
 
         .navbar-brand {
             color: white !important;
             font-weight: 700;
             font-size: 1.5rem;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .navbar-nav .nav-link {
-            color: rgba(255,255,255,0.9) !important;
+            color: rgba(255,255,255,0.85) !important;
             font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
         }
 
-            .navbar-nav .nav-link:hover {
+            .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
                 color: white !important;
+                background-color: rgba(255,255,255,0.1);
                 opacity: 1;
             }
 
         /* Footer */
         .footer {
             background-color: white;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #e9ecef;
             color: #6c757d;
+            padding: 1.5rem 0;
+            font-size: 0.9rem;
         }
     </style>
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-custom">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-graduation-cap"></i> iLearn
+                </a>
+                <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <i class="fas fa-bars"></i>
+                </button>
+                @* <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">หน้าหลัก</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/MyLearning/Index">บทเรียนของฉัน</a>
+                        </li>
+                    </ul>
+                </div> *@
+            </div>
+        </nav>
+    </header>
 
-<body>
- 
-
-    <main role="main" class="pb-3">
+    <main role="main" class="flex-grow-1">
         @RenderBody()
     </main>
+
+    <footer class="footer mt-auto text-center">
+        <div class="container">
+            <span>&copy; 2024 - iLearn Learning System</span>
+        </div>
+    </footer>
 
     <script>
         // กำหนด Base URL จาก AppSettings
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
-
-        // ใช้ serviceUrl เป็นตัวแปรกลางสำหรับหน้าต่างๆ (ถ้า API อยู่ที่เดียวกับ Admin ให้ใช้ว่างหรือ /api)
-        // กรณีแยก API Project:
         const serviceUrl = API_BASE;
-        // กรณีรวม Project (Admin เรียก Controller ตัวเอง):
-        // const serviceUrl = "";
 
         // Helper Function: สร้าง DataStore สำหรับ DevExtreme
         function createDataStore(baseUrl, controllerName, options) {
             const defaults = {
                 key: 'Id',
-                // API ของเราคือ baseUrl/controllerName/Get (เช่น .../api/admin/Courses/Get)
                 loadUrl: `${baseUrl}/${controllerName}/Get`,
                 insertUrl: `${baseUrl}/${controllerName}/Post`,
                 updateUrl: `${baseUrl}/${controllerName}/Put`,

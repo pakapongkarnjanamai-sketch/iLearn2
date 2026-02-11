@@ -9,7 +9,6 @@
     var empCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "-";
     var dept = User.FindFirst("Department")?.Value ?? "-";
 
-    // Avatar API (Theme Color)
     var profileImage = "https://ui-avatars.com/api/?name=" + empName + "&background=027d83&color=fff&size=128";
 }
 
@@ -17,14 +16,12 @@
     <style>
         :root {
             --brand-color: #027d83;
-            --brand-light: #e0f2f1;
         }
 
         body {
-            background-color: #f4f6f8;
+            background-color: #f8f9fa;
         }
 
-        /* Utility Classes */
         .text-brand {
             color: var(--brand-color) !important;
         }
@@ -33,88 +30,23 @@
             background-color: var(--brand-color) !important;
         }
 
-        /* Section Titles */
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-            margin-top: 2rem;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
+        .border-brand {
+            border-color: var(--brand-color) !important;
         }
 
-        .section-title {
-            font-weight: 700;
-            color: #333;
-            border-left: 5px solid var(--brand-color);
-            padding-left: 15px;
-            margin-bottom: 0;
+        /* Hover Effect for Cards */
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(2, 125, 131, 0.15) !important;
+            transition: all 0.2s ease;
         }
 
-        /* DevExtreme Card Styling */
-        .dx-card {
-            border-radius: 10px;
-            border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            background-color: white;
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-            .dx-card.hoverable:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 20px rgba(2, 125, 131, 0.15);
-            }
-
-        /* Course Cover Image */
+        /* Course Cover */
         .course-cover {
             height: 160px;
             background-size: cover;
             background-position: center;
-            background-color: #eee;
-            position: relative;
-        }
-
-        /* Progress Bar */
-        .progress-bar-custom {
-            background-color: var(--brand-color);
-            height: 6px;
-            border-radius: 3px;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.95);
-            color: var(--brand-color);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        /* Responsive Logout Section */
-        @@media (max-width: 768px) {
-            .profile-stats {
-                border-left: none !important;
-                border-top: 1px solid #eee;
-                padding-left: 0 !important;
-                padding-top: 15px;
-                margin-top: 10px;
-                width: 100%;
-                justify-content: space-around;
-            }
-
-            .logout-section {
-                border-left: none !important;
-                padding-left: 0 !important;
-                margin-top: 10px;
-                width: 100%;
-            }
+            background-color: #e9ecef;
         }
     </style>
 }
@@ -123,70 +55,44 @@
 {
     <div class="d-flex justify-content-center align-items-center vh-100">
         <div class="text-center">
-            <h2 class="text-muted">กรุณาเข้าสู่ระบบ</h2>
-            <a href="/Home/Index" class="dx-btn dx-btn-default mt-3">Login</a>
+            <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">กรุณาเข้าสู่ระบบ</h4>
+            <a href="/Home/Index" class="btn btn-primary mt-3">เข้าสู่ระบบ</a>
         </div>
     </div>
 }
 else
 {
-    <div class="container pb-5">
+    <div class="container py-4">
 
-        <div class="row mt-4 mb-4">
-            <div class="col-12">
-                <div class="dx-card p-4">
-                    <div class="d-flex align-items-center flex-wrap gap-4">
-                        <img src="@profileImage" class="rounded-circle shadow-sm border border-2 border-white" width="90" height="90" alt="Profile" />
+        <!-- ========== Profile Card ========== -->
+        <div id="profileCard" class="mb-4"></div>
 
-                        <div class="flex-grow-1">
-                            <h3 class="fw-bold text-dark mb-1">@empName</h3>
-                            <div class="text-muted">
-                                <span class="me-3"><i class="fas fa-id-card text-brand me-1"></i> @empCode</span>
-                                <span><i class="fas fa-building text-brand me-1"></i> @dept</span>
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-4 border-start px-4 profile-stats">
-                            <div class="text-center">
-                                <h2 class="fw-bold text-brand mb-0" id="statEnrolled">-</h2>
-                                <small class="text-muted">กำลังเรียน</small>
-                            </div>
-                            <div class="text-center">
-                                <h2 class="fw-bold text-secondary mb-0" id="statCompleted">-</h2>
-                                <small class="text-muted">เรียนจบแล้ว</small>
-                            </div>
-                        </div>
-
-                        <div class="border-start ps-4 logout-section">
-                            <div id="btnLogout"></div>
-                        </div>
-
-                    </div>
-                </div>
+        <!-- ========== My Courses Section ========== -->
+        <div  class="dx-card p-4 shadow-sm mb-4">
+            <div class="d-flex align-items-center mb-3 pb-2">
+                <i class="fas fa-book-reader text-brand me-2 fs-5"></i>
+                <h5 class="fw-bold mb-0">คอร์สเรียนของฉัน</h5>
             </div>
+            <div id="myCoursesLoading" class="text-center py-5">
+                <div class="spinner-border text-brand"></div>
+            </div>
+            <div id="myCoursesContainer" class="row g-3"></div>
         </div>
 
-        <div class="section-header">
-            <h4 class="section-title">คอร์สเรียนของฉัน</h4>
-        </div>
-
-        <div id="myCoursesLoading" class="text-center py-5">
-            <div class="spinner-border text-brand" role="status"></div>
-        </div>
-
-        <div id="myCoursesContainer" class="row g-4">
-        </div>
-
-        <div class="section-header mt-5">
-            <h4 class="section-title">คลังหลักสูตรทั้งหมด</h4>
-            <div id="searchBoxContainer"></div>
-        </div>
-
-        <div id="allCoursesLoading" class="text-center py-5">
-            <div class="spinner-border text-brand" role="status"></div>
-        </div>
-
-        <div id="catalogContainer">
+        <!-- ========== Course Catalog Section ========== -->
+        <div class="dx-card p-4 shadow-sm mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-graduation-cap text-secondary me-2 fs-5"></i>
+                    <h5 class="fw-bold mb-0">คลังหลักสูตรทั้งหมด</h5>
+                </div>
+                <div id="searchBoxContainer"></div>
+            </div>
+            <div id="allCoursesLoading" class="text-center py-5">
+                <div class="spinner-border text-brand"></div>
+            </div>
+            <div id="catalogContainer"></div>
         </div>
 
     </div>
@@ -196,45 +102,93 @@ else
     <script>
         const studentCode = '@empCode';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
-
-        // Data Cache
         let allCoursesData = [];
 
         $(function() {
-            // [เพิ่มใหม่] Init Logout Button
-            $("#btnLogout").dxButton({
-                icon: "runner", // Icon รูปคนวิ่งออก
-                text: "ออกจากระบบ",
-                type: "danger", // สีแดง
-                stylingMode: "text", // แบบไม่มีขอบ (Minimal)
+            initProfileCard();
+            initSearchBox();
+            loadMyCourses();
+            loadAllCourses();
+        });
+
+        // ========== Profile Card (DevExtreme) ==========
+        function initProfileCard() {
+            const profileContent = $("<div>").addClass("d-flex align-items-center flex-wrap gap-4").append(
+                // Avatar
+                $("<img>").attr({
+                    src: '@profileImage',
+                    width: 90,
+                    height: 90,
+                    alt: 'Profile'
+                }).addClass("rounded-circle shadow-sm"),
+
+                // Info
+                $("<div>").addClass("flex-grow-1").append(
+                    $("<h4>").addClass("fw-bold mb-1").text('@empName'),
+                    $("<div>").addClass("text-muted small").html(`
+                        <i class="fas fa-id-card text-brand me-1"></i> @empCode
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-building text-brand me-1"></i> @dept
+                    `)
+                ),
+
+                // Stats
+                $("<div>").addClass("d-flex gap-4 border-start ps-4").append(
+                    $("<div>").addClass("text-center").append(
+                        $("<h3>").addClass("fw-bold text-brand mb-0").attr("id", "statEnrolled").text("-"),
+                        $("<small>").addClass("text-muted").text("กำลังเรียน")
+                    ),
+                    $("<div>").addClass("text-center").append(
+                        $("<h3>").addClass("fw-bold text-success mb-0").attr("id", "statCompleted").text("-"),
+                        $("<small>").addClass("text-muted").text("เรียนจบแล้ว")
+                    )
+                ),
+
+                // Logout Button
+                $("<div>").addClass("border-start ps-4").append(
+                    $("<div>").attr("id", "btnLogout")
+                )
+            );
+
+            $("#profileCard").dxBox({
+                direction: "row",
                 width: "100%",
+                items: [{
+                    ratio: 1,
+                    template: function() {
+                        return $("<div>").addClass("dx-card p-4 shadow-sm").append(profileContent);
+                    }
+                }]
+            });
+
+            // Logout Button
+            $("#btnLogout").dxButton({
+                icon: "runner",
+                text: "ออกจากระบบ",
+                type: "danger",
+                stylingMode: "text",
                 onClick: function() {
-                    // ใช้ DevExtreme Dialog ถามยืนยัน
-                    DevExpress.ui.dialog.confirm("คุณต้องการออกจากระบบใช่หรือไม่?", "ยืนยันการออกจากระบบ").done(function(dialogResult) {
-                        if (dialogResult) {
-                            // เรียก Action Logout
-                            window.location.href = '@Url.Action("Logout", "Home")';
-                        }
+                    DevExpress.ui.dialog.confirm("คุณต้องการออกจากระบบใช่หรือไม่?", "ยืนยัน").done(function(result) {
+                        if (result) window.location.href = '@Url.Action("Logout", "Home")';
                     });
                 }
             });
+        }
 
-            // Init Search Box (DevExtreme)
+        // ========== Search Box ==========
+        function initSearchBox() {
             $("#searchBoxContainer").dxTextBox({
                 placeholder: "ค้นหาหลักสูตร...",
                 mode: "search",
-                width: 300,
+                width: 280,
                 valueChangeEvent: "keyup",
                 onValueChanged: function(e) {
                     filterCatalog(e.value);
                 }
             });
+        }
 
-            loadMyCourses();
-            loadAllCourses();
-        });
-
-        // --- 1. Load My Courses ---
+        // ========== Load My Courses ==========
         function loadMyCourses() {
             $.ajax({
                 url: `${baseUrl}/enrollments/my-courses?studentCode=${studentCode}`,
@@ -246,9 +200,15 @@ else
                         updateStats(res.data);
                         renderMyCourses(res.data);
                     } else {
-                        $("#myCoursesContainer").html('<div class="col-12"><div class="alert alert-light text-center border">คุณยังไม่มีคอร์สที่กำลังเรียน</div></div>');
-                        $("#statEnrolled").text("0");
-                        $("#statCompleted").text("0");
+                        $("#myCoursesContainer").html(`
+                            <div class="col-12">
+                                <div class="alert alert-light text-center border">
+                                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                                    <p class="mb-0">คุณยังไม่มีคอร์สที่กำลังเรียน</p>
+                                </div>
+                            </div>
+                        `);
+                        $("#statEnrolled, #statCompleted").text("0");
                     }
                 },
                 error: function() {
@@ -261,52 +221,48 @@ else
         function renderMyCourses(enrollments) {
             const $container = $("#myCoursesContainer");
             $container.empty();
-
+       
             enrollments.forEach(en => {
                 const course = en.course || {};
+
                 const progress = en.progress || 0;
                 const isCompleted = en.status === 'Completed';
                 const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80';
 
-                const $col = $("<div>").addClass("col-md-6 col-lg-4 col-xl-3");
-                const cardHtml = `
-                    <div class="dx-card hoverable h-100 d-flex flex-column position-relative">
-                        <div class="course-cover" style="background-image: url('${bgImage}');">
-                            ${ isCompleted ? '<div class="status-badge"><i class="fas fa-check-circle me-1"></i>Completed</div>' : '' }
+                const $card = $("<div>").addClass("col-md-6 col-lg-4 col-xl-3").html(`
+                    <div class="card h-100 border-0 shadow-sm card-hover">
+                        <div class="course-cover position-relative" style="background-image: url('${bgImage}');">
+                            ${isCompleted ? '<span class="badge bg-success position-absolute top-0 end-0 m-2"><i class="fas fa-check-circle me-1"></i>เรียนจบ</span>' : ''}
                         </div>
-                        <div class="p-3 flex-grow-1 d-flex flex-column">
-                            <h6 class="fw-bold mb-2 text-truncate" title="${course.title}">${course.title}</h6>
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="fw-bold text-truncate mb-2" title="${en.courseTitle}">${en.courseTitle}</h6>
                             <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                ${course.description || '-'}
+                                ${en.description || '-'}
                             </p>
-
-                            <div class="mt-auto pt-2 border-top">
+                            <div class="mt-auto">
                                 <div class="d-flex justify-content-between small mb-1">
-                                    <span class="text-muted">Progress</span>
+                                    <span class="text-muted">ความคืบหน้า</span>
                                     <span class="fw-bold text-brand">${Math.round(progress)}%</span>
                                 </div>
                                 <div class="progress mb-3" style="height: 6px;">
-                                    <div class="progress-bar progress-bar-custom" style="width: ${progress}%"></div>
+                                    <div class="progress-bar bg-brand" style="width: ${progress}%"></div>
                                 </div>
                                 <div id="btn-action-${en.id}"></div>
                             </div>
                         </div>
                     </div>
-                `;
+                `);
 
-                $col.append(cardHtml);
-                $container.append($col);
+                $container.append($card);
 
                 setTimeout(() => {
                     $(`#btn-action-${en.id}`).dxButton({
-                        text: isCompleted ? "ทบทวนบทเรียน" : (progress > 0 ? "เรียนต่อ" : "เริ่มเรียน"),
-                        icon: isCompleted ? "repeat" : "video",
+                        text: isCompleted ? "ทบทวน" : (progress > 0 ? "เรียนต่อ" : "เริ่มเรียน"),
+                        icon: isCompleted ? "repeat" : "chevronnext",
                         type: isCompleted ? "success" : "default",
                         stylingMode: isCompleted ? "outlined" : "contained",
                         width: "100%",
-                        elementAttr: {
-                             class: isCompleted ? "" : "bg-brand text-white border-0"
-                        },
+                        elementAttr: { class: isCompleted ? "" : "bg-brand text-white border-0" },
                         onClick: function() {
                             window.location.href = `/MyLearning/Player?enrollmentId=${en.id}`;
                         }
@@ -316,13 +272,12 @@ else
         }
 
         function updateStats(data) {
-            const total = data.length;
             const completed = data.filter(e => e.status === 'Completed').length;
-            $("#statEnrolled").text(total - completed);
+            $("#statEnrolled").text(data.length - completed);
             $("#statCompleted").text(completed);
         }
 
-        // --- 2. Load Catalog ---
+        // ========== Load Catalog ==========
         function loadAllCourses() {
             $.ajax({
                 url: `${baseUrl}/courses`,
@@ -334,9 +289,7 @@ else
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);
                     renderCatalog(allCoursesData);
                 },
-                error: function() {
-                     $("#allCoursesLoading").hide();
-                }
+                error: function() { $("#allCoursesLoading").hide(); }
             });
         }
 
@@ -345,87 +298,73 @@ else
             $container.empty();
 
             if (courses.length === 0) {
-                $container.html('<div class="alert alert-light text-center border">ไม่พบข้อมูลหลักสูตร</div>');
+                $container.html('<div class="alert alert-light text-center">ไม่พบหลักสูตร</div>');
                 return;
             }
 
-            const grouped = courses.reduce((acc, course) => {
-                const catName = course.category ? course.category.name : (course.categoryName || 'General');
-                if (!acc[catName]) acc[catName] = [];
-                acc[catName].push(course);
+            const grouped = courses.reduce((acc, c) => {
+                const cat = c.category?.name || c.categoryName || 'ทั่วไป';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(c);
                 return acc;
             }, {});
 
             Object.keys(grouped).forEach(catName => {
-                const catCourses = grouped[catName];
-
-                const $sectionHtml = $(`
-                    <div class="category-group mb-5">
-                        <h5 class="fw-bold text-secondary mb-3"><i class="fas fa-folder me-2"></i>${catName}</h5>
-                        <div class="row g-4 course-list"></div>
+                const $section = $(`
+                    <div class="category-group mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-folder-open text-warning me-2"></i>
+                            <h6 class="fw-bold mb-0">${catName}</h6>
+                        </div>
+                        <div class="row g-3 course-list"></div>
                     </div>
                 `);
 
-                const $list = $sectionHtml.find('.course-list');
+                const $list = $section.find('.course-list');
 
-                catCourses.forEach(c => {
-                    const bgImage = c.coverImageUrl || 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80';
+                grouped[catName].forEach(c => {
+                    const bg = c.coverImageUrl || 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80';
 
-                    const $col = $("<div>")
-                        .addClass("col-md-6 col-lg-3 course-item")
-                        .attr("data-title", c.title.toLowerCase());
-
-                    const cardHtml = `
-                        <div class="dx-card hoverable h-100 d-flex flex-column">
-                            <div class="course-cover" style="background-image: url('${bgImage}'); height: 140px;"></div>
-                            <div class="p-3 flex-grow-1 d-flex flex-column">
-                                <h6 class="fw-bold mb-2 text-dark" style="font-size: 0.95rem;">${c.title}</h6>
-                                <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    const $col = $("<div>").addClass("col-md-6 col-lg-3 course-item").attr("data-title", c.title.toLowerCase()).html(`
+                        <div class="card h-100 border-0 shadow-sm card-hover">
+                            <div class="course-cover" style="background-image: url('${bg}'); height: 140px;"></div>
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-2">${c.title}</h6>
+                                <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                     ${c.description || 'ไม่มีรายละเอียด'}
                                 </p>
-                                <div class="mt-auto pt-2" id="btn-enroll-${c.id}"></div>
+                                <div id="btn-enroll-${c.id}"></div>
                             </div>
                         </div>
-                    `;
+                    `);
 
-                    $col.append(cardHtml);
                     $list.append($col);
 
                     setTimeout(() => {
                         $(`#btn-enroll-${c.id}`).dxButton({
-                            text: "รายละเอียด",
+                            text: "ดูรายละเอียด",
                             stylingMode: "outlined",
                             type: "default",
                             width: "100%",
                             elementAttr: { class: "text-brand border-brand" },
-                            onClick: function() {
-                                DevExpress.ui.notify("ดูรายละเอียด: " + c.title, "info", 1000);
-                            }
+                            onClick: () => DevExpress.ui.notify("ดูรายละเอียด: " + c.title, "info", 1000)
                         });
                     }, 0);
                 });
 
-                $container.append($sectionHtml);
+                $container.append($section);
             });
         }
 
-        // --- Filter Logic ---
+        // ========== Filter ==========
         function filterCatalog(text) {
             const keyword = text.toLowerCase();
-            const $container = $("#catalogContainer");
-
-            $container.find(".course-item").each(function() {
-                const title = $(this).attr("data-title");
-                if (title.includes(keyword)) $(this).show();
-                else $(this).hide();
+            $("#catalogContainer .course-item").each(function() {
+                $(this).toggle($(this).attr("data-title").includes(keyword));
             });
-
-            $container.find(".category-group").each(function() {
-                const visibleCount = $(this).find(".course-item:visible").length;
-                if (visibleCount === 0) $(this).hide();
-                else $(this).show();
+            $("#catalogContainer .category-group").each(function() {
+                $(this).toggle($(this).find(".course-item:visible").length > 0);
             });
         }
-
     </script>
 }
