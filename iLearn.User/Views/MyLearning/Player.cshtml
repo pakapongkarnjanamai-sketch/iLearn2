@@ -485,11 +485,11 @@
         <div class="info-status-bar" id="statusBarSection">
             <div class="row g-0 text-center bg-white border rounded overflow-hidden">
                 <div class="col-6 border-end p-2" id="statusCol">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Course Status</small>
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">สถานะการเรียน</small>
                     <div id="statusDisplay" class="fw-bold mt-1 text-secondary" style="font-size: 0.9rem;">-</div>
                 </div>
                 <div class="col-6 p-2" id="progressCol">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">Total Progress</small>
+                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">ความคืบหน้า</small>
                     <div id="totalProgressDisplay" class="fw-bold mt-1 text-dark" style="font-size: 0.9rem;">0%</div>
                 </div>
             </div>
@@ -563,7 +563,7 @@
                         $("#progressCol").hide();
                         $("#statusCol").removeClass("col-6 border-end").addClass("col-12");
 
-                        $("#statusDisplay").text("COMPLETED").addClass("text-success");
+                        $("#statusDisplay").text("เรียนจบแล้ว").addClass("text-success");
                         $("#readOnlyBadge").removeClass("d-none");
                         $("#btnPreSave").hide();
                         $("#saveHintText").text("หลักสูตรนี้เรียนจบแล้ว (View Only)");
@@ -763,7 +763,7 @@
                 totalP += r.clientProgress;
             });
 
-            // ✅ อัพเดท Total Progress เฉพาะเมื่อไม่ใช่ View Only
+            // ✅ อัพเดท ความคืบหน้า เฉพาะเมื่อไม่ใช่ View Only
             if (!isReadOnly) {
                 const avg = totalResources > 0 ? Math.floor(totalP / totalResources) : 0;
                 $("#totalProgressDisplay").text(avg + "%");
@@ -771,11 +771,11 @@
                 const allPassed = (passedCount === totalResources);
 
                 if (allPassed) {
-                    $("#statusDisplay").text("READY TO SAVE").addClass("text-primary");
+                    $("#statusDisplay").text("พร้อมบันทึก").addClass("text-primary");
                     $("#btnPreSave").prop("disabled", false);
                     $("#saveHintText").hide();
                 } else {
-                    $("#statusDisplay").text("IN PROGRESS").removeClass("text-primary");
+                    $("#statusDisplay").text("กำลังเรียน").removeClass("text-primary");
                     $("#btnPreSave").prop("disabled", true);
                     $("#saveHintText").show();
                 }
