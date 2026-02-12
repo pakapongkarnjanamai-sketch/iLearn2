@@ -31,9 +31,11 @@
 
     <style>
         :root {
+            /* --- Theme Colors --- */
             --brand-color: #027d83;
             --brand-dark: #004d40;
             --brand-light: #e0f2f1;
+            /* --- DevExtreme Overrides --- */
             --dx-color-primary: var(--brand-color) !important;
             --dx-color-link: var(--brand-color) !important;
             --dx-component-color-bg: #fff !important;
@@ -46,6 +48,7 @@
             background-color: #f4f6f8;
         }
 
+        /* --- Navbar --- */
         .navbar-custom {
             background-color: var(--brand-color);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -76,6 +79,7 @@
                 opacity: 1;
             }
 
+        /* --- Footer --- */
         .footer {
             background-color: white;
             border-top: 1px solid #e9ecef;
@@ -83,6 +87,71 @@
             padding: 1.5rem 0;
             font-size: 0.9rem;
         }
+
+        /* ==========================================================================
+                   BOOTSTRAP OVERRIDES (ทับค่าสีเดิมของ Bootstrap)
+                   ========================================================================== */
+
+        /* Links */
+        a {
+            color: var(--brand-color);
+        }
+
+            a:hover {
+                color: var(--brand-dark);
+                text-decoration: none;
+            }
+
+        /* Bootstrap Buttons (.btn-primary) */
+        .btn-primary {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+        }
+
+            .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+                background-color: var(--brand-dark) !important;
+                border-color: var(--brand-dark) !important;
+            }
+
+        /* Bootstrap Outline Buttons (.btn-outline-primary) */
+        .btn-outline-primary {
+            color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+        }
+
+            .btn-outline-primary:hover {
+                background-color: var(--brand-color) !important;
+                color: #fff !important;
+            }
+
+        /* Bootstrap Backgrounds & Text */
+        .bg-primary {
+            background-color: var(--brand-color) !important;
+        }
+
+        .text-primary {
+            color: var(--brand-color) !important;
+        }
+
+        /* Form Inputs Focus State (เปลี่ยนแสงฟุ้งสีฟ้าเป็นสีธีม) */
+        .form-control:focus {
+            border-color: var(--brand-color);
+            box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.25);
+        }
+
+        /* Pagination */
+        .page-item.active .page-link {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+        }
+
+        .page-link {
+            color: var(--brand-color);
+        }
+
+        /* ==========================================================================
+                   DEVEXTREME OVERRIDES (ทับค่าสีเดิมของ DevExtreme)
+                   ========================================================================== */
 
         .dx-button-mode-contained.dx-button-default {
             background-color: var(--brand-color) !important;

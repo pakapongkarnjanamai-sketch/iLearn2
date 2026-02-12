@@ -17,6 +17,10 @@ namespace iLearn.User.Controllers
         {
             return View();
         }
+        public IActionResult NewDesign()
+        {
+            return View();
+        }
 
         public IActionResult Player(int enrollmentId)
         {

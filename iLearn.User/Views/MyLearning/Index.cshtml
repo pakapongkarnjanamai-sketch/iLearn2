@@ -14,9 +14,7 @@
 
 @section Styles {
     <style>
-        :root {
-            --brand-color: #027d83;
-        }
+     
 
         body {
             background-color: #f8f9fa;
@@ -34,19 +32,231 @@
             border-color: var(--brand-color) !important;
         }
 
-        /* Hover Effect for Cards */
-        .card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(2, 125, 131, 0.15) !important;
-            transition: all 0.2s ease;
+        /* --- Page Header --- */
+        .page-header {
+            background-color: white;
+            padding: 2.5rem 0 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 2rem;
         }
 
-        /* Course Cover */
-        .course-cover {
-            height: 160px;
-            background-size: cover;
-            background-position: center;
-            background-color: #e9ecef;
+        .page-title {
+            font-weight: 700;
+            color: #2c3e50;
+            letter-spacing: -0.5px;
+        }
+
+        /* --- Modern Tabs (Filter) --- */
+        .nav-pills {
+            gap: 0.5rem;
+        }
+
+            .nav-pills .nav-link {
+                color: #6c757d;
+                font-weight: 600;
+                border-radius: 50px;
+                padding: 0.5rem 1.5rem;
+                transition: all 0.2s ease;
+                background-color: #f8f9fa;
+                border: 1px solid transparent;
+                cursor: pointer;
+            }
+
+                .nav-pills .nav-link:hover {
+                    background-color: #e9ecef;
+                    color: var(--brand-color);
+                }
+
+                .nav-pills .nav-link.active {
+                    background-color: rgba(2, 125, 131, 0.1);
+                    color: var(--brand-color);
+                    border-color: rgba(2, 125, 131, 0.2);
+                }
+
+        /* --- Course Card (New Design) --- */
+        .my-course-card {
+            border: none;
+            border-radius: 16px;
+            background: white;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+            .my-course-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+            }
+
+        .course-thumb {
+            height: 180px;
+            background-color: #eee;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .course-thumb img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transition: transform 0.5s ease;
+            }
+
+        .my-course-card:hover .course-thumb img {
+            transform: scale(1.05);
+        }
+
+        /* Play Overlay */
+        .course-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .my-course-card:hover .course-overlay {
+            opacity: 1;
+        }
+
+        .play-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand-color);
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .my-course-card:hover .play-icon {
+            transform: scale(1);
+        }
+
+        /* Card Body */
+        .course-body {
+            padding: 1.25rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .course-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .instructor-name {
+            color: #95a5a6;
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid #f8f9fa;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #7f8c8d;
+        }
+
+        .progress-wrapper {
+            height: 8px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--brand-color);
+            border-radius: 4px;
+            transition: width 1s ease-in-out;
+        }
+
+        .btn-continue {
+            margin-top: 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s;
+        }
+
+            .btn-continue:hover {
+                transform: translateY(-2px);
+            }
+
+        /* Loading State */
+        .loading-container {
+            text-align: center;
+            padding: 3rem;
+            color: #aaa;
+        }
+
+        /* Profile Stats */
+        .stat-box {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        /* Catalog Section */
+        .catalog-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .category-badge {
+            background: rgba(2, 125, 131, 0.1);
+            color: var(--brand-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
     </style>
 }
@@ -63,34 +273,100 @@
 }
 else
 {
-    <div class="container py-4">
-
-        <!-- ========== Profile Card ========== -->
-        <div id="profileCard" class="mb-4"></div>
-
-        <!-- ========== My Courses Section ========== -->
-        <div  class="dx-card p-4 shadow-sm mb-4">
-            <div class="d-flex align-items-center mb-3 pb-2">
-                <i class="fas fa-book-reader text-brand me-2 fs-5"></i>
-                <h5 class="fw-bold mb-0">คอร์สเรียนของฉัน</h5>
+    <!-- Page Header with Profile -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-4">
+                        <img src="@profileImage" width="90" height="90" alt="Profile" class="rounded-circle shadow-sm">
+                        <div>
+                            <h2 class="page-title mb-1">สวัสดี, @empName</h2>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-id-card text-brand me-1"></i> @empCode
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-building text-brand me-1"></i> @dept
+                            </p>
+                        </div>
+                        <div id="btnLogout"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="stat-box text-center">
+                                <div class="stat-number text-brand" id="statEnrolled">-</div>
+                                <div class="stat-label">กำลังเรียน</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-box text-center">
+                                <div class="stat-number text-success" id="statCompleted">-</div>
+                                <div class="stat-label">เรียนจบแล้ว</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="myCoursesLoading" class="text-center py-5">
-                <div class="spinner-border text-brand"></div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container pb-5">
+
+        <!-- My Courses Section -->
+        <div class="mb-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">
+                        <i class="fas fa-book-reader text-brand me-2"></i>
+                        บทเรียนของฉัน
+                    </h4>
+                    <p class="text-muted mb-0">ติดตามความคืบหน้าและเรียนรู้ต่อจากจุดเดิม</p>
+                </div>
+
+                <ul class="nav nav-pills" id="pills-tab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="filterMyCourses('all')">
+                            <i class="fas fa-th-large me-1 small"></i> ทั้งหมด
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="filterMyCourses('progress')">
+                            <i class="fas fa-spinner me-1 small"></i> กำลังเรียน
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="filterMyCourses('completed')">
+                            <i class="fas fa-check-circle me-1 small"></i> เรียนจบแล้ว
+                        </a>
+                    </li>
+                </ul>
             </div>
-            <div id="myCoursesContainer" class="row g-3"></div>
+
+            <div id="myCoursesLoading" class="loading-container">
+                <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
+                <p>กำลังโหลดบทเรียนของคุณ...</p>
+            </div>
+            <div id="myCoursesContainer" class="row g-4"></div>
         </div>
 
-        <!-- ========== Course Catalog Section ========== -->
-        <div class="dx-card p-4 shadow-sm mb-4">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-2">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-graduation-cap text-secondary me-2 fs-5"></i>
-                    <h5 class="fw-bold mb-0">คลังหลักสูตรทั้งหมด</h5>
+        <!-- Course Catalog Section -->
+        <div class="catalog-section">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">
+                        <i class="fas fa-graduation-cap text-secondary me-2"></i>
+                        คลังหลักสูตรทั้งหมด
+                    </h4>
+                    <p class="text-muted mb-0">ค้นหาและลงทะเบียนเรียนหลักสูตรใหม่</p>
                 </div>
                 <div id="searchBoxContainer"></div>
             </div>
-            <div id="allCoursesLoading" class="text-center py-5">
-                <div class="spinner-border text-brand"></div>
+
+            <div id="allCoursesLoading" class="loading-container">
+                <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
+                <p>กำลังโหลดหลักสูตร...</p>
             </div>
             <div id="catalogContainer"></div>
         </div>
@@ -103,66 +379,19 @@ else
         const studentCode = '@empCode';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         let allCoursesData = [];
+        let myCoursesData = [];
+        let currentFilter = 'all';
 
         $(function() {
-            initProfileCard();
             initSearchBox();
+            initLogout();
             loadMyCourses();
             loadAllCourses();
+
+             
         });
-
-        // ========== Profile Card (DevExtreme) ==========
-        function initProfileCard() {
-            const profileContent = $("<div>").addClass("d-flex align-items-center flex-wrap gap-4").append(
-                // Avatar
-                $("<img>").attr({
-                    src: '@profileImage',
-                    width: 90,
-                    height: 90,
-                    alt: 'Profile'
-                }).addClass("rounded-circle shadow-sm"),
-
-                // Info
-                $("<div>").addClass("flex-grow-1").append(
-                    $("<h4>").addClass("fw-bold mb-1").text('@empName'),
-                    $("<div>").addClass("text-muted small").html(`
-                        <i class="fas fa-id-card text-brand me-1"></i> @empCode
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-building text-brand me-1"></i> @dept
-                    `)
-                ),
-
-                // Stats
-                $("<div>").addClass("d-flex gap-4 border-start ps-4").append(
-                    $("<div>").addClass("text-center").append(
-                        $("<h3>").addClass("fw-bold text-brand mb-0").attr("id", "statEnrolled").text("-"),
-                        $("<small>").addClass("text-muted").text("กำลังเรียน")
-                    ),
-                    $("<div>").addClass("text-center").append(
-                        $("<h3>").addClass("fw-bold text-success mb-0").attr("id", "statCompleted").text("-"),
-                        $("<small>").addClass("text-muted").text("เรียนจบแล้ว")
-                    )
-                ),
-
-                // Logout Button
-                $("<div>").addClass("border-start ps-4").append(
-                    $("<div>").attr("id", "btnLogout")
-                )
-            );
-
-            $("#profileCard").dxBox({
-                direction: "row",
-                width: "100%",
-                items: [{
-                    ratio: 1,
-                    template: function() {
-                        return $("<div>").addClass("dx-card p-4 shadow-sm").append(profileContent);
-                    }
-                }]
-            });
-
-            // Logout Button
-            $("#btnLogout").dxButton({
+        function initLogout(){
+             $("#btnLogout").dxButton({
                 icon: "runner",
                 text: "ออกจากระบบ",
                 type: "danger",
@@ -174,7 +403,6 @@ else
                 }
             });
         }
-
         // ========== Search Box ==========
         function initSearchBox() {
             $("#searchBoxContainer").dxTextBox({
@@ -186,6 +414,8 @@ else
                     filterCatalog(e.value);
                 }
             });
+
+           
         }
 
         // ========== Load My Courses ==========
@@ -197,6 +427,7 @@ else
                 success: function(res) {
                     $("#myCoursesLoading").hide();
                     if (res.success && res.data && res.data.length > 0) {
+                        myCoursesData = res.data;
                         updateStats(res.data);
                         renderMyCourses(res.data);
                     } else {
@@ -221,60 +452,78 @@ else
         function renderMyCourses(enrollments) {
             const $container = $("#myCoursesContainer");
             $container.empty();
-       
+
             enrollments.forEach(en => {
                 const course = en.course || {};
-
                 const progress = en.progress || 0;
                 const isCompleted = !!en.isCompleted;
                 const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80';
+                const instructor = course.instructor || "ไม่ระบุอาจารย์";
 
-                const $card = $("<div>").addClass("col-md-6 col-lg-4 col-xl-3").html(`
-                    <div class="card h-100 border-0 shadow-sm card-hover">
-                        <div class="course-cover position-relative" style="background-image: url('${bgImage}');">
-                            ${isCompleted ? '<span class="badge bg-success position-absolute top-0 end-0 m-2"><i class="fas fa-check-circle me-1"></i>เรียนจบ</span>' : ''}
-                        </div>
-                        <div class="card-body d-flex flex-column">
-                            <h6 class="fw-bold text-truncate mb-2" title="${en.courseTitle}">${en.courseTitle}</h6>
-                            <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                ${en.description || '-'}
-                            </p>
-                            <div class="mt-auto">
-                                <div class="d-flex justify-content-between small mb-1">
-                                    <span class="text-muted">ความคืบหน้า</span>
-                                    <span class="fw-bold text-brand">${Math.round(progress)}%</span>
+                const statusClass = isCompleted ? 'completed' : (progress > 0 ? 'in-progress' : 'not-started');
+
+                const $card = $("<div>")
+                    .addClass(`col-md-6 col-lg-4 col-xl-3 course-item`)
+                    .attr('data-status', statusClass)
+                    .html(`
+                        <div class="my-course-card">
+                            <div class="course-thumb">
+                                <img src="${bgImage}" alt="${en.courseTitle}">
+                                <div class="course-overlay">
+                                    <div class="play-icon">
+                                        <i class="fas fa-play ps-1"></i>
+                                    </div>
                                 </div>
-                                <div class="progress mb-3" style="height: 6px;">
-                                    <div class="progress-bar bg-brand" style="width: ${progress}%"></div>
+                                ${isCompleted ? '<span class="badge bg-success position-absolute top-0 end-0 m-2"><i class="fas fa-check-circle me-1"></i>เรียนจบ</span>' : ''}
+                            </div>
+                            <div class="course-body">
+                                <h6 class="course-title" title="${en.courseTitle}">${en.courseTitle}</h6>
+                                <p class="instructor-name">
+                                    <i class="far fa-user-circle me-1"></i> โดย: ${instructor}
+                                </p>
+                                <div class="progress-section">
+                                    <div class="progress-info">
+                                        <span class="text-primary">${Math.round(progress)}% เสร็จสิ้น</span>
+                                    </div>
+                                    <div class="progress-wrapper">
+                                        <div class="progress-fill" style="width: ${progress}%;"></div>
+                                    </div>
+                                    <a href="/MyLearning/Player?enrollmentId=${en.id}" class="btn btn-outline-primary w-100 btn-continue">
+                                        ${isCompleted ? 'ทบทวน' : (progress > 0 ? 'เรียนต่อ' : 'เริ่มเรียน')} <i class="fas fa-arrow-right ms-1 small"></i>
+                                    </a>
                                 </div>
-                                <div id="btn-action-${en.id}"></div>
                             </div>
                         </div>
-                    </div>
-                `);
+                    `);
 
                 $container.append($card);
-
-                setTimeout(() => {
-                    $(`#btn-action-${en.id}`).dxButton({
-                        text: isCompleted ? "ทบทวน" : (progress > 0 ? "เรียนต่อ" : "เริ่มเรียน"),
-                        icon: isCompleted ? "repeat" : "chevronnext",
-                        type: isCompleted ? "success" : "default",
-                        stylingMode: isCompleted ? "outlined" : "contained",
-                        width: "100%",
-                        elementAttr: { class: isCompleted ? "" : "bg-brand text-white border-0" },
-                        onClick: function() {
-                            window.location.href = `/MyLearning/Player?enrollmentId=${en.id}`;
-                        }
-                    });
-                }, 0);
             });
         }
 
         function updateStats(data) {
             const completed = data.filter(e => !!e.isCompleted).length;
-            $("#statEnrolled").text(data.length - completed);
+            const inProgress = data.length - completed;
+            $("#statEnrolled").text(inProgress);
             $("#statCompleted").text(completed);
+        }
+
+        // ========== Filter My Courses ==========
+        function filterMyCourses(type) {
+            currentFilter = type;
+
+            // Update active tab
+            $('.nav-pills .nav-link').removeClass('active');
+            event.target.classList.add('active');
+
+            let filteredData = myCoursesData;
+
+            if (type === 'progress') {
+                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) > 0);
+            } else if (type === 'completed') {
+                filteredData = myCoursesData.filter(e => !!e.isCompleted);
+            }
+
+            renderMyCourses(filteredData);
         }
 
         // ========== Load Catalog ==========
@@ -289,7 +538,9 @@ else
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);
                     renderCatalog(allCoursesData);
                 },
-                error: function() { $("#allCoursesLoading").hide(); }
+                error: function() {
+                    $("#allCoursesLoading").hide();
+                }
             });
         }
 
@@ -313,8 +564,10 @@ else
                 const $section = $(`
                     <div class="category-group mb-4">
                         <div class="d-flex align-items-center mb-3">
-                            <i class="fas fa-folder-open text-warning me-2"></i>
-                            <h6 class="fw-bold mb-0">${catName}</h6>
+                            <span class="category-badge me-2">
+                                <i class="fas fa-folder-open me-1"></i>${catName}
+                            </span>
+                            <small class="text-muted">(${grouped[catName].length} หลักสูตร)</small>
                         </div>
                         <div class="row g-3 course-list"></div>
                     </div>
@@ -324,39 +577,43 @@ else
 
                 grouped[catName].forEach(c => {
                     const bg = c.coverImageUrl || 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80';
+                    const instructor = c.instructor || "ไม่ระบุอาจารย์";
 
-                    const $col = $("<div>").addClass("col-md-6 col-lg-3 course-item").attr("data-title", c.title.toLowerCase()).html(`
-                        <div class="card h-100 border-0 shadow-sm card-hover">
-                            <div class="course-cover" style="background-image: url('${bg}'); height: 140px;"></div>
-                            <div class="card-body">
-                                <h6 class="fw-bold mb-2">${c.title}</h6>
-                                <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                    ${c.description || 'ไม่มีรายละเอียด'}
-                                </p>
-                                <div id="btn-enroll-${c.id}"></div>
+                    const $col = $("<div>")
+                        .addClass("col-md-6 col-lg-3 course-item")
+                        .attr("data-title", c.title.toLowerCase())
+                        .html(`
+                            <div class="my-course-card">
+                                <div class="course-thumb">
+                                    <img src="${bg}" alt="${c.title}">
+                                    <div class="course-overlay">
+                                        <div class="play-icon">
+                                            <i class="fas fa-info"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="course-body">
+                                    <h6 class="course-title">${c.title}</h6>
+                                    <p class="instructor-name">
+                                        <i class="far fa-user-circle me-1"></i> โดย: ${instructor}
+                                    </p>
+                                    <div class="mt-auto">
+                                        <button class="btn btn-outline-primary w-100 btn-continue" onclick="viewCourseDetail(${c.id})">
+                                            ดูรายละเอียด <i class="fas fa-arrow-right ms-1 small"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    `);
+                        `);
 
                     $list.append($col);
-
-                    setTimeout(() => {
-                        $(`#btn-enroll-${c.id}`).dxButton({
-                            text: "ดูรายละเอียด",
-                            stylingMode: "outlined",
-                            type: "default",
-                            width: "100%",
-                            elementAttr: { class: "text-brand border-brand" },
-                            onClick: () => DevExpress.ui.notify("ดูรายละเอียด: " + c.title, "info", 1000)
-                        });
-                    }, 0);
                 });
 
                 $container.append($section);
             });
         }
 
-        // ========== Filter ==========
+        // ========== Filter Catalog ==========
         function filterCatalog(text) {
             const keyword = text.toLowerCase();
             $("#catalogContainer .course-item").each(function() {
@@ -365,6 +622,12 @@ else
             $("#catalogContainer .category-group").each(function() {
                 $(this).toggle($(this).find(".course-item:visible").length > 0);
             });
+        }
+
+        // ========== View Course Detail ==========
+        function viewCourseDetail(courseId) {
+            DevExpress.ui.notify("ดูรายละเอียดหลักสูตร ID: " + courseId, "info", 2000);
+            // TODO: Navigate to course detail page or show modal
         }
     </script>
 }

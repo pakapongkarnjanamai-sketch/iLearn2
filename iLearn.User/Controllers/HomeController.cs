@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
-using iLearn.Application.Interfaces.Services; // สมมติว่ามี Interface นี้จากขั้นตอนก่อนหน้า
+using iLearn.Application.Interfaces.Services;
 
 namespace iLearn.User.Controllers
 {
@@ -17,7 +17,6 @@ namespace iLearn.User.Controllers
 
         public IActionResult Index()
         {
-            // ถ้า Login อยู่แล้ว ให้ข้ามไปหน้า MyLearning เลย
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("Index", "MyLearning");
@@ -32,13 +31,15 @@ namespace iLearn.User.Controllers
 
             if (employee != null)
             {
-                // เก็บข้อมูลเข้า Claims เพื่อใช้ในหน้า MyLearning
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, employee.Code),
                     new Claim(ClaimTypes.Name, employee.Name),
                     new Claim("Department", employee.Department ?? "-"),
-                    new Claim("Division", employee.Division ?? "-")
+                    new Claim("Division", employee.Division ?? "-"),
+                    // เพิ่ม Email และ ProfileImage ถ้ามี
+                    //new Claim(ClaimTypes.Email, employee.Email ?? ""),
+                    //new Claim("ProfileImage", employee.ProfileImageUrl ?? "")
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -50,6 +51,29 @@ namespace iLearn.User.Controllers
             }
 
             return Json(new { success = false, message = "ไม่พบข้อมูลพนักงาน" });
+        }
+
+        // ✨ เพิ่ม Action สำหรับดึงข้อมูล User ปัจจุบัน
+        [HttpGet]
+        public IActionResult GetCurrentUser()
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return Json(new { success = false });
+            }
+
+            var userData = new
+            {
+                success = true,
+                employeeCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                name = User.FindFirst(ClaimTypes.Name)?.Value,
+                email = User.FindFirst(ClaimTypes.Email)?.Value,
+                department = User.FindFirst("Department")?.Value,
+                division = User.FindFirst("Division")?.Value,
+                profileImage = User.FindFirst("ProfileImage")?.Value
+            };
+
+            return Json(userData);
         }
 
         public async Task<IActionResult> Logout()
