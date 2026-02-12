@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace iLearn.Application.DTOs
+﻿namespace iLearn.Application.DTOs
 {
     public class UpdateProgressDto
     {

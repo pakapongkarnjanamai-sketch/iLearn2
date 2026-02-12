@@ -201,7 +201,7 @@
 
         .item-progress-fill {
             height: 100%;
-            background: var(--success-color); /* สีเขียวของ Progress */
+            background: var(--primary-color); /* สีเขียวของ Progress */
             width: 0%;
             transition: width 0.5s ease;
         }
@@ -754,7 +754,6 @@
 
                 if (isPassed) {
                     passedCount++;
-                    $(`#res-bar-${idx}`).addClass("bg-success").removeClass("bg-primary");
                     $(`#res-status-icon-${idx}`).html('');
                 } else {
                     $(`#res-status-icon-${idx}`).html('');

@@ -1,6 +1,5 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
-using iLearn.Application.Mappings;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
@@ -128,15 +127,15 @@ namespace iLearn.API.Controllers
                 if (passedCount >= allResourceIds.Count)
                 {
                     enrollment.Status = "Completed";
-                    //enrollment.Progress = 100;
-                    //enrollment.CompletedDate = DateTime.Now;
+                    enrollment.Progress = 100;
+                    enrollment.CompletedDate = DateTime.Now;
                     await _enrollmentRepo.UpdateAsync(enrollment);
                 }
                 else
                 {
                     // ถ้ายังไม่ครบ อาจจะอัปเดต % รวม
                     double courseProgress = ((double)passedCount / allResourceIds.Count) * 100;
-                    //enrollment.Progress = courseProgress;
+                    enrollment.Progress = courseProgress;
                     await _enrollmentRepo.UpdateAsync(enrollment);
                 }
             }
@@ -144,6 +143,6 @@ namespace iLearn.API.Controllers
             return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved successfully." });
         }
 
-   
+
     }
 }

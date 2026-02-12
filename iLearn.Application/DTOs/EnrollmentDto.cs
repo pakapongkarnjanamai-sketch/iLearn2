@@ -9,5 +9,8 @@
         public int EnrolledVersion { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime? CompletedDate { get; set; }
+        public double Progress { get; set; }
+
+
     }
 }
