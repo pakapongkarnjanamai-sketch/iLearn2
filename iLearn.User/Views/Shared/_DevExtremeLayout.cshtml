@@ -23,6 +23,7 @@
     <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
     <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
     <script src="~/src/devextreme-license.js"></script>
+
     <script src="~/js/site.js"></script>
     <script src="~/lib/font-awesome/js/all.min.js"></script>
 
@@ -30,10 +31,14 @@
 
     <style>
         :root {
-            /* Theme Colors */
             --brand-color: #027d83;
             --brand-dark: #004d40;
             --brand-light: #e0f2f1;
+            --dx-color-primary: var(--brand-color) !important;
+            --dx-color-link: var(--brand-color) !important;
+            --dx-component-color-bg: #fff !important;
+            --dx-color-text: #333 !important;
+            --dx-color-border: #ddd !important;
         }
 
         body {
@@ -41,11 +46,9 @@
             background-color: #f4f6f8;
         }
 
-        /* Navbar Styling */
         .navbar-custom {
             background-color: var(--brand-color);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* เพิ่มเงาให้นุ่มขึ้น */
-            /* padding: 0.8rem 1rem; */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .navbar-brand {
@@ -73,13 +76,83 @@
                 opacity: 1;
             }
 
-        /* Footer */
         .footer {
             background-color: white;
             border-top: 1px solid #e9ecef;
             color: #6c757d;
             padding: 1.5rem 0;
             font-size: 0.9rem;
+        }
+
+        .dx-button-mode-contained.dx-button-default {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+            color: #fff !important;
+        }
+
+            .dx-button-mode-contained.dx-button-default.dx-state-hover {
+                background-color: var(--brand-dark) !important;
+                border-color: var(--brand-dark) !important;
+            }
+
+        .dx-texteditor.dx-state-focused,
+        .dx-texteditor.dx-state-active {
+            border-color: var(--brand-color) !important;
+        }
+
+            .dx-texteditor.dx-state-focused .dx-texteditor-label {
+                color: var(--brand-color) !important;
+            }
+
+        .dx-checkbox-checked .dx-checkbox-icon {
+            color: var(--brand-color) !important;
+        }
+
+        .dx-radiobutton-icon-checked .dx-radiobutton-icon-dot {
+            background-color: var(--brand-color) !important;
+        }
+
+        .dx-datagrid-headers .dx-header-row > td {
+            border-bottom: 2px solid var(--brand-color) !important;
+            color: var(--brand-color) !important;
+            font-weight: 600;
+        }
+
+        .dx-pager .dx-pages .dx-selection {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+            color: #fff !important;
+        }
+
+        .dx-tab.dx-tab-selected {
+            color: var(--brand-color) !important;
+        }
+
+            .dx-tab.dx-tab-selected::after {
+                border-bottom: 2px solid var(--brand-color) !important;
+            }
+
+        .dx-loadindicator-segment {
+            background-color: var(--brand-color) !important;
+        }
+
+        .dx-link {
+            color: var(--brand-color) !important;
+        }
+
+        .dx-switch-on-value .dx-switch-handle::before {
+            background-color: var(--brand-color) !important;
+        }
+
+        .dx-switch-on-value .dx-switch-container {
+            border-color: var(--brand-color) !important;
+        }
+
+        .dx-progressbar-range,
+        .dx-slider-range.dx-slider-range-visible,
+        .dx-slider-handle {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
         }
     </style>
 
@@ -96,16 +169,10 @@
                 <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <i class="fas fa-bars"></i>
                 </button>
-                @* <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link" href="/">หน้าหลัก</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/MyLearning/Index">บทเรียนของฉัน</a>
-                        </li>
                     </ul>
-                </div> *@
+                </div>
             </div>
         </nav>
     </header>
@@ -121,11 +188,9 @@
     </footer>
 
     <script>
-        // กำหนด Base URL จาก AppSettings
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
         const serviceUrl = API_BASE;
 
-        // Helper Function: สร้าง DataStore สำหรับ DevExtreme
         function createDataStore(baseUrl, controllerName, options) {
             const defaults = {
                 key: 'Id',
@@ -141,14 +206,13 @@
             if (options && options.action) {
                 defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
                 if (options.ParamKey) {
-                     defaults.loadUrl += `/${options.ParamKey}`;
+                    defaults.loadUrl += `/${options.ParamKey}`;
                 }
             }
 
             return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
         }
 
-        // Helper Function: จัดการการ Export Excel
         function handleExporting(e, fileName) {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
