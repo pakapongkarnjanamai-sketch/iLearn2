@@ -14,15 +14,6 @@
 
         :root {
             --sidebar-width: 400px;
-            /* Theme Colors */
-            --primary-color: #027d83; /* สีหลัก (Teal) */
-            --primary-dark: #004d40; /* สีหลักเข้ม (สำหรับ Hover) */
-            --primary-light: #e0f2f1; /* สีพื้นหลังอ่อนๆ (สำหรับ Active Item) */
-
-            --secondary-bg: #f4f6f8; /* สีพื้นหลังหน้าเว็บ */
-            --success-color: #28a745; /* สีเขียวสำหรับสถานะ Passed */
-            --text-color: #333;
-            --text-muted: #6c757d;
         }
 
         footer {
@@ -92,7 +83,7 @@
             width: 90px;
             height: 90px;
             border-radius: 50%;
-            background: var(--primary-color);
+            background: var(--brand-color);
             color: white;
             border: none;
             font-size: 32px;
@@ -106,7 +97,7 @@
 
             .start-btn:hover {
                 transform: scale(1.05);
-                background: var(--primary-dark);
+                background: var(--brand-dark);
                 box-shadow: 0 8px 25px rgba(2, 125, 131, 0.5);
             }
 
@@ -137,7 +128,7 @@
             padding: 15px 20px;
             background-color: #fff;
             font-weight: 700;
-            color: var(--text-color);
+            color: var(--dx-color-text);
             border-bottom: 1px solid #f0f0f0;
             display: flex;
             align-items: center;
@@ -169,8 +160,8 @@
             }
 
             .resource-item.active {
-                border-color: var(--primary-color);
-                background-color: var(--primary-light); /* สีพื้นหลังเมื่อเลือก */
+                border-color: var(--brand-color);
+                background-color: var(--brand-light); /* สีพื้นหลังเมื่อเลือก */
             }
 
                 /* แถบสีเขียวเล็กๆ ด้านซ้ายของ Active Item */
@@ -181,7 +172,7 @@
                     top: 0;
                     bottom: 0;
                     width: 4px;
-                    background-color: var(--primary-color);
+                    background-color: var(--brand-color);
                 }
 
             .resource-item.disabled {
@@ -201,7 +192,7 @@
 
         .item-progress-fill {
             height: 100%;
-            background: var(--primary-color); /* สีเขียวของ Progress */
+            background: var(--brand-color); /* สีเขียวของ Progress */
             width: 0%;
             transition: width 0.5s ease;
         }
@@ -211,7 +202,7 @@
             padding: 3px 8px;
             border-radius: 12px;
             background: #e9ecef;
-            color: var(--text-muted);
+            color: #6c757d;
             display: inline-block;
             margin-top: 4px;
             font-weight: 500;
@@ -226,7 +217,7 @@
 
         .btn-save-course {
             width: 100%;
-            background-color: var(--primary-color);
+            background-color: var(--brand-color);
             color: white;
             font-weight: bold;
             border: none;
@@ -245,14 +236,14 @@
             }
 
             .btn-save-course:hover:not(:disabled) {
-                background-color: var(--primary-dark);
+                background-color: var(--brand-dark);
                 transform: translateY(-2px);
                 box-shadow: 0 6px 12px rgba(2, 125, 131, 0.3);
             }
 
         /* --- Text Colors --- */
         .text-primary {
-            color: var(--primary-color) !important;
+            color: var(--brand-color) !important;
         }
 
         .text-success {
@@ -296,7 +287,7 @@
         }
 
         .summary-header {
-            background: var(--primary-color);
+            background: var(--brand-color);
             color: white;
             padding: 15px 20px;
             text-align: center;
