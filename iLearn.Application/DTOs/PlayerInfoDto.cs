@@ -6,8 +6,8 @@
         public string StudentCode { get; set; } = string.Empty;
         public string CourseTitle { get; set; } = string.Empty;
 
-        // [เพิ่มใหม่] ส่งสถานะ Enrollment กลับไปเช็ค Read-only
-        public string EnrollmentStatus { get; set; } = "Not Started";
+        // [เพิ่มใหม่] ส่งสถานะ Enrollment กลับเป็น boolean
+        public bool IsCompleted { get; set; } = false;
 
         public List<PlayerResourceDto> Resources { get; set; } = new();
     }

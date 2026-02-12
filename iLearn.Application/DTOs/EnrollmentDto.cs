@@ -7,7 +7,8 @@
         public int CourseId { get; set; }
         public string CourseTitle { get; set; } = string.Empty;
         public int EnrolledVersion { get; set; }
-        public string Status { get; set; } = string.Empty;
+        // Replace string Status with boolean flag
+        public bool IsCompleted { get; set; }
         public DateTime? CompletedDate { get; set; }
         public double Progress { get; set; }
 

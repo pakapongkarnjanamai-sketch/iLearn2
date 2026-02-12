@@ -10,7 +10,8 @@ namespace iLearn.Domain.Entities
         public Course? Course { get; set; }
 
         public int EnrolledVersion { get; set; }
-        public string Status { get; set; } = "Not Started"; // Not Started, In Progress, Completed
+        // Replace string status with boolean flag for completion
+        public bool IsCompleted { get; set; } = false;
         public DateTime? DueDate { get; set; }
         public DateTime? CompletedDate { get; set; }
 

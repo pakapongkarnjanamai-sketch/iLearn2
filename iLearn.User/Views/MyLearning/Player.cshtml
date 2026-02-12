@@ -555,8 +555,8 @@
                 if (response && response.success) {
                     currentData = response.data;
 
-                    // ✅ Check Read Only (Completed or Passed)
-                    if (currentData.enrollmentStatus === "Completed" || currentData.enrollmentStatus === "Passed") {
+                    // ✅ Check Read Only (Completed)
+                    if (currentData.isCompleted === true || currentData.isCompleted === 'true') {
                         isReadOnly = true;
 
                         // ซ่อน Progress Column และทำให้ Status ใช้เต็มความกว้าง

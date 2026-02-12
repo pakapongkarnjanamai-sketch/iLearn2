@@ -135,7 +135,7 @@ namespace iLearn.Application.Services
                     StudentCode = user.Nid,
                     CourseId = course.Id,
                     EnrolledVersion = currentVersion, // ใช้ Version จาก Logic ใหม่
-                    Status = "Not Started",
+                    IsCompleted = false,
                     CreatedAt = DateTime.UtcNow
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
@@ -144,7 +144,7 @@ namespace iLearn.Application.Services
             {
                 // เคยเรียนแล้ว แต่มี Version ใหม่ -> Reset ให้ Retake
                 existing.EnrolledVersion = currentVersion; // อัปเดต Version
-                existing.Status = "Not Started";
+                existing.IsCompleted = false;
                 existing.CompletedDate = null;
 
                 await _enrollmentRepo.UpdateAsync(existing);

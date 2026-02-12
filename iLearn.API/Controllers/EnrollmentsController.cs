@@ -100,17 +100,22 @@ namespace iLearn.API.Controllers
             return Ok(new ApiResponse<EnrollmentDto> { Success = true, Data = enrollment.ToDto() });
         }
 
-        [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
+        // New: update completion flag
+        [HttpPut("{id}/completion")]
+        public async Task<IActionResult> UpdateCompletion(int id, [FromBody] bool isComplete)
         {
             var enrollment = await _enrollmentRepo.GetByIdAsync(id);
             if (enrollment == null) return NotFound(new ApiResponse<string> { Success = false, Message = "Not Found" });
 
-            enrollment.Status = status;
-
-            if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase) || status.Equals("Passed", StringComparison.OrdinalIgnoreCase))
+            enrollment.IsCompleted = isComplete;
+            if (isComplete)
             {
-                enrollment.CompletedDate = DateTime.UtcNow; // ควรใช้ DateTimeService ถ้ามี
+                enrollment.CompletedDate = DateTime.UtcNow;
+                enrollment.Progress = 100;
+            }
+            else
+            {
+                enrollment.CompletedDate = null;
             }
 
             await _enrollmentRepo.UpdateAsync(enrollment);
@@ -197,7 +202,8 @@ namespace iLearn.API.Controllers
                 CourseVersionId = targetVersion.Id,
                 StudentCode = enrollment.StudentCode,
                 CourseTitle = targetVersion.Course?.Title ?? "Unknown Course",
-                EnrollmentStatus = enrollment.Status, // ส่งสถานะกลับไปเช็ค Read-only
+                // send boolean flag
+                IsCompleted = enrollment.IsCompleted,
                 Resources = resources
             };
 

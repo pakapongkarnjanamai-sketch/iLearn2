@@ -38,7 +38,7 @@
                             { dataField: 'Id', editorOptions: { disabled: true } },
                             { dataField: 'StudentCode' },
                             { dataField: 'CourseId' },
-                            { dataField: 'Status' },
+                            { dataField: 'isCompleted', editorType: 'dxCheckBox', caption: 'Completed' },
                             { dataField: 'DueDate', editorType: 'dxDateBox' },
                             { dataField: 'CompletedDate', editorType: 'dxDateBox' }
                         ]
@@ -56,7 +56,7 @@
                             valueExpr: 'id'
                         }
                     },
-                    { dataField: "status", caption: "Status" },
+                    { dataField: "isCompleted", caption: "Completed", dataType: "boolean", width: 100 },
                     { dataField: "dueDate", caption: "Due Date", dataType: "date", format: "yyyy-MM-dd" },
                     { dataField: "completedDate", caption: "Completed", dataType: "date", format: "yyyy-MM-dd HH:mm" }
                 ],

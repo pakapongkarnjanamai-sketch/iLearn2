@@ -39,8 +39,8 @@ namespace iLearn.API.Controllers
                 return Unauthorized(new ApiResponse<string> { Success = false, Message = "Student code mismatch" });
 
             // --- NEW: Read Only Mode ---
-            // ถ้าเรียนจบไปแล้ว ไม่ให้บันทึกเพิ่ม (ตามข้อ 1.1)
-            if (enrollment.Status == "Completed" || enrollment.Status == "Passed")
+            // ถ้าเรียนจบไปแล้ว ไม่ให้บันทึกเพิ่ม
+            if (enrollment.IsCompleted)
             {
                 return Ok(new ApiResponse<string> { Success = true, Message = "Course is already completed. No updates allowed." });
             }
@@ -126,7 +126,7 @@ namespace iLearn.API.Controllers
                 // ถ้าผ่านครบทุกตัว
                 if (passedCount >= allResourceIds.Count)
                 {
-                    enrollment.Status = "Completed";
+                    enrollment.IsCompleted = true;
                     enrollment.Progress = 100;
                     enrollment.CompletedDate = DateTime.Now;
                     await _enrollmentRepo.UpdateAsync(enrollment);
