@@ -12,8 +12,6 @@ namespace iLearn.Application.Mappings
         {
             if (entity == null) return null;
 
-            // [Modified] หา Version ปัจจุบันจาก Collection Versions
-            // ถ้าไม่มีให้ Default เป็น 0 หรือค่าที่เหมาะสม
             var currentVersion = entity.Versions?
                 .Where(v => v.IsActive)
                 .OrderByDescending(v => v.VersionNumber)
@@ -27,7 +25,12 @@ namespace iLearn.Application.Mappings
                 Description = entity.Description,
                 IsActive = entity.IsActive,
                 Type = entity.Type,
-                TypeName = entity.Type.ToString(),
+                TypeName = entity.Type.ToString(), // หรือจะ Map เป็นภาษาไทยที่นี่เลยก็ได้ เช่น entity.Type == CourseType.General ? "วิชาทั่วไป" : "วิชาเฉพาะทาง"
+
+                // [เพิ่มใหม่] Map ข้อมูล Category
+                CategoryId = entity.CategoryId,
+                CategoryName = entity.Category?.Name ?? "General", // ป้องกัน Null
+
                 Version = currentVersion?.VersionNumber ?? 0
             };
         }

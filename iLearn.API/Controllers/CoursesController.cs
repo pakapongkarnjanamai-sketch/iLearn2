@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
+using iLearn.Application.Mappings;
 using System;
 using System.Collections.Generic;
 using System.Linq; // จำเป็นสำหรับ LINQ
@@ -33,10 +34,19 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] bool isActive = true)
         {
-            var courses = await _courseRepo.GetAllAsync();
-            return Ok(courses);
+            // ดึงข้อมูล Course พร้อม Category และ Versions
+            var courses = await _courseRepo.GetAsync(
+                filter: c => c.IsActive == isActive,
+                includeProperties: "Category,Versions"
+            );
+
+            // แปลงเป็น DTO (ตอนนี้จะเรียกใช้ .ToDto() ได้แล้ว)
+            var courseDtos = courses.Select(c => c.ToDto()).ToList();
+
+            // ส่งกลับในรูปแบบมาตรฐานที่ Frontend คาดหวัง { success: true, data: [...] }
+            return Ok(new { success = true, data = courseDtos });
         }
 
         // [ปรับปรุง] GetById ให้ส่ง ResourceIds กลับไปแสดงผลด้วย
