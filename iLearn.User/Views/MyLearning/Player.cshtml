@@ -854,39 +854,99 @@
         }
 
         // --- SCORM ADAPTER ---
-        function initScormAdapter() {
-            window.API = {
-                LMSInitialize: function(p) { return "true"; },
-                LMSGetValue: function(e) { return ""; },
-                LMSSetValue: function(e, v) {
-                    if (e === "cmi.core.lesson_status") updateResourceData("status", v);
-                    if (e === "cmi.core.score.raw") updateResourceData("score", v);
-                    return "true";
-                },
-                LMSCommit: function(p) { return "true"; },
-                LMSFinish: function(p) { return "true"; },
-                LMSGetLastError: function() { return "0"; },
-                LMSGetErrorString: function(e) { return ""; },
-                LMSGetDiagnostic: function(e) { return ""; }
-            };
 
-            window.API_1484_11 = {
-                Initialize: function(p) { return true; },
-                Terminate: function(p) { return true; },
-                GetValue: function(element) { return ""; },
-                SetValue: function(element, value) {
-                    if (element === "cmi.completion_status" || element === "cmi.success_status") updateResourceData("status", value);
-                    if (element === "cmi.progress_measure") updateResourceData("progress", parseFloat(value) * 100);
-                    if (element === "cmi.score.raw") updateResourceData("score", value);
-                    return true;
-                },
-                Commit: function(p) { return true; },
-                GetLastError: function() { return 0; },
-                GetErrorString: function(e) { return ""; },
-                GetDiagnostic: function(e) { return ""; }
-            };
-            console.log("SCORM ADAPTER READY");
-        }
+          // เก็บค่าตัวแปร SCORM ไว้ใน Memory เพื่อให้ LMSGetValue ดึงไปใช้ได้
+          var cmiModel = {
+              "cmi.core.student_id": currentStudentCode,
+              "cmi.core.student_name": currentStudentCode, // หรือชื่อเต็มถ้ามี
+              "cmi.core.lesson_status": "not attempted",
+              "cmi.core.score.raw": "",
+              "cmi.suspend_data": "",
+              "cmi.core.lesson_location": ""
+          };
+
+          function initScormAdapter() {
+              // --- SCORM 1.2 API ---
+              window.API = {
+                  LMSInitialize: function(p) {
+                      console.log("SCORM 1.2: LMSInitialize");
+                      return "true";
+                  },
+                  LMSGetValue: function(element) {
+                      console.log("SCORM 1.2: LMSGetValue", element);
+                      // ส่งค่ากลับตามที่บทเรียนขอมา
+                      if (cmiModel.hasOwnProperty(element)) {
+                          return cmiModel[element];
+                      }
+                      return "";
+                  },
+                  LMSSetValue: function(element, value) {
+                      console.log("SCORM 1.2: LMSSetValue", element, value);
+
+                      // 1. อัปเดตลง Memory ตัวแปร
+                      cmiModel[element] = value;
+
+                      // 2. อัปเดต UI และ Logic ฝั่ง Client ของเรา
+                      if (element === "cmi.core.lesson_status") updateResourceData("status", value);
+                      if (element === "cmi.core.score.raw") updateResourceData("score", value);
+                      // (Optional) ถ้าบทเรียนส่ง suspend_data มา เราอาจจะอยากเก็บไว้ด้วย
+
+                      return "true";
+                  },
+                  LMSCommit: function(p) {
+                      console.log("SCORM 1.2: LMSCommit");
+                      // ตรงนี้อาจจะเรียกฟังก์ชัน save ลง Server แบบ Silent (ถ้าต้องการ)
+                      return "true";
+                  },
+                  LMSFinish: function(p) {
+                      console.log("SCORM 1.2: LMSFinish");
+                      // จบการทำงาน อาจจะสรุปเวลา
+                      return "true";
+                  },
+                  LMSGetLastError: function() { return "0"; },
+                  LMSGetErrorString: function(e) { return "No error"; },
+                  LMSGetDiagnostic: function(e) { return "No diagnostic"; }
+              };
+
+              // --- SCORM 2004 API ---
+              window.API_1484_11 = {
+                  Initialize: function(p) {
+                      console.log("SCORM 2004: Initialize");
+                      return "true";
+                  },
+                  Terminate: function(p) {
+                      console.log("SCORM 2004: Terminate");
+                      return "true";
+                  },
+                  GetValue: function(element) {
+                      console.log("SCORM 2004: GetValue", element);
+                       // Map 2004 keys to model if needed, or simple return for now
+                      return "";
+                  },
+                  SetValue: function(element, value) {
+                      console.log("SCORM 2004: SetValue", element, value);
+
+                      if (element === "cmi.completion_status" || element === "cmi.success_status") {
+                          updateResourceData("status", value);
+                      }
+                      if (element === "cmi.progress_measure") {
+                          // SCORM 2004 sends progress as 0.0 to 1.0
+                          updateResourceData("progress", parseFloat(value) * 100);
+                      }
+                      if (element === "cmi.score.raw") {
+                          updateResourceData("score", value);
+                      }
+
+                      return "true"; // Must be string "true" in some strict implementations
+                  },
+                  Commit: function(p) { return "true"; },
+                  GetLastError: function() { return "0"; },
+                  GetErrorString: function(e) { return "No error"; },
+                  GetDiagnostic: function(e) { return "No diagnostic"; }
+              };
+
+              console.log("SCORM ADAPTER READY (Fixed Version)");
+          }
 
         function toggleFullscreen() {
             const elem = document.getElementById("fullscreenArea");
