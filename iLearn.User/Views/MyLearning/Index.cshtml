@@ -108,7 +108,7 @@
             transform: scale(1.05);
         }
 
-        /* Course Code Overlay - แทนที่ Play Icon */
+        /* Course Code Overlay */
         .course-code-overlay {
             position: absolute;
             top: 0;
@@ -135,7 +135,6 @@
             line-height: 1.4;
             word-break: break-word;
         }
-
 
         /* ซ่อน Play Overlay และ Play Icon */
         .course-overlay {
@@ -175,14 +174,14 @@
             border-top: 1px solid #f8f9fa;
         }
 
-        /* ✅ DueDate Row - บรรทัดแรก */
+        /* DueDate Row */
         .due-date-row {
             display: flex;
             align-items: center;
             font-size: 0.85rem;
         }
 
-        /* ✅ Progress Info - บรรทัดที่สอง */
+        /* Progress Info */
         .progress-info {
             display: flex;
             align-items: center;
@@ -217,6 +216,7 @@
             .btn-continue:hover {
                 transform: translateY(-2px);
             }
+
         /* Loading State */
         .loading-container {
             text-align: center;
@@ -249,6 +249,7 @@
             border-radius: 8px;
             padding: 2rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            min-height: 900px;
         }
 
         .category-badge {
@@ -258,6 +259,140 @@
             border-radius: 16px;
             font-size: 0.85rem;
             font-weight: 600;
+        }
+
+        /* ========== Category Sidebar ========== */
+        .catalog-layout {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .category-sidebar {
+            flex: 0 0 280px;
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+            .category-sidebar h5 {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #2c3e50;
+                margin-bottom: 1rem;
+                padding-bottom: 0.75rem;
+                border-bottom: 2px solid var(--brand-color);
+            }
+
+        .category-menu-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            border: 1px solid transparent;
+        }
+
+            .category-menu-item:hover {
+                background: rgba(2, 125, 131, 0.05);
+                border-color: rgba(2, 125, 131, 0.2);
+            }
+
+            .category-menu-item.active {
+                background: rgba(2, 125, 131, 0.1);
+                border-color: var(--brand-color);
+                color: var(--brand-color);
+                font-weight: 600;
+            }
+
+            .category-menu-item .category-name {
+                flex: 1;
+                font-size: 0.9rem;
+            }
+
+            .category-menu-item .course-count {
+                background: white;
+                padding: 0.15rem 0.5rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #6c757d;
+            }
+
+            .category-menu-item.active .course-count {
+                background: var(--brand-color);
+                color: white;
+            }
+
+        .catalog-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* ========== Course Type Section ========== */
+        .course-type-section {
+            /*   background: white;
+                    border-radius: 8px; */
+            /* padding: 1.5rem; */
+            margin-bottom: 1.5rem;
+            /* box-shadow: 0 2px 8px rgba(0,0,0,0.04); */
+        }
+
+        .course-type-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .type-badge {
+            padding: 0.35rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+            .type-badge.general {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            .type-badge.special {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+            }
+
+        /* ========== Search Highlight ========== */
+        .search-highlight {
+            background-color: yellow;
+            font-weight: bold;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* ========== Responsive ========== */
+        @@media (max-width: 991px) {
+            .catalog-layout {
+                flex-direction: column;
+            }
+
+            .category-sidebar {
+                flex: 1;
+                position: relative;
+                top: 0;
+            }
         }
     </style>
 }
@@ -313,7 +448,7 @@ else
     </div>
 
     <!-- Main Content -->
-    <div class="container pb-5">
+    <div class="container pb-4">
 
         <!-- My Courses Section -->
         <div class="mb-5">
@@ -367,7 +502,21 @@ else
                 <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
                 <p>กำลังโหลดหลักสูตร...</p>
             </div>
-            <div id="catalogContainer"></div>
+
+            <!-- New Layout: Sidebar + Content -->
+            <div class="catalog-layout" id="catalogLayout" style="display: none;">
+                <!-- Category Sidebar -->
+                <div class="category-sidebar">
+                    <h5>
+                        <i class="fas fa-folder-tree me-2"></i>
+                        หมวดหมู่
+                    </h5>
+                    <div id="categoryMenu"></div>
+                </div>
+
+                <!-- Course Content -->
+                <div class="catalog-content" id="catalogContent"></div>
+            </div>
         </div>
 
     </div>
@@ -380,6 +529,8 @@ else
         let allCoursesData = [];
         let myCoursesData = [];
         let currentFilter = 'all';
+        let selectedCategoryId = 'all';
+        let categorizedCourses = {};
 
         $(function() {
             initSearchBox();
@@ -407,7 +558,7 @@ else
             $("#searchBoxContainer").dxTextBox({
                 placeholder: "ค้นหาหลักสูตร...",
                 mode: "search",
-                width: 280,
+                width: 300,
                 valueChangeEvent: "keyup",
                 onValueChanged: function(e) {
                     filterCatalog(e.value);
@@ -446,7 +597,7 @@ else
             });
         }
 
-                 function renderMyCourses(enrollments) {
+        function renderMyCourses(enrollments) {
             const $container = $("#myCoursesContainer");
             $container.empty();
 
@@ -458,7 +609,6 @@ else
                 const courseCode = en.courseCode || course.code || '-';
                 const statusClass = isCompleted ? 'completed' : (progress > 0 ? 'in-progress' : 'not-started');
 
-                // ✅ Format DueDate
                 const dueDate = formatDueDate(en.dueDate);
 
                 const $card = $("<div>")
@@ -481,13 +631,11 @@ else
                                 <h6 class="course-title" title="${en.courseTitle}">${en.courseTitle}</h6>
 
                                 <div class="progress-section">
-                                    <!-- ✅ DueDate อยู่บรรทัดแรก -->
                                     <div class="due-date-row mb-2">
                                         <i class="far fa-calendar-alt text-muted me-1"></i>
                                         <span class="text-muted small">กำหนด: ${dueDate}</span>
                                     </div>
 
-                                    <!-- ✅ Progress อยู่บรรทัดที่สอง -->
                                     <div class="progress-info">
                                         <div class="progress-wrapper-inline">
                                             <div class="progress-fill" style="width: ${progress}%;"></div>
@@ -506,7 +654,8 @@ else
                 $container.append($card);
             });
         }
-                function formatDueDate(dateString) {
+
+        function formatDueDate(dateString) {
             if (!dateString) return '-';
             const date = new Date(dateString);
             const day = String(date.getDate()).padStart(2, '0');
@@ -514,6 +663,7 @@ else
             const year = date.getFullYear();
             return `${day}/${month}/${year}`;
         }
+
         function updateStats(data) {
             const completed = data.filter(e => !!e.isCompleted).length;
             const inProgress = data.length - completed;
@@ -525,7 +675,6 @@ else
         function filterMyCourses(type) {
             currentFilter = type;
 
-            // Update active tab
             $('.nav-pills .nav-link').removeClass('active');
             event.target.classList.add('active');
 
@@ -539,7 +688,6 @@ else
 
             const $container = $("#myCoursesContainer");
 
-            // ✅ ตรวจสอบและแสดงผล
             if (filteredData.length === 0) {
                 const messages = {
                     'all': 'คุณยังไม่มีคอร์สที่ลงทะเบียน',
@@ -547,14 +695,16 @@ else
                     'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
                 };
 
-                $container.html(`
-                    <div class="col-12">
-                        <div class="alert alert-light text-center border">
-                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                            <p class="mb-0">${messages[type]}</p>
-                        </div>
+                     $container.html(`
+            <div class="col-12">
+                <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 300px;">
+                    <div>
+                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                        <p class="mb-0">${messages[type]}</p>
                     </div>
-                `);
+                </div>
+            </div>
+        `);
             } else {
                 renderMyCourses(filteredData);
             }
@@ -570,101 +720,265 @@ else
                 success: function(res) {
                     $("#allCoursesLoading").hide();
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);
-                    renderCatalog(allCoursesData);
+
+                    if (allCoursesData.length > 0) {
+                        organizeCoursesByCategory(allCoursesData);
+                        renderCategorySidebar();
+                        renderCatalogContent('all');
+                        $("#catalogLayout").show();
+                    }
                 },
                 error: function() {
                     $("#allCoursesLoading").hide();
+                    DevExpress.ui.notify("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error", 3000);
                 }
             });
         }
 
-        function renderCatalog(courses) {
-            const $container = $("#catalogContainer");
-            $container.empty();
+        // ========== Organize by Category ==========
+        function organizeCoursesByCategory(courses) {
+            categorizedCourses = { 'all': courses };
 
-            if (courses.length === 0) {
-                $container.html('<div class="alert alert-light text-center">ไม่พบหลักสูตร</div>');
-                return;
-            }
+            courses.forEach(course => {
+                const catId = course.categoryId;
+                const catName = course.categoryName || 'ไม่ระบุหมวดหมู่';
 
-            const grouped = courses.reduce((acc, c) => {
-                const cat = c.category?.name || c.categoryName || 'ทั่วไป';
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(c);
-                return acc;
-            }, {});
-
-            Object.keys(grouped).forEach(catName => {
-                const $section = $(`
-                    <div class="category-group mb-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <span class="category-badge me-2">
-                                <i class="fas fa-folder-open me-1"></i>${catName}
-                            </span>
-                            <small class="text-muted">(${grouped[catName].length} หลักสูตร)</small>
-                        </div>
-                        <div class="row g-3 course-list"></div>
-                    </div>
-                `);
-
-                const $list = $section.find('.course-list');
-
-                grouped[catName].forEach(c => {
-                    const bg = c.coverImageUrl || 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80';
-
-                    // ✅ ดึง code
-                    const code = c.code || '-';
-
-                    const $col = $("<div>")
-                        .addClass("col-md-6 col-lg-3 course-item")
-                        .attr("data-title", c.title.toLowerCase())
-                        .html(`
-                            <div class="my-course-card">
-                                <div class="course-thumb">
-                                    <img src="${bg}" alt="${c.title}">
-
-                                    <!-- ✅ แสดง Course Code -->
-                                    <div class="course-code-overlay">
-                                        <div class="course-code-text">
-                               
-                                            <div>${code}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="course-body">
-                                    <h6 class="course-title" title="${c.title}">${c.title}</h6>
-
-                                    <div class="mt-auto">
-                                        <button class="btn btn-outline-primary w-100 btn-continue" onclick="viewCourseDetail(${c.id})">
-                                            ดูรายละเอียด <i class="fas fa-arrow-right ms-1 small"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `);
-
-                    $list.append($col);
-                });
-
-                $container.append($section);
+                if (!categorizedCourses[catId]) {
+                    categorizedCourses[catId] = {
+                        id: catId,
+                        name: catName,
+                        courses: []
+                    };
+                }
+                categorizedCourses[catId].courses.push(course);
             });
         }
 
-        // ========== Filter Catalog ==========
-        function filterCatalog(text) {
-            const keyword = text.toLowerCase();
-            $("#catalogContainer .course-item").each(function() {
-                $(this).toggle($(this).attr("data-title").includes(keyword));
+        // ========== Render Category Sidebar ==========
+        function renderCategorySidebar() {
+            const $menu = $("#categoryMenu");
+            $menu.empty();
+
+            // All Categories
+            $menu.append(`
+                <div class="category-menu-item active" data-category="all">
+                    <span class="category-name">
+                        <i class="fas fa-th-large me-2"></i>ทั้งหมด
+                    </span>
+                    <span class="course-count">${allCoursesData.length}</span>
+                </div>
+            `);
+
+            // Individual Categories
+            Object.keys(categorizedCourses).forEach(catId => {
+                if (catId === 'all') return;
+
+                const cat = categorizedCourses[catId];
+                $menu.append(`
+                    <div class="category-menu-item" data-category="${catId}">
+                        <span class="category-name">
+                            <i class="fas fa-folder me-2"></i>${cat.name}
+                        </span>
+                        <span class="course-count">${cat.courses.length}</span>
+                    </div>
+                `);
             });
-            $("#catalogContainer .category-group").each(function() {
-                $(this).toggle($(this).find(".course-item:visible").length > 0);
+
+            // Click Event
+            $menu.on('click', '.category-menu-item', function() {
+                const categoryId = $(this).data('category');
+                selectedCategoryId = categoryId;
+
+                $('.category-menu-item').removeClass('active');
+                $(this).addClass('active');
+
+                renderCatalogContent(categoryId);
             });
+        }
+
+        // ========== Render Catalog Content ==========
+        function renderCatalogContent(categoryId) {
+            const $content = $("#catalogContent");
+            $content.empty();
+
+            let courses = categoryId === 'all'
+                ? allCoursesData
+                : categorizedCourses[categoryId].courses;
+
+            if (courses.length === 0) {
+                $content.html('<div class="alert alert-light text-center">ไม่พบหลักสูตร</div>');
+                return;
+            }
+
+            // Group by Type (General / Special)
+            const byType = {
+                'General': courses.filter(c => c.type === 1 || c.typeName === 'General'),
+                'Special': courses.filter(c => c.type === 2 || c.typeName === 'Special')
+            };
+
+            // Render General Courses
+            if (byType.General.length > 0) {
+                renderCourseTypeSection($content, 'General', byType.General, 'general');
+            }
+
+            // Render Special Courses
+            if (byType.Special.length > 0) {
+                renderCourseTypeSection($content, 'Special', byType.Special, 'special');
+            }
+        }
+
+        // ========== Render Course Type Section ==========
+        function renderCourseTypeSection($container, typeName, courses, typeClass) {
+            const icon = typeClass === 'general'
+                ? '<i class="fas fa-book"></i>'
+                : '<i class="fas fa-star"></i>';
+
+            const $section = $(`
+                <div class="course-type-section">
+                    <div class="course-type-header">
+                        <span class="type-badge ${typeClass}">
+                            ${icon}
+                            <span>${typeName === 'General' ? 'ทั่วไป' : 'พิเศษ'}</span>
+                        </span>
+                        <small class="text-muted">(${courses.length} หลักสูตร)</small>
+                    </div>
+                    <div class="row g-3 course-type-list"></div>
+                </div>
+            `);
+
+            const $list = $section.find('.course-type-list');
+
+            courses.forEach(course => {
+                const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80';
+                const courseCode = course.code || '-';
+                const courseTitle = course.title || 'ไม่ระบุชื่อ';
+
+                const $col = $("<div>")
+                    .addClass("col-md-6 col-lg-4 col-xl-3 course-item")
+                    .attr("data-title", courseTitle.toLowerCase())
+                    .attr("data-code", courseCode.toLowerCase())
+                    .html(`
+                        <div class="my-course-card">
+                            <div class="course-thumb">
+                                <img src="${bgImage}" alt="${courseTitle}">
+
+                                <div class="course-code-overlay">
+                                    <div class="course-code-text">${courseCode}</div>
+                                </div>
+                            </div>
+                            <div class="course-body">
+                                <h6 class="course-title" title="${courseTitle}">${courseTitle}</h6>
+
+                                <div class="mt-auto">
+                                    <button class="btn btn-outline-primary w-100 btn-continue" onclick="viewCourseDetail(${course.id})">
+                                        ทบทวน <i class="fas fa-arrow-right ms-1 small"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                $list.append($col);
+            });
+
+            $container.append($section);
+        }
+
+        // ========== Filter Catalog (Search) ==========
+        function filterCatalog(searchText) {
+            const keyword = (searchText || '').toLowerCase().trim();
+
+            const $items = $("#catalogContent .course-item");
+
+            if (!keyword) {
+                $items.show();
+                $("#catalogContent .course-type-section").show();
+                updateSectionCounts();
+                return;
+            }
+
+            $items.each(function() {
+                const $item = $(this);
+                const title = ($item.attr('data-title') || '').toLowerCase();
+                const code = ($item.attr('data-code') || '').toLowerCase();
+                const match = title.includes(keyword) || code.includes(keyword);
+                $item.toggle(match);
+            });
+
+            // Update Section Visibility
+            $("#catalogContent .course-type-section").each(function() {
+                const $section = $(this);
+                const visibleCount = $section.find(".course-item:visible").length;
+                $section.toggle(visibleCount > 0);
+
+                if (visibleCount > 0) {
+                    $section.find('.course-type-header small').text(`(${visibleCount} หลักสูตร)`);
+                }
+            });
+
+            // Highlight Search Results
+            highlightSearchResults(keyword);
+        }
+
+        // ========== Highlight Search Results ==========
+        function highlightSearchResults(keyword) {
+            if (!keyword) {
+                // Remove highlights
+                $("#catalogContent .course-title").each(function() {
+                    const $el = $(this);
+                    const original = $el.attr('title');
+                    if (original) $el.html(original);
+                });
+
+                $("#catalogContent .course-code-text").each(function() {
+                    const $el = $(this);
+                    const original = $el.text().replace(/<[^>]*>/g, '');
+                    $el.html(original);
+                });
+                return;
+            }
+
+            const regex = new RegExp(`(${escapeRegex(keyword)})`, 'ig');
+
+            // Highlight in titles
+            $("#catalogContent .course-title").each(function() {
+                const $el = $(this);
+                const original = $el.attr('title');
+                if (original) {
+                    const highlighted = original.replace(regex, '<span class="search-highlight">$1</span>');
+                    $el.html(highlighted);
+                }
+            });
+
+            // Highlight in course codes
+            $("#catalogContent .course-code-text").each(function() {
+                const $el = $(this);
+                const original = $el.text().replace(/<[^>]*>/g, '');
+                const highlighted = original.replace(regex, '<span class="search-highlight">$1</span>');
+                $el.html(highlighted);
+            });
+        }
+
+        // ========== Update Section Counts ==========
+        function updateSectionCounts() {
+            $("#catalogContent .course-type-section").each(function() {
+                const $section = $(this);
+                const totalCount = $section.find(".course-item").length;
+                $section.find('.course-type-header small').text(`(${totalCount} หลักสูตร)`);
+            });
+        }
+
+        // ========== Escape Regex Special Characters ==========
+        function escapeRegex(string) {
+            return String(string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         // ========== View Course Detail ==========
         function viewCourseDetail(courseId) {
-            DevExpress.ui.notify("ดูรายละเอียดหลักสูตร ID: " + courseId, "info", 2000);
-            // TODO: Navigate to course detail page or show modal
+                DevExpress.ui.notify("อยู่ระหว่างพัฒนา", "info", 3000);
         }
+
+      
+
     </script>
 }
