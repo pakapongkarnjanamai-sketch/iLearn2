@@ -67,9 +67,11 @@ namespace iLearn.Application.Mappings
                 Id = entity.Id,
                 StudentCode = entity.StudentCode,
                 CourseId = entity.CourseId,
+                CourseCode= entity.Course?.Code ?? string.Empty,
                 CourseTitle = entity.Course?.Title ?? string.Empty,
                 EnrolledVersion = entity.EnrolledVersion,
                 IsCompleted = entity.IsCompleted,
+                DueDate = entity.DueDate,
                 CompletedDate = entity.CompletedDate,
                 Progress = entity.Progress,
             };

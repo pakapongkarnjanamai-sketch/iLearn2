@@ -164,7 +164,7 @@
                 success: function(response) {
                     if (response.success) {
                         $("#employee-preview").removeClass("alert-light").addClass("text-success")
-                            .html(`<i class="fas fa-check-circle me-2"></i>ยินดีต้อนรับ <strong>${response.data.name}</strong>`);
+                            .html(`<i class="fas fa-check-circle me-2"></i><strong>${response.data.name}</strong>`);
 
                         setTimeout(() => window.location.href = '/MyLearning/Index', 1000);
                     } else {
