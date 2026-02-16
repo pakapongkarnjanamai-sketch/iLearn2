@@ -17,7 +17,10 @@ namespace iLearn.Infrastructure.Services
         {
             _settings = settings.Value;
         }
-
+        public string GetScormUrl(string folderName, string resourceHref)
+        {
+            return Path.Combine(_settings.FileUrl, folderName, resourceHref);
+        }
         public void DeleteScormFolder(string folderName)
         {
             if (string.IsNullOrEmpty(folderName)) return;
