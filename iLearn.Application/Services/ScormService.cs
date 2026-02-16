@@ -1,4 +1,6 @@
 ﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
+using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Services;
 using Microsoft.Extensions.Options;
 using System.IO.Compression;
@@ -9,8 +11,8 @@ namespace iLearn.Infrastructure.Services
     public class ScormService : IScormService
     {
         private readonly FileSettings _settings;
+        private static readonly string[] AllowedScormVersions = { "1.2", "2004" };
 
-        // Inject FileSettings ผ่าน IOptions (ค่ามาจาก appsettings.json)
         public ScormService(IOptions<FileSettings> settings)
         {
             _settings = settings.Value;
@@ -20,108 +22,323 @@ namespace iLearn.Infrastructure.Services
         {
             if (string.IsNullOrEmpty(folderName)) return;
 
-            // หา path จริงจาก URL หรือ ResourceID
-            // สมมติว่า folderName คือชื่อโฟลเดอร์ที่เรา Gen ไว้ตอน Upload (Guid)
             var directoryPath = Path.Combine(_settings.FileUnc, folderName);
 
             if (Directory.Exists(directoryPath))
             {
                 try
                 {
-                    Directory.Delete(directoryPath, true); // true = ลบไฟล์ข้างในด้วย
+                    Directory.Delete(directoryPath, true);
                 }
                 catch (Exception ex)
                 {
-                    // Log warning แต่ไม่ต้อง throw error เพื่อให้การลบใน DB ทำงานต่อได้
                     Console.WriteLine($"Cannot delete folder {directoryPath}: {ex.Message}");
                 }
             }
         }
 
-        public async Task<string> ExtractAndParseScormAsync(byte[] fileContent, string folderName)
+        public async Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName)
         {
             if (fileContent == null || fileContent.Length == 0)
                 throw new ArgumentException("File content is empty.");
 
-            // 1. ใช้ Path จาก Config (HostUnc) ผสมกับ CourseFolder
-            // ตัวอย่าง: \\ap-ntc2137-prwb\wwwroot\iLearn\course\{folderName}
+            // 1. กำหนด Path ปลายทาง
             var destinationPath = Path.Combine(_settings.FileUnc, folderName);
 
-            // ตรวจสอบและสร้างโฟลเดอร์ปลายทาง
+            // ลบโฟลเดอร์เก่าถ้ามี
             if (Directory.Exists(destinationPath))
             {
-                Directory.Delete(destinationPath, true); // ลบของเก่าออกถ้ามี
+                Directory.Delete(destinationPath, true);
             }
             Directory.CreateDirectory(destinationPath);
 
-            // 2. สร้างไฟล์ Zip ชั่วคราวในเครื่องที่รัน API (Temp Folder)
+            // 2. สร้างไฟล์ Zip ชั่วคราว
             var tempZipPath = Path.GetTempFileName();
             await File.WriteAllBytesAsync(tempZipPath, fileContent);
 
             try
             {
-                // 3. แตกไฟล์ไปยังโฟลเดอร์ปลายทาง (UNC Path)
+                // 3. ตรวจสอบว่าเป็น Zip ที่ถูกต้อง
+                if (!IsValidZipFile(tempZipPath))
+                {
+                    throw new InvalidScormPackageException("ไฟล์ที่อัปโหลดไม่ใช่ไฟล์ ZIP ที่ถูกต้อง");
+                }
+
+                // 4. ตรวจสอบว่ามี imsmanifest.xml ใน root ของ zip
+                if (!ContainsManifestFile(tempZipPath))
+                {
+                    throw new InvalidScormPackageException(
+                        "ไฟล์ ZIP ไม่มี 'imsmanifest.xml' ในระดับ root - ไม่ใช่แพ็กเกจ SCORM ที่ถูกต้อง"
+                    );
+                }
+
+                // 5. แตกไฟล์
                 ZipFile.ExtractToDirectory(tempZipPath, destinationPath);
             }
             finally
             {
-                // ลบไฟล์ Zip ชั่วคราวทิ้งเสมอเพื่อประหยัดพื้นที่
                 if (File.Exists(tempZipPath)) File.Delete(tempZipPath);
             }
 
-            // 4. อ่านไฟล์ imsmanifest.xml เพื่อหาไฟล์เริ่มต้น (Launch Page)
+            // 6. อ่านและตรวจสอบ Manifest
             var manifestPath = Path.Combine(destinationPath, "imsmanifest.xml");
-            string launchPage = ParseManifest(manifestPath);
+            var manifestInfo = ValidateAndParseManifest(manifestPath);
 
-            // 5. คืนค่า URL เต็มรูปแบบสำหรับเรียกใช้งาน
-            // ตัวอย่าง: https://ap-ntc2137-prwb/iLearn/course/{folderName}/index.html
-            // ใช้ '/' เชื่อม URL เสมอ ไม่ใช้ Path.Combine เพราะเป็น HTTP Path
-            return $"{_settings.FileUrl}/{folderName}/{launchPage}";
+            // 7. สร้าง DTO พร้อมข้อมูลครบถ้วน
+            return new ScormManifestDto
+            {
+                ResourceHref = manifestInfo.ResourceHref,
+                SchemaVersion = manifestInfo.SchemaVersion,
+                FolderName = folderName,
+                FullUrl = $"{_settings.FileUrl}/{folderName}/{manifestInfo.ResourceHref}"
+            };
         }
 
-        private string ParseManifest(string manifestPath)
+        /// <summary>
+        /// ตรวจสอบว่าเป็นไฟล์ ZIP ที่ถูกต้อง
+        /// </summary>
+        private bool IsValidZipFile(string filePath)
         {
+            try
+            {
+                using var archive = ZipFile.OpenRead(filePath);
+                return archive.Entries.Count > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ตรวจสอบว่ามี imsmanifest.xml ใน root ของ zip
+        /// </summary>
+        private bool ContainsManifestFile(string zipPath)
+        {
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipPath);
+                return archive.Entries.Any(e =>
+                    e.FullName.Equals("imsmanifest.xml", StringComparison.OrdinalIgnoreCase) &&
+                    !e.FullName.Contains("/") && !e.FullName.Contains("\\")
+                );
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ตรวจสอบและแปลง Manifest พร้อมตรวจสอบเวอร์ชัน
+        /// </summary>
+        private (string ResourceHref, string SchemaVersion) ValidateAndParseManifest(string manifestPath)
+        {
+            // Default Values
+            string resourceHref = string.Empty;
+            string schemaVersion = string.Empty;
+
             if (!File.Exists(manifestPath))
             {
-                // ถ้าไม่มี manifest ให้เดาว่าเป็น index.html หรือ story.html (กรณีไม่ใช่ SCORM มาตรฐาน)
-                return "index.html";
+                throw new InvalidScormPackageException("ไม่พบไฟล์ imsmanifest.xml");
             }
 
             try
             {
                 var xDocument = XDocument.Load(manifestPath);
-                if (xDocument.Root == null) return "index.html";
-
-                // ตรวจสอบ Namespace เพื่อรองรับทั้ง SCORM 1.2 และ 2004
-                XNamespace ns = xDocument.Root.GetDefaultNamespace();
-                string? resourceHref = null;
-
-                // ลองหาแบบ SCORM 1.2 / 2004 ทั่วไป
-                var resource = xDocument.Descendants(ns + "resource")
-                    .FirstOrDefault(x =>
-                        (string?)x.Attribute("type") == "webcontent" &&
-                        // เช็คทั้ง scormType (2004) และ scormtype (1.2)
-                        (x.Attributes().Any(a => a.Name.LocalName.ToLower() == "scormtype" && a.Value.ToLower() == "sco"))
-                    );
-
-                // ถ้าหาแบบเจาะจงไม่เจอ ให้เอา resource ตัวแรกที่มี href
-                if (resource == null)
+                if (xDocument.Root == null)
                 {
-                    resource = xDocument.Descendants(ns + "resource")
-                        .FirstOrDefault(x =>
-                            (string?)x.Attribute("type") == "webcontent" &&
-                            x.Attribute("href") != null);
+                    throw new InvalidScormPackageException("ไฟล์ imsmanifest.xml มีรูปแบบไม่ถูกต้อง");
                 }
 
-                resourceHref = resource?.Attribute("href")?.Value;
+                XNamespace ns = xDocument.Root.GetDefaultNamespace();
 
-                return string.IsNullOrEmpty(resourceHref) ? "index.html" : resourceHref;
+                // ========================================
+                // 🔍 ตรวจสอบ SCORM Version (บังคับ)
+                // ========================================
+                schemaVersion = DetectScormVersion(xDocument, ns);
+
+                if (string.IsNullOrEmpty(schemaVersion))
+                {
+                    throw new InvalidScormPackageException(
+                        "ไม่สามารถระบุเวอร์ชัน SCORM ได้ - กรุณาตรวจสอบไฟล์ imsmanifest.xml"
+                    );
+                }
+
+                if (!AllowedScormVersions.Contains(schemaVersion))
+                {
+                    throw new InvalidScormPackageException(
+                        $"ระบบรองรับเฉพาะ SCORM เวอร์ชัน 1.2 และ 2004 เท่านั้น (ตรวจพบ: {schemaVersion})"
+                    );
+                }
+
+                // ========================================
+                // 🔍 หา Resource Href (Launch Page) - บังคับ
+                // ========================================
+                resourceHref = FindLaunchPage(xDocument, ns);
+
+                if (string.IsNullOrEmpty(resourceHref))
+                {
+                    throw new InvalidScormPackageException(
+                        "ไม่พบ Launch Page (SCO Resource) ใน imsmanifest.xml"
+                    );
+                }
+
+                // ตรวจสอบว่าไฟล์ Launch Page มีอยู่จริง
+                var manifestDir = Path.GetDirectoryName(manifestPath);
+                var launchFilePath = Path.Combine(manifestDir!, resourceHref.Replace("/", "\\"));
+
+                if (!File.Exists(launchFilePath))
+                {
+                    throw new InvalidScormPackageException(
+                        $"ไม่พบไฟล์ Launch Page: {resourceHref}"
+                    );
+                }
+
+                Console.WriteLine($"✅ SCORM Validation Passed:");
+                Console.WriteLine($"   📌 Version: {schemaVersion}");
+                Console.WriteLine($"   📄 Launch Page: {resourceHref}");
+
+                return (resourceHref, schemaVersion);
             }
-            catch
+            catch (InvalidScormPackageException)
             {
-                // กรณีไฟล์ XML เสีย หรืออ่านไม่ได้ ให้ Default กลับไปที่ index.html
-                return "index.html";
+                throw; // ส่งต่อ exception ที่เรากำหนดเอง
             }
+            catch (Exception ex)
+            {
+                throw new InvalidScormPackageException(
+                    $"เกิดข้อผิดพลาดในการอ่านไฟล์ imsmanifest.xml: {ex.Message}"
+                );
+            }
+        }
+
+        /// <summary>
+        /// ตรวจจับเวอร์ชัน SCORM
+        /// </summary>
+        private string DetectScormVersion(XDocument xDocument, XNamespace ns)
+        {
+            // วิธีที่ 1: ตรวจสอบจาก metadata/schemaversion
+            var metadata = xDocument.Descendants(ns + "metadata").FirstOrDefault();
+            if (metadata != null)
+            {
+                var schemaVersionElement = metadata.Descendants(ns + "schemaversion").FirstOrDefault();
+                if (schemaVersionElement != null)
+                {
+                    string version = schemaVersionElement.Value.Trim();
+
+                    // SCORM 2004
+                    if (version.Contains("2004", StringComparison.OrdinalIgnoreCase) ||
+                        version.Contains("1.3", StringComparison.OrdinalIgnoreCase) ||
+                        version.Contains("CAM", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "2004";
+                    }
+
+                    // SCORM 1.2
+                    if (version.Contains("1.2", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "1.2";
+                    }
+                }
+            }
+
+            // วิธีที่ 2: ตรวจสอบจาก Root Element Attributes
+            var versionAttr = xDocument.Root?.Attribute("version");
+            if (versionAttr != null)
+            {
+                string version = versionAttr.Value.Trim();
+                if (version.Contains("2004") || version.Contains("1.3"))
+                {
+                    return "2004";
+                }
+                if (version.Contains("1.2"))
+                {
+                    return "1.2";
+                }
+            }
+
+            // วิธีที่ 3: ตรวจสอบจาก Namespace
+            string namespaceUri = xDocument.Root?.Name.NamespaceName ?? string.Empty;
+
+            // SCORM 2004 Namespaces
+            if (namespaceUri.Contains("imscp_v1p1", StringComparison.OrdinalIgnoreCase) ||
+                namespaceUri.Contains("imscp_v1p2", StringComparison.OrdinalIgnoreCase) ||
+                namespaceUri.Contains("adlcp:"))
+            {
+                return "2004";
+            }
+
+            // SCORM 1.2 Namespace
+            if (namespaceUri.Contains("imscp_rootv1p1p2", StringComparison.OrdinalIgnoreCase))
+            {
+                return "1.2";
+            }
+
+            // วิธีที่ 4: ตรวจสอบจาก schemaLocation
+            var schemaLocation = xDocument.Root?.Attributes()
+                .FirstOrDefault(a => a.Name.LocalName == "schemaLocation");
+
+            if (schemaLocation != null)
+            {
+                string location = schemaLocation.Value;
+                if (location.Contains("2004", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "2004";
+                }
+                if (location.Contains("1.2", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "1.2";
+                }
+            }
+
+            return string.Empty; // ไม่พบเวอร์ชัน
+        }
+
+        /// <summary>
+        /// ค้นหา Launch Page จาก Manifest
+        /// </summary>
+        private string FindLaunchPage(XDocument xDocument, XNamespace ns)
+        {
+            // วิธีที่ 1: หา SCO (Sharable Content Object)
+            var scoResource = xDocument.Descendants(ns + "resource")
+                .FirstOrDefault(x =>
+                {
+                    var typeAttr = x.Attribute("type");
+                    if (typeAttr?.Value != "webcontent") return false;
+
+                    var scormTypeAttr = x.Attributes()
+                        .FirstOrDefault(a => a.Name.LocalName.Equals("scormType", StringComparison.OrdinalIgnoreCase) ||
+                                             a.Name.LocalName.Equals("scormtype", StringComparison.OrdinalIgnoreCase));
+
+                    return scormTypeAttr?.Value.Equals("sco", StringComparison.OrdinalIgnoreCase) == true;
+                });
+
+            if (scoResource != null)
+            {
+                var href = scoResource.Attribute("href")?.Value;
+                if (!string.IsNullOrEmpty(href))
+                {
+                    return href.Replace("\\", "/");
+                }
+            }
+
+            // วิธีที่ 2: หา resource ตัวแรกที่เป็น webcontent
+            var firstResource = xDocument.Descendants(ns + "resource")
+                .FirstOrDefault(x =>
+                    x.Attribute("type")?.Value == "webcontent" &&
+                    x.Attribute("href") != null);
+
+            if (firstResource != null)
+            {
+                var href = firstResource.Attribute("href")?.Value;
+                if (!string.IsNullOrEmpty(href))
+                {
+                    return href.Replace("\\", "/");
+                }
+            }
+
+            return string.Empty;
         }
     }
 }

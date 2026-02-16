@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
@@ -103,8 +104,9 @@ namespace iLearn.API.Controllers
             return Ok(savedResource.ToDto());
         }
 
+
         // 2. กดปุ่ม SetPublic เพื่อแตกไฟล์และเปิดใช้งาน
-        [HttpPost("SetPublic")] // หรือ {id}/activate
+        [HttpPost("SetPublic")]
         public async Task<IActionResult> SetPublic([FromQuery] int key)
         {
             try
@@ -113,13 +115,10 @@ namespace iLearn.API.Controllers
                 var resource = await _resourceRepo.GetByIdAsync(key);
                 if (resource == null) return NotFound("Resource not found");
 
-                // ถ้า Active อยู่แล้ว จะให้ปิด หรือจะให้ทำใหม่? 
-                // ตาม Logic เดิมคือถ้า Active แล้วให้ Deactivate หรือ Activate ใหม่
-                // ในที่นี้ขอทำแบบ Activate ใหม่ถ้ายังไม่มี URL หรือสถานะยังไม่ Active
-
-                // 2.2 ดึงไฟล์ออกมาเพื่อเตรียม Process
+                // 2.2 ดึงไฟล์ออกมา
                 var fileStorage = await _fileRepo.GetByIdAsync(resource.FileStorageId ?? 0);
-                if (fileStorage == null || fileStorage.Data == null) return NotFound("Associated file not found");
+                if (fileStorage == null || fileStorage.Data == null)
+                    return NotFound("Associated file not found");
 
                 // 2.3 ตรวจสอบว่าเป็น Zip (SCORM) หรือไม่
                 string extension = Path.GetExtension(resource.Name).ToLower();
@@ -127,20 +126,45 @@ namespace iLearn.API.Controllers
                 if (extension == ".zip")
                 {
                     // SCORM Process
-                    string folderName = Guid.NewGuid().ToString(); // สร้าง Folder ใหม่เสมอเพื่อไม่ให้ชนของเดิม
+                    string folderName = Guid.NewGuid().ToString();
 
-                    // เรียก Service แตกไฟล์
-                    string launchUrl = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
+                    try
+                    {
+                        // ✅ เรียก Service และรับค่าครบถ้วน (จะ throw exception ถ้าไม่ใช่ SCORM)
+                        var scormInfo = await _scormService.ExtractAndParseScormAsync(
+                            fileStorage.Data,
+                            folderName
+                        );
 
-                    // อัปเดต URL และสถานะ
-                    resource.URL = $"{launchUrl}";
-                    resource.IsActive = true;
+                        // ✅ อัปเดต Resource ด้วยข้อมูลที่ได้จาก Service
+                        resource.ResourceHref = scormInfo.ResourceHref;
+                        resource.SchemaVersion = scormInfo.SchemaVersion;
+                        resource.URL = scormInfo.FolderName;
+                        resource.IsActive = true;
+
+                        Console.WriteLine($"✅ SCORM Activated:");
+                        Console.WriteLine($"   📁 Folder: {scormInfo.FolderName}");
+                        Console.WriteLine($"   📄 Href: {scormInfo.ResourceHref}");
+                        Console.WriteLine($"   📌 Version: {scormInfo.SchemaVersion}");
+                        Console.WriteLine($"   🌐 Full URL: {scormInfo.FullUrl}");
+                    }
+                    catch (InvalidScormPackageException ex)
+                    {
+                        // ลบโฟลเดอร์ที่สร้างไว้ (ถ้ามี)
+                        _scormService.DeleteScormFolder(folderName);
+
+                        return BadRequest(new
+                        {
+                            error = "Invalid SCORM Package",
+                            message = ex.Message,
+                            details = "กรุณาอัปโหลดไฟล์ SCORM เวอร์ชัน 1.2 หรือ 2004 เท่านั้น"
+                        });
+                    }
                 }
                 else
                 {
-                    // ไฟล์ทั่วไป (Video/PDF) แค่เปิด Active
+                    // ไฟล์ทั่วไป (Video/PDF)
                     resource.IsActive = true;
-                    // resource.URL = ... (อาจจะเป็น URL สำหรับ Download Controller)
                 }
 
                 // 2.4 บันทึกการเปลี่ยนแปลง
@@ -150,7 +174,6 @@ namespace iLearn.API.Controllers
             }
             catch (Exception ex)
             {
-                // _logger.LogError(ex, "Error processing resource");
                 return StatusCode(500, $"Error activating resource: {ex.Message}");
             }
         }
