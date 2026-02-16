@@ -512,24 +512,33 @@
         </div>
     </div>
 </div>
-
 @section Scripts {
     <script>
-        // --- Configuration ---
+        // ========================================
+        // Configuration
+        // ========================================
         const ENROLLMENT_ID = "@enrollmentId";
         const currentStudentCode = '@studentCode';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
 
-        // --- State ---
+        // ========================================
+        // State Management
+        // ========================================
         let currentData = null;
         let selectedResourceIndex = -1;
         let isReadOnly = false;
         let sessionStartTime = null;
 
-        // --- SCORM Data Model (Global) ---
-        var cmiModel = {}; // Initialize empty
+        // ========================================
+        // SCORM Data Model (Global)
+        // ========================================
+        var cmiModel = {};
 
+        // ========================================
+        // Initialization
+        // ========================================
         $(function() {
+            console.log("🚀 Application Starting...");
             initScormAdapter();
             loadCourseData();
 
@@ -538,41 +547,66 @@
             });
         });
 
-        // 0. Reset SCORM Data
-         function resetScormModel() {
-             cmiModel = {
-                 "cmi.core.student_id": currentStudentCode,
-                 "cmi.core.student_name": currentStudentCode,
-                 "cmi.core.lesson_status": "not attempted", // ค่าเริ่มต้นมาตรฐาน
-                 "cmi.core.score.raw": "",
-                 "cmi.core.score.min": "",
-                 "cmi.core.score.max": "",
-                 "cmi.suspend_data": "",
-                 "cmi.core.lesson_location": "",
-                 "cmi.core.exit": "",
-                 "cmi.core.entry": "ab-initio",    // บังคับเริ่มใหม่
+        // ========================================
+        // SCORM Model Management
+        // ========================================
+        function resetScormModel() {
+            cmiModel = {
+                // Student Info
+                "cmi.core.student_id": currentStudentCode,
+                "cmi.core.student_name": currentStudentCode,
 
-                 // เพิ่ม 2 ค่านี้เพื่อให้บทเรียนรู้ว่าต้องเก็บคะแนน
-                 "cmi.core.credit": "credit",
-                 "cmi.core.lesson_mode": "normal"
-             };
-             console.log("SCORM Model has been reset.");
-         }
+                // Status - บังคับเป็น "not attempted"
+                "cmi.core.lesson_status": "not attempted",
 
-        // 1. Load Data
+                // Score - เคลียร์เป็นค่าว่าง
+                "cmi.core.score.raw": "",
+                "cmi.core.score.min": "",
+                "cmi.core.score.max": "",
+
+                // Suspend Data
+                "cmi.suspend_data": "",
+                "cmi.core.lesson_location": "",
+
+                // Entry/Exit
+                "cmi.core.exit": "",
+                "cmi.core.entry": "ab-initio",
+
+                // Time
+                "cmi.core.session_time": "00:00:00",
+                "cmi.core.total_time": "00:00:00",
+
+                // Mode
+                "cmi.core.credit": "credit",
+                "cmi.core.lesson_mode": "normal"
+            };
+
+            console.log("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"]);
+        }
+
+        // ========================================
+        // Data Loading
+        // ========================================
         async function loadCourseData() {
             if(!ENROLLMENT_ID || ENROLLMENT_ID == 0) {
-                 showError("ไม่พบ Enrollment ID");
-                 return;
+                showError("ไม่พบ Enrollment ID");
+                return;
             }
+
             try {
                 const url = `${baseUrl}/enrollments/player-info/${ENROLLMENT_ID}?studentCode=${encodeURIComponent(currentStudentCode)}`;
+                console.log("📡 Loading course data from:", url);
+
                 const response = await $.ajax({
-                    url: url, method: 'GET', dataType: 'json', xhrFields: { withCredentials: true }
+                    url: url,
+                    method: 'GET',
+                    dataType: 'json',
+                    xhrFields: { withCredentials: true }
                 });
 
                 if (response && response.success) {
                     currentData = response.data;
+                    console.log("✅ Course data loaded:", currentData);
 
                     // View Only Check
                     if (currentData.isCompleted === true || currentData.isCompleted === 'true') {
@@ -598,12 +632,16 @@
                     showError("ไม่สามารถโหลดข้อมูลได้: " + (response.message || "Unknown error"));
                 }
             } catch (err) {
-                console.error(err);
+                console.error("❌ Load Error:", err);
                 showError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
             }
         }
 
+        // ========================================
+        // Read Only Mode
+        // ========================================
         function setupReadOnlyMode() {
+            console.log("👁️ Setting up Read Only Mode");
             $("#progressCol").hide();
             $("#statusCol").removeClass("col-6 border-end").addClass("col-12");
             $("#statusDisplay").text("เรียนจบแล้ว").addClass("text-success");
@@ -613,8 +651,12 @@
             $("#saveHintText").removeClass("text-danger").addClass("text-success");
         }
 
-        // 2. Render UI
+        // ========================================
+        // UI Rendering
+        // ========================================
         function renderUI(data) {
+            console.log("🎨 Rendering UI...");
+
             $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
             $("#studentCodeDisplay").text(currentStudentCode || "-");
             $("#versionDisplay").text("v." + (data.courseVersionId || "1"));
@@ -659,9 +701,22 @@
             if (data.resources.length > 0) selectResource(0);
         }
 
-        // 3. Select Resource
+           // ========================================
+        // Resource Selection
+        // ========================================
         function selectResource(index) {
             if (!currentData || !currentData.resources[index]) return;
+
+            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            console.log(`📌 Selected Resource [${index}]: ${currentData.resources[index].name}`);
+            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+            // 🔴 CRITICAL: หยุด iframe เดิมทันที
+            const iframe = document.getElementById("scormFrame");
+            iframe.src = "about:blank"; // ล้าง iframe ทันที
+            iframe.style.display = "none";
+
+            // อัปเดต UI
             selectedResourceIndex = index;
             const resource = currentData.resources[index];
 
@@ -669,86 +724,121 @@
             $(`#res-item-${index}`).addClass("active");
             $("#lessonTitle").text(resource.name);
 
-            // Reset iframe
-            $("#scormFrame").attr("src", "");
-            $("#scormFrame").hide();
+            // แสดง Start Overlay
             $("#startOverlay").fadeIn(200);
 
             sessionStartTime = null;
+
+            // รีเซ็ต SCORM Model ทันทีเมื่อเลือกบทใหม่
+            resetScormModel();
+
+            console.log(`✅ SCORM Model cleared for new lesson`);
+            console.log(`🛑 Previous iframe stopped`);
+        }
+        // ========================================
+        // Start Course
+        // ========================================
+        function startCourse() {
+            if (selectedResourceIndex === -1) return;
+            const resource = currentData.resources[selectedResourceIndex];
+
+            if (!resource.launchUrl) {
+                DevExpress.ui.notify("Invalid Launch URL", "error", 2000);
+                return;
+            }
+
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log(`🚀 Starting Resource [${selectedResourceIndex}]: ${resource.name}`);
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+            // 1. ล้างค่า SCORM Model (Memory) - สำคัญมาก!
+            resetScormModel();
+
+            // 2. บังคับรีเซ็ตสถานะ UI ของบทเรียนนี้
+            if (!isReadOnly) {
+                resource.clientStatus = "incomplete";
+                resource.clientProgress = 0;
+                resource.clientScore = 0;
+
+                console.log(`📊 UI Reset: status=incomplete, progress=0%, score=0`);
+
+                // สั่งคำนวณ Progress รวมใหม่
+                recalcTotalProgress();
+
+                // อัปเดต UI ของ Resource Item รายตัว
+                $(`#res-status-icon-${selectedResourceIndex}`).html('');
+                $(`#res-bar-${selectedResourceIndex}`).css("width", "0%");
+            }
+
+            $("#startOverlay").fadeOut(200);
+            sessionStartTime = new Date();
+
+            const iframe = document.getElementById("scormFrame");
+
+            // 3. บังคับโหลดใหม่ (Clear Cache iframe)
+            iframe.src = "about:blank";
+
+            setTimeout(() => {
+                iframe.style.display = "block";
+                iframe.src = resource.launchUrl;
+                console.log(`🌐 Loading: ${resource.launchUrl}`);
+                console.log(`📦 Initial cmiModel:`, JSON.stringify(cmiModel, null, 2));
+            }, 100);
         }
 
-        // 4. Start Course
-         function startCourse() {
-             if (selectedResourceIndex === -1) return;
-             const resource = currentData.resources[selectedResourceIndex];
-
-             if (!resource.launchUrl) {
-                 DevExpress.ui.notify("Invalid Launch URL", "error", 2000);
-                 return;
-             }
-
-             // 1. ล้างค่า SCORM Model (Memory)
-             resetScormModel();
-
-             // 2. [เพิ่มใหม่] บังคับรีเซ็ตสถานะ UI ของบทเรียนนี้ให้เป็น "กำลังเรียน" ทันที
-             // เพื่อไม่ให้ UI ค้างสถานะ Passed จากรอบที่แล้ว
-             if (!isReadOnly) {
-                 resource.clientStatus = "incomplete";
-                 resource.clientProgress = 0;
-                 resource.clientScore = 0;
-
-                 // สั่งคำนวณ Progress รวมใหม่ทันที (ปุ่ม Save จะถูก Disable, หลอดจะเป็นสีปกติ)
-                 recalcTotalProgress();
-
-                 // อัปเดต UI ของ Resource Item รายตัวทันที (เอาติ๊กถูกออก)
-                 $(`#res-status-icon-${selectedResourceIndex}`).html('');
-                 $(`#res-bar-${selectedResourceIndex}`).css("width", "0%");
-             }
-
-             $("#startOverlay").fadeOut(200);
-             sessionStartTime = new Date();
-
-             const iframe = document.getElementById("scormFrame");
-
-             // 3. บังคับโหลดใหม่ (Clear Cache iframe)
-             iframe.src = "about:blank";
-             setTimeout(() => {
-                 iframe.style.display = "block";
-                 iframe.src = resource.launchUrl;
-             }, 100);
-         }
-
-        // 5. Update Data (SCORM Callbacks - Strict Logic)
+             // ========================================
+        // Update Resource Data (SCORM Callbacks)
+        // ========================================
         function updateResourceData(key, value) {
-            if (isReadOnly) return;
-            if (selectedResourceIndex === -1 || !currentData) return;
+            if (isReadOnly) {
+                console.log(`⚠️ Read-only mode - ignoring update`);
+                return;
+            }
+
+            if (selectedResourceIndex === -1 || !currentData) {
+                console.log(`⚠️ No resource selected - ignoring update`);
+                return;
+            }
+
+            // 🔴 CRITICAL: ตรวจสอบว่า iframe ยังแสดงอยู่หรือไม่
+            const iframe = document.getElementById("scormFrame");
+            if (iframe.style.display === "none" || iframe.src === "about:blank") {
+                console.log(`⚠️ Iframe not active - ignoring SCORM update from old content`);
+                return;
+            }
 
             let resource = currentData.resources[selectedResourceIndex];
             let needsRecalc = false;
             const valStr = String(value).toLowerCase().trim();
 
+            console.log(`📊 updateResourceData - Resource [${selectedResourceIndex}] ${key}: ${value}`);
+
             if (key === "status") {
-                console.log(`Resource [${selectedResourceIndex}] Status Update: ${valStr}`);
+                console.log(`📊 Resource [${selectedResourceIndex}] Status Update: ${valStr}`);
 
                 if (valStr === "passed") {
                     resource.clientStatus = "passed";
                     resource.clientProgress = 100;
                     needsRecalc = true;
                     captureSessionTime(resource);
+                    console.log(`✅ Status: PASSED (100%)`);
                 }
                 else if (valStr === "completed") {
-                    resource.clientStatus = "passed"; // Treat completed as passed
+                    resource.clientStatus = "passed";
                     resource.clientProgress = 100;
                     needsRecalc = true;
                     captureSessionTime(resource);
+                    console.log(`✅ Status: COMPLETED → PASSED (100%)`);
                 }
                 else if (valStr === "failed") {
                     resource.clientStatus = "failed";
                     needsRecalc = true;
+                    console.log(`❌ Status: FAILED`);
                 }
                 else {
                     if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
                         resource.clientStatus = "incomplete";
+                        console.log(`⏳ Status: INCOMPLETE`);
                     }
                 }
             }
@@ -758,17 +848,21 @@
                 if (prog > resource.clientProgress) {
                     resource.clientProgress = prog;
                     needsRecalc = true;
+                    console.log(`📈 Progress: ${prog}%`);
                 }
             }
             else if (key === "score") {
                 resource.clientScore = parseFloat(value) || 0;
+                console.log(`🎯 Score: ${resource.clientScore}`);
             }
 
             if (needsRecalc) {
                 recalcTotalProgress();
             }
         }
-
+        // ========================================
+        // Capture Session Time
+        // ========================================
         function captureSessionTime(resource) {
             if (resource.isCompleted) return; // Already saved on DB
             if (sessionStartTime) {
@@ -778,16 +872,21 @@
                 date.setSeconds(diffSec);
                 const timeString = date.toISOString().substr(11, 8);
                 resource.clientTime = timeString;
+                console.log(`⏱️ Session Time: ${timeString}`);
             }
         }
 
-        // 6. Recalculate & UI Update (Strict Save)
+        // ========================================
+        // Recalculate Total Progress
+        // ========================================
         function recalcTotalProgress() {
             if(!currentData || !currentData.resources) return;
 
             let totalResources = currentData.resources.length;
             let passedCount = 0;
             let totalP = 0;
+
+            console.log(`\n🔄 Recalculating Progress...`);
 
             currentData.resources.forEach((r, idx) => {
                 if (!isReadOnly) {
@@ -818,6 +917,8 @@
                 }
 
                 totalP += r.clientProgress;
+
+                console.log(`  [${idx}] ${r.name}: ${r.clientStatus} (${r.clientProgress}%)`);
             });
 
             if (!isReadOnly) {
@@ -827,26 +928,36 @@
                 const allPassed = (passedCount === totalResources);
                 const hasFailed = currentData.resources.some(r => r.clientStatus === "failed");
 
+                console.log(`📊 Summary: ${passedCount}/${totalResources} passed, Average: ${avg}%`);
+
                 if (allPassed) {
                     $("#statusDisplay").text("ผ่านการทดสอบ").addClass("text-success").removeClass("text-secondary text-danger");
                     $("#btnPreSave").prop("disabled", false);
                     $("#saveHintText").hide();
+                    console.log(`✅ All resources PASSED - Save button enabled`);
                 } else {
                     if (hasFailed) {
                         $("#statusDisplay").text("ไม่ผ่านเกณฑ์").addClass("text-danger").removeClass("text-secondary");
                         $("#saveHintText").text("* คุณทำแบบทดสอบไม่ผ่าน กรุณาทำใหม่").addClass("text-danger").show();
+                        console.log(`❌ Has FAILED resources`);
                     } else {
                         $("#statusDisplay").text("กำลังเรียน").removeClass("text-success text-danger").addClass("text-secondary");
                         $("#saveHintText").text("* กรุณาเรียนและทำแบบทดสอบให้ผ่านเพื่อบันทึก").removeClass("text-danger").show();
+                        console.log(`⏳ Still in progress`);
                     }
                     $("#btnPreSave").prop("disabled", true);
                 }
             }
         }
 
-        // 7. Show Summary
+        // ========================================
+        // Show Summary Before Save
+        // ========================================
         function showSummaryBeforeSave() {
             if (!currentData) return;
+
+            console.log(`📋 Showing summary...`);
+
             if (selectedResourceIndex !== -1) {
                 const r = currentData.resources[selectedResourceIndex];
                 if (!r.isCompleted) captureSessionTime(r);
@@ -872,11 +983,18 @@
             $("#summaryModal").css("display", "flex").hide().fadeIn();
         }
 
-        function closeSummary() { $("#summaryModal").fadeOut(); }
+        function closeSummary() {
+            $("#summaryModal").fadeOut();
+        }
 
-        // 8. Execute Save
+        // ========================================
+        // Execute Save
+        // ========================================
         function executeSave() {
             if (!currentData) return;
+
+            console.log(`💾 Executing save...`);
+
             const resourcesPayload = currentData.resources.map(r => ({
                 ResourceId: r.id,
                 Status: r.clientStatus,
@@ -890,6 +1008,8 @@
                 EnrollmentId: parseInt(ENROLLMENT_ID),
                 Resources: resourcesPayload
             };
+
+            console.log(`📤 Payload:`, payload);
 
             const btn = $("#btnConfirmSave");
             const oldHtml = btn.html();
@@ -905,65 +1025,162 @@
                     btn.prop("disabled", false).html(oldHtml);
                     closeSummary();
                     if (res.success) {
+                        console.log(`✅ Save successful`);
                         DevExpress.ui.notify("บันทึกข้อมูลเรียบร้อยแล้ว", "success", 3000);
                         setTimeout(() => location.reload(), 1500);
                     } else {
+                        console.error(`❌ Save failed:`, res.message);
                         DevExpress.ui.notify(res.message, "error", 3000);
                     }
                 },
                 error: function(err) {
-                    console.error("Save Error:", err);
+                    console.error("❌ Save Error:", err);
                     btn.prop("disabled", false).html(oldHtml);
                     DevExpress.ui.notify("เกิดข้อผิดพลาดในการบันทึก", "error", 3000);
                 }
             });
         }
 
-        // --- SCORM ADAPTER (FIXED VERSION) ---
+              // ========================================
+        // SCORM ADAPTER
+        // ========================================
         function initScormAdapter() {
-            // SCORM 1.2
-            window.API = {
-                LMSInitialize: function(p) { console.log("SCORM 1.2: Init"); return "true"; },
-                LMSGetValue: function(e) {
-                    // Return stored value or empty string (not undefined)
-                    return cmiModel.hasOwnProperty(e) ? cmiModel[e] : "";
-                },
-                LMSSetValue: function(e, v) {
-                    console.log("SCORM 1.2 Set:", e, v);
-                    cmiModel[e] = v; // Store in memory
+            console.log(`🔌 Initializing SCORM Adapter...`);
 
-                    // Map to logic
-                    if (e === "cmi.core.lesson_status") updateResourceData("status", v);
-                    if (e === "cmi.core.score.raw") updateResourceData("score", v);
+            // Helper function to check if iframe is active
+            function isIframeActive() {
+                const iframe = document.getElementById("scormFrame");
+                return iframe && iframe.style.display !== "none" && iframe.src !== "about:blank";
+            }
+
+            // ========================================
+            // SCORM 1.2 API
+            // ========================================
+            window.API = {
+                LMSInitialize: function(p) {
+                    console.log("🎬 SCORM 1.2: LMSInitialize");
                     return "true";
                 },
-                LMSCommit: function(p) { return "true"; },
-                LMSFinish: function(p) { return "true"; },
+
+                LMSGetValue: function(e) {
+                    if (!isIframeActive()) {
+                        console.log(`⚠️ LMSGetValue blocked - iframe not active`);
+                        return "";
+                    }
+
+                    const value = cmiModel.hasOwnProperty(e) ? cmiModel[e] : "";
+                    console.log(`📖 SCORM 1.2 GetValue("${e}") = "${value}"`);
+                    return value;
+                },
+
+                LMSSetValue: function(e, v) {
+                    if (!isIframeActive()) {
+                        console.log(`⚠️ LMSSetValue blocked - iframe not active: "${e}" = "${v}"`);
+                        return "true";
+                    }
+
+                    console.log(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
+
+                    // เก็บค่าใน memory
+                    cmiModel[e] = v;
+
+                    // Map ไปยัง UI
+                    if (e === "cmi.core.lesson_status") {
+                        updateResourceData("status", v);
+                    }
+                    if (e === "cmi.core.score.raw") {
+                        updateResourceData("score", v);
+                    }
+
+                    return "true";
+                },
+
+                LMSCommit: function(p) {
+                    if (!isIframeActive()) {
+                        console.log(`⚠️ LMSCommit blocked - iframe not active`);
+                        return "true";
+                    }
+                    console.log("💾 SCORM 1.2: LMSCommit");
+                    return "true";
+                },
+
+                LMSFinish: function(p) {
+                    console.log("🏁 SCORM 1.2: LMSFinish");
+                    return "true";
+                },
+
                 LMSGetLastError: function() { return "0"; },
                 LMSGetErrorString: function(e) { return ""; },
                 LMSGetDiagnostic: function(e) { return ""; }
             };
 
-            // SCORM 2004
+            // ========================================
+            // SCORM 2004 API
+            // ========================================
             window.API_1484_11 = {
-                Initialize: function(p) { return "true"; },
-                Terminate: function(p) { return "true"; },
-                GetValue: function(e) { return ""; },
-                SetValue: function(e, v) {
-                    console.log("SCORM 2004 Set:", e, v);
-                    if (e === "cmi.completion_status" || e === "cmi.success_status") updateResourceData("status", v);
-                    if (e === "cmi.progress_measure") updateResourceData("progress", parseFloat(v) * 100);
-                    if (e === "cmi.score.raw") updateResourceData("score", v);
+                Initialize: function(p) {
+                    console.log("🎬 SCORM 2004: Initialize");
                     return "true";
                 },
-                Commit: function(p) { return "true"; },
+
+                Terminate: function(p) {
+                    console.log("🏁 SCORM 2004: Terminate");
+                    return "true";
+                },
+
+                GetValue: function(e) {
+                    if (!isIframeActive()) {
+                        console.log(`⚠️ GetValue blocked - iframe not active`);
+                        return "";
+                    }
+
+                    const value = cmiModel.hasOwnProperty(e) ? cmiModel[e] : "";
+                    console.log(`📖 SCORM 2004 GetValue("${e}") = "${value}"`);
+                    return value;
+                },
+
+                SetValue: function(e, v) {
+                    if (!isIframeActive()) {
+                        console.log(`⚠️ SetValue blocked - iframe not active: "${e}" = "${v}"`);
+                        return "true";
+                    }
+
+                    console.log(`📝 SCORM 2004 SetValue("${e}", "${v}")`);
+
+                    cmiModel[e] = v;
+
+                    if (e === "cmi.completion_status" || e === "cmi.success_status") {
+                        updateResourceData("status", v);
+                    }
+                    if (e === "cmi.progress_measure") {
+                        updateResourceData("progress", parseFloat(v) * 100);
+                    }
+                    if (e === "cmi.score.raw") {
+                        updateResourceData("score", v);
+                    }
+
+                    return "true";
+                },
+
+                Commit: function(p) {
+                    if (!isIframeActive()) {
+                        console.log(`⚠️ Commit blocked - iframe not active`);
+                        return "true";
+                    }
+                    console.log("💾 SCORM 2004: Commit");
+                    return "true";
+                },
+
                 GetLastError: function() { return "0"; },
                 GetErrorString: function(e) { return ""; },
                 GetDiagnostic: function(e) { return ""; }
             };
-            console.log("SCORM ADAPTER READY");
-        }
 
+            console.log("✅ SCORM ADAPTER READY");
+        }
+        // ========================================
+        // Utility Functions
+        // ========================================
         function toggleFullscreen() {
             const elem = document.getElementById("fullscreenArea");
             if (!document.fullscreenElement) {
@@ -980,7 +1197,34 @@
         }
 
         function showError(msg) {
+            console.error(`❌ Error: ${msg}`);
             DevExpress.ui.notify(msg, "error", 3000);
         }
+
+        // ========================================
+        // Debug Helper
+        // ========================================
+        function debugScormState() {
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log("🔍 SCORM State Debug");
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log("Selected Resource:", selectedResourceIndex);
+            console.log("Current cmiModel:", JSON.stringify(cmiModel, null, 2));
+            console.log("Resources Status:");
+            if (currentData && currentData.resources) {
+                currentData.resources.forEach((r, i) => {
+                    console.log(`  [${i}] ${r.name}:`, {
+                        clientStatus: r.clientStatus,
+                        clientProgress: r.clientProgress,
+                        clientScore: r.clientScore,
+                        clientTime: r.clientTime
+                    });
+                });
+            }
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
+
+        // Make debug function available globally
+        window.debugScormState = debugScormState;
     </script>
 }
