@@ -16,5 +16,12 @@ namespace iLearn.Application.Interfaces.Repositories
             Expression<Func<T, bool>>? filter = null,
             string? includeProperties = null
         );
+
+        Task<int> CountAsync(Expression<Func<T, bool>>? filter = null);
+
+        Task<IEnumerable<TResult>> GetAsync<TResult>(
+            Expression<Func<T, bool>>? filter = null,
+            Expression<Func<T, TResult>>? selector = null
+        );
     }
 }

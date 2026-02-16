@@ -74,5 +74,36 @@ namespace iLearn.Infrastructure.Repositories
 
             return await query.ToListAsync();
         }
+
+        public async Task<int> CountAsync(Expression<Func<T, bool>>? filter = null)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            return await query.CountAsync();
+        }
+
+        public async Task<IEnumerable<TResult>> GetAsync<TResult>(
+            Expression<Func<T, bool>>? filter = null,
+            Expression<Func<T, TResult>>? selector = null)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            if (selector != null)
+            {
+                return await query.Select(selector).ToListAsync();
+            }
+
+            throw new ArgumentException("Selector is required");
+        }
     }
 }

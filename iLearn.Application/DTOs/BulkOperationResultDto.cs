@@ -20,4 +20,17 @@ namespace iLearn.Application.DTOs
         public string? ErrorMessage { get; set; }
         public string? Details { get; set; }
     }
+
+    // เพิ่มใน DTOs
+    public class BulkOperationProgressDto
+    {
+        public int CurrentItem { get; set; }
+        public int TotalItems { get; set; }
+        public int SuccessCount { get; set; }
+        public int FailureCount { get; set; }
+        public string? CurrentResourceName { get; set; }
+        public bool IsComplete { get; set; }
+        public BulkOperationItemDto? LatestResult { get; set; }
+        public TimeSpan ElapsedTime { get; set; }
+    }
 }

@@ -55,7 +55,7 @@ namespace iLearn.API.Controllers
 
             if (resource == null) return NotFound();
 
-            if (resource.IsActive && !string.IsNullOrEmpty(resource.URL))
+            if (resource.IsActive && !string.IsNullOrEmpty(resource.URL) && !string.IsNullOrEmpty(resource.ResourceHref))
             {
                 string URL = _scormService.GetScormUrl(resource.URL,resource.ResourceHref);
                 return Ok(new { url = URL });
@@ -189,56 +189,86 @@ namespace iLearn.API.Controllers
             return NoContent();
         }
 
+
         /// <summary>
-        /// 🔓 [ADMIN] SetPublic ทั้งหมดที่ยังไม่ได้ SetPublic
+        /// 🔓 [ADMIN] SetPublic ทีละไฟล์แบบ Streaming (ไม่ต้องรอให้เสร็จทั้งหมด)
         /// </summary>
         [HttpPost("Admin/BulkSetPublic")]
         //[Authorize(Roles = "Admin")]
-        public async Task<IActionResult> BulkSetPublic()
+        public async Task BulkSetPublicStreaming()
         {
+            Response.Headers.Add("Content-Type", "text/event-stream");
+            Response.Headers.Add("Cache-Control", "no-cache");
+            Response.Headers.Add("Connection", "keep-alive");
+
             var stopwatch = Stopwatch.StartNew();
-            var result = new BulkOperationResultDto();
+            int currentItem = 0;
+            int successCount = 0;
+            int failureCount = 0;
 
             try
             {
-                // ✅ แก้จาก _resourceRepository เป็น _resourceRepo
-                // ✅ ใช้ GetAsync แทน FindAsync (ตาม IGenericRepository)
-                var inactiveResources = await _resourceRepo.GetAsync(
-                    filter: r => r.IsActive == false && r.FileStorageId != null,
-                    includeProperties: "FileStorage" // ✅ ใช้ string แทน include expression
-                );
+                // ✅ นับจำนวนทั้งหมดก่อน (query เบาๆ)
+                var totalCount = await _resourceRepo.CountAsync(r => r.IsActive == false && r.FileStorageId != null);
 
-                var resourcesList = inactiveResources.ToList();
-                result.TotalProcessed = resourcesList.Count;
-
-                if (result.TotalProcessed == 0)
+                if (totalCount == 0)
                 {
-                    result.Summary = "ไม่มี Resource ที่ต้อง SetPublic";
-                    return Ok(result);
+                    await WriteProgressAsync(new BulkOperationProgressDto
+                    {
+                        IsComplete = true,
+                        CurrentItem = 0,
+                        TotalItems = 0,
+                        ElapsedTime = stopwatch.Elapsed
+                    });
+                    return;
                 }
 
-                _logger.LogInformation($"🚀 Starting Bulk SetPublic for {result.TotalProcessed} resources");
+                _logger.LogInformation($"🚀 Starting Streaming Bulk SetPublic for {totalCount} resources");
 
-                foreach (var resource in resourcesList)
+                // ✅ ดึงทีละ ID (ไม่โหลดข้อมูลทั้งหมด)
+                var resourceIds = await _resourceRepo.GetAsync(
+                    filter: r => r.IsActive == false && r.FileStorageId != null,
+                    selector: r => r.Id
+                );
+
+                // ✅ ประมวลผลทีละไฟล์
+                foreach (var resourceId in resourceIds)
                 {
+                    currentItem++;
+
+                    // โหลดเฉพาะไฟล์ที่กำลังประมวลผล
+                    var resource = await _resourceRepo.GetByIdAsync(resourceId);
+                    if (resource == null) continue;
+
                     var itemResult = new BulkOperationItemDto
                     {
-                        ResourceId = resource.Id, // ✅ แก้จาก ResourceId เป็น Id
+                        ResourceId = resource.Id,
                         ResourceName = resource.Name
                     };
 
                     try
                     {
-                        // ✅ ต้อง Load FileStorage ด้วยตัวเองถ้า includeProperties ไม่ทำงาน
+                        // โหลด FileStorage เฉพาะตอนต้องใช้
                         var fileStorage = await _fileRepo.GetByIdAsync(resource.FileStorageId ?? 0);
 
                         if (fileStorage == null || fileStorage.Data == null)
                         {
                             itemResult.Success = false;
                             itemResult.ErrorMessage = "ไม่พบไฟล์ที่เชื่อมโยง";
-                            result.FailureCount++;
-                            result.Results.Add(itemResult);
-                            _logger.LogWarning($"❌ [{result.SuccessCount + result.FailureCount}/{result.TotalProcessed}] {resource.Name} - No file attached");
+                            failureCount++;
+
+                            await WriteProgressAsync(new BulkOperationProgressDto
+                            {
+                                CurrentItem = currentItem,
+                                TotalItems = totalCount,
+                                SuccessCount = successCount,
+                                FailureCount = failureCount,
+                                CurrentResourceName = resource.Name,
+                                LatestResult = itemResult,
+                                ElapsedTime = stopwatch.Elapsed
+                            });
+
+                            _logger.LogWarning($"❌ [{currentItem}/{totalCount}] {resource.Name} - No file attached");
                             continue;
                         }
 
@@ -267,9 +297,20 @@ namespace iLearn.API.Controllers
                                 _scormService.DeleteScormFolder(folderName);
                                 itemResult.Success = false;
                                 itemResult.ErrorMessage = $"SCORM ไม่ถูกต้อง: {ex.Message}";
-                                result.FailureCount++;
-                                result.Results.Add(itemResult);
-                                _logger.LogError($"❌ [{result.SuccessCount + result.FailureCount}/{result.TotalProcessed}] {resource.Name} - Invalid SCORM: {ex.Message}");
+                                failureCount++;
+
+                                await WriteProgressAsync(new BulkOperationProgressDto
+                                {
+                                    CurrentItem = currentItem,
+                                    TotalItems = totalCount,
+                                    SuccessCount = successCount,
+                                    FailureCount = failureCount,
+                                    CurrentResourceName = resource.Name,
+                                    LatestResult = itemResult,
+                                    ElapsedTime = stopwatch.Elapsed
+                                });
+
+                                _logger.LogError($"❌ [{currentItem}/{totalCount}] {resource.Name} - Invalid SCORM: {ex.Message}");
                                 continue;
                             }
                         }
@@ -279,47 +320,92 @@ namespace iLearn.API.Controllers
                             itemResult.Details = $"ไฟล์ประเภท {extension}";
                         }
 
-                        await _resourceRepo.UpdateAsync(resource); // ✅ แก้ตัวแปร
+                        await _resourceRepo.UpdateAsync(resource);
 
                         itemResult.Success = true;
-                        result.SuccessCount++;
-                        result.Results.Add(itemResult);
+                        successCount++;
 
-                        _logger.LogInformation($"✅ [{result.SuccessCount}/{result.TotalProcessed}] {resource.Name} - {itemResult.Details}");
+                        // ส่ง Progress แบบ Real-time
+                        await WriteProgressAsync(new BulkOperationProgressDto
+                        {
+                            CurrentItem = currentItem,
+                            TotalItems = totalCount,
+                            SuccessCount = successCount,
+                            FailureCount = failureCount,
+                            CurrentResourceName = resource.Name,
+                            LatestResult = itemResult,
+                            ElapsedTime = stopwatch.Elapsed
+                        });
+
+                        _logger.LogInformation($"✅ [{currentItem}/{totalCount}] {resource.Name} - {itemResult.Details}");
                     }
                     catch (Exception ex)
                     {
                         itemResult.Success = false;
                         itemResult.ErrorMessage = ex.Message;
-                        result.FailureCount++;
-                        result.Results.Add(itemResult);
+                        failureCount++;
 
-                        _logger.LogError(ex, $"❌ [{result.SuccessCount + result.FailureCount}/{result.TotalProcessed}] Error processing {resource.Name}");
+                        await WriteProgressAsync(new BulkOperationProgressDto
+                        {
+                            CurrentItem = currentItem,
+                            TotalItems = totalCount,
+                            SuccessCount = successCount,
+                            FailureCount = failureCount,
+                            CurrentResourceName = resource.Name,
+                            LatestResult = itemResult,
+                            ElapsedTime = stopwatch.Elapsed
+                        });
+
+                        _logger.LogError(ex, $"❌ [{currentItem}/{totalCount}] Error processing {resource.Name}");
+                    }
+
+                    // ✅ ให้ GC ทำงาน (ลด memory)
+                    if (currentItem % 10 == 0)
+                    {
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
                     }
                 }
 
+                // ส่งสถานะสุดท้าย
                 stopwatch.Stop();
-                result.Duration = stopwatch.Elapsed;
-                result.Summary = $"✅ สำเร็จ {result.SuccessCount}/{result.TotalProcessed} รายการ " +
-                                $"(❌ ล้มเหลว {result.FailureCount}) ⏱️ ใช้เวลา {result.Duration.TotalSeconds:F2} วินาที";
+                await WriteProgressAsync(new BulkOperationProgressDto
+                {
+                    CurrentItem = currentItem,
+                    TotalItems = totalCount,
+                    SuccessCount = successCount,
+                    FailureCount = failureCount,
+                    IsComplete = true,
+                    ElapsedTime = stopwatch.Elapsed
+                });
 
-                _logger.LogInformation($"🎉 Bulk SetPublic Completed: {result.Summary}");
-
-                return Ok(result);
+                _logger.LogInformation($"🎉 Streaming Bulk SetPublic Completed: ✅ {successCount}/{totalCount} (❌ {failureCount}) in {stopwatch.Elapsed.TotalSeconds:F2}s");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                result.Duration = stopwatch.Elapsed;
-                _logger.LogError(ex, "💥 Bulk SetPublic operation failed");
+                _logger.LogError(ex, "💥 Streaming Bulk SetPublic failed");
 
-                return StatusCode(500, new
+                await WriteProgressAsync(new BulkOperationProgressDto
                 {
-                    error = "Bulk operation failed",
-                    message = ex.Message,
-                    result
+                    IsComplete = true,
+                    SuccessCount = successCount,
+                    FailureCount = failureCount,
+                    ElapsedTime = stopwatch.Elapsed,
+                    LatestResult = new BulkOperationItemDto
+                    {
+                        Success = false,
+                        ErrorMessage = ex.Message
+                    }
                 });
             }
+        }
+
+        private async Task WriteProgressAsync(BulkOperationProgressDto progress)
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(progress);
+            await Response.WriteAsync($"data: {json}\n\n");
+            await Response.Body.FlushAsync();
         }
 
         /// <summary>

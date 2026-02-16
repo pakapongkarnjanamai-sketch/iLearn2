@@ -325,7 +325,7 @@ namespace iLearn.Infrastructure.Services
                     return href.Replace("\\", "/");
                 }
             }
-
+            
             // วิธีที่ 2: หา resource ตัวแรกที่เป็น webcontent
             var firstResource = xDocument.Descendants(ns + "resource")
                 .FirstOrDefault(x =>
