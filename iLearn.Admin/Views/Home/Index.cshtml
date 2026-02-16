@@ -1,5 +1,164 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewBag.Title = "Admin Dashboard";
+}
+
+<div class="container-fluid page-full-height overflow-auto">
+    <div class="mb-4">
+        <h4 class="fw-bold"><i class="fas fa-chart-line me-2"></i>ภาพรวมระบบ (Overview)</h4>
+        <hr />
+    </div>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-primary text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">หลักสูตรทั้งหมด</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-courses">...</h2>
+                    </div>
+                    <i class="fas fa-book fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-success text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">ผู้ใช้งานในระบบ</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-users">...</h2>
+                    </div>
+                    <i class="fas fa-users fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-warning text-dark p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">การลงทะเบียน</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-enrolls">...</h2>
+                    </div>
+                    <i class="fas fa-user-check fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-info text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">ไฟล์ทรัพยากร</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-resources">...</h2>
+                    </div>
+                    <i class="fas fa-file-archive fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="fw-bold mb-3"><i class="fas fa-tasks me-2"></i>จัดการข้อมูลหลัก (Management)</h5>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
+                <div class="mb-3">
+                    <span class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block">
+                        <i class="fas fa-plus-circle fa-2x text-primary"></i>
+                    </span>
+                </div>
+                <h5>จัดการหลักสูตร</h5>
+                <p class="text-muted small">สร้างบทเรียนใหม่, จัดการเวอร์ชัน และผูกทรัพยากรการเรียนรู้</p>
+                <a href="@Url.Action("Index", "Courses")" class="btn btn-primary mt-auto">
+                    ไปที่หน้าจัดการ Course
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
+                <div class="mb-3">
+                    <span class="rounded-circle bg-success bg-opacity-10 p-3 d-inline-block">
+                        <i class="fas fa-user-tag fa-2x text-success"></i>
+                    </span>
+                </div>
+                <h5>มอบหมายหลักสูตร</h5>
+                <p class="text-muted small">กำหนดกฎ (Rules) สำหรับมอบหมายหลักสูตรอัตโนมัติตาม Role/Division</p>
+                <a href="@Url.Action("Index", "AssignmentRules")" class="btn btn-success mt-auto">
+                    ตั้งค่า Assignment
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
+                <div class="mb-3">
+                    <span class="rounded-circle bg-info bg-opacity-10 p-3 d-inline-block">
+                        <i class="fas fa-history fa-2x text-info"></i>
+                    </span>
+                </div>
+                <h5>ประวัติการเรียน (Learning Logs)</h5>
+                <p class="text-muted small">ดูรายละเอียดคะแนน, เวลาเรียน และสถานะผ่าน/ไม่ผ่าน ของพนักงาน</p>
+                <a href="@Url.Action("Index", "LearningLogs")" class="btn btn-info text-white mt-auto">
+                    ดูประวัติการเรียน
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
+                <div class="mb-3">
+                    <span class="rounded-circle bg-secondary bg-opacity-10 p-3 d-inline-block">
+                        <i class="fas fa-cloud-upload-alt fa-2x text-secondary"></i>
+                    </span>
+                </div>
+                <h5>คลังทรัพยากร (Resources)</h5>
+                <p class="text-muted small">อัปโหลดไฟล์ SCORM (.zip) หรือไฟล์ประกอบการเรียนอื่นๆ เข้าสู่ระบบ</p>
+                <a href="@Url.Action("Index", "Resources")" class="btn btn-secondary mt-auto">
+                    ไปที่หน้าจัดการไฟล์
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
+                <div class="mb-3">
+                    <span class="rounded-circle bg-danger bg-opacity-10 p-3 d-inline-block">
+                        <i class="fas fa-user-cog fa-2x text-danger"></i>
+                    </span>
+                </div>
+                <h5>จัดการพนักงาน/สิทธิ์</h5>
+                <p class="text-muted small">จัดการข้อมูลพนักงาน, กำหนดสิทธิ์ Admin/User และจัดการฝ่ายงาน (Division)</p>
+                <a href="@Url.Action("Index", "Users")" class="btn btn-danger mt-auto">
+                    จัดการผู้ใช้งาน
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(() => {
+            // ดึงข้อมูลสรุปจาก API โดยตรง (ตัวอย่างเรียกผ่าน Store ที่มีอยู่)
+            const loadStats = (url, targetId) => {
+                $.ajax({
+                    url: `${serviceUrl}/${url}/Get`,
+                    data: { requireTotalCount: true, take: 0 },
+                    xhrFields: { withCredentials: true },
+                    success: (res) => $(`#${targetId}`).text(res.totalCount || 0)
+                });
+            };
+
+            loadStats('admin/CoursesCRUD', 'stat-courses');
+            loadStats('admin/UsersCRUD', 'stat-users');
+            loadStats('admin/EnrollmentsCRUD', 'stat-enrolls');
+            loadStats('admin/ResourcesCRUD', 'stat-resources');
+        });
+    </script>
 }

@@ -9,7 +9,7 @@ namespace iLearn.Domain.Entities
         public string Code { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public bool IsActive { get; set; } = true;
+
         public CourseType Type { get; set; }
 
         public int CategoryId { get; set; }

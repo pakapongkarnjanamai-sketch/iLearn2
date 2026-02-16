@@ -21,18 +21,21 @@ namespace iLearn.API.Controllers
         private readonly ICurrentUserService _currentUser;
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
+        private readonly IScormService _scormService;
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
             ICurrentUserService currentUserService,
             ICurrentUserService currentUser,
             IGenericRepository<LearningLog> logRepo,
-            IGenericRepository<CourseVersion> versionRepo)
+            IGenericRepository<CourseVersion> versionRepo,
+            IScormService scormService)
         {
             _enrollmentRepo = enrollmentRepo;
             _currentUserService = currentUserService;
             _currentUser = currentUser;
             _logRepo = logRepo;
             _versionRepo = versionRepo;
+            _scormService = scormService;
         }
 
  
@@ -172,30 +175,34 @@ namespace iLearn.API.Controllers
 
             // 5. Map ข้อมูลลง DTO ผสมกันระหว่าง Resource + Log
             var resources = targetVersion.CourseResources
-                .Select(cr => {
-                    // หา Log ที่ตรงกับ Resource นี้
-                    var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
+                .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Lesson first, then Exam
+.ThenBy(cr => cr.Resource.Name)
+        .Select(cr => {
+            var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
 
-                    // ตรวจสอบว่าผ่านหรือยัง
-                    bool isDone = log != null && (
-                        log.Status.ToLower() == "completed" ||
-                        log.Status.ToLower() == "passed"
-                    );
+            bool isDone = log != null && (
+                log.Status.ToLower() == "completed" ||
+                log.Status.ToLower() == "passed"
+            );
 
-                    return new PlayerResourceDto
-                    {
-                        Id = cr.Resource.Id,
-                        Name = cr.Resource.Name,
-                        Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
-                        LaunchUrl = cr.Resource.URL,
+            return new PlayerResourceDto
+            {
+                Id = cr.Resource.Id,
+                Name = cr.Resource.Name,
+                Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
 
-                        // ใส่ข้อมูลจาก Log (ถ้ามี)
-                        IsCompleted = isDone,
-                        Score = log?.Score,
-                        Time = log?.SessionTime // ส่งเวลาเดิมกลับไปแสดง
-                    };
-                })
-                .ToList();
+                // ✅ ใช้ GetScormUrl ถ้ามีข้อมูล SCORM, ไม่งั้นใช้ URL เดิม
+                LaunchUrl = !string.IsNullOrEmpty(cr.Resource.URL) &&
+                           !string.IsNullOrEmpty(cr.Resource.ResourceHref)
+                    ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
+                    : cr.Resource.URL ?? string.Empty,
+
+                IsCompleted = isDone,
+                Score = log?.Score,
+                Time = log?.SessionTime
+            };
+        })
+        .ToList();
 
             var dto = new PlayerInfoDto
             {
