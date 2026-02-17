@@ -17,12 +17,11 @@ namespace iLearn.User.Controllers
         {
             return View();
         }
-     
 
-        public IActionResult Player(int enrollmentId)
+        // เปลี่ยนรับ parameter จาก enrollmentId เป็น courseId
+        public IActionResult Player(int courseId)
         {
-            ViewBag.EnrollmentId = enrollmentId;
-          
+            ViewBag.CourseId = courseId;
             return View();
         }
     }

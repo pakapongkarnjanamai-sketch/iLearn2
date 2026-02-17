@@ -6,22 +6,24 @@
         public string StudentCode { get; set; } = string.Empty;
         public string CourseTitle { get; set; } = string.Empty;
 
-        // [เพิ่มใหม่] ส่งสถานะ Enrollment กลับเป็น boolean
+        // สถานะจบการศึกษา (Completed)
         public bool IsCompleted { get; set; } = false;
 
+        // [เพิ่มใหม่] สถานะ View Only (ไม่มี Enrollment หรือดูตัวอย่าง)
+        public bool IsReadOnly { get; set; } = false;
+        public int? EnrollmentId { get; set; } // [เพิ่ม] ส่ง ID กลับไปเพื่อให้ Frontend ใช้ตอน Save
         public List<PlayerResourceDto> Resources { get; set; } = new();
     }
 
     public class PlayerResourceDto
     {
-        public int Id { get; set; } // ResourceId
+        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = "Lesson";
         public string LaunchUrl { get; set; } = string.Empty;
 
-        // [เพิ่มใหม่] ส่งสถานะรายบทเรียนกลับไป
         public bool IsCompleted { get; set; }
         public int? Score { get; set; }
-        public string? Time { get; set; } // เช่น "00:15:30"
+        public string? Time { get; set; }
     }
 }

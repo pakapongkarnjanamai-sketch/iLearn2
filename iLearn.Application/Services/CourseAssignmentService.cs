@@ -134,16 +134,16 @@ namespace iLearn.Application.Services
                 {
                     StudentCode = user.Nid,
                     CourseId = course.Id,
-                    EnrolledVersion = currentVersion, // ใช้ Version จาก Logic ใหม่
+                    EnrolledCourseVersion = currentVersion, // ใช้ Version จาก Logic ใหม่
                     IsCompleted = false,
                     CreatedAt = DateTime.UtcNow
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
             }
-            else if (existing.EnrolledVersion < currentVersion)
+            else if (existing.EnrolledCourseVersion < currentVersion)
             {
                 // เคยเรียนแล้ว แต่มี Version ใหม่ -> Reset ให้ Retake
-                existing.EnrolledVersion = currentVersion; // อัปเดต Version
+                existing.EnrolledCourseVersion = currentVersion; // อัปเดต Version
                 existing.IsCompleted = false;
                 existing.CompletedDate = null;
 

@@ -7,7 +7,7 @@
         public int CourseId { get; set; }
         public string CourseCode { get; set; } = string.Empty;
         public string CourseTitle { get; set; } = string.Empty;
-        public int EnrolledVersion { get; set; }
+        public int EnrolledCourseVersion { get; set; }
         // Replace string Status with boolean flag
         public bool IsCompleted { get; set; }
         public DateTime? DueDate { get; set; }

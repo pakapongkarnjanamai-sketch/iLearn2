@@ -46,7 +46,7 @@ namespace iLearn.API.Controllers
             }
 
             // 2. เตรียมข้อมูล Version
-            int versionId = enrollment.EnrolledVersion;
+            int versionId = enrollment.EnrolledCourseVersion;
 
             // ดึง Log เดิมทั้งหมดของ User ใน Version นี้มาเพื่อเปรียบเทียบ
             var existingLogs = await _logRepo.GetAsync(l =>

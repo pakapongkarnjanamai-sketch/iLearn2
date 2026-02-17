@@ -8,8 +8,8 @@ namespace iLearn.Domain.Entities
 
         public int CourseId { get; set; } // FK
         public Course? Course { get; set; }
-
-        public int EnrolledVersion { get; set; }
+        //EnrolledVersion -> EnrolledCourseVersion
+        public int EnrolledCourseVersion { get; set; }
         // Replace string status with boolean flag for completion
         public bool IsCompleted { get; set; } = false;
         public DateTime? DueDate { get; set; }

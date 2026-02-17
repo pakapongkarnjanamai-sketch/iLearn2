@@ -72,7 +72,7 @@ namespace iLearn.Application.Mappings
                 CourseId = entity.CourseId,
                 CourseCode= entity.Course?.Code ?? string.Empty,
                 CourseTitle = entity.Course?.Title ?? string.Empty,
-                EnrolledVersion = entity.EnrolledVersion,
+                EnrolledCourseVersion = entity.EnrolledCourseVersion,
                 IsCompleted = entity.IsCompleted,
                 DueDate = entity.DueDate,
                 CompletedDate = entity.CompletedDate,
