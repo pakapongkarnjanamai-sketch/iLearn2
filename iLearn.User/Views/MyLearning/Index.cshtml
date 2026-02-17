@@ -439,7 +439,7 @@ else
 
     <div class="container pb-4">
 
-        <div class="mb-5">
+        <div class="mb-4">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div>
                     <h5 class="fw-bold mb-1">
@@ -480,7 +480,7 @@ else
                 <div>
                     <h5 class="fw-bold mb-1">
                         <i class="fas fa-graduation-cap text-brand me-2"></i>
-                        คลังหลักสูตรทั้งหมด
+                        คลังหลักสูตร
                     </h5>
                 </div>
                 <div class="d-flex gap-3 align-items-center">
@@ -699,7 +699,7 @@ else
 
                 $container.html(`
                     <div class="col-12">
-                        <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 300px;">
+                        <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 362px;">
                             <div>
                                 <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                 <p class="mb-0">${messages[type]}</p>
@@ -830,10 +830,11 @@ else
 
             if (coursesToShow.length === 0) {
                 $content.html(`
-                    <div class="alert alert-light text-center border">
-                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                    <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 362px;">
+                     <div>
+                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                         <p class="mb-0">ไม่พบหลักสูตรในหมวดหมู่นี้</p>
-                    </div>
+                    </div></div>
                 `);
                 return;
             }

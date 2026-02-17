@@ -30,119 +30,128 @@ namespace iLearn.API.Controllers
         [HttpPost("update-progress")]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
-            // 1. ตรวจสอบ Enrollment และสิทธิ์
+            // 1. ตรวจสอบ Enrollment
             var enrollment = await _enrollmentRepo.GetByIdAsync(input.EnrollmentId);
             if (enrollment == null)
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
 
+            // ตรวจสอบว่าเป็นเจ้าของ Enrollment หรือไม่
             if (!string.Equals(enrollment.StudentCode, input.StudentCode, StringComparison.OrdinalIgnoreCase))
                 return Unauthorized(new ApiResponse<string> { Success = false, Message = "Student code mismatch" });
 
-            // --- NEW: Read Only Mode ---
-            // ถ้าเรียนจบไปแล้ว ไม่ให้บันทึกเพิ่ม
+            // ✅ ถ้าจบแล้ว (Completed) ไม่ให้แก้ (เว้นแต่ Admin จะ Reset IsCompleted = false มาแล้ว)
             if (enrollment.IsCompleted)
             {
-                return Ok(new ApiResponse<string> { Success = true, Message = "Course is already completed. No updates allowed." });
+                return Ok(new ApiResponse<string> { Success = true, Message = "Course is completed." });
             }
 
-            // 2. เตรียมข้อมูล Version
             int versionId = enrollment.EnrolledCourseVersion;
 
-            // ดึง Log เดิมทั้งหมดของ User ใน Version นี้มาเพื่อเปรียบเทียบ
-            var existingLogs = await _logRepo.GetAsync(l =>
-                l.StudentCode == input.StudentCode &&
-                l.CourseVersionId == versionId
-            );
+            // 2. ✅ ดึง Log โดยอ้างอิง EnrollmentId โดยตรง (แม่นยำกว่า StudentCode + Version อย่างเดียว)
+            var existingLogs = await _logRepo.GetAsync(l => l.EnrollmentId == input.EnrollmentId);
 
-            // 3. วนลูปบันทึกราย Resource (ตามข้อ 2)
             foreach (var resInput in input.Resources)
             {
                 var log = existingLogs.FirstOrDefault(l => l.ResourceId == resInput.ResourceId);
 
-                // ตรวจสอบสถานะผ่าน (Passed/Completed)
+                // แปลงสถานะจาก Input
                 bool isInputPassed = resInput.Status?.ToLower() == "passed" ||
-                                     resInput.Status?.ToLower() == "completed" ||
-                                     resInput.Progress >= 100;
+                                     resInput.Status?.ToLower() == "completed";
+                string newStatus = isInputPassed ? "passed" : (resInput.Status ?? "incomplete");
+
+                // คำนวณเวลาในรอบนี้ (Session Time) เป็นวินาที
+                int sessionSeconds = ParseSessionTime(resInput.SessionTime);
 
                 if (log != null)
                 {
-                    // --- กรณีมี Log เดิม ---
+                    // --- กรณีมี Log เดิม (Update) ---
 
-                    // Logic เวลา: ถ้าของเดิมผ่านแล้ว จะไม่บันทึกเวลาใหม่ (ตามข้อ 2)
-                    bool isAlreadyPassed = log.Status?.ToLower() == "passed" || log.Status?.ToLower() == "completed";
+                    // ✅ 1. บวกเวลาสะสมเพิ่มเข้าไปเสมอ (เพื่อบันทึก Actual Usage)
+                    log.TotalSecondsPlayed += sessionSeconds;
 
-                    if (!isAlreadyPassed)
+                    // ✅ 2. อัปเดต SessionTime ล่าสุดเก็บไว้ดู
+                    if (!string.IsNullOrEmpty(resInput.SessionTime))
                     {
-                        // ถ้ายังไม่เคยผ่าน ให้บันทึกสถานะล่าสุด
-                        log.Status = isInputPassed ? "passed" : (resInput.Status ?? "incomplete");
-                        log.Progress = isInputPassed ? 100 : (resInput.Progress ?? 0);
-                        log.Score = resInput.Score ?? log.Score;
-
-                        // บันทึกเวลาเฉพาะตอนที่ยังไม่ผ่าน
-                        if (!string.IsNullOrEmpty(resInput.SessionTime))
-                        {
-                            log.SessionTime = resInput.SessionTime;
-                        }
+                        log.SessionTime = resInput.SessionTime;
                     }
-                    // ถ้า isAlreadyPassed = true -> เราจะไม่ update อะไรเลย (Read only for this resource)
+
+                    // ✅ 3. อัปเดตสถานะและคะแนน (เขียนทับได้เลย เพราะถือว่ากำลังเรียนรอบใหม่)
+                    // Logic เดิมจะกันไม่ให้แก้ถ้าผ่านแล้ว แต่กรณีนี้เรายอมให้แก้เพื่อให้สถานะเป็นปัจจุบัน
+                    log.Status = newStatus;
+                    log.Progress = isInputPassed ? 100 : (resInput.Progress ?? 0);
+
+                    // อัปเดตคะแนนเฉพาะถ้ามีส่งมา (หรือจะใช้ Logic คะแนนสูงสุดก็ได้ตามต้องการ)
+                    if (resInput.Score.HasValue)
+                    {
+                        log.Score = resInput.Score;
+                    }
+
+                    // ✅ 4. เพิ่มจำนวนครั้งที่พยายาม (Logic คร่าวๆ: ถ้านักเรียนส่ง Status มาใหม่ ให้ถือเป็นความเคลื่อนไหว)
+                    // หรือจะนับเฉพาะตอน Client ส่งสัญญาณเริ่มเรียนก็ได้ แต่นับตอน Save ก็พอใช้แทนได้
+                    log.AttemptCount++;
 
                     await _logRepo.UpdateAsync(log);
                 }
                 else
                 {
-                    // --- กรณีไม่มี Log (สร้างใหม่) ---
+                    // --- กรณีไม่มี Log (Create New) ---
                     var newLog = new LearningLog
                     {
+                        EnrollmentId = input.EnrollmentId, // ✅ อย่าลืมใส่ EnrollmentId
                         StudentCode = input.StudentCode,
                         ResourceId = resInput.ResourceId,
                         CourseVersionId = versionId,
-                        Status = isInputPassed ? "passed" : (resInput.Status ?? "incomplete"),
+                        Status = newStatus,
                         Progress = isInputPassed ? 100 : (resInput.Progress ?? 0),
                         Score = resInput.Score,
                         SessionTime = resInput.SessionTime,
-                        // CreateDate = DateTime.Now 
+                        TotalSecondsPlayed = sessionSeconds, // เริ่มต้นด้วยเวลาของรอบแรก
+                        AttemptCount = 1,
+                        CreatedAt = DateTime.Now // สมมติว่ามี
                     };
                     await _logRepo.AddAsync(newLog);
                 }
             }
 
-            // 4. ตรวจสอบว่าเรียนจบทั้ง Course หรือยัง?
-            // ดึง Log ล่าสุดอีกรอบ (รวมที่เพิ่งบันทึกไป)
-            var allLogs = await _logRepo.GetAsync(l => l.StudentCode == input.StudentCode && l.CourseVersionId == versionId);
+            // 3. ตรวจสอบการจบหลักสูตร (Completion Check)
+            // ... (Logic การตรวจสอบว่าเรียนครบทุกบทหรือยัง เหมือนเดิม) ...
 
-            // ดึงจำนวน Resource ทั้งหมดใน Version นี้
+            // [ส่วนเสริม] โค้ดตรวจสอบว่าผ่านครบทุกบทไหม (ใช้ existingLogs ที่เพิ่ง update ไปเช็คได้เลย)
             var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseResources")).FirstOrDefault();
-
             if (version != null && version.CourseResources != null)
             {
-                var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+                // รีโหลด Log ใหม่เพื่อให้ได้ค่าล่าสุด
+                var updatedLogs = await _logRepo.GetAsync(l => l.EnrollmentId == input.EnrollmentId);
 
-                // นับจำนวน Resource ที่ผ่านแล้ว (Status = passed/completed)
-                int passedCount = allLogs.Count(l =>
+                var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+                int passedCount = updatedLogs.Count(l =>
                     allResourceIds.Contains(l.ResourceId) &&
                     (l.Status == "passed" || l.Status == "completed")
                 );
 
-                // ถ้าผ่านครบทุกตัว
                 if (passedCount >= allResourceIds.Count)
                 {
                     enrollment.IsCompleted = true;
-                    enrollment.Progress = 100;
                     enrollment.CompletedDate = DateTime.Now;
-                    await _enrollmentRepo.UpdateAsync(enrollment);
+                    enrollment.Progress = 100;
                 }
                 else
                 {
-                    // ถ้ายังไม่ครบ อาจจะอัปเดต % รวม
-                    double courseProgress = ((double)passedCount / allResourceIds.Count) * 100;
-                    enrollment.Progress = courseProgress;
-                    await _enrollmentRepo.UpdateAsync(enrollment);
+                    enrollment.Progress = ((double)passedCount / allResourceIds.Count) * 100;
                 }
+                await _enrollmentRepo.UpdateAsync(enrollment);
             }
 
-            return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved successfully." });
+            return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved." });
         }
-
-
+        private int ParseSessionTime(string? timeStr)
+        {
+            if (string.IsNullOrEmpty(timeStr)) return 0;
+            if (TimeSpan.TryParse(timeStr, out var ts))
+            {
+                return (int)ts.TotalSeconds;
+            }
+            return 0;
+        }
     }
 }
