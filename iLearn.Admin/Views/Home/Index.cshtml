@@ -2,131 +2,233 @@
     ViewBag.Title = "Admin Dashboard";
 }
 
-<div class="container-fluid page-full-height overflow-auto">
-    <div class="mb-4">
-        <h4 class="fw-bold"><i class="fas fa-chart-line me-2"></i>ภาพรวมระบบ (Overview)</h4>
-        <hr />
+@section Styles {
+    <style>
+        :root {
+            /* กำหนดค่าสีหลักสำหรับ Admin (สีฟ้า) */
+            --admin-blue: #007bff;
+            --admin-blue-dark: #0056b3;
+            --admin-blue-light: rgba(0, 123, 255, 0.1);
+        }
+
+        body {
+            background-color: #f8f9fa; /* สีพื้นหลังเดียวกับฝั่ง User */
+        }
+
+        /* --- Page Header --- */
+        .page-header {
+            background-color: white;
+            padding: 2.5rem 0 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: #2c3e50;
+        }
+
+        /* --- Stat Cards (เลียนแบบ Stat ของ User) --- */
+        .stat-box {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 4px solid var(--admin-blue); /* เพิ่มแถบสีฟ้าด้านบน */
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+
+            .stat-box:hover {
+                transform: translateY(-5px);
+            }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--admin-blue);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* --- Management Cards --- */
+        .mgmt-card {
+            border: none;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            height: 100%;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+            .mgmt-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+            }
+
+        .icon-circle {
+            width: 70px;
+            height: 70px;
+            background-color: var(--admin-blue-light);
+            color: var(--admin-blue);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .mgmt-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #2c3e50;
+            margin-bottom: 0.75rem;
+        }
+
+        .mgmt-desc {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+            min-height: 40px;
+        }
+
+        .btn-mgmt {
+            border-radius: 20px;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border: 2px solid var(--admin-blue);
+            color: var(--admin-blue);
+            transition: all 0.2s;
+        }
+
+            .btn-mgmt:hover {
+                background-color: var(--admin-blue);
+                color: white;
+            }
+
+        .section-title {
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-left: 0.5rem;
+            border-left: 4px solid var(--admin-blue);
+        }
+    </style>
+}
+
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h2 class="page-title mb-1"><i class="fas fa-chart-line me-2 text-primary"></i>ภาพรวมระบบ (Overview)</h2>
+                <p class="text-muted mb-0 small">iLearn Management Information System</p>
+            </div>
+            <div class="text-muted small">
+                <i class="far fa-calendar-alt me-1"></i> @DateTime.Now.ToString("dd MMMM yyyy")
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="stat-box text-center">
+                <div class="stat-number" id="stat-courses">...</div>
+                <div class="stat-label">หลักสูตรทั้งหมด</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-box text-center">
+                <div class="stat-number" id="stat-users">...</div>
+                <div class="stat-label">ผู้ใช้งานในระบบ</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-box text-center">
+                <div class="stat-number" id="stat-enrolls">...</div>
+                <div class="stat-label">การลงทะเบียนเรียน</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-box text-center">
+                <div class="stat-number" id="stat-resources">...</div>
+                <div class="stat-label">ทรัพยากร/ไฟล์</div>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-3 mb-5">
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0 bg-primary text-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">หลักสูตรทั้งหมด</h6>
-                        <h2 class="mb-0 fw-bold" id="stat-courses">...</h2>
-                    </div>
-                    <i class="fas fa-book fa-2x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0 bg-success text-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">ผู้ใช้งานในระบบ</h6>
-                        <h2 class="mb-0 fw-bold" id="stat-users">...</h2>
-                    </div>
-                    <i class="fas fa-users fa-2x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0 bg-warning text-dark p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">การลงทะเบียน</h6>
-                        <h2 class="mb-0 fw-bold" id="stat-enrolls">...</h2>
-                    </div>
-                    <i class="fas fa-user-check fa-2x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0 bg-info text-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">ไฟล์ทรัพยากร</h6>
-                        <h2 class="mb-0 fw-bold" id="stat-resources">...</h2>
-                    </div>
-                    <i class="fas fa-file-archive fa-2x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <h5 class="fw-bold mb-3"><i class="fas fa-tasks me-2"></i>จัดการข้อมูลหลัก (Management)</h5>
+    <h5 class="section-title">จัดการข้อมูลหลัก (Management)</h5>
     <div class="row g-4">
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
-                <div class="mb-3">
-                    <span class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block">
-                        <i class="fas fa-plus-circle fa-2x text-primary"></i>
-                    </span>
+            <div class="mgmt-card">
+                <div class="icon-circle">
+                    <i class="fas fa-book fa-2x"></i>
                 </div>
-                <h5>จัดการหลักสูตร</h5>
-                <p class="text-muted small">สร้างบทเรียนใหม่, จัดการเวอร์ชัน และผูกทรัพยากรการเรียนรู้</p>
-                <a href="@Url.Action("Index", "Courses")" class="btn btn-primary mt-auto">
-                    ไปที่หน้าจัดการ Course
+                <h6 class="mgmt-title">จัดการหลักสูตร</h6>
+                <p class="mgmt-desc">สร้างบทเรียนใหม่, จัดการเวอร์ชัน และผูกทรัพยากรการเรียนรู้</p>
+                <a href="@Url.Action("Index", "Courses")" class="btn btn-mgmt w-100">
+                    เข้าสู่เมนู
                 </a>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
-                <div class="mb-3">
-                    <span class="rounded-circle bg-success bg-opacity-10 p-3 d-inline-block">
-                        <i class="fas fa-user-tag fa-2x text-success"></i>
-                    </span>
+            <div class="mgmt-card">
+                <div class="icon-circle">
+                    <i class="fas fa-user-tag fa-2x"></i>
                 </div>
-                <h5>มอบหมายหลักสูตร</h5>
-                <p class="text-muted small">กำหนดกฎ (Rules) สำหรับมอบหมายหลักสูตรอัตโนมัติตาม Role/Division</p>
-                <a href="@Url.Action("Index", "AssignmentRules")" class="btn btn-success mt-auto">
+                <h6 class="mgmt-title">มอบหมายหลักสูตร</h6>
+                <p class="mgmt-desc">กำหนดกฎ (Rules) สำหรับการมอบหมายหลักสูตรอัตโนมัติ</p>
+                <a href="@Url.Action("Index", "AssignmentRules")" class="btn btn-mgmt w-100">
                     ตั้งค่า Assignment
                 </a>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
-                <div class="mb-3">
-                    <span class="rounded-circle bg-info bg-opacity-10 p-3 d-inline-block">
-                        <i class="fas fa-history fa-2x text-info"></i>
-                    </span>
+            <div class="mgmt-card">
+                <div class="icon-circle">
+                    <i class="fas fa-history fa-2x"></i>
                 </div>
-                <h5>ประวัติการเรียน (Learning Logs)</h5>
-                <p class="text-muted small">ดูรายละเอียดคะแนน, เวลาเรียน และสถานะผ่าน/ไม่ผ่าน ของพนักงาน</p>
-                <a href="@Url.Action("Index", "LearningLogs")" class="btn btn-info text-white mt-auto">
-                    ดูประวัติการเรียน
+                <h6 class="mgmt-title">ประวัติการเรียน</h6>
+                <p class="mgmt-desc">ดูรายละเอียดคะแนน, เวลาเรียน และสถานะผ่าน/ไม่ผ่าน</p>
+                <a href="@Url.Action("Index", "LearningLogs")" class="btn btn-mgmt w-100">
+                    ดู Log ทั้งหมด
                 </a>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
-                <div class="mb-3">
-                    <span class="rounded-circle bg-secondary bg-opacity-10 p-3 d-inline-block">
-                        <i class="fas fa-cloud-upload-alt fa-2x text-secondary"></i>
-                    </span>
+            <div class="mgmt-card">
+                <div class="icon-circle">
+                    <i class="fas fa-cloud-upload-alt fa-2x"></i>
                 </div>
-                <h5>คลังทรัพยากร (Resources)</h5>
-                <p class="text-muted small">อัปโหลดไฟล์ SCORM (.zip) หรือไฟล์ประกอบการเรียนอื่นๆ เข้าสู่ระบบ</p>
-                <a href="@Url.Action("Index", "Resources")" class="btn btn-secondary mt-auto">
-                    ไปที่หน้าจัดการไฟล์
+                <h6 class="mgmt-title">คลังทรัพยากร</h6>
+                <p class="mgmt-desc">อัปโหลดไฟล์ SCORM (.zip) และจัดการไฟล์สื่อต่างๆ</p>
+                <a href="@Url.Action("Index", "Resources")" class="btn btn-mgmt w-100">
+                    จัดการไฟล์
                 </a>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm hover-shadow border-0 text-center p-4">
-                <div class="mb-3">
-                    <span class="rounded-circle bg-danger bg-opacity-10 p-3 d-inline-block">
-                        <i class="fas fa-user-cog fa-2x text-danger"></i>
-                    </span>
+            <div class="mgmt-card">
+                <div class="icon-circle">
+                    <i class="fas fa-user-cog fa-2x"></i>
                 </div>
-                <h5>จัดการพนักงาน/สิทธิ์</h5>
-                <p class="text-muted small">จัดการข้อมูลพนักงาน, กำหนดสิทธิ์ Admin/User และจัดการฝ่ายงาน (Division)</p>
-                <a href="@Url.Action("Index", "Users")" class="btn btn-danger mt-auto">
+                <h6 class="mgmt-title">จัดการพนักงาน/สิทธิ์</h6>
+                <p class="mgmt-desc">จัดการข้อมูลพนักงาน, กำหนดสิทธิ์ และฝ่ายงาน (Division)</p>
+                <a href="@Url.Action("Index", "Users")" class="btn btn-mgmt w-100">
                     จัดการผู้ใช้งาน
                 </a>
             </div>
@@ -134,27 +236,23 @@
     </div>
 </div>
 
-<style>
-    .hover-shadow:hover {
-        transform: translateY(-5px);
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-    }
-</style>
-
 @section Scripts {
     <script>
         $(() => {
-            // ดึงข้อมูลสรุปจาก API โดยตรง (ตัวอย่างเรียกผ่าน Store ที่มีอยู่)
+            // ฟังก์ชันโหลดข้อมูลสถิติจาก API มาแสดงผล
             const loadStats = (url, targetId) => {
                 $.ajax({
                     url: `${serviceUrl}/${url}/Get`,
                     data: { requireTotalCount: true, take: 0 },
                     xhrFields: { withCredentials: true },
-                    success: (res) => $(`#${targetId}`).text(res.totalCount || 0)
+                    success: (res) => {
+                        $(`#${targetId}`).text(res.totalCount || 0);
+                    },
+                    error: () => $(`#${targetId}`).text('0')
                 });
             };
 
+            // เรียกใช้ฟังก์ชันเพื่อดึงสถิติแต่ละส่วน
             loadStats('admin/CoursesCRUD', 'stat-courses');
             loadStats('admin/UsersCRUD', 'stat-users');
             loadStats('admin/EnrollmentsCRUD', 'stat-enrolls');

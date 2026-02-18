@@ -3,14 +3,14 @@
 }
 
 <div class="container-fluid page-full-height">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm h-100">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>@ViewBag.Title</h5>
-            <button class="btn btn-sm btn-light" onclick="window.location.href='@Url.Action("Index", "Courses")'">
-                <i class="fas fa-list me-1"></i> ดูหลักสูตรทั้งหมด
+            <button class="btn btn-sm btn-light text-secondary" onclick="window.location.href='@Url.Action("Index", "Courses")'">
+                <i class="fas fa-list me-1"></i> กลับไปดูหลักสูตรทั้งหมด
             </button>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             <div id="grid-drafts"></div>
         </div>
     </div>
@@ -18,12 +18,17 @@
 
 @section Scripts {
     <script>
-      
+    
 
-        // Data Store (ดึงข้อมูลทั้งหมด แล้วเดี๋ยวเรา Filter ใน Grid เอา)
-        // หรือถ้า API รองรับ parameter isActive ก็สามารถใส่ loadParams ได้
-        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
+        // Lookup DataStores
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
+
+        // ★ จุดสำคัญ: สร้าง Store สำหรับ Draft โดยเฉพาะ ★
+        // เราส่ง loadParams: { isActive: false } เพื่อบังคับให้ API ส่งเฉพาะ Draft กลับมา
+        const draftCoursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', {
+            key: 'id',
+            loadParams: { isActive: false }
+        });
 
         const courseTypes = [
             { id: 0, name: 'Special (Rule-based)' },
@@ -32,39 +37,41 @@
 
         $(() => {
             $("#grid-drafts").dxDataGrid({
-                dataSource: coursesStore,
-                // ★ กรองเฉพาะ Draft (IsActive = false) ★
-                filterValue: ["isActive", "=", false],
+                dataSource: draftCoursesStore,
                 remoteOperations: true,
                 columnAutoWidth: true,
-                showBorders: true,
+                showBorders: false,
                 height: "100%",
                 scrolling: { mode: "virtual" },
                 searchPanel: { visible: true, width: 300, placeholder: "ค้นหาแบบร่าง..." },
                 headerFilter: { visible: true },
+                rowAlternationEnabled: true,
+                hoverStateEnabled: true,
+
+                // ไม่ต้องใส่ filterValue: ["isActive", "=", false] ที่นี่
+                // เพราะเรากรองตั้งแต่ตอนขอข้อมูลด้วย loadParams แล้ว
 
                 columns: [
                     {
                         dataField: "code",
-                        caption: "Code",
-                        width: 100,
+                        caption: "รหัสวิชา (Code)",
+                        width: 120,
                         sortOrder: 'asc'
                     },
                     {
                         dataField: "title",
-                        caption: "Title",
+                        caption: "ชื่อหลักสูตร (Title)",
                         minWidth: 250,
                         cellTemplate: function(container, options) {
-                            // แสดงป้าย Draft ชัดๆ
-                            $("<div>").append(
-                                $("<span>").addClass("badge bg-secondary me-2").text("Draft"),
-                                $("<span>").text(options.value)
-                            ).appendTo(container);
+                            $("<div>")
+                                .append($("<span>").addClass("badge bg-warning text-dark me-2").text("Draft"))
+                                .append($("<span>").addClass("fw-bold").text(options.value))
+                                .appendTo(container);
                         }
                     },
                     {
                         dataField: "categoryId",
-                        caption: "Category",
+                        caption: "หมวดหมู่ (Category)",
                         width: 180,
                         lookup: {
                             dataSource: categoriesStore,
@@ -74,7 +81,7 @@
                     },
                     {
                         dataField: "type",
-                        caption: "Type",
+                        caption: "ประเภท (Type)",
                         width: 150,
                         lookup: {
                             dataSource: courseTypes,
@@ -83,78 +90,74 @@
                         }
                     },
                     {
-                        dataField: "updatedAt",
-                        caption: "Last Updated",
+                        dataField: "updatedAt", // หรือ createdDate ตาม Model ของคุณ
+                        caption: "แก้ไขล่าสุด",
                         dataType: "datetime",
                         format: "dd/MM/yyyy HH:mm",
                         width: 150
                     },
                     {
                         type: "buttons",
-                        width: 160,
+                        width: 140,
+                        caption: "จัดการ",
                         buttons: [
-                            // 1. ปุ่มแก้ไข (Edit) -> ไปหน้า Form
                             {
-                                hint: "แก้ไข (Edit)",
+                                hint: "แก้ไขข้อมูล",
                                 icon: "edit",
                                 type: "default",
                                 onClick: function(e) {
                                     window.location.href = '@Url.Action("Form", "Courses")?id=' + e.row.data.id;
                                 }
                             },
-                            // 2. ปุ่ม Publish (Public) -> เรียก API Update IsActive = true
                             {
                                 hint: "เผยแพร่ (Publish)",
-                                icon: "check", // รูปเครื่องหมายถูก
-                                type: "success",
+                                icon: "upload",
+                                cssClass: "text-success",
                                 onClick: function(e) {
                                     publishCourse(e.row.data);
                                 }
                             },
-                            // 3. ปุ่มลบ (Delete)
                             "delete"
                         ]
                     }
-                ]
+                ],
+                // เพิ่ม Toolbar เพื่อความสวยงาม
+                onToolbarPreparing: function(e) {
+                    e.toolbarOptions.items.unshift({
+                        location: "before",
+                        template: function() {
+                            return $("<div class='fw-bold text-secondary ms-2'>รายการที่รอการเผยแพร่</div>");
+                        }
+                    });
+                }
             });
         });
 
-        // ฟังก์ชันสำหรับ Publish Course
         function publishCourse(data) {
             DevExpress.ui.dialog.confirm(
-                `ยืนยันการเผยแพร่หลักสูตร <b>"${data.title}"</b> หรือไม่?<br/>ระบบจะทำการเตรียมไฟล์ SCORM และเปิดให้พนักงานเข้าถึงได้`,
-                "Publish Confirmation"
+                `ยืนยันการเผยแพร่หลักสูตร <b>"${data.title}"</b> หรือไม่?<br/>เมื่อเผยแพร่แล้ว พนักงานจะสามารถมองเห็นหลักสูตรนี้ได้ทันที`,
+                "ยืนยันการเผยแพร่ (Confirm Publish)"
             ).done(function(dialogResult) {
                 if (dialogResult) {
-                    const loadPanel = showLoading("กำลังเผยแพร่และเตรียมไฟล์...");
+                    const loadPanel = showLoading("กำลังเผยแพร่...");
 
-                    // เรียก API Create/Publish (ใช้ Endpoint เดียวกับตอนกด Publish ในหน้า Form)
-                    // แต่รอบนี้เรามี ID แล้ว และไม่ได้ส่งไฟล์ใหม่
-                    // เราจะใช้ API Update (Put) หรือ API เฉพาะก็ได้
-
-                    // วิธีที่ง่ายที่สุด: เรียก PUT Update IsActive = true
-                    // แต่ถ้าต้องการ Trigger SCORM Extract ด้วย ต้องเรียก API พิเศษ
-                    // สมมติว่าใช้ Endpoint create-scorm เดิม แต่ส่ง flag isPublish=true และ courseId ไป
-                    // หรือเรียก Update ปกติแล้ว Backend มี Logic ตรวจจับการเปลี่ยน Status
-
-                    // ในที่นี้ขอใช้แบบ Update IsActive (Generic Put)
-                    // *หมายเหตุ: หากระบบต้อง Extract SCORM ตอน Publish เท่านั้น คุณอาจต้องสร้าง API เฉพาะชื่อ /api/courses/{id}/publish*
-
+                    // เรียก API เพื่อเปลี่ยนสถานะ isActive = true
                     $.ajax({
                         url: `${serviceUrl}/admin/CoursesCRUD/Put`,
                         method: "PUT",
                         data: {
                             key: data.id,
-                            values: JSON.stringify({ isActive: true }) // เปลี่ยนสถานะเป็น Active
+                            values: JSON.stringify({ isActive: true }) // ส่งเฉพาะค่าที่ต้องการเปลี่ยน
                         },
                         xhrFields: { withCredentials: true },
                         success: function() {
                             loadPanel.hide();
-                            DevExpress.ui.notify("เผยแพร่สำเร็จ", "success", 2000);
-                            $("#grid-drafts").dxDataGrid("instance").refresh(); // Refresh Grid
+                            DevExpress.ui.notify("เผยแพร่หลักสูตรสำเร็จ", "success", 2000);
+                            $("#grid-drafts").dxDataGrid("instance").refresh();
                         },
                         error: function(err) {
                             loadPanel.hide();
+                            console.error(err);
                             DevExpress.ui.notify("เกิดข้อผิดพลาดในการเผยแพร่", "error", 3000);
                         }
                     });
@@ -163,15 +166,15 @@
         }
 
         function showLoading(msg) {
-            const panel = $("<div>").dxLoadPanel({
+            return $("<div>").dxLoadPanel({
                 shadingColor: "rgba(0,0,0,0.4)",
                 visible: true,
                 showIndicator: true,
                 showPane: true,
                 shading: true,
-                message: msg
+                message: msg,
+                position: { of: "#grid-drafts" }
             }).dxLoadPanel("instance");
-            return panel;
         }
     </script>
 }

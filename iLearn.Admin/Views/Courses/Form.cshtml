@@ -277,7 +277,7 @@
                 formDataObj.append("isPublish", isPublish);
 
                 $.ajax({
-                    url: `${serviceUrl}/api/courses/create-scorm`,
+                    url: `${serviceUrl}/courses/create-scorm`,
                     method: "POST",
                     data: formDataObj,
                     processData: false,
