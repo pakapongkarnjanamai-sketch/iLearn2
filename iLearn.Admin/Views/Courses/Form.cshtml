@@ -1,0 +1,337 @@
+﻿@{
+    ViewBag.Title = (ViewBag.Id == null ? "สร้างหลักสูตรใหม่ (New Course)" : "แก้ไขหลักสูตร (Edit Course)");
+}
+
+<div class="container-fluid page-full-height">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">
+                <i class="fas @(ViewBag.Id == null ? "fa-plus-circle" : "fa-edit") me-2"></i>@ViewBag.Title
+            </h5>
+            <button class="btn btn-sm btn-light text-primary" onclick="history.back()">
+                <i class="fas fa-arrow-left me-1"></i> ย้อนกลับ
+            </button>
+        </div>
+
+        <div class="card-body">
+            <div id="load-panel"></div>
+            <div id="form-container"></div>
+            <hr class="my-4" />
+            <div class="d-flex justify-content-end gap-2">
+                <div id="btn-cancel"></div>
+                <div id="btn-draft"></div>
+                <div id="btn-publish"></div>
+                <div id="btn-save-edit"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const COURSE_ID = @(ViewBag.Id ?? "null");
+        const IS_EDIT = COURSE_ID != null;
+  
+
+        // Data Stores
+        const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
+        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
+
+        const courseTypes = [
+            { id: 0, name: 'Special (Rule-based)' },
+            { id: 1, name: 'General (Auto-assign)' }
+        ];
+
+        let formWidget;
+        let uploadedFile = null;
+
+        $(async () => {
+            let formData = { courseType: 1 };
+
+            const loadPanel = $("#load-panel").dxLoadPanel({
+                shadingColor: "rgba(0,0,0,0.4)",
+                position: { of: "#form-container" },
+                visible: false,
+                showIndicator: true,
+                showPane: true,
+                shading: true,
+                closeOnOutsideClick: false
+            }).dxLoadPanel("instance");
+
+            if (IS_EDIT) {
+                try {
+                    const courseData = await $.ajax({
+                        url: `${serviceUrl}/admin/CoursesCRUD/Get/${COURSE_ID}`,
+                        method: "GET",
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    formData = {
+                        ...courseData,
+                        courseCode: courseData.code,
+                        courseName: courseData.title,
+                        courseType: courseData.type
+                    };
+
+                    if (formData.categoryId) {
+                        try {
+                            const categoryData = await $.ajax({
+                                url: `${serviceUrl}/admin/CategoriesCRUD/Get/${formData.categoryId}`,
+                                method: "GET",
+                                xhrFields: { withCredentials: true }
+                            });
+                            formData.divisionId = categoryData.divisionId;
+                        } catch (e) { console.warn("Cannot find division"); }
+                    }
+                } catch (err) {
+                    DevExpress.ui.notify("ไม่พบข้อมูลหลักสูตร", "error", 3000);
+                }
+            }
+
+            // สร้าง dxForm
+            formWidget = $("#form-container").dxForm({
+                formData: formData,
+                colCount: 2,
+                labelMode: "floating",
+                validationGroup: "courseFormVal",
+                items: [
+                    {
+                        itemType: "group",
+                        caption: "ข้อมูลหลักสูตร (Course Info)",
+                        colSpan: 2,
+                        colCount: 2,
+                        items: [
+                            {
+                                dataField: "courseCode",
+                                label: { text: "รหัสวิชา (Code)" },
+                                validationRules: [{ type: "required", message: "กรุณากรอกรหัสวิชา" }]
+                            },
+                            {
+                                dataField: "courseType",
+                                label: { text: "ประเภท (Type)" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: courseTypes,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "courseName",
+                                label: { text: "ชื่อหลักสูตร (Title)" },
+                                colSpan: 2,
+                                validationRules: [{ type: "required", message: "กรุณากรอกชื่อหลักสูตร" }]
+                            },
+
+                            // --- Division (ตัวควบคุม) ---
+                            {
+                                dataField: "divisionId",
+                                label: { text: "ส่วนงาน (Division)" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: divisionsStore,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                    searchEnabled: true,
+                                    showClearButton: true,
+                                    placeholder: "เลือกส่วนงาน...",
+                                    onValueChanged: function(e) {
+                                        const categoryEditor = formWidget.getEditor("categoryId");
+                                        const categoryDS = categoryEditor.getDataSource();
+
+                                        // 1. ปลดล็อก/ล็อก Category ตามค่า Division
+                                        const hasDivision = (e.value !== null && e.value !== undefined);
+                                        categoryEditor.option("disabled", !hasDivision); // ถ้ามีค่า = false (ไม่ disable), ถ้าไม่มี = true
+
+                                        if (hasDivision) {
+                                            // กรอง Category
+                                            categoryDS.filter(["divisionId", "=", e.value]);
+                                            categoryDS.load();
+                                        } else {
+                                            // ถ้าไม่ได้เลือก Division ให้เคลียร์ Filter และค่า
+                                            categoryDS.filter(null);
+                                            categoryEditor.option("value", null);
+                                        }
+
+                                        // ถ้าเปลี่ยน Division โดย User เอง ให้เคลียร์ค่า Category เดิมทิ้ง
+                                        if (e.event && hasDivision) {
+                                            categoryEditor.option("value", null);
+                                        }
+                                    }
+                                }
+                            },
+
+                            // --- Category (ตัวถูกควบคุม) ---
+                            {
+                                dataField: "categoryId",
+                                label: { text: "หมวดหมู่ (Category)" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: categoriesStore,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                    searchEnabled: true,
+                                    placeholder: "กรุณาเลือกส่วนงานก่อน...",
+                                    // ★ ล็อกไว้ก่อน ถ้ายังไม่มี Division (เช่นตอนกด Create ใหม่) ★
+                                    disabled: !formData.divisionId,
+
+                                    onOpened: function(e) {
+                                        const divVal = formWidget.getEditor("divisionId").option("value");
+                                        const ds = e.component.getDataSource();
+                                        if(divVal) ds.filter(["divisionId", "=", divVal]);
+                                        ds.load();
+                                    }
+                                },
+                                validationRules: [{ type: "required", message: "กรุณาเลือกหมวดหมู่" }]
+                            },
+                            {
+                                dataField: "description",
+                                label: { text: "คำอธิบาย" },
+                                colSpan: 2,
+                                editorType: "dxTextArea",
+                                editorOptions: { height: 100 }
+                            }
+                        ]
+                    },
+                    {
+                        itemType: "group",
+                        caption: "ไฟล์บทเรียน (SCORM Package)",
+                        visible: !IS_EDIT,
+                        colSpan: 2,
+                        colCount: 1,
+                        items: [
+                            {
+                                template: function(data, itemElement) {
+                                    $("<div>").dxFileUploader({
+                                        selectButtonText: "เลือกไฟล์ SCORM (.zip)",
+                                        labelText: "หรือลากไฟล์มาวางที่นี่",
+                                        accept: ".zip",
+                                        uploadMode: "useForm",
+                                        multiple: false,
+                                        onValueChanged: function(e) {
+                                            uploadedFile = (e.value && e.value.length > 0) ? e.value[0] : null;
+                                        }
+                                    }).appendTo(itemElement);
+
+                                    $("<div id='file-msg' class='text-danger mt-1' style='display:none; font-size:0.85rem;'>กรุณาอัปโหลดไฟล์</div>").appendTo(itemElement);
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }).dxForm("instance");
+
+            // --- ส่วนจัดการปุ่ม (เหมือนเดิม) ---
+            $("#btn-cancel").dxButton({
+                text: "ยกเลิก",
+                icon: "close",
+                onClick: () => window.location.href = '@Url.Action("Index", "Courses")'
+            });
+
+            if (!IS_EDIT) {
+                $("#btn-draft").dxButton({
+                    text: "บันทึกร่าง (Draft)",
+                    icon: "save",
+                    type: "normal",
+                    stylingMode: "outlined",
+                    onClick: () => submitCreate(false)
+                });
+
+                $("#btn-publish").dxButton({
+                    text: "บันทึกและเผยแพร่ (Publish)",
+                    icon: "check",
+                    type: "default",
+                    onClick: () => submitCreate(true)
+                });
+            } else {
+                $("#btn-save-edit").dxButton({
+                    text: "บันทึกการแก้ไข",
+                    icon: "save",
+                    type: "success",
+                    onClick: submitEdit
+                });
+            }
+
+            function submitCreate(isPublish) {
+                if (!formWidget.validate().isValid) {
+                    DevExpress.ui.notify("กรุณากรอกข้อมูลให้ครบถ้วน", "warning", 2000);
+                    return;
+                }
+                if (!uploadedFile) {
+                    $("#file-msg").show();
+                    return;
+                } else { $("#file-msg").hide(); }
+
+                loadPanel.option("message", isPublish ? "กำลังแตกไฟล์ SCORM..." : "กำลังบันทึก...");
+                loadPanel.show();
+
+                const data = formWidget.option("formData");
+                let formDataObj = new FormData();
+                for (let key in data) {
+                    if (data[key] !== null && data[key] !== undefined && key !== 'divisionId') {
+                        formDataObj.append(key, data[key]);
+                    }
+                }
+                formDataObj.append("File", uploadedFile);
+                formDataObj.append("isPublish", isPublish);
+
+                $.ajax({
+                    url: `${serviceUrl}/api/courses/create-scorm`,
+                    method: "POST",
+                    data: formDataObj,
+                    processData: false,
+                    contentType: false,
+                    xhrFields: { withCredentials: true },
+                    success: function() {
+                        loadPanel.hide();
+                        DevExpress.ui.notify("บันทึกข้อมูลสำเร็จ", "success", 2000);
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1500);
+                    },
+                    error: function(err) {
+                        loadPanel.hide();
+                        const msg = err.responseJSON?.message || "เกิดข้อผิดพลาด";
+                        DevExpress.ui.notify(msg, "error", 5000);
+                    }
+                });
+            }
+
+            function submitEdit() {
+                if (!formWidget.validate().isValid) return;
+                loadPanel.option("message", "กำลังบันทึก...");
+                loadPanel.show();
+                const data = { ...formWidget.option("formData") };
+                delete data.divisionId;
+
+                // ส่ง JSON Format
+                const payload = {
+                    key: COURSE_ID,
+                    values: JSON.stringify({
+                        courseCode: data.courseCode,
+                        courseName: data.courseName,
+                        courseType: data.courseType,
+                        categoryId: data.categoryId,
+                        description: data.description,
+                        isActive: data.isActive
+                    })
+                };
+
+                $.ajax({
+                    url: `${serviceUrl}/admin/CoursesCRUD/Put`,
+                    method: "PUT",
+                    data: payload,
+                    xhrFields: { withCredentials: true },
+                    success: function() {
+                        loadPanel.hide();
+                        DevExpress.ui.notify("แก้ไขข้อมูลสำเร็จ", "success", 2000);
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
+                    },
+                    error: function() {
+                        loadPanel.hide();
+                        DevExpress.ui.notify("เกิดข้อผิดพลาดในการแก้ไข", "error", 3000);
+                    }
+                });
+            }
+        });
+    </script>
+}

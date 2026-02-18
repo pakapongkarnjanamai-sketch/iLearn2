@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Http; // จำเป็นสำหรับ IFormFile
 using System.ComponentModel.DataAnnotations;
 
 namespace iLearn.Application.DTOs
@@ -7,11 +7,11 @@ namespace iLearn.Application.DTOs
     {
         [Display(Name = "รหัสวิชา")]
         [Required(ErrorMessage = "กรุณาระบุรหัสวิชา")]
-        public string CourseCode { get; set; }
+        public string CourseCode { get; set; } // ใช้ชื่อนี้ตามที่คุณต้องการ
 
         [Display(Name = "ชื่อวิชา")]
         [Required(ErrorMessage = "กรุณาระบุชื่อวิชา")]
-        public string CourseName { get; set; }
+        public string CourseName { get; set; } // ใช้ชื่อนี้ตามที่คุณต้องการ
 
         [Display(Name = "รายละเอียด")]
         public string? Description { get; set; }
@@ -22,8 +22,10 @@ namespace iLearn.Application.DTOs
         [Display(Name = "หมวดหมู่")]
         public int CategoryId { get; set; }
 
-        // [แก้ไข] เปลี่ยนจาก List<IFormFile> เป็น List<int> เพื่อรับ ID
         [Display(Name = "เอกสารประกอบ (Resource IDs)")]
         public List<int> ResourceIds { get; set; } = new List<int>();
+
+        // [เพิ่ม] สำหรับรับไฟล์จากหน้า Form
+        public IFormFile? File { get; set; }
     }
 }

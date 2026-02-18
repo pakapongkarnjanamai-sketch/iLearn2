@@ -1,10 +1,13 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
+using iLearn.Infrastructure.Repositories;
+using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
-using iLearn.Application.Mappings;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq; // จำเป็นสำหรับ LINQ
@@ -20,17 +23,20 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<CourseResource> _courseResourceRepository;
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly ICourseAssignmentService _assignmentService;
+        private readonly IScormService _scormService;
 
         public CoursesController(
             ICourseRepository courseRepository,
             IGenericRepository<CourseResource> courseResourceRepository,
             IGenericRepository<CourseVersion> courseVersionRepository,
-            ICourseAssignmentService assignmentService)
+            ICourseAssignmentService assignmentService,
+            IScormService scormService)
         {
             _courseRepo = courseRepository;
             _courseResourceRepository = courseResourceRepository;
             _courseVersionRepository = courseVersionRepository;
             _assignmentService = assignmentService;
+            _scormService = scormService;
         }
 
         [HttpGet]
@@ -218,6 +224,71 @@ namespace iLearn.API.Controllers
             await _assignmentService.ProcessAssignmentForCourseAsync(id);
 
             return Ok(new { message = "เริ่มกระบวนการมอบหมายหลักสูตรแล้ว (Assignment Process Started)" });
+        }
+
+        [HttpPost("create-scorm")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateCourseWithScorm([FromForm] CourseCreateDto model, [FromForm] bool isPublish)
+        {
+            try
+            {
+                // 1. Validate ไฟล์
+                if (model.File == null || model.File.Length == 0)
+                {
+                    return BadRequest(new { message = "กรุณาอัปโหลดไฟล์ SCORM (.zip)" });
+                }
+
+                // 2. สร้าง Course Object (ใช้ชื่อ Property จาก DTO ให้ถูกต้อง)
+                var course = new Course
+                {
+                    Code = model.CourseCode,       // แก้เป็น CourseCode
+                    Title = model.CourseName,      // แก้เป็น CourseName
+                    Description = model.Description,
+                    CategoryId = model.CategoryId,
+                    Type = (CourseType)model.CourseType, // แก้เป็น CourseType
+                    IsActive = isPublish,          // ถ้า Publish ให้ Active เลย
+                    CreatedAt = DateTime.Now
+                };
+
+                await _courseRepo.AddAsync(course);
+
+                // 3. สร้าง CourseVersion (Version 1)
+                var version = new CourseVersion
+                {
+                    CourseId = course.Id,
+                    VersionNumber = 1,
+                    // Status = ... ลบทิ้งเพราะไม่มี Field นี้ใน Entity
+                    // ใช้ Note หรือ IsActive แทนสถานะ
+                    Note = isPublish ? "Initial Published" : "Draft",
+                    IsActive = isPublish, // ใช้ IsActive แทน Status
+                    CreatedAt = DateTime.Now
+                };
+
+                await _courseVersionRepository.AddAsync(version);
+
+                // 4. Handle SCORM Extraction
+                if (isPublish)
+                {
+                    // แปลง IFormFile เป็น byte[] เพื่อส่งให้ IScormService
+                    using (var ms = new MemoryStream())
+                    {
+                        await model.File.CopyToAsync(ms);
+                        var fileBytes = ms.ToArray();
+
+                        // สร้างชื่อโฟลเดอร์สำหรับเก็บไฟล์ (เช่น course_CS101_v1)
+                        string folderName = $"course_{course.Code}_v{version.VersionNumber}";
+
+                        // เรียก Service (ส่ง byte[] และ string)
+                        await _scormService.ExtractAndParseScormAsync(fileBytes, folderName);
+                    }
+                }
+
+                return Ok(new { message = "สร้างหลักสูตรสำเร็จ", courseId = course.Id });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
         }
     }
 }
