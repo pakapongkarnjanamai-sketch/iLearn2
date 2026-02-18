@@ -1,6 +1,4 @@
-﻿@* iLearn2\iLearn.Admin\Views\Shared\_DevExtremeLayout.cshtml *@
-
-@using Microsoft.Extensions.Configuration
+﻿@using Microsoft.Extensions.Configuration
 @inject IConfiguration Configuration
 <!DOCTYPE html>
 <html lang="en">
@@ -11,17 +9,14 @@
 
     <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
 
-    <!-- CSS -->
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
 
-    <!-- JavaScript -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <script src="~/js/devextreme/jquery.js"></script>
-
-    <!-- ✅ เปลี่ยนจาก bootstrap.js เป็น bootstrap.bundle.js -->
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
     <script src="~/js/devextreme/filesaver.min.js"></script>
     <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
     <script src="~/js/devextreme/dx.all.js"></script>
@@ -34,140 +29,254 @@
     @await RenderSectionAsync("ExternalDependencies", required: false)
 
     <style>
+        :root {
+            /* --- Admin Theme Colors (Blue Scheme) --- */
+            --brand-color: #0062cc; /* สีฟ้าหลัก (เข้มกว่า default bootstrap นิดหน่อย) */
+            --brand-dark: #004a99; /* สีฟ้าเข้มสำหรับ Hover */
+            --brand-light: #e9f2ff; /* สีฟ้าอ่อนสำหรับพื้นหลัง/Badge */
+            /* --- Common UX Variables --- */
+            --secondary-bg: #f4f6f8; /* สีพื้นหลังหน้าเว็บ (เทาอ่อน) */
+            --text-main: #2c3e50;
+            --text-muted: #6c757d;
+            /* --- DevExtreme Overrides (Sync with Brand) --- */
+            --dx-color-primary: var(--brand-color) !important;
+            --dx-component-color-bg: #fff !important;
+            --dx-color-text: #333 !important;
+            --dx-color-border: #dee2e6 !important;
+        }
+
         body {
-            padding-top: 4.5rem;
-            background-color: #f5f7fa;
+            font-family: 'Sarabun', sans-serif; /* ใช้ฟอนต์เดียวกับ User */
+            background-color: var(--secondary-bg);
+            padding-top: 4rem; /* เว้นที่ให้ Navbar */
+            color: var(--text-main);
         }
 
-        .navbar {
-            grid-row: 1;
+        /* --- Navbar Styling (Mirroring User Side) --- */
+        .navbar-custom {
+            background: linear-gradient(90deg, var(--brand-dark) 0%, var(--brand-color) 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 0.5rem 1rem;
         }
 
+        .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin: 0 2px;
+        }
+
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-link.active,
+            .navbar-nav .show > .nav-link {
+                color: white !important;
+                background-color: rgba(255,255,255,0.15);
+                transform: translateY(-1px);
+            }
+
+        /* Dropdown Menu styling */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .dropdown-item {
+            padding: 8px 20px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+            .dropdown-item:hover {
+                background-color: var(--brand-light);
+                color: var(--brand-color);
+            }
+
+        .dropdown-divider {
+            margin: 0.5rem 0;
+            border-top: 1px solid #eee;
+        }
+
+        /* --- Page Layout --- */
         .page-full-height {
-            height: calc(100vh - 80px);
+            min-height: calc(100vh - 140px); /* Adjust for footer/header */
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            padding: 1rem;
-            box-sizing: border-box;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            background: white;
             overflow: hidden;
         }
 
-            .page-full-height .card {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                min-height: 0;
-                overflow: hidden;
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 1.25rem 1.5rem;
+            font-weight: 700;
+            color: var(--brand-dark); /* ใช้ตัวหนังสือสีฟ้าเข้มแทนพื้นหลังทึบ */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+            /* ถ้าต้องการ Card Header แบบทึบเหมือนเดิมให้ใช้ class นี้เสริม */
+            .card-header.bg-brand {
+                background-color: var(--brand-color) !important;
+                color: white !important;
             }
 
-            .page-full-height .card-body {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                min-height: 0;
-                overflow: hidden;
-                padding: 1rem;
+        /* --- Global Button & Input Overrides --- */
+        .btn-primary {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+        }
+
+            .btn-primary:hover {
+                background-color: var(--brand-dark) !important;
+                border-color: var(--brand-dark) !important;
             }
-            .page-full-height #grid {
-                flex: 1;
-                min-height: 0;
+
+        .btn-outline-primary {
+            color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+        }
+
+            .btn-outline-primary:hover {
+                background-color: var(--brand-color) !important;
+                color: white !important;
             }
-        .navbar-brand {
-            font-weight: bold;
-            color: #007bff !important;
+
+        /* --- DevExtreme Overrides --- */
+        .dx-datagrid-headers .dx-header-row > td {
+            border-bottom: 2px solid var(--brand-color) !important;
+            color: var(--brand-dark) !important;
+            font-weight: 600;
+            background-color: #fafafa;
+        }
+
+        .dx-texteditor.dx-state-focused {
+            border-color: var(--brand-color) !important;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid #eee;
+            padding: 1rem 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: auto;
         }
     </style>
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-white fixed-top shadow-sm">
-        <div class="container-fluid">
+<body class="d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom">
+        <div class="container-fluid px-4">
             <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                <i class="fas fa-graduation-cap"></i> iLearn Admin
+                <i class="fas fa-user-shield"></i> iLearn Admin
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
-                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="@Url.Action("Drafts", "Courses")">
-                            <i class="fas fa-file-alt"></i> Drafts
+                        <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                           asp-controller="Home" asp-action="Index">
+                            <i class="fas fa-chart-pie me-1"></i> Dashboard
                         </a>
-                    </li>
-               
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Resources" asp-action="Index">Resources</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-dark" href="#" id="trackingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Tracking
+                        <a class="nav-link dropdown-toggle" href="#" id="courseDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-book me-1"></i> Course Management
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="trackingDropdown">
-                            <li><a class="dropdown-item" asp-controller="Enrollments" asp-action="Index">Enrollments</a></li>
-                            <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Learning Logs</a></li>
+                        <ul class="dropdown-menu" aria-labelledby="courseDropdown">
+                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Index">All Courses</a></li>
+                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Drafts">Drafts</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" asp-controller="Categories" asp-action="Index">Categories</a></li>
+                            <li><a class="dropdown-item" asp-controller="Resources" asp-action="Index">Resources Library</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-dark" href="#" id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Setting
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-users me-1"></i> User & Access
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="manageDropdown">
+                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" asp-controller="Users" asp-action="Index">Users</a></li>
                             <li><a class="dropdown-item" asp-controller="Roles" asp-action="Index">Roles</a></li>
                             <li><a class="dropdown-item" asp-controller="Divisions" asp-action="Index">Divisions</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="Categories" asp-action="Index">Categories</a></li>
-                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Index">Courses</a></li>
-
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="AssignmentRules" asp-action="Index">Assignment Rules</a></li>   
-
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Learning Logs</a></li>
+                            <li><a class="dropdown-item" asp-controller="AssignmentRules" asp-action="Index">Auto-Assignment Rules</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-bar me-1"></i> Reports
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="reportDropdown">
+                            <li><a class="dropdown-item" asp-controller="Enrollments" asp-action="Index">Enrollments Tracking</a></li>
+                            <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Detailed Learning Logs</a></li>
                         </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-user-circle me-1"></i> @User.Identity.Name
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown">
+                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span>@User.Identity.Name</span>
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                            <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
                     </li>
                 </ul>
-                <div class="d-flex">
-                </div>
             </div>
         </div>
     </nav>
 
-    <main role="main" class="pb-3">
+    <main role="main">
         @RenderBody()
     </main>
-    <footer class="text-center text-muted py-3 mt-auto">
-        <small>&copy; @DateTime.Now.Year - iLearn System (Admin)</small>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <small>&copy; @DateTime.Now.Year - iLearn Management System (Admin Console)</small>
+        </div>
     </footer>
+
     <script>
-        // กำหนด Base URL จาก AppSettings
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
-
-        // ใช้ serviceUrl เป็นตัวแปรกลางสำหรับหน้าต่างๆ (ถ้า API อยู่ที่เดียวกับ Admin ให้ใช้ว่างหรือ /api)
-        // กรณีแยก API Project:
         const serviceUrl = API_BASE;
-        // กรณีรวม Project (Admin เรียก Controller ตัวเอง):
-        // const serviceUrl = "";
 
-        // Helper Function: สร้าง DataStore สำหรับ DevExtreme
+        // Helper Function: Create DataStore for DevExtreme
         function createDataStore(baseUrl, controllerName, options) {
             const defaults = {
-                key: 'id',
-                // API ของเราคือ baseUrl/controllerName/Get (เช่น .../api/admin/Courses/Get)
+                key: 'id', // Default lowercase 'id' for JS
                 loadUrl: `${baseUrl}/${controllerName}/Get`,
                 insertUrl: `${baseUrl}/${controllerName}/Post`,
                 updateUrl: `${baseUrl}/${controllerName}/Put`,
@@ -176,18 +285,16 @@
                     ajaxOptions.xhrFields = { withCredentials: true };
                 }
             };
-
             if (options && options.action) {
                 defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
                 if (options.ParamKey) {
                      defaults.loadUrl += `/${options.ParamKey}`;
                 }
             }
-
             return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
         }
 
-        // Helper Function: จัดการการ Export Excel
+        // Helper Function: Excel Export
         function handleExporting(e, fileName) {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet(fileName || 'Sheet1');

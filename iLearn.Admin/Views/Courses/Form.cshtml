@@ -1,282 +1,214 @@
 ﻿@{
-    ViewBag.Title = (ViewBag.Id == null ? "สร้างหลักสูตรใหม่" : "แก้ไขหลักสูตร");
+    ViewBag.Title = (ViewBag.Id == null ? "Create New Course" : "Edit Course");
+    var isEdit = ViewBag.Id != null;
 }
 
 @section Styles {
     <style>
-        :root {
-            --admin-blue: #007bff;
-            --admin-blue-dark: #0056b3;
-            --admin-blue-light: rgba(0, 123, 255, 0.1);
-        }
-
-        /* Page Header */
+        /* --- Page Header --- */
         .page-header {
             background-color: white;
-            padding: 1.5rem 0;
+            padding: 2rem 0;
             border-bottom: 1px solid #e9ecef;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .page-title {
-            font-weight: 600;
-            font-size: 1.5rem;
-            color: #2c3e50;
+            font-weight: 700;
+            color: var(--brand-dark);
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        /* Container Sections */
-        .form-container {
+        /* --- Form Styling --- */
+        .form-card {
             background: white;
-            border-radius: 8px;
-            padding: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            border: none;
+            overflow: hidden;
+            margin-bottom: 2rem;
         }
 
-        .container-header {
+        .form-section-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f0f0f0;
+            background-color: #fff;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-bottom: 1rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid #f0f0f0;
         }
 
-        .container-title {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 600;
+        .section-title {
             font-size: 1.1rem;
+            font-weight: 700;
             color: #2c3e50;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-            .container-title i {
-                color: var(--admin-blue);
-                font-size: 1.25rem;
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            background-color: var(--brand-light);
+            color: var(--brand-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .form-body {
+            padding: 2rem;
+        }
+
+        /* --- Upload Area --- */
+        .upload-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+            .upload-zone:hover, .upload-zone.drag-over {
+                border-color: var(--brand-color);
+                background-color: var(--brand-light);
             }
 
-        /* Badge */
-        .file-count-badge {
-            background: var(--admin-blue-light);
-            color: var(--admin-blue);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
+        .upload-icon {
+            font-size: 3rem;
+            color: #adb5bd;
+            margin-bottom: 1rem;
+            transition: color 0.3s;
         }
 
-        /* Upload Section */
-        .upload-section {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+        .upload-zone:hover .upload-icon {
+            color: var(--brand-color);
         }
 
-        .upload-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.75rem;
-            display: block;
-        }
-
-        .upload-hint {
-            font-size: 0.875rem;
-            color: #6c757d;
-            margin-top: 0.5rem;
-        }
-
-        /* Grid Container */
-        .grid-container {
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
+        /* --- Custom Grid Styling --- */
+        .custom-grid-container {
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
             overflow: hidden;
         }
 
-        /* DevExtreme Customization */
-        .dx-field-label {
+        .badge-count {
+            background-color: var(--brand-light);
+            color: var(--brand-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
             font-weight: 600;
-            color: #495057;
         }
 
-        .dx-texteditor.dx-state-focused {
-            border-color: var(--admin-blue) !important;
-        }
-
-        .dx-datagrid {
-            border: none !important;
-        }
-
-        .dx-datagrid-headers {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .dx-datagrid .dx-row-alt {
-            background-color: #f8f9fa;
-        }
-
-        .dx-datagrid-rowsview .dx-row {
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1.5rem;
-            color: #6c757d;
-        }
-
-            .empty-state i {
-                font-size: 3.5rem;
-                color: #dee2e6;
-                margin-bottom: 1rem;
-                display: block;
-            }
-
-        .empty-state-text {
-            font-size: 1rem;
-            color: #6c757d;
-            margin: 0;
-        }
-
-        /* Action Buttons */
-        .action-container {
+        /* --- Action Buttons --- */
+        .action-bar {
             background: white;
-            border-radius: 8px;
-            padding: 1.5rem 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1.5rem;
+            border-top: 1px solid #eee;
             display: flex;
             justify-content: flex-end;
-            gap: 0.75rem;
+            gap: 1rem;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
         }
 
-        .btn-custom {
-            border-radius: 6px;
-            padding: 0.6rem 1.5rem;
+        .btn-action {
+            min-width: 120px;
             font-weight: 600;
-            transition: all 0.2s;
-            border: none;
-        }
-
-        .btn-save {
-            background: var(--admin-blue);
-            color: white;
-        }
-
-            .btn-save:hover {
-                background: var(--admin-blue-dark);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
-            }
-
-        .btn-cancel {
-            background: #6c757d;
-            color: white;
-        }
-
-            .btn-cancel:hover {
-                background: #5a6268;
-            }
-
-        /* File Uploader Override */
-        .dx-fileuploader-wrapper {
-            border: 2px dashed #dee2e6;
-            border-radius: 6px;
-            padding: 1rem;
-            background: white;
-            transition: all 0.2s;
-        }
-
-            .dx-fileuploader-wrapper:hover {
-                border-color: var(--admin-blue);
-                background: var(--admin-blue-light);
-            }
-
-        .dx-fileuploader-button {
-            background: var(--admin-blue) !important;
-            border-color: var(--admin-blue) !important;
-        }
-
-            .dx-fileuploader-button:hover {
-                background: var(--admin-blue-dark) !important;
-            }
-
-        /* Loading Panel */
-        .dx-loadpanel-content {
+            padding: 10px 20px;
             border-radius: 8px;
         }
     </style>
 }
 
-<!-- Page Header -->
 <div class="page-header">
-    <div class="container-fluid">
+    <div class="container">
         <div class="d-flex align-items-center justify-content-between">
             <h1 class="page-title">
-                <i class="fas @(ViewBag.Id == null ? "fa-plus-circle" : "fa-edit") me-2 text-primary"></i>
-                @ViewBag.Title
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                    <i class="fas @(isEdit ? "fa-edit" : "fa-plus")"></i>
+                </div>
+                <div>
+                    @ViewBag.Title
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                        @(isEdit ? "Update course details and manage resources." : "Create a new training course for employees.")
+                    </div>
+                </div>
             </h1>
-          
+            <div>
+                <button id="btn-cancel-top" class="btn btn-outline-secondary rounded-pill px-4">
+                    <i class="fas fa-arrow-left me-2"></i> Back
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="container pb-4">
+<div class="container pb-5">
     <div id="load-panel"></div>
 
-    <!-- Container 1: ข้อมูลหลักสูตร -->
-    <div class="form-container">
-        <div class="container-header">
-            <h5 class="container-title">
-                <i class="fas fa-info-circle"></i>
-                <span>ข้อมูลหลักสูตร</span>
-            </h5>
-        </div>
-        <div id="form-container"></div>
-
-        <div class="container-header">
-            <h5 class="container-title">
-                <i class="fas fa-folder-open"></i>
-                <span>ไฟล์ประกอบหลักสูตร</span>
-            </h5>
-            <span class="file-count-badge" id="resource-count-badge">
-                <i class="fas fa-file-archive"></i>
-                <span id="file-count-text">0 ไฟล์</span>
-            </span>
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="form-card">
+                <div class="form-section-header">
+                    <h5 class="section-title">
+                        <div class="section-icon"><i class="fas fa-info"></i></div>
+                        Course Information
+                    </h5>
+                </div>
+                <div class="form-body">
+                    <div id="form-container"></div>
+                </div>
+            </div>
         </div>
 
-        <!-- Upload Section -->
-        <div class="upload-section">
-            <label class="upload-label">
-                <i class="fas fa-upload me-2"></i>เลือกไฟล์ SCORM Package
-            </label>
-            <div id="file-uploader-container"></div>
-            <p class="upload-hint mb-0">
-                <i class="fas fa-info-circle me-1"></i>
-                รองรับไฟล์ .zip (SCORM Package) เท่านั้น | สามารถเลือกหลายไฟล์พร้อมกันได้
-            </p>
-        </div>
+        <div class="col-lg-5">
+            <div class="form-card h-100">
+                <div class="form-section-header">
+                    <h5 class="section-title">
+                        <div class="section-icon"><i class="fas fa-folder-open"></i></div>
+                        Course Resources
+                    </h5>
+                    <span class="badge-count" id="resource-count-badge">0 Files</span>
+                </div>
 
-        <!-- Grid Section -->
-        <div class="grid-container">
-            <div id="grid-resources"></div>
-        </div>
+                <div class="form-body bg-light">
+                    <div class="upload-zone mb-4">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <h6 class="fw-bold mb-2">Upload SCORM Package</h6>
+                        <p class="text-muted small mb-3">Drag & drop .zip files here or click to browse</p>
+                        <div id="file-uploader-container"></div>
+                    </div>
 
-        <div id="btn-cancel"></div>
-        @if (ViewBag.Id == null)
-        {
-            <div id="btn-publish"></div>
-        }
-        <div id="btn-save"></div>
+                    <h6 class="fw-bold text-muted mb-3"><i class="fas fa-list me-2"></i>Attached Files</h6>
+                    <div class="custom-grid-container bg-white shadow-sm">
+                        <div id="grid-resources"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed-bottom bg-white shadow-lg py-3 border-top" style="z-index: 100;">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                <i class="fas fa-info-circle me-1"></i> Please verify all information before saving.
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-light btn-action text-muted border" onclick="history.back()">Cancel</button>
+                <div id="btn-save"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -284,13 +216,15 @@
     <script>
         const COURSE_ID = @(ViewBag.Id ?? "null");
         const IS_EDIT = COURSE_ID != null;
+  
 
+        // Initialize DataStores
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
 
         const courseTypes = [
-            { id: 0, name: 'Special (Rule-based)' },
-            { id: 1, name: 'General (Auto-assign)' }
+            { id: 0, name: 'Special (Rule-based Assignment)' },
+            { id: 1, name: 'General (Auto-assign / Self-enroll)' }
         ];
 
         let formWidget;
@@ -299,19 +233,20 @@
         let allResources = [];
 
         $(async () => {
-            let formData = { courseType: 1, isActive: false };
+            // Initial Form Data
+            let formData = { courseType: 1, isActive: true };
 
             const loadPanel = $("#load-panel").dxLoadPanel({
-                shadingColor: "rgba(0,0,0,0.4)",
+                shadingColor: "rgba(255,255,255,0.8)",
                 position: { of: "body" },
                 visible: false,
                 showIndicator: true,
                 showPane: true,
                 shading: true,
-                message: "กำลังโหลดข้อมูล..."
+                message: "Loading data..."
             }).dxLoadPanel("instance");
 
-            // Load Data (Edit Mode)
+            // --- Load Data (Edit Mode) ---
             if (IS_EDIT) {
                 try {
                     loadPanel.show();
@@ -324,7 +259,8 @@
                     formData = { ...courseData };
                     existingFiles = courseData.resources || [];
 
-                    if (formData.categoryId) {
+                    // Fetch Division if only Category is present
+                    if (formData.categoryId && !formData.divisionId) {
                         try {
                             const catData = await $.ajax({
                                 url: `${serviceUrl}/admin/CategoriesCRUD/Get/${formData.categoryId}`,
@@ -334,124 +270,141 @@
                             formData.divisionId = catData.divisionId;
                         } catch (e) { }
                     }
-                    loadPanel.hide();
-
                 } catch (err) {
-                    loadPanel.hide();
                     console.error(err);
-                    DevExpress.ui.notify("ไม่พบข้อมูลหลักสูตร", "error", 3000);
+                    DevExpress.ui.notify("Error loading course data", "error", 3000);
+                } finally {
+                    loadPanel.hide();
                 }
             }
 
             updateResourceGrid();
 
-            // Form Widget
+            // --- Form Widget Config ---
             formWidget = $("#form-container").dxForm({
                 formData: formData,
-                colCount: 2,
+                colCount: 1, // Single column for cleaner look in left panel
                 labelMode: "floating",
-                showColonAfterLabel: false,
+                stylingMode: "outlined",
                 items: [
                     {
-                        dataField: "courseCode",
-                        label: { text: "รหัสวิชา" },
-                        validationRules: [{ type: "required", message: "กรุณากรอกรหัสวิชา" }],
-                        editorOptions: {
-                            placeholder: "เช่น CS101"
-                        }
+                        itemType: "group",
+                        caption: "Basic Details",
+                        items: [
+                            {
+                                dataField: "courseCode",
+                                label: { text: "Course Code" },
+                                validationRules: [{ type: "required", message: "Course Code is required" }],
+                                editorOptions: { placeholder: "e.g. CS-101" }
+                            },
+                            {
+                                dataField: "courseName",
+                                label: { text: "Course Title" },
+                                validationRules: [{ type: "required", message: "Course Name is required" }],
+                                editorOptions: { placeholder: "e.g. Intro to Cybersecurity" }
+                            }
+                        ]
                     },
                     {
-                        dataField: "courseType",
-                        label: { text: "ประเภทหลักสูตร" },
-                        editorType: "dxSelectBox",
-                        editorOptions: {
-                            dataSource: courseTypes,
-                            displayExpr: "name",
-                            valueExpr: "id",
-                            placeholder: "เลือกประเภท"
-                        },
-                        validationRules: [{ type: "required", message: "กรุณาเลือกประเภท" }]
+                        itemType: "group",
+                        caption: "Categorization",
+                        colCount: 2,
+                        items: [
+                            {
+                                dataField: "divisionId",
+                                label: { text: "Division" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: divisionsStore,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                    searchEnabled: true,
+                                    showClearButton: true,
+                                    placeholder: "Select Division",
+                                    onValueChanged: function(e) {
+                                        const catEditor = formWidget.getEditor("categoryId");
+                                        const catDS = catEditor.getDataSource();
+                                        if (e.value) {
+                                            catEditor.option("disabled", false);
+                                            catDS.filter(["divisionId", "=", e.value]);
+                                            catDS.load();
+                                        } else {
+                                            catEditor.option("disabled", true);
+                                            catEditor.option("value", null);
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                dataField: "categoryId",
+                                label: { text: "Category" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: categoriesStore,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                    disabled: !formData.divisionId,
+                                    placeholder: "Select Category"
+                                },
+                                validationRules: [{ type: "required", message: "Category is required" }]
+                            }
+                        ]
                     },
                     {
-                        dataField: "courseName",
-                        label: { text: "ชื่อหลักสูตร" },
-                        colSpan: 2,
-                        validationRules: [{ type: "required", message: "กรุณากรอกชื่อหลักสูตร" }],
-                        editorOptions: {
-                            placeholder: "เช่น Introduction to Programming"
-                        }
-                    },
-                    {
-                        dataField: "divisionId",
-                        label: { text: "ส่วนงาน" },
-                        editorType: "dxSelectBox",
-                        editorOptions: {
-                            dataSource: divisionsStore,
-                            displayExpr: "name",
-                            valueExpr: "id",
-                            searchEnabled: true,
-                            showClearButton: true,
-                            placeholder: "เลือกส่วนงาน",
-                            onValueChanged: function(e) {
-                                const catEditor = formWidget.getEditor("categoryId");
-                                const catDS = catEditor.getDataSource();
-                                if (e.value) {
-                                    catEditor.option("disabled", false);
-                                    catDS.filter(["divisionId", "=", e.value]);
-                                    catDS.load();
-                                } else {
-                                    catEditor.option("disabled", true);
-                                    catEditor.option("value", null);
+                        itemType: "group",
+                        caption: "Settings",
+                        items: [
+                            {
+                                dataField: "courseType",
+                                label: { text: "Course Type" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: courseTypes,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                    placeholder: "Select Type"
+                                },
+                                validationRules: [{ type: "required", message: "Course Type is required" }]
+                            },
+                            {
+                                dataField: "description",
+                                label: { text: "Description" },
+                                editorType: "dxTextArea",
+                                editorOptions: {
+                                    height: 120,
+                                    placeholder: "Course summary and objectives..."
                                 }
                             }
-                        }
-                    },
-                    {
-                        dataField: "categoryId",
-                        label: { text: "หมวดหมู่" },
-                        editorType: "dxSelectBox",
-                        editorOptions: {
-                            dataSource: categoriesStore,
-                            displayExpr: "name",
-                            valueExpr: "id",
-                            disabled: !formData.divisionId,
-                            placeholder: "เลือกหมวดหมู่"
-                        },
-                        validationRules: [{ type: "required", message: "กรุณาเลือกหมวดหมู่" }]
-                    },
-                    {
-                        dataField: "description",
-                        label: { text: "คำอธิบาย" },
-                        colSpan: 2,
-                        editorType: "dxTextArea",
-                        editorOptions: {
-                            height: 100,
-                            placeholder: "รายละเอียดเกี่ยวกับหลักสูตร..."
-                        }
+                        ]
                     }
                 ]
             }).dxForm("instance");
 
-            // File Uploader (แบบธรรมดา)
+            // --- File Uploader ---
             $("#file-uploader-container").dxFileUploader({
-                selectButtonText: "เลือกไฟล์",
-                labelText: "หรือลากไฟล์มาวางที่นี่",
+                selectButtonText: "Browse Files",
+                labelText: "",
                 accept: ".zip",
                 uploadMode: "useForm",
                 multiple: true,
-                showFileList: false,
+                showFileList: false, // We use custom grid
+                elementAttr: { class: "text-center" },
                 onValueChanged: function(e) {
                     if(e.value && e.value.length > 0) {
                         const filesCount = e.value.length;
                         newFiles = [...newFiles, ...e.value];
                         e.component.reset();
                         updateResourceGrid();
-                        DevExpress.ui.notify(`เพิ่ม ${filesCount} ไฟล์สำเร็จ`, "success", 1500);
+                        DevExpress.ui.notify({
+                            message: `Added ${filesCount} file(s)`,
+                            type: "success",
+                            position: { my: "bottom center", at: "bottom center", offset: "0 -80" }
+                        });
                     }
                 }
             });
 
-            // Update Resource Grid
+            // --- Helpers: Grid & Logic ---
             function updateResourceGrid() {
                 const newFilesData = newFiles.map((file, index) => ({
                     id: `NEW_${index}`,
@@ -461,11 +414,8 @@
                     isNew: true,
                     fileRef: file
                 }));
-
                 allResources = [...existingFiles, ...newFilesData];
-
-                $("#file-count-text").text(`${allResources.length} ไฟล์`);
-
+                $("#resource-count-badge").text(`${allResources.length} Files`);
                 renderGrid(allResources);
             }
 
@@ -475,77 +425,36 @@
                     showBorders: false,
                     columnAutoWidth: true,
                     hoverStateEnabled: true,
-                    rowAlternationEnabled: true,
+                    rowAlternationEnabled: false,
+                    showRowLines: true,
                     noDataText: "",
                     columns: [
                         {
-                            caption: "#",
-                            width: 60,
-                            alignment: "center",
-                            cellTemplate: function(container, options) {
-                                $("<div>")
-                                    .addClass("fw-bold text-muted")
-                                    .text(options.rowIndex + 1)
-                                    .appendTo(container);
-                            }
-                        },
-                        {
                             dataField: "name",
-                            caption: "ชื่อไฟล์",
+                            caption: "File Name",
                             cellTemplate: function(container, options) {
                                 const isNew = options.data.isNew;
                                 const iconClass = isNew ? "fa-file-upload text-success" : "fa-file-archive text-primary";
-
                                 const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
-
                                 $("<i>").addClass(`fas ${iconClass}`).appendTo(wrapper);
-                                $("<span>").addClass("fw-semibold").text(options.value).appendTo(wrapper);
-
-                                if (isNew) {
-                                    $("<span>").addClass("badge bg-success").text("ใหม่").appendTo(wrapper);
-                                }
-
+                                $("<span>").addClass("fw-medium text-truncate").css("max-width", "180px").attr("title", options.value).text(options.value).appendTo(wrapper);
                                 wrapper.appendTo(container);
                             }
                         },
                         {
-                            dataField: "size",
-                            caption: "ขนาดไฟล์",
-                            width: 120,
-                            alignment: "right",
-                            cellTemplate: function(container, options) {
-                                const size = options.value ? (options.value / 1024 / 1024).toFixed(2) + ' MB' : '-';
-                                $("<span>").addClass("text-muted").text(size).appendTo(container);
-                            }
-                        },
-                        {
-                            caption: "สถานะ",
-                            width: 130,
-                            alignment: "center",
-                            cellTemplate: function(container, options) {
-                                if (options.data.isNew) {
-                                    $("<span>").addClass("badge bg-warning text-dark").text("รอบันทึก").appendTo(container);
-                                } else {
-                                    $("<span>").addClass("badge bg-secondary").text("บันทึกแล้ว").appendTo(container);
-                                }
-                            }
-                        },
-                        {
-                            caption: "จัดการ",
-                            width: 100,
+                            caption: "Action",
+                            width: 60,
                             alignment: "center",
                             cellTemplate: function(container, options) {
                                 const data = options.data;
-
                                 $("<button>")
-                                    .addClass("btn btn-sm btn-outline-danger")
-                                    .html('<i class="fas fa-trash-alt"></i>')
-                                    .attr("title", "ลบไฟล์")
+                                    .addClass("btn btn-link text-danger p-0")
+                                    .html('<i class="fas fa-times"></i>')
+                                    .attr("title", "Remove")
                                     .on("click", function() {
                                         if (data.isNew) {
                                             newFiles = newFiles.filter(f => f !== data.fileRef);
                                             updateResourceGrid();
-                                            DevExpress.ui.notify("ลบไฟล์สำเร็จ", "success", 1500);
                                         } else {
                                             confirmDeleteResource(data.id, data.name);
                                         }
@@ -556,13 +465,11 @@
                     ],
                     onContentReady: function(e) {
                         if (e.component.totalCount() === 0) {
-                            const $emptyState = $(`
-                                <div class="empty-state">
-                                    <i class="fas fa-inbox"></i>
-                                    <p class="empty-state-text">ยังไม่มีไฟล์แนบ<br><small class="text-muted">กรุณาเลือกไฟล์ SCORM Package เพื่อเพิ่ม</small></p>
+                            e.element.find(".dx-datagrid-nodata").html(`
+                                <div class="text-center py-4 text-muted">
+                                    <small>No files attached yet.</small>
                                 </div>
                             `);
-                            e.element.find(".dx-datagrid-nodata").html($emptyState);
                         }
                     }
                 });
@@ -570,12 +477,10 @@
 
             function confirmDeleteResource(id, name) {
                 DevExpress.ui.dialog.confirm(
-                    `ต้องการลบไฟล์ "<strong>${name}</strong>" ใช่หรือไม่?`,
-                    "ยืนยันการลบ"
+                    `Delete file "<strong>${name}</strong>"?`,
+                    "Confirm Delete"
                 ).done(function (dialogResult) {
-                    if (dialogResult) {
-                        deleteResource(id);
-                    }
+                    if (dialogResult) deleteResource(id);
                 });
             }
 
@@ -587,47 +492,41 @@
                         method: "DELETE",
                         xhrFields: { withCredentials: true }
                     });
-
-                    DevExpress.ui.notify("ลบไฟล์สำเร็จ", "success", 2000);
+                    DevExpress.ui.notify("File deleted", "success", 2000);
                     existingFiles = existingFiles.filter(f => f.id !== id);
                     updateResourceGrid();
-                    loadPanel.hide();
-
                 } catch (err) {
-                    loadPanel.hide();
                     console.error(err);
-                    DevExpress.ui.notify("เกิดข้อผิดพลาดในการลบไฟล์", "error", 3000);
+                    DevExpress.ui.notify("Failed to delete file", "error", 3000);
+                } finally {
+                    loadPanel.hide();
                 }
             }
 
-            // Buttons
-            $("#btn-cancel").dxButton({
-                text: "ยกเลิก",
-                icon: "close",
-                elementAttr: { class: "btn-custom btn-cancel" },
-                onClick: () => window.location.href = '@Url.Action("Index", "Courses")'
-            });
+            // --- Buttons ---
+            $("#btn-cancel-top").click(() => window.history.back());
 
             $("#btn-save").dxButton({
-                text: IS_EDIT ? "บันทึกการแก้ไข" : "บันทึกหลักสูตร",
+                text: IS_EDIT ? "Save Changes" : "Create Course",
                 icon: "save",
                 type: "default",
-                elementAttr: { class: "btn-custom btn-save" },
+                stylingMode: "contained",
+                elementAttr: { class: "btn-action shadow-sm" },
                 onClick: () => submitData()
             });
 
             function submitData() {
                 if (!formWidget.validate().isValid) {
-                    DevExpress.ui.notify("กรุณากรอกข้อมูลให้ครบถ้วน", "warning", 2000);
+                    DevExpress.ui.notify("Please fill in all required fields.", "warning", 2000);
                     return;
                 }
 
                 if (!IS_EDIT && newFiles.length === 0) {
-                     DevExpress.ui.notify("กรุณาอัปโหลดไฟล์บทเรียนอย่างน้อย 1 ไฟล์", "error", 3000);
+                     DevExpress.ui.notify("Please upload at least one SCORM package.", "error", 3000);
                      return;
                 }
 
-                loadPanel.option("message", "กำลังบันทึกข้อมูล...");
+                loadPanel.option("message", "Saving course...");
                 loadPanel.show();
 
                 const data = formWidget.option("formData");
@@ -640,9 +539,7 @@
                 }
 
                 if (newFiles.length > 0) {
-                    newFiles.forEach(file => {
-                        formDataObj.append("Files", file);
-                    });
+                    newFiles.forEach(file => formDataObj.append("Files", file));
                 }
 
                 const url = IS_EDIT
@@ -657,14 +554,13 @@
                     contentType: false,
                     xhrFields: { withCredentials: true },
                     success: function(res) {
-                        loadPanel.hide();
-                        DevExpress.ui.notify("บันทึกสำเร็จ", "success", 2000);
-                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1200);
+                        DevExpress.ui.notify("Course saved successfully!", "success", 2000);
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
                     },
                     error: function(err) {
-                        loadPanel.hide();
-                        DevExpress.ui.notify("เกิดข้อผิดพลาด: " + (err.responseJSON?.message || err.statusText), "error", 4000);
-                    }
+                        DevExpress.ui.notify("Error: " + (err.responseJSON?.message || err.statusText), "error", 4000);
+                    },
+                    complete: () => loadPanel.hide()
                 });
             }
         });

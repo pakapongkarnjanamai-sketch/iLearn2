@@ -1,139 +1,167 @@
-﻿@* iLearn2\iLearn.Admin\Views\Home\Index.cshtml *@
-
-@{
+﻿@{
     ViewBag.Title = "Admin Dashboard";
+    var adminName = User.Identity?.Name ?? "Administrator";
+    // สร้างรูปโปรไฟล์จำลองจากชื่อ
+    var profileImage = "https://ui-avatars.com/api/?name=" + adminName + "&background=0062cc&color=fff&size=128";
 }
 
 @section Styles {
     <style>
-        :root {
-            /* กำหนดค่าสีหลักสำหรับ Admin (สีฟ้า) */
-            --admin-blue: #007bff;
-            --admin-blue-dark: #0056b3;
-            --admin-blue-light: rgba(0, 123, 255, 0.1);
-        }
-
-        body {
-            background-color: #f8f9fa; /* สีพื้นหลังเดียวกับฝั่ง User */
-        }
-
         /* --- Page Header --- */
         .page-header {
             background-color: white;
-            padding: 2.5rem 0 1.5rem;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e9ecef;
             margin-bottom: 2rem;
         }
 
-        .page-title {
-            font-weight: 600;
-            font-size: 1.25rem;
-            color: #2c3e50;
-        }
-
-        /* --- Stat Cards (เลียนแบบ Stat ของ User) --- */
-        .stat-box {
+        /* --- Stat Cards --- */
+        .stat-card {
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border-top: 4px solid var(--admin-blue); /* เพิ่มแถบสีฟ้าด้านบน */
-            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #f0f0f0;
             height: 100%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-            .stat-box:hover {
+            .stat-card:hover {
                 transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+                border-color: var(--brand-color);
             }
 
-        .stat-number {
-            font-size: 2rem;
+            .stat-card::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 4px;
+                background-color: var(--card-color, #0062cc);
+            }
+
+        .stat-icon {
+            width: 54px;
+            height: 54px;
+            background-color: var(--card-bg-light, #e9f2ff);
+            color: var(--card-color, #0062cc);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
             font-weight: 700;
-            color: var(--admin-blue);
+            color: #2c3e50;
+            line-height: 1.2;
             margin-bottom: 0.25rem;
         }
 
         .stat-label {
-            color: #7f8c8d;
-            font-size: 0.9rem;
+            color: #6c757d;
+            font-size: 0.95rem;
             font-weight: 500;
         }
 
-        /* --- Management Cards --- */
-        .mgmt-card {
-            border: none;
-            border-radius: 12px;
+        /* --- Quick Menu Grid --- */
+        .menu-card {
             background: white;
-            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            height: 100%;
-            padding: 2rem 1.5rem;
+            border-radius: 12px;
+            padding: 1.5rem;
             text-align: center;
-        }
-
-            .mgmt-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 15px 30px rgba(0,0,0,0.08);
-            }
-
-        .icon-circle {
-            width: 70px;
-            height: 70px;
-            background-color: var(--admin-blue-light);
-            color: var(--admin-blue);
-            border-radius: 50%;
-            display: inline-flex;
+            border: 1px solid #f0f0f0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1.5rem;
         }
 
-        .mgmt-title {
-            font-weight: 700;
-            font-size: 1rem;
-            color: #2c3e50;
-            margin-bottom: 0.75rem;
-        }
-
-        .mgmt-desc {
-            font-size: 0.85rem;
-            color: #6c757d;
-            margin-bottom: 1.5rem;
-            min-height: 40px;
-        }
-
-        .btn-mgmt {
-            border-radius: 20px;
-            font-weight: 600;
-            padding: 0.5rem 1.5rem;
-            border: 2px solid var(--admin-blue);
-            color: var(--admin-blue);
-            transition: all 0.2s;
-        }
-
-            .btn-mgmt:hover {
-                background-color: var(--admin-blue);
-                color: white;
+            .menu-card:hover {
+                border-color: var(--brand-color);
+                background-color: #fcfdff;
+                box-shadow: 0 4px 12px rgba(0, 98, 204, 0.1);
             }
 
-        .section-title {
+        .menu-icon-circle {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 2px solid var(--brand-light);
+            color: var(--brand-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .menu-card:hover .menu-icon-circle {
+            background: var(--brand-color);
+            color: white;
+            border-color: var(--brand-color);
+            transform: scale(1.1);
+        }
+
+        .menu-title {
             font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-desc {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 0;
+            line-height: 1.4;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
             margin-bottom: 1.5rem;
-            padding-left: 0.5rem;
-            border-left: 4px solid var(--admin-blue);
+            padding-left: 10px;
+            border-left: 4px solid var(--brand-color);
         }
     </style>
 }
 
 <div class="page-header">
     <div class="container">
-        <div class="d-flex align-items-center justify-content-between">
-            <div>
-                <h2 class="page-title mb-1"><i class="fas fa-chart-line me-2 text-primary"></i>ภาพรวมระบบ (Overview)</h2>
-                <p class="text-muted mb-0 small">iLearn Management Information System</p>
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-4">
+                    <img src="@profileImage" class="rounded-circle shadow-sm border border-2 border-white" width="72" height="72" alt="Profile">
+                    <div>
+                        <h2 class="fw-bold mb-1" style="color: var(--brand-dark);">Dashboard</h2>
+                        <p class="text-muted mb-0">
+                            Welcome back, <strong>@adminName</strong>
+                            <span class="mx-2 text-primary">•</span>
+                            <span class="small"><i class="far fa-clock me-1"></i> @DateTime.Now.ToString("D")</span>
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div class="text-muted small">
-                <i class="far fa-calendar-alt me-1"></i> @DateTime.Now.ToString("dd MMMM yyyy")
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="@Url.Action("Form", "Courses")" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                    <i class="fas fa-plus me-2"></i> Create New Course
+                </a>
             </div>
         </div>
     </div>
@@ -143,96 +171,125 @@
 
     <div class="row g-4 mb-5">
         <div class="col-md-3">
-            <div class="stat-box text-center">
-                <div class="stat-number" id="stat-courses">...</div>
-                <div class="stat-label">หลักสูตรทั้งหมด</div>
+            <div class="stat-card" style="--card-color: #0062cc; --card-bg-light: #e9f2ff;">
+                <div class="stat-icon">
+                    <i class="fas fa-book-reader"></i>
+                </div>
+                <div class="d-flex justify-content-between align-items-end w-100">
+                    <div>
+                        <div class="stat-value" id="count-active-courses">...</div>
+                        <div class="stat-label">Active Courses</div>
+                    </div>
+                    <a href="@Url.Action("Index", "Courses")" class="btn btn-sm btn-outline-primary rounded-pill px-3">View</a>
+                </div>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="stat-box text-center">
-                <div class="stat-number" id="stat-users">...</div>
-                <div class="stat-label">ผู้ใช้งานในระบบ</div>
+            <div class="stat-card" style="--card-color: #ffc107; --card-bg-light: #fff9db;">
+                <div class="stat-icon">
+                    <i class="fas fa-pen-nib"></i>
+                </div>
+                <div class="d-flex justify-content-between align-items-end w-100">
+                    <div>
+                        <div class="stat-value text-dark" id="count-draft-courses">...</div>
+                        <div class="stat-label">Draft Courses</div>
+                    </div>
+                    <a href="@Url.Action("Drafts", "Courses")" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3">Review</a>
+                </div>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="stat-box text-center">
-                <div class="stat-number" id="stat-enrolls">...</div>
-                <div class="stat-label">การลงทะเบียนเรียน</div>
+            <div class="stat-card" style="--card-color: #17a2b8; --card-bg-light: #e0f7fa;">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="d-flex justify-content-between align-items-end w-100">
+                    <div>
+                        <div class="stat-value" id="count-users">...</div>
+                        <div class="stat-label">Total Employees</div>
+                    </div>
+                    <a href="@Url.Action("Index", "Users")" class="btn btn-sm btn-outline-info rounded-pill px-3">Manage</a>
+                </div>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="stat-box text-center">
-                <div class="stat-number" id="stat-resources">...</div>
-                <div class="stat-label">ทรัพยากร/ไฟล์</div>
+            <div class="stat-card" style="--card-color: #6f42c1; --card-bg-light: #f3e5f5;">
+                <div class="stat-icon">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <div class="d-flex justify-content-between align-items-end w-100">
+                    <div>
+                        <div class="stat-value" id="count-resources">...</div>
+                        <div class="stat-label">Resources Files</div>
+                    </div>
+                    <a href="@Url.Action("Index", "Resources")" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="color: #6f42c1; border-color: #6f42c1;">Detail</a>
+                </div>
             </div>
         </div>
     </div>
 
-
-    <h5 class="section-title">จัดการข้อมูลหลัก (Management)</h5>
+    <h5 class="section-title">Quick Management</h5>
     <div class="row g-4">
-        <div class="col-md-4">
-            <div class="mgmt-card">
-                <div class="icon-circle">
-                    <i class="fas fa-book fa-2x"></i>
+        <div class="col-md-6 col-lg-3" onclick="location.href='@Url.Action("Index", "Courses")'">
+            <div class="menu-card">
+                <div class="menu-icon-circle">
+                    <i class="fas fa-chalkboard-teacher"></i>
                 </div>
-                <h6 class="mgmt-title">จัดการหลักสูตร</h6>
-                <p class="mgmt-desc">สร้างบทเรียนใหม่, จัดการเวอร์ชัน และผูกทรัพยากรการเรียนรู้</p>
-                <a href="@Url.Action("Index", "Courses")" class="btn btn-mgmt w-100">
-                    เข้าสู่เมนู
-                </a>
+                <h6 class="menu-title">Course Manager</h6>
+                <p class="menu-desc">Create, edit and manage training courses.</p>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="mgmt-card">
-                <div class="icon-circle">
-                    <i class="fas fa-user-tag fa-2x"></i>
+        <div class="col-md-6 col-lg-3" onclick="location.href='@Url.Action("Index", "Enrollments")'">
+            <div class="menu-card">
+                <div class="menu-icon-circle">
+                    <i class="fas fa-user-graduate"></i>
                 </div>
-                <h6 class="mgmt-title">มอบหมายหลักสูตร</h6>
-                <p class="mgmt-desc">กำหนดกฎ (Rules) สำหรับการมอบหมายหลักสูตรอัตโนมัติ</p>
-                <a href="@Url.Action("Index", "AssignmentRules")" class="btn btn-mgmt w-100">
-                    ตั้งค่า Assignment
-                </a>
+                <h6 class="menu-title">Enrollments</h6>
+                <p class="menu-desc">Monitor employee course enrollments.</p>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="mgmt-card">
-                <div class="icon-circle">
-                    <i class="fas fa-history fa-2x"></i>
+        <div class="col-md-6 col-lg-3" onclick="location.href='@Url.Action("Index", "Users")'">
+            <div class="menu-card">
+                <div class="menu-icon-circle">
+                    <i class="fas fa-user-cog"></i>
                 </div>
-                <h6 class="mgmt-title">ประวัติการเรียน</h6>
-                <p class="mgmt-desc">ดูรายละเอียดคะแนน, เวลาเรียน และสถานะผ่าน/ไม่ผ่าน</p>
-                <a href="@Url.Action("Index", "LearningLogs")" class="btn btn-mgmt w-100">
-                    ดู Log ทั้งหมด
-                </a>
+                <h6 class="menu-title">User Accounts</h6>
+                <p class="menu-desc">Manage users, roles and permissions.</p>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="mgmt-card">
-                <div class="icon-circle">
-                    <i class="fas fa-cloud-upload-alt fa-2x"></i>
+        <div class="col-md-6 col-lg-3" onclick="location.href='@Url.Action("Index", "LearningLogs")'">
+            <div class="menu-card">
+                <div class="menu-icon-circle">
+                    <i class="fas fa-chart-line"></i>
                 </div>
-                <h6 class="mgmt-title">คลังทรัพยากร</h6>
-                <p class="mgmt-desc">อัปโหลดไฟล์ SCORM (.zip) และจัดการไฟล์สื่อต่างๆ</p>
-                <a href="@Url.Action("Index", "Resources")" class="btn btn-mgmt w-100">
-                    จัดการไฟล์
-                </a>
+                <h6 class="menu-title">Learning Logs</h6>
+                <p class="menu-desc">View detailed learning history and scores.</p>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="mgmt-card">
-                <div class="icon-circle">
-                    <i class="fas fa-user-cog fa-2x"></i>
+        <div class="col-md-6 col-lg-3" onclick="location.href='@Url.Action("Index", "Divisions")'">
+            <div class="menu-card">
+                <div class="menu-icon-circle">
+                    <i class="fas fa-sitemap"></i>
                 </div>
-                <h6 class="mgmt-title">จัดการพนักงาน/สิทธิ์</h6>
-                <p class="mgmt-desc">จัดการข้อมูลพนักงาน, กำหนดสิทธิ์ และฝ่ายงาน (Division)</p>
-                <a href="@Url.Action("Index", "Users")" class="btn btn-mgmt w-100">
-                    จัดการผู้ใช้งาน
-                </a>
+                <h6 class="menu-title">Divisions</h6>
+                <p class="menu-desc">Manage company structure.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3" onclick="location.href='@Url.Action("Index", "AssignmentRules")'">
+            <div class="menu-card">
+                <div class="menu-icon-circle">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h6 class="menu-title">Auto-Assign Rules</h6>
+                <p class="menu-desc">Set rules for automatic course assignment.</p>
             </div>
         </div>
     </div>
@@ -240,25 +297,56 @@
 
 @section Scripts {
     <script>
-        $(() => {
-            // ฟังก์ชันโหลดข้อมูลสถิติจาก API มาแสดงผล
-            const loadStats = (url, targetId) => {
-                $.ajax({
-                    url: `${serviceUrl}/${url}/Get`,
-                    data: { requireTotalCount: true, take: 0 },
-                    xhrFields: { withCredentials: true },
-                    success: (res) => {
-                        $(`#${targetId}`).text(res.totalCount || 0);
-                    },
-                    error: () => $(`#${targetId}`).text('0')
-                });
-            };
+   
 
-            // เรียกใช้ฟังก์ชันเพื่อดึงสถิติแต่ละส่วน
-            loadStats('admin/CoursesCRUD', 'stat-courses');
-            loadStats('admin/UsersCRUD', 'stat-users');
-            loadStats('admin/EnrollmentsCRUD', 'stat-enrolls');
-            loadStats('admin/ResourcesCRUD', 'stat-resources');
+        $(() => {
+            loadDashboardStats();
         });
+
+        function loadDashboardStats() {
+            // ยิง API เดียวที่ DashboardController เพื่อให้ทำงานเร็วที่สุด
+            $.ajax({
+                url: `${serviceUrl}/admin/Dashboard/Stats`,
+                method: "GET",
+                xhrFields: { withCredentials: true },
+                success: function (res) {
+                    if (res.success && res.data) {
+                        // แสดงผลพร้อม Animation ตัวเลข
+                        animateCount('count-active-courses', res.data.activeCourses);
+                        animateCount('count-draft-courses', res.data.draftCourses);
+                        animateCount('count-users', res.data.totalUsers);
+                        animateCount('count-resources', res.data.totalResources);
+                    }
+                },
+                error: function (err) {
+                    console.error("Failed to load dashboard stats", err);
+                    // กรณี Error ให้แสดงขีด (-) ไว้ก่อน
+                    $('#count-active-courses, #count-draft-courses, #count-users, #count-resources').text("-");
+                }
+            });
+        }
+
+        // Helper: Animation นับเลขขึ้น
+        function animateCount(elementId, value) {
+            const $el = $(`#${elementId}`);
+            // ถ้าค่าเป็น 0 ไม่ต้อง animate นาน
+            if(value === 0) {
+                $el.text("0");
+                return;
+            }
+
+            $({ Counter: 0 }).animate({
+                Counter: value
+            }, {
+                duration: 800,
+                easing: 'swing',
+                step: function (now) {
+                    $el.text(Math.ceil(now));
+                },
+                complete: function() {
+                     $el.text(value); // จบที่ค่าจริงเสมอ
+                }
+            });
+        }
     </script>
 }
