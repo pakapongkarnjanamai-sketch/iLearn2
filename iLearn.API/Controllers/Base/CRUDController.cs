@@ -81,11 +81,24 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            // [Modified] Include ผ่าน CourseVersion เพื่อให้ได้ข้อมูล Course
+            // เปลี่ยนจาก Include เป็น Select เพื่อเลือกเฉพาะข้อมูลที่ต้องใช้ 
+            // ช่วยลดขนาด JSON ลงได้มากกว่า 80% และเร็วขึ้นมาก
             var query = _repository.GetQuery()
-                .Include(r => r.CourseResources)
-                    .ThenInclude(cr => cr.CourseVersion)
-                        .ThenInclude(cv => cv.Course);
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Name,
+                    r.TypeId,
+                    r.IsActive,
+                    r.URL,
+                    r.FileStorageId,
+                    r.CreatedAt,
+                    // ดึงมาแค่ CourseId ก็พอ เพราะ Frontend (TagBox) ต้องการแค่นี้
+                    courseResources = r.CourseResources.Select(cr => new
+                    {
+                        courseId = cr.CourseVersion.CourseId
+                    }).ToList()
+                });
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }

@@ -1,60 +1,261 @@
 ﻿@{
-    ViewBag.Title = "Resources";
+    ViewBag.Title = "Resource Library";
 }
 
-<style>
-    .uploader-container {
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        border: 1px dashed #ced4da;
-    }
-    .note {
-        font-size: 0.9em;
-        color: #6c757d;
-        margin-top: 10px;
-        display: block;
-    }
-</style>
+@section Styles {
+    <style>
+        /* --- Page Header --- */
+        .page-header {
+            background-color: white;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 2rem;
+        }
 
-<div class="container-fluid page-full-height">
+        .page-title {
+            font-weight: 700;
+            color: var(--brand-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">@ViewBag.Title List</h5>
-        </div>
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>Resource Type for Upload:</label>
-                        <div id="uploadTypeSelect"></div>
+        /* --- Content Layout --- */
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            border: none;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 2rem;
+        }
+
+        /* --- Grid Customization --- */
+        .dx-datagrid-headers {
+            background-color: #fff;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+            .dx-datagrid-headers .dx-header-row > td {
+                font-weight: 700 !important;
+                color: #495057 !important;
+                padding-top: 15px;
+                padding-bottom: 15px;
+            }
+
+        /* --- Badges & Icons --- */
+        .badge-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-active {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .badge-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+            border: none;
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+            .btn-icon:hover {
+                transform: translateY(-2px);
+                background-color: var(--brand-light);
+                color: var(--brand-color);
+            }
+
+        .action-group {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        /* File Icon Formatting */
+        .file-icon-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .file-icon-wrapper i {
+                font-size: 1.2rem;
+            }
+
+        /* Upload Area inside Popup */
+        .upload-dropzone {
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+            .upload-dropzone:hover {
+                border-color: var(--brand-color);
+                background-color: var(--brand-light);
+            }
+
+        /* [ใหม่] ซ่อนปุ่ม Upload อัตโนมัติของ DevExtreme เพื่อใช้ปุ่ม Confirm ด้านล่างแทน */
+        #popupContent .dx-fileuploader-upload-button {
+            display: none !important;
+        }
+    </style>
+}
+
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <div>
+                    @ViewBag.Title
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                        Manage learning materials, SCORM packages, and assign them to courses.
                     </div>
                 </div>
-                <div class="col-md-8">
-                    <div id="fileUploader"></div>
-                    <span class="note">Supported: <b>.zip (SCORM)</b> | Max size: 100MB</span>
-                </div>
+            </h1>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="openUploadPopup()">
+                    <i class="fas fa-cloud-upload-alt me-2"></i> Upload Resource
+                </button>
             </div>
-            <div id="grid"></div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="content-card">
+        <div class="p-3">
+            <div id="grid-resources"></div>
+        </div>
+    </div>
+</div>
+
+<div id="uploadPopup"></div>
+
+<div id="popupContent" style="display: none;">
+    <div class="p-2">
+        <div class="form-group mb-4">
+            <label class="form-label text-dark fw-bold">
+                <i class="fas fa-tag text-primary me-1"></i> 1. Select Content Type
+            </label>
+            <div id="uploadTypeSelect"></div>
+        </div>
+        <div class="form-group">
+            <label class="form-label text-dark fw-bold">
+                <i class="fas fa-file-archive text-primary me-1"></i> 2. Choose File (.zip)
+            </label>
+            <div class="upload-dropzone mt-1">
+                <div id="fileUploader"></div>
+            </div>
+            <div class="mt-3 text-muted small text-center">
+                <i class="fas fa-info-circle text-primary"></i>
+                Supported format: <b>.zip (SCORM)</b> | Max file size: <b>100MB</b>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+    
+
         const resourceTypes = [
-            { id: 1, name: 'Learn' },
-            { id: 2, name: 'Exam' }
+            { id: 1, name: 'Learning Material (Learn)' },
+            { id: 2, name: 'Examination (Exam)' }
         ];
 
-        // ค่า Default สำหรับการอัปโหลด
         let selectedUploadTypeId = 1;
+        let gridInstance;
+        let uploadPopupInstance;
 
         $(() => {
 
-            // 1. ตัวเลือกประเภทไฟล์ก่อนอัปโหลด
+            // --- 1. Init Upload Popup ---
+            uploadPopupInstance = $("#uploadPopup").dxPopup({
+                title: "Upload New Resource",
+                width: 500,
+                height: 'auto',
+                showCloseButton: true,
+                dragEnabled: false,
+                hideOnOutsideClick: true,
+                contentTemplate: function(contentElement) {
+                    contentElement.append($("#popupContent"));
+                    $("#popupContent").show();
+                },
+                // [ใหม่] เพิ่มแถบปุ่มกดด้านล่างของ Popup
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "Confirm & Upload",
+                            icon: "upload",
+                            type: "success",
+                            stylingMode: "contained",
+                            onClick: function() {
+                                const uploader = $("#fileUploader").dxFileUploader("instance");
+                                const files = uploader.option("value");
+                                // เช็คว่ามีการเลือกไฟล์แล้วหรือยัง
+                                if (files && files.length > 0) {
+                                    uploader.upload(); // สั่งให้อัปโหลดเมื่อกดปุ่มนี้
+                                } else {
+                                    DevExpress.ui.notify("Please select at least one file to upload.", "warning", 2000);
+                                }
+                            }
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "Cancel",
+                            stylingMode: "outlined",
+                            type: "normal",
+                            onClick: function() {
+                                uploadPopupInstance.hide();
+                            }
+                        }
+                    }
+                ],
+                onHidden: function() {
+                    const uploader = $("#fileUploader").dxFileUploader("instance");
+                    if(uploader) uploader.reset();
+                }
+            }).dxPopup("instance");
+
+            window.openUploadPopup = function() {
+                uploadPopupInstance.show();
+            };
+
+            // --- 2. Upload Type SelectBox ---
             $("#uploadTypeSelect").dxSelectBox({
                 dataSource: resourceTypes,
                 valueExpr: 'id',
@@ -62,7 +263,6 @@
                 value: selectedUploadTypeId,
                 onValueChanged: function(e) {
                     selectedUploadTypeId = e.value;
-                    // อัปเดต URL ของ Uploader เมื่อเปลี่ยนประเภท
                     const uploader = $("#fileUploader").dxFileUploader("instance");
                     uploader.option("uploadUrl", getUploadUrl());
                 }
@@ -72,320 +272,389 @@
                 return `${serviceUrl}/Resources/upload?typeId=${selectedUploadTypeId}`;
             }
 
-            // 2. File Uploader Configuration
-                   $("#fileUploader").dxFileUploader({
-            name: 'file',
-            multiple: true,
-            accept: '.zip',
-            uploadMode: 'instantly',
-            // uploadUrl: getUploadUrl(), <--- ลบบรรทัดนี้ออก (เราจะใช้ uploadFile แทน)
-            maxFileSize: 100 * 1024 * 1024, // 100MB
+            // --- 3. File Uploader Configuration ---
+            $("#fileUploader").dxFileUploader({
+                name: 'file',
+                multiple: true,
+                accept: '.zip',
+                // [ใหม่] เปลี่ยนจาก 'instantly' เป็น 'useButtons' เพื่อให้รอกดปุ่ม Confirm ก่อน
+                uploadMode: 'useButtons',
+                maxFileSize: 100 * 1024 * 1024, // 100MB
+                selectButtonText: "Browse Files",
+                labelText: "or drag and drop here",
 
-            // --- ใช้ Custom Upload แทน ---
-            uploadFile: function(file, progressCallback) {
-                var deferred = $.Deferred();
-                var formData = new FormData();
-                formData.append("file", file); // ชื่อ Parameter ต้องตรงกับที่ API รับ (เช่น IFormFile file)
+                // Custom Upload Logic (รองรับไฟล์ใหญ่)
+                uploadFile: function(file, progressCallback) {
+                    var deferred = $.Deferred();
+                    var formData = new FormData();
+                    formData.append("file", file);
 
-                var xhr = new XMLHttpRequest();
-                // ดึง URL ล่าสุดจากฟังก์ชัน
-                var url = getUploadUrl();
+                    var xhr = new XMLHttpRequest();
+                    var url = getUploadUrl();
+                    xhr.open("POST", url, true);
+                    xhr.withCredentials = true;
 
-                xhr.open("POST", url, true);
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            progressCallback(e.loaded, e.total);
+                        }
+                    };
 
-                // จุดสำคัญ: ตั้งค่า Credentials ทันทีหลัง open()
-                xhr.withCredentials = true;
+                    xhr.onload = function() {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            deferred.resolve();
+                        } else {
+                            deferred.reject(xhr.responseText || xhr.statusText);
+                        }
+                    };
 
-                // ตั้งค่า Progress Bar
-                xhr.upload.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        progressCallback(e.loaded, e.total);
-                    }
-                };
+                    xhr.onerror = function() {
+                        deferred.reject("Network Error");
+                    };
 
-                // ตรวจสอบผลลัพธ์เมื่อเสร็จสิ้น
-                xhr.onload = function() {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        deferred.resolve(); // สำเร็จ
-                    } else {
-                        deferred.reject(xhr.responseText || xhr.statusText); // แจ้ง Error
-                    }
-                };
+                    xhr.send(formData);
+                    return deferred.promise();
+                },
 
-                xhr.onerror = function() {
-                    deferred.reject("Network Error");
-                };
+               onUploaded: function (e) {
+                    DevExpress.ui.notify({ message: "File uploaded successfully", type: "success", displayTime: 2000 });
+                    if(gridInstance) gridInstance.refresh();
 
-                xhr.send(formData);
-
-                return deferred.promise();
-            },
-            // ---------------------------
-
-            // ไม่ต้องใช้ onUploadStarted แล้ว
-            // onUploadStarted: ...
-
-            onUploaded: function (e) {
-                DevExpress.ui.notify("File uploaded successfully", "success", 2000);
-                $("#grid").dxDataGrid("instance").refresh();
-            },
-            onUploadError: function (e) {
-                let msg = "Upload failed";
-                // ปรับการดึง Error message จาก Custom Upload (e.error จะเป็น string ที่เรา reject)
-                if (e.error) {
-                     msg = e.error;
+                    // ปิด Popup หลังจากอัปโหลดเสร็จและรีเฟรชตารางแล้ว
+                    if(uploadPopupInstance) uploadPopupInstance.hide();
+                },
+                onUploadError: function (e) {
+                    let msg = e.error || "Upload failed";
+                    DevExpress.ui.notify({ message: msg, type: "error", displayTime: 4000 });
                 }
-                console.error("Upload Error:", e);
-                DevExpress.ui.notify(msg, "error", 3000);
-            }
-        });
+            });
 
-            // 3. DataGrid Configuration
-            const grid = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', {
-                    key: 'id',
-                }),
-                remoteOperations: true,
+          // --- 4. DataGrid Configuration ---
+            const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+
+            gridInstance = $("#grid-resources").dxDataGrid({
+                dataSource: resourcesStore,
+                // ★ 1. ตั้งค่าเริ่มต้นให้กรองเฉพาะไฟล์ที่ยังไม่ได้ผูกกับ Course (Unassigned)
+                filterValue: ["courseIdsCount", "=", 0],
+                remoteOperations: {
+                    paging: true,
+                    sorting: true,
+                    filtering: false
+                },
                 columnAutoWidth: true,
-                showBorders: true,
+                showBorders: false,
+                rowAlternationEnabled: false,
+                showRowLines: true,
+                hoverStateEnabled: true,
                 scrolling: { mode: "virtual" },
-                height: "500px",
-                headerFilter: { visible: true, search: { enabled: true } },
+                height: "calc(100vh - 280px)",
+                headerFilter: { visible: true },
                 searchPanel: { visible: true, width: 300, placeholder: "Search resources..." },
+
+                // ★ 2. แถบเครื่องมือ (Toolbar) ปรับปุ่ม Toggle ให้สัมพันธ์กับค่าเริ่มต้น
+                onToolbarPreparing: function(e) {
+                    e.toolbarOptions.items.unshift({
+                        location: "before",
+                        widget: "dxButton",
+                        options: {
+                            // สถานะเริ่มต้น (เนื่องจาก Grid โดน Filter ไว้แล้วตั้งแต่โหลดหน้า)
+                            text: "Show All Resources",
+                            icon: "group", // เปลี่ยนไอคอนให้สื่อถึงการดูทั้งหมด
+                            stylingMode: "outlined",
+                            type: "normal",
+                            onClick: function(args) {
+                                const currentFilter = gridInstance.option("filterValue");
+                                const isUnassignedFiltered = currentFilter && JSON.stringify(currentFilter).includes("courseIdsCount");
+
+                                if (isUnassignedFiltered) {
+                                    // กรณีที่กำลังดู Unassigned อยู่ -> ให้ล้าง Filter เพื่อดูทั้งหมด
+                                    gridInstance.clearFilter();
+                                    args.component.option({
+                                        text: "Show Unassigned Only",
+                                        icon: "filter",
+                                        stylingMode: "contained",
+                                        type: "primary"
+                                    });
+                                } else {
+                                    // กรณีที่กำลังดูทั้งหมดอยู่ -> ให้กลับมากรองเฉพาะ Unassigned
+                                    gridInstance.filter(["courseIdsCount", "=", 0]);
+                                    args.component.option({
+                                        text: "Show All Resources",
+                                        icon: "group",
+                                        stylingMode: "outlined",
+                                        type: "normal"
+                                    });
+                                }
+                            }
+                        }
+                    });
+                },
 
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
-                    allowAdding: false, // ให้เพิ่มผ่านการ Upload แทนการกดปุ่ม Add
+                    allowAdding: false,
                     useIcons: true,
-                    popup: {
-                        title: "Resource Info",
-                        showTitle: true,
-                        width: 700,
-                        height: 600
-                    },
+                    popup: { title: "Edit Resource Information", showTitle: true, width: 600, height: 400 },
                     form: {
                         items: [
                             {
                                 itemType: 'group',
-                                caption: "General Info",
-                                colCount: 2,
-                                colSpan: 2,
+                                caption: "Details",
+                                colCount: 1,
                                 items: [
-                                    { dataField: 'id', editorOptions: { disabled: true } },
-                                    { dataField: 'isActive' },
-                                    {
-                                        dataField: 'name',
-                                        colSpan: 2,
-                                        validationRules: [{ type: "required" }]
-                                    },
+                                    { dataField: 'name', validationRules: [{ type: "required" }] },
                                     {
                                         dataField: 'typeId',
                                         editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: resourceTypes,
-                                            valueExpr: 'id',
-                                            displayExpr: 'name'
-                                        },
+                                        editorOptions: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
                                         validationRules: [{ type: "required" }]
-                                    }
+                                    },
+                                    { dataField: 'isActive', editorType: "dxCheckBox", editorOptions: { text: "Set as Active" }, label: { visible: false } }
                                 ]
-                            },
-                           
+                            }
                         ]
                     }
                 },
                 columns: [
-                    { dataField: "id", caption: "ID", width: 60, allowUpdating: false, sortOrder: 'desc' },
                     {
                         dataField: "name",
-                        caption: "Resource Name",
-                        minWidth: 200,
+                        caption: "Resource File Name",
+                        minWidth: 250,
                         cellTemplate: function(container, options) {
-                            // แสดง Icon ตามนามสกุลไฟล์
-                            let icon = '<i class="far fa-file"></i>';
-                            if(options.data.name.endsWith('.zip')) icon = '<i class="far fa-file-archive text-warning"></i>';
-                            else if(options.data.name.endsWith('.pdf')) icon = '<i class="far fa-file-pdf text-danger"></i>';
-                            else if(options.data.name.endsWith('.mp4')) icon = '<i class="far fa-file-video text-info"></i>';
+                            const name = options.value || "";
+                            let iconClass = 'far fa-file text-secondary';
 
-                            container.html(`${icon} ${options.data.name}`);
+                            if(name.toLowerCase().endsWith('.zip')) iconClass = 'fas fa-file-archive text-warning';
+                            else if(name.toLowerCase().endsWith('.pdf')) iconClass = 'fas fa-file-pdf text-danger';
+                            else if(name.toLowerCase().endsWith('.mp4')) iconClass = 'fas fa-file-video text-info';
+
+                            const wrapper = $("<div>").addClass("file-icon-wrapper fw-medium text-dark");
+                            $("<i>").addClass(iconClass).appendTo(wrapper);
+                            $("<span>").text(name).appendTo(wrapper);
+
+                            container.append(wrapper);
                         }
                     },
                     {
                         dataField: "typeId",
-                        caption: "Type",
-                        width: 120,
-                        lookup: {
-                            dataSource: resourceTypes,
-                            valueExpr: 'id',
-                            displayExpr: 'name'
+                        caption: "Resource Type",
+                        width: 150,
+                        lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' }
+                    },
+
+                    // Hidden Column สำหรับใช้ กรอง Unassigned
+                    {
+                        dataField: "courseIdsCount",
+                        dataType: "number",
+                        visible: false,
+                        calculateCellValue: function(rowData) {
+                            return rowData.courseResources ? rowData.courseResources.length : 0;
                         }
                     },
 
-                    // --- Virtual Column สำหรับ Course Mapping ---
                     {
                         dataField: "courseIds",
                         caption: "Assigned Courses",
-                        width: 250,
+                        width: 280,
                         allowSorting: false,
                         calculateCellValue: function(rowData) {
-                            if (rowData.courseResources) {
-                                return rowData.courseResources.map(cr => cr.courseId);
-                            }
-                            return [];
+                            return rowData.courseResources ? rowData.courseResources.map(cr => cr.courseId) : [];
                         },
                         editCellTemplate: tagBoxCourseTemplate,
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
-                            displayExpr: 'title', // ใช้ Title ตาม Model Course
+                            dataSource: {
+                                store: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
+                                paginate: true,
+                                pageSize: 20
+                            },
+                            displayExpr: 'code',
                             valueExpr: 'id',
                         },
                         cellTemplate: function(container, options) {
                             const items = options.value || [];
-                            const text = items.map(id => options.column.lookup.calculateCellValue(id)).join(", ");
-                            container.text(text).attr('title', text);
+                            if(items.length === 0) {
+                                container.html('<span class="text-muted small">- Not assigned -</span>');
+                                return;
+                            }
+
+                            const wrapper = $("<div>").addClass("d-flex flex-wrap gap-1");
+                            items.forEach(id => {
+                                const code = options.column.lookup.calculateCellValue(id) || id;
+                                $("<span>")
+                                    .addClass("badge")
+                                    .css({
+                                        "background-color": "var(--brand-light)",
+                                        "color": "var(--brand-color)",
+                                        "border": "1px solid rgba(0, 98, 204, 0.2)",
+                                        "font-size": "0.8rem",
+                                        "font-weight": "600",
+                                        "padding": "4px 8px"
+                                    })
+                                    .text(code)
+                                    .appendTo(wrapper);
+                            });
+                            container.append(wrapper);
                         }
                     },
-                    // -------------------------------------------
-
                     {
                         dataField: "isActive",
-                        caption: "Active",
-                        dataType: "boolean",
-                        width: 80
-                    },
-                            {
-            type: "buttons",
-            width: 120, // ขยายความกว้างเล็กน้อยเพื่อให้ปุ่มแสดงผลได้สวยงาม
-            buttons: [
-                // 1. ปุ่มสำหรับ Publish (แสดงเฉพาะตอนยังไม่ Active)
-                {
-                    hint: "Publish / Activate (Extract Zip)",
-                    icon: "globe", // ใช้ icon รูปโลก หรือ 'check'
-                    cssClass: "dx-icon-globe text-success", // ใส่สีเขียวให้ดูว่าเป็นปุ่มเปิดใช้งาน
-                    visible: function(e) {
-                        // แสดงปุ่มนี้ก็ต่อเมื่อ isActive เป็น false
-                        return !e.row.data.isActive;
-                    },
-                    onClick: function(e) {
-                        // เรียกฟังก์ชัน JavaScript ที่เราจะสร้างด้านล่าง
-                        setResourcePublic(e.row.data.id);
-                    }
-                },
-
-                // 2. ปุ่มเดิมสำหรับเปิดดู (แสดงเฉพาะตอน Active แล้ว)
-            {
-            hint: "View Content",
-            icon: "video",
-            visible: function(e) { return e.row.data.isActive; },
-            onClick: function(e) {
-                const resource = e.row.data;
-                const apiUrl = `${serviceUrl}/Resources/${resource.id}/content`;
-
-                // ตรวจสอบว่าเป็นไฟล์ Zip (SCORM) หรือไม่
-                if (resource.name.toLowerCase().endsWith('.zip')) {
-
-                    // 1. เปิดหน้าต่างใหม่รอไว้ทันที (ป้องกัน Popup Blocker)
-                    // ต้องทำใน Event Loop เดียวกันกับการกดปุ่ม
-                    const win = window.open('about:blank', '_blank');
-
-                    if (win) {
-                        win.document.title = "Loading...";
-                        win.document.body.innerHTML = "<div style='text-align:center;margin-top:20%;font-family:sans-serif;'>Loading content, please wait...</div>";
-                    }
-
-                    // 2. เรียก AJAX ไปดึง URL ตัวจริงจาก JSON
-                    $.ajax({
-                        url: apiUrl,
-                        method: "GET",
-                        xhrFields: { withCredentials: true }, // ส่ง Cookie Auth ไปด้วย
-                        success: function(response) {
-                            if (response && response.url) {
-                                // 3. ได้ URL แล้ว สั่ง Redirect หน้าต่างที่เปิดรอไว้
-                                if (win) win.location.href = response.url;
+                        caption: "Status",
+                        width: 120,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const isActive = options.value;
+                            if (isActive) {
+                                $("<span>").addClass("badge-status badge-active").html('<i class="fas fa-check-circle"></i> Active').appendTo(container);
                             } else {
-                                if (win) win.close(); // ปิดถ้าไม่มี URL
-                                DevExpress.ui.notify("Content URL not found", "error", 3000);
+                                $("<span>").addClass("badge-status badge-pending").html('<i class="fas fa-hourglass-half"></i> Pending').appendTo(container);
                             }
-                        },
-                        error: function(err) {
-                            if (win) win.close(); // ปิดถ้า Error
-                            console.error(err);
-                            DevExpress.ui.notify("Failed to load content information", "error", 3000);
                         }
-                    });
+                    },
+                    {
+                        caption: "Actions",
+                        width: 180,
+                        alignment: "center",
+                        fixed: true,
+                        fixedPosition: "right",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const $group = $("<div>").addClass("action-group");
 
-                } else {
-                    // กรณีไฟล์ทั่วไป (PDF, MP4) ที่ API ส่งไฟล์กลับมาโดยตรง ให้เปิดได้เลย
-                    window.open(apiUrl, '_blank');
-                }
-            }
-        },
-                "edit",
-                "delete"
-            ]
-        }
-                ],
+                            // 1. Publish Button (if inactive)
+                            if (!data.isActive) {
+                                $("<button>")
+                                    .addClass("btn-icon text-success")
+                                    .attr("title", "Extract & Publish SCORM")
+                                    .html('<i class="fas fa-globe"></i>')
+                                    .on("click", () => setResourcePublic(data.id))
+                                    .appendTo($group);
+                            }
+
+                            // 2. View Button (if active)
+                            if (data.isActive) {
+                                $("<button>")
+                                    .addClass("btn-icon text-info")
+                                    .attr("title", "Preview Content")
+                                    .html('<i class="fas fa-play-circle"></i>')
+                                    .on("click", () => viewContent(data))
+                                    .appendTo($group);
+                            }
+
+                            // 3. Edit Button
+                            $("<button>")
+                                .addClass("btn-icon text-primary")
+                                .attr("title", "Edit Properties")
+                                .html('<i class="fas fa-edit"></i>')
+                                .on("click", () => gridInstance.editRow(options.rowIndex))
+                                .appendTo($group);
+
+                            // 4. Delete Button (เงื่อนไข: ให้ลบได้เฉพาะ isActive = false)
+                            if (!data.isActive) {
+                                $("<button>")
+                                    .addClass("btn-icon text-danger")
+                                    .attr("title", "Delete Resource")
+                                    .html('<i class="fas fa-trash-alt"></i>')
+                                    .on("click", () => {
+                                        DevExpress.ui.dialog.confirm(`Delete resource "<b>${data.name}</b>"?`, "Confirm Delete").done((res) => {
+                                            if(res) gridInstance.deleteRow(options.rowIndex);
+                                        });
+                                    })
+                                    .appendTo($group);
+                            }
+
+                            $group.appendTo(container);
+                        }
+                    }
+                ]
             }).dxDataGrid('instance');
 
-            // Template สำหรับ TagBox เลือกวิชา
+            // --- Helpers ---
+
+            // TagBox สำหรับตอนแก้ไข
             function tagBoxCourseTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
-                    dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
+                    dataSource: {
+                        store: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
+                        paginate: true,
+                        pageSize: 20
+                    },
                     value: cellInfo.value || [],
                     valueExpr: 'id',
-                    displayExpr: 'title', // ใช้ Title
+                    displayExpr: 'code',
+                    searchExpr: ['code', 'title'],
+                    itemTemplate: function(data) {
+                        return `<div><strong class="text-primary">${data.code}</strong> <small class="text-muted">- ${data.title}</small></div>`;
+                    },
                     showSelectionControls: true,
                     maxDisplayedTags: 3,
                     showMultiTagOnly: false,
                     applyValueMode: 'useButtons',
                     searchEnabled: true,
-                    placeholder: "Assign to courses...",
-                    onValueChanged(e) {
-                        cellInfo.setValue(e.value);
-                    },
-                    onSelectionChanged(e) {
-                        cellInfo.component.updateDimensions();
+                    placeholder: "Search course by code or title...",
+                    onValueChanged(e) { cellInfo.setValue(e.value); },
+                    onSelectionChanged(e) { cellInfo.component.updateDimensions(); }
+                });
+            }
+
+            function setResourcePublic(id) {
+                DevExpress.ui.dialog.confirm(
+                    "<div class='text-center'><i class='fas fa-box-open text-primary mb-2' style='font-size: 2rem;'></i><br>Extract and publish this SCORM package?</div>",
+                    "Publish Resource"
+                ).done(function(dialogResult) {
+                    if (dialogResult) {
+                        DevExpress.ui.notify("Extracting files... Please wait.", "info", 3000);
+
+                        $.ajax({
+                            url: `${serviceUrl}/Resources/SetPublic?key=${id}`,
+                            type: "POST",
+                            xhrFields: { withCredentials: true },
+                            success: function(res) {
+                                DevExpress.ui.notify("Published successfully!", "success", 2000);
+                                gridInstance.refresh();
+                            },
+                            error: function(xhr) {
+                                let msg = xhr.responseText || "Activation failed";
+                                DevExpress.ui.notify(msg, "error", 4000);
+                            }
+                        });
                     }
                 });
             }
 
-                    function setResourcePublic(id) {
-            // 1. ถามยืนยันก่อนการแตกไฟล์
-            var confirmDialog = DevExpress.ui.dialog.confirm(
-                "<i>Are you sure you want to publish this resource?</i><br>For .zip (SCORM) files, this will extract content and make it ready.",
-                "Confirm Publish"
-            );
+            function viewContent(resource) {
+                const apiUrl = `${serviceUrl}/Resources/${resource.id}/content`;
 
-            confirmDialog.done(function(dialogResult) {
-                if (dialogResult) {
-                    // 2. แสดง Notification ว่ากำลังทำงาน
-                    DevExpress.ui.notify("Processing... Please wait.", "info", 2000);
+                if (resource.name.toLowerCase().endsWith('.zip')) {
+                    const win = window.open('about:blank', '_blank');
+                    if (win) {
+                        win.document.title = "Loading Course...";
+                        win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content URL...</div>";
+                    }
 
-                    // 3. เรียก API SetPublic
-                    // URL ตรงกับ Controller: [HttpPost("SetPublic")] public async Task<IActionResult> SetPublic([FromQuery] int key)
                     $.ajax({
-                        url: `${serviceUrl}/Resources/SetPublic?key=${id}`,
-                        type: "POST",
-                        xhrFields: {
-                            withCredentials: true // สำคัญ: ต้องส่ง Auth Cookie ไปด้วย
+                        url: apiUrl,
+                        method: "GET",
+                        xhrFields: { withCredentials: true },
+                        success: function(response) {
+                            if (response && response.url) {
+                                if (win) win.location.href = response.url;
+                            } else {
+                                if (win) win.close();
+                                DevExpress.ui.notify("Content URL not found.", "error", 3000);
+                            }
                         },
-                        success: function(res) {
-                            DevExpress.ui.notify("Resource activated successfully!", "success", 2000);
-                            // 4. รีเฟรชตารางเพื่ออัปเดตสถานะปุ่มจาก "Globe" เป็น "Video"
-                            $("#grid").dxDataGrid("instance").refresh();
-                        },
-                        error: function(xhr) {
-                            let msg = "Activation failed";
-                            if (xhr.responseText) msg = xhr.responseText;
-                            DevExpress.ui.notify(msg, "error", 3000);
-                            console.error(xhr);
+                        error: function(err) {
+                            if (win) win.close();
+                            DevExpress.ui.notify("Failed to get content link.", "error", 3000);
                         }
                     });
+                } else {
+                    window.open(apiUrl, '_blank');
                 }
-            });
-        }
-        })
+            }
+
+        }); // End Document Ready
     </script>
 }

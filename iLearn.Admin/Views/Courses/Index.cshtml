@@ -1,146 +1,203 @@
 ﻿@{
-    ViewBag.Title = "Courses Management";
+    ViewBag.Title = "Course Management";
     var categoryId = ViewBag.categoryId;
 }
 
-<div class="container-fluid page-full-height">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">@ViewBag.Title (Category ID: @categoryId)</h5>
+@section Styles {
+    <style>
+        /* --- Page Header --- */
+        .page-header {
+            background-color: white;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-weight: 700;
+            color: var(--brand-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* --- Content Card --- */
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            border: none;
+            overflow: hidden;
+            height: calc(100vh - 240px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Custom Grid Styles --- */
+        .dx-datagrid-headers {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+            .dx-datagrid-headers .dx-header-row > td {
+                font-weight: 700 !important;
+                color: #495057 !important;
+                padding-top: 15px;
+                padding-bottom: 15px;
+            }
+
+        /* --- Badges & Icons --- */
+        .badge-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-active {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .badge-inactive {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+            border: none;
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+            .btn-icon:hover {
+                transform: translateY(-2px);
+                background-color: var(--brand-light);
+                color: var(--brand-color);
+            }
+
+        .action-group {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+    </style>
+}
+
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div>
+                    @ViewBag.Title
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                        @if (categoryId != null)
+                        {
+                            <span class="text-primary"><i class="fas fa-filter me-1"></i>Filtering by Category ID: @categoryId</span>
+                        }
+                        else
+                        {
+                            <span>Manage all training courses and versions.</span>
+                        }
+                    </div>
+                </div>
+            </h1>
+            <div>
+                <a href="@Url.Action("Form", "Courses")" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                    <i class="fas fa-plus me-2"></i> Create New Course
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-            <div id="grid"></div>
-        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="content-card">
+        <div class="p-3" id="grid-courses"></div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+
+        const categoryFilterId = @(categoryId ?? "null");
+
+        // DataStores
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
+        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
         const courseTypes = [
             { id: 0, name: 'Special (Rule-based)' },
             { id: 1, name: 'General (Auto-assign)' }
         ];
-     
+
         $(() => {
-
-              let initialFilter = null;
-
-            if (@categoryId) {
-                initialFilter = ["categoryId", "=", parseInt(@categoryId)];
+            let initialFilter = null;
+            if (categoryFilterId) {
+                initialFilter = ["categoryId", "=", parseInt(categoryFilterId)];
             }
-            // ใช้ createDataStore เชื่อมต่อกับ API CRUD มาตรฐาน (admin/CoursesCRUD)
-            const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
-            $("#grid").dxDataGrid({
+            $("#grid-courses").dxDataGrid({
                 dataSource: coursesStore,
                 filterValue: initialFilter,
                 remoteOperations: true,
                 columnAutoWidth: true,
-                showBorders: true,
+                showBorders: false, // Cleaner look
                 height: "100%",
                 scrolling: { mode: "virtual" },
                 selection: { mode: 'single' },
-                searchPanel: { visible: true, width: 300 },
-                    onRowDblClick: function(e) {
+                hoverStateEnabled: true,
+                rowAlternationEnabled: false,
+                showRowLines: true,
+                searchPanel: {
+                    visible: true,
+                    width: 300,
+                    placeholder: "Search courses..."
+                },
+                headerFilter: { visible: true },
+
+                // Redirect on Double Click
+                onRowDblClick: function(e) {
                     if (e.data && e.data.id) {
                         window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.data.id;
                     }
                 },
-                // เปิดใช้งานการแก้ไขแบบ Popup มาตรฐาน
-                editing: {
-                    mode: "popup",
-                    allowAdding: true,
-                    allowUpdating: true,
-                    allowDeleting: true,
-                    useIcons: true,
-                    popup: {
-                        title: "Course Info",
-                        showTitle: true,
-                        width: 700, // ลดความกว้างลงเพราะไม่มี Resources แล้ว
-                        height: 550
-                    },
-                    form: {
-                        items: [
-                            {
-                                itemType: "group",
-                                caption: "Basic Info",
-                                colCount: 1,
-                                items: [
-                                    {
-                                        dataField: "code",
-                                        validationRules: [{ type: "required" }]
-                                    },
-                                    {
-                                        dataField: "title",
-                                        validationRules: [{ type: "required" }]
-                                    },
-                                    {
-                                        dataField: "type",
-                                        editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: courseTypes,
-                                            displayExpr: 'name',
-                                            valueExpr: 'id'
-                                        },
-                                        validationRules: [{ type: "required" }]
-                                    },
-                                    {
-                                        dataField: "categoryId",
-                                        editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: categoriesStore,
-                                            displayExpr: 'name',
-                                            valueExpr: 'id',
-                                            searchEnabled: true,
-                                            placeholder: "Select Category"
-                                        },
-                                        validationRules: [{ type: "required" }]
-                                    },
-                                    {
-                                        dataField: "Description",
-                                        editorType: "dxTextArea",
-                                        editorOptions: {
-                                            height: 100,
-                                            placeholder: "Enter course description..."
-                                        },
-                                        colSpan: 1
-                                    },
-                                    {
-                                        dataField: "IsActive",
-                                        editorType: "dxCheckBox",
-                                        editorOptions: { text: "Is Active" }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                },
 
                 columns: [
-                   
-                    {
-                        dataField: "id",
-                        caption: "ID",
-                        width: 60,
-                        sortOrder: 'desc',
-                        allowEditing: false
-                    },
                     {
                         dataField: "code",
                         caption: "Code",
-                        width: 120
+                        width: 120,
+                        alignment: "center",
+                        cssClass: "fw-bold text-muted"
                     },
                     {
                         dataField: "title",
-                        caption: "Title",
-                        minWidth: 200
+                        caption: "Course Name",
+                        minWidth: 250,
+                        cellTemplate: function(container, options) {
+                            const name = options.value;
+                            $("<span>").addClass("fw-bold text-dark").text(name).appendTo(container);
+                        }
                     },
                     {
                         dataField: "categoryId",
                         caption: "Category",
-                        width: 150,
+                        width: 180,
                         lookup: {
                             dataSource: categoriesStore,
                             displayExpr: 'name',
@@ -150,37 +207,101 @@
                     {
                         dataField: "type",
                         caption: "Type",
-                        width: 150,
+                        width: 160,
                         lookup: {
                             dataSource: courseTypes,
                             displayExpr: 'name',
                             valueExpr: 'id'
+                        },
+                        cellTemplate: function(container, options) {
+                            const text = options.displayValue;
+                            const icon = options.value === 1 ? "fa-globe" : "fa-lock";
+                            $("<div>").html(`<i class="fas ${icon} me-1 text-muted"></i> ${text}`).appendTo(container);
                         }
                     },
                     {
                         dataField: "isActive",
-                        caption: "Active",
-                        dataType: "boolean",
-                        width: 80
-                    }, 
-                    {
-                        type: "buttons",
-                        width: 110,
-                        buttons: [
-                            "edit",
-                            "delete",
-                            {
-                                hint: "Manage Versions",
-                                icon: "fas fa-code-branch",
-                                onClick: function(e) {
-                                    // ลิงก์ไปยังหน้า Version พร้อมแนบ courseId
-                                    window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.row.data.Id;
-                                }
-                            }
-                        ]
+                        caption: "Status",
+                        width: 120,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const isActive = options.value;
+                            const badgeClass = isActive ? "badge-active" : "badge-inactive";
+                            const icon = isActive ? "fa-check-circle" : "fa-clock";
+                            const text = isActive ? "Active" : "Draft";
+
+                            $("<span>")
+                                .addClass(`badge-status ${badgeClass}`)
+                                .html(`<i class="fas ${icon}"></i> ${text}`)
+                                .appendTo(container);
+                        }
                     },
+                    {
+                        caption: "Manage",
+                        width: 160,
+                        alignment: "center",
+                        fixed: true,
+                        fixedPosition: "right",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const $group = $("<div>").addClass("action-group");
+
+                            // Edit Button (Redirect to Form)
+                            $("<button>")
+                                .addClass("btn-icon")
+                                .attr("title", "Edit Course")
+                                .html('<i class="fas fa-edit"></i>')
+                                .on("click", () => window.location.href = '@Url.Action("Form", "Courses")?id=' + data.id)
+                                .appendTo($group);
+
+                            // Versions Button
+                            $("<button>")
+                                .addClass("btn-icon text-primary")
+                                .attr("title", "Manage Versions")
+                                .html('<i class="fas fa-code-branch"></i>')
+                                .on("click", () => window.location.href = '@Url.Action("Version", "Courses")?courseId=' + data.id)
+                                .appendTo($group);
+
+                            // Delete Button
+                            $("<button>")
+                                .addClass("btn-icon text-danger")
+                                .attr("title", "Delete Course")
+                                .html('<i class="fas fa-trash-alt"></i>')
+                                .on("click", function() {
+                                    confirmDelete(data.id, data.title);
+                                })
+                                .appendTo($group);
+
+                            $group.appendTo(container);
+                        }
+                    }
                 ],
+                onToolbarPreparing: function(e) {
+                    // Add Filter/Refresh buttons if needed
+                }
             });
         });
+
+        function confirmDelete(id, name) {
+            DevExpress.ui.dialog.confirm(
+                `Are you sure you want to delete course "<strong>${name}</strong>"?<br>This will delete all versions and history.`,
+                "Confirm Delete"
+            ).done(function (dialogResult) {
+                if (dialogResult) {
+                    deleteCourse(id);
+                }
+            });
+        }
+
+        function deleteCourse(id) {
+            // Using standard CRUD store delete
+            coursesStore.remove(id).done(() => {
+                DevExpress.ui.notify("Course deleted successfully", "success", 2000);
+                $("#grid-courses").dxDataGrid("instance").refresh();
+            }).fail((err) => {
+                console.error(err);
+                DevExpress.ui.notify("Failed to delete course", "error", 2000);
+            });
+        }
     </script>
 }
