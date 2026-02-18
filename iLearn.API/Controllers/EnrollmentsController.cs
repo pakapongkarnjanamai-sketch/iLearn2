@@ -38,7 +38,30 @@ namespace iLearn.API.Controllers
             _versionRepo = versionRepo;
             _scormService = scormService;
         }
+        [HttpPost("ResetStatus")]
+        public async Task<IActionResult> ResetStatus([FromQuery] int key)
+        {
+            var enrollment = await _enrollmentRepo.GetByIdAsync(key);
+            if (enrollment == null)
+                return NotFound(new { success = false, message = "Enrollment not found" });
 
+            // 1. Reset ข้อมูลสรุปใน Enrollment
+            enrollment.IsCompleted = false;
+            enrollment.CompletedDate = null;
+            enrollment.Progress = 0;
+            await _enrollmentRepo.UpdateAsync(enrollment);
+
+            // 2. Reset สถานะใน LearningLogs ชุดเดิม (ทางเลือกที่ 2: เก็บเวลาสะสมไว้)
+            var logs = await _logRepo.GetAsync(l => l.EnrollmentId == key);
+            foreach (var log in logs)
+            {
+                log.Status = "incomplete"; // เปลี่ยนเพื่อให้ Player ยอมบันทึกใหม่
+                log.Progress = 0;
+                await _logRepo.UpdateAsync(log);
+            }
+
+            return Ok(new { success = true });
+        }
         [HttpGet("my-courses")]
         public async Task<IActionResult> GetMyCourses([FromQuery] string studentCode)
         {
@@ -52,7 +75,7 @@ namespace iLearn.API.Controllers
                 includeProperties: "Course"
             );
 
-            var dtos = enrollments.Select(e => e.ToDto()).ToList();
+            var dtos = enrollments.OrderBy(a => a.IsCompleted).OrderBy(b =>b.DueDate).Select(e => e.ToDto()).ToList();
 
             return Ok(new ApiResponse<IEnumerable<EnrollmentDto>>
             {

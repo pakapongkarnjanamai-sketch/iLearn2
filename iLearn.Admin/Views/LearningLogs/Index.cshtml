@@ -56,50 +56,24 @@
                     }
                 },
 
-                // ปรับปรุง Columns ให้ตรงกับ DTO ใหม่
-                columns: [
-                    { dataField: "id", caption: "ID", width: 60, allowUpdating: false },
-                    { dataField: "studentCode", caption: "Student Code" },
-
-                    // Course Info
-                    { dataField: "courseId", caption: "Course ID", width: 80 },
-                    { dataField: "courseVersionId", caption: "Ver.", width: 60 },
-                    { dataField: "resourceId", caption: "Resource ID", width: 100 },
-
-                    // SCORM Status
-                    {
-                        dataField: "lessonStatus",
-                        caption: "Status",
-                        cellTemplate: function(container, options) {
-                            let color = 'secondary';
-                            const status = (options.value || '').toLowerCase();
-                            if (status === 'passed' || status === 'completed') color = 'success';
-                            else if (status === 'failed') color = 'danger';
-                            else if (status === 'incomplete') color = 'warning';
-
-                            $("<span class='badge bg-" + color + "'>")
-                                .text(options.value)
-                                .appendTo(container);
-                        }
-                    },
-                    { dataField: "scoreRaw", caption: "Score", dataType: "number" },
-                    { dataField: "totalTime", caption: "Total Time" },
-                    { dataField: "attemptCount", caption: "Attempts", dataType: "number" },
-
-                    // Dates
-                    {
-                        dataField: "lastAccessDate",
-                        caption: "Last Access",
-                        dataType: "datetime",
-                        format: "dd/MM/yyyy HH:mm"
-                    },
-                    {
-                        dataField: "completedDate",
-                        caption: "Completed",
-                        dataType: "datetime",
-                        format: "dd/MM/yyyy HH:mm"
-                    }
-                ],
+                       // ปรับปรุง columns
+        columns: [
+            { dataField: "id", caption: "ID", width: 60, visible: false },
+            { dataField: "enrollmentId", caption: "Enrollment ID", width: 100 }, // ✅ แสดง ID รอบการลงทะเบียน
+            { dataField: "studentCode", caption: "พนักงาน" },
+            { dataField: "lessonStatus", caption: "สถานะล่าสุด" }, //
+            {
+                dataField: "totalSecondsPlayed",
+                caption: "เวลาเรียนรวม",
+                calculateCellValue: function(data) {
+                    // แปลงวินาทีเป็น HH:mm:ss เพื่อให้ Admin อ่านง่าย
+                    const sec = data.totalSecondsPlayed || 0;
+                    return new Date(sec * 1000).toISOString().substr(11, 8);
+                }
+            },
+            { dataField: "attemptCount", caption: "จำนวนครั้งที่เข้าเรียน", width: 150 }, // ✅ แสดงความถี่ในการเข้า
+            { dataField: "lastAccessDate", caption: "ใช้งานล่าสุด", dataType: "datetime", format: "dd/MM/yyyy HH:mm" }
+        ],
             }).dxDataGrid('instance');
         })
     </script>

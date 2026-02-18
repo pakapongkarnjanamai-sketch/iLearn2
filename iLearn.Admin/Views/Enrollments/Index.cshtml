@@ -58,7 +58,37 @@
                     },
                     { dataField: "isCompleted", caption: "Completed", dataType: "boolean", width: 100 },
                     { dataField: "dueDate", caption: "Due Date", dataType: "date", format: "yyyy-MM-dd" },
-                    { dataField: "completedDate", caption: "Completed", dataType: "date", format: "yyyy-MM-dd HH:mm" }
+                    { dataField: "completedDate", caption: "Completed", dataType: "date", format: "yyyy-MM-dd HH:mm" },
+                            {
+            type: "buttons",
+            width: 110,
+            buttons: [
+                "edit",
+                "delete",
+                {
+                    hint: "Reset for Retake",
+                    icon: "refresh",
+                    onClick: function(e) {
+                        const data = e.row.data;
+                        DevExpress.ui.dialog.confirm(`ต้องการ Reset การเรียนของ ${data.studentCode} ในวิชานี้เพื่อให้เรียนใหม่ใช่หรือไม่?`, "ยืนยันการ Reset")
+                            .done(function(result) {
+                                if (result) {
+                                    // เรียก API สำหรับ Reset (คุณอาจต้องสร้าง Endpoint นี้เพิ่มใน API)
+                                    $.ajax({
+                                        url: `${serviceUrl}/Enrollments/ResetStatus?key=${data.id}`,
+                                        method: 'POST',
+                                        xhrFields: { withCredentials: true },
+                                        success: function() {
+                                            DevExpress.ui.notify("Reset สถานะเรียบร้อยแล้ว", "success", 2000);
+                                            e.component.refresh();
+                                        }
+                                    });
+                                }
+                            });
+                    }
+                }
+            ]
+        }
                 ],
             }).dxDataGrid('instance');
         })
