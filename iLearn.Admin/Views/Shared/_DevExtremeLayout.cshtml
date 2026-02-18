@@ -151,6 +151,33 @@
             });
             e.cancel = true;
         }
+
+        // Opt-in defaults for dxDataGrid. Pages can call getDxGridOptions() or initDxGrid()
+        // to merge these defaults with page-specific options. We intentionally avoid
+        // overriding the global $.fn.dxDataGrid to keep per-page control.
+        const dxGridDefaults = {
+            columnAutoWidth: true,
+            showBorders: false,
+            rowAlternationEnabled: false,
+            showRowLines: true,
+            hoverStateEnabled: true,
+            scrolling: { mode: "virtual" },
+            height: "calc(100vh - 250px)",
+            headerFilter: { visible: true },
+            searchPanel: { visible: true, width: 300, placeholder: "Search..." }
+        };
+
+        // Merge defaults with page-specific options and return a new options object.
+        function getDxGridOptions(pageOptions) {
+            return $.extend(true, {}, dxGridDefaults, pageOptions || {});
+        }
+
+        // Convenience initializer: selector can be '#grid' and pageOptions contains
+        // dataSource, columns, editing, etc. Returns initialized grid instance.
+        function initDxGrid(selector, pageOptions) {
+            const opts = getDxGridOptions(pageOptions);
+            return $(selector).dxDataGrid(opts).dxDataGrid('instance');
+        }
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

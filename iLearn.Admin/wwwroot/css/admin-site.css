@@ -1,4 +1,4 @@
-/* Shared admin styles extracted from _DevExtremeLayout.cshtml */
+﻿/* Shared admin styles extracted from _DevExtremeLayout.cshtml */
 :root {
     --brand-color: #0062cc;
     --brand-dark: #004a99;
@@ -137,7 +137,8 @@ body {
 /* Page header used in dashboard, resources and courses */
 .page-header {
     background-color: white;
-    padding: 2rem 0;
+    padding: 20px; /* ปรับระยะห่าง (บน-ล่าง 40px, ซ้าย-ขวา 20px) ทำให้ขยายขนาดได้แบบยืดหยุ่น */
+    width: 100%; /* ปรับความกว้าง */
     border-bottom: 1px solid #e9ecef;
     margin-bottom: 2rem;
 }
@@ -149,8 +150,14 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-}
+    font-size: 24px; 
 
+}
+.page-title-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+}
 /* Stat cards / dashboard */
 .stat-card {
     background: white;
@@ -261,3 +268,111 @@ iframe#scormFrame { width:100%; height:100%; border:none; display:none; }
     .info-section { height: auto; max-height: 500px; }
 }
 
+/* ----------------------------------------------------------------- */
+/* Form & UI Components (Moved from Form.cshtml)                      */
+/* ----------------------------------------------------------------- */
+.form-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    border: none;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.form-section-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-icon {
+    width: 36px;
+    height: 36px;
+    background-color: var(--brand-light);
+    color: var(--brand-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.form-body {
+    padding: 2rem;
+}
+
+/* --- Upload Area --- */
+.upload-zone {
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+    .upload-zone:hover, .upload-zone.drag-over {
+        border-color: var(--brand-color);
+        background-color: var(--brand-light);
+    }
+
+.upload-icon {
+    font-size: 3rem;
+    color: #adb5bd;
+    margin-bottom: 1rem;
+    transition: color 0.3s;
+}
+
+.upload-zone:hover .upload-icon {
+    color: var(--brand-color);
+}
+
+/* --- Custom Grid Styling --- */
+.custom-grid-container {
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.badge-count {
+    background-color: var(--brand-light);
+    color: var(--brand-color);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* --- Action Buttons --- */
+.action-bar {
+    background: white;
+    padding: 1.5rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.btn-action {
+    min-width: 120px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+}

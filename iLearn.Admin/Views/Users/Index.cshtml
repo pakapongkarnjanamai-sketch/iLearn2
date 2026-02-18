@@ -1,13 +1,33 @@
 ﻿@{
-    ViewBag.Title = "Users";
+    ViewBag.Title = "User Accounts";
 }
 
-<div class="container-fluid page-full-height">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">@ViewBag.Title</h5>
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm page-title-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    @ViewBag.Title
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                        Manage employee accounts, user information, and roles.
+                    </div>
+                </div>
+            </h1>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="addNewUser()">
+                    <i class="fas fa-plus me-2"></i> New User
+                </button>
+            </div>
         </div>
-        <div class="card-body">
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="content-card">
+        <div class="p-3">
             <div id="grid"></div>
         </div>
     </div>
@@ -15,23 +35,29 @@
 
 @section Scripts {
     <script>
+        let gridInstance;
+
         $(() => {
-            const grid = $("#grid").dxDataGrid({
+            gridInstance = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD', {
                     key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
-                showBorders: true,
-                scrolling: { mode: "virtual" },
-                height: "100%",
-                selection: { mode: 'single' },
+
+                // --- ปรับแต่ง UI ตารางให้เป็นมาตรฐานใหม่ ---
+                showBorders: false,
+                rowAlternationEnabled: false,
+                showRowLines: true,
                 hoverStateEnabled: true,
+                scrolling: { mode: "virtual" },
+                height: "calc(100vh - 250px)",
+                selection: { mode: 'single' },
+
                 headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300 },
-                groupPanel: { emptyPanelText: '@ViewBag.Title', visible: true },
+                searchPanel: { visible: true, width: 300, placeholder: "Search users..." },
                 export: { enabled: true, allowExportSelectedData: false },
-                onExporting: (e) => handleExporting(e, '@ViewBag.Title'),
+                onExporting: (e) => handleExporting(e, 'User_Accounts'),
 
                 editing: {
                     mode: "popup",
@@ -54,7 +80,6 @@
                                 items: [
                                     { dataField: 'id', editorOptions: { disabled: true }, colSpan: 2 },
                                     { dataField: 'nid', colSpan: 2 },
-                                    // [แก้ไขจุดนี้] เปลี่ยนจาก Roles เป็น RoleIds เพื่อให้ตรงกับ Column
                                     {
                                         dataField: 'roleIds',
                                         colSpan: 2,
@@ -66,17 +91,29 @@
                     }
                 },
                 columns: [
-                    { dataField: "id", caption: "ID", width: 50, allowUpdating: false },
-                    { dataField: "nid", caption: "National ID / Username" },
-
-                    // --- ส่วนที่เพิ่มใหม่สำหรับ Roles ---
                     {
-                        dataField: "roleIds", // Virtual Column สำหรับจัดการ ID
+                        dataField: "id",
+                        caption: "ID",
+                        width: 80,
+                        allowUpdating: false,
+                        alignment: "center",
+                        cssClass: "text-muted"
+                    },
+                    {
+                        dataField: "nid",
+                        caption: "National ID / Username",
+                        minWidth: 200,
+                        cssClass: "fw-bold text-dark"
+                    },
+
+                    // --- ส่วนสำหรับจัดการ Roles ---
+                    {
+                        dataField: "roleIds",
                         caption: "Roles",
-                        width: 300,
+                        width: 350,
                         allowSorting: false,
 
-                        // 1. แปลงข้อมูล UserRoles/Roles ให้เป็น Array [1, 2]
+                        // 1. แปลงข้อมูล UserRoles/Roles ให้เป็น Array
                         calculateCellValue: function(rowData) {
                             if (rowData.roles) {
                                 return rowData.roles.map(r => r.id);
@@ -87,10 +124,10 @@
                             return [];
                         },
 
-                        // 2. ใช้ TagBox Template
+                        // 2. ใช้ TagBox Template ตอนแก้ไข
                         editCellTemplate: tagBoxEditorTemplate,
 
-                        // 3. แสดงผลในตาราง (Lookup ID -> Name)
+                        // 3. แสดงผลในตาราง
                         lookup: {
                             dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
                             displayExpr: 'name',
@@ -98,17 +135,58 @@
                         },
                         cellTemplate: function(container, options) {
                             const items = options.value || [];
-                            // ใช้ lookup ช่วยแปลง ID เป็น Name เพื่อแสดงผล
                             const text = items.map(id => options.column.lookup.calculateCellValue(id)).join(", ");
-                            container.text(text).attr('title', text);
+
+                            if (text) {
+                                // เปลี่ยนจาก Text ธรรมดาให้เป็น Badge สวยๆ
+                                const badges = text.split(", ").map(role => `<span class="badge bg-light text-dark border me-1">${role}</span>`).join("");
+                                container.html(badges).attr('title', text);
+                            } else {
+                                container.html('<span class="text-muted small">-</span>');
+                            }
                         }
                     },
 
-            { dataField: "createdAt", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false }
+                    { dataField: "createdAt", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false },
+
+                    // --- คอลัมน์ Action แบบใหม่ ---
+                    {
+                        caption: "Manage",
+                        width: 120,
+                        alignment: "center",
+                        fixed: true,
+                        fixedPosition: "right",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const $group = $("<div>").addClass("action-group");
+
+                            // ปุ่ม Edit
+                            $("<button>")
+                                .addClass("btn-icon text-primary")
+                                .attr("title", "Edit User")
+                                .html('<i class="fas fa-edit"></i>')
+                                .on("click", () => gridInstance.editRow(options.rowIndex))
+                                .appendTo($group);
+
+                            // ปุ่ม Delete
+                            $("<button>")
+                                .addClass("btn-icon text-danger")
+                                .attr("title", "Delete User")
+                                .html('<i class="fas fa-trash-alt"></i>')
+                                .on("click", () => {
+                                    DevExpress.ui.dialog.confirm(`Are you sure you want to delete user <b>${data.nid}</b>?`, "Confirm Delete").done((res) => {
+                                        if (res) gridInstance.deleteRow(options.rowIndex);
+                                    });
+                                })
+                                .appendTo($group);
+
+                            $group.appendTo(container);
+                        }
+                    }
                 ],
             }).dxDataGrid('instance');
 
-            // ฟังก์ชันสร้าง TagBox
+            // ฟังก์ชันสร้าง TagBox ตอนแก้ไข (เหมือนเดิม)
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
                     dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
@@ -122,13 +200,20 @@
                     searchEnabled: true,
                     placeholder: "Select Roles...",
                     onValueChanged(e) {
-                        cellInfo.setValue(e.value); // ส่งค่า [1, 3] กลับไปที่ Grid
+                        cellInfo.setValue(e.value);
                     },
                     onSelectionChanged(e) {
-                        cellInfo.component.updateDimensions(); // Fix error dimension
+                        cellInfo.component.updateDimensions();
                     }
                 });
             }
-        })
+        });
+
+        // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New User ด้านบน
+        function addNewUser() {
+            if(gridInstance) {
+                gridInstance.addRow();
+            }
+        }
     </script>
 }

@@ -2,14 +2,36 @@
     ViewBag.Title = "Course Versions";
     var courseId = ViewBag.CourseId;
 }
-<div class="container-fluid page-full-height">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <h5 class="mb-0">@ViewBag.Title (Course ID: @courseId)</h5>
+
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm page-title-icon">
+                    <i class="fas fa-code-branch"></i>
+                </div>
+                <div>
+                    @ViewBag.Title
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                        Manage versions and resources for Course ID: <strong class="text-primary">@courseId</strong>
+                    </div>
+                </div>
+            </h1>
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("Index", "Courses")" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Courses
+                </a>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="addNewVersion()">
+                    <i class="fas fa-plus me-2"></i> New Version
+                </button>
             </div>
         </div>
-        <div class="card-body">
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="content-card">
+        <div class="p-3">
             <div id="grid-version"></div>
         </div>
     </div>
@@ -21,7 +43,7 @@
         let selectedLearnIds = [];
         let selectedExamIds = [];
         let currentCourseId = 0;
-        
+
         // 2. Stores สำหรับ Dropdown และ Grid ย่อย
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
@@ -32,7 +54,7 @@
                     store: resourcesStore,
                     filter: ["typeId", "=", typeId] // 1=Learn, 2=Exam
                 },
-                showBorders: true,
+                showBorders: true, // Grid ย่อยยังคงขอบไว้เพื่อให้ดูแบ่งสัดส่วนใน Popup
                 height: 250,
                 selection: { mode: "multiple", showCheckBoxesMode: "always" },
                 searchPanel: { visible: true, width: 150 },
@@ -44,9 +66,8 @@
                 onSelectionChanged: onSelectionChangeCallback
             };
         }
-        
+
         $(() => {
-          
             let initialFilter = null;
 
             if (@courseId) {
@@ -54,13 +75,11 @@
                 // ตั้งค่า currentCourseId ให้ตรงกับค่าที่ส่งมาจากเซิร์ฟเวอร์
                 currentCourseId = parseInt(@courseId);
             }
+
             const versionsDataSource = new DevExpress.data.CustomStore({
                 key: "id",
                 load: function(loadOptions) {
-                    // ส่ง Filter CourseId ไปด้วยเสมอ
                     const filter = initialFilter;
-
-                    // ปรับ params ให้รองรับ DevExtreme LoadOptions
                     const params = {
                         filter: JSON.stringify(filter),
                         sort: JSON.stringify(loadOptions.sort),
@@ -70,7 +89,7 @@
                     };
 
                     return $.ajax({
-                        url: serviceUrl + "/admin/CourseVersionsCRUD/Get", // ใช้ API CRUD ปกติ หรือ Generic Controller
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Get",
                         method: "GET",
                         data: params,
                         xhrFields: { withCredentials: true }
@@ -84,18 +103,15 @@
                     });
                 },
                 insert: function(values) {
-                    // รวม ResourceIds ทั้งหมด
-
                     const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
-
                     const payload = {
                         ...values,
-                        courseId: currentCourseId, // บังคับใส่ CourseId
-                        resourceIds: allResourceIds // ส่งรายการ ResourceIds ไปที่ API
+                        courseId: currentCourseId,
+                        resourceIds: allResourceIds
                     };
 
                     return $.ajax({
-                        url: serviceUrl + "/admin/CourseVersionsCRUD/Post", // หรือ Endpoint เฉพาะถ้า API Generic ไม่รับ ResourceIds
+                        url: serviceUrl + "/admin/CourseVersionsCRUD/Post",
                         method: "POST",
                         contentType: "application/json",
                         data: JSON.stringify(payload),
@@ -104,9 +120,6 @@
                 },
                 update: function(key, values) {
                     const allResourceIds = [...selectedLearnIds, ...selectedExamIds];
-
-                    // ดึงข้อมูลเก่าก่อนเพื่อ merge (ถ้าจำเป็น) หรือส่ง values ไปเลย
-                    // ในที่นี้สมมติว่า API ต้องการ ResourceIds ใน Body
                     const payload = {
                         ...values,
                         resourceIds: allResourceIds
@@ -134,42 +147,45 @@
                 dataSource: versionsDataSource,
                 remoteOperations: true,
                 columnAutoWidth: true,
-                showBorders: true,
-                    height: "100%",
+
+                // --- ปรับแต่ง UI ตารางหลักให้เป็นมาตรฐานใหม่ ---
+                showBorders: false,
+                rowAlternationEnabled: false,
+                showRowLines: true,
+                hoverStateEnabled: true,
                 scrolling: { mode: "virtual" },
+                height: "calc(100vh - 250px)",
                 selection: { mode: 'single' },
+
                 // Reset ค่าตัวแปรเมื่อเริ่มเพิ่มแถวใหม่
                 onInitNewRow: function(e) {
                     selectedLearnIds = [];
                     selectedExamIds = [];
                     e.data.courseId = currentCourseId;
                     e.data.IsActive = true;
-                    // Auto run version number logic can be added here if needed
                 },
-                  onRowDblClick: function(e) {
+
+                // Double Click เข้า Player
+                onRowDblClick: function(e) {
                     if (e.data && e.data.id) {
                         window.location.href = '@Url.Action("Player", "Courses")?versionId=' + e.data.id;
                     }
                 },
+
                 // โหลดข้อมูล Resources เมื่อเริ่มแก้ไข
                 onEditingStart: function(e) {
                     selectedLearnIds = [];
                     selectedExamIds = [];
 
                     if (e.data && e.data.id) {
-                        // เรียก API เพื่อดึงข้อมูล Detail (รวม ResourceIds)
                         versionsDataSource.byKey(e.data.id).done(function(detailData) {
-
                             if (detailData.resourceIds && detailData.resourceIds.length > 0) {
-                                // ดึงข้อมูล Resources ทั้งหมดที่อยู่ใน Version นี้เพื่อแยกประเภท
                                 const resourcePromises = detailData.resourceIds.map(id => resourcesStore.byKey(id));
 
                                 Promise.all(resourcePromises).then(resources => {
-                                    // แยก Learn (Type 1) และ Exam (Type 2)
                                     selectedLearnIds = resources.filter(r => r && r.typeId === 1).map(r => r.id);
                                     selectedExamIds = resources.filter(r => r && r.typeId === 2).map(r => r.id);
 
-                                    // อัปเดต Selection ใน Grid ย่อย (รอ UI render แป๊บหนึ่ง)
                                     setTimeout(() => {
                                         const gridLearn = $("#gridLearn").dxDataGrid("instance");
                                         if (gridLearn) gridLearn.option("selectedRowKeys", selectedLearnIds);
@@ -234,13 +250,11 @@
                                                     $("<div>").attr("id", "gridLearn")
                                                 )
                                             );
-                                            // สร้าง Grid ย่อย Learn
                                             setTimeout(() => {
                                                 const grid = $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
                                                     selectedLearnIds = e.selectedRowsData.map(r => r.id);
                                                 })).dxDataGrid("instance");
 
-                                                // Pre-select ถ้ามีข้อมูล
                                                 if (selectedLearnIds.length > 0) grid.option("selectedRowKeys", selectedLearnIds);
                                             }, 100);
                                         }
@@ -254,13 +268,11 @@
                                                     $("<div>").attr("id", "gridExam")
                                                 )
                                             );
-                                            // สร้าง Grid ย่อย Exam
                                             setTimeout(() => {
                                                 const grid = $("#gridExam").dxDataGrid(createGridConfig(2, (e) => {
                                                     selectedExamIds = e.selectedRowsData.map(r => r.id);
                                                 })).dxDataGrid("instance");
 
-                                                // Pre-select ถ้ามีข้อมูล
                                                 if (selectedExamIds.length > 0) grid.option("selectedRowKeys", selectedExamIds);
                                             }, 100);
                                         }
@@ -277,36 +289,100 @@
                         caption: "ID",
                         width: 60,
                         sortOrder: 'desc',
-                        allowEditing: false
+                        allowEditing: false,
+                        alignment: "center",
+                        cssClass: "text-muted"
                     },
                     {
                         dataField: "versionNumber",
                         caption: "Version No.",
                         width: 100,
                         alignment: "center",
-                        cellTemplate: (c, o) => $("<span>").addClass("badge bg-info text-dark").text(o.value).appendTo(c)
+                        cellTemplate: (c, o) => $("<span>").addClass("badge bg-info text-dark").text("v." + o.value).appendTo(c)
                     },
                     {
                         dataField: "name",
                         caption: "Version Name",
+                        cssClass: "fw-bold text-dark",
                         validationRules: [{ type: "required" }]
                     },
                     {
                         dataField: "isActive",
-                        caption: "Active",
+                        caption: "Status",
                         dataType: "boolean",
-                        width: 80
+                        width: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const isActive = options.value;
+                            const badgeClass = isActive ? "badge-active" : "badge-inactive";
+                            const icon = isActive ? "fa-check-circle" : "fa-times-circle";
+                            const text = isActive ? "Active" : "Inactive";
+
+                            $("<span>")
+                                .addClass(`badge-status ${badgeClass}`)
+                                .html(`<i class="fas ${icon}"></i> ${text}`)
+                                .appendTo(container);
+                        }
                     },
                     {
                         dataField: "createdAt",
                         caption: "Created Date",
                         dataType: "date",
-                        format: "dd/MM/yyyy HH:mm",
+                        format: "dd MMM yyyy HH:mm",
                         allowEditing: false,
-                        width: 150
+                        width: 180
+                    },
+
+                    // --- คอลัมน์ Action แบบใหม่ ---
+                    {
+                        caption: "Manage",
+                        width: 140,
+                        alignment: "center",
+                        fixed: true,
+                        fixedPosition: "right",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const grid = $("#grid-version").dxDataGrid("instance");
+                            const $group = $("<div>").addClass("action-group");
+
+                            // ปุ่ม Preview (ไปหน้า Player)
+                            $("<button>")
+                                .addClass("btn-icon text-success")
+                                .attr("title", "Preview Version")
+                                .html('<i class="fas fa-play-circle"></i>')
+                                .on("click", () => window.location.href = '@Url.Action("Player", "Courses")?versionId=' + data.id)
+                                .appendTo($group);
+
+                            // ปุ่ม Edit
+                            $("<button>")
+                                .addClass("btn-icon text-primary")
+                                .attr("title", "Edit Version")
+                                .html('<i class="fas fa-edit"></i>')
+                                .on("click", () => grid.editRow(options.rowIndex))
+                                .appendTo($group);
+
+                            // ปุ่ม Delete
+                            $("<button>")
+                                .addClass("btn-icon text-danger")
+                                .attr("title", "Delete Version")
+                                .html('<i class="fas fa-trash-alt"></i>')
+                                .on("click", () => {
+                                    DevExpress.ui.dialog.confirm(`Are you sure you want to delete <b>Version ${data.versionNumber}</b>?`, "Confirm Delete").done((res) => {
+                                        if (res) grid.deleteRow(options.rowIndex);
+                                    });
+                                })
+                                .appendTo($group);
+
+                            $group.appendTo(container);
+                        }
                     }
                 ]
             });
         });
+
+        // ฟังก์ชันสำหรับปุ่ม New Version ด้านบน
+        function addNewVersion() {
+            $("#grid-version").dxDataGrid("instance").addRow();
+        }
     </script>
 }

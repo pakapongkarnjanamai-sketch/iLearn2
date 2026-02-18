@@ -1,13 +1,33 @@
 ﻿@{
-    ViewBag.Title = "Assignment Rules";
+    ViewBag.Title = "Auto-Assign Rules";
 }
 
-<div class="container-fluid page-full-height">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">@ViewBag.Title</h5>
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm page-title-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div>
+                    @ViewBag.Title
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                        Set rules for automatic course assignment based on division or role.
+                    </div>
+                </div>
+            </h1>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="addNewRule()">
+                    <i class="fas fa-plus me-2"></i> New Rule
+                </button>
+            </div>
         </div>
-        <div class="card-body">
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="content-card">
+        <div class="p-3">
             <div id="grid"></div>
         </div>
     </div>
@@ -15,35 +35,51 @@
 
 @section Scripts {
     <script>
+        let gridInstance;
+
         $(() => {
-            const grid = $("#grid").dxDataGrid({
+            gridInstance = $("#grid").dxDataGrid({
                 dataSource: createDataStore(serviceUrl, 'admin/AssignmentRulesCRUD', {
                     key: 'id',
                 }),
                 remoteOperations: true,
                 columnAutoWidth: true,
-                showBorders: true,
-                headerFilter: { visible: true },
-                searchPanel: { visible: true, width: 300 },
+
+                // --- ปรับแต่ง UI ตารางให้เป็นมาตรฐานใหม่ ---
+                showBorders: false,
+                rowAlternationEnabled: false,
+                showRowLines: true,
+                hoverStateEnabled: true,
                 scrolling: { mode: "virtual" },
-                height: "100%",
+                height: "calc(100vh - 250px)",
+                selection: { mode: 'single' },
+
+                headerFilter: { visible: true, search: { enabled: true } },
+                searchPanel: { visible: true, width: 300, placeholder: "Search rules..." },
+
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
                     useIcons: true,
+                    popup: {
+                        title: "Assignment Rule Info",
+                        showTitle: true,
+                        width: 500,
+                        height: 450
+                    },
                     form: {
                         items: [
-                            { dataField: 'Id', editorOptions: { disabled: true } },
-                            { dataField: 'CourseId' },
+                            { dataField: 'id', editorOptions: { disabled: true } },
+                            { dataField: 'courseId' },
                             {
-                                dataField: 'DivisionId',
+                                dataField: 'divisionId',
                                 editorOptions: { showClearButton: true },
                                 helpText: "Leave empty for All Divisions"
                             },
                             {
-                                dataField: 'RoleId',
+                                dataField: 'roleId',
                                 editorOptions: { showClearButton: true },
                                 helpText: "Leave empty for All Roles"
                             }
@@ -51,37 +87,104 @@
                     }
                 },
                 columns: [
-                    { dataField: "id", caption: "ID", width: 50, allowUpdating: false },
+                    {
+                        dataField: "id",
+                        caption: "ID",
+                        width: 80,
+                        allowUpdating: false,
+                        alignment: "center",
+                        cssClass: "text-muted"
+                    },
                     {
                         dataField: "courseId",
                         caption: "Course",
+                        minWidth: 250,
+                        cssClass: "fw-bold text-dark",
                         lookup: {
                             dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
                             displayExpr: 'title',
                             valueExpr: 'id'
                         },
-                        validationRules: [{ type: "required" }]
+                        validationRules: [{ type: "required", message: "Course is required" }]
                     },
                     {
                         dataField: "divisionId",
                         caption: "Division (Target)",
+                        width: 200,
                         lookup: {
                             dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
                             displayExpr: 'name',
                             valueExpr: 'id'
+                        },
+                        cellTemplate: function(container, options) {
+                            if (options.displayValue) {
+                                $("<span>").addClass("badge bg-info text-dark").text(options.displayValue).appendTo(container);
+                            } else {
+                                $("<span>").addClass("text-muted small").html('<i>All Divisions</i>').appendTo(container);
+                            }
                         }
                     },
                     {
                         dataField: "roleId",
                         caption: "Role (Target)",
+                        width: 200,
                         lookup: {
                             dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
                             displayExpr: 'name',
                             valueExpr: 'id'
+                        },
+                        cellTemplate: function(container, options) {
+                            if (options.displayValue) {
+                                $("<span>").addClass("badge bg-secondary").text(options.displayValue).appendTo(container);
+                            } else {
+                                $("<span>").addClass("text-muted small").html('<i>All Roles</i>').appendTo(container);
+                            }
+                        }
+                    },
+
+                    // --- คอลัมน์ Action แบบใหม่ ---
+                    {
+                        caption: "Manage",
+                        width: 120,
+                        alignment: "center",
+                        fixed: true,
+                        fixedPosition: "right",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const $group = $("<div>").addClass("action-group");
+
+                            // ปุ่ม Edit
+                            $("<button>")
+                                .addClass("btn-icon text-primary")
+                                .attr("title", "Edit Rule")
+                                .html('<i class="fas fa-edit"></i>')
+                                .on("click", () => gridInstance.editRow(options.rowIndex))
+                                .appendTo($group);
+
+                            // ปุ่ม Delete
+                            $("<button>")
+                                .addClass("btn-icon text-danger")
+                                .attr("title", "Delete Rule")
+                                .html('<i class="fas fa-trash-alt"></i>')
+                                .on("click", () => {
+                                    DevExpress.ui.dialog.confirm(`Are you sure you want to delete this rule?`, "Confirm Delete").done((res) => {
+                                        if (res) gridInstance.deleteRow(options.rowIndex);
+                                    });
+                                })
+                                .appendTo($group);
+
+                            $group.appendTo(container);
                         }
                     }
                 ],
             }).dxDataGrid('instance');
         })
+
+        // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New Rule ด้านบน
+        function addNewRule() {
+            if(gridInstance) {
+                gridInstance.addRow();
+            }
+        }
     </script>
 }
