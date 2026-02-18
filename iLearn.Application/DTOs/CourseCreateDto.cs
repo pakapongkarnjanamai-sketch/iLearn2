@@ -25,7 +25,6 @@ namespace iLearn.Application.DTOs
         [Display(Name = "เอกสารประกอบ (Resource IDs)")]
         public List<int> ResourceIds { get; set; } = new List<int>();
 
-        // [เพิ่ม] สำหรับรับไฟล์จากหน้า Form
-        public IFormFile? File { get; set; }
+        public List<IFormFile> Files { get; set; } = new List<IFormFile>();
     }
 }

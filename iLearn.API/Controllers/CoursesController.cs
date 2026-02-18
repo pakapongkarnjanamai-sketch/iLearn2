@@ -22,6 +22,8 @@ namespace iLearn.API.Controllers
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<CourseResource> _courseResourceRepository;
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
+        private readonly IGenericRepository<Resource> _resourceRepository;
+        private readonly IGenericRepository<FileStorage> _fileStorageRepository; // [เพิ่ม] สำหรับบันทึกไฟล์ลง DB
         private readonly ICourseAssignmentService _assignmentService;
         private readonly IScormService _scormService;
 
@@ -29,12 +31,16 @@ namespace iLearn.API.Controllers
             ICourseRepository courseRepository,
             IGenericRepository<CourseResource> courseResourceRepository,
             IGenericRepository<CourseVersion> courseVersionRepository,
+            IGenericRepository<Resource> resourceRepository,
+                IGenericRepository<FileStorage> fileStorageRepository,
             ICourseAssignmentService assignmentService,
             IScormService scormService)
         {
             _courseRepo = courseRepository;
             _courseResourceRepository = courseResourceRepository;
             _courseVersionRepository = courseVersionRepository;
+            _resourceRepository = resourceRepository;
+            _fileStorageRepository = fileStorageRepository;
             _assignmentService = assignmentService;
             _scormService = scormService;
         }
@@ -55,28 +61,47 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = courseDtos });
         }
 
-        // [ปรับปรุง] GetById ให้ส่ง ResourceIds กลับไปแสดงผลด้วย
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null) return NotFound();
 
-            // หา Version ปัจจุบันที่ Active อยู่
             var versions = await _courseVersionRepository.GetAllAsync();
-            var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
 
-            var resourceIds = new List<int>();
-            if (activeVersion != null)
+            // 1. ลองหา Version ที่ Active ก่อน
+            var targetVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
+
+            // 2. ถ้าไม่มี Active (เช่น เป็น Draft อยู่) ให้เอา Version ล่าสุดมาแสดงแทน
+            if (targetVersion == null)
             {
-                var allCourseResources = await _courseResourceRepository.GetAllAsync();
-                resourceIds = allCourseResources
-                    .Where(cr => cr.CourseVersionId == activeVersion.Id)
-                    .Select(cr => cr.ResourceId)
-                    .ToList();
+                targetVersion = versions
+                    .Where(v => v.CourseId == id)
+                    .OrderByDescending(v => v.VersionNumber)
+                    .FirstOrDefault();
             }
 
-            // ส่งข้อมูลกลับในรูปแบบเดียวกับ DTO หรือ Anonymous Object ที่ Frontend ใช้ง่ายๆ
+            var resourceList = new List<object>();
+            if (targetVersion != null)
+            {
+                // ดึงข้อมูล Resource ของ Version นั้นๆ
+                var courseResources = await _courseResourceRepository.GetAsync(
+                    filter: cr => cr.CourseVersionId == targetVersion.Id,
+                    includeProperties: "Resource"
+                );
+
+                resourceList = courseResources.Select(cr => new
+                {
+                    cr.Resource.Id,
+                    cr.Resource.Name,
+                    cr.Resource.TypeId,
+                    TypeName = cr.Resource.TypeId == 2 ? "Exam" : "Learn",
+                    cr.Resource.IsActive,
+                    // ส่ง URL หรือ ID ไฟล์กลับไปเผื่อใช้ดาวน์โหลด
+                    cr.Resource.URL
+                }).ToList<object>();
+            }
+
             return Ok(new
             {
                 course.Id,
@@ -84,11 +109,11 @@ namespace iLearn.API.Controllers
                 CourseName = course.Title,
                 course.Description,
                 CourseType = (int)course.Type,
+                course.CategoryId,
                 course.IsActive,
-                ResourceIds = resourceIds // ส่งรายการ ID ของ Resource กลับไป
+                Resources = resourceList // ✅ ตอนนี้จะมีข้อมูลแม้เป็น Draft
             });
         }
-
         [HttpPost("Create")]
         public async Task<IActionResult> Create([FromBody] CourseCreateDto model)
         {
@@ -228,67 +253,212 @@ namespace iLearn.API.Controllers
 
         [HttpPost("create-scorm")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> CreateCourseWithScorm([FromForm] CourseCreateDto model, [FromForm] bool isPublish)
+        public async Task<IActionResult> CreateCourseWithScorm([FromForm] CourseCreateDto model)
         {
             try
             {
-                // 1. Validate ไฟล์
-                if (model.File == null || model.File.Length == 0)
-                {
-                    return BadRequest(new { message = "กรุณาอัปโหลดไฟล์ SCORM (.zip)" });
-                }
-
-                // 2. สร้าง Course Object (ใช้ชื่อ Property จาก DTO ให้ถูกต้อง)
+                // 1. สร้าง Course (บังคับเป็น Inactive/Draft)
                 var course = new Course
                 {
-                    Code = model.CourseCode,       // แก้เป็น CourseCode
-                    Title = model.CourseName,      // แก้เป็น CourseName
+                    Code = model.CourseCode,
+                    Title = model.CourseName,
                     Description = model.Description,
                     CategoryId = model.CategoryId,
-                    Type = (CourseType)model.CourseType, // แก้เป็น CourseType
-                    IsActive = isPublish,          // ถ้า Publish ให้ Active เลย
+                    Type = (CourseType)model.CourseType,
+                    IsActive = false,
                     CreatedAt = DateTime.Now
                 };
 
                 await _courseRepo.AddAsync(course);
 
-                // 3. สร้าง CourseVersion (Version 1)
+                // 2. สร้าง Version แรก (Draft)
                 var version = new CourseVersion
                 {
                     CourseId = course.Id,
                     VersionNumber = 1,
-                    // Status = ... ลบทิ้งเพราะไม่มี Field นี้ใน Entity
-                    // ใช้ Note หรือ IsActive แทนสถานะ
-                    Note = isPublish ? "Initial Published" : "Draft",
-                    IsActive = isPublish, // ใช้ IsActive แทน Status
+                    Note = "Draft (Initial Upload)",
+                    IsActive = false,
                     CreatedAt = DateTime.Now
                 };
-
                 await _courseVersionRepository.AddAsync(version);
 
-                // 4. Handle SCORM Extraction
-                if (isPublish)
+                // 3. จัดการไฟล์ (บันทึกลง DB โดยตรง)
+                if (model.Files != null && model.Files.Count > 0)
                 {
-                    // แปลง IFormFile เป็น byte[] เพื่อส่งให้ IScormService
-                    using (var ms = new MemoryStream())
+                    foreach (var file in model.Files)
                     {
-                        await model.File.CopyToAsync(ms);
-                        var fileBytes = ms.ToArray();
+                        if (file.Length > 0)
+                        {
+                            // A. อ่านไฟล์เป็น Byte Array
+                            using (var ms = new MemoryStream())
+                            {
+                                await file.CopyToAsync(ms);
+                                var fileBytes = ms.ToArray();
 
-                        // สร้างชื่อโฟลเดอร์สำหรับเก็บไฟล์ (เช่น course_CS101_v1)
-                        string folderName = $"course_{course.Code}_v{version.VersionNumber}";
+                                // B. บันทึกเข้าตาราง FileStorage
+                                var fileStorage = new FileStorage
+                                {
+                                    Name = file.FileName,
+                                    ContentType = file.ContentType,
+                                    Data = fileBytes, // เก็บ Binary ของไฟล์
+                                    Length = file.Length,
+                                    CreatedAt = DateTime.Now
+                                };
 
-                        // เรียก Service (ส่ง byte[] และ string)
-                        await _scormService.ExtractAndParseScormAsync(fileBytes, folderName);
+                                await _fileStorageRepository.AddAsync(fileStorage);
+
+                                // C. สร้าง Resource เชื่อมโยงกับ FileStorage
+                                var resource = new Resource
+                                {
+                                    Name = file.FileName,
+                                    TypeId = 1, // 1 = Learn/SCORM
+                                    IsActive = true,
+                                    FileStorageId = fileStorage.Id, // เชื่อม FK ไปหาไฟล์ที่เพิ่งบันทึก
+                                    // URL/Href อาจไม่ต้องใส่เพราะไฟล์อยู่ใน DB หรือใส่เป็นชื่อไฟล์ไว้ก่อน
+                                    URL = file.FileName,
+                                    CreatedAt = DateTime.Now
+                                };
+
+                                await _resourceRepository.AddAsync(resource);
+
+                                // D. สร้างความสัมพันธ์ CourseResource
+                                var courseResource = new CourseResource
+                                {
+                                    CourseVersionId = version.Id,
+                                    ResourceId = resource.Id,
+                                    CreatedAt = DateTime.Now
+                                };
+                                await _courseResourceRepository.AddAsync(courseResource);
+                            }
+                        }
                     }
                 }
 
-                return Ok(new { message = "สร้างหลักสูตรสำเร็จ", courseId = course.Id });
+                return Ok(new
+                {
+                    success = true,
+                    message = "สร้างหลักสูตรและบันทึกไฟล์เรียบร้อยแล้ว",
+                    courseId = course.Id
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("update-scorm/{id}")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateCourseWithScorm(int id, [FromForm] CourseCreateDto model)
+        {
+            var course = await _courseRepo.GetByIdAsync(id);
+            if (course == null) return NotFound();
+
+            // 1. อัปเดตข้อมูลทั่วไป
+            course.Title = model.CourseName;
+            course.Description = model.Description;
+            course.Code = model.CourseCode;
+            course.CategoryId = model.CategoryId;
+            course.Type = (CourseType)model.CourseType;
+            await _courseRepo.UpdateAsync(course);
+
+            // 2. เพิ่มไฟล์ใหม่ (ถ้ามี)
+            if (model.Files != null && model.Files.Count > 0)
+            {
+                var versions = await _courseVersionRepository.GetAllAsync();
+                var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
+
+                if (activeVersion == null)
+                {
+                    activeVersion = versions.Where(v => v.CourseId == id).OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+                }
+
+                if (activeVersion != null)
+                {
+                    foreach (var file in model.Files)
+                    {
+                        if (file.Length > 0)
+                        {
+                            using (var ms = new MemoryStream())
+                            {
+                                await file.CopyToAsync(ms);
+                                var fileBytes = ms.ToArray();
+
+                                // Save FileStorage
+                                var fileStorage = new FileStorage
+                                {
+                                    Name = file.FileName,
+                                    ContentType = file.ContentType,
+                                    Data = fileBytes,
+                                    Length = file.Length,
+                                    CreatedAt = DateTime.Now
+                                };
+                                await _fileStorageRepository.AddAsync(fileStorage);
+
+                                // Save Resource
+                                var resource = new Resource
+                                {
+                                    Name = file.FileName,
+                                    TypeId = 1,
+                                    IsActive = true,
+                                    FileStorageId = fileStorage.Id,
+                                    URL = file.FileName,
+                                    CreatedAt = DateTime.Now
+                                };
+                                await _resourceRepository.AddAsync(resource);
+
+                                // Link Resource
+                                await _courseResourceRepository.AddAsync(new CourseResource
+                                {
+                                    CourseVersionId = activeVersion.Id,
+                                    ResourceId = resource.Id,
+                                    CreatedAt = DateTime.Now
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return Ok(new { success = true, message = "อัปเดตข้อมูลสำเร็จ" });
+        }
+
+        [HttpDelete("resource/{resourceId}")]
+        public async Task<IActionResult> DeleteResource(int resourceId)
+        {
+            try
+            {
+                // 1. ตรวจสอบว่ามี Resource นี้อยู่จริง
+                var resource = await _resourceRepository.GetByIdAsync(resourceId);
+                if (resource == null) return NotFound(new { message = "ไม่พบไฟล์ที่ต้องการลบ" });
+
+                // 2. ลบความเชื่อมโยงกับ Course (CourseResource)
+                var courseResources = await _courseResourceRepository.GetAsync(cr => cr.ResourceId == resourceId);
+                foreach (var cr in courseResources)
+                {
+                    await _courseResourceRepository.DeleteAsync(cr);
+                }
+
+                // 3. ลบข้อมูล Resource
+                await _resourceRepository.DeleteAsync(resource);
+
+                // 4. ลบไฟล์จริงใน FileStorage (เพื่อคืนพื้นที่)
+                if (resource.FileStorageId.HasValue)
+                {
+                    var fileStorage = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+                    if (fileStorage != null)
+                    {
+                        await _fileStorageRepository.DeleteAsync(fileStorage);
+                    }
+                }
+
+                return Ok(new { success = true, message = "ลบไฟล์เรียบร้อยแล้ว" });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = $"เกิดข้อผิดพลาด: {ex.Message}" });
             }
         }
+
     }
 }
