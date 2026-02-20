@@ -2,8 +2,6 @@
     ViewBag.Title = "Learning Logs (SCORM)";
 }
 
-
-
 <div class="page-header">
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
@@ -29,35 +27,25 @@
 
 <div class="container-fluid px-4 pb-4">
     <div class="content-card">
-        <div class="p-3" id="grid-logs"></div>
+        <div class="p-3">
+            <div id="grid"></div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-    
         let gridInstance;
 
         $(() => {
-            gridInstance = $("#grid-logs").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/LearningLogsCRUD', {
-                    key: 'id',
-                }),
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            gridInstance = initDxGrid("#grid", {
+                dataSource: createDataStore(serviceUrl, 'admin/LearningLogsCRUD'),
                 remoteOperations: true,
-                columnAutoWidth: true,
-                showBorders: false,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
-                height: "100%",
-                width: "100%",
-                headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300, placeholder: "Search logs..." },
-                export: { enabled: false }, // เราซ่อนปุ่มเดิมและใช้ปุ่ม Custom ด้านบนแทน
-                onExporting: (e) => handleExporting(e, 'LearningLogs_Data'),
+                searchPanel: { placeholder: "Search logs..." },
 
-               
+                export: { enabled: false }, // ซ่อนปุ่มเดิมและใช้ปุ่ม Custom ด้านบนแทน
+                onExporting: (e) => handleExporting(e, 'LearningLogs_Data'),
 
                 columns: [
                     { dataField: "id", caption: "ID", width: 80, visible: false },
@@ -121,15 +109,16 @@
                         }
                     },
                     { dataField: "attemptCount", caption: "Attempts", width: 100, alignment: "center" },
-                    { dataField: "lastAccessDate", caption: "Last Access", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 180 },
-                    
-                ],
-            }).dxDataGrid('instance');
+                    { dataField: "lastAccessDate", caption: "Last Access", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 180 }
+                ]
+            });
         });
 
         // ฟังก์ชันสำหรับปุ่ม Export ด้านบน
         function exportGrid() {
-            gridInstance.exportToExcel(false);
+            if (gridInstance) {
+                gridInstance.exportToExcel(false);
+            }
         }
     </script>
 }

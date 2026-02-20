@@ -32,30 +32,20 @@
         </div>
     </div>
 </div>
-
 @section Scripts {
     <script>
         let gridInstance;
 
         $(() => {
-            gridInstance = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', {
-                    key: 'id',
-                }),
+            // เรียกใช้ initDxGrid เพื่อนำการตั้งค่าจาก Layout มาใช้ร่วมกัน
+            gridInstance = initDxGrid("#grid", {
+                // key: 'id' ไม่ต้องใส่แล้ว เพราะมีใน Default ของ createDataStore แล้ว
+                dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
                 remoteOperations: true,
-                columnAutoWidth: true,
-
-                // --- ปรับแต่ง UI ตารางให้เป็นมาตรฐานใหม่ ---
-                showBorders: false,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
-                height: "calc(100vh - 250px)",
                 selection: { mode: 'single' },
 
-                headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300, placeholder: "Search divisions..." },
+                // เขียนทับแค่ Placeholder ของช่องค้นหา นอกนั้นดึงจาก Default
+                searchPanel: { placeholder: "Search divisions..." },
 
                 editing: {
                     mode: "popup",
@@ -65,11 +55,12 @@
                     useIcons: true,
                     form: {
                         items: [
-                             { dataField: 'id', editorOptions: { disabled: true } },
-                             { dataField: 'name', validationRules: [{ type: "required", message: "Division name is required" }] }
+                            { dataField: 'id', editorOptions: { disabled: true } },
+                            { dataField: 'name', validationRules: [{ type: "required", message: "Division name is required" }] }
                         ]
                     }
                 },
+
                 columns: [
                     {
                         dataField: "id",
@@ -85,7 +76,7 @@
                         cssClass: "fw-bold text-dark"
                     },
 
-                    // --- คอลัมน์ Action แบบใหม่ ---
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
                         width: 120,
@@ -110,7 +101,10 @@
                                 .attr("title", "Delete Division")
                                 .html('<i class="fas fa-trash-alt"></i>')
                                 .on("click", () => {
-                                    DevExpress.ui.dialog.confirm(`Are you sure you want to delete division <b>${data.name}</b>?`, "Confirm Delete").done((res) => {
+                                    DevExpress.ui.dialog.confirm(
+                                        `Are you sure you want to delete division <b>${data.name}</b>?`,
+                                        "Confirm Delete"
+                                    ).done((res) => {
                                         if (res) gridInstance.deleteRow(options.rowIndex);
                                     });
                                 })
@@ -119,13 +113,13 @@
                             $group.appendTo(container);
                         }
                     }
-                ],
-            }).dxDataGrid('instance');
-        })
+                ]
+            });
+        });
 
-        // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New Division ด้านบน
+        // ฟังก์ชันสำหรับปุ่ม New Division ด้านบน
         function addNewDivision() {
-            if(gridInstance) {
+            if (gridInstance) {
                 gridInstance.addRow();
             }
         }

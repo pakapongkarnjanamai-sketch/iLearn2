@@ -35,7 +35,7 @@
 
 @section Scripts {
     <script>
-        // กำหนด Enum สำหรับ RoleType ใน Frontend (ปรับค่าตาม Enums จริงใน C#)
+        // กำหนด Enum สำหรับ RoleType ใน Frontend
         const roleTypes = [
             { id: 0, name: 'User' },
             { id: 1, name: 'Manager' },
@@ -46,25 +46,14 @@
         let gridInstance;
 
         $(() => {
-            gridInstance = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', {
-                    key: 'id',
-                }),
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            gridInstance = initDxGrid("#grid", {
+                dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD'),
                 remoteOperations: true,
-                columnAutoWidth: true,
-
-                // --- ปรับแต่ง UI ตารางให้เป็นมาตรฐานใหม่ ---
-                showBorders: false,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
-                height: "calc(100vh - 250px)",
                 selection: { mode: 'single' },
-
-                headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300, placeholder: "Search roles..." },
+                searchPanel: { placeholder: "Search roles..." },
                 groupPanel: { emptyPanelText: 'Drag a column header here to group', visible: true },
+
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'Roles_Data'),
 
@@ -107,10 +96,10 @@
                         cssClass: "fw-bold text-dark"
                     },
                     {
-                        dataField: "divisionId", // แก้ไขจาก DivisionId ตัวพิมพ์ใหญ่ เพื่อความถูกต้องของ CamelCase
+                        dataField: "divisionId",
                         caption: "Division",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
                             displayExpr: 'name',
                             valueExpr: 'id'
                         }
@@ -132,7 +121,7 @@
                         }
                     },
 
-                    // --- คอลัมน์ Action แบบใหม่ ---
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
                         width: 120,
@@ -166,8 +155,8 @@
                             $group.appendTo(container);
                         }
                     }
-                ],
-            }).dxDataGrid('instance');
+                ]
+            });
         });
 
         // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New Role ด้านบน

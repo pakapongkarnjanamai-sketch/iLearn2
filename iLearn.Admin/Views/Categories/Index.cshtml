@@ -2,9 +2,6 @@
     ViewBag.Title = "Category Management";
 }
 
-
-
-
 <div class="page-header">
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
@@ -30,34 +27,27 @@
 
 <div class="container-fluid px-4 pb-4">
     <div class="content-card">
-        <div class="p-4" id="grid-categories"></div>
+        <div class="p-3">
+            <div id="grid"></div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-
-
-        // DataStores
-        const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-
         let gridInstance;
 
+        // DataStores
+        const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD');
+        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
+
         $(() => {
-            gridInstance = $("#grid-categories").dxDataGrid({
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            gridInstance = initDxGrid("#grid", {
                 dataSource: categoriesStore,
                 remoteOperations: true,
-                columnAutoWidth: true,
-                showBorders: false,
-                height: "100%",
-                scrolling: { mode: "virtual" },
                 selection: { mode: 'single' },
-                hoverStateEnabled: true,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                searchPanel: { visible: true, width: 300, placeholder: "Search categories..." },
-                headerFilter: { visible: true },
+                searchPanel: { placeholder: "Search categories..." },
 
                 // Editing Configuration (Popup)
                 editing: {
@@ -152,9 +142,11 @@
                                 .appendTo(container);
                         }
                     },
+
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
-                        width: 180,
+                        width: 180, // กว้างขึ้นนิดหน่อยเพราะมี 3 ปุ่ม
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
@@ -170,7 +162,7 @@
                                 .on("click", () => gridInstance.editRow(options.rowIndex))
                                 .appendTo($group);
 
-                            // View Courses Button
+                            // View Courses Button (นำทางไปหน้าคอร์สและกรองตามหมวดหมู่นี้)
                             $("<button>")
                                 .addClass("btn-icon text-info")
                                 .attr("title", "View Courses in this Category")
@@ -184,41 +176,27 @@
                                 .attr("title", "Delete Category")
                                 .html('<i class="fas fa-trash-alt"></i>')
                                 .on("click", () => {
-                                    confirmDelete(data.id, data.name);
+                                    DevExpress.ui.dialog.confirm(
+                                        `Are you sure you want to delete category "<strong>${data.name}</strong>"?`,
+                                        "Confirm Delete"
+                                    ).done((res) => {
+                                        if (res) gridInstance.deleteRow(options.rowIndex);
+                                    });
                                 })
                                 .appendTo($group);
 
                             $group.appendTo(container);
                         }
                     }
-                ],
-                // ซ่อน command column เดิมของ DevExtreme
-                onContentReady: function(e) {
-                    // e.component.columnOption("command:edit", "visible", false);
-                    // (เราไม่ได้เปิด command column ตั้งแต่แรกโดยการไม่ใส่ 'type: buttons' ใน columns)
-                }
-            }).dxDataGrid("instance");
+                ]
+            });
         });
 
+        // ฟังก์ชันสำหรับปุ่ม New Category ด้านบน
         function addNewCategory() {
-            gridInstance.addRow();
-        }
-
-        function confirmDelete(id, name) {
-            DevExpress.ui.dialog.confirm(
-                `Are you sure you want to delete category "<strong>${name}</strong>"?`,
-                "Confirm Delete"
-            ).done(function (dialogResult) {
-                if (dialogResult) {
-                    // ใช้ store.remove หรือ grid.deleteRow ก็ได้
-                    categoriesStore.remove(id).done(() => {
-                        DevExpress.ui.notify("Category deleted successfully", "success", 2000);
-                        gridInstance.refresh();
-                    }).fail((err) => {
-                        DevExpress.ui.notify("Failed to delete category", "error", 2000);
-                    });
-                }
-            });
+            if (gridInstance) {
+                gridInstance.addRow();
+            }
         }
     </script>
 }

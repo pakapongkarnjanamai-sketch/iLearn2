@@ -64,7 +64,7 @@
 
                     <h6 class="fw-bold text-muted mb-3"><i class="fas fa-list me-2"></i>Attached Files</h6>
                     <div class="custom-grid-container bg-white shadow-sm">
-                        <div id="grid-resources"></div>
+                        <div id="grid"></div>
                     </div>
                 </div>
             </div>
@@ -292,7 +292,7 @@
             }
 
             function renderGrid(dataSource) {
-                $("#grid-resources").dxDataGrid({
+                $("#grid").dxDataGrid({
                     dataSource: dataSource,
                     showBorders: false,
                     columnAutoWidth: true,

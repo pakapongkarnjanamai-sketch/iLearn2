@@ -38,24 +38,12 @@
         let gridInstance;
 
         $(() => {
-            gridInstance = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/AssignmentRulesCRUD', {
-                    key: 'id',
-                }),
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            gridInstance = initDxGrid("#grid", {
+                dataSource: createDataStore(serviceUrl, 'admin/AssignmentRulesCRUD'),
                 remoteOperations: true,
-                columnAutoWidth: true,
-
-                // --- ปรับแต่ง UI ตารางให้เป็นมาตรฐานใหม่ ---
-                showBorders: false,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
-                height: "calc(100vh - 250px)",
                 selection: { mode: 'single' },
-
-                headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300, placeholder: "Search rules..." },
+                searchPanel: { placeholder: "Search rules..." },
 
                 editing: {
                     mode: "popup",
@@ -101,7 +89,7 @@
                         minWidth: 250,
                         cssClass: "fw-bold text-dark",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD'),
                             displayExpr: 'title',
                             valueExpr: 'id'
                         },
@@ -112,7 +100,7 @@
                         caption: "Division (Target)",
                         width: 200,
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
                             displayExpr: 'name',
                             valueExpr: 'id'
                         },
@@ -129,7 +117,7 @@
                         caption: "Role (Target)",
                         width: 200,
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
+                            dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD'),
                             displayExpr: 'name',
                             valueExpr: 'id'
                         },
@@ -142,7 +130,7 @@
                         }
                     },
 
-                    // --- คอลัมน์ Action แบบใหม่ ---
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
                         width: 120,
@@ -176,9 +164,9 @@
                             $group.appendTo(container);
                         }
                     }
-                ],
-            }).dxDataGrid('instance');
-        })
+                ]
+            });
+        });
 
         // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New Rule ด้านบน
         function addNewRule() {

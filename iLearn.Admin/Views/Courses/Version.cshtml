@@ -32,7 +32,7 @@
 <div class="container-fluid px-4 pb-4">
     <div class="content-card">
         <div class="p-3">
-            <div id="grid-version"></div>
+            <div id="grid"></div>
         </div>
     </div>
 </div>
@@ -143,7 +143,7 @@
             });
 
             // 4. ตั้งค่า Main Grid
-            $("#grid-version").dxDataGrid({
+            $("#grid").dxDataGrid({
                 dataSource: versionsDataSource,
                 remoteOperations: true,
                 columnAutoWidth: true,
@@ -342,7 +342,7 @@
                         fixedPosition: "right",
                         cellTemplate: function(container, options) {
                             const data = options.data;
-                            const grid = $("#grid-version").dxDataGrid("instance");
+                            const grid = $("#grid").dxDataGrid("instance");
                             const $group = $("<div>").addClass("action-group");
 
                             // ปุ่ม Preview (ไปหน้า Player)
@@ -382,7 +382,7 @@
 
         // ฟังก์ชันสำหรับปุ่ม New Version ด้านบน
         function addNewVersion() {
-            $("#grid-version").dxDataGrid("instance").addRow();
+            $("#grid").dxDataGrid("instance").addRow();
         }
     </script>
 }

@@ -37,13 +37,11 @@
 
 <div class="container-fluid px-4 pb-4">
     <div class="content-card">
-        <div class="p-3" id="grid-courses"></div>
+        <div class="p-3" id="grid"></div>
     </div>
 </div>
-
 @section Scripts {
     <script>
-
         const categoryFilterId = @(categoryId ?? "null");
 
         // DataStores
@@ -61,26 +59,15 @@
                 initialFilter = ["categoryId", "=", parseInt(categoryFilterId)];
             }
 
-            $("#grid-courses").dxDataGrid({
+            // ใช้ initDxGrid เพื่อนำการตั้งค่าจาก Layout มาใช้ร่วมกัน
+            initDxGrid("#grid", {
                 dataSource: coursesStore,
                 filterValue: initialFilter,
                 remoteOperations: true,
-                columnAutoWidth: true,
-                showBorders: false, // Cleaner look
-                height: "100%",
-                scrolling: { mode: "virtual" },
                 selection: { mode: 'single' },
-                hoverStateEnabled: true,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                searchPanel: {
-                    visible: true,
-                    width: 300,
-                    placeholder: "Search courses..."
-                },
-                headerFilter: { visible: true },
+                searchPanel: { placeholder: "Search courses..." },
 
-                // Redirect on Double Click
+                // Redirect ไปหน้าจัดการเวอร์ชันเมื่อดับเบิลคลิก
                 onRowDblClick: function(e) {
                     if (e.data && e.data.id) {
                         window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.data.id;
@@ -146,9 +133,11 @@
                                 .appendTo(container);
                         }
                     },
+
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
-                        width: 160,
+                        width: 160, // กว้างกว่าหน้าอื่นนิดหน่อยเพราะมี 3 ปุ่ม
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
@@ -156,15 +145,15 @@
                             const data = options.data;
                             const $group = $("<div>").addClass("action-group");
 
-                            // Edit Button (Redirect to Form)
+                            // ปุ่ม Edit (Redirect ไปหน้า Form)
                             $("<button>")
-                                .addClass("btn-icon")
+                                .addClass("btn-icon text-dark")
                                 .attr("title", "Edit Course")
                                 .html('<i class="fas fa-edit"></i>')
                                 .on("click", () => window.location.href = '@Url.Action("Form", "Courses")?id=' + data.id)
                                 .appendTo($group);
 
-                            // Versions Button
+                            // ปุ่ม Manage Versions
                             $("<button>")
                                 .addClass("btn-icon text-primary")
                                 .attr("title", "Manage Versions")
@@ -172,7 +161,7 @@
                                 .on("click", () => window.location.href = '@Url.Action("Version", "Courses")?courseId=' + data.id)
                                 .appendTo($group);
 
-                            // Delete Button
+                            // ปุ่ม Delete
                             $("<button>")
                                 .addClass("btn-icon text-danger")
                                 .attr("title", "Delete Course")
@@ -185,13 +174,11 @@
                             $group.appendTo(container);
                         }
                     }
-                ],
-                onToolbarPreparing: function(e) {
-                    // Add Filter/Refresh buttons if needed
-                }
+                ]
             });
         });
 
+        // ฟังก์ชันยืนยันการลบที่เชื่อมกับ DevExtreme Dialog
         function confirmDelete(id, name) {
             DevExpress.ui.dialog.confirm(
                 `Are you sure you want to delete course "<strong>${name}</strong>"?<br>This will delete all versions and history.`,
@@ -204,10 +191,9 @@
         }
 
         function deleteCourse(id) {
-            // Using standard CRUD store delete
             coursesStore.remove(id).done(() => {
                 DevExpress.ui.notify("Course deleted successfully", "success", 2000);
-                $("#grid-courses").dxDataGrid("instance").refresh();
+                $("#grid").dxDataGrid("instance").refresh();
             }).fail((err) => {
                 console.error(err);
                 DevExpress.ui.notify("Failed to delete course", "error", 2000);

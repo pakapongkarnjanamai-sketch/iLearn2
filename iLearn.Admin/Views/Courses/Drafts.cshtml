@@ -31,20 +31,15 @@
 
 <div class="container-fluid px-4 pb-4">
     <div class="content-card">
-        <div class="p-4" id="grid-drafts"></div>
+        <div class="p-4" id="grid"></div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-
         // Stores
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-
-        // 1. สร้าง Store ปกติ (ไม่ต้องใส่ loadParams ที่นี่)
-        const draftCoursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', {
-            key: 'id'
-        });
+        const draftCoursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
         const courseTypes = [
             { id: 0, name: 'Special (Rule-based)' },
@@ -52,49 +47,34 @@
         ];
 
         $(() => {
-            $("#grid-drafts").dxDataGrid({
-                // 2. ใช้ DataSource และกำหนด filter ที่นี่แทน
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            initDxGrid("#grid", {
                 dataSource: new DevExpress.data.DataSource({
                     store: draftCoursesStore,
                     filter: ["isActive", "=", false] // ★ สำคัญ: บังคับกรองเฉพาะ Draft ★
                 }),
                 remoteOperations: true,
-                showBorders: false,
-                height: "100%",
-                columnAutoWidth: true,
-                scrolling: { mode: "virtual" },
-                hoverStateEnabled: true,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                searchPanel: {
-                    visible: true,
-                    width: 300,
-                    placeholder: "Search drafts..."
-                },
-                headerFilter: { visible: true },
                 selection: { mode: "single" },
+                searchPanel: { placeholder: "Search drafts..." },
 
                 columns: [
                     {
-                        dataField: "code", // ตรงกับ JSON API (code)
+                        dataField: "code",
                         caption: "Code",
                         width: 120,
                         alignment: "center",
                         cssClass: "fw-bold text-muted"
                     },
                     {
-                        dataField: "title", // ตรงกับ JSON API (title)
+                        dataField: "title",
                         caption: "Course Title",
                         minWidth: 300,
                         cellTemplate: function(container, options) {
                             const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
-
-                            // Badge
+                            // Badge Draft
                             $("<span>").addClass("badge-draft").html('<i class="fas fa-pen-nib me-1"></i>Draft').appendTo(wrapper);
-
-                            // Name
+                            // Course Name
                             $("<span>").addClass("fw-bold text-dark").text(options.value).appendTo(wrapper);
-
                             wrapper.appendTo(container);
                         }
                     },
@@ -109,7 +89,7 @@
                         }
                     },
                     {
-                        dataField: "type", // ตรงกับ JSON API (type)
+                        dataField: "type",
                         caption: "Type",
                         minWidth: 100,
                         lookup: {
@@ -124,7 +104,7 @@
                         }
                     },
                     {
-                        dataField: "updatedAt", // ตรงกับ JSON API (updatedAt)
+                        dataField: "updatedAt",
                         caption: "Last Modified",
                         dataType: "datetime",
                         format: "dd MMM yyyy HH:mm",
@@ -132,19 +112,20 @@
                         alignment: "right",
                         allowHeaderFiltering: false
                     },
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
-                        caption: "Actions",
+                        caption: "Manage",
                         width: 160,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
                         cellTemplate: function(container, options) {
                             const data = options.data;
-                            const $group = $("<div>").addClass("action-btn-group");
+                            const $group = $("<div>").addClass("action-group");
 
                             // Edit Button
                             $("<button>")
-                                .addClass("btn-icon text-primary")
+                                .addClass("btn-icon text-dark")
                                 .attr("title", "Edit Course")
                                 .html('<i class="fas fa-edit"></i>')
                                 .on("click", () => window.location.href = '@Url.Action("Form", "Courses")?id=' + data.id)
@@ -163,9 +144,7 @@
                                 .addClass("btn-icon text-danger")
                                 .attr("title", "Delete Draft")
                                 .html('<i class="fas fa-trash-alt"></i>')
-                                .on("click", () => {
-                                    confirmDelete(data.id, data.title);
-                                })
+                                .on("click", () => confirmDelete(data.id, data.title))
                                 .appendTo($group);
 
                             $group.appendTo(container);
@@ -173,6 +152,7 @@
                     }
                 ],
                 onToolbarPreparing: function(e) {
+                    // ไอคอนแจ้งเตือนตรง Toolbar หัวตาราง
                     e.toolbarOptions.items.unshift({
                         location: "before",
                         template: function() {
@@ -183,7 +163,7 @@
             });
         });
 
-        // ฟังก์ชัน Publish
+        // ฟังก์ชัน Publish (คงไว้เหมือนเดิม)
         function publishCourse(data) {
             const confirmDialog = DevExpress.ui.dialog.custom({
                 title: "Confirm Publication",
@@ -203,7 +183,6 @@
             confirmDialog.show().done((dialogResult) => {
                 if (dialogResult) {
                     const loadPanel = showLoading("Publishing...");
-
                     $.ajax({
                         url: `${serviceUrl}/admin/CoursesCRUD/Put`,
                         method: "PUT",
@@ -219,7 +198,7 @@
                                 displayTime: 3000,
                                 position: { my: "top center", at: "top center" }
                             });
-                            $("#grid-drafts").dxDataGrid("instance").refresh();
+                            $("#grid").dxDataGrid("instance").refresh();
                         },
                         error: function(err) {
                             console.error(err);
@@ -231,7 +210,7 @@
             });
         }
 
-        // ฟังก์ชัน Delete
+        // ฟังก์ชัน Delete (คงไว้เหมือนเดิม)
         function confirmDelete(id, title) {
              const confirmDialog = DevExpress.ui.dialog.custom({
                 title: "Confirm Delete",
@@ -258,7 +237,7 @@
                         xhrFields: { withCredentials: true },
                         success: function() {
                             DevExpress.ui.notify("Draft deleted.", "success", 2000);
-                            $("#grid-drafts").dxDataGrid("instance").refresh();
+                            $("#grid").dxDataGrid("instance").refresh();
                         },
                         error: function(err) {
                             DevExpress.ui.notify("Failed to delete.", "error", 3000);
@@ -269,6 +248,7 @@
             });
         }
 
+        // ฟังก์ชันแสดง Loading (คงไว้เหมือนเดิม)
         function showLoading(msg) {
             return $("<div>").dxLoadPanel({
                 shadingColor: "rgba(255,255,255,0.7)",
@@ -277,7 +257,7 @@
                 showPane: true,
                 shading: true,
                 message: msg,
-                position: { of: "#grid-drafts" }
+                position: { of: "#grid" }
             }).dxLoadPanel("instance");
         }
     </script>

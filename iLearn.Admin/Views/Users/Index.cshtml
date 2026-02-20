@@ -38,24 +38,13 @@
         let gridInstance;
 
         $(() => {
-            gridInstance = $("#grid").dxDataGrid({
-                dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD', {
-                    key: 'id',
-                }),
-                remoteOperations: true,
-                columnAutoWidth: true,
-
-                // --- ปรับแต่ง UI ตารางให้เป็นมาตรฐานใหม่ ---
-                showBorders: false,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
-                height: "calc(100vh - 250px)",
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            gridInstance = initDxGrid("#grid", {
+                dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD'),
                 selection: { mode: 'single' },
+                searchPanel: { placeholder: "Search users..." },
 
-                headerFilter: { visible: true, search: { enabled: true } },
-                searchPanel: { visible: true, width: 300, placeholder: "Search users..." },
+                // ฟังก์ชัน Export ที่อ้างอิงจาก Helper ใน Layout
                 export: { enabled: true, allowExportSelectedData: false },
                 onExporting: (e) => handleExporting(e, 'User_Accounts'),
 
@@ -80,16 +69,13 @@
                                 items: [
                                     { dataField: 'id', editorOptions: { disabled: true }, colSpan: 2 },
                                     { dataField: 'nid', colSpan: 2 },
-                                    {
-                                        dataField: 'roleIds',
-                                        colSpan: 2,
-                                        label: { text: 'Roles' }
-                                    }
+                                    { dataField: 'roleIds', colSpan: 2, label: { text: 'Roles' } }
                                 ]
                             }
                         ]
                     }
                 },
+
                 columns: [
                     {
                         dataField: "id",
@@ -106,7 +92,7 @@
                         cssClass: "fw-bold text-dark"
                     },
 
-                    // --- ส่วนสำหรับจัดการ Roles ---
+                    // --- ส่วนจัดการ Roles ---
                     {
                         dataField: "roleIds",
                         caption: "Roles",
@@ -127,7 +113,7 @@
                         // 2. ใช้ TagBox Template ตอนแก้ไข
                         editCellTemplate: tagBoxEditorTemplate,
 
-                        // 3. แสดงผลในตาราง
+                        // 3. แสดงผลในตารางเป็น Badge
                         lookup: {
                             dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
                             displayExpr: 'name',
@@ -138,7 +124,6 @@
                             const text = items.map(id => options.column.lookup.calculateCellValue(id)).join(", ");
 
                             if (text) {
-                                // เปลี่ยนจาก Text ธรรมดาให้เป็น Badge สวยๆ
                                 const badges = text.split(", ").map(role => `<span class="badge bg-light text-dark border me-1">${role}</span>`).join("");
                                 container.html(badges).attr('title', text);
                             } else {
@@ -149,7 +134,7 @@
 
                     { dataField: "createdAt", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false },
 
-                    // --- คอลัมน์ Action แบบใหม่ ---
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
                         width: 120,
@@ -184,9 +169,9 @@
                         }
                     }
                 ],
-            }).dxDataGrid('instance');
+            });
 
-            // ฟังก์ชันสร้าง TagBox ตอนแก้ไข (เหมือนเดิม)
+            // ฟังก์ชันสร้าง TagBox ตอนแก้ไข (สำหรับเลือกหลาย Role)
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
                     dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),

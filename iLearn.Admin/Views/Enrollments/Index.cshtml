@@ -2,10 +2,6 @@
     ViewBag.Title = "Course Enrollments";
 }
 
-
-
-     
-
 <div class="page-header">
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
@@ -31,38 +27,35 @@
 
 <div class="container-fluid px-4 pb-4">
     <div class="content-card">
-        <div id="grid-enrollments"></div>
+        <div class="p-3">
+            <div id="grid"></div>
+        </div>
     </div>
+
+   
 </div>
 
 @section Scripts {
     <script>
-
         let gridInstance;
 
-        // Data Stores (ปรับให้เรียกแบบ Pagination เพื่อไม่ให้โหลดข้อมูลรวดเดียว)
-        const enrollmentsStore = createDataStore(serviceUrl, 'admin/EnrollmentsCRUD', { key: 'id' });
+        // Data Stores (ไม่ต้องใส่ { key: 'id' } แล้วเพราะมีใน Default)
+        const enrollmentsStore = createDataStore(serviceUrl, 'admin/EnrollmentsCRUD');
 
         // Lookup DataSources (ทยอยโหลดทีละ 20 ป้องกันหน้าเว็บค้าง)
         const dsCourses = {
-            store: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }),
+            store: createDataStore(serviceUrl, 'admin/CoursesCRUD'),
             paginate: true,
             pageSize: 20
         };
 
         $(() => {
-            gridInstance = $("#grid-enrollments").dxDataGrid({
+            // ใช้ initDxGrid ตามมาตรฐานระบบ
+            gridInstance = initDxGrid("#grid", {
                 dataSource: enrollmentsStore,
                 remoteOperations: true,
-                columnAutoWidth: true,
-                showBorders: false,
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
-                height: "100%",
-                headerFilter: { visible: true },
-                searchPanel: { visible: true, width: 300, placeholder: "Search student code..." },
+                searchPanel: { placeholder: "Search student code..." },
+
                 export: { enabled: false }, // ซ่อนปุ่มเดิม ใช้ปุ่ม Custom ด้านบน
                 onExporting: (e) => handleExporting(e, 'Enrollment_Report'),
 
@@ -87,7 +80,7 @@
                                 colCount: 1,
                                 items: [
                                     {
-                                        dataField: "studentCode", // แก้ให้ตรงกับ Backend
+                                        dataField: "studentCode",
                                         label: { text: "Student Code" },
                                         validationRules: [{ type: "required" }]
                                     },
@@ -96,7 +89,7 @@
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             dataSource: dsCourses,
-                                            displayExpr: "code", // หรือ "title" ตามที่แอดมินถนัด
+                                            displayExpr: "code",
                                             valueExpr: "id",
                                             searchEnabled: true,
                                             searchExpr: ["code", "title"] // ค้นหาได้ทั้ง Code และชื่อ
@@ -203,6 +196,8 @@
                         format: "dd MMM yyyy HH:mm",
                         width: 160
                     },
+
+                    // --- คอลัมน์ Action แบบมาตรฐาน ---
                     {
                         caption: "Manage",
                         width: 120,
@@ -237,12 +232,14 @@
                         }
                     }
                 ]
-            }).dxDataGrid('instance');
+            });
         });
 
         // ฟังก์ชัน Export (เรียกใช้จากปุ่มด้านบน)
         function exportGrid() {
-            gridInstance.exportToExcel(false);
+            if (gridInstance) {
+                gridInstance.exportToExcel(false);
+            }
         }
     </script>
 }
