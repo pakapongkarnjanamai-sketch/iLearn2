@@ -60,6 +60,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IScormService, ScormService>();
+builder.Services.AddHttpClient<IStudentApiService, StudentApiService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 if (builder.Environment.IsDevelopment())
 {

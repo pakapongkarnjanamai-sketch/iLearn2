@@ -75,9 +75,9 @@
 //                    cmi_suspend_data = log.SuspendData,
 //                    cmi_core_score_raw = log.ScoreRaw,
 //                    cmi_core_total_time = log.TotalTime,
-//                    // Student Info (SCORM บังคับส่งให้ Content)
+//                    // StudentDto Info (SCORM บังคับส่งให้ Content)
 //                    cmi_core_student_id = studentCode,
-//                    cmi_core_student_name = "Student Name" // ควรดึงชื่อจริงจาก User Table
+//                    cmi_core_student_name = "StudentDto Name" // ควรดึงชื่อจริงจาก User Table
 //                }
 //            });
 //        }

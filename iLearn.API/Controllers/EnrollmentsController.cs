@@ -67,7 +67,7 @@ namespace iLearn.API.Controllers
         {
             if (string.IsNullOrEmpty(studentCode))
             {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "Student code is required." });
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "StudentDto code is required." });
             }
 
             var enrollments = await _enrollmentRepo.GetAsync(

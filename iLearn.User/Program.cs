@@ -50,7 +50,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IApiUserService, ApiUserService>();
-builder.Services.AddHttpClient<IEmployeeApiService, EmployeeApiService>();
+builder.Services.AddHttpClient<IStudentApiService, StudentApiService>();
 
 // HTTP Client for API calls
 builder.Services.AddHttpClient("iLearnAPI", client =>

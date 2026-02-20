@@ -8,9 +8,9 @@ namespace iLearn.User.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly IEmployeeApiService _employeeService;
+        private readonly IStudentApiService _employeeService;
 
-        public HomeController(IEmployeeApiService employeeService)
+        public HomeController(IStudentApiService employeeService)
         {
             _employeeService = employeeService;
         }
@@ -27,7 +27,7 @@ namespace iLearn.User.Controllers
         [HttpPost]
         public async Task<IActionResult> VerifyEmployee(string employeeCode)
         {
-            var employee = await _employeeService.GetEmployeeByCodeAsync(employeeCode);
+            var employee = await _employeeService.GetStudentByCodeAsync(employeeCode);
 
             if (employee != null)
             {

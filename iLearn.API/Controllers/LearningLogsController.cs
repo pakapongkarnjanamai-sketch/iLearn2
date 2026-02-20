@@ -37,7 +37,7 @@ namespace iLearn.API.Controllers
 
             // ตรวจสอบว่าเป็นเจ้าของ Enrollment หรือไม่
             if (!string.Equals(enrollment.StudentCode, input.StudentCode, StringComparison.OrdinalIgnoreCase))
-                return Unauthorized(new ApiResponse<string> { Success = false, Message = "Student code mismatch" });
+                return Unauthorized(new ApiResponse<string> { Success = false, Message = "StudentDto code mismatch" });
 
             // ✅ ถ้าจบแล้ว (Completed) ไม่ให้แก้ (เว้นแต่ Admin จะ Reset IsCompleted = false มาแล้ว)
             if (enrollment.IsCompleted)
