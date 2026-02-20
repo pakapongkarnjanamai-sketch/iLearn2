@@ -1,81 +1,90 @@
-﻿
-@{
-    ViewData["Title"] = "Learning Player";
+﻿@{
+    ViewData["Title"] = "Learning Player Preview";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
     var versionId = ViewBag.VersionId;
 }
 
-<!-- Viewer styles moved to ~/wwwroot/css/admin-site.css -->
+<div class="container-fluid px-4 pb-4">
 
-<div class="container-fluid viewer-container">
-    <div class="scorm-section" id="fullscreenArea">
-        <div class="scorm-toolbar">
-            <div class="scorm-title" title="Lesson Title">
-                <i class="fas fa-book-open text-primary me-2"></i>
-                <span id="lessonTitle">...</span>
-            </div>
-            <div>
-                <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()">
-                    <i class="fas fa-expand"></i>
-                </button>
-            </div>
-        </div>
 
-        <div class="scorm-body">
-            <div id="startOverlay" class="start-overlay">
-                <button class="start-btn" onclick="startCourse()">
-                    <i class="fas fa-play ps-1"></i>
-                </button>
-                <h5 class="mt-3 text-muted">เริ่มบทเรียน</h5>
-                <p id="overlayMessage" class="small text-muted">เลือกหัวข้อทางขวาเพื่อเริ่ม</p>
-            </div>
-
-            <iframe id="scormFrame"
-                    sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
-            </iframe>
-        </div>
-    </div>
-
-    <div class="info-section">
-
-        <div class="course-header-panel">
-            <div class="d-flex align-items-center mb-2">
-                <span class="badge bg-primary me-2" id="courseCodeDisplay">CODE</span>
-                <span class="badge bg-secondary" id="courseVersionDisplay">v.1</span>
-            </div>
-            <h5 class="fw-bold text-dark mb-2" id="courseTitleDisplay">กำลังโหลดข้อมูล...</h5>
-            <div class="d-flex align-items-center text-muted small mb-2">
-                <i class="far fa-folder me-1"></i>
-                <span id="courseCategoryDisplay">-</span>
-            </div>
-            <p class="text-muted small mb-0" id="courseDescDisplay" style="line-height: 1.4;">
-                -
-            </p>
-        </div>
-
-        <div class="info-status-bar">
-            <div class="row">
-                <div class="col-6 border-end text-center">
-                    <div class="text-muted small">Status</div>
-                    <div id="statusDisplay" class="fw-bold text-muted">-</div>
+    <div class="row g-3" style="height: calc(100vh - 160px);">
+        <div class="col-lg-8 h-100">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden" id="fullscreenArea">
+                <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+                    <div class="text-dark fw-bold text-truncate" id="lessonTitle">
+                        <i class="fas fa-book-open text-primary me-2"></i> โหลดข้อมูล...
+                    </div>
+                    <button class="btn btn-sm btn-light border rounded" onclick="toggleFullscreen()" title="Full Screen">
+                        <i class="fas fa-expand"></i>
+                    </button>
                 </div>
-                <div class="col-6 text-center">
-                    <div class="text-muted small">Score</div>
-                    <div id="scoreDisplay" class="fw-bold text-dark">-</div>
+
+                <div class="card-body p-0 position-relative bg-light">
+                    <div id="startOverlay" class="position-absolute w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-white" style="z-index: 10;">
+                        <button class="btn btn-primary rounded-circle shadow d-flex align-items-center justify-content-center"
+                                style="width: 80px; height: 80px; font-size: 2rem; transition: transform 0.2s;"
+                                onclick="startCourse()"
+                                onmouseover="this.style.transform='scale(1.1)'"
+                                onmouseout="this.style.transform='scale(1)'">
+                            <i class="fas fa-play ps-1"></i>
+                        </button>
+                        <h5 class="mt-4 fw-bold text-dark">เริ่มบทเรียน</h5>
+                        <p id="overlayMessage" class="text-muted">เลือกหัวข้อทางขวาเพื่อเริ่ม</p>
+                    </div>
+
+                    <iframe id="scormFrame"
+                            class="w-100 h-100 border-0"
+                            style="display: none;"
+                            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
+                    </iframe>
                 </div>
             </div>
         </div>
 
-        <div class="toc-header">
-            <i class="fas fa-list-ul me-1"></i> เนื้อหาบทเรียน
-        </div>
-        <div class="course-toc" id="courseTocList">
-            <div class="text-center text-muted mt-4">
-                <div class="spinner-border text-primary spinner-border-sm mb-2" role="status"></div>
-                <div>กำลังโหลดโครงสร้าง...</div>
+        <div class="col-lg-4 h-100">
+            <div class="card border-0 shadow-sm h-100 d-flex flex-column">
+
+                <div class="p-4 border-bottom bg-white">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-primary me-2" id="courseCodeDisplay">CODE</span>
+                        <span class="badge bg-secondary" id="courseVersionDisplay">v.1</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2" id="courseTitleDisplay">กำลังโหลดข้อมูล...</h5>
+                    <div class="d-flex align-items-center text-muted small mb-2">
+                        <i class="far fa-folder me-2"></i>
+                        <span id="courseCategoryDisplay">-</span>
+                    </div>
+                    <p class="text-muted small mb-0" id="courseDescDisplay" style="line-height: 1.4;">
+                        -
+                    </p>
+                </div>
+
+                <div class="bg-light border-bottom p-3">
+                    <div class="row g-0">
+                        <div class="col-6 border-end text-center px-2">
+                            <div class="text-muted small mb-1">Preview Status</div>
+                            <div id="statusDisplay" class="fw-bold text-muted">-</div>
+                        </div>
+                        <div class="col-6 text-center px-2">
+                            <div class="text-muted small mb-1">Preview Score</div>
+                            <div id="scoreDisplay" class="fw-bold text-dark">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border-bottom py-2 px-3 fw-bold text-dark" style="font-size: 0.9rem;">
+                    <i class="fas fa-list-ul text-secondary me-2"></i> เนื้อหาบทเรียน (Resources)
+                </div>
+
+                <div class="flex-grow-1 overflow-auto p-3 bg-white" id="courseTocList">
+                    <div class="text-center text-muted mt-4">
+                        <div class="spinner-border text-primary spinner-border-sm mb-2" role="status"></div>
+                        <div>กำลังโหลดโครงสร้าง...</div>
+                    </div>
+                </div>
+
             </div>
         </div>
-
     </div>
 </div>
 
@@ -99,7 +108,7 @@
                     url: apiUrl,
                     method: 'GET',
                     dataType: 'json',
-                       xhrFields: { withCredentials: true }
+                    xhrFields: { withCredentials: true }
                 });
 
                 let data = null;
@@ -110,7 +119,6 @@
                 }
 
                 if (data) {
-                    // Support both camelCase (preferred) and PascalCase (legacy) shapes
                     const course = data.course || data.Course || {};
                     const versionNumber = data.versionNumber ?? data.VersionNumber ?? "1";
                     const resources = data.courseResources || data.CourseResources || [];
@@ -119,15 +127,14 @@
                     $("#courseCodeDisplay").text(course.code || course.Code || "N/A");
                     $("#courseCategoryDisplay").text((course.category && (course.category.name || course.category.Name)) ? (course.category.name || course.category.Name) : "General");
                     $("#courseDescDisplay").text(course.description || course.Description || "ไม่มีคำอธิบาย");
-
                     $("#courseVersionDisplay").text("v." + (versionNumber));
 
                     if (resources && resources.length > 0) {
                         currentResources = resources;
                         renderCourseContent(currentResources);
                     } else {
-                        $("#courseTocList").html('<div class="alert alert-warning m-2 small">ไม่พบเนื้อหาหลักสูตร</div>');
-                        $("#lessonTitle").text("ไม่พบข้อมูล");
+                        $("#courseTocList").html('<div class="alert alert-warning m-2 small"><i class="fas fa-exclamation-triangle me-2"></i>ไม่พบไฟล์เนื้อหาในเวอร์ชันนี้</div>');
+                        $("#lessonTitle").html('<i class="fas fa-book-open text-primary me-2"></i> ไม่พบข้อมูล');
                     }
                 } else {
                     DevExpress.ui.notify("ไม่พบข้อมูลหลักสูตร", "error", 3000);
@@ -136,7 +143,7 @@
             } catch (err) {
                 console.error(err);
                 DevExpress.ui.notify("Error: " + err.message, "error", 3000);
-                $("#courseTocList").html('<div class="text-danger text-center p-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>');
+                $("#courseTocList").html('<div class="text-danger text-center p-3"><i class="fas fa-times-circle fs-3 mb-2"></i><br>เกิดข้อผิดพลาดในการโหลดข้อมูล</div>');
             }
         }
 
@@ -145,31 +152,32 @@
             container.empty();
 
             resources.forEach((item, index) => {
-                // Support both shapes: { Resource: {...} } or { resource: {...} }
                 const wrapper = item || {};
                 const res = wrapper.resource || wrapper.Resource || null;
                 if (!res) return;
 
                 const typeId = res.typeId ?? res.TypeId;
                 const name = res.name || res.Name || "-";
-                const url = res.url || res.URL || "";
 
                 let iconClass = "far fa-file-alt";
-                if (typeId === 1) iconClass = "fas fa-file-lines";
-                else if (typeId === 2) iconClass = "fas fa-file-pen";
+                if (typeId === 1) iconClass = "fas fa-laptop-code text-primary";
+                else if (typeId === 2) iconClass = "fas fa-clipboard-check text-danger";
 
+                // ใส่ ID ให้คลิกได้ และใช้คลาส bg-light ตอน Hover
                 const html = `
-                    <div class="p-2 border rounded mb-2 resource-item"
+                    <div class="card border mb-2 resource-item" style="cursor: pointer; transition: background-color 0.2s;"
                          id="res-item-${index}"
-                         onclick="loadResource(${index})">
-                        <div class="d-flex align-items-center text-dark">
-                            <div class="me-3 text-secondary" style="font-size: 1.2rem;">
+                         onclick="loadResource(${index})"
+                         onmouseover="if(!this.classList.contains('border-primary')) this.classList.add('bg-light')"
+                         onmouseout="this.classList.remove('bg-light')">
+                        <div class="card-body p-3 d-flex align-items-center text-dark">
+                            <div class="me-3" style="font-size: 1.5rem; width: 30px; text-align: center;">
                                 <i class="${iconClass}"></i>
                             </div>
                             <div style="overflow: hidden;">
-                                <div class="fw-bold text-truncate" title="${name}" style="font-size: 0.9rem;">${name}</div>
-                                <div class="small text-muted" style="font-size: 0.75rem;">
-                                    ${typeId == 1 ? 'Learn' : 'Exam'}
+                                <div class="fw-bold text-truncate" title="${name}">${name}</div>
+                                <div class="small text-muted mt-1">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border">${typeId == 1 ? 'Learn' : 'Exam'}</span>
                                 </div>
                             </div>
                         </div>
@@ -193,10 +201,13 @@
             const name = res.name || res.Name || "-";
             const url = res.url || res.URL || "";
 
-            $(".resource-item").removeClass("active");
-            $(`#res-item-${index}`).addClass("active");
+            // รีเซ็ตสไตล์ของการ์ดทั้งหมด
+            $(".resource-item").removeClass("border-primary bg-primary bg-opacity-10 shadow-sm").addClass("border");
 
-            $("#lessonTitle").text(name);
+            // ไฮไลต์การ์ดที่ถูกเลือก
+            $(`#res-item-${index}`).removeClass("border").addClass("border-primary bg-primary bg-opacity-10 shadow-sm");
+
+            $("#lessonTitle").html(`<i class="fas fa-book-open text-primary me-2"></i> ${name}`);
             scormLaunchUrl = url;
 
             $("#startOverlay").fadeIn(200);
@@ -205,13 +216,11 @@
 
             $("#scoreDisplay").text("-").removeClass("text-success").addClass("text-dark");
             $("#statusDisplay").text("Not Attempted").removeClass("text-success text-danger text-warning").addClass("text-muted");
-
-            console.log("Resource Selected:", res.Name);
         }
 
         function startCourse() {
             if (!scormLaunchUrl) {
-                DevExpress.ui.notify("URL ไม่ถูกต้อง", "warning", 2000);
+                DevExpress.ui.notify("URL ของไฟล์ไม่ถูกต้อง", "warning", 2000);
                 return;
             }
 
@@ -224,7 +233,7 @@
         }
 
         // ==========================================
-        // SCORM API ADAPTER
+        // SCORM API ADAPTER (จำลองการรับค่าจากไฟล์ SCORM)
         // ==========================================
         function initScormAdapter() {
             const Adapter = {
@@ -234,32 +243,27 @@
                 LMSSetValue: function(e, v) {
                     log("LMSSetValue: " + e + " = " + v);
 
-                    // 1. Handle Score
                     if (e === "cmi.core.score.raw" || e === "cmi.score.raw") {
-                        $("#scoreDisplay").text(v);
+                        $("#scoreDisplay").text(v + " %");
                     }
 
-                    // 2. Handle Status (SCORM 1.2 or 2004)
-                    // เพิ่มการเช็ค cmi.completion_status ตามที่ขอ
                     if (e === "cmi.core.lesson_status" || e === "cmi.completion_status") {
                         const statusDisplay = $("#statusDisplay");
                         let statusText = v;
 
-                        // ล้าง Class สีเดิมออกก่อน
                         statusDisplay.removeClass("text-primary text-success text-danger text-warning text-muted");
 
-                        // เช็คค่าเพื่อเปลี่ยนสี
                         if (v === 'completed' || v === 'passed') {
-                            statusDisplay.addClass("text-success"); // สีเขียว
-                            statusText = "Completed"; // ปรับข้อความให้สวยงาม
+                            statusDisplay.addClass("text-success");
+                            statusText = "Completed";
                         } else if (v === 'failed') {
-                            statusDisplay.addClass("text-danger"); // สีแดง
+                            statusDisplay.addClass("text-danger");
                             statusText = "Failed";
                         } else if (v === 'incomplete') {
-                            statusDisplay.addClass("text-warning"); // สีเหลือง/ส้ม
+                            statusDisplay.addClass("text-warning");
                             statusText = "Incomplete";
                         } else {
-                            statusDisplay.addClass("text-primary"); // สีน้ำเงิน (ค่าอื่นๆ)
+                            statusDisplay.addClass("text-primary");
                         }
 
                         statusDisplay.text(statusText);
@@ -274,7 +278,6 @@
                 LMSGetErrorString: function(e) { return "No error"; },
                 LMSGetDiagnostic: function(e) { return "No error"; },
 
-                // Mappings for SCORM 2004 / 1.2 compatibility
                 Initialize: function(p) { return this.LMSInitialize(p); },
                 Terminate: function(p) { return this.LMSFinish(p); },
                 GetValue: function(e) { return this.LMSGetValue(e); },

@@ -13,9 +13,6 @@
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
     <link href="~/css/admin-site.css" rel="stylesheet" />
-
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
-
     <script src="~/js/devextreme/jquery.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/devextreme/filesaver.min.js"></script>
@@ -25,10 +22,8 @@
     <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
     <script src="~/src/devextreme-license.js"></script>
     <script src="~/js/site.js"></script>
-    <script src="~/lib/font-awesome/js/all.min.js"></script>
 
     @await RenderSectionAsync("ExternalDependencies", required: false)
-
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
@@ -100,13 +95,13 @@
         </div>
     </nav>
 
-    <main role="main">
+    <main role="main" class="w-100 pb-4">
         @RenderBody()
     </main>
 
-    <footer class="footer text-center">
-        <div class="container">
-            <small>&copy; @DateTime.Now.Year - iLearn Management System (Admin Console)</small>
+    <footer class="footer text-center mt-auto py-3 bg-white border-top">
+        <div class="container-fluid">
+            <span class="text-muted small">&copy; @DateTime.Now.Year - iLearn Management System (Admin Console)</span>
         </div>
     </footer>
 
@@ -114,10 +109,9 @@
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
         const serviceUrl = API_BASE;
 
-        // Helper Function: Create DataStore for DevExtreme
         function createDataStore(baseUrl, controllerName, options) {
             const defaults = {
-                key: 'id', // Default lowercase 'id' for JS
+                key: 'id',
                 loadUrl: `${baseUrl}/${controllerName}/Get`,
                 insertUrl: `${baseUrl}/${controllerName}/Post`,
                 updateUrl: `${baseUrl}/${controllerName}/Put`,
@@ -135,11 +129,9 @@
             return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
         }
 
-        // Helper Function: Excel Export
         function handleExporting(e, fileName) {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
-
             DevExpress.excelExporter.exportDataGrid({
                 component: e.component,
                 worksheet: worksheet,
@@ -152,13 +144,10 @@
             e.cancel = true;
         }
 
-        // Opt-in defaults for dxDataGrid. Pages can call getDxGridOptions() or initDxGrid()
-        // to merge these defaults with page-specific options. We intentionally avoid
-        // overriding the global $.fn.dxDataGrid to keep per-page control.
         const dxGridDefaults = {
             columnAutoWidth: true,
-            showBorders: false,
-            rowAlternationEnabled: false,
+            showBorders: true, /* ปรับให้แสดงกรอบตาราง (Borders) ชัดเจนขึ้นตามแบบฉบับ Admin UI */
+            rowAlternationEnabled: true, /* เปิดสลับสีแถวเพื่อง่ายต่อการอ่าน Data สลับขาว-เทา */
             showRowLines: true,
             hoverStateEnabled: true,
             scrolling: { mode: "virtual" },
@@ -167,13 +156,10 @@
             searchPanel: { visible: true, width: 300, placeholder: "Search..." }
         };
 
-        // Merge defaults with page-specific options and return a new options object.
         function getDxGridOptions(pageOptions) {
             return $.extend(true, {}, dxGridDefaults, pageOptions || {});
         }
 
-        // Convenience initializer: selector can be '#grid' and pageOptions contains
-        // dataSource, columns, editing, etc. Returns initialized grid instance.
         function initDxGrid(selector, pageOptions) {
             const opts = getDxGridOptions(pageOptions);
             return $(selector).dxDataGrid(opts).dxDataGrid('instance');

@@ -2,22 +2,22 @@
     ViewBag.Title = "Resource Library";
 }
 
-<div class="page-header">
-    <div class="container-fluid px-4">
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
         <div class="d-flex align-items-center justify-content-between">
-            <h1 class="page-title">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm page-title-icon">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
                     <i class="fas fa-folder-open"></i>
                 </div>
                 <div>
-                    @ViewBag.Title
-                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
                         Manage learning materials, SCORM packages, and assign them to courses.
                     </div>
                 </div>
             </h1>
             <div>
-                <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="openUploadPopup()">
+                <button class="btn btn-primary rounded shadow-sm px-3" onclick="openUploadPopup()">
                     <i class="fas fa-cloud-upload-alt me-2"></i> Upload Resource
                 </button>
             </div>
@@ -26,8 +26,8 @@
 </div>
 
 <div class="container-fluid px-4 pb-4">
-    <div class="content-card">
-        <div class="p-3">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-3">
             <div id="grid"></div>
         </div>
     </div>
@@ -35,22 +35,22 @@
 
 <div id="uploadPopup"></div>
 <div id="popupContent" style="display: none;">
-    <div class="p-2">
-        <div class="form-group mb-4">
-            <label class="form-label text-dark fw-bold">
-                <i class="fas fa-tag text-primary me-1"></i> 1. Select Content Type
+    <div class="p-3">
+        <div class="mb-4">
+            <label class="form-label text-dark fw-bold mb-2">
+                <i class="fas fa-tag text-primary me-2"></i> 1. Select Content Type
             </label>
             <div id="uploadTypeSelect"></div>
         </div>
-        <div class="form-group">
-            <label class="form-label text-dark fw-bold">
-                <i class="fas fa-file-archive text-primary me-1"></i> 2. Choose File (.zip)
+        <div>
+            <label class="form-label text-dark fw-bold mb-2">
+                <i class="fas fa-file-archive text-primary me-2"></i> 2. Choose File (.zip)
             </label>
-            <div class="upload-dropzone mt-1">
+            <div class="border rounded bg-light p-3 text-center mb-2" style="border-style: dashed !important; border-width: 2px !important;">
                 <div id="fileUploader"></div>
             </div>
-            <div class="mt-3 text-muted small text-center">
-                <i class="fas fa-info-circle text-primary"></i>
+            <div class="text-muted small text-center">
+                <i class="fas fa-info-circle text-primary me-1"></i>
                 Supported format: <b>.zip (SCORM)</b> | Max file size: <b>100MB</b>
             </div>
         </div>
@@ -60,8 +60,8 @@
 @section Scripts {
     <script>
         const resourceTypes = [
-            { id: 1, name: 'Learning Material (Learn)' },
-            { id: 2, name: 'Examination (Exam)' }
+            { id: 1, name: 'Learn' },
+            { id: 2, name: 'Exam' }
         ];
 
         let selectedUploadTypeId = 1;
@@ -69,7 +69,6 @@
         let uploadPopupInstance;
 
         $(() => {
-
             // --- 1. Init Upload Popup ---
             uploadPopupInstance = $("#uploadPopup").dxPopup({
                 title: "Upload New Resource",
@@ -195,14 +194,19 @@
 
             // --- 4. DataGrid Configuration ---
             const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
-
+            let isShowingUnassigned = true;
             gridInstance = initDxGrid("#grid", {
                 dataSource: resourcesStore,
                 filterValue: ["courseIdsCount", "=", 0],
                 remoteOperations: { paging: true, sorting: true, filtering: false },
                 searchPanel: { placeholder: "Search resources..." },
 
-                // Toolbar ปรับปุ่ม Toggle ให้สัมพันธ์กับค่าเริ่มต้น
+                // --- ปรับแต่ง UI ตารางหลัก ---
+                showBorders: false,
+                rowAlternationEnabled: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
+
                 onToolbarPreparing: function(e) {
                     e.toolbarOptions.items.unshift({
                         location: "before",
@@ -212,11 +216,10 @@
                             icon: "group",
                             stylingMode: "outlined",
                             type: "normal",
-                            onClick: function(args) {
-                                const currentFilter = gridInstance.option("filterValue");
-                                const isUnassignedFiltered = currentFilter && JSON.stringify(currentFilter).includes("courseIdsCount");
-
-                                if (isUnassignedFiltered) {
+                           onClick: function(args) {
+                                // เช็คจากตัวแปรสถานะของเราเอง
+                                if (isShowingUnassigned) {
+                                    // 1. ถ้ากำลังโชว์ Unassigned -> ให้เคลียร์ฟิลเตอร์เพื่อโชว์ทั้งหมด
                                     gridInstance.clearFilter();
                                     args.component.option({
                                         text: "Show Unassigned Only",
@@ -224,7 +227,9 @@
                                         stylingMode: "contained",
                                         type: "primary"
                                     });
+                                    isShowingUnassigned = false; // อัปเดตสถานะ
                                 } else {
+                                    // 2. ถ้ากำลังโชว์ทั้งหมด -> ให้ใส่ฟิลเตอร์กลับไป
                                     gridInstance.filter(["courseIdsCount", "=", 0]);
                                     args.component.option({
                                         text: "Show All Resources",
@@ -232,6 +237,7 @@
                                         stylingMode: "outlined",
                                         type: "normal"
                                     });
+                                    isShowingUnassigned = true; // อัปเดตสถานะ
                                 }
                             }
                         }
@@ -244,6 +250,7 @@
                     allowDeleting: true,
                     allowAdding: false,
                     useIcons: true,
+                    texts: { confirmDeleteMessage: "Are you sure you want to delete this resource?" },
                     popup: { title: "Edit Resource Information", showTitle: true, width: 600, height: 400 },
                     form: {
                         items: [
@@ -269,6 +276,7 @@
                     {
                         dataField: "name",
                         caption: "Resource File Name",
+                        dataType: "string", // <-- ระบุ Type ป้องกัน W1005
                         minWidth: 250,
                         cellTemplate: function(container, options) {
                             const name = options.value || "";
@@ -278,7 +286,7 @@
                             else if(name.toLowerCase().endsWith('.pdf')) iconClass = 'fas fa-file-pdf text-danger';
                             else if(name.toLowerCase().endsWith('.mp4')) iconClass = 'fas fa-file-video text-info';
 
-                            const wrapper = $("<div>").addClass("file-icon-wrapper fw-medium text-dark");
+                            const wrapper = $("<div>").addClass("fw-medium text-dark d-flex align-items-center gap-2");
                             $("<i>").addClass(iconClass).appendTo(wrapper);
                             $("<span>").text(name).appendTo(wrapper);
 
@@ -288,12 +296,13 @@
                     {
                         dataField: "typeId",
                         caption: "Resource Type",
+                        dataType: "number", // <-- ระบุ Type
                         width: 150,
                         lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' }
                     },
                     {
                         dataField: "courseIdsCount",
-                        dataType: "number",
+                        dataType: "number", // <-- ต้นเหตุที่ทำให้เกิด W1005 (เพราะมีการ Filter ตอนเริ่มต้น)
                         visible: false,
                         calculateCellValue: function(rowData) {
                             return rowData.courseResources ? rowData.courseResources.length : 0;
@@ -302,6 +311,7 @@
                     {
                         dataField: "courseIds",
                         caption: "Assigned Courses",
+                        dataType: "object", // <-- ระบุ Type เนื่องจากข้อมูลเป็น Array
                         width: 280,
                         allowSorting: false,
                         calculateCellValue: function(rowData) {
@@ -328,15 +338,7 @@
                             items.forEach(id => {
                                 const code = options.column.lookup.calculateCellValue(id) || id;
                                 $("<span>")
-                                    .addClass("badge")
-                                    .css({
-                                        "background-color": "var(--brand-light)",
-                                        "color": "var(--brand-color)",
-                                        "border": "1px solid rgba(0, 98, 204, 0.2)",
-                                        "font-size": "0.8rem",
-                                        "font-weight": "600",
-                                        "padding": "4px 8px"
-                                    })
+                                    .addClass("badge bg-light text-primary border px-2 py-1")
                                     .text(code)
                                     .appendTo(wrapper);
                             });
@@ -346,73 +348,44 @@
                     {
                         dataField: "isActive",
                         caption: "Status",
+                        dataType: "boolean", // <-- ระบุ Type
                         width: 120,
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             const isActive = options.value;
                             if (isActive) {
-                                $("<span>").addClass("badge-status badge-active").html('<i class="fas fa-check-circle"></i> Active').appendTo(container);
+                                $("<span>").addClass("badge bg-success text-white px-2 py-1").html('<i class="fas fa-check-circle"></i> Active').appendTo(container);
                             } else {
-                                $("<span>").addClass("badge-status badge-pending").html('<i class="fas fa-hourglass-half"></i> Pending').appendTo(container);
+                                $("<span>").addClass("badge bg-warning text-dark px-2 py-1").html('<i class="fas fa-hourglass-half"></i> Pending').appendTo(container);
                             }
                         }
                     },
-
-                    // --- คอลัมน์ Manage มาตรฐาน ---
                     {
-                        caption: "Manage", // เปลี่ยนจาก Actions เป็น Manage
-                        width: 180,
+                        type: "buttons",
+                        caption: "Manage",
+                        width: 140,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
-                        cellTemplate: function(container, options) {
-                            const data = options.data;
-                            const $group = $("<div>").addClass("action-group"); // ใช้ action-group
-
-                            // 1. Publish Button (if inactive)
-                            if (!data.isActive) {
-                                $("<button>")
-                                    .addClass("btn-icon text-success")
-                                    .attr("title", "Extract & Publish SCORM")
-                                    .html('<i class="fas fa-globe"></i>')
-                                    .on("click", () => setResourcePublic(data.id))
-                                    .appendTo($group);
+                        buttons: [
+                            {
+                                hint: "Extract & Publish SCORM",
+                                icon: "upload",
+                                visible: function(e) { return !e.row.data.isActive; },
+                                onClick: function(e) { setResourcePublic(e.row.data.id); }
+                            },
+                            {
+                                hint: "Preview Content",
+                                icon: "video",
+                                visible: function(e) { return e.row.data.isActive; },
+                                onClick: function(e) { viewContent(e.row.data); }
+                            },
+                            "edit",
+                            {
+                                name: "delete",
+                                visible: function(e) { return !e.row.data.isActive; }
                             }
-
-                            // 2. View Button (if active)
-                            if (data.isActive) {
-                                $("<button>")
-                                    .addClass("btn-icon text-info")
-                                    .attr("title", "Preview Content")
-                                    .html('<i class="fas fa-play-circle"></i>')
-                                    .on("click", () => viewContent(data))
-                                    .appendTo($group);
-                            }
-
-                            // 3. Edit Button
-                            $("<button>")
-                                .addClass("btn-icon text-primary")
-                                .attr("title", "Edit Properties")
-                                .html('<i class="fas fa-edit"></i>')
-                                .on("click", () => gridInstance.editRow(options.rowIndex))
-                                .appendTo($group);
-
-                            // 4. Delete Button (เงื่อนไข: ให้ลบได้เฉพาะ isActive = false)
-                            if (!data.isActive) {
-                                $("<button>")
-                                    .addClass("btn-icon text-danger")
-                                    .attr("title", "Delete Resource")
-                                    .html('<i class="fas fa-trash-alt"></i>')
-                                    .on("click", () => {
-                                        DevExpress.ui.dialog.confirm(`Delete resource "<b>${data.name}</b>"?`, "Confirm Delete").done((res) => {
-                                            if(res) gridInstance.deleteRow(options.rowIndex);
-                                        });
-                                    })
-                                    .appendTo($group);
-                            }
-
-                            $group.appendTo(container);
-                        }
+                        ]
                     }
                 ]
             });
@@ -499,6 +472,5 @@
                 }
             }
         });
-        // End Document Ready
     </script>
 }

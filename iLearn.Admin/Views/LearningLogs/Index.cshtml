@@ -2,22 +2,22 @@
     ViewBag.Title = "Learning Logs (SCORM)";
 }
 
-<div class="page-header">
-    <div class="container-fluid px-4">
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
         <div class="d-flex align-items-center justify-content-between">
-            <h1 class="page-title">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm page-title-icon">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
                     <i class="fas fa-chart-line"></i>
                 </div>
                 <div>
-                    @ViewBag.Title
-                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
                         Monitor detailed SCORM learning history, progress, and scores.
                     </div>
                 </div>
             </h1>
             <div>
-                <button class="btn btn-outline-secondary rounded-pill px-4 shadow-sm" onclick="exportGrid()">
+                <button class="btn btn-light border shadow-sm rounded px-3" onclick="exportGrid()">
                     <i class="fas fa-file-excel me-2 text-success"></i> Export to Excel
                 </button>
             </div>
@@ -26,8 +26,8 @@
 </div>
 
 <div class="container-fluid px-4 pb-4">
-    <div class="content-card">
-        <div class="p-3">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-3">
             <div id="grid"></div>
         </div>
     </div>
@@ -44,46 +44,66 @@
                 remoteOperations: true,
                 searchPanel: { placeholder: "Search logs..." },
 
+                // --- ปรับแต่ง UI ตารางหลัก ---
+                showBorders: false,
+                rowAlternationEnabled: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
+
                 export: { enabled: false }, // ซ่อนปุ่มเดิมและใช้ปุ่ม Custom ด้านบนแทน
                 onExporting: (e) => handleExporting(e, 'LearningLogs_Data'),
 
                 columns: [
-                    { dataField: "id", caption: "ID", width: 80, visible: false },
-                    { dataField: "studentCode", caption: "Employee ID", width: 150, cssClass: "fw-bold text-primary" },
-                    { dataField: "enrollmentId", caption: "Enrollment ID", width: 120, alignment: "center" },
+                    { dataField: "id", caption: "ID", dataType: "number", width: 80, visible: false },
+                    { dataField: "studentCode", caption: "Employee ID", dataType: "string", minWidth: 120 },
+                    { dataField: "enrollmentId", caption: "Enrollment ID", dataType: "number", minWidth: 120, alignment: "center" },
                     {
-                        dataField: "lessonStatus",
+                        dataField: "status", // อัปเดตให้ตรงกับ API ใหม่
                         caption: "Status",
-                        width: 150,
+                        dataType: "string",
+                        minWidth: 150,
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             const status = (options.value || "unknown").toLowerCase();
-                            let badgeClass = "bg-secondary";
+                            let badgeClass = "bg-secondary text-white";
                             let icon = "fa-question-circle";
 
                             if (status === 'passed' || status === 'completed') {
-                                badgeClass = "bg-success";
+                                badgeClass = "bg-success text-white";
                                 icon = "fa-check-circle";
                             } else if (status === 'failed') {
-                                badgeClass = "bg-danger";
+                                badgeClass = "bg-danger text-white";
                                 icon = "fa-times-circle";
                             } else if (status === 'incomplete' || status === 'browsed') {
                                 badgeClass = "bg-warning text-dark";
                                 icon = "fa-hourglass-half";
                             } else if (status === 'not attempted') {
-                                badgeClass = "bg-light border text-muted";
+                                badgeClass = "bg-light text-muted";
                                 icon = "fa-minus-circle";
                             }
 
-                            $("<span>").addClass(`badge ${badgeClass} px-2 py-1`)
+                            $("<span>").addClass(`badge border ${badgeClass} px-2 py-1`)
                                        .html(`<i class="fas ${icon} me-1"></i> ${options.value || 'N/A'}`)
                                        .appendTo(container);
                         }
                     },
                     {
-                        dataField: "scoreRaw",
+                        dataField: "progress", // เพิ่มคอลัมน์ progress เข้ามาใหม่
+                        caption: "Progress",
+                        dataType: "number",
+                        minWidth: 100,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const progress = options.value || 0;
+                            const colorClass = progress === 100 ? "text-success" : "text-primary";
+                            $("<span>").addClass(`fw-bold ${colorClass}`).text(`${progress}%`).appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "score", // เปลี่ยนจาก scoreRaw เป็น score
                         caption: "Score",
-                        width: 100,
+                        dataType: "number",
+                        minWidth: 80,
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             const score = options.value;
@@ -97,7 +117,8 @@
                     {
                         dataField: "totalSecondsPlayed",
                         caption: "Time Spent",
-                        width: 150,
+                        dataType: "number",
+                        minWidth: 120,
                         alignment: "center",
                         calculateCellValue: function(data) {
                             // แปลงวินาทีเป็น HH:mm:ss แบบรองรับเวลาเกิน 24 ชม. ได้
@@ -108,8 +129,14 @@
                             return `${h}:${m}:${s}`;
                         }
                     },
-                    { dataField: "attemptCount", caption: "Attempts", width: 100, alignment: "center" },
-                    { dataField: "lastAccessDate", caption: "Last Access", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 180 }
+                    { dataField: "attemptCount", caption: "Attempts", dataType: "number", minWidth: 90, alignment: "center" },
+                    {
+                        dataField: "updatedAt", // เปลี่ยนจาก lastAccessDate เป็น updatedAt
+                        caption: "Last Access",
+                        dataType: "datetime",
+                        format: "dd MMM yyyy HH:mm",
+                        minWidth: 160
+                    }
                 ]
             });
         });

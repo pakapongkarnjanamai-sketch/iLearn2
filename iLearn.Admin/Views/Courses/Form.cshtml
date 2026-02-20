@@ -3,22 +3,22 @@
     var isEdit = ViewBag.Id != null;
 }
 
-<div class="page-header">
-    <div class="container">
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
         <div class="d-flex align-items-center justify-content-between">
-            <h1 class="page-title">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.5rem;">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
                     <i class="fas @(isEdit ? "fa-edit" : "fa-plus")"></i>
                 </div>
                 <div>
-                    @ViewBag.Title
-                    <div class="text-muted fw-normal mt-1" style="font-size: 0.9rem;">
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
                         @(isEdit ? "Update course details and manage resources." : "Create a new training course for employees.")
                     </div>
                 </div>
             </h1>
             <div>
-                <button id="btn-cancel-top" class="btn btn-outline-secondary rounded-pill px-4">
+                <button id="btn-cancel-top" class="btn btn-light border shadow-sm rounded px-3">
                     <i class="fas fa-arrow-left me-2"></i> Back
                 </button>
             </div>
@@ -26,44 +26,42 @@
     </div>
 </div>
 
-<div class="container pb-5">
+<div class="container-fluid px-4 pb-5">
     <div id="load-panel"></div>
 
-    <div class="row">
+    <div class="row g-4">
         <div class="col-lg-7">
-            <div class="form-card">
-                <div class="form-section-header">
-                    <h5 class="section-title">
-                        <div class="section-icon"><i class="fas fa-info"></i></div>
-                        Course Information
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                        <i class="fas fa-info-circle text-primary"></i> Course Information
                     </h5>
                 </div>
-                <div class="form-body">
+                <div class="card-body p-4">
                     <div id="form-container"></div>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-5">
-            <div class="form-card h-100">
-                <div class="form-section-header">
-                    <h5 class="section-title">
-                        <div class="section-icon"><i class="fas fa-folder-open"></i></div>
-                        Course Resources
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                        <i class="fas fa-folder-open text-warning"></i> Course Resources
                     </h5>
-                    <span class="badge-count" id="resource-count-badge">0 Files</span>
+                    <span class="badge bg-light text-primary border px-2 py-1" id="resource-count-badge">0 Files</span>
                 </div>
 
-                <div class="form-body bg-light">
-                    <div class="upload-zone mb-4">
-                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                        <h6 class="fw-bold mb-2">Upload SCORM Package</h6>
+                <div class="card-body bg-light p-4">
+                    <div class="upload-zone mb-4 bg-white border rounded p-4 text-center shadow-sm" style="border-style: dashed !important; border-width: 2px !important; border-color: #dee2e6 !important;">
+                        <i class="fas fa-cloud-upload-alt text-secondary mb-3" style="font-size: 2.5rem;"></i>
+                        <h6 class="fw-bold mb-1">Upload SCORM Package</h6>
                         <p class="text-muted small mb-3">Drag & drop .zip files here or click to browse</p>
                         <div id="file-uploader-container"></div>
                     </div>
 
                     <h6 class="fw-bold text-muted mb-3"><i class="fas fa-list me-2"></i>Attached Files</h6>
-                    <div class="custom-grid-container bg-white shadow-sm">
+                    <div class="bg-white border rounded overflow-hidden shadow-sm">
                         <div id="grid"></div>
                     </div>
                 </div>
@@ -72,12 +70,12 @@
     </div>
 
     <div class="fixed-bottom bg-white shadow-lg py-3 border-top" style="z-index: 100;">
-        <div class="container d-flex justify-content-between align-items-center">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
             <div class="text-muted small">
                 <i class="fas fa-info-circle me-1"></i> Please verify all information before saving.
             </div>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-light btn-action text-muted border" onclick="history.back()">Cancel</button>
+                <button type="button" class="btn btn-light border px-4 shadow-sm" onclick="history.back()">Cancel</button>
                 <div id="btn-save"></div>
             </div>
         </div>
@@ -88,7 +86,6 @@
     <script>
         const COURSE_ID = @(ViewBag.Id ?? "null");
         const IS_EDIT = COURSE_ID != null;
-  
 
         // Initialize DataStores
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
@@ -286,6 +283,7 @@
                     isNew: true,
                     fileRef: file
                 }));
+
                 allResources = [...existingFiles, ...newFilesData];
                 $("#resource-count-badge").text(`${allResources.length} Files`);
                 renderGrid(allResources);
@@ -297,7 +295,7 @@
                     showBorders: false,
                     columnAutoWidth: true,
                     hoverStateEnabled: true,
-                    rowAlternationEnabled: false,
+                    rowAlternationEnabled: true,
                     showRowLines: true,
                     noDataText: "",
                     columns: [
@@ -309,30 +307,30 @@
                                 const iconClass = isNew ? "fa-file-upload text-success" : "fa-file-archive text-primary";
                                 const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
                                 $("<i>").addClass(`fas ${iconClass}`).appendTo(wrapper);
-                                $("<span>").addClass("fw-medium text-truncate").css("max-width", "180px").attr("title", options.value).text(options.value).appendTo(wrapper);
+                                $("<span>").addClass("fw-medium text-truncate").css("max-width", "250px").attr("title", options.value).text(options.value).appendTo(wrapper);
                                 wrapper.appendTo(container);
                             }
                         },
                         {
+                            type: "buttons", // แจ้ง DevExtreme ว่าคอลัมน์นี้คือปุ่มกด
                             caption: "Action",
-                            width: 60,
+                            width: 80,
                             alignment: "center",
-                            cellTemplate: function(container, options) {
-                                const data = options.data;
-                                $("<button>")
-                                    .addClass("btn btn-link text-danger p-0")
-                                    .html('<i class="fas fa-times"></i>')
-                                    .attr("title", "Remove")
-                                    .on("click", function() {
+                            buttons: [
+                                {
+                                    hint: "Remove",
+                                    icon: "trash", // ใช้ไอคอนถังขยะแบบ Native ของ DevExtreme
+                                    onClick: function(e) {
+                                        const data = e.row.data;
                                         if (data.isNew) {
                                             newFiles = newFiles.filter(f => f !== data.fileRef);
                                             updateResourceGrid();
                                         } else {
                                             confirmDeleteResource(data.id, data.name);
                                         }
-                                    })
-                                    .appendTo(container);
-                            }
+                                    }
+                                }
+                            ]
                         }
                     ],
                     onContentReady: function(e) {
@@ -365,7 +363,7 @@
                         xhrFields: { withCredentials: true }
                     });
                     DevExpress.ui.notify("File deleted", "success", 2000);
-                    existingFiles = existingFiles.filter(f => f.id !== id);
+                    existingFiles = existingFiles.filter(f => f !== id);
                     updateResourceGrid();
                 } catch (err) {
                     console.error(err);
@@ -383,7 +381,7 @@
                 icon: "save",
                 type: "default",
                 stylingMode: "contained",
-                elementAttr: { class: "btn-action shadow-sm" },
+                elementAttr: { class: "shadow-sm px-3" },
                 onClick: () => submitData()
             });
 
