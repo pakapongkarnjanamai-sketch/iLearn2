@@ -16,7 +16,23 @@ namespace iLearn.Infrastructure.Services
         {
             _httpClient = httpClient;
         }
+        public async Task<string> GetStudentsDxGridAsync(string queryString)
+        {
+            try
+            {
+                // นำ Query String (เช่น ?skip=0&take=20&requireTotalCount=true) มาต่อท้าย URL
+                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student{queryString}";
 
+                // ใช้ GetStringAsync เพื่อดึง JSON ดิบๆ กลับมาเลย ไม่ต้อง Deserialize
+                var response = await _httpClient.GetStringAsync(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching DevExtreme grid data: {ex.Message}");
+                return null;
+            }
+        }
         public async Task<ExternalStudentDto> GetStudentByCodeAsync(string Code)
         {
             try
@@ -32,13 +48,13 @@ namespace iLearn.Infrastructure.Services
             }
         }
 
-        public async Task<StudentDto> GetStudentAsync()
+        public async Task<AllStudentsApiResponse> GetStudentAsync()
         {
             try
             {
-                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student";
+                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student/all";
 
-                var response = await _httpClient.GetFromJsonAsync<StudentDto>(url);
+                var response = await _httpClient.GetFromJsonAsync<AllStudentsApiResponse>(url);
                 return response;
             }
             catch

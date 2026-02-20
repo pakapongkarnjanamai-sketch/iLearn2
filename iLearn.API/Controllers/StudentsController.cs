@@ -37,18 +37,7 @@ namespace iLearn.API.Controllers
             return Ok(student);
         }
 
-        [HttpGet("GetStudentAsync")]
-        public async Task<IActionResult> GetStudentAsync()
-        {
-            var student = await _studentService.GetStudentAsync();
-
-            if (student == null)
-            {
-                return NotFound(new { message = "ไม่พบข้อมูลพนักงานครับ" });
-            }
-
-            return Ok(student);
-        }
+    
 
         // เพิ่ม Endpoint ใหม่สำหรับดึงข้อมูลตามแผนก (Divisions)
         [HttpGet("divisions")]
@@ -71,6 +60,24 @@ namespace iLearn.API.Controllers
             }
 
             return Ok(result);
+        }
+
+        [HttpGet("Get")]
+        public async Task<IActionResult> Get()
+        {
+            // 1. ดึงค่า Query String ทั้งหมดที่ DataGrid ส่งมา (เช่นการแบ่งหน้า, ค้นหา)
+            var queryString = Request.QueryString.Value;
+
+            // 2. ส่งต่อให้ Service ไปคุยกับ API ต้นทาง
+            var resultJson = await _studentService.GetStudentsDxGridAsync(queryString);
+
+            if (resultJson == null)
+            {
+                return StatusCode(500, new { message = "ไม่สามารถเชื่อมต่อดึงข้อมูลจากฐานข้อมูลพนักงานได้ครับ" });
+            }
+
+            // 3. ส่ง JSON ที่ได้กลับไปให้หน้าบ้านตรงๆ เลย ด้วย ContentType application/json
+            return Content(resultJson, "application/json");
         }
     }
 }

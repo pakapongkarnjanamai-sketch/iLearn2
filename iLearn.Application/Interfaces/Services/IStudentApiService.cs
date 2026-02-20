@@ -5,13 +5,12 @@ namespace iLearn.Application.Interfaces.Services
 {
     public interface IStudentApiService
     {
-        // ดึงข้อมูลนักเรียนจากรหัส
         Task<ExternalStudentDto> GetStudentByCodeAsync(string Code);
-
-        // ดึงข้อมูลนักเรียนทั้งหมด (หรือตามที่ API กำหนด)
-        Task<StudentDto> GetStudentAsync();
-
-        // ฟังก์ชันใหม่: ดึงข้อมูลนักเรียนตามแผนก (Divisions) พร้อมรองรับการแบ่งหน้า (Pagination)
+        Task<AllStudentsApiResponse> GetStudentAsync();
         Task<DivisionApiResponse> GetStudentsByDivisionsAsync(string[] divisions, int skip = 0, int take = 20);
+
+        // --- เพิ่มฟังก์ชันนี้เข้าไปใหม่ ---
+        // ฟังก์ชันนี้จะทำหน้าที่เป็น Proxy รับ Query String ส่งไปให้ API ต้นทาง
+        Task<string> GetStudentsDxGridAsync(string queryString);
     }
 }

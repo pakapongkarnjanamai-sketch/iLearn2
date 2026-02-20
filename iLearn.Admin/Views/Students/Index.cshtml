@@ -1,0 +1,108 @@
+﻿@{
+    ViewBag.Title = "Students (Employees)";
+}
+
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
+                        View and manage student/employee information.
+                    </div>
+                </div>
+            </h1>
+            <div>
+                <button class="btn btn-outline-secondary rounded shadow-sm px-3" onclick="gridInstance.refresh()">
+                    <i class="fas fa-sync-alt me-2"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-3">
+            <div id="grid"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let gridInstance;
+        $(() => {
+            // เรียกใช้ initDxGrid เพื่อนำการตั้งค่าจาก Layout มาใช้ร่วมกัน
+            gridInstance = initDxGrid("#grid", {
+                // ระบุชื่อ Controller ฝั่ง API ของคุณ (เช่น 'api/Students' หรือ 'Students')
+                // หาก API คุณไม่ได้ใช้ฟังก์ชัน /Get พื้นฐาน คุณอาจต้องตั้งค่า options.action เพิ่มเติม
+                dataSource: createDataStore(serviceUrl, 'Students', { key: 'EId' }),
+                remoteOperations: true,
+                selection: { mode: 'single' },
+                searchPanel: { placeholder: "Search students by Name, ID, or Division..." },
+
+                // --- ปรับแต่ง UI ตารางหลัก ---
+                showBorders: false,
+                rowAlternationEnabled: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
+
+                // ปิดการแก้ไขข้อมูลหากข้อมูลนักเรียนดึงมาจากระบบ HR ส่วนกลาง
+                editing: {
+                    mode: "popup",
+                    allowUpdating: false,
+                    allowDeleting: false,
+                    allowAdding: false
+                },
+
+                columns: [
+                    {
+                        dataField: "EId",
+                        caption: "Employee ID",
+                        width: 160,
+                        alignment: "center",
+                        fixed: true
+                    },
+                    {
+                        dataField: "EnglishFirstName",
+                        caption: "First Name",
+                        width: 250
+                    },
+                    {
+                        dataField: "EnglishLastName",
+                        caption: "Last Name",
+                        width: 250
+                    },
+                      {
+                        dataField: "Position",
+                        caption: "Position",
+                        width: 150
+                    },
+                    {
+                        dataField: "Division",
+                        caption: "Division",
+                        width: 120,
+                        alignment: "center"
+                    },
+                    {
+                        dataField: "Department",
+                        caption: "Department",
+                        width: 120,
+                        alignment: "center"
+                    },
+                    {
+                        dataField: "Section",
+                        caption: "Section",
+                     
+                    },
+                  
+                ]
+            });
+        });
+    </script>
+}

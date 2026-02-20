@@ -2,6 +2,11 @@
 
 namespace iLearn.Application.DTOs
 {
+    public class AllStudentsApiResponse
+    {
+        public bool success { get; set; }
+        public List<StudentDto> data { get; set; } // ใช้ List<StudentDto> เพื่อรับ Array ของพนักงาน
+    }
     public class ExternalStudentDto
     {
         public string Code { get; set; }
