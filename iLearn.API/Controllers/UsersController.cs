@@ -45,22 +45,22 @@ namespace iLearn.API.Controllers
             return Ok(user.ToDto());
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
-        {
-            // 1. สร้าง User ตามปกติ
-            var user = dto.ToEntity();
+        //[HttpPost]
+        //public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
+        //{
+        //    // 1. สร้าง User ตามปกติ
+        //    var user = dto.ToEntity();
 
-            // (ควรเช็ค User ซ้ำตรงนี้ด้วย Nid)
+        //    // (ควรเช็ค User ซ้ำตรงนี้ด้วย Nid)
 
-            var createdUser = await _userRepo.AddAsync(user);
+        //    var createdUser = await _userRepo.AddAsync(user);
 
-            // 2. [สำคัญ] Trigger ระบบ Auto-Assignment! 🚀
-            // ระบบจะไปค้นหาคอร์ส General ทั้งหมดแล้วยัดให้ User คนนี้ทันที
-            await _assignmentService.AssignGeneralCoursesToNewUserAsync(createdUser.Id);
+        //    // 2. [สำคัญ] Trigger ระบบ Auto-Assignment! 🚀
+        //    // ระบบจะไปค้นหาคอร์ส General ทั้งหมดแล้วยัดให้ User คนนี้ทันที
+        //    await _assignmentService.AssignGeneralCoursesToNewUserAsync(createdUser.Id);
 
-            return CreatedAtAction(nameof(GetById), new { id = createdUser.Id }, createdUser.ToDto());
-        }
+        //    return CreatedAtAction(nameof(GetById), new { id = createdUser.Id }, createdUser.ToDto());
+        //}
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

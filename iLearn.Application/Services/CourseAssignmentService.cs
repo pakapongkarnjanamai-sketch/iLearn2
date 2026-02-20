@@ -1,4 +1,5 @@
-﻿using iLearn.Application.Interfaces.Repositories;
+﻿using iLearn.Application.DTOs; // ดึง DTO ของฝั่ง API มาใช้
+using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
@@ -11,55 +12,77 @@ namespace iLearn.Application.Services
 {
     public class CourseAssignmentService : ICourseAssignmentService
     {
-        private readonly IGenericRepository<User> _userRepo;
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<AssignmentRule> _ruleRepo;
-        private readonly IGenericRepository<UserRole> _userRoleRepo;
-        // [Optional] ถ้า Course ไม่ได้ Include Versions มา อาจต้อง Inject Repository ของ CourseVersion เพิ่ม
+        private readonly IStudentApiService _studentApiService; // <--- นำ API Service เข้ามาแทน UserRepo
 
         public CourseAssignmentService(
-            IGenericRepository<User> userRepo,
             ICourseRepository courseRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<AssignmentRule> ruleRepo,
-            IGenericRepository<UserRole> userRoleRepo)
+            IStudentApiService studentApiService)
         {
-            _userRepo = userRepo;
             _courseRepo = courseRepo;
             _enrollmentRepo = enrollmentRepo;
             _ruleRepo = ruleRepo;
-            _userRoleRepo = userRoleRepo;
+            _studentApiService = studentApiService;
         }
 
-        // กรณี 1: พนักงานใหม่เข้ามา -> หาคอร์ส General ยัดใส่ให้
-        public async Task AssignGeneralCoursesToNewUserAsync(int userId)
+        // --- 1. ฟังก์ชันจับคู่กฎ (เปลี่ยนมารับ StudentDto จาก API แทน) ---
+        private AssignmentRule? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<AssignmentRule> rules)
         {
-            var user = await _userRepo.GetByIdAsync(userId);
-            if (user == null) return;
+            if (rules == null || !rules.Any()) return null;
 
-            // หมายเหตุ: ต้องมั่นใจว่า Method นี้ Include Versions มาด้วย
+            foreach (var rule in rules)
+            {
+                // นำโครงสร้างองค์กรจาก API (student) มาเปรียบเทียบกับกฎ
+                bool divisionMatch = string.IsNullOrEmpty(rule.Division) || student.Division == rule.Division;
+                bool departmentMatch = string.IsNullOrEmpty(rule.Department) || student.Department == rule.Department;
+                bool sectionMatch = string.IsNullOrEmpty(rule.Section) || student.Section == rule.Section;
+                bool positionMatch = string.IsNullOrEmpty(rule.Position) || student.Position == rule.Position;
+
+                if (divisionMatch && departmentMatch && sectionMatch && positionMatch)
+                {
+                    return rule;
+                }
+            }
+            return null;
+        }
+
+        // --- 2. กรณีพนักงานใหม่เข้ามา -> เปลี่ยน Parameter เป็นรหัสพนักงาน EId ---
+        public async Task AssignGeneralCoursesToNewUserAsync(string employeeId)
+        {
+            // (ทางเลือก) คุณอาจจะตรวจสอบก่อนว่ารหัสพนักงานนี้มีอยู่จริงในระบบ HR 
+            // var studentInfo = await _studentApiService.GetStudentByCodeAsync(employeeId);
+            // if (studentInfo == null) return;
+
             var activeCourses = await _courseRepo.GetActiveCoursesAsync();
             var generalCourses = activeCourses.Where(c => c.Type == CourseType.General);
 
             foreach (var course in generalCourses)
             {
-                await CreateOrUpdateEnrollment(user, course);
+                // โยน EId ตรงๆ เข้าตาราง Enrollment ได้เลย
+                await CreateOrUpdateEnrollment(employeeId, course, null);
             }
         }
 
-        // กรณี 2: Admin กด Assign หรือสร้างคอร์สใหม่ -> ระบบวิ่งหาคน
+        // --- 3. กรณี Admin กด Assign หรือสร้างคอร์สใหม่ -> ดึงคนจาก API ---
         public async Task ProcessAssignmentForCourseAsync(int courseId)
         {
-            // หมายเหตุ: ต้องมั่นใจว่า Method นี้ Include Versions มาด้วย
             var course = await _courseRepo.GetByIdAsync(courseId);
             if (course == null || !course.IsActive) return;
 
-            var users = await _userRepo.GetAllAsync();
+            // ดึงข้อมูลพนักงาน "ทั้งหมด 7000+ คน" จาก API
+            var apiResponse = await _studentApiService.GetStudentAsync();
+            if (apiResponse == null || !apiResponse.success || apiResponse.data == null) return;
+
+            var allStudents = apiResponse.data;
             var rules = await _ruleRepo.GetAsync(r => r.CourseId == courseId);
 
-            foreach (var user in users)
+            foreach (var student in allStudents)
             {
+                AssignmentRule? matchedRule = null;
                 bool shouldAssign = false;
 
                 if (course.Type == CourseType.General)
@@ -68,46 +91,23 @@ namespace iLearn.Application.Services
                 }
                 else if (course.Type == CourseType.Special)
                 {
-                    shouldAssign = await CheckIfUserMatchesRules(user, rules);
+                    // ส่ง StudentDto เข้าไปเช็ค
+                    matchedRule = GetMatchingRuleForStudent(student, rules);
+                    shouldAssign = matchedRule != null;
                 }
 
                 if (shouldAssign)
                 {
-                    await CreateOrUpdateEnrollment(user, course);
+                    // โยน EId ลงฐานข้อมูล (เช่น "N142715")
+                    await CreateOrUpdateEnrollment(student.EId, course, matchedRule);
                 }
             }
         }
 
         // --- Helper Logic ---
-
-        private async Task<bool> CheckIfUserMatchesRules(User user, IReadOnlyList<AssignmentRule> rules)
-        {
-            if (rules == null || !rules.Any()) return false;
-
-            var userRoles = await _userRoleRepo.GetAsync(ur => ur.UserId == user.Id);
-
-            foreach (var rule in rules)
-            {
-                bool roleMatch = !rule.RoleId.HasValue ||
-                                 userRoles.Any(ur => ur.RoleId == rule.RoleId);
-
-                bool divisionMatch = !rule.DivisionId.HasValue;
-                // TODO: ถ้าต้องการเช็ค DivisionId ให้แม่นยำ ต้อง Join Role หรือ User มาเช็ค
-
-                if (roleMatch && divisionMatch) return true;
-            }
-
-            return false;
-        }
-
-        // [Updated] Logic การหา Version ล่าสุด
         private int GetCurrentActiveVersion(Course course)
         {
-            if (course.Versions == null || !course.Versions.Any())
-            {
-                // Fallback กรณีหาไม่เจอ ให้ return 1 หรือ throw exception ตาม Business Logic
-                return 1;
-            }
+            if (course.Versions == null || !course.Versions.Any()) return 1;
 
             return course.Versions
                 .Where(v => v.IsActive)
@@ -116,36 +116,41 @@ namespace iLearn.Application.Services
                 .FirstOrDefault();
         }
 
-        private async Task CreateOrUpdateEnrollment(User user, Course course)
+        // --- 4. ฟังก์ชันบันทึกลงฐานข้อมูล (รับ Parameter เป็น EId ทันที) ---
+        private async Task CreateOrUpdateEnrollment(string studentCode, Course course, AssignmentRule? matchedRule = null)
         {
-            // หา Version ปัจจุบันของ Course ที่จะ Assign
             int currentVersion = GetCurrentActiveVersion(course);
 
+            // เช็คว่าในตารางมี EId ของคนนี้หรือยัง
             var existingEnrollments = await _enrollmentRepo.GetAsync(e =>
-                e.StudentCode == user.Nid &&
+                e.StudentCode == studentCode &&
                 e.CourseId == course.Id);
 
             var existing = existingEnrollments.FirstOrDefault();
 
             if (existing == null)
             {
-                // ยังไม่เคยเรียน -> สร้างใหม่ด้วย Version ปัจจุบัน
                 var newEnrollment = new Enrollment
                 {
-                    StudentCode = user.Nid,
+                    StudentCode = studentCode, // บันทึก EId ลงคอลัมน์ StudentCode
                     CourseId = course.Id,
-                    EnrolledCourseVersion = currentVersion, // ใช้ Version จาก Logic ใหม่
+                    EnrolledCourseVersion = currentVersion,
                     IsCompleted = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    AssignmentRuleId = matchedRule?.Id,
+                    StartDate = matchedRule?.StartDate,
+                    DueDate = matchedRule?.DueDate
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
             }
             else if (existing.EnrolledCourseVersion < currentVersion)
             {
-                // เคยเรียนแล้ว แต่มี Version ใหม่ -> Reset ให้ Retake
-                existing.EnrolledCourseVersion = currentVersion; // อัปเดต Version
+                existing.EnrolledCourseVersion = currentVersion;
                 existing.IsCompleted = false;
                 existing.CompletedDate = null;
+                existing.AssignmentRuleId = matchedRule?.Id;
+                existing.StartDate = matchedRule?.StartDate;
+                existing.DueDate = matchedRule?.DueDate;
 
                 await _enrollmentRepo.UpdateAsync(existing);
             }

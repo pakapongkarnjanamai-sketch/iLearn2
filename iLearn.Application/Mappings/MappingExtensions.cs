@@ -160,10 +160,12 @@ namespace iLearn.Application.Mappings
             {
                 Id = entity.Id,
                 CourseId = entity.CourseId,
-                DivisionId = entity.DivisionId,
-                DivisionName = entity.Division?.Name,
-                RoleId = entity.RoleId,
-                RoleName = entity.Role?.Name
+                Division = entity.Division,
+                Department = entity.Department,
+                Section = entity.Section,
+                Position = entity.Position,
+                StartDate = entity.StartDate,
+                DueDate = entity.DueDate
             };
         }
 
@@ -173,61 +175,15 @@ namespace iLearn.Application.Mappings
             return new AssignmentRule
             {
                 CourseId = dto.CourseId,
-                DivisionId = dto.DivisionId,
-                RoleId = dto.RoleId
+                Division = dto.Division,
+                Department = dto.Department,
+                Section = dto.Section,
+                Position = dto.Position,
+                StartDate = dto.StartDate,
+                DueDate = dto.DueDate
             };
         }
 
-        // --- Learning Log Mappings ---
 
-        // --- Learning Log Mappings (Updated for SCORM) ---
-
-        //public static LearningLogDto ToDto(this LearningLog entity)
-        //{
-        //    if (entity == null) return null;
-        //    return new LearningLogDto
-        //    {
-        //        Id = entity.Id,
-        //        StudentCode = entity.StudentCode,
-        //        CourseId = entity.CourseId,
-        //        CourseVersionId = entity.CourseVersionId, // New
-        //        ResourceId = entity.ResourceId,           // New (แทน ContentId)
-
-        //        // SCORM Fields
-        //        LessonStatus = entity.LessonStatus,
-        //        LessonLocation = entity.LessonLocation,
-        //        ScoreRaw = entity.ScoreRaw,
-        //        TotalTime = entity.TotalTime, // New (แทน LearnTime/ExamTime)
-
-        //        // Metadata
-        //        AttemptCount = entity.AttemptCount,
-        //        LastAccessDate = entity.LastAccessDate,
-        //        CompletedDate = entity.CompletedDate,
-        //        IsFinalized = entity.IsFinalized,
-        //        CreatedAt = entity.CreatedAt,
-        //        UpdatedAt = entity.UpdatedAt
-        //    };
-        //}
-
-        //public static LearningLog ToEntity(this CreateLearningLogDto dto)
-        //{
-        //    if (dto == null) return null;
-        //    return new LearningLog
-        //    {
-        //        StudentCode = dto.StudentCode,
-        //        CourseId = dto.CourseId,
-        //        CourseVersionId = dto.CourseVersionId, // New
-        //        ResourceId = dto.ResourceId,           // New
-
-        //        // Optional initial values
-        //        LessonStatus = dto.LessonStatus ?? "not attempted",
-        //        ScoreRaw = dto.ScoreRaw,
-        //        TotalTime = dto.TotalTime ?? "00:00:00",
-
-        //        // Default values for new log
-        //        AttemptCount = 1,
-        //        IsFinalized = false
-        //    };
-        //}
     }
 }

@@ -29,19 +29,27 @@
     {
         public int Id { get; set; }
         public int CourseId { get; set; }
-
-        // เงื่อนไข
-        public int? DivisionId { get; set; }
-        public string? DivisionName { get; set; }
-
-        public int? RoleId { get; set; }
-        public string? RoleName { get; set; }
+        public string? Division { get; set; }
+        public string? Department { get; set; }
+        public string? Section { get; set; }
+        public string? Position { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
     }
 
+    // --- Create Assignment Rule (ใช้สำหรับรับค่าตอนกด Save/Add New Rule) ---
     public class CreateAssignmentRuleDto
     {
         public int CourseId { get; set; }
-        public int? DivisionId { get; set; }
-        public int? RoleId { get; set; }
+
+        // เปลี่ยนจาก ID เป็น String เพื่อให้ตรงกับ Entity ใหม่ที่คุณต้องการ
+        public string? Division { get; set; }
+        public string? Department { get; set; }
+        public string? Section { get; set; }
+        public string? Position { get; set; }
+
+        // เพิ่มวันที่เพื่อให้ Admin วางแผนล่วงหน้าได้ตามที่คุยกัน
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
     }
 }
