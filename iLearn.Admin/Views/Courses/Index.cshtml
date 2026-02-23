@@ -177,6 +177,15 @@
                                     window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.row.data.id;
                                 }
                             },
+                            {
+            hint: "Assign to Employees",
+            icon: "group",
+            onClick: function(e) {
+                // ส่ง ID ของวิชานั้นแนบไปกับ URL
+                window.location.href = `/AssignmentRules/Form?courseId=${e.row.data.id}`;
+            }
+        },
+
                             "delete"
                         ]
                     }

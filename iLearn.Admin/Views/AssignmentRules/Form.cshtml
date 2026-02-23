@@ -1,0 +1,310 @@
+﻿@{
+    ViewBag.Title = "Bulk Course Assignment";
+}
+
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
+                        Assign a training course to multiple employees based on specific criteria.
+                    </div>
+                </div>
+            </h1>
+            <div>
+                <button id="btn-cancel-top" class="btn btn-light border shadow-sm rounded px-3" onclick="history.back()">
+                    <i class="fas fa-arrow-left me-2"></i> Back
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-5">
+    <div id="load-panel"></div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                        <i class="fas fa-filter text-primary"></i> Assignment Criteria
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div id="criteria-form"></div>
+
+                    <hr class="my-4" />
+
+                    <button id="btn-search-emp" class="btn btn-primary w-100 shadow-sm" style="padding: 10px;">
+                        <i class="fas fa-search me-2"></i> Find Employees
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                        <i class="fas fa-list text-success"></i> Target Employees
+                    </h5>
+                    <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm" id="selected-count" style="font-size: 0.9rem;">
+                        0 Selected
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="employees-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed-bottom bg-white shadow-lg py-3 border-top" style="z-index: 100;">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                <i class="fas fa-info-circle me-1"></i> Please review selected employees before assigning the course.
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-light border px-4 shadow-sm" onclick="history.back()">Cancel</button>
+                <div id="btn-assign"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // DataStore สำหรับดึงรายชื่อ Course
+        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
+
+        let criteriaForm;
+        let employeesGrid;
+
+        $(() => {
+            // โหลดดิ้งแพเนล
+            const loadPanel = $("#load-panel").dxLoadPanel({
+                shadingColor: "rgba(255,255,255,0.8)",
+                position: { of: "body" },
+                visible: false,
+                showIndicator: true,
+                showPane: true,
+                shading: true,
+                message: "Processing..."
+            }).dxLoadPanel("instance");
+
+            // --- สร้าง Form สำหรับรับเงื่อนไข ---
+            criteriaForm = $("#criteria-form").dxForm({
+                formData: {
+                    startDate: new Date() // ค่าเริ่มต้นให้ใส่วันนี้
+                },
+                colCount: 1,
+                labelMode: "floating",
+                stylingMode: "outlined",
+                items: [
+                    {
+                        itemType: "group",
+                        caption: "1. Select Course",
+                        items: [
+                            {
+                                dataField: "courseId",
+                                label: { text: "Target Course" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: coursesStore,
+                                    displayExpr: "title",
+                                    valueExpr: "id",
+                                    searchEnabled: true,
+                                    placeholder: "Select Course..."
+                                },
+                                validationRules: [{ type: "required", message: "Please select a course" }]
+                            }
+                        ]
+                    },
+                    {
+                        itemType: "group",
+                        caption: "2. Schedule",
+                        colCount: 2,
+                        items: [
+                            {
+                                dataField: "startDate",
+                                label: { text: "Start Date" },
+                                editorType: "dxDateBox",
+                                editorOptions: { displayFormat: "dd/MM/yyyy" },
+                                validationRules: [{ type: "required", message: "Start date is required" }]
+                            },
+                            {
+                                dataField: "dueDate",
+                                label: { text: "Due Date" },
+                                editorType: "dxDateBox",
+                                editorOptions: { displayFormat: "dd/MM/yyyy" }
+                            }
+                        ]
+                    },
+                    {
+                        itemType: "group",
+                        caption: "3. Organization Filters",
+                        colCount: 2,
+                        items: [
+                            { dataField: "division", label: { text: "Division" }, editorOptions: { placeholder: "e.g. CSD" } },
+                            { dataField: "department", label: { text: "Department" } },
+                            { dataField: "section", label: { text: "Section" } },
+                            { dataField: "position", label: { text: "Position" } }
+                        ]
+                    }
+                ]
+            }).dxForm("instance");
+
+            // --- สร้าง DataGrid สำหรับแสดงและเลือกพนักงาน ---
+            employeesGrid = $("#employees-grid").dxDataGrid({
+                dataSource: [], // เริ่มต้นเป็น Array ว่าง
+                keyExpr: "eId",
+                showBorders: false,
+                rowAlternationEnabled: true,
+                hoverStateEnabled: true,
+                height: 550, // กำหนดความสูงให้ตารางพอดีกับหน้าจอ
+                scrolling: { mode: "virtual" },
+                searchPanel: {
+                    visible: true,
+                    width: 250,
+                    placeholder: "Search in grid..."
+                },
+                selection: {
+                    mode: "multiple",
+                    selectAllMode: "allPages",
+                    showCheckBoxesMode: "always"
+                },
+                columns: [
+                    { dataField: "eId", caption: "Emp ID", width: 100, alignment: "center" },
+                    {
+                        caption: "Employee Name",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            $("<span>").text(`${data.englishFirstName} ${data.englishLastName}`).appendTo(container);
+                        }
+                    },
+                    { dataField: "division", caption: "Division", width: 100, alignment: "center" },
+                    { dataField: "department", caption: "Department", width: 120, alignment: "center" },
+                    { dataField: "position", caption: "Position", width: 120, alignment: "center" }
+                ],
+                onSelectionChanged: function(e) {
+                    // อัปเดตตัวเลขเมื่อมีการติ๊กเลือกพนักงาน
+                    const selectedRows = e.component.getSelectedRowKeys().length;
+                    $("#selected-count").text(`${selectedRows} Selected`);
+                },
+                noDataText: "Please fill the criteria and click 'Find Employees'"
+            }).dxDataGrid("instance");
+
+            // --- เมื่อกดปุ่ม Find Employees ---
+            $("#btn-search-emp").click(function() {
+                const filters = criteriaForm.option("formData");
+
+                loadPanel.option("message", "Finding employees...");
+                loadPanel.show();
+
+                // สร้าง URL สำหรับดึงข้อมูล API
+                // ปรับ URL นี้ให้ตรงกับ Endpoint ที่ใช้งานจริงใน Environment ของคุณ
+                let apiUrl = `https://localhost:7128/api/Students/divisions?skip=0&take=500`;
+
+                // แนบเงื่อนไขไปกับ URL Parameter
+                if (filters.division) apiUrl += `&divisions=${encodeURIComponent(filters.division)}`;
+                // if (filters.department) apiUrl += `&department=${encodeURIComponent(filters.department)}`;
+                // if (filters.section) apiUrl += `&section=${encodeURIComponent(filters.section)}`;
+                // if (filters.position) apiUrl += `&position=${encodeURIComponent(filters.position)}`;
+
+                $.ajax({
+                    url: apiUrl,
+                    method: "GET",
+                    xhrFields: { withCredentials: true },
+                    success: function(response) {
+                        // สมมติว่า response คือโครงสร้าง { data: [...], totalCount: ... }
+                        const empData = response.data || [];
+                        employeesGrid.option("dataSource", empData);
+
+                        // ถ้าระบบค้นหาเจอคน ให้ติ๊กเลือกทุกคนไว้ล่วงหน้าเพื่อความสะดวก
+                        if(empData.length > 0) {
+                            employeesGrid.selectAll();
+                        }
+
+                        DevExpress.ui.notify(`Found ${empData.length} employees`, "success", 2000);
+                    },
+                    error: function(err) {
+                        console.error(err);
+                        DevExpress.ui.notify("Failed to load employees data", "error", 3000);
+                    },
+                    complete: () => loadPanel.hide()
+                });
+            });
+
+            // --- เมื่อกดปุ่ม ยืนยันการ Assign ---
+            $("#btn-assign").dxButton({
+                text: "Confirm & Assign",
+                icon: "check",
+                type: "default",
+                stylingMode: "contained",
+                elementAttr: { class: "shadow-sm px-4 btn-primary" },
+                onClick: function() {
+                    const isFormValid = criteriaForm.validate().isValid;
+                    const selectedEmployees = employeesGrid.getSelectedRowKeys(); // รหัสพนักงานที่ถูกติ๊กเลือก
+
+                    // ตรวจสอบเงื่อนไข
+                    if (!isFormValid) {
+                        DevExpress.ui.notify("Please complete the required criteria.", "warning", 3000);
+                        return;
+                    }
+                    if (selectedEmployees.length === 0) {
+                        DevExpress.ui.notify("Please select at least one employee from the list.", "error", 3000);
+                        return;
+                    }
+
+                    // ข้อมูลที่เตรียมส่งไปยัง Backend
+                    const formData = criteriaForm.option("formData");
+                    const payload = {
+                        courseId: formData.courseId,
+                        startDate: formData.startDate,
+                        dueDate: formData.dueDate,
+                        employeeCodes: selectedEmployees
+                    };
+
+                    // โชว์ Dialog ยืนยันอีกครั้งก่อนส่ง
+                    DevExpress.ui.dialog.confirm(
+                        `Are you sure you want to assign this course to <b>${selectedEmployees.length} employees</b>?`,
+                        "Confirm Assignment"
+                    ).done(function(dialogResult) {
+                        if (dialogResult) {
+                            executeBulkAssign(payload);
+                        }
+                    });
+                }
+            });
+
+            function executeBulkAssign(payload) {
+                loadPanel.option("message", "Assigning course...");
+                loadPanel.show();
+
+                $.ajax({
+                    url: `${serviceUrl}/admin/Enrollments/BulkAssign`, // URL Endpoint ที่คุณจะสร้างใน Backend
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(payload),
+                    xhrFields: { withCredentials: true },
+                    success: function(res) {
+                        DevExpress.ui.notify("Course assigned successfully!", "success", 3000);
+                        // กลับไปหน้าไหนสักหน้าที่เหมาะสม (เช่นหน้าคอร์ส หรือหน้ารายการ Enrollments)
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "Enrollments")', 1500);
+                    },
+                    error: function(err) {
+                        console.error(err);
+                        DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign course"), "error", 4000);
+                    },
+                    complete: () => loadPanel.hide()
+                });
+            }
+        });
+    </script>
+}
