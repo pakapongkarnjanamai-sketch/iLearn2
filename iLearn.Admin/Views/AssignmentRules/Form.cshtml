@@ -52,7 +52,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                        <i class="fas fa-list text-success"></i> Target Employees
+                        <i class="fas fa-list text-primary"></i> Target Employees
                     </h5>
                     <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm" id="selected-count" style="font-size: 0.9rem;">
                         0 Selected
@@ -78,16 +78,20 @@
     </div>
 </div>
 
-@section Scripts {
+   @section Scripts {
     <script>
-        // DataStore สำหรับดึงรายชื่อ Course
-        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
+        // รับค่า courseId ที่ส่งมาจากหน้าอื่น (ถ้ามี)
+        const PRESELECTED_COURSE_ID = @(ViewBag.CourseId ?? "null");
 
+        // DataStores
+        const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
+        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
+        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
+        
         let criteriaForm;
         let employeesGrid;
 
         $(() => {
-            // โหลดดิ้งแพเนล
             const loadPanel = $("#load-panel").dxLoadPanel({
                 shadingColor: "rgba(255,255,255,0.8)",
                 position: { of: "body" },
@@ -100,55 +104,103 @@
 
             // --- สร้าง Form สำหรับรับเงื่อนไข ---
             criteriaForm = $("#criteria-form").dxForm({
-                formData: {
-                    startDate: new Date() // ค่าเริ่มต้นให้ใส่วันนี้
+                formData: { 
+                    startDate: new Date(),
+                    courseId: PRESELECTED_COURSE_ID // เซ็ตค่าเริ่มต้นวิชา ถ้าถูกส่งมาจากหน้าอื่น
                 },
                 colCount: 1,
                 labelMode: "floating",
                 stylingMode: "outlined",
                 items: [
                     {
-                        itemType: "group",
+                        itemType: "group", 
                         caption: "1. Select Course",
                         items: [
                             {
-                                dataField: "courseId",
-                                label: { text: "Target Course" },
+                                dataField: "_filterDivisionId", // ฟิลด์จำลองสำหรับ Filter
+                                label: { text: "Filter by Division" },
                                 editorType: "dxSelectBox",
                                 editorOptions: {
-                                    dataSource: coursesStore,
-                                    displayExpr: "title",
+                                    dataSource: divisionsStore,
+                                    displayExpr: "name", 
                                     valueExpr: "id",
                                     searchEnabled: true,
-                                    placeholder: "Select Course..."
-                                },
-                                validationRules: [{ type: "required", message: "Please select a course" }]
-                            }
-                        ]
-                    },
-                    {
-                        itemType: "group",
-                        caption: "2. Schedule",
-                        colCount: 2,
-                        items: [
-                            {
-                                dataField: "startDate",
-                                label: { text: "Start Date" },
-                                editorType: "dxDateBox",
-                                editorOptions: { displayFormat: "dd/MM/yyyy" },
-                                validationRules: [{ type: "required", message: "Start date is required" }]
+                                    showClearButton: true,
+                                    placeholder: "All Divisions...",
+                                    onValueChanged: function(e) {
+                                        // เมื่อเปลี่ยน Division ให้ล้างค่า Category และ Course
+                                        const catEditor = criteriaForm.getEditor("_filterCategoryId");
+                                        const courseEditor = criteriaForm.getEditor("courseId");
+                                        
+                                        catEditor.option("value", null);
+                                        courseEditor.option("value", null);
+                                        
+                                        // กรองหมวดหมู่ (Category) ให้เหลือเฉพาะของ Division นี้
+                                        const catDS = catEditor.getDataSource();
+                                        if (e.value) {
+                                            catDS.filter(["divisionId", "=", e.value]);
+                                        } else {
+                                            catDS.filter(null);
+                                        }
+                                        catDS.load();
+                                    }
+                                }
                             },
                             {
-                                dataField: "dueDate",
-                                label: { text: "Due Date" },
-                                editorType: "dxDateBox",
-                                editorOptions: { displayFormat: "dd/MM/yyyy" }
+                                dataField: "_filterCategoryId", // ฟิลด์จำลองสำหรับ Filter
+                                label: { text: "Filter by Category" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: categoriesStore,
+                                    displayExpr: "name", 
+                                    valueExpr: "id",
+                                    searchEnabled: true,
+                                    showClearButton: true,
+                                    placeholder: "All Categories...",
+                                    onValueChanged: function(e) {
+                                        // เมื่อเปลี่ยน Category ให้ล้างค่า Course
+                                        const courseEditor = criteriaForm.getEditor("courseId");
+                                        courseEditor.option("value", null);
+                                        
+                                        // กรองวิชา (Course) ให้เหลือเฉพาะของ Category นี้
+                                        const courseDS = courseEditor.getDataSource();
+                                        if (e.value) {
+                                            courseDS.filter(["categoryId", "=", e.value]);
+                                        } else {
+                                            courseDS.filter(null);
+                                        }
+                                        courseDS.load();
+                                    }
+                                }
+                            },
+                            { 
+                                dataField: "courseId", 
+                                label: { text: "Target Course" }, 
+                                editorType: "dxSelectBox", 
+                                editorOptions: { 
+                                    dataSource: coursesStore, 
+                                    displayExpr: "title", 
+                                    valueExpr: "id", 
+                                    searchEnabled: true,
+                                    showClearButton: true,
+                                    placeholder: "Select Course..."
+                                }, 
+                                validationRules: [{ type: "required", message: "Please select a course" }] 
                             }
                         ]
                     },
                     {
-                        itemType: "group",
-                        caption: "3. Organization Filters",
+                        itemType: "group", 
+                        caption: "2. Schedule", 
+                        colCount: 2,
+                        items: [
+                            { dataField: "startDate", label: { text: "Start Date" }, editorType: "dxDateBox", editorOptions: { displayFormat: "dd/MM/yyyy" }, validationRules: [{ type: "required", message: "Start date is required" }] },
+                            { dataField: "dueDate", label: { text: "Due Date" }, editorType: "dxDateBox", editorOptions: { displayFormat: "dd/MM/yyyy" } }
+                        ]
+                    },
+                    {
+                        itemType: "group", 
+                        caption: "3. Organization Filters", 
                         colCount: 2,
                         items: [
                             { dataField: "division", label: { text: "Division" }, editorOptions: { placeholder: "e.g. CSD" } },
@@ -162,27 +214,19 @@
 
             // --- สร้าง DataGrid สำหรับแสดงและเลือกพนักงาน ---
             employeesGrid = $("#employees-grid").dxDataGrid({
-                dataSource: [], // เริ่มต้นเป็น Array ว่าง
+                dataSource: [],
                 keyExpr: "eId",
                 showBorders: false,
                 rowAlternationEnabled: true,
                 hoverStateEnabled: true,
-                height: 550, // กำหนดความสูงให้ตารางพอดีกับหน้าจอ
+                height: 550,
                 scrolling: { mode: "virtual" },
-                searchPanel: {
-                    visible: true,
-                    width: 250,
-                    placeholder: "Search in grid..."
-                },
-                selection: {
-                    mode: "multiple",
-                    selectAllMode: "allPages",
-                    showCheckBoxesMode: "always"
-                },
+                searchPanel: { visible: true, width: 250, placeholder: "Search in grid..." },
+                selection: { mode: "multiple", selectAllMode: "allPages", showCheckBoxesMode: "always" },
                 columns: [
                     { dataField: "eId", caption: "Emp ID", width: 100, alignment: "center" },
-                    {
-                        caption: "Employee Name",
+                    { 
+                        caption: "Employee Name", 
                         cellTemplate: function(container, options) {
                             const data = options.data;
                             $("<span>").text(`${data.englishFirstName} ${data.englishLastName}`).appendTo(container);
@@ -193,7 +237,6 @@
                     { dataField: "position", caption: "Position", width: 120, alignment: "center" }
                 ],
                 onSelectionChanged: function(e) {
-                    // อัปเดตตัวเลขเมื่อมีการติ๊กเลือกพนักงาน
                     const selectedRows = e.component.getSelectedRowKeys().length;
                     $("#selected-count").text(`${selectedRows} Selected`);
                 },
@@ -203,34 +246,21 @@
             // --- เมื่อกดปุ่ม Find Employees ---
             $("#btn-search-emp").click(function() {
                 const filters = criteriaForm.option("formData");
-
                 loadPanel.option("message", "Finding employees...");
                 loadPanel.show();
 
-                // สร้าง URL สำหรับดึงข้อมูล API
-                // ปรับ URL นี้ให้ตรงกับ Endpoint ที่ใช้งานจริงใน Environment ของคุณ
                 let apiUrl = `https://localhost:7128/api/Students/divisions?skip=0&take=500`;
-
-                // แนบเงื่อนไขไปกับ URL Parameter
                 if (filters.division) apiUrl += `&divisions=${encodeURIComponent(filters.division)}`;
                 // if (filters.department) apiUrl += `&department=${encodeURIComponent(filters.department)}`;
-                // if (filters.section) apiUrl += `&section=${encodeURIComponent(filters.section)}`;
-                // if (filters.position) apiUrl += `&position=${encodeURIComponent(filters.position)}`;
 
                 $.ajax({
                     url: apiUrl,
                     method: "GET",
                     xhrFields: { withCredentials: true },
                     success: function(response) {
-                        // สมมติว่า response คือโครงสร้าง { data: [...], totalCount: ... }
                         const empData = response.data || [];
                         employeesGrid.option("dataSource", empData);
-
-                        // ถ้าระบบค้นหาเจอคน ให้ติ๊กเลือกทุกคนไว้ล่วงหน้าเพื่อความสะดวก
-                        if(empData.length > 0) {
-                            employeesGrid.selectAll();
-                        }
-
+                        if(empData.length > 0) employeesGrid.selectAll();
                         DevExpress.ui.notify(`Found ${empData.length} employees`, "success", 2000);
                     },
                     error: function(err) {
@@ -250,9 +280,8 @@
                 elementAttr: { class: "shadow-sm px-4 btn-primary" },
                 onClick: function() {
                     const isFormValid = criteriaForm.validate().isValid;
-                    const selectedEmployees = employeesGrid.getSelectedRowKeys(); // รหัสพนักงานที่ถูกติ๊กเลือก
+                    const selectedEmployees = employeesGrid.getSelectedRowKeys(); 
 
-                    // ตรวจสอบเงื่อนไข
                     if (!isFormValid) {
                         DevExpress.ui.notify("Please complete the required criteria.", "warning", 3000);
                         return;
@@ -262,8 +291,9 @@
                         return;
                     }
 
-                    // ข้อมูลที่เตรียมส่งไปยัง Backend
                     const formData = criteriaForm.option("formData");
+                    
+                    // สร้าง Payload เฉพาะฟิลด์ที่ต้องการส่งไป Backend (ไม่รวมฟิลด์ช่วยค้นหาที่ขึ้นต้นด้วย _ )
                     const payload = {
                         courseId: formData.courseId,
                         startDate: formData.startDate,
@@ -271,14 +301,11 @@
                         employeeCodes: selectedEmployees
                     };
 
-                    // โชว์ Dialog ยืนยันอีกครั้งก่อนส่ง
                     DevExpress.ui.dialog.confirm(
                         `Are you sure you want to assign this course to <b>${selectedEmployees.length} employees</b>?`,
                         "Confirm Assignment"
                     ).done(function(dialogResult) {
-                        if (dialogResult) {
-                            executeBulkAssign(payload);
-                        }
+                        if (dialogResult) executeBulkAssign(payload);
                     });
                 }
             });
@@ -288,18 +315,16 @@
                 loadPanel.show();
 
                 $.ajax({
-                    url: `${serviceUrl}/admin/Enrollments/BulkAssign`, // URL Endpoint ที่คุณจะสร้างใน Backend
+                    url: `${serviceUrl}/admin/Enrollments/BulkAssign`, 
                     method: "POST",
                     contentType: "application/json",
                     data: JSON.stringify(payload),
                     xhrFields: { withCredentials: true },
                     success: function(res) {
                         DevExpress.ui.notify("Course assigned successfully!", "success", 3000);
-                        // กลับไปหน้าไหนสักหน้าที่เหมาะสม (เช่นหน้าคอร์ส หรือหน้ารายการ Enrollments)
                         setTimeout(() => window.location.href = '@Url.Action("Index", "Enrollments")', 1500);
                     },
                     error: function(err) {
-                        console.error(err);
                         DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign course"), "error", 4000);
                     },
                     complete: () => loadPanel.hide()
@@ -307,4 +332,5 @@
             }
         });
     </script>
+
 }
