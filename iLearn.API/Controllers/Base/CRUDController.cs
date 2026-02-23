@@ -16,9 +16,9 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
-    public class AssignmentRulesCRUDController : GenericController<AssignmentRule>
+    public class AssignmentsCRUDController : GenericController<Assignment>
     {
-        public AssignmentRulesCRUDController(IGenericRepository<AssignmentRule> repository) : base(repository)
+        public AssignmentsCRUDController(IGenericRepository<Assignment> repository) : base(repository)
         {
         }
     }

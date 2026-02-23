@@ -5,24 +5,18 @@
 namespace iLearn.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateEmployeeCodesToAssignmentRule : Migration
+    public partial class RenameAssignmentRuleToAssignment : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "EmployeeCodes",
-                table: "Assignments",
-                type: "nvarchar(max)",
-                nullable: true);
+
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "EmployeeCodes",
-                table: "Assignments");
+
         }
     }
 }

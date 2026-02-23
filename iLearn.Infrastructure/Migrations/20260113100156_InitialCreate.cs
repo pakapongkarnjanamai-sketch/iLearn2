@@ -222,7 +222,7 @@ namespace iLearn.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AssignmentRules",
+                name: "Assignments",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -312,17 +312,17 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssignmentRules_CourseId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssignmentRules_DivisionId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "DivisionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssignmentRules_RoleId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
@@ -377,7 +377,7 @@ namespace iLearn.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AssignmentRules");
+                name: "Assignments");
 
             migrationBuilder.DropTable(
                 name: "CourseResources");

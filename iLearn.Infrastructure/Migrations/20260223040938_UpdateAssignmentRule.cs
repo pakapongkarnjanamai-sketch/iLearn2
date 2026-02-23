@@ -12,16 +12,16 @@ namespace iLearn.Infrastructure.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "Department",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.RenameColumn(
                 name: "Section",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "Description");
 
             migrationBuilder.RenameColumn(
                 name: "Position",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "AssignmentNo");
         }
 
@@ -30,17 +30,17 @@ namespace iLearn.Infrastructure.Migrations
         {
             migrationBuilder.RenameColumn(
                 name: "Description",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "Section");
 
             migrationBuilder.RenameColumn(
                 name: "AssignmentNo",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "Position");
 
             migrationBuilder.AddColumn<string>(
                 name: "Department",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true);
         }

@@ -153,7 +153,7 @@ namespace iLearn.Application.Mappings
         }
 
         // --- Assignment Rule Mappings ---
-        public static AssignmentRuleDto ToDto(this AssignmentRule entity)
+        public static AssignmentRuleDto ToDto(this Assignment entity)
         {
             if (entity == null) return null;
             return new AssignmentRuleDto
@@ -167,10 +167,10 @@ namespace iLearn.Application.Mappings
             };
         }
 
-        public static AssignmentRule ToEntity(this CreateAssignmentRuleDto dto)
+        public static Assignment ToEntity(this CreateAssignmentRuleDto dto)
         {
             if (dto == null) return null;
-            return new AssignmentRule
+            return new Assignment
             {
                 CourseId = dto.CourseId,
                 Division = dto.Division,

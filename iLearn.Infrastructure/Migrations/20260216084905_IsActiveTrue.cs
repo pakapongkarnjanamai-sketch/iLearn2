@@ -68,7 +68,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsActive",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "bit",
                 nullable: false,
                 defaultValue: false);
@@ -111,7 +111,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.DropColumn(
                 name: "IsActive",
-                table: "AssignmentRules");
+                table: "Assignments");
         }
     }
 }

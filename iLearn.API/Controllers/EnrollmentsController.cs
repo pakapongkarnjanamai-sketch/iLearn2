@@ -18,7 +18,7 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly ICourseAssignmentService _enrollmentService;
-        private readonly IGenericRepository<AssignmentRule> _assignmentRuleRepo;
+        private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly ICurrentUserService _currentUserService;
         private readonly ICurrentUserService _currentUser;
         private readonly IGenericRepository<LearningLog> _logRepo;
@@ -28,7 +28,7 @@ namespace iLearn.API.Controllers
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
             ICourseAssignmentService enrollmentService,
-            IGenericRepository<AssignmentRule> assignmentRuleRepo,
+            IGenericRepository<Assignment> assignmentRepo,
             ICurrentUserService currentUserService,
             ICurrentUserService currentUser,
             IGenericRepository<LearningLog> logRepo,
@@ -37,7 +37,7 @@ namespace iLearn.API.Controllers
         {
             _enrollmentRepo = enrollmentRepo;
             _enrollmentService = enrollmentService;
-            _assignmentRuleRepo = assignmentRuleRepo;
+            _assignmentRepo = assignmentRepo;
             _currentUserService = currentUserService;
             _currentUser = currentUser;
             _logRepo = logRepo;
@@ -229,21 +229,21 @@ namespace iLearn.API.Controllers
                 return BadRequest(new { message = "Courses and Employees are required." });
             }
 
-            // 1. สร้าง Assignment No (รันเลข)
+            // 1. สร้าง Assignments No (รันเลข)
             // ตัวอย่างการทำ Format: AS-YYYYMMDD-001 (ของจริงอาจจะต้องไป Query หาเลขล่าสุดใน DB มา +1 ครับ)
             string datePrefix = DateTime.Now.ToString("yyyyMMdd");
             // TODO: Query หาเลข Running จาก DB 
-            // int nextRunningNo = (_dbContext.AssignmentRules.Count(x => x.AssignmentNo.StartsWith($"AS-{datePrefix}")) + 1);
+            // int nextRunningNo = (_dbContext.Assignments.Count(x => x.AssignmentNo.StartsWith($"AS-{datePrefix}")) + 1);
             int nextRunningNo = 1; // สมมติว่าเป็น 1
             string assignmentNo = $"AS-{datePrefix}-{nextRunningNo:D3}";
 
             // แปลง Array พนักงานให้อยู่ในรูป Comma-separated (ถ้า Database ของคุณเก็บเป็น String)
             string employeesStr = string.Join(",", dto.EmployeeCodes);
 
-            // 2. วนลูปสร้าง Assignment Rule ตามจำนวนวิชาที่เลือก
+            // 2. วนลูปสร้าง Assignments Rule ตามจำนวนวิชาที่เลือก
             foreach (var courseId in dto.CourseIds)
             {
-                var rule = new AssignmentRule
+                var rule = new Assignment
                 {
                     AssignmentNo = assignmentNo,
                     Description = dto.Description,
@@ -256,7 +256,7 @@ namespace iLearn.API.Controllers
 
               
                 // บันทึก Rule ลง Database
-                await _assignmentRuleRepo.AddAsync(rule);
+                await _assignmentRepo.AddAsync(rule);
 
                 // 3. นำ EmployeeCodes ไป Insert ลงตาราง Enrollment และผูกกับ rule.Id ด้วย
                 await _enrollmentService.AssignCourseToEmployees(courseId, dto.EmployeeCodes, dto.StartDate, dto.DueDate, rule.Id);

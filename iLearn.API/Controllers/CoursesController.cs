@@ -248,7 +248,7 @@ namespace iLearn.API.Controllers
 
             await _assignmentService.ProcessAssignmentForCourseAsync(id);
 
-            return Ok(new { message = "เริ่มกระบวนการมอบหมายหลักสูตรแล้ว (Assignment Process Started)" });
+            return Ok(new { message = "เริ่มกระบวนการมอบหมายหลักสูตรแล้ว (Assignments Process Started)" });
         }
 
         [HttpPost("create-scorm")]

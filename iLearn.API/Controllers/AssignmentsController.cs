@@ -10,13 +10,13 @@ namespace iLearn.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AssignmentRulesController : ControllerBase
+    public class AssignmentsController : ControllerBase
     {
-        private readonly IGenericRepository<AssignmentRule> _repo;
+        private readonly IGenericRepository<Assignment> _repo;
         private readonly ICourseAssignmentService _assignmentService;
 
-        public AssignmentRulesController(
-            IGenericRepository<AssignmentRule> repo,
+        public AssignmentsController(
+            IGenericRepository<Assignment> repo,
             ICourseAssignmentService assignmentService)
         {
             _repo = repo;

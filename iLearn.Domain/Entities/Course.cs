@@ -18,6 +18,6 @@ namespace iLearn.Domain.Entities
         public ICollection<CourseVersion> Versions { get; set; } = new List<CourseVersion>();
 
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
-        public ICollection<AssignmentRule> AssignmentRules { get; set; } = new List<AssignmentRule>();
+        public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
     }
 }

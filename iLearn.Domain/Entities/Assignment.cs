@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace iLearn.Domain.Entities
 {
-    public class AssignmentRule : BaseEntity
+    public class Assignment : BaseEntity
     {
         // เพิ่มฟิลด์ใหม่
         public string? AssignmentNo { get; set; }

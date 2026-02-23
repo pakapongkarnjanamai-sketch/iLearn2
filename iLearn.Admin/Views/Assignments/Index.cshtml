@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Assignment History / Rules";
+    ViewBag.Title = "Assignments History / Rules";
 }
 
 <div class="page-header shadow-sm border-0 mb-4 rounded">
@@ -17,7 +17,7 @@
                 </div>
             </h1>
             <div>
-                <a href="@Url.Action("Form", "AssignmentRules")" class="btn btn-primary rounded shadow-sm px-3">
+                <a href="@Url.Action("Form", "Assignments")" class="btn btn-primary rounded shadow-sm px-3">
                     <i class="fas fa-plus me-2"></i> New Assignment
                 </a>
             </div>
@@ -44,7 +44,7 @@
                     key: "id",
                     load: function () {
                         return $.ajax({
-                            url: `${serviceUrl}/AssignmentRules/history`, // เรียก API ใหม่
+                            url: `${serviceUrl}/Assignments/history`, // เรียก API ใหม่
                             method: "GET",
                             xhrFields: { withCredentials: true }
                         });
@@ -129,7 +129,7 @@
                                 hint: "View Progress Dashboard",
                                 icon: "eye",
                                 onClick: function(e) {
-                                    window.location.href = '@Url.Action("Progress", "AssignmentRules")/' + e.row.data.id;
+                                    window.location.href = '@Url.Action("Progress", "Assignments")/' + e.row.data.id;
                                 }
                             },
                             "delete"

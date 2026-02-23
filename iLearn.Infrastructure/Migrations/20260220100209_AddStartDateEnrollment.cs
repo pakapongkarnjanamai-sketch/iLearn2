@@ -13,27 +13,27 @@ namespace iLearn.Infrastructure.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_AssignmentRules_Divisions_DivisionId",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_AssignmentRules_Roles_RoleId",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropIndex(
                 name: "IX_AssignmentRules_DivisionId",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropIndex(
                 name: "IX_AssignmentRules_RoleId",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "DivisionId",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "RoleId",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "StartDate",
@@ -43,37 +43,37 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "Department",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Division",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "DueDate",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "datetime2",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Position",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Section",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "StartDate",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "datetime2",
                 nullable: true);
         }
@@ -87,60 +87,60 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.DropColumn(
                 name: "Department",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "Division",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "DueDate",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "Position",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "Section",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.DropColumn(
                 name: "StartDate",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.AddColumn<int>(
                 name: "DivisionId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "int",
                 nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "RoleId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "int",
                 nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssignmentRules_DivisionId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "DivisionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssignmentRules_RoleId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "RoleId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_AssignmentRules_Divisions_DivisionId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "DivisionId",
                 principalTable: "Divisions",
                 principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_AssignmentRules_Roles_RoleId",
-                table: "AssignmentRules",
+                table: "Assignments",
                 column: "RoleId",
                 principalTable: "Roles",
                 principalColumn: "Id");

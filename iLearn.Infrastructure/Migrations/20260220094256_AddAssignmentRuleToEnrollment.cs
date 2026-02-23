@@ -25,7 +25,7 @@ namespace iLearn.Infrastructure.Migrations
                 name: "FK_Enrollments_AssignmentRules_AssignmentRuleId",
                 table: "Enrollments",
                 column: "AssignmentRuleId",
-                principalTable: "AssignmentRules",
+                principalTable: "Assignments",
                 principalColumn: "Id");
         }
 

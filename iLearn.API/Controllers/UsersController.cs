@@ -55,7 +55,7 @@ namespace iLearn.API.Controllers
 
         //    var createdUser = await _userRepo.AddAsync(user);
 
-        //    // 2. [สำคัญ] Trigger ระบบ Auto-Assignment! 🚀
+        //    // 2. [สำคัญ] Trigger ระบบ Auto-Assignments! 🚀
         //    // ระบบจะไปค้นหาคอร์ส General ทั้งหมดแล้วยัดให้ User คนนี้ทันที
         //    await _assignmentService.AssignGeneralCoursesToNewUserAsync(createdUser.Id);
 

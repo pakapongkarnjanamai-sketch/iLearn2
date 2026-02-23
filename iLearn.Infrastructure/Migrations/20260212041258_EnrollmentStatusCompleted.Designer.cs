@@ -25,7 +25,7 @@ namespace iLearn.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("iLearn.Domain.Entities.AssignmentRule", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.Assignments", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -64,7 +64,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AssignmentRules");
+                    b.ToTable("Assignments");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Category", b =>
@@ -581,10 +581,10 @@ namespace iLearn.Infrastructure.Migrations
                     b.ToTable("UserRoles");
                 });
 
-            modelBuilder.Entity("iLearn.Domain.Entities.AssignmentRule", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.Assignments", b =>
                 {
                     b.HasOne("iLearn.Domain.Entities.Course", "Course")
-                        .WithMany("AssignmentRules")
+                        .WithMany("Assignments")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -709,7 +709,7 @@ namespace iLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("iLearn.Domain.Entities.Course", b =>
                 {
-                    b.Navigation("AssignmentRules");
+                    b.Navigation("Assignments");
 
                     b.Navigation("Enrollments");
 

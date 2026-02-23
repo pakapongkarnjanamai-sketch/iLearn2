@@ -12,8 +12,8 @@ using iLearn.Infrastructure.Persistence;
 namespace iLearn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260209094916_UpdateLearningLogStartDate")]
-    partial class UpdateLearningLogStartDate
+    [Migration("20260223081316_RenameAssignmentRuleToAssignment")]
+    partial class RenameAssignmentRuleToAssignment
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,13 +25,16 @@ namespace iLearn.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("iLearn.Domain.Entities.Assignments", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.Assignment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AssignmentNo")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
@@ -43,11 +46,23 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("DivisionId")
-                        .HasColumnType("int");
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("RoleId")
-                        .HasColumnType("int");
+                    b.Property<string>("Division")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmployeeCodes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -59,10 +74,6 @@ namespace iLearn.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
-
-                    b.HasIndex("DivisionId");
-
-                    b.HasIndex("RoleId");
 
                     b.ToTable("Assignments");
                 });
@@ -173,6 +184,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ResourceId")
                         .HasColumnType("int");
 
@@ -248,6 +262,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -272,6 +289,9 @@ namespace iLearn.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AssignmentRuleId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CompletedDate")
                         .HasColumnType("datetime2");
 
@@ -288,16 +308,30 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("EnrolledVersion")
+                    b.Property<int>("EnrolledCourseVersion")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<double>("Progress")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("StudentCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalTimeSpent")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -307,6 +341,8 @@ namespace iLearn.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignmentRuleId");
 
                     b.HasIndex("CourseId");
 
@@ -335,6 +371,9 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<byte[]>("Data")
                         .HasColumnType("varbinary(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<long>("Length")
                         .HasColumnType("bigint");
 
@@ -362,6 +401,9 @@ namespace iLearn.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
                     b.Property<int>("CourseVersionId")
                         .HasColumnType("int");
 
@@ -371,6 +413,12 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("EnrollmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<double>("Progress")
                         .HasColumnType("float");
@@ -392,6 +440,9 @@ namespace iLearn.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("TotalSecondsPlayed")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -400,6 +451,8 @@ namespace iLearn.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId");
 
                     b.ToTable("LearningLogs");
                 });
@@ -475,6 +528,9 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<int?>("DivisionId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -511,6 +567,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("LastLogin")
                         .HasColumnType("datetime2");
 
@@ -545,6 +604,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
@@ -567,7 +629,7 @@ namespace iLearn.Infrastructure.Migrations
                     b.ToTable("UserRoles");
                 });
 
-            modelBuilder.Entity("iLearn.Domain.Entities.Assignments", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.Assignment", b =>
                 {
                     b.HasOne("iLearn.Domain.Entities.Course", "Course")
                         .WithMany("Assignments")
@@ -575,19 +637,7 @@ namespace iLearn.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("iLearn.Domain.Entities.Division", "Division")
-                        .WithMany()
-                        .HasForeignKey("DivisionId");
-
-                    b.HasOne("iLearn.Domain.Entities.Role", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId");
-
                     b.Navigation("Course");
-
-                    b.Navigation("Division");
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Category", b =>
@@ -642,13 +692,30 @@ namespace iLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("iLearn.Domain.Entities.Enrollment", b =>
                 {
+                    b.HasOne("iLearn.Domain.Entities.Assignment", "AssignmentRule")
+                        .WithMany()
+                        .HasForeignKey("AssignmentRuleId");
+
                     b.HasOne("iLearn.Domain.Entities.Course", "Course")
                         .WithMany("Enrollments")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("AssignmentRule");
+
                     b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.LearningLog", b =>
+                {
+                    b.HasOne("iLearn.Domain.Entities.Enrollment", "Enrollment")
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Enrollment");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Resource", b =>

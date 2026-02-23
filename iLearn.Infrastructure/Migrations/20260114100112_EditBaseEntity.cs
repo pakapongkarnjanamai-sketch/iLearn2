@@ -52,7 +52,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.DropColumn(
                 name: "LastModifiedBy",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.RenameColumn(
                 name: "LastModifiedDate",
@@ -156,12 +156,12 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.RenameColumn(
                 name: "LastModifiedDate",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "UpdatedAt");
 
             migrationBuilder.RenameColumn(
                 name: "CreatedDate",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "CreatedAt");
 
             migrationBuilder.AlterColumn<string>(
@@ -336,7 +336,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "CreatedBy",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(100)",
                 maxLength: 100,
                 nullable: true,
@@ -346,7 +346,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "UpdatedBy",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(100)",
                 maxLength: 100,
                 nullable: true);
@@ -397,7 +397,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.DropColumn(
                 name: "UpdatedBy",
-                table: "AssignmentRules");
+                table: "Assignments");
 
             migrationBuilder.RenameColumn(
                 name: "UpdatedAt",
@@ -501,12 +501,12 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.RenameColumn(
                 name: "UpdatedAt",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "LastModifiedDate");
 
             migrationBuilder.RenameColumn(
                 name: "CreatedAt",
-                table: "AssignmentRules",
+                table: "Assignments",
                 newName: "CreatedDate");
 
             migrationBuilder.AlterColumn<string>(
@@ -671,7 +671,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "CreatedBy",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true,
                 oldClrType: typeof(string),
@@ -681,7 +681,7 @@ namespace iLearn.Infrastructure.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "LastModifiedBy",
-                table: "AssignmentRules",
+                table: "Assignments",
                 type: "nvarchar(max)",
                 nullable: true);
         }

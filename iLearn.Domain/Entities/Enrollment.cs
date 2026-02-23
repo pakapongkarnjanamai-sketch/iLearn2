@@ -27,6 +27,6 @@ namespace iLearn.Domain.Entities
         public int? AssignmentRuleId { get; set; }
 
         [ForeignKey("AssignmentRuleId")]
-        public AssignmentRule? AssignmentRule { get; set; }
+        public Assignment? AssignmentRule { get; set; }
     }
 }

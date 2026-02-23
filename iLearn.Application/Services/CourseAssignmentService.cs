@@ -14,13 +14,13 @@ namespace iLearn.Application.Services
     {
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
-        private readonly IGenericRepository<AssignmentRule> _ruleRepo;
+        private readonly IGenericRepository<Assignment> _ruleRepo;
         private readonly IStudentApiService _studentApiService;
 
         public CourseAssignmentService(
             ICourseRepository courseRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
-            IGenericRepository<AssignmentRule> ruleRepo,
+            IGenericRepository<Assignment> ruleRepo,
             IStudentApiService studentApiService)
         {
             _courseRepo = courseRepo;
@@ -30,7 +30,7 @@ namespace iLearn.Application.Services
         }
 
         // --- 1. ฟังก์ชันจับคู่กฎ ---
-        private AssignmentRule? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<AssignmentRule> rules)
+        private Assignment? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<Assignment> rules)
         {
             if (rules == null || !rules.Any()) return null;
 
@@ -71,7 +71,7 @@ namespace iLearn.Application.Services
 
             foreach (var student in allStudents)
             {
-                AssignmentRule? matchedRule = null;
+                Assignment? matchedRule = null;
                 bool shouldAssign = false;
 
                 if (course.Type == CourseType.General)
