@@ -1,4 +1,4 @@
-﻿using iLearn.Application.DTOs; // ดึง DTO ของฝั่ง API มาใช้
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -15,7 +15,7 @@ namespace iLearn.Application.Services
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<AssignmentRule> _ruleRepo;
-        private readonly IStudentApiService _studentApiService; // <--- นำ API Service เข้ามาแทน UserRepo
+        private readonly IStudentApiService _studentApiService;
 
         public CourseAssignmentService(
             ICourseRepository courseRepo,
@@ -29,20 +29,15 @@ namespace iLearn.Application.Services
             _studentApiService = studentApiService;
         }
 
-        // --- 1. ฟังก์ชันจับคู่กฎ (เปลี่ยนมารับ StudentDto จาก API แทน) ---
+        // --- 1. ฟังก์ชันจับคู่กฎ ---
         private AssignmentRule? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<AssignmentRule> rules)
         {
             if (rules == null || !rules.Any()) return null;
 
             foreach (var rule in rules)
             {
-                // นำโครงสร้างองค์กรจาก API (student) มาเปรียบเทียบกับกฎ
                 bool divisionMatch = string.IsNullOrEmpty(rule.Division) || student.Division == rule.Division;
-                bool departmentMatch = string.IsNullOrEmpty(rule.Department) || student.Department == rule.Department;
-                bool sectionMatch = string.IsNullOrEmpty(rule.Section) || student.Section == rule.Section;
-                bool positionMatch = string.IsNullOrEmpty(rule.Position) || student.Position == rule.Position;
-
-                if (divisionMatch && departmentMatch && sectionMatch && positionMatch)
+                if (divisionMatch)
                 {
                     return rule;
                 }
@@ -50,30 +45,24 @@ namespace iLearn.Application.Services
             return null;
         }
 
-        // --- 2. กรณีพนักงานใหม่เข้ามา -> เปลี่ยน Parameter เป็นรหัสพนักงาน EId ---
+        // --- 2. กรณีพนักงานใหม่เข้ามา ---
         public async Task AssignGeneralCoursesToNewUserAsync(string employeeId)
         {
-            // (ทางเลือก) คุณอาจจะตรวจสอบก่อนว่ารหัสพนักงานนี้มีอยู่จริงในระบบ HR 
-            // var studentInfo = await _studentApiService.GetStudentByCodeAsync(employeeId);
-            // if (studentInfo == null) return;
-
             var activeCourses = await _courseRepo.GetActiveCoursesAsync();
             var generalCourses = activeCourses.Where(c => c.Type == CourseType.General);
 
             foreach (var course in generalCourses)
             {
-                // โยน EId ตรงๆ เข้าตาราง Enrollment ได้เลย
-                await CreateOrUpdateEnrollment(employeeId, course, null);
+                await CreateOrUpdateEnrollment(employeeId, course);
             }
         }
 
-        // --- 3. กรณี Admin กด Assign หรือสร้างคอร์สใหม่ -> ดึงคนจาก API ---
+        // --- 3. กรณี Admin กด Assign หรือสร้างคอร์สใหม่ ---
         public async Task ProcessAssignmentForCourseAsync(int courseId)
         {
             var course = await _courseRepo.GetByIdAsync(courseId);
             if (course == null || !course.IsActive) return;
 
-            // ดึงข้อมูลพนักงาน "ทั้งหมด 7000+ คน" จาก API
             var apiResponse = await _studentApiService.GetStudentAsync();
             if (apiResponse == null || !apiResponse.success || apiResponse.data == null) return;
 
@@ -91,16 +80,30 @@ namespace iLearn.Application.Services
                 }
                 else if (course.Type == CourseType.Special)
                 {
-                    // ส่ง StudentDto เข้าไปเช็ค
                     matchedRule = GetMatchingRuleForStudent(student, rules);
                     shouldAssign = matchedRule != null;
                 }
 
                 if (shouldAssign)
                 {
-                    // โยน EId ลงฐานข้อมูล (เช่น "N142715")
-                    await CreateOrUpdateEnrollment(student.EId, course, matchedRule);
+                    // ส่งข้อมูล ID และ Date แยกส่วนเข้าไป เพื่อให้ Helper method รับค่าง่ายขึ้น
+                    await CreateOrUpdateEnrollment(student.EId, course, matchedRule?.Id, matchedRule?.StartDate, matchedRule?.DueDate);
                 }
+            }
+        }
+
+        // --- [NEW] 4. ฟังก์ชันสำหรับการ Assign จากหน้าจอมอบหมายงานโดยตรง ---
+        public async Task AssignCourseToEmployees(int courseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, int? assignmentRuleId = null)
+        {
+            if (employeeCodes == null || !employeeCodes.Any()) return;
+
+            var course = await _courseRepo.GetByIdAsync(courseId);
+            if (course == null || !course.IsActive) return;
+
+            // วนลูปรายชื่อพนักงานที่ถูกเลือกมา แล้วสร้าง Enrollment
+            foreach (var empCode in employeeCodes)
+            {
+                await CreateOrUpdateEnrollment(empCode, course, assignmentRuleId, startDate, dueDate);
             }
         }
 
@@ -116,12 +119,11 @@ namespace iLearn.Application.Services
                 .FirstOrDefault();
         }
 
-        // --- 4. ฟังก์ชันบันทึกลงฐานข้อมูล (รับ Parameter เป็น EId ทันที) ---
-        private async Task CreateOrUpdateEnrollment(string studentCode, Course course, AssignmentRule? matchedRule = null)
+        // --- 5. ฟังก์ชันบันทึกลงฐานข้อมูล (ปรับให้รับ ID กฎ และ วันที่ โดยตรง) ---
+        private async Task CreateOrUpdateEnrollment(string studentCode, Course course, int? assignmentRuleId = null, DateTime? startDate = null, DateTime? dueDate = null)
         {
             int currentVersion = GetCurrentActiveVersion(course);
 
-            // เช็คว่าในตารางมี EId ของคนนี้หรือยัง
             var existingEnrollments = await _enrollmentRepo.GetAsync(e =>
                 e.StudentCode == studentCode &&
                 e.CourseId == course.Id);
@@ -132,14 +134,14 @@ namespace iLearn.Application.Services
             {
                 var newEnrollment = new Enrollment
                 {
-                    StudentCode = studentCode, // บันทึก EId ลงคอลัมน์ StudentCode
+                    StudentCode = studentCode,
                     CourseId = course.Id,
                     EnrolledCourseVersion = currentVersion,
                     IsCompleted = false,
                     CreatedAt = DateTime.UtcNow,
-                    AssignmentRuleId = matchedRule?.Id,
-                    StartDate = matchedRule?.StartDate,
-                    DueDate = matchedRule?.DueDate
+                    AssignmentRuleId = assignmentRuleId, // <--- เชื่อม Rule ID
+                    StartDate = startDate,               // <--- กำหนด StartDate
+                    DueDate = dueDate                    // <--- กำหนด DueDate
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
             }
@@ -148,9 +150,9 @@ namespace iLearn.Application.Services
                 existing.EnrolledCourseVersion = currentVersion;
                 existing.IsCompleted = false;
                 existing.CompletedDate = null;
-                existing.AssignmentRuleId = matchedRule?.Id;
-                existing.StartDate = matchedRule?.StartDate;
-                existing.DueDate = matchedRule?.DueDate;
+                existing.AssignmentRuleId = assignmentRuleId;
+                existing.StartDate = startDate;
+                existing.DueDate = dueDate;
 
                 await _enrollmentRepo.UpdateAsync(existing);
             }

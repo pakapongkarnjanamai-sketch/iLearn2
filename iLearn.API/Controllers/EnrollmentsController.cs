@@ -17,6 +17,8 @@ namespace iLearn.API.Controllers
     public class EnrollmentsController : ControllerBase
     {
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        private readonly ICourseAssignmentService _enrollmentService;
+        private readonly IGenericRepository<AssignmentRule> _assignmentRuleRepo;
         private readonly ICurrentUserService _currentUserService;
         private readonly ICurrentUserService _currentUser;
         private readonly IGenericRepository<LearningLog> _logRepo;
@@ -25,6 +27,8 @@ namespace iLearn.API.Controllers
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
+            ICourseAssignmentService enrollmentService,
+            IGenericRepository<AssignmentRule> assignmentRuleRepo,
             ICurrentUserService currentUserService,
             ICurrentUserService currentUser,
             IGenericRepository<LearningLog> logRepo,
@@ -32,6 +36,8 @@ namespace iLearn.API.Controllers
             IScormService scormService)
         {
             _enrollmentRepo = enrollmentRepo;
+            _enrollmentService = enrollmentService;
+            _assignmentRuleRepo = assignmentRuleRepo;
             _currentUserService = currentUserService;
             _currentUser = currentUser;
             _logRepo = logRepo;
@@ -213,6 +219,50 @@ namespace iLearn.API.Controllers
             }
             await _enrollmentRepo.UpdateAsync(enrollment);
             return Ok(new ApiResponse<EnrollmentDto> { Success = true, Data = enrollment.ToDto() });
+        }
+
+        [HttpPost("BulkAssign")]
+        public async Task<IActionResult> BulkAssign([FromBody] BulkAssignDto dto)
+        {
+            if (dto.CourseIds == null || !dto.CourseIds.Any() || dto.EmployeeCodes == null || !dto.EmployeeCodes.Any())
+            {
+                return BadRequest(new { message = "Courses and Employees are required." });
+            }
+
+            // 1. สร้าง Assignment No (รันเลข)
+            // ตัวอย่างการทำ Format: AS-YYYYMMDD-001 (ของจริงอาจจะต้องไป Query หาเลขล่าสุดใน DB มา +1 ครับ)
+            string datePrefix = DateTime.Now.ToString("yyyyMMdd");
+            // TODO: Query หาเลข Running จาก DB 
+            // int nextRunningNo = (_dbContext.AssignmentRules.Count(x => x.AssignmentNo.StartsWith($"AS-{datePrefix}")) + 1);
+            int nextRunningNo = 1; // สมมติว่าเป็น 1
+            string assignmentNo = $"AS-{datePrefix}-{nextRunningNo:D3}";
+
+            // แปลง Array พนักงานให้อยู่ในรูป Comma-separated (ถ้า Database ของคุณเก็บเป็น String)
+            string employeesStr = string.Join(",", dto.EmployeeCodes);
+
+            // 2. วนลูปสร้าง Assignment Rule ตามจำนวนวิชาที่เลือก
+            foreach (var courseId in dto.CourseIds)
+            {
+                var rule = new AssignmentRule
+                {
+                    AssignmentNo = assignmentNo,
+                    Description = dto.Description,
+                    CourseId = courseId,
+                    EmployeeCodes = employeesStr,
+                    StartDate = dto.StartDate,
+                    DueDate = dto.DueDate,
+                    Division = dto.Division
+                };
+
+              
+                // บันทึก Rule ลง Database
+                await _assignmentRuleRepo.AddAsync(rule);
+
+                // 3. นำ EmployeeCodes ไป Insert ลงตาราง Enrollment และผูกกับ rule.Id ด้วย
+                await _enrollmentService.AssignCourseToEmployees(courseId, dto.EmployeeCodes, dto.StartDate, dto.DueDate, rule.Id);
+            }
+
+            return Ok(new { message = "Courses assigned successfully!", assignmentNo = assignmentNo });
         }
     }
 }

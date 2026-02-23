@@ -62,6 +62,28 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        //[HttpGet("departments")]
+        //public async Task<IActionResult> GetDepartments(
+        //    [FromQuery] string[] divisions,
+        //    [FromQuery] int skip = 0,
+        //    [FromQuery] int take = 20)
+        //{
+        //    if (divisions == null || divisions.Length == 0)
+        //    {
+        //        return BadRequest(new { message = "กรุณาระบุ Departments อย่างน้อย 1 แผนกครับ" });
+        //    }
+
+        //    var result = await _studentService.GetStudentsByDivisionsAsync(divisions, skip, take);
+
+        //    if (result == null)
+        //    {
+         
+        //        return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลจากเซิร์ฟเวอร์หลักครับ" });
+        //    }
+
+        //    return Ok(result);
+        //}
+
         [HttpGet("Get")]
         public async Task<IActionResult> Get()
         {

@@ -161,9 +161,7 @@ namespace iLearn.Application.Mappings
                 Id = entity.Id,
                 CourseId = entity.CourseId,
                 Division = entity.Division,
-                Department = entity.Department,
-                Section = entity.Section,
-                Position = entity.Position,
+              
                 StartDate = entity.StartDate,
                 DueDate = entity.DueDate
             };
@@ -176,9 +174,7 @@ namespace iLearn.Application.Mappings
             {
                 CourseId = dto.CourseId,
                 Division = dto.Division,
-                Department = dto.Department,
-                Section = dto.Section,
-                Position = dto.Position,
+         
                 StartDate = dto.StartDate,
                 DueDate = dto.DueDate
             };

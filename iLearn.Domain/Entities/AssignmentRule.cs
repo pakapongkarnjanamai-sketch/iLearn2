@@ -6,21 +6,19 @@ namespace iLearn.Domain.Entities
 {
     public class AssignmentRule : BaseEntity
     {
+        // เพิ่มฟิลด์ใหม่
+        public string? AssignmentNo { get; set; }
+        public string? Description { get; set; }
+
         public int CourseId { get; set; }
         [ForeignKey("CourseId")]
         public Course? Course { get; set; }
 
-        // --- เงื่อนไขระบุตัวบุคคล (Specific Target) ---
-        // เปลี่ยนเป็น EmployeeCodes เพื่อบ่งบอกว่าเก็บได้หลายคน (รูปแบบ Comma-separated)
-        public string? EmployeeCodes { get; set; }
+        public string? EmployeeCodes { get; set; } // เก็บเป็น Comma-separated หรือ JSON string ได้ครับ
 
-        // --- เงื่อนไขโครงสร้างองค์กร (Group Target) ---
         public string? Division { get; set; }
-        public string? Department { get; set; }
-        public string? Section { get; set; }
-        public string? Position { get; set; }
+        // ลบ Department, Section, Position ออกไปแล้ว
 
-        // --- เงื่อนไขระยะเวลา ---
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
     }
