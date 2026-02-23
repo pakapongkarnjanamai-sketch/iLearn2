@@ -14,6 +14,16 @@ namespace iLearn.API.Controllers.Base
         public CategoriesCRUDController(IGenericRepository<Category> repository) : base(repository)
         {
         }
+
+        // 🚀 เพิ่ม Override เมธอด Get เพื่อ Include(Join) ตาราง Division
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Include(c => c.Division); // ดึงข้อมูล Division ที่ผูกกับ Category นี้มาด้วย
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
     }
 
     public class AssignmentsCRUDController : GenericController<Assignment>
@@ -29,19 +39,31 @@ namespace iLearn.API.Controllers.Base
         {
         }
 
-        // 🚀 เพิ่ม Override เมธอด Get ตรงนี้ครับ
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            // ดึงข้อมูล Course พร้อมทำการ Include (Join) ตาราง Category และ Division ที่สัมพันธ์กัน
             var query = _repository.GetQuery()
-                .Include(c => c.Category)               // ดึงข้อมูล Category
-                    .ThenInclude(cat => cat.Division);  // ดึงข้อมูล Division ที่อยู่ใน Category อีกที
+                .Include(c => c.Category)
+                    .ThenInclude(cat => cat.Division);
 
-            // ส่ง Query ให้ DevExtreme จัดการค้นหา/แบ่งหน้า
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
+        // 🚀 เพิ่ม Endpoint ใหม่สำหรับดึงเฉพาะ Course และ Version ที่ Active
+        [HttpGet("GetActive")]
+        public async Task<IActionResult> GetActive(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Include(c => c.Category)
+                    .ThenInclude(cat => cat.Division)
+                .Include(c => c.Versions)
+                // ตรวจสอบว่า Course ใช้งานอยู่ และมี Version ที่ใช้งานอยู่อย่างน้อย 1
+                .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive));
+
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
     }
+
     public class DivisionsCRUDController : GenericController<Division>
     {
         public DivisionsCRUDController(IGenericRepository<Division> repository) : base(repository)
