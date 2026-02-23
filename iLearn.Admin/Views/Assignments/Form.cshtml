@@ -85,9 +85,33 @@
         const PRESELECTED_COURSE_ID = @(ViewBag.CourseId ?? "null");
         const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
+        // 🚀 1. สร้าง Data Store สำหรับ Division (เพิ่ม onBeforeSend เพื่อส่ง Cookies/Credentials แก้ปัญหา 401)
+        const divisionDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "Name",
+                loadUrl: `${serviceUrl}/Students/GetDivisions`,
+                onBeforeSend: function(method, ajaxOptions) {
+                    ajaxOptions.xhrFields = { withCredentials: true };
+                }
+            }),
+            sort: "Name"
+        });
+
+        // 🚀 2. สร้าง Data Store สำหรับ Department (เพิ่ม onBeforeSend เพื่อส่ง Cookies/Credentials แก้ปัญหา 401)
+        const departmentDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "Name",
+                loadUrl: `${serviceUrl}/Students/GetDepartments`,
+                onBeforeSend: function(method, ajaxOptions) {
+                    ajaxOptions.xhrFields = { withCredentials: true };
+                }
+            }),
+            sort: "Name"
+        });
+
         let criteriaForm;
         let employeesGrid;
-        let coursesGrid; // เก็บ Instance ของ Grid ใน Popup
+        let coursesGrid;
         let coursesPopup;
 
         $(() => {
@@ -124,7 +148,7 @@
                         columns: [
                             { dataField: "code", caption: "Course Code", width: 180, alignment: "center" },
                             { dataField: "title", caption: "Course Title" },
-                            { dataField: "description", caption: "Description", visible: false } // ซ่อนไว้เผื่อกดดูรายละเอียด (สามารถเปิด visible: true ได้)
+                            { dataField: "description", caption: "Description", visible: false }
                         ]
                     }).dxDataGrid("instance");
                     return container;
@@ -140,7 +164,6 @@
                             type: "default",
                             stylingMode: "contained",
                             onClick: function() {
-                                // นำค่า ID ที่เลือกไปใส่ใน TagBox ของ Form
                                 const selectedKeys = coursesGrid.getSelectedRowKeys();
                                 criteriaForm.updateData("courseIds", selectedKeys);
                                 coursesPopup.hide();
@@ -158,7 +181,6 @@
                     }
                 ],
                 onShowing: function() {
-                    // เมื่อเปิด Popup ให้ทำการ Select แถวตามที่เคยเลือกไว้ใน Form
                     const currentCourseIds = criteriaForm.option("formData.courseIds") || [];
                     if (coursesGrid) {
                         coursesGrid.selectRows(currentCourseIds, false);
@@ -171,7 +193,9 @@
                 formData: {
                     description: "",
                     startDate: new Date(),
-                    courseIds: PRESELECTED_COURSE_ID ? [PRESELECTED_COURSE_ID] : []
+                    courseIds: PRESELECTED_COURSE_ID ? [PRESELECTED_COURSE_ID] : [],
+                    division: null,
+                    department: null
                 },
                 colCount: 1,
                 labelMode: "floating",
@@ -198,7 +222,7 @@
                                     displayExpr: "code",
                                     placeholder: "Select or Browse courses...",
                                     showClearButton: true,
-                                    openOnFieldClick: false, // ปิดการแสดง Dropdown เดิมๆ เพื่อให้ใช้ Popup เป็นหลัก
+                                    openOnFieldClick: false,
                                     buttons: [
                                         {
                                             name: "browse",
@@ -230,8 +254,62 @@
                     {
                         itemType: "group",
                         caption: "4. Search Employee",
+                        colCount: 2,
                         items: [
-                            { dataField: "division", label: { text: "Division Code" }, editorOptions: { placeholder: "e.g. CSD" } }
+                            {
+                                dataField: "division",
+                                label: { text: "Division" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: divisionDataSource,
+                                    displayExpr: "Name",
+                                    valueExpr: "Name",
+                                    placeholder: "Select Division...",
+                                    searchEnabled: true,
+                                    showClearButton: true,
+                                    onValueChanged: function(e) {
+                                        // กรอง Department ตาม Division ที่เลือก
+                                        if (e.value) {
+                                            departmentDataSource.filter(["Division", "=", e.value]);
+                                        } else {
+                                            departmentDataSource.filter(null);
+                                        }
+                                        departmentDataSource.load();
+
+                                        // ป้องกันการลบค่า Department ถ้ามันถูกเซ็ตด้วยระบบอัตโนมัติ
+                                        if (e.event) {
+                                            criteriaForm.updateData("department", null);
+                                        }
+                                    }
+                                },
+                                validationRules: [{ type: "required", message: "Division is required to find employees." }]
+                            },
+                            {
+                                dataField: "department",
+                                label: { text: "Department" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: departmentDataSource,
+                                    displayExpr: "Name",
+                                    valueExpr: "Name",
+                                    placeholder: "Select Department...",
+                                    searchEnabled: true,
+                                    showClearButton: true,
+                                    onValueChanged: function(e) {
+                                        // ถ้าผู้ใช้เลือก Department ด้วยตัวเอง (e.event มีค่า)
+                                        if (e.event && e.value) {
+                                            const selectedItem = e.component.option("selectedItem");
+                                            if (selectedItem && selectedItem.Division) {
+                                                const currentDiv = criteriaForm.option("formData.division");
+                                                // ถ้า Division ยังไม่ได้เลือก หรือเลือกไว้ผิดแผนก ให้เซ็ต Division ให้อัตโนมัติ
+                                                if (currentDiv !== selectedItem.Division) {
+                                                    criteriaForm.updateData("division", selectedItem.Division);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         ]
                     }
                 ]
@@ -273,10 +351,18 @@
             // --- เมื่อกดปุ่ม Find Employees ---
             $("#btn-search-emp").click(function() {
                 const filters = criteriaForm.option("formData");
+
+                // แจ้งเตือนถ้าผู้ใช้กดค้นหาพนักงานโดยที่ยังไม่ได้เลือก Division
+                if (!filters.division) {
+                    DevExpress.ui.notify("Please select a Division before finding employees.", "warning", 3000);
+                    criteriaForm.validate();
+                    return;
+                }
+
                 loadPanel.option("message", "Finding employees...");
                 loadPanel.show();
 
-                let apiUrl = `https://localhost:7128/api/Students/divisions?skip=0&take=500`;
+                let apiUrl = `${serviceUrl}/Students/divisions?skip=0&take=500`;
 
                 if (filters.division) apiUrl += `&divisions=${encodeURIComponent(filters.division)}`;
 
@@ -285,7 +371,13 @@
                     method: "GET",
                     xhrFields: { withCredentials: true },
                     success: function(response) {
-                        const empData = response.data || [];
+                        let empData = response.data || [];
+
+                        // กรองข้อมูลฝั่ง Client เพิ่มเติม หากมีการเลือก Department ด้วย
+                        if (filters.department) {
+                            empData = empData.filter(emp => emp.department === filters.department);
+                        }
+
                         employeesGrid.option("dataSource", empData);
                         DevExpress.ui.notify(`Found ${empData.length} employees`, "success", 2000);
                     },
