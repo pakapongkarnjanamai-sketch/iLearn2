@@ -19,7 +19,7 @@ namespace iLearn.Admin.Controllers
         // --- เพิ่มฟังก์ชันนี้เข้าไปใหม่ ---
         public IActionResult Progress(int id)
         {
-            ViewBag.AssignmentRuleId = id; // ส่ง ID ของกฎไปให้หน้า View ใช้งาน
+            ViewBag.AssignmentId = id; // ส่ง ID ของกฎไปให้หน้า View ใช้งาน
             return View();
         }
     }

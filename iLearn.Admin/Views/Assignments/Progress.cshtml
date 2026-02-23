@@ -122,7 +122,7 @@
 
 @section Scripts {
     <script>
-        const ASSIGNMENT_RULE_ID = @ViewBag.AssignmentRuleId;
+        const ASSIGNMENT_ID = @ViewBag.AssignmentId;
 
         $(() => {
             const loadPanel = $("#load-panel").dxLoadPanel({
@@ -136,7 +136,7 @@
             }).dxLoadPanel("instance");
 
             const getCourses = $.ajax({ url: `${serviceUrl}/admin/CoursesCRUD/Get?skip=0&take=5000`, method: "GET", xhrFields: { withCredentials: true } });
-            const getRule = $.ajax({ url: `${serviceUrl}/admin/AssignmentRulesCRUD/Get?key=${ASSIGNMENT_RULE_ID}`, method: "GET", xhrFields: { withCredentials: true } });
+            const getRule = $.ajax({ url: `${serviceUrl}/admin/AssignmentsCRUD/Get?key=${ASSIGNMENT_ID}`, method: "GET", xhrFields: { withCredentials: true } });
 
             $.when(getCourses, getRule).done(function(coursesRes, ruleRes) {
                 let coursesData = coursesRes[0] || {};
@@ -158,9 +158,9 @@
                     const dDate = currentRule.dueDate ? new Date(currentRule.dueDate).toLocaleDateString('en-GB') : '-';
                     $("#lbl-schedule").html(`<i class="far fa-calendar-alt text-muted me-1"></i> ${sDate} <i class="fas fa-arrow-right mx-1 text-muted"></i> ${dDate}`);
 
-                    let ruleFilter = assignmentNo ? ["assignmentNo", "=", assignmentNo] : ["id", "=", ASSIGNMENT_RULE_ID];
+                    let ruleFilter = assignmentNo ? ["assignmentNo", "=", assignmentNo] : ["id", "=", ASSIGNMENT_ID];
 
-                    createDataStore(serviceUrl, 'admin/AssignmentRulesCRUD').load({ filter: ruleFilter }).then(function(allRules) {
+                    createDataStore(serviceUrl, 'admin/AssignmentsCRUD').load({ filter: ruleFilter }).then(function(allRules) {
 
                         let enrollFilter = [];
                         allRules.forEach((r, i) => {
