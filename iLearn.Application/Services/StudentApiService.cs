@@ -1,4 +1,5 @@
-﻿using iLearn.Application.DTOs;
+﻿using DevExtreme.AspNet.Mvc;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using System;
 using System.Net.Http;
@@ -11,19 +12,19 @@ namespace iLearn.Infrastructure.Services
     public class StudentApiService : IStudentApiService
     {
         private readonly HttpClient _httpClient;
+        // กำหนด Base URL ให้เรียกใช้ซ้ำได้ง่ายและลดการพิมพ์ผิด
+        private const string BaseStudentLookupUrl = "https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/StudentLookup";
 
         public StudentApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }
+
         public async Task<string> GetStudentsDxGridAsync(string queryString)
         {
             try
             {
-                // นำ Query String (เช่น ?skip=0&take=20&requireTotalCount=true) มาต่อท้าย URL
                 var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student{queryString}";
-
-                // ใช้ GetStringAsync เพื่อดึง JSON ดิบๆ กลับมาเลย ไม่ต้อง Deserialize
                 var response = await _httpClient.GetStringAsync(url);
                 return response;
             }
@@ -33,12 +34,12 @@ namespace iLearn.Infrastructure.Services
                 return null;
             }
         }
+
         public async Task<ExternalStudentDto> GetStudentByCodeAsync(string Code)
         {
             try
             {
-                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/StudentLookup/{Code}";
-
+                var url = $"{BaseStudentLookupUrl}/{Code}";
                 var response = await _httpClient.GetFromJsonAsync<ExternalStudentDto>(url);
                 return response;
             }
@@ -53,7 +54,6 @@ namespace iLearn.Infrastructure.Services
             try
             {
                 var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student/all";
-
                 var response = await _httpClient.GetFromJsonAsync<AllStudentsApiResponse>(url);
                 return response;
             }
@@ -63,33 +63,73 @@ namespace iLearn.Infrastructure.Services
             }
         }
 
-        // ฟังก์ชันใหม่สำหรับเรียก API Divisions
         public async Task<DivisionApiResponse> GetStudentsByDivisionsAsync(string[] divisions, int skip = 0, int take = 20)
         {
             try
             {
-                // 1. แปลงตัวแปร divisions array ให้เป็น Object ตามโครงสร้างที่ API คุณคาดหวัง
-                // ตัวอย่าง: จะได้รูปแบบเป็น {"divisions":["PD1","PD2","NLC"]}
                 var keyObj = new { divisions = divisions };
                 var keyJson = JsonSerializer.Serialize(keyObj);
 
-                // 2. เข้ารหัส JSON string ให้ปลอดภัยสำหรับการส่งผ่าน URL ป้องกันไม่ให้เครื่องหมาย " หรือ { ทำให้ URL พัง
                 var encodedKey = Uri.EscapeDataString(keyJson);
                 var encodedSummary = Uri.EscapeDataString("[{\"selector\":\"EId\",\"summaryType\":\"count\"}]");
 
-                // 3. ประกอบ URL โดยใส่ Parameter สำหรับแบ่งหน้า (skip, take) และตัวกรองอื่นๆ
                 var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student/divisions?key={encodedKey}&skip={skip}&take={take}&requireTotalCount=true&totalSummary={encodedSummary}";
 
-                // 4. ยิง Request ไปยัง API และแปลงผลลัพธ์ (Deserialize) กลับมาใส่ใน DTO ของเรา
                 var response = await _httpClient.GetFromJsonAsync<DivisionApiResponse>(url);
 
                 return response;
             }
             catch (Exception ex)
             {
-                // หากเชื่อมต่อไม่ได้หรือเกิดข้อผิดพลาด จะส่ง null กลับไป 
-                // คุณสามารถนำ ex.Message ไปบันทึกลง Logger ได้ในอนาคตครับ
                 Console.WriteLine($"Error fetching divisions: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<object> GetSectionsAsync(string queryString)
+        {
+            try
+            {
+                // อัปเดต URL เป็น GetDistinctSections
+                var url = $"{BaseStudentLookupUrl}/GetDistinctSections{queryString}";
+                var response = await _httpClient.GetFromJsonAsync<object>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching Sections: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<object> GetDivisionsAsync(string queryString)
+        {
+            try
+            {
+                // อัปเดต URL เป็น GetDistinctDivisions
+                var url = $"{BaseStudentLookupUrl}/GetDistinctDivisions{queryString}";
+                var response = await _httpClient.GetFromJsonAsync<object>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching Divisions: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<object> GetDepartmentsAsync(string queryString)
+        {
+            try
+            {
+                // อัปเดต URL เป็น GetDistinctDepartments
+                var url = $"{BaseStudentLookupUrl}/GetDistinctDepartments{queryString}";
+                var response = await _httpClient.GetFromJsonAsync<object>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching Departments: {ex.Message}");
                 return null;
             }
         }

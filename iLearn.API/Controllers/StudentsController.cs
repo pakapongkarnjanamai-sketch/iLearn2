@@ -37,9 +37,7 @@ namespace iLearn.API.Controllers
             return Ok(student);
         }
 
-    
-
-        // เพิ่ม Endpoint ใหม่สำหรับดึงข้อมูลตามแผนก (Divisions)
+        // Endpoint สำหรับดึงข้อมูลตามแผนก (Divisions)
         [HttpGet("divisions")]
         public async Task<IActionResult> GetStudentsByDivisions(
             [FromQuery] string[] divisions,
@@ -55,40 +53,63 @@ namespace iLearn.API.Controllers
 
             if (result == null)
             {
-                // ส่ง 500 Internal Server Error ถ้าระบบหลังบ้านดึงข้อมูลจาก API ต้นทางไม่สำเร็จ
                 return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลจากเซิร์ฟเวอร์หลักครับ" });
             }
 
             return Ok(result);
         }
 
-        //[HttpGet("departments")]
-        //public async Task<IActionResult> GetDepartments(
-        //    [FromQuery] string[] divisions,
-        //    [FromQuery] int skip = 0,
-        //    [FromQuery] int take = 20)
-        //{
-        //    if (divisions == null || divisions.Length == 0)
-        //    {
-        //        return BadRequest(new { message = "กรุณาระบุ Departments อย่างน้อย 1 แผนกครับ" });
-        //    }
+        // -------------------------------------------------------------------------
+        // 🚀 ปรับปรุง: เปลี่ยนจากการรับ DataSourceLoadOptions เป็นดึง Query String ตรงๆ
+        // -------------------------------------------------------------------------
 
-        //    var result = await _studentService.GetStudentsByDivisionsAsync(divisions, skip, take);
+        [HttpGet("GetDivisions")]
+        public async Task<IActionResult> GetDivisions()
+        {
+            var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+            var result = await _studentService.GetDivisionsAsync(queryString);
 
-        //    if (result == null)
-        //    {
-         
-        //        return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลจากเซิร์ฟเวอร์หลักครับ" });
-        //    }
+            if (result == null)
+            {
+                return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลแผนก (Divisions) จากเซิร์ฟเวอร์หลักครับ" });
+            }
 
-        //    return Ok(result);
-        //}
+            return Ok(result);
+        }
+
+        [HttpGet("GetDepartments")]
+        public async Task<IActionResult> GetDepartments()
+        {
+            var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+            var result = await _studentService.GetDepartmentsAsync(queryString);
+
+            if (result == null)
+            {
+                return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลฝ่าย (Departments) จากเซิร์ฟเวอร์หลักครับ" });
+            }
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetSections")]
+        public async Task<IActionResult> GetSections()
+        {
+            var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+            var result = await _studentService.GetSectionsAsync(queryString);
+
+            if (result == null)
+            {
+                return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลส่วนงาน (Sections) จากเซิร์ฟเวอร์หลักครับ" });
+            }
+
+            return Ok(result);
+        }
 
         [HttpGet("Get")]
         public async Task<IActionResult> Get()
         {
             // 1. ดึงค่า Query String ทั้งหมดที่ DataGrid ส่งมา (เช่นการแบ่งหน้า, ค้นหา)
-            var queryString = Request.QueryString.Value;
+            var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
 
             // 2. ส่งต่อให้ Service ไปคุยกับ API ต้นทาง
             var resultJson = await _studentService.GetStudentsDxGridAsync(queryString);
