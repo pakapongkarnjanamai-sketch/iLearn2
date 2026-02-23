@@ -1,0 +1,346 @@
+﻿@{
+    ViewBag.Title = "Assignment Progress Dashboard";
+}
+
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-info text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
+                        Comprehensive overview of course assignments and learning progress.
+                    </div>
+                </div>
+            </h1>
+            <div>
+                <a href="@Url.Action("Index", "AssignmentRules")" class="btn btn-light border shadow-sm rounded px-3">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Rules
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-5">
+    <div id="load-panel"></div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                        <i class="fas fa-info-circle text-primary"></i> Assignment Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted" style="width: 120px;">Ref No:</td>
+                                <td class="fw-bold text-dark" id="lbl-assignment-no">-</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Description:</td>
+                                <td id="lbl-description">-</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Schedule:</td>
+                                <td id="lbl-schedule">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    <div class="row text-center mb-3">
+                        <div class="col-6 border-end border-light border-opacity-25">
+                            <div class="display-5 fw-bold" id="stat-total-courses">0</div>
+                            <div class="small text-white-50 text-uppercase fw-semibold tracking-wide mt-1">Total Courses</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="display-5 fw-bold" id="stat-total-emp">0</div>
+                            <div class="small text-white-50 text-uppercase fw-semibold tracking-wide mt-1">Target Employees</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-semibold text-white-50">Overall Completion</span>
+                            <span class="small fw-bold" id="stat-progress-text">0%</span>
+                        </div>
+                        <div class="progress" style="height: 12px; background-color: rgba(255,255,255,0.2);">
+                            <div id="stat-progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-xl-5 col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex flex-column gap-2">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                        <i class="fas fa-book-open text-primary"></i> Course Progress
+                    </h5>
+                    <span class="badge bg-light text-muted border shadow-sm align-self-start"><i class="fas fa-hand-pointer me-1"></i> Click row to filter students</span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="course-summary-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-7 col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                        <i class="fas fa-users text-primary"></i> Student Details
+                    </h5>
+                    <div style="width: 300px;">
+                        <div id="course-selector"></div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="student-progress-grid"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const ASSIGNMENT_RULE_ID = @ViewBag.AssignmentRuleId;
+
+        $(() => {
+            const loadPanel = $("#load-panel").dxLoadPanel({
+                shadingColor: "rgba(255,255,255,0.8)",
+                position: { of: "body" },
+                visible: true,
+                showIndicator: true,
+                showPane: true,
+                shading: true,
+                message: "Analyzing assignment data..."
+            }).dxLoadPanel("instance");
+
+            const getCourses = $.ajax({ url: `${serviceUrl}/admin/CoursesCRUD/Get?skip=0&take=5000`, method: "GET", xhrFields: { withCredentials: true } });
+            const getRule = $.ajax({ url: `${serviceUrl}/admin/AssignmentRulesCRUD/Get?key=${ASSIGNMENT_RULE_ID}`, method: "GET", xhrFields: { withCredentials: true } });
+
+            $.when(getCourses, getRule).done(function(coursesRes, ruleRes) {
+                let coursesData = coursesRes[0] || {};
+                let ruleData = ruleRes[0] || {};
+
+                let coursesMap = {};
+                if(coursesData.data) {
+                    coursesData.data.forEach(c => { coursesMap[c.id] = c; });
+                }
+
+                if(ruleData.data && ruleData.data.length > 0) {
+                    const currentRule = ruleData.data[0];
+                    const assignmentNo = currentRule.assignmentNo;
+
+                    $("#lbl-assignment-no").text(assignmentNo || 'N/A');
+                    $("#lbl-description").text(currentRule.description || '-');
+
+                    const sDate = currentRule.startDate ? new Date(currentRule.startDate).toLocaleDateString('en-GB') : '-';
+                    const dDate = currentRule.dueDate ? new Date(currentRule.dueDate).toLocaleDateString('en-GB') : '-';
+                    $("#lbl-schedule").html(`<i class="far fa-calendar-alt text-muted me-1"></i> ${sDate} <i class="fas fa-arrow-right mx-1 text-muted"></i> ${dDate}`);
+
+                    let ruleFilter = assignmentNo ? ["assignmentNo", "=", assignmentNo] : ["id", "=", ASSIGNMENT_RULE_ID];
+
+                    createDataStore(serviceUrl, 'admin/AssignmentRulesCRUD').load({ filter: ruleFilter }).then(function(allRules) {
+
+                        let enrollFilter = [];
+                        allRules.forEach((r, i) => {
+                            if (i > 0) enrollFilter.push("or");
+                            enrollFilter.push(["assignmentRuleId", "=", r.id]);
+                        });
+
+                        $.ajax({
+                            url: `${serviceUrl}/admin/EnrollmentsCRUD/Get`,
+                            method: "GET",
+                            data: { skip: 0, take: 20000, filter: JSON.stringify(enrollFilter) },
+                            xhrFields: { withCredentials: true }
+                        }).done(function(enrollRes) {
+                            const allEnrollments = enrollRes.data || [];
+
+                            // คำนวณ Overall
+                            const totalEnrollments = allEnrollments.length;
+                            const completedEnrollments = allEnrollments.filter(e => e.isCompleted).length;
+                            const overallProgress = totalEnrollments === 0 ? 0 : Math.round((completedEnrollments / totalEnrollments) * 100);
+                            const uniqueStudents = new Set(allEnrollments.map(e => e.studentCode)).size;
+
+                            $("#stat-total-courses").text(allRules.length);
+                            $("#stat-total-emp").text(uniqueStudents);
+                            $("#stat-progress-text").text(`${overallProgress}%`);
+                            $("#stat-progress-bar").css("width", `${overallProgress}%`);
+
+                            let courseSummaryData = allRules.map(rule => {
+                                let ruleEnrollments = allEnrollments.filter(e => e.assignmentRuleId === rule.id);
+                                let ruleTotal = ruleEnrollments.length;
+                                let ruleCompleted = ruleEnrollments.filter(e => e.isCompleted).length;
+                                let rulePercent = ruleTotal === 0 ? 0 : Math.round((ruleCompleted / ruleTotal) * 100);
+
+                                return {
+                                    id: rule.id,
+                                    courseCode: coursesMap[rule.courseId]?.code || 'N/A',
+                                    courseTitle: coursesMap[rule.courseId]?.title || `Unknown (ID: ${rule.courseId})`,
+                                    totalStudents: ruleTotal,
+                                    completedStudents: ruleCompleted,
+                                    progressPercent: rulePercent
+                                };
+                            });
+
+                            // --- 1. เรนเดอร์ Course Summary Grid ฝั่งซ้าย ---
+                            $("#course-summary-grid").dxDataGrid({
+                                dataSource: courseSummaryData,
+                                keyExpr: "id",
+                                showBorders: false,
+                                rowAlternationEnabled: true,
+                                hoverStateEnabled: true,
+                                height: 500, // กำหนดความสูงให้เท่ากับฝั่งขวา
+                                scrolling: { mode: "virtual" },
+                                selection: { mode: "single" },
+                                onSelectionChanged: function(e) {
+                                    const selectBox = $("#course-selector").dxSelectBox("instance");
+                                    if(e.selectedRowKeys.length > 0) {
+                                        selectBox.option("value", e.selectedRowKeys[0]);
+                                    } else {
+                                        selectBox.option("value", "ALL");
+                                    }
+                                },
+                                // ปรับขนาด Column ให้พอดีกับพื้นที่แคบลง
+                                columns: [
+                                    { dataField: "courseCode", caption: "Code", width: 100, alignment: "center" },
+                                    { dataField: "courseTitle", caption: "Course Title" },
+                                    { dataField: "totalStudents", caption: "All", width: 60, alignment: "center" },
+                                    { dataField: "completedStudents", caption: "Done", width: 60, alignment: "center" },
+                                    {
+                                        dataField: "progressPercent",
+                                        caption: "%",
+                                        width: 80,
+                                        alignment: "center",
+                                        cellTemplate: function(container, options) {
+                                            const val = options.value;
+                                            const badgeColor = val === 100 ? 'bg-success' : 'bg-info text-dark';
+                                            $(`<div><span class="badge ${badgeColor} px-2 py-1 w-100">${val}%</span></div>`).appendTo(container);
+                                        }
+                                    }
+                                ]
+                            });
+
+                            const dropdownOptions = allRules.map(r => ({
+                                id: r.id,
+                                displayText: `${coursesMap[r.courseId]?.code || ''} - ${coursesMap[r.courseId]?.title || ''}`
+                            }));
+                            dropdownOptions.unshift({ id: "ALL", displayText: "-- View All Courses --" });
+
+                            // --- 2. เรนเดอร์ Dropdown กรองวิชา ---
+                            $("#course-selector").dxSelectBox({
+                                dataSource: dropdownOptions,
+                                valueExpr: "id",
+                                displayExpr: "displayText",
+                                value: "ALL",
+                                searchEnabled: true,
+                                placeholder: "Filter by course...",
+                                onValueChanged: function(e) {
+                                    const studentGrid = $("#student-progress-grid").dxDataGrid("instance");
+                                    const summaryGrid = $("#course-summary-grid").dxDataGrid("instance");
+
+                                    if(e.value === "ALL") {
+                                        studentGrid.filter(enrollFilter);
+                                        summaryGrid.clearSelection();
+                                    } else {
+                                        studentGrid.filter(["assignmentRuleId", "=", e.value]);
+                                        const currentSelected = summaryGrid.getSelectedRowKeys();
+                                        if (currentSelected.indexOf(e.value) === -1) {
+                                            summaryGrid.selectRows([e.value], false);
+                                        }
+                                    }
+                                }
+                            });
+
+                            // --- 3. เรนเดอร์ Student Detailed Grid ฝั่งขวา ---
+                            $("#student-progress-grid").dxDataGrid({
+                                dataSource: {
+                                    store: createDataStore(serviceUrl, 'admin/EnrollmentsCRUD'),
+                                    filter: enrollFilter
+                                },
+                                showBorders: false,
+                                rowAlternationEnabled: true,
+                                hoverStateEnabled: true,
+                                filterRow: { visible: true },
+                                searchPanel: { visible: true, width: 250, placeholder: "Search Emp ID..." },
+                                scrolling: { mode: "virtual" },
+                                height: 500, // กำหนดความสูงให้เท่ากับฝั่งซ้าย
+                                export: { enabled: true, allowExportSelectedData: true },
+                                columns: [
+                                    { dataField: "studentCode", caption: "Emp ID", width: 120, alignment: "center" },
+                                    {
+                                        caption: "Course Code",
+                                        width: 130,
+                                        alignment: "center",
+                                        calculateCellValue: function(rowData) {
+                                            const rule = allRules.find(r => r.id === rowData.assignmentRuleId);
+                                            return rule && coursesMap[rule.courseId] ? coursesMap[rule.courseId].code : "-";
+                                        }
+                                    },
+                                    {
+                                        dataField: "progress",
+                                        caption: "Progress",
+                                        minWidth: 150,
+                                        cellTemplate: function(container, options) {
+                                            const val = options.value || 0;
+                                            const barColor = val === 100 ? 'bg-success' : 'bg-primary';
+                                            const progressBar = `
+                                                <div class="progress shadow-sm mt-1" style="height: 14px; border-radius: 4px;">
+                                                    <div class="progress-bar ${barColor}" style="width: ${val}%; font-size: 0.7rem;">${val}%</div>
+                                                </div>`;
+                                            $(progressBar).appendTo(container);
+                                        }
+                                    },
+                                    {
+                                        dataField: "isCompleted",
+                                        caption: "Status",
+                                        width: 120,
+                                        alignment: "center",
+                                        dataType: "boolean",
+                                        cellTemplate: function(container, options) {
+                                            if (options.value) {
+                                                $("<span>").addClass("badge bg-success px-2 py-1").text("Completed").appendTo(container);
+                                            } else {
+                                                $("<span>").addClass("badge bg-warning text-dark px-2 py-1").text("In Progress").appendTo(container);
+                                            }
+                                        }
+                                    },
+                                    { dataField: "completedDate", caption: "Completed On", dataType: "datetime", format: "dd/MM/yyyy HH:mm", alignment: "center", width: 140 }
+                                ],
+                                onContentReady: () => loadPanel.hide()
+                            });
+
+                        }).fail(() => showApiError());
+                    });
+                } else {
+                    showApiError();
+                }
+            }).fail(() => showApiError());
+
+            function showApiError() {
+                loadPanel.hide();
+                DevExpress.ui.notify("Failed to load dashboard data. You may need to log in again.", "error", 4000);
+            }
+        });
+    </script>
+}

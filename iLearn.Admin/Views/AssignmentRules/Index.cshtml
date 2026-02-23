@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Assign";
+    ViewBag.Title = "Assignment History / Rules";
 }
 
 <div class="page-header shadow-sm border-0 mb-4 rounded">
@@ -7,19 +7,19 @@
         <div class="d-flex align-items-center justify-content-between">
             <h1 class="page-title mb-0 d-flex align-items-center gap-3">
                 <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                    <i class="fas fa-cogs"></i>
+                    <i class="fas fa-tasks"></i>
                 </div>
                 <div>
                     <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
                     <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
-                        Set rules for automatic course assignment based on organization structure.
+                        View assignment history and track employee learning progress.
                     </div>
                 </div>
             </h1>
             <div>
-                <button class="btn btn-primary rounded shadow-sm px-3" onclick="addNewRule()">
-                    <i class="fas fa-plus me-2"></i> New Rule
-                </button>
+                <a href="@Url.Action("Form", "AssignmentRules")" class="btn btn-primary rounded shadow-sm px-3">
+                    <i class="fas fa-plus me-2"></i> New Assignment
+                </a>
             </div>
         </div>
     </div>
@@ -36,148 +36,107 @@
 @section Scripts {
     <script>
         let gridInstance;
+
         $(() => {
             gridInstance = initDxGrid("#grid", {
-                dataSource: createDataStore(serviceUrl, 'admin/AssignmentRulesCRUD'),
-                remoteOperations: true,
+                // เปลี่ยนมารับข้อมูลจาก Custom API ที่เราเขียน Grouping ไว้
+                dataSource: new DevExpress.data.CustomStore({
+                    key: "id",
+                    load: function () {
+                        return $.ajax({
+                            url: `${serviceUrl}/AssignmentRules/history`, // เรียก API ใหม่
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
+                        });
+                    }
+                }),
+                remoteOperations: false, // ปิด remoteOperations เพราะเรา Group และส่งมาทั้งหมดแล้ว
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search rules..." },
+                searchPanel: { placeholder: "Search assignments..." },
 
                 editing: {
                     mode: "popup",
-                    allowUpdating: true,
+                    allowUpdating: false,
                     allowDeleting: true,
-                    allowAdding: true,
+                    allowAdding: false,
                     useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this assignment rule?" },
-                    popup: {
-                        title: "Assignment Rule Config",
-                        showTitle: true,
-                        width: 700,
-                        height: 'auto'
-                    },
-                    form: {
-                        items: [
-                            {
-                                itemType: 'group',
-                                caption: 'Select Course',
-                                colCount: 1,
-                                items: [
-                                    {
-                                        dataField: 'courseId',
-                                        label: { text: "Course" }
-                                    }
-                                ]
-                            },
-                            {
-                                itemType: 'group',
-                                caption: 'Target Audience (Leave empty for "All")',
-                                colCount: 2,
-                                items: [
-                                    { dataField: 'division', label: { text: "Division" } },
-                                    { dataField: 'department', label: { text: "Department" } },
-                                    { dataField: 'section', label: { text: "Section" } },
-                                    { dataField: 'position', label: { text: "Position" } }
-                                ]
-                            },
-                            {
-                                itemType: 'group',
-                                caption: 'Schedule Control',
-                                colCount: 2,
-                                items: [
-                                    {
-                                        dataField: 'startDate',
-                                        dataType: 'date',
-                                        editorOptions: { displayFormat: 'dd/MM/yyyy', showClearButton: true }
-                                    },
-                                    {
-                                        dataField: 'dueDate',
-                                        dataType: 'date',
-                                        editorOptions: { displayFormat: 'dd/MM/yyyy', showClearButton: true }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
+                    texts: { confirmDeleteMessage: "Are you sure you want to delete this ENTIRE assignment? (All associated courses will be removed)" }
                 },
                 columns: [
                     {
-                        dataField: "courseId",
-                        caption: "Course",
-                        minWidth: 200,
-                        lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD'),
-                            displayExpr: 'title',
-                            valueExpr: 'id'
-                        },
-                        validationRules: [{ type: "required", message: "Course is required" }]
+                        dataField: "assignmentNo",
+                        caption: "Assignment No",
+                        width: 150,
+                        alignment: "center",
+                        sortOrder: "desc"
                     },
                     {
-                        dataField: "division",
-                        caption: "Division",
-                        width: 120,
-                        cellTemplate: (container, options) => {
-                            renderBadge(container, options.value, "bg-info", "All Divisions");
+                        // เปลี่ยนจาก courseId เป็น courseNames
+                        dataField: "courseNames",
+                        caption: "Assigned Courses",
+                        minWidth: 250,
+                        cellTemplate: function(container, options) {
+                            // แสดงชื่อวิชาหลายๆ อันแบบแบ่งบรรทัดสวยๆ
+                            const courses = options.value ? options.value.split(', ') : [];
+                            let html = '<div class="d-flex flex-wrap gap-1">';
+                            courses.forEach(c => {
+                                html += `<span class="badge bg-light text-dark border">${c}</span>`;
+                            });
+                            html += '</div>';
+                            $(html).appendTo(container);
                         }
                     },
                     {
-                        dataField: "department",
-                        caption: "Department",
+                        dataField: "description",
+                        caption: "Description",
+                        minWidth: 150
+                    },
+                    {
+                        dataField: "employeeCodes",
+                        caption: "Target Users",
                         width: 120,
+                        alignment: "center",
                         cellTemplate: (container, options) => {
-                            renderBadge(container, options.value, "bg-success", "All Depts");
+                            const count = options.value ? options.value.split(',').length : 0;
+                            $("<span>").addClass("badge bg-primary px-2 py-1").text(`${count} Users`).appendTo(container);
                         }
-                    },
-                    {
-                        dataField: "section",
-                        caption: "Section",
-                        width: 120
-                    },
-                    {
-                        dataField: "position",
-                        caption: "Position",
-                        width: 120
                     },
                     {
                         dataField: "startDate",
-                        caption: "Start",
+                        caption: "Start Date",
                         dataType: "date",
                         format: "dd/MM/yyyy",
-                        width: 110
+                        width: 110,
+                        alignment: "center"
                     },
                     {
                         dataField: "dueDate",
                         caption: "Due Date",
                         dataType: "date",
                         format: "dd/MM/yyyy",
-                        width: 110
+                        width: 110,
+                        alignment: "center"
                     },
                     {
                         type: "buttons",
                         caption: "Actions",
-                        width: 100,
+                        width: 110,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
-                        buttons: ["edit", "delete"]
+                        buttons: [
+                            {
+                                hint: "View Progress Dashboard",
+                                icon: "eye",
+                                onClick: function(e) {
+                                    window.location.href = '@Url.Action("Progress", "AssignmentRules")/' + e.row.data.id;
+                                }
+                            },
+                            "delete"
+                        ]
                     }
                 ]
             });
         });
-
-        // Helper function สำหรับวาด Badge สวยๆ ในตาราง
-        function renderBadge(container, value, badgeClass, emptyText) {
-            if (value) {
-                $("<span>").addClass("badge " + badgeClass + " px-2 py-1").text(value).appendTo(container);
-            } else {
-                $("<span>").addClass("text-muted small").html("<i>" + emptyText + "</i>").appendTo(container);
-            }
-        }
-
-        function addNewRule() {
-            if(gridInstance) {
-                gridInstance.addRow();
-            }
-        }
     </script>
 }
