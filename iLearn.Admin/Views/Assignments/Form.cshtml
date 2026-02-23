@@ -128,8 +128,8 @@
             // --- สร้าง Popup สำหรับเลือก Courses ---
             coursesPopup = $("#courses-popup").dxPopup({
                 title: "Browse Courses",
-                width: 900,
-                height: 650,
+                width: "90vw",
+                height: "90vh",
                 showCloseButton: true,
                 dragEnabled: true,
                 contentTemplate: function(container) {
@@ -145,11 +145,22 @@
                         scrolling: { mode: "virtual" },
                         height: "100%",
                         selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        columns: [
-                            { dataField: "code", caption: "Course Code", width: 180, alignment: "center" },
-                            { dataField: "title", caption: "Course Title" },
-                            { dataField: "description", caption: "Description", visible: false }
-                        ]
+                                columns: [
+            { dataField: "code", caption: "Course Code" },
+            { dataField: "title", caption: "Course Title" },
+
+            // 🚀 แสดงชื่อ Category
+            {
+                dataField: "category.name",
+                caption: "Category"
+            },
+
+            // 🚀 แสดงชื่อ Division ที่อยู่ใน Category อีกที
+            {
+                dataField: "category.division.name",
+                caption: "Division"
+            }
+        ]
                     }).dxDataGrid("instance");
                     return container;
                 },

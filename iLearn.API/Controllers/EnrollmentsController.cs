@@ -229,13 +229,37 @@ namespace iLearn.API.Controllers
                 return BadRequest(new { message = "Courses and Employees are required." });
             }
 
-            // 1. สร้าง Assignments No (รันเลข)
-            // ตัวอย่างการทำ Format: AS-YYYYMMDD-001 (ของจริงอาจจะต้องไป Query หาเลขล่าสุดใน DB มา +1 ครับ)
+            // 1. สร้าง Assignments No (รันเลขแบบดึงจาก DB)
             string datePrefix = DateTime.Now.ToString("yyyyMMdd");
-            // TODO: Query หาเลข Running จาก DB 
-            // int nextRunningNo = (_dbContext.Assignments.Count(x => x.AssignmentNo.StartsWith($"AS-{datePrefix}")) + 1);
-            int nextRunningNo = 1; // สมมติว่าเป็น 1
-            string assignmentNo = $"AS-{datePrefix}-{nextRunningNo:D3}";
+            string searchPrefix = $"AS-{datePrefix}";
+            int nextRunningNo = 1;
+
+            // ดึงข้อมูล Assignments เฉพาะของวันนี้จาก Database
+            var existingAssignments = await _assignmentRepo.GetAsync(
+                filter: a => a.AssignmentNo != null && a.AssignmentNo.StartsWith(searchPrefix)
+            );
+
+            // ถ้าวันนี้มีเอกสารถูกสร้างไปแล้ว
+            if (existingAssignments != null && existingAssignments.Any())
+            {
+                // เรียงลำดับจากมากไปน้อย เพื่อเอาตัวล่าสุด
+                var latestAssignment = existingAssignments.OrderByDescending(a => a.AssignmentNo).First();
+
+                // แตกข้อความด้วยขีด '-' แล้วเอาส่วนสุดท้ายที่เป็นตัวเลขมาแปลงเป็น int (เช่น AS-20260223-005 ตัดเอา 005)
+                var parts = latestAssignment.AssignmentNo.Split('-');
+                if (parts.Length >= 3 && int.TryParse(parts.Last(), out int lastNumber))
+                {
+                    nextRunningNo = lastNumber + 1;
+                }
+                else
+                {
+                    // Fallback เผื่อเจอข้อมูลผิด Format
+                    nextRunningNo = existingAssignments.Count() + 1;
+                }
+            }
+
+            // ประกอบร่าง Assignment No ใหม่ เช่น AS-20260223-001
+            string assignmentNo = $"{searchPrefix}-{nextRunningNo:D3}";
 
             // แปลง Array พนักงานให้อยู่ในรูป Comma-separated (ถ้า Database ของคุณเก็บเป็น String)
             string employeesStr = string.Join(",", dto.EmployeeCodes);
@@ -254,7 +278,6 @@ namespace iLearn.API.Controllers
                     Division = dto.Division
                 };
 
-              
                 // บันทึก Rule ลง Database
                 await _assignmentRepo.AddAsync(rule);
 

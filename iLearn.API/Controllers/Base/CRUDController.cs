@@ -28,8 +28,20 @@ namespace iLearn.API.Controllers.Base
         public CoursesCRUDController(IGenericRepository<Course> repository) : base(repository)
         {
         }
-    }
 
+        // 🚀 เพิ่ม Override เมธอด Get ตรงนี้ครับ
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            // ดึงข้อมูล Course พร้อมทำการ Include (Join) ตาราง Category และ Division ที่สัมพันธ์กัน
+            var query = _repository.GetQuery()
+                .Include(c => c.Category)               // ดึงข้อมูล Category
+                    .ThenInclude(cat => cat.Division);  // ดึงข้อมูล Division ที่อยู่ใน Category อีกที
+
+            // ส่ง Query ให้ DevExtreme จัดการค้นหา/แบ่งหน้า
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+    }
     public class DivisionsCRUDController : GenericController<Division>
     {
         public DivisionsCRUDController(IGenericRepository<Division> repository) : base(repository)
