@@ -1,0 +1,198 @@
+﻿@{
+    ViewBag.Title = ViewBag.Id == null ? "Create New Version" : "Edit Version";
+    var isEdit = ViewBag.Id != null;
+    var courseId = ViewBag.CourseId;
+}
+
+<div class="page-header shadow-sm border-0 mb-4 rounded">
+    <div class="container-fluid px-4 py-2">
+        <div class="d-flex align-items-center justify-content-between">
+            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
+                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
+                    <i class="fas @(isEdit ? "fa-edit" : "fa-plus")"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
+                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
+                        @(isEdit ? "Update version details and resources." : "Create a new version for the course.")
+                    </div>
+                </div>
+            </h1>
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("Version", "Courses", new { courseId = courseId })" class="btn btn-light border shadow-sm rounded px-3">
+                    <i class="fas fa-arrow-left me-2"></i> Back
+                </a>
+                <button id="btnSave" class="btn btn-primary rounded shadow-sm px-4">
+                    <i class="fas fa-save me-2"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-4">
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-4">
+                        <i class="fas fa-info-circle text-primary me-2"></i> Version Details
+                    </h5>
+                    <div id="form"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                        <i class="fas fa-book-reader me-2"></i> Learning Material (Learn)
+                    </h5>
+                    <div id="gridLearn"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-danger border-bottom pb-2 mb-3">
+                        <i class="fas fa-pen-alt me-2"></i> Examination (Exam)
+                    </h5>
+                    <div id="gridExam"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const COURSE_ID = parseInt('@courseId');
+        const VERSION_ID = @(ViewBag.Id != null ? ViewBag.Id : "null");
+        const IS_EDIT = VERSION_ID !== null;
+
+        let selectedLearnIds = [];
+        let selectedExamIds = [];
+
+        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+
+        function createGridConfig(typeId, onSelectionChangeCallback) {
+            return {
+                dataSource: { store: resourcesStore, filter: ["typeId", "=", typeId] },
+                showBorders: true,
+                height: 350,
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                searchPanel: { visible: true, width: 250, placeholder: "Search resources..." },
+                scrolling: { mode: "virtual" },
+                columns: [
+                    { dataField: "name", caption: "Resource Name" },
+                    { dataField: "isActive", caption: "Active", dataType: "boolean", width: 80, alignment: "center" }
+                ],
+                onSelectionChanged: onSelectionChangeCallback
+            };
+        }
+
+        $(() => {
+            // 1. สร้าง Form
+            const formWidget = $("#form").dxForm({
+                formData: { courseId: COURSE_ID, isActive: true },
+                colCount: 2,
+                labelLocation: "top",
+                items: [
+                    {
+                        dataField: "versionNumber",
+                        editorType: "dxNumberBox",
+                        label: { text: "Version No." },
+                        validationRules: [{ type: "required", message: "Version number is required" }]
+                    },
+                    {
+                        dataField: "note",
+                        editorType: "dxTextBox",
+                        label: { text: "Version Name / Note" },
+                        validationRules: [{ type: "required", message: "Note is required" }]
+                    },
+                    {
+                        dataField: "isActive",
+                        editorType: "dxCheckBox",
+                        label: { text: "Status", visible: false },
+                        editorOptions: { text: "Active" },
+                        colSpan: 2
+                    }
+                ]
+            }).dxForm("instance");
+
+            // 2. สร้าง Grids สำหรับเลือกไฟล์
+            const gridLearn = $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
+                selectedLearnIds = e.selectedRowsData.map(r => r.id);
+            })).dxDataGrid("instance");
+
+            const gridExam = $("#gridExam").dxDataGrid(createGridConfig(2, (e) => {
+                selectedExamIds = e.selectedRowsData.map(r => r.id);
+            })).dxDataGrid("instance");
+
+            // 3. โหลดข้อมูล
+            if (IS_EDIT) {
+                $.ajax({
+                    url: `${serviceUrl}/admin/CourseVersionsCRUD/Get/${VERSION_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    let detailData = res.data ? res.data : res;
+                    formWidget.option("formData", detailData);
+
+                    let rIds = detailData.resourceIds || (detailData.courseResources ? detailData.courseResources.map(cr => cr.resourceId) : []);
+                    if (rIds.length > 0) {
+                        const resourcePromises = rIds.map(id => resourcesStore.byKey(id));
+                        Promise.all(resourcePromises).then(resources => {
+                            gridLearn.option("selectedRowKeys", resources.filter(r => r && r.typeId === 1).map(r => r.id));
+                            gridExam.option("selectedRowKeys", resources.filter(r => r && r.typeId === 2).map(r => r.id));
+                        });
+                    }
+                });
+            } else {
+                // รันเพื่อหาเลข Version ล่าสุด+1 เมื่อเป็นการสร้างใหม่
+                $.ajax({
+                    url: `${serviceUrl}/admin/CourseVersionsCRUD/Get`,
+                    method: "GET",
+                    data: { filter: JSON.stringify(["courseId", "=", COURSE_ID]) },
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    if(res.data && res.data.length > 0) {
+                        const nextVer = Math.max(...res.data.map(v => v.versionNumber)) + 1;
+                        formWidget.updateData("versionNumber", nextVer);
+                    } else {
+                        formWidget.updateData("versionNumber", 1);
+                    }
+                });
+            }
+
+            // 4. บันทึกข้อมูล
+            $("#btnSave").click(function() {
+                const result = formWidget.validate();
+                if (!result.isValid) return;
+
+                const payload = {
+                    ...formWidget.option("formData"),
+                    resourceIds: [...selectedLearnIds, ...selectedExamIds]
+                };
+
+                const url = IS_EDIT ? `${serviceUrl}/admin/CourseVersionsCRUD/Put/${VERSION_ID}` : `${serviceUrl}/admin/CourseVersionsCRUD/Post`;
+                const method = IS_EDIT ? "PUT" : "POST";
+
+                $.ajax({
+                    url: url,
+                    method: method,
+                    contentType: "application/json",
+                    data: JSON.stringify(payload),
+                    xhrFields: { withCredentials: true }
+                }).done(function() {
+                    DevExpress.ui.notify("Version saved successfully!", "success", 2000);
+                    setTimeout(() => window.location.href = '@Url.Action("Version", "Courses")?courseId=' + COURSE_ID, 1000);
+                }).fail(function(err) {
+                    DevExpress.ui.notify("Failed to save version.", "error", 3000);
+                });
+            });
+        });
+    </script>
+}

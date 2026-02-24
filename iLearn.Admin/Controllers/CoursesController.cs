@@ -32,10 +32,20 @@ namespace iLearn.Admin.Controllers
             ViewBag.VersionId = versionId;
             return View();
         }
+    
         [HttpGet]
         public IActionResult Form(int? id)
         {
             ViewBag.Id = id; // ถ้าเป็น null คือ Create, ถ้ามีค่าคือ Edit
+            return View();
+        }
+
+        // [เพิ่มส่วนนี้] Action สำหรับหน้าฟอร์มจัดการ Version
+        [HttpGet]
+        public IActionResult VersionForm(int? id, int courseId)
+        {
+            ViewBag.Id = id;
+            ViewBag.CourseId = courseId;
             return View();
         }
         public IActionResult Drafts()
