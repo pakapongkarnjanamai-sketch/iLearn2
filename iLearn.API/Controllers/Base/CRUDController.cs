@@ -351,9 +351,17 @@ namespace iLearn.API.Controllers.Base
 
     public class CourseResourcesCRUDController : GenericController<CourseResource>
     {
-        // จำเป็นต้อง Include Resource เพื่อแสดงชื่อใน Grid (ถ้าไม่ได้ใช้ Lookup) 
-        // แต่ใน View เราใช้ Lookup ไปหา ResourcesCRUD แล้ว ดังนั้น Generic ธรรมดาก็พอใช้ได้
+    
         public CourseResourcesCRUDController(IGenericRepository<CourseResource> repository) : base(repository) { }
+
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Include(c => c.Resource); 
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
     }
 
 }
