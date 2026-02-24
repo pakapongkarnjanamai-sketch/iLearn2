@@ -32,4 +32,17 @@ namespace iLearn.Application.DTOs
         public string? Description { get; set; }
         public CourseType Type { get; set; }
     }
+    public class UpdateCourseInfoDto
+    {
+        public string CourseCode { get; set; } = string.Empty; // [เพิ่มล่าสุด] รหัสวิชา
+        public string CourseName { get; set; } = string.Empty; // ชื่อวิชา
+        public string? Description { get; set; }               // รายละเอียด
+        public int CategoryId { get; set; }                    // หมวดหมู่
+        public int CourseType { get; set; }
+    }
+
+    public class UpdateCourseStatusDto
+    {
+        public bool IsActive { get; set; }
+    }
 }

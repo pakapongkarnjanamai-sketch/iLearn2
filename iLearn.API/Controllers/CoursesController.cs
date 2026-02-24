@@ -459,6 +459,167 @@ namespace iLearn.API.Controllers
                 return StatusCode(500, new { message = $"เกิดข้อผิดพลาด: {ex.Message}" });
             }
         }
+        [HttpPut("{id}/info")]
+        public async Task<IActionResult> UpdateCourseInfo(int id, [FromBody] UpdateCourseInfoDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            var course = await _courseRepo.GetByIdAsync(id);
+            if (course == null) return NotFound(new { success = false, message = "ไม่พบหลักสูตรที่ต้องการแก้ไข" });
+
+            // อัปเดตฟิลด์ที่ได้รับมา
+            course.Code = dto.CourseCode;       // <--- บรรทัดที่ต้องเพิ่มสำหรับบันทึกรหัสวิชาใหม่
+            course.Title = dto.CourseName;
+            course.Description = dto.Description;
+            course.CategoryId = dto.CategoryId;
+            course.Type = (CourseType)dto.CourseType;
+            // [เพิ่มใหม่] แมปค่า CourseType (แปลงจาก int กลับเป็น Enum)
+            course.Type = (CourseType)dto.CourseType;
+
+            await _courseRepo.UpdateAsync(course);
+
+            return Ok(new { success = true, message = "อัปเดตข้อมูลทั่วไปสำเร็จ" });
+        }
+
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateCourseStatus(int id, [FromBody] UpdateCourseStatusDto dto)
+        {
+            // 1. ค้นหาคอร์สหลัก
+            var course = await _courseRepo.GetByIdAsync(id);
+            if (course == null) return NotFound(new { success = false, message = "ไม่พบหลักสูตรที่ต้องการแก้ไข" });
+
+            // ========================================================
+            // [ตรวจสอบก่อน Publish] ถ้า IsActive = true ต้องมีข้อมูลพร้อมใช้งาน
+            // ========================================================
+            if (dto.IsActive == true)
+            {
+                // ดึง Version ของคอร์สนี้ที่ IsActive = true มาเช็ค
+                var activeVersions = await _courseVersionRepository.GetAsync(v => v.CourseId == id && v.IsActive);
+                bool isReadyToPublish = false;
+
+                foreach (var version in activeVersions)
+                {
+                    // ดึงข้อมูล CourseResource พร้อม Include Resource เข้ามาด้วย
+                    var courseResources = await _courseResourceRepository.GetAsync(
+                        filter: cr => cr.CourseVersionId == version.Id,
+                        includeProperties: "Resource"
+                    );
+
+                    // ตรวจสอบว่ามี Resource อย่างน้อย 1 ตัวที่เป็น IsActive = true หรือไม่
+                    if (courseResources.Any(cr => cr.Resource != null && cr.Resource.IsActive))
+                    {
+                        isReadyToPublish = true;
+                        break; // เจอแค่ 1 ตัวก็ถือว่าผ่านเงื่อนไขแล้ว หยุดลูปได้เลย
+                    }
+                }
+
+                // ถ้าลูปหาจนจบแล้วไม่เจอเนื้อหาที่พร้อมใช้งานเลย ให้ตีกลับ (Return BadRequest)
+                if (!isReadyToPublish)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "ไม่สามารถ Publish ได้! หลักสูตรนี้ต้องมี Version และเนื้อหา (Resource) ที่เปิดใช้งาน (Active) อย่างน้อย 1 รายการ"
+                    });
+                }
+            }
+
+            // ========================================================
+            // ถ้าเป็นการ Set to Closed (IsActive = false) ให้ไปลบและปิดการใช้งานตัวลูกๆ
+            // ========================================================
+            if (dto.IsActive == false)
+            {
+                var versions = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
+                foreach (var version in versions)
+                {
+                    //if (version.IsActive)
+                    //{
+                    //    version.IsActive = false;
+                    //    await _courseVersionRepository.UpdateAsync(version);
+                    //}
+
+                    var courseResources = await _courseResourceRepository.GetAsync(
+                        filter: cr => cr.CourseVersionId == version.Id,
+                        includeProperties: "Resource"
+                    );
+
+                    foreach (var cr in courseResources)
+                    {
+                        if (cr.Resource != null)
+                        {
+                            if (cr.Resource.IsActive)
+                            {
+                                cr.Resource.IsActive = false;
+                                await _resourceRepository.UpdateAsync(cr.Resource);
+                            }
+
+                            // ลบโฟลเดอร์แตกไฟล์ SCORM
+                            if (!string.IsNullOrEmpty(cr.Resource.URL))
+                            {
+                                try
+                                {
+                                    var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                                    var extractedFolderPath = Path.Combine(webRootPath, "scorm", cr.Resource.URL);
+
+                                    if (Directory.Exists(extractedFolderPath))
+                                    {
+                                        Directory.Delete(extractedFolderPath, true);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Error deleting extracted folder: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ========================================================
+            // ถ้าผ่านเงื่อนไขทั้งหมด ค่อยบันทึกสถานะของ Course หลักลง DB
+            // ========================================================
+            course.IsActive = dto.IsActive;
+            await _courseRepo.UpdateAsync(course);
+
+            return Ok(new { success = true, isActive = course.IsActive, message = "อัปเดตสถานะสำเร็จ" });
+        }
+        [HttpPatch("{courseId}/versions/{versionId}/set-active")]
+        public async Task<IActionResult> SetActiveVersion(int courseId, int versionId)
+        {
+            // 1. ตรวจสอบคอร์ส
+            var course = await _courseRepo.GetByIdAsync(courseId);
+            if (course == null) return NotFound(new { success = false, message = "ไม่พบหลักสูตร" });
+
+            // 2. ดึง Version ทั้งหมดของคอร์สนี้
+            var versions = await _courseVersionRepository.GetAsync(v => v.CourseId == courseId);
+
+            // 3. ตรวจสอบว่า Version ที่ส่งมามีอยู่จริง
+            if (!versions.Any(v => v.Id == versionId))
+                return NotFound(new { success = false, message = "ไม่พบ Version ที่ระบุในหลักสูตรนี้" });
+
+            // 4. วนลูปอัปเดต: ให้ตัวที่เลือกเป็น true ตัวอื่นบังคับเป็น false ทั้งหมด
+            foreach (var version in versions)
+            {
+                if (version.Id == versionId)
+                {
+                    if (!version.IsActive)
+                    {
+                        version.IsActive = true;
+                        await _courseVersionRepository.UpdateAsync(version);
+                    }
+                }
+                else
+                {
+                    if (version.IsActive)
+                    {
+                        version.IsActive = false;
+                        await _courseVersionRepository.UpdateAsync(version);
+                    }
+                }
+            }
+
+            return Ok(new { success = true, message = "เปลี่ยนเวอร์ชันที่ใช้งานสำเร็จ" });
+        }
     }
 }

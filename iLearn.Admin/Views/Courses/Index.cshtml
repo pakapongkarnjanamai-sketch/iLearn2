@@ -149,37 +149,16 @@
                         fixed: true,
                         fixedPosition: "right",
                         buttons: [
+                           
+                           
                             {
-                                hint: "Edit Course",
-                                icon: "edit",
-                                onClick: function(e) {
-                                    window.location.href = '@Url.Action("Form", "Courses")?id=' + e.row.data.id;
-                                }
-                            },
-                            {
-                                hint: "Manage Versions",
-                                icon: "preferences",
-                                onClick: function(e) {
-                                    window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.row.data.id;
-                                }
-                            },
-                            {
-                                hint: "Assign to Employees",
-                                icon: "group",
-                                  visible: function(e) {
-                                    return e.row.data.isActive === true;
-                                },
-                                onClick: function(e) {
-                                    window.location.href = `/Assignments/Form?courseId=${e.row.data.id}`;
-                                }
-                            },
-                            {
-                                name: "delete",
-                                // เงื่อนไข: ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
-                                visible: function(e) {
-                                    return e.row.data.isActive === false;
-                                }
-                            }
+            hint: "Go to Dashboard",
+            icon: "chart", // ใช้ไอคอนกราฟหรือฟันเฟือง
+            onClick: function(e) {
+                // เปลี่ยนเส้นทางไปที่หน้า Dashboard
+                window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + e.row.data.id;
+            }
+        }
                         ]
                     }
                 ]

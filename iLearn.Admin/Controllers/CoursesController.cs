@@ -53,6 +53,15 @@ namespace iLearn.Admin.Controllers
             ViewBag.Title = "จัดการแบบร่าง (Draft Courses)";
             return View();
         }
+        [HttpGet]
+        public IActionResult Dashboard(int id)
+        {
+            ViewBag.CourseId = id;
+            // ทริค: คุณอาจจะดึงข้อมูล Title ของคอร์สมาแสดงบน Title Bar ด้วยก็ได้
+            // var course = _courseService.GetById(id);
+            // ViewBag.CourseTitle = course.Title;
 
+            return View();
+        }
     }
 }
