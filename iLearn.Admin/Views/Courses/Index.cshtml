@@ -91,18 +91,34 @@
                     {
                         dataField: "code",
                         caption: "Code",
-                        width: 120,
+                        width: 150,
                         alignment: "center",
                     },
-                    {
+                   {
                         dataField: "title",
                         caption: "Course Name",
-                        minWidth: 250,
+                        minWidth: 200,
+                        cellTemplate: function(container, options) {
+                            const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
+
+                            // เช็คเงื่อนไข: ถ้า isActive เป็น false ให้สร้างป้าย Draft
+                            if (options.data.isActive === false) {
+                                $("<span>")
+                                    .addClass("badge bg-warning text-dark border")
+                                    .html('<i class="fas fa-pen-nib me-1"></i>Draft')
+                                    .appendTo(wrapper);
+                            }
+
+                            // แสดงชื่อวิชาตามปกติ
+                            $("<span>").addClass("fw-bold text-dark").text(options.value).appendTo(wrapper);
+
+                            wrapper.appendTo(container);
+                        }
                     },
                     {
                         dataField: "categoryId",
                         caption: "Category",
-                        width: 250,
+                        width: 200,
                         lookup: {
                             dataSource: categoriesStore,
                             displayExpr: 'name',
@@ -120,7 +136,7 @@
                         },
                         cellTemplate: function(container, options) {
                             const text = options.displayValue;
-                            const icon = options.value === 1 ? "fa-globe text-primary" : "fa-lock text-danger";
+                            const icon = options.value === 1 ? "fa-globe text-primary" : "fa-star text-danger";
                             $("<div>").html(`<i class="fas ${icon} me-1 opacity-75"></i> ${text}`).appendTo(container);
                         }
                     },
@@ -150,11 +166,20 @@
                             {
                                 hint: "Assign to Employees",
                                 icon: "group",
+                                  visible: function(e) {
+                                    return e.row.data.isActive === true;
+                                },
                                 onClick: function(e) {
                                     window.location.href = `/Assignments/Form?courseId=${e.row.data.id}`;
                                 }
                             },
-                            "delete"
+                            {
+                                name: "delete",
+                                // เงื่อนไข: ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
+                                visible: function(e) {
+                                    return e.row.data.isActive === false;
+                                }
+                            }
                         ]
                     }
                 ]

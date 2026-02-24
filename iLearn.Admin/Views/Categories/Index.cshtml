@@ -26,9 +26,24 @@
 </div>
 
 <div class="container-fluid px-4 pb-4">
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-3">
-            <div id="grid"></div>
+    <div class="row">
+        <div class="col-md-4 col-lg-3 mb-4 mb-md-0">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-sitemap me-2 text-primary"></i>Filter by Division</h6>
+                </div>
+                <div class="card-body p-2">
+                    <div id="divisionTreeView"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 col-lg-9">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div id="grid"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -36,14 +51,20 @@
 @section Scripts {
     <script>
         let gridInstance;
+
         // DataStores
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD');
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
 
-        $(() => {
-            // ใช้ initDxGrid ตามมาตรฐานระบบ
+        // เปลี่ยนฟังก์ชันหลักเป็น async เพื่อให้รองรับการดึงข้อมูลสร้าง TreeView
+        $(async () => {
+
+            // ==========================================
+            // 1. สร้าง DataGrid หลัก (Categories)
+            // ==========================================
             gridInstance = initDxGrid("#grid", {
                 dataSource: categoriesStore,
+                height: "calc(100vh - 230px)", // จำกัดความสูงให้อยู่ในหน้าจอ
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { placeholder: "Search categories..." },
@@ -54,7 +75,7 @@
                 showRowLines: true,
                 hoverStateEnabled: true,
 
-                // Editing Configuration (Popup)
+               // Editing Configuration (Popup)
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
@@ -65,10 +86,15 @@
                     popup: {
                         title: "Category Information",
                         showTitle: true,
-                        width: 500,
-                        height: 450
+                        width: 450,
+                        height: "auto", // ให้หน้าต่างยืดหดตามความสูงของเนื้อหาอัตโนมัติ
+                        position: { my: "center", at: "center", of: window },
+                        dragEnabled: true,
+                        hideOnOutsideClick: true // คลิกพื้นหลังเพื่อปิด popup ได้
                     },
                     form: {
+                        labelLocation: "top", // เอา Label ไว้ด้านบนของ Input
+                        colCount: 1,
                         items: [
                             {
                                 itemType: "group",
@@ -77,6 +103,9 @@
                                     {
                                         dataField: "name",
                                         label: { text: "Category Name" },
+                                        editorOptions: {
+                                            placeholder: "Enter category name..."
+                                        },
                                         validationRules: [{ type: "required", message: "Name is required" }]
                                     },
                                     {
@@ -88,14 +117,21 @@
                                             displayExpr: "name",
                                             valueExpr: "id",
                                             showClearButton: true,
-                                            placeholder: "Select Division (Optional)"
+                                            searchEnabled: true, // เปิดให้พิมพ์ค้นหาชื่อแผนกได้
+                                            placeholder: "Select a Division..."
                                         }
                                     },
                                     {
+                                        itemType: "empty" // เพิ่มช่องว่างเล็กน้อยก่อนถึงสวิตช์
+                                    },
+                                    {
                                         dataField: "isActive",
-                                        editorType: "dxCheckBox",
-                                        editorOptions: { text: "Active Status" },
-                                        label: { visible: false }
+                                        editorType: "dxSwitch", // เปลี่ยนเป็นปุ่มเปิด-ปิด (Switch) ให้ดูทันสมัย
+                                        label: { text: "Status (Active)" },
+                                        editorOptions: {
+                                            switchedOnText: "Yes",
+                                            switchedOffText: "No"
+                                        }
                                     }
                                 ]
                             }
@@ -111,13 +147,11 @@
                         alignment: "center",
                         allowEditing: false,
                         sortOrder: 'desc',
-              
                     },
                     {
                         dataField: "name",
                         caption: "Category Name",
                         minWidth: 250,
-        
                     },
                     {
                         dataField: "divisionId",
@@ -140,13 +174,13 @@
                         },
                         cellTemplate: function(container, options) {
                             const isActive = options.value;
-                            const badgeClass = isActive ? "badge-active" : "badge-inactive";
+                            const badgeClass = isActive ? "bg-success text-white" : "bg-secondary text-white";
                             const icon = isActive ? "fa-check-circle" : "fa-times-circle";
                             const text = isActive ? "Active" : "Inactive";
 
                             $("<span>")
-                                .addClass(`badge-status ${badgeClass}`)
-                                .html(`<i class="fas ${icon}"></i> ${text}`)
+                                .addClass(`badge border px-2 py-1 ${badgeClass}`)
+                                .html(`<i class="fas ${icon} me-1"></i> ${text}`)
                                 .appendTo(container);
                         }
                     },
@@ -163,16 +197,83 @@
                             "edit",
                             {
                                 hint: "View Courses in this Category",
-                                icon: "folder", // ไอคอนโฟลเดอร์สำหรับนำทางไปดูหลักสูตรย่อย
+                                icon: "folder",
                                 onClick: function(e) {
                                     window.location.href = '@Url.Action("Index", "Courses")?categoryId=' + e.row.data.id;
                                 }
                             },
-                            "delete"
+                            {
+                                name: "delete",
+                                // เงื่อนไข: ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
+                                visible: function(e) {
+                                    return e.row.data.isActive === false;
+                                }
+                            }
                         ]
                     }
                 ]
             });
+
+            // ==========================================
+            // 2. ดึงข้อมูล Divisions และสร้าง TreeView ด้านซ้าย
+            // ==========================================
+            try {
+                // ดึงข้อมูล Division ทั้งหมด
+                const divisionsData = await divisionsStore.load();
+
+                // เรียงลำดับชื่อ A-Z
+                divisionsData.sort((a, b) => (a.name > b.name) ? 1 : -1);
+
+                // สร้างโครงสร้างข้อมูลสำหรับ TreeView
+                const treeData = [{
+                    id: 'root',
+                    text: 'All Categories',
+                    icon: 'home',
+                    expanded: true,
+                    isRoot: true,
+                    // สร้าง Node ย่อยเป็นรายชื่อ Division
+                    items: divisionsData.map(d => ({
+                        id: 'div_' + d.id,
+                        text: d.isActive ? d.name : `🚫 ${d.name} (Draft)`,
+                        icon: 'folder',
+                        divisionId: d.id
+                    }))
+                }];
+
+                // สร้าง dxTreeView
+                $("#divisionTreeView").dxTreeView({
+                    dataSource: treeData,
+                    height: "calc(100vh - 280px)", // จำกัดความสูงให้อยู่ในหน้าจอ
+                    dataStructure: 'tree',
+                    keyExpr: 'id',
+                    displayExpr: 'text',
+                    itemsExpr: 'items',
+                    selectionMode: 'single',
+                    selectByClick: true,
+                    onItemSelectionChanged: function(e) {
+                        const node = e.itemData;
+
+                        const gridElement = $("#grid");
+                        if (!gridElement.length || !gridElement.data("dxDataGrid")) return;
+
+                        const grid = gridElement.dxDataGrid("instance");
+
+                        // ระบบกรอง (Filter)
+                        if (node.isRoot) {
+                            grid.clearFilter(); // ล้าง Filter ดูทั้งหมด
+                        } else if (node.divisionId) {
+                            grid.filter(["divisionId", "=", node.divisionId]); // กรองตาม Division ID
+                        }
+                    },
+                    onContentReady: function(e) {
+                        // เลือก Root (All Categories) เป็นค่าเริ่มต้น
+                        e.component.selectItem('root');
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error loading divisions for treeview", err);
+            }
         });
 
         // ฟังก์ชันสำหรับปุ่ม New Category ด้านบน
