@@ -51,9 +51,6 @@
                 </div>
                 <div class="card-body p-2" style="max-height: 400px; overflow-y: auto;">
                     <div class="list-group list-group-flush">
-
-                    
-
                         <a href="javascript:void(0);" id="btnNewVersion" class="list-group-item list-group-item-action d-flex align-items-center py-3 border-1 rounded mb-1 ">
                             <i class="fas fa-code-branch text-primary fs-4 me-3"></i>
                             <div>
@@ -61,7 +58,6 @@
                                 <small class="text-muted">Create a new course version.</small>
                             </div>
                         </a>
-
                         <a href="javascript:void(0);" id="btnAssignment" class="list-group-item list-group-item-action d-flex align-items-center py-3 border-1 rounded mb-1  ">
                             <i id="assignmentIcon" class="fas fa-user-plus text-primary fs-4 me-3"></i>
                             <div>
@@ -83,13 +79,8 @@
                                 <small class="text-muted">Remove this course permanently.</small>
                             </div>
                         </a>
-
-                     
                     </div>
-
-                    <div id="deleteWarningMsg" class="text-danger small mt-3 text-center d-none">
-                 
-                    </div>
+                    <div id="deleteWarningMsg" class="text-danger small mt-3 text-center d-none"></div>
                 </div>
             </div>
         </div>
@@ -98,35 +89,45 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-code-branch text-primary me-2"></i> Versions & Content</h5>
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-layer-group text-primary me-2"></i> Versions & Content</h5>
+                    <button class="btn btn-sm btn-outline-primary" id="btnAddNewVersionCard"><i class="fas fa-plus me-1"></i> Add Version</button>
                 </div>
-                <div class="card-body p-3">
-                    <div id="versionsGrid"></div>
+                <div class="card-body p-4 bg-light rounded-bottom">
+                    <div class="row" id="versionsContainer">
+                        <div class="col-12 text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i> Loading versions...</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="col-12">
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-clipboard-list text-primary me-2"></i> Assignments Rules</h5>
+                <div class="card-header bg-white border-bottom p-0">
+                    <ul class="nav nav-tabs nav-justified" id="courseManagementTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold py-3 text-dark border-top-0 border-start-0 border-end-0" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments-pane" type="button" role="tab">
+                                <i class="fas fa-clipboard-list text-primary me-2"></i> Assignments Rules
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold py-3 text-dark border-top-0 border-start-0 border-end-0" id="enrollments-tab" data-bs-toggle="tab" data-bs-target="#enrollments-pane" type="button" role="tab">
+                                <i class="fas fa-users text-primary me-2"></i> Enrollments & Progress
+                            </button>
+                        </li>
+                    </ul>
                 </div>
                 <div class="card-body p-3">
-                    <div id="assignmentsGrid"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-users text-primary me-2"></i> Enrollments & Progress</h5>
-                </div>
-                <div class="card-body p-3">
-                    <div id="enrollmentsGrid"></div>
+                    <div class="tab-content" id="myTabContent">
+                        <div class="tab-pane fade show active" id="assignments-pane" role="tabpanel">
+                            <div id="assignmentsGrid"></div>
+                        </div>
+                        <div class="tab-pane fade" id="enrollments-pane" role="tabpanel">
+                            <div id="enrollmentsGrid"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -144,79 +145,29 @@
             transform: none;
             background-color: #f8f9fa !important;
         }
+
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #0d6efd !important;
+            color: #0d6efd !important;
+        }
     </style>
 
     <script>
         const courseId = @courseId;
-
         const courseApiUrl = serviceUrl + '/Courses';
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-
-        const versionsStore = createDataStore(serviceUrl, 'admin/CourseVersionsCRUD', { key: 'id' });
         const assignmentsStore = createDataStore(serviceUrl, 'admin/AssignmentsCRUD', { key: 'id' });
         const enrollmentsStore = createDataStore(serviceUrl, 'admin/EnrollmentsCRUD', { key: 'id' });
-        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
         const courseTypes = [
             { id: 0, name: 'Special' },
             { id: 1, name: 'General' }
         ];
-
         let isCourseActive = false;
-
-        // ==========================================
-        // ฟังก์ชันเสริมสำหรับจัดการ Resource
-        // ==========================================
-        function viewContent(resourceId, resourceName) {
-            const apiUrl = serviceUrl + `/Resources/${resourceId}/content`;
-
-            if (resourceName && resourceName.toLowerCase().endsWith('.zip')) {
-                const win = window.open('about:blank', '_blank');
-                if (win) {
-                    win.document.title = "Loading Course...";
-                    win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content URL...</div>";
-                }
-
-                $.ajax({
-                    url: apiUrl,
-                    method: "GET",
-                    xhrFields: { withCredentials: true },
-                    success: function(response) {
-                        if (response && response.url) {
-                            if (win) win.location.href = response.url;
-                        } else {
-                            if (win) win.close();
-                            DevExpress.ui.notify("Content URL not found.", "error", 3000);
-                        }
-                    },
-                    error: function(err) {
-                        if (win) win.close();
-                        DevExpress.ui.notify("Failed to get content link.", "error", 3000);
-                    }
-                });
-            } else {
-                window.open(apiUrl, '_blank');
-            }
-        }
-
-        function setResourcePublic(resourceId, gridInstance) {
-            $.ajax({
-                url: serviceUrl + `/Resources/SetPublic?key=${resourceId}`,
-                type: "POST",
-                xhrFields: { withCredentials: true },
-                success: function() {
-                    DevExpress.ui.notify("Resource visibility updated successfully.", "success", 2000);
-                    if(gridInstance) gridInstance.refresh();
-                },
-                error: function() {
-                    DevExpress.ui.notify("Failed to update resource visibility.", "error", 3000);
-                }
-            });
-        }
 
         $(async () => {
             // ==========================================
-            // 1. ฟอร์มข้อมูล Course
+            // 1. ฟอร์มข้อมูล Course (เพิ่มโชว์ Division)
             // ==========================================
             const courseForm = $("#courseInfoForm").dxForm({
                 formData: {},
@@ -231,7 +182,16 @@
                                 dataField: "categoryId",
                                 label: { text: "Category" },
                                 editorType: "dxSelectBox",
-                                editorOptions: { dataSource: categoriesStore, displayExpr: "name", valueExpr: "id" },
+                                editorOptions: {
+                                    dataSource: categoriesStore,
+                                    // ✨ แสดงชื่อ Division ก่อนหน้า Category Name
+                                    displayExpr: function(item) {
+                                        if(!item) return "";
+                                        return item.division ? `${item.division.name} - ${item.name}` : item.name;
+                                    },
+                                    valueExpr: "id",
+                                    searchEnabled: true
+                                },
                                 isRequired: true
                             },
                             {
@@ -247,7 +207,7 @@
                 ]
             }).dxForm("instance");
 
-            // ดึงข้อมูลคอร์ส
+            // ดึงข้อมูลคอร์สตั้งต้น
             $.ajax({
                 url: `${courseApiUrl}/${courseId}`,
                 type: 'GET',
@@ -257,11 +217,8 @@
                 courseForm.option("formData", data);
                 isCourseActive = data.isActive;
                 updateStatusUI(isCourseActive);
-            }).fail((err) => {
-                console.error("Failed to load course data", err);
             });
 
-            // กดปุ่ม Save Changes
             $("#btnSaveCourse").click(() => {
                 if(!courseForm.validate().isValid) return;
                 const data = courseForm.option("formData");
@@ -299,11 +256,9 @@
                     $("#publishBtnText").text("Set to Closed");
                     $("#publishSubText").text("Hide course from users.");
                     $("#courseStatusBadge").removeClass("bg-warning text-dark").addClass("bg-success text-white").html('<i class="fas fa-check-circle me-1"></i> Public');
-
                     btnDelete.addClass("disabled text-muted").css({"cursor": "not-allowed", "opacity": "0.6"});
                     deleteIcon.removeClass("text-danger").addClass("text-muted");
                     warnMsg.removeClass("d-none");
-
                     btnAssignment.removeClass("disabled text-muted").css({"cursor": "pointer", "opacity": "1"});
                     assignmentIcon.removeClass("text-muted").addClass("text-primary");
                 } else {
@@ -311,19 +266,14 @@
                     $("#publishBtnText").text("Publish Course");
                     $("#publishSubText").text("Make course visible to users.");
                     $("#courseStatusBadge").removeClass("bg-success text-white").addClass("bg-warning text-dark").html('<i class="fas fa-lock me-1"></i> Closed');
-
                     btnDelete.removeClass("disabled text-muted").css({"cursor": "pointer", "opacity": "1"});
                     deleteIcon.removeClass("text-muted").addClass("text-danger");
                     warnMsg.addClass("d-none");
-
                     btnAssignment.addClass("disabled text-muted").css({"cursor": "not-allowed", "opacity": "0.6"});
                     assignmentIcon.removeClass("text-info").addClass("text-muted");
                 }
             }
 
-            // ==========================================
-            // 3. Event Buttons (Quick Management)
-            // ==========================================
             $("#btnTogglePublish").click(() => {
                 const newState = !isCourseActive;
                 $.ajax({
@@ -335,272 +285,177 @@
                     success: () => {
                         isCourseActive = newState;
                         updateStatusUI(newState);
-                        $("#versionsGrid").dxDataGrid("instance").refresh();
+                        loadVersions(); // รีเฟรชการ์ดเวอร์ชัน
                         DevExpress.ui.notify(newState ? "Course published successfully!" : "Course set to closed.", "success", 2000);
                     },
                     error: (xhr) => {
-                        let errorMsg = "Error updating status";
-                        if(xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMsg = xhr.responseJSON.message;
-                        }
+                        let errorMsg = xhr.responseJSON?.message || "Error updating status";
                         DevExpress.ui.notify(errorMsg, "error", 4000);
-                        updateStatusUI(!newState);
                     }
                 });
             });
 
-            $("#btnNewVersion").click(() => {
+            $("#btnNewVersion, #btnAddNewVersionCard").click(() => {
                 window.location.href = '@Url.Action("VersionForm", "Courses")?courseId=' + courseId;
             });
 
             $("#btnAssignment").click(function(e) {
                 if ($(this).hasClass("disabled")) {
                     e.preventDefault();
-                    DevExpress.ui.notify("Please 'Publish' the course before assigning to employees.", "warning", 3000);
+                    DevExpress.ui.notify("Please 'Publish' the course before assigning.", "warning", 3000);
                     return;
                 }
                 window.location.href = '/Assignments/Form?courseId=' + courseId;
             });
 
-            $("#btnDeleteCourse").click(function(e) {
-                if ($(this).hasClass("disabled")) {
-                    e.preventDefault();
-                    return;
-                }
-                const result = DevExpress.ui.dialog.confirm(
-                    "<i>Are you sure you want to delete this course?</i><br/><br/>This will remove all versions, assignments, and cannot be undone.",
-                    "Confirm Deletion"
-                );
-                result.done((dialogResult) => {
+            // ==========================================
+            // 3. วาดการ์ด Versions & Content
+            // ==========================================
+            function loadVersions() {
+                $.ajax({
+                    url: serviceUrl + '/admin/CourseVersionsCRUD/Get',
+                    data: { filter: JSON.stringify(["courseId", "=", courseId]) },
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    const versions = res.data || [];
+                    versions.sort((a,b) => b.versionNumber - a.versionNumber); // เรียงล่าสุดขึ้นก่อน
+
+                    const container = $("#versionsContainer");
+                    container.empty();
+
+                    if(versions.length === 0) {
+                        container.html('<div class="col-12 text-center text-muted py-4">No versions found. Create one to get started.</div>');
+                        return;
+                    }
+
+                    versions.forEach(v => {
+                        const isActive = v.isActive;
+                        const badge = isActive ? '<span class="badge bg-success px-2 py-1"><i class="fas fa-check-circle me-1"></i> Active</span>' : '<span class="badge bg-secondary px-2 py-1">Inactive</span>';
+                        // ปุ่ม Set Active จะโผล่มาถ้ายังไม่ Active
+                        const activeBtn = isActive ? '' : `<button class="btn btn-sm btn-success text-white shadow-sm" onclick="setActiveVersion(${v.id})"><i class="fas fa-check-circle me-1"></i> Set Active</button>`;
+                        const formattedDate = new Date(v.createdAt).toLocaleDateString('en-GB'); // dd/mm/yyyy
+
+                        const cardHtml = `
+                            <div class="col-md-6 col-xl-4 mb-4">
+                                <div class="card h-100 shadow-sm border-0 ${isActive ? 'border-top border-success border-4' : 'border-top border-secondary border-4'}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <h5 class="card-title mb-0 fw-bold text-dark">
+                                                Version ${v.versionNumber}
+                                            </h5>
+                                            <div>${badge}</div>
+                                        </div>
+                                        <p class="card-text text-muted small mb-2" style="min-height: 40px;">${v.note || 'No description provided.'}</p>
+                                        <p class="card-text text-muted small mb-3"><i class="fas fa-calendar-alt me-1"></i>Created: ${formattedDate}</p>
+
+                                        <h6 class="fw-bold small text-dark border-bottom pb-1 mb-2"><i class="fas fa-paperclip me-1"></i> Attached Content</h6>
+                                        <div id="res-container-${v.id}" class="mb-2" style="min-height: 50px;">
+                                            <div class="text-center small text-muted"><i class="fas fa-spinner fa-spin"></i></div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white border-0 pt-0 d-flex justify-content-between align-items-center">
+                                        <div>${activeBtn}</div>
+                                        <div>
+                                            <a href="/Courses/VersionForm/${v.id}?courseId=${courseId}" class="btn btn-sm btn-light border text-primary" title="Edit Version"><i class="fas fa-edit"></i></a>
+                                            <button class="btn btn-sm btn-light border text-danger" onclick="deleteVersion(${v.id})" title="Delete Version"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        container.append(cardHtml);
+                        loadVersionResources(v.id);
+                    });
+                });
+            }
+
+            function loadVersionResources(versionId) {
+                $.ajax({
+                    url: serviceUrl + '/admin/CourseResourcesCRUD/Get',
+                    data: { filter: JSON.stringify(["courseVersionId", "=", versionId]), expand: "resource" },
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    const resources = res.data || [];
+                    const resContainer = $(`#res-container-${versionId}`);
+                    resContainer.empty();
+
+                    if(resources.length === 0) {
+                        resContainer.html('<div class="small text-muted fst-italic py-1">- No files attached -</div>');
+                        return;
+                    }
+
+                    const ul = $('<ul class="list-unstyled mb-0 small"></ul>');
+                    resources.forEach(cr => {
+                        const r = cr.resource;
+                        if(!r) return;
+                        const icon = r.typeId === 1 ? 'fa-book-reader text-primary' : 'fa-pen-alt text-danger';
+                        ul.append(`<li class="mb-2 text-truncate d-flex align-items-center" title="${r.name}"><i class="fas ${icon} me-2" style="width: 15px;"></i><span>${r.name}</span></li>`);
+                    });
+                    resContainer.append(ul);
+                });
+            }
+
+            // เรียกทำงานโหลดครั้งแรก
+            loadVersions();
+
+            // ฟังก์ชันผูกกับหน้าต่าง (Global scope)
+            window.setActiveVersion = function(vId) {
+                $.ajax({
+                    url: `${courseApiUrl}/${courseId}/versions/${vId}/set-active`,
+                    type: 'PATCH',
+                    xhrFields: { withCredentials: true },
+                    success: function() {
+                        DevExpress.ui.notify("Active version updated!", "success", 2000);
+                        loadVersions();
+                    }
+                });
+            }
+
+            window.deleteVersion = function(vId) {
+                const result = DevExpress.ui.dialog.confirm("Delete this version? This action cannot be undone.", "Confirm Delete");
+                result.done(function(dialogResult) {
                     if(dialogResult) {
                         $.ajax({
-                            url: `${courseApiUrl}/${courseId}`,
+                            url: serviceUrl + '/admin/CourseVersionsCRUD/Delete',
                             type: 'DELETE',
+                            data: { key: vId },
                             xhrFields: { withCredentials: true },
-                            success: () => {
-                                DevExpress.ui.notify("Course deleted successfully!", "success", 2000);
-                                setTimeout(() => { window.location.href = '@Url.Action("Index", "Courses")'; }, 1500);
-                            },
-                            error: () => {
-                                DevExpress.ui.notify("Error deleting course. It might be in use.", "error", 3000);
+                            success: function() {
+                                DevExpress.ui.notify("Version deleted.", "success", 2000);
+                                loadVersions();
                             }
                         });
                     }
                 });
-            });
+            }
 
             // ==========================================
-            // 4. DataGrids
+            // 4. Assignments & Enrollments Grids (ใน Tabs)
             // ==========================================
-            $("#versionsGrid").dxDataGrid({
-                dataSource: { store: versionsStore, filter: ["courseId", "=", courseId] },
-                showBorders: true,
-                rowAlternationEnabled: true,
-                editing: {
-                    mode: "row",
-                    allowUpdating: true,
-                    allowDeleting: true,
-                    useIcons: true
-                },
-         masterDetail: {
-                    enabled: true,
-                    template: function(container, options) {
-                        const versionData = options.data;
-
-                        const header = $("<div>")
-                            .addClass("d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom")
-                            .appendTo(container);
-
-                        $("<div>")
-                            .addClass("fw-bold text-secondary")
-                            .html(`<i class="fas fa-folder-open me-2"></i>Content for Version ${versionData.versionNumber}`)
-                            .appendTo(header);
-
-                        $("<div>").dxDataGrid({
-                            // กลับมาใช้ CourseResourcesCRUD เพื่อให้ Filter ทำงานได้ตามปกติ
-                            dataSource: {
-                                store: createDataStore(serviceUrl, 'admin/CourseResourcesCRUD', { key: 'id' }),
-                                filter: ["courseVersionId", "=", versionData.id]
-                            },
-                            showBorders: true,
-                            columnAutoWidth: true,
-                            rowAlternationEnabled: true,
-                            editing: {
-                                mode: "row",
-                                allowAdding: false, // ปิดการเพิ่มไฟล์ใหม่จากตรงนี้ (แนะนำให้ทำที่ Resource Library)
-                                allowUpdating: true, // เปิดให้แก้ไข (แก้ชื่อ)
-                                allowDeleting: true,
-                                useIcons: true
-                            },
-                            // [ไฮไลท์สำคัญ] ดักจับการแก้ไขข้อมูล เพื่อให้ไปอัปเดตที่ตาราง Resources ตรงๆ
-                            onRowUpdating: function(e) {
-                                // เช็คว่ามีการพิมพ์แก้ไขในช่องชื่อไฟล์หรือไม่
-                                if (e.newData.resource && e.newData.resource.name !== undefined) {
-                                    // สั่งยกเลิกการเซฟลง CourseResourcesCRUD ปกติ แล้วใช้ $.ajax ยิงไป ResourcesCRUD แทน
-                                    e.cancel = $.ajax({
-                                        url: serviceUrl + '/admin/ResourcesCRUD/Put',
-                                        type: 'PUT',
-                                        data: {
-                                            key: e.oldData.resourceId, // ส่ง ID ของ Resource ไปแก้
-                                            values: JSON.stringify({ name: e.newData.resource.name }) // ส่งชื่อใหม่ไป
-                                        }
-                                    }).done(function() {
-                                        DevExpress.ui.notify("Resource updated successfully.", "success", 2000);
-                                    }).fail(function() {
-                                        DevExpress.ui.notify("Failed to update Resource.", "error", 3000);
-                                    });
-                                }
-                            },
-                            columns: [
-                                {
-                                    // ดึงชื่อไฟล์มาแสดงผ่าน Include จาก Backend
-                                    dataField: "resource.name",
-                                    caption: "File / Content Name",
-                                    validationRules: [{ type: "required", message: "Name cannot be empty" }]
-                                },
-                                {
-                                    // ดึงสถานะ Active มาแสดง
-                                    dataField: "resource.isActive",
-                                    caption: "Resource Status",
-                                    dataType: "boolean",
-                                    width: 140,
-                                    alignment: "center",
-                                    allowEditing: false, // ปิดแก้ไขตรงนี้ ให้ไปใช้ปุ่ม Set Public แทนเพื่อความชัวร์
-                                    cellTemplate: function(container, options) {
-                                        // ป้องกัน Error กรณี resource เป็น null
-                                        if (!options.data.resource) {
-                                            $("<span>").text("-").appendTo(container);
-                                            return;
-                                        }
-
-                                        if (options.data.resource.isActive) {
-                                            $("<span>").addClass("badge bg-success").html('<i class="fas fa-globe me-1"></i>Public').appendTo(container);
-                                        } else {
-                                            $("<span>").addClass("badge bg-secondary").html('<i class="fas fa-lock me-1"></i>Private').appendTo(container);
-                                        }
-                                    }
-                                },
-                                {
-                                    dataField: "createdAt",
-                                    caption: "Added Date",
-                                    dataType: "datetime",
-                                    format: "dd/MM/yyyy HH:mm",
-                                    width: 160,
-                                    alignment: "center",
-                                    allowEditing: false
-                                },
-                                {
-                                    type: "buttons",
-                                    width: 150,
-                                    buttons: [
-                                        "edit", // ปุ่มดินสอ จะเปิดช่องให้แก้ชื่อ resource.name ได้
-                                        {
-                                            hint: "Preview Content",
-                                            icon: "video",
-                                            visible: function(e) {
-                                                return !e.row.isNewRow && e.row.data.resource?.isActive === true;
-                                            },
-                                            onClick: function(e) {
-                                                const resourceName = e.row.data.resource.name;
-                                                const resourceId = e.row.data.resourceId;
-                                                viewContent(resourceId, resourceName);
-                                            }
-                                        },
-                                        {
-                                            hint: "Set Public (Extract SCORM)",
-                                            icon: "upload",
-                                            visible: function(e) {
-                                                return !e.row.isNewRow && e.row.data.resource?.isActive === false;
-                                            },
-                                            onClick: function(e) {
-                                                const resourceId = e.row.data.resourceId;
-                                                setResourcePublic(resourceId, e.component);
-                                            }
-                                        },
-                                        "delete"
-                                    ]
-                                }
-                            ]
-                        }).appendTo(container);
-                    }
-                },
-                columns: [
-                    { dataField: "versionNumber", caption: "Version No.", width: 100, alignment: "center", allowEditing: false },
-                    { dataField: "note", caption: "Note" },
-                    { dataField: "createdAt", caption: "Created Date", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 160, allowEditing: false },
-                    {
-                        dataField: "isActive",
-                        caption: "Status",
-                        dataType: "boolean",
-                        width: 120,
-                        alignment: "center",
-                        allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            if (options.value) {
-                                $("<span>").addClass("badge bg-success").html('<i class="fas fa-check-circle me-1"></i>Active').appendTo(container);
-                            } else {
-                                $("<span>").addClass("badge bg-secondary").text("Inactive").appendTo(container);
-                            }
-                        }
-                    },
-                    {
-                        type: "buttons",
-                        width: 140,
-                        buttons: [
-                            "edit",
-                            {
-                                hint: "Set as Active",
-                                icon: "check",
-                                visible: function(e) {
-                                    return !e.row.data.isActive;
-                                },
-                                onClick: function(e) {
-                                    const versionId = e.row.data.id;
-
-                                    $.ajax({
-                                        url: `${courseApiUrl}/${courseId}/versions/${versionId}/set-active`,
-                                        type: 'PATCH',
-                                        xhrFields: { withCredentials: true },
-                                        success: function() {
-                                            DevExpress.ui.notify("Active version updated!", "success", 2000);
-                                            $("#versionsGrid").dxDataGrid("instance").refresh();
-                                        },
-                                        error: function() {
-                                            DevExpress.ui.notify("Error updating active version.", "error", 2000);
-                                        }
-                                    });
-                                }
-                            },
-                            "delete"
-                        ]
-                    }
-                ]
-            });
-
             $("#assignmentsGrid").dxDataGrid({
                 dataSource: { store: assignmentsStore, filter: ["courseId", "=", courseId] },
-                showBorders: true,
+                showBorders: false,
                 rowAlternationEnabled: true,
+                columnAutoWidth: true,
                 columns: [
-                    { dataField: "assignmentNo", caption: "Assignment No" },
-                    { dataField: "division", caption: "Division", width: 100, alignment: "center" },
-                    { dataField: "dueDate", caption: "Due Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                    { dataField: "assignmentNo", caption: "Assignment No", alignment: "center" },
+                    { dataField: "division", caption: "Target Division", alignment: "center" },
+                    { dataField: "dueDate", caption: "Due Date", dataType: "date", format: "dd/MM/yyyy", alignment: "center" },
                     { type: "buttons", buttons: ["edit", "delete"], width: 80 }
                 ]
             });
 
             $("#enrollmentsGrid").dxDataGrid({
                 dataSource: { store: enrollmentsStore, filter: ["courseId", "=", courseId] },
-                showBorders: true,
+                showBorders: false,
                 rowAlternationEnabled: true,
-                searchPanel: { visible: true, placeholder: "Search Code..." },
-                paging: { pageSize: 5 },
+                searchPanel: { visible: true, placeholder: "Search Student Code..." },
+                paging: { pageSize: 10 },
                 columns: [
-                    { dataField: "studentCode", caption: "Student", width: 100, alignment: "center" },
+                    { dataField: "studentCode", caption: "Student", alignment: "center" },
                     {
                         dataField: "isCompleted",
                         caption: "Status",
-                        width: 100,
                         alignment: "center",
                         cellTemplate: function(container, options) {
                             if (options.value) {
@@ -620,12 +475,23 @@
                                 <div class="progress mt-1" style="height: 10px;">
                                     <div class="progress-bar ${color}" role="progressbar" style="width: ${percent}%;" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
-                                <div class="text-center" style="font-size: 0.75rem; margin-top: 2px;">${percent}%</div>
+                                <div class="text-center text-muted" style="font-size: 0.75rem; margin-top: 2px;">${percent}%</div>
                             `).appendTo(container);
                         }
                     }
                 ]
             });
+
+            // ✨ แก้ปัญหา Grid เบี้ยวเวลาเปลี่ยน Tab (เพราะ Grid ถูกวาดตอนที่มันซ่อนอยู่)
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const targetId = $(e.target).attr("data-bs-target");
+                if (targetId === "#enrollments-pane") {
+                    $("#enrollmentsGrid").dxDataGrid("instance").repaint();
+                } else if (targetId === "#assignments-pane") {
+                    $("#assignmentsGrid").dxDataGrid("instance").repaint();
+                }
+            });
+
         });
     </script>
 }
