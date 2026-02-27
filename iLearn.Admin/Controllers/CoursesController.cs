@@ -19,13 +19,13 @@ namespace iLearn.Admin.Controllers
             return View();
         }
 
-        // [เพิ่ม] Action สำหรับหน้าจัดการ Course Versions
-        [HttpGet]
-        public IActionResult Version(int courseId)
-        {
-            ViewBag.CourseId = courseId;
-            return View();
-        }
+        //// [เพิ่ม] Action สำหรับหน้าจัดการ Course Versions
+        //[HttpGet]
+        //public IActionResult Version(int courseId)
+        //{
+        //    ViewBag.CourseId = courseId;
+        //    return View();
+        //}
         [HttpGet]
         public IActionResult Player(int versionId)
         {

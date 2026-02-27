@@ -83,7 +83,8 @@
 
                 onRowDblClick: function(e) {
                     if (e.data && e.data.id) {
-                        window.location.href = '@Url.Action("Version", "Courses")?courseId=' + e.data.id;
+            
+                         window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + e.data.id;
                     }
                 },
 
