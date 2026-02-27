@@ -1,40 +1,64 @@
 ﻿@{
-    ViewBag.Title = (ViewBag.Id == null ? "Create New Course" : "Edit Course");
-    var isEdit = ViewBag.Id != null;
+    ViewBag.Title = (ViewBag.Id == null ? "Create New Course" : "Edit Course"); 
+    var isEdit = ViewBag.Id != null; 
 }
+
+<style>
+    /* สไตล์สำหรับการ์ดปุ่มกด (Toolbar) */
+    .action-card {
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+        .action-card:hover {
+            background-color: #f8f9fa !important;
+            transform: translateY(-2px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+            border-color: #adb5bd !important;
+        }
+
+    .icon-box {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+    }
+</style>
 
 <div class="page-header shadow-sm border-0 mb-4 rounded">
     <div class="container-fluid px-4 py-2">
         <div class="d-flex align-items-center justify-content-between">
             <h1 class="page-title mb-0 d-flex align-items-center gap-3">
                 <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                    <i class="fas @(isEdit ? "fa-edit" : "fa-plus")"></i>
+                    <i class="fas @(isEdit ? "fa-edit" : "fa-plus")"></i> 
                 </div>
                 <div>
                     <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
                     <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
-                        @(isEdit ? "Update course details and manage resources." : "Create a new training course for employees.")
+                        @(isEdit ? "Update course details and manage resources." : "Create a new training course for employees.") 
                     </div>
                 </div>
             </h1>
             <div>
-                <button id="btn-cancel-top" class="btn btn-light border shadow-sm rounded px-3">
-                    <i class="fas fa-arrow-left me-2"></i> Back
+                <button id="btn-cancel-top" class="btn btn-light border shadow-sm rounded px-3" onclick="history.back()">
+                    <i class="fas fa-arrow-left me-2"></i> Back 
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="container-fluid px-4 pb-5">
+<div class="container px-4 pb-5">
     <div id="load-panel"></div>
 
     <div class="row g-4">
-        <div class="col-lg-7">
+        <div class="col-12">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-bottom py-3">
                     <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                        <i class="fas fa-info-circle text-primary"></i> Course Information
+                        <i class="fas fa-info-circle text-primary"></i> Course Information 
                     </h5>
                 </div>
                 <div class="card-body p-4">
@@ -43,27 +67,50 @@
             </div>
         </div>
 
-        <div class="col-lg-5">
+        <div class="col-12">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                        <i class="fas fa-folder-open text-primary"></i> Course Resources
+                        <i class="fas fa-list-ol text-primary"></i> Course Content List
                     </h5>
-                    <span class="badge bg-light text-primary border px-2 py-1" id="resource-count-badge">0 Files</span>
+                    <span class="badge bg-primary px-3 py-2 rounded-pill" id="total-count-badge">0 Items</span>
                 </div>
 
                 <div class="card-body bg-light p-4">
-                    <div class="upload-zone mb-4 bg-white border rounded p-4 text-center shadow-sm" style="border-style: dashed !important; border-width: 2px !important; border-color: #dee2e6 !important;">
-                        <i class="fas fa-cloud-upload-alt text-secondary mb-3" style="font-size: 2.5rem;"></i>
-                        <h6 class="fw-bold mb-1">Upload SCORM Package</h6>
-                        <p class="text-muted small mb-3">Drag & drop .zip files here or click to browse</p>
-                        <div id="file-uploader-container"></div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <a href="javascript:void(0);" id="btn-show-existing" class="list-group-item-action d-flex align-items-center p-3 border rounded shadow-sm bg-white h-100 text-decoration-none action-card">
+                                <div class="icon-box bg-primary bg-opacity-10 me-3">
+                                    <i class="fas fa-search text-primary fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-dark">1. Select Existing Resources</h6>
+                                    <small class="text-muted">Choose files from the central library.</small>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="javascript:void(0);" id="btn-trigger-upload" class="list-group-item-action d-flex align-items-center p-3 border rounded shadow-sm bg-white h-100 text-decoration-none action-card">
+                                <div class="icon-box bg-success bg-opacity-10 me-3">
+                                    <i class="fas fa-cloud-upload-alt text-success fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-dark">2. Upload New SCORM</h6>
+                                    <small class="text-muted">Drag & drop or click to browse .zip</small>
+                                </div>
+                            </a>
+                            <div id="file-uploader-container"></div>
+                        </div>
                     </div>
 
-                    <h6 class="fw-bold text-muted mb-3"><i class="fas fa-list me-2"></i>Attached Files</h6>
+                    <div class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> You can drag & drop rows to reorder the content.</div>
+
                     <div class="bg-white border rounded overflow-hidden shadow-sm">
-                        <div id="grid"></div>
+                        <div id="master-resources-grid"></div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -72,7 +119,7 @@
     <div class="fixed-bottom bg-white shadow-lg py-3 border-top" style="z-index: 100;">
         <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
             <div class="text-muted small">
-                <i class="fas fa-info-circle me-1"></i> Please verify all information before saving.
+                <i class="fas fa-check-circle me-1 text-success"></i> Please verify all information and content order before saving. 
             </div>
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-light border px-4 shadow-sm" onclick="history.back()">Cancel</button>
@@ -82,31 +129,32 @@
     </div>
 </div>
 
+<div id="popup-existing"></div>
+
 @section Scripts {
     <script>
-        const COURSE_ID = @(ViewBag.Id ?? "null");
-        const IS_EDIT = COURSE_ID != null;
+        const COURSE_ID = @(ViewBag.Id ?? "null"); 
+        const IS_EDIT = COURSE_ID != null; 
 
         // Initialize DataStores
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-
-        // ✨ เพิ่ม DataStore สำหรับดึงไฟล์เดิมทั้งหมดในระบบ
-        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' }); 
+        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' }); 
 
         const courseTypes = [
             { id: 0, name: 'Special' },
             { id: 1, name: 'General' }
-        ];
+        ]; 
 
         let formWidget;
-        let newFiles = [];
-        let existingFiles = [];
-        let allResources = [];
+        let masterGrid;
+        let gridExisting;
+
+        // อาร์เรย์หลักที่เก็บข้อมูลทุกอย่าง ทั้งไฟล์ใหม่และไฟล์เก่า ตามลำดับหน้าจอ
+        let unifiedResources = [];
 
         $(async () => {
-            // Initial Form Data (เตรียม Array เปล่าสำหรับรับค่า TagBox)
-            let formData = { courseType: 1, isActive: true, resourceIds: [] };
+            let formData = { courseType: 1, isActive: true };
 
             const loadPanel = $("#load-panel").dxLoadPanel({
                 shadingColor: "rgba(255,255,255,0.8)",
@@ -116,7 +164,7 @@
                 showPane: true,
                 shading: true,
                 message: "Loading data..."
-            }).dxLoadPanel("instance");
+            }).dxLoadPanel("instance"); 
 
             // --- Load Data (Edit Mode) ---
             if (IS_EDIT) {
@@ -126,13 +174,24 @@
                         url: `${serviceUrl}/courses/${COURSE_ID}`,
                         method: "GET",
                         xhrFields: { withCredentials: true }
-                    });
+                    }); 
 
-                    formData = { ...courseData };
-                    existingFiles = courseData.resources || [];
+                    formData = { ...courseData }; 
 
-                    // ✨ Map ไฟล์ที่มีอยู่แล้ว นำไปเซ็ตค่าให้ TagBox อัตโนมัติ
-                    formData.resourceIds = existingFiles.map(r => r.id);
+                    // นำข้อมูล Resources เดิมมาใส่ในอาร์เรย์แบบ Unified
+                    let existing = courseData.resources || [];
+                    if (existing.length > 0) {
+                        existing.forEach(r => {
+                            unifiedResources.push({
+                                uid: `EXISTING_${r.id}`,
+                                realId: r.id,
+                                name: r.name,
+                                typeId: r.typeId,
+                                isNew: false
+                            });
+                        });
+                        refreshMasterGrid();
+                    }
 
                     // Fetch Division if only Category is present
                     if (formData.categoryId && !formData.divisionId) {
@@ -141,7 +200,7 @@
                                 url: `${serviceUrl}/admin/CategoriesCRUD/Get/${formData.categoryId}`,
                                 method: "GET",
                                 xhrFields: { withCredentials: true }
-                            });
+                            }); 
                             formData.divisionId = catData.divisionId;
                         } catch (e) { }
                     }
@@ -149,13 +208,11 @@
                     console.error(err);
                     DevExpress.ui.notify("Error loading course data", "error", 3000);
                 } finally {
-                    loadPanel.hide();
+                    loadPanel.hide(); 
                 }
             }
 
-            updateResourceGrid();
-
-            // --- Form Widget Config ---
+            // --- 1. Form Widget Config (ข้อมูลคอร์สด้านบน) ---
             formWidget = $("#form-container").dxForm({
                 formData: formData,
                 colCount: 1,
@@ -179,7 +236,7 @@
                                 editorOptions: { placeholder: "e.g. Intro to Cybersecurity" }
                             }
                         ]
-                    },
+                    }, 
                     {
                         itemType: "group",
                         caption: "Categorization",
@@ -209,7 +266,7 @@
                                         }
                                     }
                                 }
-                            },
+                            }, 
                             {
                                 dataField: "categoryId",
                                 label: { text: "Category" },
@@ -222,12 +279,12 @@
                                     placeholder: "Select Category"
                                 },
                                 validationRules: [{ type: "required", message: "Category is required" }]
-                            }
+                            } 
                         ]
                     },
                     {
                         itemType: "group",
-                        caption: "Settings & Resources",
+                        caption: "Settings",
                         items: [
                             {
                                 dataField: "courseType",
@@ -240,208 +297,218 @@
                                     placeholder: "Select Type"
                                 },
                                 validationRules: [{ type: "required", message: "Course Type is required" }]
-                            },
+                            }, 
                             {
                                 dataField: "description",
                                 label: { text: "Description" },
                                 editorType: "dxTextArea",
                                 editorOptions: {
-                                    height: 90,
+                                    height: 120,
                                     placeholder: "Course summary and objectives..."
                                 }
-                            },
-                            // ✨ เพิ่มกล่องเลือกไฟล์เก่า (dxTagBox)
-                            {
-                                dataField: "resourceIds",
-                                editorType: "dxTagBox",
-                                label: { text: "Select Existing Resources (Optional)" },
-                                editorOptions: {
-                                    dataSource: resourcesStore,
-                                    displayExpr: "name",
-                                    valueExpr: "id",
-                                    searchEnabled: true,
-                                    showSelectionControls: true,
-                                    placeholder: "Search and select existing files...",
-                                    noDataText: "No existing resources found"
-                                }
-                            }
+                            } 
                         ]
                     }
                 ]
-            }).dxForm("instance");
+            }).dxForm("instance"); 
 
-            // --- File Uploader ---
+            // --- 2. Master Grid (ตารางหลักที่จัดลำดับได้) ---
+            masterGrid = $("#master-resources-grid").dxDataGrid({
+                dataSource: unifiedResources,
+                keyExpr: "uid",
+                showBorders: true,
+                columnAutoWidth: true,
+                rowAlternationEnabled: true,
+                showRowLines: true,
+                noDataText: "No content added yet. Click buttons above to add.",
+                rowDragging: {
+                    allowReordering: true,
+                    showDragIcons: true,
+                    onReorder: function(e) {
+                        const visibleRows = e.component.getVisibleRows();
+                        const toIndex = unifiedResources.findIndex(item => item.uid === visibleRows[e.toIndex].data.uid);
+                        const fromIndex = unifiedResources.findIndex(item => item.uid === e.itemData.uid);
+
+                        unifiedResources.splice(fromIndex, 1);
+                        unifiedResources.splice(toIndex, 0, e.itemData);
+
+                        e.component.refresh();
+                    }
+                },
+                columns: [
+                    {
+                        caption: "Order", width: 80, alignment: "center",
+                        cellTemplate: function(container, options) {
+                            $("<strong>").text(options.rowIndex + 1).appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "name", caption: "Content Name",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const isNew = data.isNew;
+                            const iconClass = isNew ? "fa-file-upload text-success" : "fa-file-archive text-primary";
+                            $("<div>").addClass("d-flex align-items-center gap-2")
+                                .append($("<i>").addClass(`fas ${iconClass}`))
+                                .append($("<span>").addClass("fw-medium text-truncate").text(data.name))
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        caption: "Type", width: 140, alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            if(data.isNew) {
+                                $("<span>").addClass("badge bg-success").html('<i class="fas fa-plus me-1"></i>New Upload').appendTo(container);
+                            } else {
+                                const tName = data.typeId === 1 ? "Learn" : "Exam";
+                                const tClass = data.typeId === 1 ? "bg-primary" : "bg-danger";
+                                $("<span>").addClass(`badge ${tClass}`).text(tName).appendTo(container);
+                            }
+                        }
+                    },
+                    {
+                        type: "buttons", width: 80, alignment: "center",
+                        buttons: [{
+                            icon: "trash", hint: "Remove from list",
+                            onClick: function(e) {
+                                unifiedResources = unifiedResources.filter(r => r.uid !== e.row.data.uid);
+                                refreshMasterGrid();
+                            }
+                        }]
+                    }
+                ]
+            }).dxDataGrid("instance");
+
+            function refreshMasterGrid() {
+                masterGrid.option("dataSource", unifiedResources);
+                $("#total-count-badge").text(`${unifiedResources.length} Items`);
+            }
+
+            // --- 3. Popup สำหรับเลือกไฟล์เก่า (แก้ปัญหาตารางหาย 100%) ---
+            const popupExisting = $("#popup-existing").dxPopup({
+                title: "Select Existing Resources",
+                width: 800,
+                height: 600,
+                showCloseButton: true,
+                dragEnabled: true,
+                contentTemplate: function(contentElement) {
+                    const gridContainer = $("<div id='grid-existing-pick'>").appendTo(contentElement);
+                    gridExisting = gridContainer.dxDataGrid({
+                        dataSource: resourcesStore,
+                        showBorders: true,
+                        height: 430,
+                        scrolling: { mode: "virtual" },
+                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                        searchPanel: { visible: true, placeholder: "Search for Learn or Exam..." },
+                        columns: [
+                            { dataField: "name", caption: "Resource Name" },
+                            {
+                                dataField: "typeId", caption: "Type", width: 120, alignment: "center",
+                                cellTemplate: function(container, options) {
+                                    const text = options.value === 1 ? "Learn" : "Exam";
+                                    const bg = options.value === 1 ? "bg-primary" : "bg-danger";
+                                    $("<span>").addClass(`badge ${bg}`).text(text).appendTo(container);
+                                }
+                            }
+                        ]
+                    }).dxDataGrid("instance");
+
+                    const btnContainer = $("<div class='text-end mt-3'>").appendTo(contentElement);
+                    $("<div id='btn-confirm-existing'>").appendTo(btnContainer).dxButton({
+                        text: "Add Selected to List", type: "default", stylingMode: "contained", icon: "plus",
+                        onClick: function() {
+                            const selectedData = gridExisting.getSelectedRowsData();
+                            selectedData.forEach(item => {
+                                if(!unifiedResources.some(r => !r.isNew && r.realId === item.id)) {
+                                    unifiedResources.push({
+                                        uid: `EXISTING_${item.id}`,
+                                        realId: item.id,
+                                        name: item.name,
+                                        typeId: item.typeId,
+                                        isNew: false
+                                    });
+                                }
+                            });
+                            refreshMasterGrid();
+                            gridExisting.clearSelection();
+                            popupExisting.hide();
+                        }
+                    });
+                }
+            }).dxPopup("instance");
+
+            $("#btn-show-existing").click(() => popupExisting.show());
+
+            // --- 4. อัปโหลดไฟล์ใหม่ (ผูกกับปุ่มการ์ด) ---
             $("#file-uploader-container").dxFileUploader({
-                selectButtonText: "Browse Files",
-                labelText: "",
+                dialogTrigger: "#btn-trigger-upload", // คลิกที่การ์ดแล้วเปิดหน้าต่างเลือกไฟล์
+                dropZone: "#btn-trigger-upload",      // ลากไฟล์มาปล่อยที่การ์ดได้เลย
+                visible: false,                       // ซ่อน Uploader แบบเดิม
                 accept: ".zip",
                 uploadMode: "useForm",
                 multiple: true,
-                showFileList: false, // We use custom grid
-                elementAttr: { class: "text-center" },
                 onValueChanged: function(e) {
                     if(e.value && e.value.length > 0) {
-                        const filesCount = e.value.length;
-                        newFiles = [...newFiles, ...e.value];
-                        e.component.reset();
-                        updateResourceGrid();
-
-                        DevExpress.ui.notify({
-                            message: `Added ${filesCount} file(s)`,
-                            type: "success",
-                            position: { my: "bottom center", at: "bottom center", offset: "0 -80" }
+                        e.value.forEach((file, index) => {
+                            unifiedResources.push({
+                                uid: `NEW_${Date.now()}_${index}`,
+                                name: file.name,
+                                isNew: true,
+                                fileRef: file
+                            });
                         });
+                        e.component.reset();
+                        refreshMasterGrid();
+                        DevExpress.ui.notify("File added to queue", "success", 2000);
                     }
                 }
             });
 
-            // --- Helpers: Grid & Logic ---
-            function updateResourceGrid() {
-                const newFilesData = newFiles.map((file, index) => ({
-                    id: `NEW_${index}`,
-                    name: file.name,
-                    size: file.size,
-                    typeName: "SCORM",
-                    isNew: true,
-                    fileRef: file
-                }));
-
-                allResources = [...existingFiles, ...newFilesData];
-                $("#resource-count-badge").text(`${allResources.length} Files`);
-                renderGrid(allResources);
-            }
-
-            function renderGrid(dataSource) {
-                $("#grid").dxDataGrid({
-                    dataSource: dataSource,
-                    showBorders: false,
-                    columnAutoWidth: true,
-                    hoverStateEnabled: true,
-                    rowAlternationEnabled: true,
-                    showRowLines: true,
-                    noDataText: "",
-                    columns: [
-                        {
-                            dataField: "name",
-                            caption: "File Name",
-                            cellTemplate: function(container, options) {
-                                const isNew = options.data.isNew;
-                                const iconClass = isNew ? "fa-file-upload text-success" : "fa-file-archive text-primary";
-                                const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
-                                $("<i>").addClass(`fas ${iconClass}`).appendTo(wrapper);
-                                $("<span>").addClass("fw-medium text-truncate").css("max-width", "250px").attr("title", options.value).text(options.value).appendTo(wrapper);
-                                wrapper.appendTo(container);
-                            }
-                        },
-                        {
-                            type: "buttons",
-                            caption: "Action",
-                            width: 80,
-                            alignment: "center",
-                            buttons: [
-                                {
-                                    hint: "Remove",
-                                    icon: "trash",
-                                    onClick: function(e) {
-                                        const data = e.row.data;
-                                        if (data.isNew) {
-                                            newFiles = newFiles.filter(f => f !== data.fileRef);
-                                            updateResourceGrid();
-                                        } else {
-                                            confirmDeleteResource(data.id, data.name);
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    onContentReady: function(e) {
-                        if (e.component.totalCount() === 0) {
-                            e.element.find(".dx-datagrid-nodata").html(`
-                                <div class="text-center py-4 text-muted">
-                                    <small>No files attached yet.</small>
-                                </div>
-                            `);
-                        }
-                    }
-                });
-            }
-
-            function confirmDeleteResource(id, name) {
-                DevExpress.ui.dialog.confirm(
-                    `Delete file "<strong>${name}</strong>"?`,
-                    "Confirm Delete"
-                ).done(function (dialogResult) {
-                    if (dialogResult) deleteResource(id);
-                });
-            }
-
-            async function deleteResource(id) {
-                try {
-                    loadPanel.show();
-                    await $.ajax({
-                        url: `${serviceUrl}/courses/resource/${id}`,
-                        method: "DELETE",
-                        xhrFields: { withCredentials: true }
-                    });
-                    DevExpress.ui.notify("File deleted", "success", 2000);
-                    existingFiles = existingFiles.filter(f => f.id !== id);
-                    updateResourceGrid();
-                } catch (err) {
-                    console.error(err);
-                    DevExpress.ui.notify("Failed to delete file", "error", 3000);
-                } finally {
-                    loadPanel.hide();
-                }
-            }
-
-            // --- Buttons ---
-            $("#btn-cancel-top").click(() => window.history.back());
-
+            // --- 5. Submit Data ---
             $("#btn-save").dxButton({
                 text: IS_EDIT ? "Save Changes" : "Create Course",
                 icon: "save",
                 type: "default",
                 stylingMode: "contained",
-                elementAttr: { class: "shadow-sm px-3" },
+                elementAttr: { class: "shadow-sm px-4 btn-primary" },
                 onClick: () => submitData()
-            });
+            }); 
 
             function submitData() {
                 if (!formWidget.validate().isValid) {
-                    DevExpress.ui.notify("Please fill in all required fields.", "warning", 2000);
+                    DevExpress.ui.notify("Please fill in all required course details.", "warning", 2000);
                     return;
-                }
+                } 
+
+                if (unifiedResources.length === 0) {
+                     DevExpress.ui.notify("Please add at least one resource.", "error", 4000);
+                     return;
+                } 
+
+                loadPanel.option("message", "Saving course & processing files...");
+                loadPanel.show(); 
 
                 const data = formWidget.option("formData");
-                const hasSelectedResources = data.resourceIds && data.resourceIds.length > 0;
+                let formDataObj = new FormData(); 
 
-                // ✨ ปรับปรุง Validation: ต้องมีไฟล์ใหม่ หรือ เลือกไฟล์เก่าไว้อย่างน้อย 1 อัน
-                if (!IS_EDIT && newFiles.length === 0 && !hasSelectedResources) {
-                     DevExpress.ui.notify("Please upload at least one SCORM package OR select an existing resource.", "error", 4000);
-                     return;
-                }
-
-                loadPanel.option("message", "Saving course...");
-                loadPanel.show();
-
-                let formDataObj = new FormData();
-
-                // ✨ วนลูปยัดข้อมูลลง FormData (ดักจับตัวแปร Array ให้ส่งไปทีละค่า)
+                // ส่งข้อมูล Form
                 for (let key in data) {
                     if (data[key] !== null && data[key] !== undefined && key !== 'resources') {
-                        if (Array.isArray(data[key])) {
-                            data[key].forEach(val => formDataObj.append(key, val));
-                        } else {
-                            formDataObj.append(key, data[key]);
-                        }
+                        formDataObj.append(key, data[key]);
                     }
-                }
+                } 
 
-                // แนบไฟล์ใหม่
-                if (newFiles.length > 0) {
-                    newFiles.forEach(file => formDataObj.append("Files", file));
-                }
+
+                // ส่งข้อมูลเรียงตามลำดับ Index ใน Master Grid
+                unifiedResources.forEach((item) => {
+                    if (item.isNew) {
+                        formDataObj.append("Files", item.fileRef);
+                        formDataObj.append("ResourceIds", 0); // 0 = แจ้งเตือน Backend ว่าเป็นไฟล์ใหม่
+                    } else {
+                        formDataObj.append("ResourceIds", item.realId);
+                    }
+                });
 
                 const url = IS_EDIT
                     ? `${serviceUrl}/courses/update-scorm/${COURSE_ID}`
@@ -449,12 +516,12 @@
 
                 $.ajax({
                     url: url,
-                    method: "POST", // API คุณเขียนรับ POST ทั้ง Create และ Update
+                    method: "POST",
                     data: formDataObj,
                     processData: false,
                     contentType: false,
                     xhrFields: { withCredentials: true },
-                    success: function(res) {
+                    success: function() {
                         DevExpress.ui.notify("Course saved successfully!", "success", 2000);
                         setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
                     },

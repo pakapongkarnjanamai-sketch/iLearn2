@@ -16,17 +16,20 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<Assignment> _ruleRepo;
         private readonly IStudentApiService _studentApiService;
+        private readonly IGenericRepository<CourseVersion> _versionRepo;
 
         public CourseAssignmentService(
             ICourseRepository courseRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Assignment> ruleRepo,
-            IStudentApiService studentApiService)
+            IStudentApiService studentApiService,
+            IGenericRepository<CourseVersion> versionRepo)
         {
             _courseRepo = courseRepo;
             _enrollmentRepo = enrollmentRepo;
             _ruleRepo = ruleRepo;
             _studentApiService = studentApiService;
+            _versionRepo = versionRepo;
         }
 
         // --- 1. ฟังก์ชันจับคู่กฎ ---
@@ -122,7 +125,12 @@ namespace iLearn.Application.Services
         // --- 5. ฟังก์ชันบันทึกลงฐานข้อมูล (ปรับให้รับ ID กฎ และ วันที่ โดยตรง) ---
         private async Task CreateOrUpdateEnrollment(string studentCode, Course course, int? assignmentRuleId = null, DateTime? startDate = null, DateTime? dueDate = null)
         {
-            int currentVersion = GetCurrentActiveVersion(course);
+            // 1. ดึง Object ของ Version ที่ Active อยู่มาเลย เพื่อเอา Id
+            var activeVersions = await _versionRepo.GetAsync(v => v.CourseId == course.Id && v.IsActive);
+            var activeVersion = activeVersions.FirstOrDefault();
+
+            if (activeVersion == null)
+                return; // ป้องกัน Error กรณีไม่มีคอร์สไหน Active เลย
 
             var existingEnrollments = await _enrollmentRepo.GetAsync(e =>
                 e.StudentCode == studentCode &&
@@ -136,25 +144,31 @@ namespace iLearn.Application.Services
                 {
                     StudentCode = studentCode,
                     CourseId = course.Id,
-                    EnrolledCourseVersion = currentVersion,
+                    EnrolledCourseVersion = activeVersion.Id, // เก็บเป็น ID (Primary Key)
                     IsCompleted = false,
                     CreatedAt = DateTime.UtcNow,
-                    AssignmentRuleId = assignmentRuleId, // <--- เชื่อม Rule ID
-                    StartDate = startDate,               // <--- กำหนด StartDate
-                    DueDate = dueDate                    // <--- กำหนด DueDate
+                    AssignmentRuleId = assignmentRuleId,
+                    StartDate = startDate,
+                    DueDate = dueDate
                 };
                 await _enrollmentRepo.AddAsync(newEnrollment);
             }
-            else if (existing.EnrolledCourseVersion < currentVersion)
+            else
             {
-                existing.EnrolledCourseVersion = currentVersion;
-                existing.IsCompleted = false;
-                existing.CompletedDate = null;
-                existing.AssignmentRuleId = assignmentRuleId;
-                existing.StartDate = startDate;
-                existing.DueDate = dueDate;
+                // 2. ถ้ามีข้อมูลอยู่แล้ว เช็กว่า Version ID ที่เรียนอยู่ ไม่ตรงกับ Version ID ปัจจุบัน ใช่หรือไม่?
+                if (existing.EnrolledCourseVersion != activeVersion.Id)
+                {
+                    existing.EnrolledCourseVersion = activeVersion.Id; // อัปเดตให้มาเรียน Version ล่าสุด
+                    existing.IsCompleted = false;
+                    existing.CompletedDate = null;
+                    existing.AssignmentRuleId = assignmentRuleId;
 
-                await _enrollmentRepo.UpdateAsync(existing);
+                    // อัปเดตวันที่เฉพาะตอนที่มีการส่งค่าใหม่มาให้
+                    existing.StartDate = startDate ?? existing.StartDate;
+                    existing.DueDate = dueDate ?? existing.DueDate;
+
+                    await _enrollmentRepo.UpdateAsync(existing);
+                }
             }
         }
     }

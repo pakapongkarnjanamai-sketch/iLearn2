@@ -649,10 +649,10 @@ namespace iLearn.API.Controllers
         }
 
         [HttpPost("CreateVersion")]
-        [Consumes("multipart/form-data")] // สำคัญมาก: บอก API ว่าจะรับข้อมูลแบบ FormData ที่มีไฟล์แนบ
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateVersion([FromForm] CreateCourseVersionDto dto)
         {
-            // 🛡️ กางโล่ Database Transaction ป้องกันข้อมูลพังกลางทาง
+            // 🛡️ กางโล่ Database Transaction
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -661,14 +661,12 @@ namespace iLearn.API.Controllers
                 // 1. คำนวณเลข Version ใหม่ให้โดยอัตโนมัติ
                 // ==========================================
                 var existingVersions = await _courseVersionRepository.GetAsync(v => v.CourseId == dto.CourseId);
-
                 int nextVersionNumber = existingVersions.Any()
                     ? existingVersions.Max(v => v.VersionNumber) + 1
                     : 1;
 
                 // ==========================================
                 // 2. จัดการสถานะ IsActive
-                // ถ้าเวอร์ชันใหม่ถูกตั้งให้ Active ต้องไปปิดเวอร์ชันเก่าๆ ก่อน
                 // ==========================================
                 if (dto.IsActive)
                 {
@@ -691,87 +689,97 @@ namespace iLearn.API.Controllers
                     CreatedAt = DateTime.Now
                 };
                 await _courseVersionRepository.AddAsync(newVersion);
+                await _context.SaveChangesAsync(); // บังคับ Save เพื่อเอา newVersion.Id
 
                 // ==========================================
-                // 4. บันทึกไฟล์ที่อัปโหลดมาใหม่ (ถ้ามี)
+                // 4. จัดการเนื้อหา (Resource) แบบเรียงลำดับ
                 // ==========================================
-                if (dto.Files != null && dto.Files.Count > 0)
+                if (dto.ResourceIds != null && dto.ResourceIds.Any())
                 {
-                    foreach (var file in dto.Files)
+                    int fileUploadIndex = 0; // ตัวนับว่าถึงไฟล์อัปโหลดตัวไหนแล้ว
+                    int sequenceOrder = 1;   // ลำดับที่ของเนื้อหา (ถ้าในอนาคตมีฟิลด์ Order ใน DB)
+
+                    // วนลูปตามที่หน้าเว็บส่งลำดับมา
+                    foreach (var incomingId in dto.ResourceIds)
                     {
-                        if (file.Length > 0)
+                        int finalResourceId = incomingId;
+
+                        // 🌟 ถ้าเจอเลข 0 แปลว่าตำแหน่งนี้คือ "ไฟล์ใหม่"
+                        if (incomingId == 0)
                         {
-                            using (var ms = new MemoryStream())
+                            // เช็กว่ามีไฟล์แนบมาให้หยิบใช้ไหม
+                            if (dto.Files != null && fileUploadIndex < dto.Files.Count)
                             {
-                                await file.CopyToAsync(ms);
-                                var fileBytes = ms.ToArray();
+                                var file = dto.Files[fileUploadIndex];
+                                fileUploadIndex++; // ขยับไปไฟล์ถัดไป
 
-                                // A. บันทึกลง FileStorage
-                                var fileStorage = new FileStorage
+                                if (file.Length > 0)
                                 {
-                                    Name = file.FileName,
-                                    ContentType = file.ContentType,
-                                    Data = fileBytes,
-                                    Length = file.Length,
-                                    CreatedAt = DateTime.Now
-                                };
-                                await _fileStorageRepository.AddAsync(fileStorage);
+                                    using var ms = new MemoryStream();
+                                    await file.CopyToAsync(ms);
+                                    var fileBytes = ms.ToArray();
 
-                                // B. สร้าง Resource ผูกกับ FileStorage
-                                var resource = new Resource
-                                {
-                                    Name = file.FileName,
-                                    TypeId = 1, // 1 = Learn/SCORM
-                                    IsActive = true,
-                                    FileStorageId = fileStorage.Id,
-                                    URL = file.FileName,
-                                    CreatedAt = DateTime.Now
-                                };
-                                await _resourceRepository.AddAsync(resource);
+                                    // A. สร้าง FileStorage
+                                    var fileStorage = new FileStorage
+                                    {
+                                        Name = file.FileName,
+                                        ContentType = file.ContentType,
+                                        Data = fileBytes,
+                                        Length = file.Length,
+                                        CreatedAt = DateTime.Now
+                                    };
+                                    await _fileStorageRepository.AddAsync(fileStorage);
+                                    await _context.SaveChangesAsync(); // Save เอา fileStorage.Id
 
-                                // C. สร้างความสัมพันธ์ CourseResource ให้ Version นี้
-                                await _courseResourceRepository.AddAsync(new CourseResource
-                                {
-                                    CourseVersionId = newVersion.Id,
-                                    ResourceId = resource.Id,
-                                    CreatedAt = DateTime.Now
-                                });
+                                    // B. ✨ สร้าง Resource ใหม่ (แก้ปัญหาที่คุณแจ้งมา)
+                                    var newResource = new Resource
+                                    {
+                                        Name = file.FileName,
+                                        TypeId = 1, // 1 = Learn/SCORM (ถ้าต้องแยก Exam อาจจะต้องส่ง TypeId มาเพิ่ม)
+                                        IsActive = true,
+                                        FileStorageId = fileStorage.Id,
+                                        URL = file.FileName,
+                                        CreatedAt = DateTime.Now
+                                    };
+                                    await _resourceRepository.AddAsync(newResource);
+                                    await _context.SaveChangesAsync(); // Save เอา newResource.Id
+
+                                    // เอา ID ของ Resource ที่เพิ่งสร้างใหม่ไปใช้ในขั้นตอน C
+                                    finalResourceId = newResource.Id;
+                                }
                             }
+                        }
+
+                        // C. ผูกเข้ากับ CourseVersion ด้วย CourseResource
+                        if (finalResourceId > 0)
+                        {
+                            await _courseResourceRepository.AddAsync(new CourseResource
+                            {
+                                CourseVersionId = newVersion.Id,
+                                ResourceId = finalResourceId,
+                                // OrderIndex = sequenceOrder, // 💡 ถ้าใน DB คุณสร้างคอลัมน์เก็บลำดับ เปิดคอมเมนต์บรรทัดนี้ได้เลยครับ
+                                CreatedAt = DateTime.Now
+                            });
+                            sequenceOrder++;
                         }
                     }
                 }
 
                 // ==========================================
-                // 5. เชื่อมโยงไฟล์เดิม (ResourceIds) ที่เลือกมา
+                // 5. เซฟและยืนยันการทำ Transaction
                 // ==========================================
-                if (dto.ResourceIds != null && dto.ResourceIds.Any())
-                {
-                    foreach (var resourceId in dto.ResourceIds)
-                    {
-                        await _courseResourceRepository.AddAsync(new CourseResource
-                        {
-                            CourseVersionId = newVersion.Id,
-                            ResourceId = resourceId, // ใช้ ID ไฟล์เก่าที่ส่งมา
-                            CreatedAt = DateTime.Now
-                        });
-                    }
-                }
-
-                // ==========================================
-                // 6. เซฟทุกอย่างลง Database
-                // ==========================================
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = "สร้างเวอร์ชันใหม่พร้อมเนื้อหาสำเร็จ!",
+                    message = "สร้างเวอร์ชันใหม่และจัดลำดับเนื้อหาสำเร็จ!",
                     versionId = newVersion.Id
                 });
             }
             catch (Exception ex)
             {
-                // ถ้าระหว่างทางเกิด Error เช่น ไฟล์ใหญ่เกิน เซฟลง DB ไม่ผ่าน ให้ Rollback ดึงข้อมูลกลับทั้งหมด
                 await transaction.RollbackAsync();
                 return StatusCode(500, new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
             }

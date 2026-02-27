@@ -90,8 +90,6 @@ namespace iLearn.API.Controllers
             });
         }
 
-        // [New] API สำหรับดึง Player Info โดยใช้ Course ID
-        // รองรับทั้งแบบมี Enrollment (Scoring) และไม่มี (View Only)
         [HttpGet("player-info/{courseId}")]
         public async Task<IActionResult> GetPlayerInfoByCourse(int courseId, [FromQuery] string studentCode)
         {
@@ -110,12 +108,12 @@ namespace iLearn.API.Controllers
             if (enrollment != null)
             {
                 // --- กรณีมี Enrollment (Scoring Mode) ---
-                var targetVersionNumber = enrollment.EnrolledCourseVersion;
+                var targetVersionId = enrollment.EnrolledCourseVersion; // เปลี่ยนชื่อเป็น targetVersionId ให้ชัดเจน
                 isCompleted = enrollment.IsCompleted;
 
-                // ดึง Version ที่ลงทะเบียนไว้
+                // ดึง Version ที่ลงทะเบียนไว้ (ค้นหาจาก Id)
                 var versions = await _versionRepo.GetAsync(
-                    filter: v => v.CourseId == courseId && v.Id == targetVersionNumber,
+                    filter: v => v.CourseId == courseId && v.Id == targetVersionId, // ค้นหาด้วย Id ถูกต้องแล้วครับ!
                     includeProperties: "CourseResources.Resource,Course"
                 );
                 targetVersion = versions.FirstOrDefault();
@@ -139,6 +137,7 @@ namespace iLearn.API.Controllers
                   filter: v => v.CourseId == courseId && v.IsActive,
                   includeProperties: "CourseResources.Resource,Course"
                 );
+                // เรียงตาม VersionNumber แล้วเอาตัวล่าสุด (อันนี้เรียงด้วย Number ถูกต้องครับ)
                 targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
 
@@ -147,18 +146,16 @@ namespace iLearn.API.Controllers
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found or Course is not active" });
             }
 
-            // 2. Map ข้อมูลลง DTO
+            // 2. Map ข้อมูลลง DTO (โค้ดส่วนนี้ของคุณเขียนไว้ดีแล้วครับ ใช้เดิมได้เลย)
             var resources = targetVersion.CourseResources
                 .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Lesson first
                 .ThenBy(cr => cr.Resource.Name)
                 .Select(cr => {
-                    // หา Log ของ Resource นี้ (ถ้ามี)
                     var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
-
                     bool isDone = log != null && (
-                        log.Status.ToLower() == "completed" ||
-                        log.Status.ToLower() == "passed"
-                    );
+                log.Status.ToLower() == "completed" ||
+                log.Status.ToLower() == "passed"
+            );
 
                     return new PlayerResourceDto
                     {
@@ -166,8 +163,8 @@ namespace iLearn.API.Controllers
                         Name = cr.Resource.Name,
                         Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
                         LaunchUrl = !string.IsNullOrEmpty(cr.Resource.URL) && !string.IsNullOrEmpty(cr.Resource.ResourceHref)
-                            ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
-                            : cr.Resource.URL ?? string.Empty,
+                    ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
+                    : cr.Resource.URL ?? string.Empty,
                         IsCompleted = isDone,
                         Score = log?.Score,
                         Time = log?.SessionTime
@@ -181,15 +178,13 @@ namespace iLearn.API.Controllers
                 StudentCode = studentCode,
                 CourseTitle = targetVersion.Course?.Title ?? "Unknown Course",
                 IsCompleted = isCompleted,
-                IsReadOnly = isReadOnly, // ส่ง Flag นี้กลับไป
+                IsReadOnly = isReadOnly,
                 EnrollmentId = enrollment?.Id,
                 Resources = resources
-
             };
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
         }
-
         // --- Existing Methods ---
         // (Methods เดิมเช่น GetById, UpdateCompletion สามารถคงไว้ได้ตามปกติ)
         // ... (ตัด code เดิมออกเพื่อความกระชับ แต่ในการใช้งานจริงให้คงไว้)
