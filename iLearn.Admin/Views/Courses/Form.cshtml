@@ -91,7 +91,10 @@
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
 
-         const courseTypes = [
+        // ✨ เพิ่ม DataStore สำหรับดึงไฟล์เดิมทั้งหมดในระบบ
+        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+
+        const courseTypes = [
             { id: 0, name: 'Special' },
             { id: 1, name: 'General' }
         ];
@@ -102,8 +105,8 @@
         let allResources = [];
 
         $(async () => {
-            // Initial Form Data
-            let formData = { courseType: 1, isActive: true };
+            // Initial Form Data (เตรียม Array เปล่าสำหรับรับค่า TagBox)
+            let formData = { courseType: 1, isActive: true, resourceIds: [] };
 
             const loadPanel = $("#load-panel").dxLoadPanel({
                 shadingColor: "rgba(255,255,255,0.8)",
@@ -127,6 +130,9 @@
 
                     formData = { ...courseData };
                     existingFiles = courseData.resources || [];
+
+                    // ✨ Map ไฟล์ที่มีอยู่แล้ว นำไปเซ็ตค่าให้ TagBox อัตโนมัติ
+                    formData.resourceIds = existingFiles.map(r => r.id);
 
                     // Fetch Division if only Category is present
                     if (formData.categoryId && !formData.divisionId) {
@@ -152,7 +158,7 @@
             // --- Form Widget Config ---
             formWidget = $("#form-container").dxForm({
                 formData: formData,
-                colCount: 1, // Single column for cleaner look in left panel
+                colCount: 1,
                 labelMode: "floating",
                 stylingMode: "outlined",
                 items: [
@@ -221,7 +227,7 @@
                     },
                     {
                         itemType: "group",
-                        caption: "Settings",
+                        caption: "Settings & Resources",
                         items: [
                             {
                                 dataField: "courseType",
@@ -240,8 +246,23 @@
                                 label: { text: "Description" },
                                 editorType: "dxTextArea",
                                 editorOptions: {
-                                    height: 120,
+                                    height: 90,
                                     placeholder: "Course summary and objectives..."
+                                }
+                            },
+                            // ✨ เพิ่มกล่องเลือกไฟล์เก่า (dxTagBox)
+                            {
+                                dataField: "resourceIds",
+                                editorType: "dxTagBox",
+                                label: { text: "Select Existing Resources (Optional)" },
+                                editorOptions: {
+                                    dataSource: resourcesStore,
+                                    displayExpr: "name",
+                                    valueExpr: "id",
+                                    searchEnabled: true,
+                                    showSelectionControls: true,
+                                    placeholder: "Search and select existing files...",
+                                    noDataText: "No existing resources found"
                                 }
                             }
                         ]
@@ -264,6 +285,7 @@
                         newFiles = [...newFiles, ...e.value];
                         e.component.reset();
                         updateResourceGrid();
+
                         DevExpress.ui.notify({
                             message: `Added ${filesCount} file(s)`,
                             type: "success",
@@ -312,14 +334,14 @@
                             }
                         },
                         {
-                            type: "buttons", // แจ้ง DevExtreme ว่าคอลัมน์นี้คือปุ่มกด
+                            type: "buttons",
                             caption: "Action",
                             width: 80,
                             alignment: "center",
                             buttons: [
                                 {
                                     hint: "Remove",
-                                    icon: "trash", // ใช้ไอคอนถังขยะแบบ Native ของ DevExtreme
+                                    icon: "trash",
                                     onClick: function(e) {
                                         const data = e.row.data;
                                         if (data.isNew) {
@@ -363,7 +385,7 @@
                         xhrFields: { withCredentials: true }
                     });
                     DevExpress.ui.notify("File deleted", "success", 2000);
-                    existingFiles = existingFiles.filter(f => f !== id);
+                    existingFiles = existingFiles.filter(f => f.id !== id);
                     updateResourceGrid();
                 } catch (err) {
                     console.error(err);
@@ -391,23 +413,32 @@
                     return;
                 }
 
-                if (!IS_EDIT && newFiles.length === 0) {
-                     DevExpress.ui.notify("Please upload at least one SCORM package.", "error", 3000);
+                const data = formWidget.option("formData");
+                const hasSelectedResources = data.resourceIds && data.resourceIds.length > 0;
+
+                // ✨ ปรับปรุง Validation: ต้องมีไฟล์ใหม่ หรือ เลือกไฟล์เก่าไว้อย่างน้อย 1 อัน
+                if (!IS_EDIT && newFiles.length === 0 && !hasSelectedResources) {
+                     DevExpress.ui.notify("Please upload at least one SCORM package OR select an existing resource.", "error", 4000);
                      return;
                 }
 
                 loadPanel.option("message", "Saving course...");
                 loadPanel.show();
 
-                const data = formWidget.option("formData");
                 let formDataObj = new FormData();
 
+                // ✨ วนลูปยัดข้อมูลลง FormData (ดักจับตัวแปร Array ให้ส่งไปทีละค่า)
                 for (let key in data) {
                     if (data[key] !== null && data[key] !== undefined && key !== 'resources') {
-                        formDataObj.append(key, data[key]);
+                        if (Array.isArray(data[key])) {
+                            data[key].forEach(val => formDataObj.append(key, val));
+                        } else {
+                            formDataObj.append(key, data[key]);
+                        }
                     }
                 }
 
+                // แนบไฟล์ใหม่
                 if (newFiles.length > 0) {
                     newFiles.forEach(file => formDataObj.append("Files", file));
                 }
@@ -418,7 +449,7 @@
 
                 $.ajax({
                     url: url,
-                    method: "POST",
+                    method: "POST", // API คุณเขียนรับ POST ทั้ง Create และ Update
                     data: formDataObj,
                     processData: false,
                     contentType: false,

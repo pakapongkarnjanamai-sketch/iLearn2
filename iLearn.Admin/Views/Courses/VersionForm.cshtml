@@ -14,7 +14,7 @@
                 <div>
                     <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
                     <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
-                        @(isEdit ? "Update version details and resources." : "Create a new version for the course.")
+                        @(isEdit ? "Update version details and resources." : "Create a new version and upload new SCORM files.")
                     </div>
                 </div>
             </h1>
@@ -23,17 +23,19 @@
                     <i class="fas fa-arrow-left me-2"></i> Back
                 </a>
                 <button id="btnSave" class="btn btn-primary rounded shadow-sm px-4">
-                    <i class="fas fa-save me-2"></i> Save
+                    <i class="fas fa-save me-2"></i> Save Version
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="container-fluid px-4 pb-4">
+<div class="container-fluid px-4 pb-5">
+    <div id="load-panel"></div>
+
     <div class="row g-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4">
                     <h5 class="fw-bold text-dark border-bottom pb-2 mb-4">
                         <i class="fas fa-info-circle text-primary me-2"></i> Version Details
@@ -43,21 +45,43 @@
             </div>
         </div>
 
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                        <i class="fas fa-cloud-upload-alt text-success"></i> Upload New SCORM
+                    </h5>
+                    <span class="badge bg-light text-success border px-2 py-1" id="new-resource-count">0 Files</span>
+                </div>
+                <div class="card-body bg-light p-4">
+                    <div class="upload-zone mb-3 bg-white border rounded p-3 text-center shadow-sm" style="border-style: dashed !important; border-width: 2px !important; border-color: #dee2e6 !important;">
+                        <i class="fas fa-file-archive text-secondary mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-muted small mb-2">Drag & drop .zip files here or browse</p>
+                        <div id="file-uploader-container"></div>
+                    </div>
+                    <div class="bg-white border rounded overflow-hidden shadow-sm">
+                        <div id="new-files-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4">
                     <h5 class="fw-bold text-primary border-bottom pb-2 mb-3">
-                        <i class="fas fa-book-reader me-2"></i> Learning Material (Learn)
+                        <i class="fas fa-book-reader me-2"></i> Select Existing Material (Learn)
                     </h5>
                     <div id="gridLearn"></div>
                 </div>
             </div>
         </div>
+
         <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4">
                     <h5 class="fw-bold text-danger border-bottom pb-2 mb-3">
-                        <i class="fas fa-pen-alt me-2"></i> Examination (Exam)
+                        <i class="fas fa-pen-alt me-2"></i> Select Existing Examination (Exam)
                     </h5>
                     <div id="gridExam"></div>
                 </div>
@@ -74,16 +98,18 @@
 
         let selectedLearnIds = [];
         let selectedExamIds = [];
+        let newFiles = []; // อาร์เรย์เก็บไฟล์อัปโหลดใหม่
 
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
+        // Helper สร้าง Grid เลือกไฟล์เดิม
         function createGridConfig(typeId, onSelectionChangeCallback) {
             return {
                 dataSource: { store: resourcesStore, filter: ["typeId", "=", typeId] },
                 showBorders: true,
                 height: 350,
                 selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                searchPanel: { visible: true, width: 250, placeholder: "Search resources..." },
+                searchPanel: { visible: true, width: 250, placeholder: "Search existing resources..." },
                 scrolling: { mode: "virtual" },
                 columns: [
                     { dataField: "name", caption: "Resource Name" },
@@ -94,6 +120,16 @@
         }
 
         $(() => {
+            const loadPanel = $("#load-panel").dxLoadPanel({
+                shadingColor: "rgba(255,255,255,0.8)",
+                position: { of: "body" },
+                visible: false,
+                showIndicator: true,
+                showPane: true,
+                shading: true,
+                message: "Saving version..."
+            }).dxLoadPanel("instance");
+
             // 1. สร้าง Form
             const formWidget = $("#form").dxForm({
                 formData: { courseId: COURSE_ID, isActive: true },
@@ -104,7 +140,11 @@
                         dataField: "versionNumber",
                         editorType: "dxNumberBox",
                         label: { text: "Version No." },
-                        validationRules: [{ type: "required", message: "Version number is required" }]
+                        editorOptions: {
+                            disabled: !IS_EDIT,
+                            placeholder: !IS_EDIT ? "Auto-generated" : ""
+                        },
+                        validationRules: IS_EDIT ? [{ type: "required", message: "Version number is required" }] : []
                     },
                     {
                         dataField: "note",
@@ -122,7 +162,7 @@
                 ]
             }).dxForm("instance");
 
-            // 2. สร้าง Grids สำหรับเลือกไฟล์
+            // 2. สร้าง Grids เลือกไฟล์เดิม (Learn & Exam)
             const gridLearn = $("#gridLearn").dxDataGrid(createGridConfig(1, (e) => {
                 selectedLearnIds = e.selectedRowsData.map(r => r.id);
             })).dxDataGrid("instance");
@@ -131,7 +171,70 @@
                 selectedExamIds = e.selectedRowsData.map(r => r.id);
             })).dxDataGrid("instance");
 
-            // 3. โหลดข้อมูล
+            // 3. ระบบ Upload ไฟล์ใหม่
+            $("#file-uploader-container").dxFileUploader({
+                selectButtonText: "Browse Files",
+                labelText: "",
+                accept: ".zip",
+                uploadMode: "useForm",
+                multiple: true,
+                showFileList: false, // ใช้ Grid คัสตอมแทน
+                onValueChanged: function(e) {
+                    if(e.value && e.value.length > 0) {
+                        newFiles = [...newFiles, ...e.value];
+                        e.component.reset();
+                        updateNewFilesGrid();
+                    }
+                }
+            });
+
+            function updateNewFilesGrid() {
+                const dataSource = newFiles.map((file, index) => ({
+                    id: index,
+                    name: file.name,
+                    fileRef: file
+                }));
+
+                $("#new-resource-count").text(`${newFiles.length} Files`);
+
+                $("#new-files-grid").dxDataGrid({
+                    dataSource: dataSource,
+                    showBorders: false,
+                    columnAutoWidth: true,
+                    showRowLines: true,
+                    noDataText: "No new files uploaded.",
+                    columns: [
+                        {
+                            dataField: "name",
+                            caption: "File Name",
+                            cellTemplate: function(container, options) {
+                                $("<div>").addClass("d-flex align-items-center gap-2")
+                                    .append($("<i>").addClass("fas fa-file-upload text-success"))
+                                    .append($("<span>").addClass("fw-medium text-truncate").css("max-width", "250px").text(options.value))
+                                    .appendTo(container);
+                            }
+                        },
+                        {
+                            type: "buttons",
+                            width: 60,
+                            alignment: "center",
+                            buttons: [
+                                {
+                                    icon: "trash",
+                                    hint: "Remove",
+                                    onClick: function(e) {
+                                        newFiles = newFiles.filter(f => f !== e.row.data.fileRef);
+                                        updateNewFilesGrid();
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                });
+            }
+            updateNewFilesGrid(); // วาด Grid ว่างเปล่าไว้ก่อน
+
+            // 4. โหลดข้อมูล (เฉพาะตอน Edit)
             if (IS_EDIT) {
                 $.ajax({
                     url: `${serviceUrl}/admin/CourseVersionsCRUD/Get/${VERSION_ID}`,
@@ -150,47 +253,67 @@
                         });
                     }
                 });
-            } else {
-                // รันเพื่อหาเลข Version ล่าสุด+1 เมื่อเป็นการสร้างใหม่
-                $.ajax({
-                    url: `${serviceUrl}/admin/CourseVersionsCRUD/Get`,
-                    method: "GET",
-                    data: { filter: JSON.stringify(["courseId", "=", COURSE_ID]) },
-                    xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    if(res.data && res.data.length > 0) {
-                        const nextVer = Math.max(...res.data.map(v => v.versionNumber)) + 1;
-                        formWidget.updateData("versionNumber", nextVer);
-                    } else {
-                        formWidget.updateData("versionNumber", 1);
-                    }
-                });
             }
 
-            // 4. บันทึกข้อมูล
+            // 5. บันทึกข้อมูล
             $("#btnSave").click(function() {
                 const result = formWidget.validate();
-                if (!result.isValid) return;
+                if (!result.isValid) {
+                    DevExpress.ui.notify("Please fill in all required fields.", "warning", 2000);
+                    return;
+                }
 
-                const payload = {
-                    ...formWidget.option("formData"),
-                    resourceIds: [...selectedLearnIds, ...selectedExamIds]
-                };
+                const hasExistingResources = selectedLearnIds.length > 0 || selectedExamIds.length > 0;
 
-                const url = IS_EDIT ? `${serviceUrl}/admin/CourseVersionsCRUD/Put/${VERSION_ID}` : `${serviceUrl}/admin/CourseVersionsCRUD/Post`;
+                // Validation: ต้องมีไฟล์ใหม่ หรือ เลือกไฟล์เดิมอย่างน้อย 1 รายการ
+                if (!IS_EDIT && newFiles.length === 0 && !hasExistingResources) {
+                     DevExpress.ui.notify("Please upload a new SCORM package OR select existing resources.", "error", 4000);
+                     return;
+                }
+
+                loadPanel.show(); // แสดงหน้าโหลด
+
+                const data = formWidget.option("formData");
+                let formDataObj = new FormData();
+
+                // 5.1 ยัดข้อมูล Form
+                for (let key in data) {
+                    if (data[key] !== null && data[key] !== undefined) {
+                        formDataObj.append(key, data[key]);
+                    }
+                }
+
+                // 5.2 ยัดข้อมูล Resource เก่าที่เลือกไว้ (ส่งเป็น Array)
+                const allSelectedIds = [...selectedLearnIds, ...selectedExamIds];
+                allSelectedIds.forEach(id => formDataObj.append("ResourceIds", id));
+
+                // 5.3 ยัดไฟล์อัปโหลดใหม่
+                if (newFiles.length > 0) {
+                    newFiles.forEach(file => formDataObj.append("Files", file));
+                }
+
+                // ปรับ URL API ใหม่ให้ตรงกับ Backend
+                const url = IS_EDIT
+                    ? `${serviceUrl}/courses/UpdateVersion/${VERSION_ID}` // หากคุณตั้งชื่อ API อัปเดตไว้แบบนี้
+                    : `${serviceUrl}/courses/CreateVersion`;
+
+                // การส่งไฟล์จำเป็นต้องใช้ POST/PUT ร่วมกับ FormData
                 const method = IS_EDIT ? "PUT" : "POST";
 
                 $.ajax({
                     url: url,
                     method: method,
-                    contentType: "application/json",
-                    data: JSON.stringify(payload),
+                    data: formDataObj,
+                    processData: false, // ห้ามลบ! จำเป็นสำหรับ FormData
+                    contentType: false, // ห้ามลบ! จำเป็นสำหรับ FormData
                     xhrFields: { withCredentials: true }
                 }).done(function() {
                     DevExpress.ui.notify("Version saved successfully!", "success", 2000);
                     setTimeout(() => window.location.href = '@Url.Action("Version", "Courses")?courseId=' + COURSE_ID, 1000);
                 }).fail(function(err) {
-                    DevExpress.ui.notify("Failed to save version.", "error", 3000);
+                    DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to save version."), "error", 4000);
+                }).always(function() {
+                    loadPanel.hide();
                 });
             });
         });
