@@ -817,7 +817,7 @@ else
                 coursesToShow = coursesToShow.filter(c => c.type === 1);
                 // ✅ เปลี่ยนเป็น c.type === 1
             } else if (selectedCourseType === 'special') {
-                coursesToShow = coursesToShow.filter(c => c.type === 2); // 0? -> ใน CourseType 0=Special, 1=General
+                coursesToShow = coursesToShow.filter(c => c.type === 0); // 0? -> ใน CourseType 0=Special, 1=General
                 // ✅ เปลี่ยนตาม Enum: 0=Special, 1=General
                 // หมายเหตุ: เช็ค Enum ของคุณอีกที ในที่นี้ 1=General, 2=??
                 // จากไฟล์ CourseType.cs: Special = 0, General = 1

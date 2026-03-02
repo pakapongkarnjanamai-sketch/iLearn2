@@ -11,13 +11,6 @@
         text-decoration: none;
     }
 
-        .action-card:hover {
-            background-color: #f8f9fa !important;
-            transform: translateY(-2px);
-            box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
-            border-color: #adb5bd !important;
-        }
-
     .icon-box {
         width: 52px;
         height: 52px;
@@ -35,9 +28,7 @@
         transition: all 0.2s;
     }
 
-        .preview-btn:hover {
-            transform: scale(1.05);
-        }
+       
 </style>
 
 <!-- Header - Minimal & Clean -->
@@ -374,7 +365,7 @@
                         // Badge สำหรับสถานะ
                         const badge = isActive
                             ? '<span class="badge bg-success px-2 py-1"><i class="fas fa-check-circle me-1"></i> Active</span>'
-                            : '<span class="badge bg-secondary px-2 py-1">Inactive</span>';
+                            : '';
 
                         // ปุ่ม Set Active (แสดงเฉพาะ version ที่ไม่ active)
                         const activeBtn = isActive
@@ -383,11 +374,6 @@
                                  <i class="fas fa-check-circle me-1"></i> Set Active
                                </button>`;
 
-                        // ปุ่ม Edit (แสดงทุก version)
-                        const editBtn = `<a href="/Courses/VersionForm/${v.id}?courseId=${courseId}"
-                                           class="btn btn-sm btn-outline-primary" title="Edit Version">
-                                           <i class="fas fa-edit"></i>
-                                         </a>`;
 
                         // ปุ่ม Delete (แสดงเฉพาะ version ที่ไม่ active)
                         const deleteBtn = isActive
@@ -396,7 +382,7 @@
                                  <i class="fas fa-trash"></i>
                                </button>`;
 
-                        const formattedDate = new Date(v.createdAt).toLocaleDateString('en-GB');
+               
 
                         // สไตล์ border ต่างกันระหว่าง Active และ Inactive
                         const borderClass = isActive ? 'border-success border-2' : 'border';
@@ -407,21 +393,18 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h5 class="mb-0">Version ${v.versionNumber}</h5>
-                                            <div>${badge}</div>
+                                              <div class="d-flex gap-2 justify-content-end"> <div>${activeBtn}</div>
+                                             <div>${deleteBtn}</div>
+                                            <div>${badge}</div></div>
                                         </div>
                                         <p class="text-muted small mb-2" style="min-height:40px;">${v.note || 'No description'}</p>
-                                        <p class="text-muted small mb-3"><i class="fas fa-calendar-alt me-1"></i>${formattedDate}</p>
+                                       
 
                                         <div class="bg-light rounded p-2 mb-2" style="min-height: 60px;">
-                                            <div class="small fw-bold mb-1">Attached Content</div>
+                                          
                                             <div id="res-container-${v.id}" class="small"></div>
                                         </div>
 
-                                        <div class="d-flex gap-2 justify-content-end">
-                                            ${activeBtn}
-                                            ${editBtn}
-                                            ${deleteBtn}
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -455,12 +438,12 @@
 
                         // แสดงปุ่ม Preview เฉพาะ Resource ที่ isActive = true
                         const previewBtn = r.isActive
-                            ? `<button class="btn btn-outline-info preview-btn ms-auto"
+                            ? `<button class="btn btn-primary-info preview-btn ms-auto"
                                  onclick="window.viewContent(${r.id}, '${r.name.replace(/'/g, "\\'")}')"
                                  title="Preview Content">
                                  <i class="fas fa-play me-1"></i> Preview
                                </button>`
-                            : '<span class="badge bg-secondary ms-auto">Not Published</span>';
+                            : '';
 
                         resContainer.append(`
                             <div class="d-flex align-items-center gap-2 mb-2">
