@@ -59,6 +59,8 @@ builder.Services.AddTransient<IDateTime, DateTimeService>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ICourseVersionService, CourseVersionService>();
 builder.Services.AddScoped<IScormService, ScormService>();
 builder.Services.AddHttpClient<IStudentApiService, StudentApiService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();

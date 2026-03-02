@@ -162,7 +162,7 @@
 @section Scripts {
     <script>
         const courseId = @courseId;
-        const courseApiUrl = serviceUrl + '/Courses';
+        const courseApiUrl = serviceUrl + '/courses';
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
 
         const courseTypes = [
@@ -212,25 +212,37 @@
                 ]
             }).dxForm("instance");
 
-            // Load course
+            // Load course - API สาย ICourseService ที่ส่งค่า courseDetailDto
             $.ajax({
                 url: `${courseApiUrl}/${courseId}`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
-            }).done((data) => {
-                data.courseType = data.courseType !== undefined ? data.courseType : data.CourseType;
-                courseForm.option("formData", data);
+            }).done((response) => {
+                // Response format: { success: true, data: CourseDetailDto }
+                const data = response.data || response;
+                
+                // Map API response ให้สอดคล้องกับ Form
+                courseForm.option("formData", {
+                    courseCode: data.courseCode,
+                    courseName: data.courseName,
+                    description: data.description,
+                    categoryId: data.categoryId,
+                    courseType: data.courseType
+                });
+                
                 isCourseActive = data.isActive;
                 updateStatusUI(isCourseActive);
+            }).fail((xhr) => {
+                DevExpress.ui.notify("Error loading course: " + (xhr.responseJSON?.message || "Unknown error"), "error", 3000);
             });
 
-            // Save
+            // Save - ใช้ API ใหม่ (PUT /api/courses/{id})
             $("#btnSaveCourse").click(() => {
                 if(!courseForm.validate().isValid) return;
                 const data = courseForm.option("formData");
 
                 $.ajax({
-                    url: `${courseApiUrl}/${courseId}/info`,
+                    url: `${courseApiUrl}/${courseId}`,
                     type: 'PUT',
                     contentType: 'application/json',
                     xhrFields: { withCredentials: true },
@@ -239,10 +251,16 @@
                         courseName: data.courseName,
                         description: data.description,
                         categoryId: data.categoryId,
-                        courseType: data.courseType
+                        courseType: data.courseType,
+                        resourceIds: [] // ถ้ามีการจัดการ Resource ให้ส่งไปด้วย
                     }),
-                    success: () => DevExpress.ui.notify("Course updated successfully", "success", 2000),
-                    error: () => DevExpress.ui.notify("Error updating course", "error", 2000)
+                    success: (response) => {
+                        DevExpress.ui.notify("Course updated successfully", "success", 2000);
+                    },
+                    error: (xhr) => {
+                        const errorMsg = xhr.responseJSON?.message || "Error updating course";
+                        DevExpress.ui.notify(errorMsg, "error", 3000);
+                    }
                 });
             });
 
@@ -280,7 +298,7 @@
                 }
             }
 
-            // Toggle Publish
+            // Toggle Publish - ใช้ API ใหม่ (PATCH /api/courses/{id}/status)
             $("#btnTogglePublish").click(function(e) {
                 e.preventDefault();
                 const newState = !isCourseActive;
@@ -290,19 +308,21 @@
                     contentType: 'application/json',
                     xhrFields: { withCredentials: true },
                     data: JSON.stringify({ isActive: newState }),
-                    success: () => {
+                    success: (response) => {
                         isCourseActive = newState;
                         updateStatusUI(newState);
                         loadVersions();
-                        DevExpress.ui.notify(newState ? "Course published" : "Course closed", "success", 2000);
+                        const message = newState ? "Course published successfully" : "Course closed successfully";
+                        DevExpress.ui.notify(message, "success", 2000);
                     },
                     error: (xhr) => {
-                        DevExpress.ui.notify(xhr.responseJSON?.message || "Error updating status", "error", 3000);
+                        const errorMsg = xhr.responseJSON?.message || "Error updating status";
+                        DevExpress.ui.notify(errorMsg, "error", 3000);
                     }
                 });
             });
 
-            // Delete
+            // Delete - ใช้ API ใหม่ (DELETE /api/courses/{id})
             $("#btnDeleteCourse").click(function(e) {
                 e.preventDefault();
                 if($(this).hasClass("disabled")) return;
@@ -314,11 +334,14 @@
                             url: `${courseApiUrl}/${courseId}`,
                             type: 'DELETE',
                             xhrFields: { withCredentials: true },
-                            success: () => {
-                                DevExpress.ui.notify("Course deleted", "success", 2000);
+                            success: (response) => {
+                                DevExpress.ui.notify("Course deleted successfully", "success", 2000);
                                 setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
                             },
-                            error: () => DevExpress.ui.notify("Error deleting course", "error", 2000)
+                            error: (xhr) => {
+                                const errorMsg = xhr.responseJSON?.message || "Error deleting course";
+                                DevExpress.ui.notify(errorMsg, "error", 3000);
+                            }
                         });
                     }
                 });
@@ -330,24 +353,41 @@
                 window.location.href = '@Url.Action("VersionForm", "Courses")?courseId=' + courseId;
             });
 
-            // Assignment
+            // Assignment - ใช้ API ใหม่ (POST /api/courses/{id}/assign-now)
             $("#btnAssignment").click(function(e) {
                 e.preventDefault();
                 if($(this).hasClass("disabled")) {
                     DevExpress.ui.notify("Please publish the course first", "warning", 2000);
                     return;
                 }
-                window.location.href = '/Assignments/Form?courseId=' + courseId;
+
+                const result = DevExpress.ui.dialog.confirm("Trigger course assignments?", "Confirm");
+                result.done(function(dialogResult) {
+                    if(dialogResult) {
+                        $.ajax({
+                            url: `${courseApiUrl}/${courseId}/assign-now`,
+                            type: 'POST',
+                            xhrFields: { withCredentials: true },
+                            success: (response) => {
+                                DevExpress.ui.notify("Assignment process started successfully", "success", 3000);
+                            },
+                            error: (xhr) => {
+                                const errorMsg = xhr.responseJSON?.message || "Error triggering assignment";
+                                DevExpress.ui.notify(errorMsg, "error", 3000);
+                            }
+                        });
+                    }
+                });
             });
 
-          // Load Versions
+          // Load Versions - ยังใช้ endpoint เดิมของ admin/CourseVersionsCRUD
             function loadVersions() {
                 $.ajax({
                     url: serviceUrl + '/admin/CourseVersionsCRUD/Get',
                     data: { filter: JSON.stringify(["courseId", "=", courseId]) },
                     xhrFields: { withCredentials: true }
                 }).done(function(res) {
-                    const versions = res.data || [];
+                    const versions = (res.data || res) instanceof Array ? (res.data || res) : [];
                     versions.sort((a,b) => b.versionNumber - a.versionNumber);
 
                     const container = $("#versionsContainer");
@@ -421,6 +461,10 @@
                         container.append(cardHtml);
                         loadVersionResources(v.id);
                     });
+                }).fail(function(xhr) {
+                    console.error("Error loading versions:", xhr);
+                    const container = $("#versionsContainer");
+                    container.html('<div class="col-12 text-center text-danger py-5">Error loading versions</div>');
                 });
             }
 
@@ -430,7 +474,7 @@
                     data: { filter: JSON.stringify(["courseVersionId", "=", versionId]), expand: "resource" },
                     xhrFields: { withCredentials: true }
                 }).done(function(res) {
-                    const resources = res.data || [];
+                    const resources = (res.data || res) instanceof Array ? (res.data || res) : [];
                     const resContainer = $(`#res-container-${versionId}`);
                     resContainer.empty();
 
@@ -455,6 +499,8 @@
                             </div>
                         `);
                     });
+                }).fail(function(xhr) {
+                    console.error("Error loading version resources:", xhr);
                 });
             }
 
@@ -491,20 +537,24 @@
                 }
             };
 
-            // Set Active Version
+            // Set Active Version - ใช้ API ใหม่ (PATCH /api/courses/{courseId}/versions/{versionId}/set-active)
             window.setActiveVersion = function(vId) {
                 $.ajax({
                     url: `${courseApiUrl}/${courseId}/versions/${vId}/set-active`,
                     type: 'PATCH',
                     xhrFields: { withCredentials: true },
-                    success: function() {
-                        DevExpress.ui.notify("Active version updated!", "success", 2000);
+                    success: function(response) {
+                        DevExpress.ui.notify("Active version updated successfully!", "success", 2000);
                         loadVersions();
+                    },
+                    error: function(xhr) {
+                        const errorMsg = xhr.responseJSON?.message || "Error updating active version";
+                        DevExpress.ui.notify(errorMsg, "error", 3000);
                     }
                 });
             };
 
-            // Delete Version
+            // Delete Version - ยังใช้ endpoint เดิม
             window.deleteVersion = function(vId) {
                 const result = DevExpress.ui.dialog.confirm("Delete this version?", "Confirm Delete");
                 result.done(function(dialogResult) {
@@ -514,9 +564,13 @@
                             type: 'DELETE',
                             data: { key: vId },
                             xhrFields: { withCredentials: true },
-                            success: function() {
-                                DevExpress.ui.notify("Version deleted.", "success", 2000);
+                            success: function(response) {
+                                DevExpress.ui.notify("Version deleted successfully.", "success", 2000);
                                 loadVersions();
+                            },
+                            error: function(xhr) {
+                                const errorMsg = xhr.responseJSON?.message || "Error deleting version";
+                                DevExpress.ui.notify(errorMsg, "error", 3000);
                             }
                         });
                     }

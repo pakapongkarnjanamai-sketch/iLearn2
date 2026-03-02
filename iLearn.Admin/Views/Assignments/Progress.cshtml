@@ -3,10 +3,7 @@
 }
 
 <style>
-    /* Minimal & Clean White Theme */
-    body {
-        background-color: #ffffff;
-    }
+   
 
     /* Icon box styling */
     .icon-box {
@@ -53,45 +50,7 @@
         text-transform: uppercase;
     }
 
-    /* Grid minimal styling */
-    .dx-datagrid {
-        background-color: transparent !important;
-    }
-
-    .dx-datagrid-container {
-        background-color: transparent !important;
-    }
-
-    /* Filter hint badge */
-    .filter-hint {
-        background-color: #f5f7fa;
-        border: 1px solid #dce1e6;
-        color: #5a6c7d;
-        padding: 0.5rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    /* Responsive adjustments */
-    @@media (max-width: 1200px) {
-        .stat-value {
-            font-size: 2rem;
-        }
-    }
-
-    @@media (max-width: 768px) {
-        .card-header h5 {
-            flex-wrap: wrap;
-        }
-        
-        #course-selector {
-            width: 100% !important;
-            margin-top: 0.5rem;
-        }
-    }
+  
 </style>
 
 <!-- Header -->
@@ -175,7 +134,7 @@
     <!-- Data Tables Row -->
     <div class="row g-3">
         <!-- Left Panel: Course Summary -->
-        <div class="col-xl-5">
+        <div class="col-xl-8">
             <div class="card rounded-3 h-100 d-flex flex-column">
                 <div class="card-header pb-0 border-0">
                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -183,10 +142,7 @@
                             <i class="fas fa-book me-2 text-muted" style="opacity: 0.6;"></i> Course Summary
                         </h6>
                     </div>
-                    <div class="filter-hint">
-                        <i class="fas fa-info-circle" style="font-size: 0.85rem;"></i>
-                        <span>Click a row to filter employees by course</span>
-                    </div>
+                  
                 </div>
                 <div class="card-body p-0 flex-grow-1 overflow-hidden">
                     <div id="course-summary-grid"></div>
@@ -195,7 +151,7 @@
         </div>
 
         <!-- Right Panel: Student Details -->
-        <div class="col-xl-7">
+        <div class="col-xl-4">
             <div class="card rounded-3 h-100 d-flex flex-column">
                 <div class="card-header pb-0 border-0">
                     <div class="d-flex align-items-center justify-content-between gap-2 mb-2" style="flex-wrap: wrap;">
@@ -320,7 +276,7 @@
                                     { 
                                         dataField: "courseCode", 
                                         caption: "Code", 
-                                        width: 80, 
+                                        width: 180, 
                                         alignment: "center",
                                         cssClass: "text-muted fw-semibold"
                                     },
@@ -409,72 +365,24 @@
                                 rowAlternationEnabled: false,
                                 hoverStateEnabled: true,
                                 filterRow: { visible: false },
-                                searchPanel: { visible: true, width: 200, placeholder: "Search Emp ID..." },
+                              
                                 scrolling: { mode: "virtual" },
                                 height: 450,
-                                export: { enabled: true, allowExportSelectedData: true },
+                              
                                 columns: [
                                     { 
-                                        dataField: "studentCode", 
-                                        caption: "Emp ID", 
+                                        dataField: "studentCode",
+                                        caption: "Student Code",
                                         width: 100, 
                                         alignment: "center",
                                         cssClass: "fw-semibold text-muted"
                                     },
-                                    {
-                                        caption: "Course",
-                                        width: 90,
+                                  {
+                                        // dataField: "studentCode",
+                                        caption: "Student",
+                                        minWidth: 100,
                                         alignment: "center",
-                                        calculateCellValue: function(rowData) {
-                                            const rule = allRules.find(r => r.id === rowData.assignmentRuleId);
-                                            return rule && coursesMap[rule.courseId] ? coursesMap[rule.courseId].code : "-";
-                                        },
-                                        cssClass: "text-muted fw-semibold"
-                                    },
-                                    {
-                                        caption: "Employee",
-                                        minWidth: 150,
-                                        calculateCellValue: function(rowData) {
-                                            return `${rowData.studentCode || ''}`;
-                                        },
-                                        cellTemplate: function(container, options) {
-                                            const data = options.data;
-                                            const rule = allRules.find(r => r.id === data.assignmentRuleId);
-                                            const courseName = rule && coursesMap[rule.courseId] ? coursesMap[rule.courseId].code : '';
-                                            $(`<div class="fw-semibold text-dark">${data.studentCode}</div><small class="text-muted">${courseName}</small>`).appendTo(container);
-                                        }
-                                    },
-                                    {
-                                        dataField: "progress",
-                                        caption: "Progress",
-                                        minWidth: 140,
-                                        cellTemplate: function(container, options) {
-                                            const val = options.value || 0;
-                                            const color = val === 100 ? '#10b981' : '#3b82f6';
-                                            const progressBar = `
-                                                <div class="progress shadow-sm" style="height: 6px; background-color: #e8ecf1; border-radius: 3px; overflow: hidden;">
-                                                    <div class="progress-bar" style="width: ${val}%; background-color: ${color}; border-radius: 3px;"></div>
-                                                </div>
-                                                <small class="text-muted fw-semibold mt-1 d-block">${val}%</small>`;
-                                            $(progressBar).appendTo(container);
-                                        }
-                                    },
-                                    {
-                                        dataField: "isCompleted",
-                                        caption: "Status",
-                                        width: 110,
-                                        alignment: "center",
-                                        cellTemplate: function(container, options) {
-                                            if (options.value) {
-                                                $(`<span class="badge bg-success bg-opacity-10 text-success fw-semibold" style="font-size: 0.85rem;">
-                                                    <i class="fas fa-check-circle me-1"></i> Done
-                                                </span>`).appendTo(container);
-                                            } else {
-                                                $(`<span class="badge bg-warning bg-opacity-10 text-warning fw-semibold" style="font-size: 0.85rem;">
-                                                    <i class="fas fa-hourglass-half me-1"></i> In Progress
-                                                </span>`).appendTo(container);
-                                            }
-                                        }
+                                        cssClass: "fw-semibold text-muted"
                                     },
                                     { 
                                         dataField: "completedDate", 

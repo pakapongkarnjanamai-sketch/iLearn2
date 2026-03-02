@@ -1,0 +1,310 @@
+# Course Dashboard API Integration Update
+
+## ?? ???????????????
+
+Dashboard ????????????????????????? API ?????????? Clean Architecture ???????????:
+
+---
+
+## ?? API Endpoints ??????????????
+
+### 1. **Load Course (GET)**
+```javascript
+// ? API Endpoint ????
+GET /api/courses/{id}
+
+// Response Format:
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "courseCode": "CS101",
+    "courseName": "Programming Basics",
+    "description": "...",
+    "courseType": 0,
+    "categoryId": 1,
+    "isActive": true,
+    "resources": [...]
+  }
+}
+```
+
+### 2. **Update Course (PUT)**
+```javascript
+// ? API Endpoint ???? (?????????? PUT /api/courses/{id}/info)
+PUT /api/courses/{id}
+
+// Request Body:
+{
+  "courseCode": "CS101",
+  "courseName": "Programming Basics",
+  "description": "...",
+  "categoryId": 1,
+  "courseType": 0,
+  "resourceIds": []
+}
+
+// Response:
+{
+  "success": true,
+  "message": "???????????????????????????",
+  "data": { ... }
+}
+```
+
+### 3. **Update Course Status (PATCH)**
+```javascript
+// ? API Endpoint (?????????)
+PATCH /api/courses/{id}/status
+
+// Request Body:
+{
+  "isActive": true/false
+}
+
+// Response:
+{
+  "success": true,
+  "message": "Course published/closed"
+}
+```
+
+### 4. **Delete Course (DELETE)**
+```javascript
+// ? API Endpoint ????
+DELETE /api/courses/{id}
+
+// Response:
+{
+  "success": true,
+  "message": "????????????????"
+}
+```
+
+### 5. **Trigger Assignment (POST)**
+```javascript
+// ? API Endpoint ????
+POST /api/courses/{id}/assign-now
+
+// Response:
+{
+  "success": true,
+  "message": "?????????????????????????????????"
+}
+```
+
+### 6. **Set Active Version (PATCH)**
+```javascript
+// ? API Endpoint ????
+PATCH /api/courses/{courseId}/versions/{versionId}/set-active
+
+// Response:
+{
+  "success": true,
+  "message": "???????????????????????? ???????????????????????????????"
+}
+```
+
+---
+
+## ?? JavaScript Function Changes
+
+### Load Course Data
+```javascript
+// ? ????????? response format ????
+$.ajax({
+    url: `${courseApiUrl}/${courseId}`,
+    type: 'GET',
+    xhrFields: { withCredentials: true }
+}).done((response) => {
+    const data = response.data || response;
+    courseForm.option("formData", {
+        courseCode: data.courseCode,
+        courseName: data.courseName,
+        description: data.description,
+        categoryId: data.categoryId,
+        courseType: data.courseType
+    });
+});
+```
+
+### Save Course
+```javascript
+// ? ??? PUT /api/courses/{id} ??? PUT /api/courses/{id}/info
+$.ajax({
+    url: `${courseApiUrl}/${courseId}`,
+    type: 'PUT',
+    contentType: 'application/json',
+    xhrFields: { withCredentials: true },
+    data: JSON.stringify({
+        courseCode: data.courseCode,
+        courseName: data.courseName,
+        description: data.description,
+        categoryId: data.categoryId,
+        courseType: data.courseType,
+        resourceIds: []
+    }),
+    success: (response) => {
+        DevExpress.ui.notify("Course updated successfully", "success", 2000);
+    },
+    error: (xhr) => {
+        const errorMsg = xhr.responseJSON?.message || "Error updating course";
+        DevExpress.ui.notify(errorMsg, "error", 3000);
+    }
+});
+```
+
+### Toggle Publish/Close
+```javascript
+// ? API endpoint ??????? ??? error handling ????????
+$.ajax({
+    url: `${courseApiUrl}/${courseId}/status`,
+    type: 'PATCH',
+    contentType: 'application/json',
+    xhrFields: { withCredentials: true },
+    data: JSON.stringify({ isActive: newState }),
+    success: (response) => {
+        isCourseActive = newState;
+        updateStatusUI(newState);
+        loadVersions();
+        DevExpress.ui.notify(
+            newState ? "Course published successfully" : "Course closed successfully",
+            "success", 2000
+        );
+    },
+    error: (xhr) => {
+        DevExpress.ui.notify(
+            xhr.responseJSON?.message || "Error updating status",
+            "error", 3000
+        );
+    }
+});
+```
+
+### Delete Course
+```javascript
+// ? ??? DELETE /api/courses/{id} ??? ICourseService
+$.ajax({
+    url: `${courseApiUrl}/${courseId}`,
+    type: 'DELETE',
+    xhrFields: { withCredentials: true },
+    success: (response) => {
+        DevExpress.ui.notify("Course deleted successfully", "success", 2000);
+        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
+    },
+    error: (xhr) => {
+        DevExpress.ui.notify(
+            xhr.responseJSON?.message || "Error deleting course",
+            "error", 3000
+        );
+    }
+});
+```
+
+### Trigger Assignment
+```javascript
+// ? ??? POST /api/courses/{id}/assign-now
+$.ajax({
+    url: `${courseApiUrl}/${courseId}/assign-now`,
+    type: 'POST',
+    xhrFields: { withCredentials: true },
+    success: (response) => {
+        DevExpress.ui.notify("Assignment process started successfully", "success", 3000);
+    },
+    error: (xhr) => {
+        DevExpress.ui.notify(
+            xhr.responseJSON?.message || "Error triggering assignment",
+            "error", 3000
+        );
+    }
+});
+```
+
+### Set Active Version
+```javascript
+// ? ??? PATCH /api/courses/{courseId}/versions/{versionId}/set-active
+window.setActiveVersion = function(vId) {
+    $.ajax({
+        url: `${courseApiUrl}/${courseId}/versions/${vId}/set-active`,
+        type: 'PATCH',
+        xhrFields: { withCredentials: true },
+        success: function(response) {
+            DevExpress.ui.notify("Active version updated successfully!", "success", 2000);
+            loadVersions();
+        },
+        error: function(xhr) {
+            const errorMsg = xhr.responseJSON?.message || "Error updating active version";
+            DevExpress.ui.notify(errorMsg, "error", 3000);
+        }
+    });
+};
+```
+
+---
+
+## ?? Endpoints ???????????????
+
+???????????? endpoints ????????? endpoint admin endpoints ???? (???????????????????):
+
+```javascript
+// ? Load Versions (?????? endpoint admin)
+GET /admin/CourseVersionsCRUD/Get?filter=["courseId","=",{courseId}]
+
+// ? Load Version Resources (?????? endpoint admin)
+GET /admin/CourseResourcesCRUD/Get?filter=["courseVersionId","=",{versionId}]&expand=resource
+
+// ? Delete Version (?????? endpoint admin)
+DELETE /admin/CourseVersionsCRUD/Delete?key={versionId}
+```
+
+---
+
+## ? ????????????????????
+
+### 1. **Error Handling ?????????**
+- ??? AJAX call ??????????? error ?????????
+- ??????????? error ??? API ???????????????
+- ??? DevExpress notification ???????????
+
+### 2. **Response Mapping ?????????**
+- Mapping response data ?????????????? form fields
+- ??????? response format ??????????
+
+### 3. **Data Validation**
+- ???????????? form validation ???? submit
+- ???????????????????????
+
+---
+
+## ?? Testing Checklist
+
+- [ ] Load course data - ??????? form populated ???????
+- [ ] Update course - ????????????? save ??????
+- [ ] Publish/Close course - ???????????????????????
+- [ ] Delete course - ??????? redirect ???? list
+- [ ] Trigger assignment - ?????????? trigger assignment
+- [ ] Load versions - ??????????? versions ???????
+- [ ] Set active version - ??????? version active ???????????
+- [ ] Delete version - ????????? version ??????
+
+---
+
+## ?? Related Files
+
+- `iLearn.API/Controllers/CoursesController.cs` - API Controller (????)
+- `iLearn.Application/Interfaces/Services/ICourseService.cs` - Service Interface (????)
+- `iLearn.Application/Services/CourseService.cs` - Service Implementation (????)
+- `iLearn.Admin/Views/Courses/Dashboard.cshtml` - Dashboard View (????????)
+
+---
+
+## ?? Backward Compatibility
+
+? Dashboard ????????????????? endpoint ????????????????:
+- Version Management (?????? /admin/CourseVersionsCRUD)
+- Resource Management (?????? /admin/CourseResourcesCRUD)
+
+?? Core operations (CRUD) ??????? API ????:
+- Get, Create, Update, Delete
+- Publish/Close Status
+- Assign Courses

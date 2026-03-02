@@ -325,26 +325,37 @@
             if (IS_EDIT) {
                 loadPanel.show();
                 $.ajax({
-                    url: `${serviceUrl}/admin/CourseVersionsCRUD/Get/${VERSION_ID}`, method: "GET", xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    let detailData = res.data || res;
-                    formWidget.option("formData", detailData);
+                    url: `${serviceUrl}/courses/versions/${VERSION_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).done(function(response) {
+                    // Handle response format: { success: true, data: {...} }
+                    let detailData = response.data || response;
+                    formWidget.option("formData", {
+                        note: detailData.note,
+                        isActive: detailData.isActive
+                    });
 
-                    let crs = detailData.courseResources || [];
-                    if (crs.length > 0) {
-                        crs.forEach(cr => {
-                            if(cr.resource) {
+                    let resourceIds = detailData.resourceIds || [];
+                    if (resourceIds.length > 0) {
+                        resourceIds.forEach(rId => {
+                            // Load resource details from resourcesStore
+                            const resource = resourcesStore._data.find(r => r.id === rId);
+                            if(resource) {
                                 unifiedResources.push({
-                                    uid: `EXISTING_${cr.resourceId}`,
-                                    realId: cr.resourceId,
-                                    name: cr.resource.name,
-                                    typeId: cr.resource.typeId,
+                                    uid: `EXISTING_${rId}`,
+                                    realId: rId,
+                                    name: resource.name,
+                                    typeId: resource.typeId,
                                     isNew: false
                                 });
                             }
                         });
                         refreshMasterGrid();
                     }
+                }).fail(function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message || "Error loading version";
+                    DevExpress.ui.notify(errorMsg, "error", 3000);
                 }).always(() => loadPanel.hide());
             }
 
@@ -352,7 +363,7 @@
             $("#btn-save").dxButton({
                 text: IS_EDIT ? "Save Changes" : "Create Version",
                 icon: "save", type: "default", stylingMode: "contained",
-                elementAttr: { class: "shadow-sm px-4 btn-primary rounded-3" }, // ใช้ปุ่มขอบมน
+                elementAttr: { class: "shadow-sm px-4 btn-primary rounded-3" },
                 onClick: () => submitData()
             });
 
@@ -373,9 +384,10 @@
                 const data = formWidget.option("formData");
                 let formDataObj = new FormData();
 
-                for (let key in data) {
-                    if (data[key] !== null && data[key] !== undefined) formDataObj.append(key, data[key]);
-                }
+                // Append form data
+                formDataObj.append("courseId", COURSE_ID);
+                formDataObj.append("note", data.note);
+                formDataObj.append("isActive", data.isActive || false);
 
                 // ส่งข้อมูลเรียงตามลำดับ Index ใน Master Grid
                 unifiedResources.forEach((item) => {
@@ -387,18 +399,25 @@
                     }
                 });
 
-                const url = IS_EDIT ? `${serviceUrl}/courses/UpdateVersion/${VERSION_ID}` : `${serviceUrl}/courses/CreateVersion`;
+                // ใช้ API ใหม่แทน old endpoint
+                const url = IS_EDIT 
+                    ? `${serviceUrl}/courses/versions/${VERSION_ID}`
+                    : `${serviceUrl}/courses/${COURSE_ID}/versions`;
+                const method = IS_EDIT ? "PUT" : "POST";
 
                 $.ajax({
                     url: url,
-                    method: IS_EDIT ? "PUT" : "POST",
+                    method: method,
                     data: formDataObj,
-                    processData: false, contentType: false, xhrFields: { withCredentials: true }
-                }).done(function() {
+                    processData: false,
+                    contentType: false,
+                    xhrFields: { withCredentials: true }
+                }).done(function(response) {
                     DevExpress.ui.notify("Saved successfully!", "success", 2000);
                     setTimeout(() => window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + COURSE_ID, 1200);
-                }).fail(function(err) {
-                    DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to save"), "error", 4000);
+                }).fail(function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message || "Failed to save";
+                    DevExpress.ui.notify("Error: " + errorMsg, "error", 4000);
                 }).always(() => loadPanel.hide());
             }
         });
