@@ -49,26 +49,12 @@
                             <i class="fas fa-book me-1"></i> Course Management
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="courseDropdown">
-                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Index">All Courses</a></li>
-                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Drafts">Drafts</a></li>
+                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Index">Courses</a></li>
+                            <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Index">Assignment</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" asp-controller="Categories" asp-action="Index">Categories</a></li>
-                            <li><a class="dropdown-item" asp-controller="Resources" asp-action="Index">Resources Library</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-users me-1"></i> User & Access
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" asp-controller="Users" asp-action="Index">Users</a></li>
-                            <li><a class="dropdown-item" asp-controller="Roles" asp-action="Index">Roles</a></li>
-                            <li><a class="dropdown-item" asp-controller="Divisions" asp-action="Index">Divisions</a></li>
-
-                            <li><a class="dropdown-item" asp-controller="Students" asp-action="Index">Students (Employees)</a></li>
-
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Index">Assignment</a></li>
+                      
+                          
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -80,6 +66,22 @@
                             <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Detailed Learning Logs</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-users me-1"></i> Admin
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" asp-controller="Users" asp-action="Index">Users</a></li>
+                            <li><a class="dropdown-item" asp-controller="Roles" asp-action="Index">Roles</a></li>
+                            <li><a class="dropdown-item" asp-controller="Divisions" asp-action="Index">Divisions</a></li>
+
+                            <li><a class="dropdown-item" asp-controller="Students" asp-action="Index">Students (Employees)</a></li>
+
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" asp-controller="Resources" asp-action="Index">Resources Library</a></li>
+                        </ul>
+                    </li>
+                    
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">

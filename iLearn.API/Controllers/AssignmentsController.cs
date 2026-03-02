@@ -28,10 +28,10 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> GetHistory()
         {
             // 1. ดึงข้อมูล Rule ทั้งหมด และบอก Repository ให้ Include ตาราง Course มาด้วย
-            var rules = await _repo.GetAsync(includeProperties: "Course");
+            var assignments = await _repo.GetAsync(includeProperties: "Course");
 
             // 2. จัดกลุ่มข้อมูล (Group By) ด้วย AssignmentNo
-            var groupedHistory = rules
+            var groupedHistory = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo)) // ป้องกันรายการที่ไม่มีเลขที่
                 .GroupBy(r => r.AssignmentNo)
                 .Select(g => new
@@ -57,8 +57,8 @@ namespace iLearn.API.Controllers
         [HttpGet("course/{courseId}")]
         public async Task<IActionResult> GetByCourse(int courseId)
         {
-            var rules = await _repo.GetAsync(r => r.CourseId == courseId);
-            return Ok(rules.Select(r => new { r.Id, r.CourseId })); // ปรับให้คืนค่าตามความเหมาะสม
+            var assignments = await _repo.GetAsync(r => r.CourseId == courseId);
+            return Ok(assignments.Select(r => new { r.Id, r.CourseId })); // ปรับให้คืนค่าตามความเหมาะสม
         }
 
         [HttpDelete("{id}")]

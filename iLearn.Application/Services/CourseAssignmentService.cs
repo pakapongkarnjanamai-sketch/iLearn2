@@ -14,35 +14,35 @@ namespace iLearn.Application.Services
     {
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
-        private readonly IGenericRepository<Assignment> _ruleRepo;
+        private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IStudentApiService _studentApiService;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
 
         public CourseAssignmentService(
             ICourseRepository courseRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
-            IGenericRepository<Assignment> ruleRepo,
+            IGenericRepository<Assignment> assignmentRepo,
             IStudentApiService studentApiService,
             IGenericRepository<CourseVersion> versionRepo)
         {
             _courseRepo = courseRepo;
             _enrollmentRepo = enrollmentRepo;
-            _ruleRepo = ruleRepo;
+            _assignmentRepo = assignmentRepo;
             _studentApiService = studentApiService;
             _versionRepo = versionRepo;
         }
 
         // --- 1. ฟังก์ชันจับคู่กฎ ---
-        private Assignment? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<Assignment> rules)
+        private Assignment? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<Assignment>  assignments)
         {
-            if (rules == null || !rules.Any()) return null;
+            if (assignments == null || !assignments.Any()) return null;
 
-            foreach (var rule in rules)
+            foreach (var assignment in assignments)
             {
-                bool divisionMatch = string.IsNullOrEmpty(rule.Division) || student.Division == rule.Division;
+                bool divisionMatch = string.IsNullOrEmpty(assignment.Division) || student.Division == assignment.Division;
                 if (divisionMatch)
                 {
-                    return rule;
+                    return assignment;
                 }
             }
             return null;
@@ -70,11 +70,11 @@ namespace iLearn.Application.Services
             if (apiResponse == null || !apiResponse.success || apiResponse.data == null) return;
 
             var allStudents = apiResponse.data;
-            var rules = await _ruleRepo.GetAsync(r => r.CourseId == courseId);
+            var assignments = await _assignmentRepo.GetAsync(r => r.CourseId == courseId);
 
             foreach (var student in allStudents)
             {
-                Assignment? matchedRule = null;
+                Assignment? matchedAssignment = null;
                 bool shouldAssign = false;
 
                 if (course.Type == CourseType.General)
@@ -83,14 +83,14 @@ namespace iLearn.Application.Services
                 }
                 else if (course.Type == CourseType.Special)
                 {
-                    matchedRule = GetMatchingRuleForStudent(student, rules);
-                    shouldAssign = matchedRule != null;
+                    matchedAssignment = GetMatchingRuleForStudent(student, assignments);
+                    shouldAssign = matchedAssignment != null;
                 }
 
                 if (shouldAssign)
                 {
                     // ส่งข้อมูล ID และ Date แยกส่วนเข้าไป เพื่อให้ Helper method รับค่าง่ายขึ้น
-                    await CreateOrUpdateEnrollment(student.EId, course, matchedRule?.Id, matchedRule?.StartDate, matchedRule?.DueDate);
+                    await CreateOrUpdateEnrollment(student.EId, course, matchedAssignment?.Id, matchedAssignment?.StartDate, matchedAssignment?.DueDate);
                 }
             }
         }
