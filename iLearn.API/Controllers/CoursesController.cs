@@ -504,7 +504,6 @@ namespace iLearn.API.Controllers
 
             return Ok(new { success = true, message = "อัปเดตข้อมูลทั่วไปสำเร็จ" });
         }
-
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateCourseStatus(int id, [FromBody] UpdateCourseStatusDto dto)
         {
@@ -512,7 +511,7 @@ namespace iLearn.API.Controllers
             if (course == null) return NotFound(new { success = false, message = "ไม่พบหลักสูตรที่ต้องการแก้ไข" });
 
             // ========================================================
-            // [ตอน Publish] ตรวจสอบความพร้อม และ "แตกไฟล์ SCORM"
+            // [ตอน Publish] ตรวจสอบความพร้อมของหลักสูตร
             // ========================================================
             if (dto.IsActive == true)
             {
@@ -526,41 +525,13 @@ namespace iLearn.API.Controllers
                         includeProperties: "Resource"
                     );
 
+                    // เช็คว่ามี Resource ที่พร้อมใช้งาน (Active) อย่างน้อย 1 รายการหรือไม่
                     var activeResources = courseResources.Where(cr => cr.Resource != null && cr.Resource.IsActive).ToList();
 
                     if (activeResources.Any())
                     {
                         isReadyToPublish = true;
-
-                        // --- ใช้งาน ScormService ของคุณในการแตกไฟล์ ---
-                        foreach (var cr in activeResources)
-                        {
-                            // ถ้าเป็น SCORM (สมมติ TypeId == 1) และมี FileStorageId
-                            if (cr.Resource.TypeId == 1 && cr.Resource.FileStorageId.HasValue)
-                            {
-                                var fileStorage = await _fileStorageRepository.GetByIdAsync(cr.Resource.FileStorageId.Value);
-                                if (fileStorage != null && fileStorage.Data != null)
-                                {
-                                    var folderName = Path.GetFileNameWithoutExtension(cr.Resource.URL);
-
-                                    try
-                                    {
-                                        // โยน byte[] ให้ Service แตกไฟล์และตรวจสอบ Manifest
-                                        var manifestInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
-
-                                        // (ทริคเสริม) คุณสามารถเก็บ ResourceHref ลง DB ได้เลย เพื่อให้หน้า Player เรียกไฟล์ได้ถูกต้อง
-                                        // cr.Resource.Href = manifestInfo.ResourceHref;
-                                        // await _resourceRepository.UpdateAsync(cr.Resource);
-                                    }
-                                    catch (InvalidScormPackageException ex)
-                                    {
-                                        // ดักจับ Error จาก Exception ที่คุณเขียนไว้ใน Service
-                                        return BadRequest(new { success = false, message = $"ไฟล์ {cr.Resource.Name} มีปัญหา: {ex.Message}" });
-                                    }
-                                }
-                            }
-                        }
-                        // ---------------------------------------------
+                        break; // เจอว่าพร้อมใช้งานแล้ว สามารถหยุดเช็คและเตรียม Publish ได้เลย
                     }
                 }
 
@@ -571,7 +542,7 @@ namespace iLearn.API.Controllers
             }
 
             // ========================================================
-            // [ตอน Unpublish] ปิดการใช้งานตัวลูก และ "ลบโฟลเดอร์ SCORM"
+            // [ตอน Unpublish] ปิดการใช้งานเนื้อหาลูก (Resource)
             // ========================================================
             if (dto.IsActive == false)
             {
@@ -583,19 +554,13 @@ namespace iLearn.API.Controllers
                         includeProperties: "Resource"
                     );
 
+                    // ปิดสถานะ Active ของ Resource ทั้งหมดเมื่อคอร์สถูก Unpublish
                     foreach (var cr in courseResources)
                     {
-                        if (cr.Resource != null)
+                        if (cr.Resource != null && cr.Resource.IsActive)
                         {
-                            if (cr.Resource.IsActive)
-                            {
-                                cr.Resource.IsActive = false;
-                                await _resourceRepository.UpdateAsync(cr.Resource);
-                            }
-
-                            // --- ใช้งาน ScormService ในการลบโฟลเดอร์ ---
-                            var folderName = Path.GetFileNameWithoutExtension(cr.Resource.URL);
-                            _scormService.DeleteScormFolder(folderName);
+                            cr.Resource.IsActive = false;
+                            await _resourceRepository.UpdateAsync(cr.Resource);
                         }
                     }
                 }
@@ -624,28 +589,121 @@ namespace iLearn.API.Controllers
             if (!versions.Any(v => v.Id == versionId))
                 return NotFound(new { success = false, message = "ไม่พบ Version ที่ระบุในหลักสูตรนี้" });
 
-            // 4. วนลูปอัปเดต: ให้ตัวที่เลือกเป็น true ตัวอื่นบังคับเป็น false ทั้งหมด
-            foreach (var version in versions)
+            // ========================================================
+            // 🧹 ขั้นตอนที่ 1: ปิด Version เก่า และ "เก็บกวาด" Resource ที่ไม่ได้ใช้งานแล้ว
+            // ========================================================
+            foreach (var version in versions.Where(v => v.Id != versionId && v.IsActive))
             {
-                if (version.Id == versionId)
+                // ปิดสถานะ Version เดิม
+                version.IsActive = false;
+                await _courseVersionRepository.UpdateAsync(version);
+
+                // ดึง Resource ของ Version เดิมที่เพิ่งถูกปิดไป
+                var oldCourseResources = await _courseResourceRepository.GetAsync(
+                    filter: cr => cr.CourseVersionId == version.Id,
+                    includeProperties: "Resource"
+                );
+
+                foreach (var cr in oldCourseResources)
                 {
-                    if (!version.IsActive)
+                    var res = cr.Resource;
+                    if (res != null && res.IsActive)
                     {
-                        version.IsActive = true;
-                        await _courseVersionRepository.UpdateAsync(version);
-                    }
-                }
-                else
-                {
-                    if (version.IsActive)
-                    {
-                        version.IsActive = false;
-                        await _courseVersionRepository.UpdateAsync(version);
+                        // ตรวจสอบว่า Resource ตัวนี้กำลังจะถูกใช้งานใน Version ใหม่ (versionId) ที่กำลังจะเปิดหรือไม่
+                        // หรือถูกใช้งานใน CourseVersion อื่นๆ ที่ยัง Active อยู่หรือไม่ (เผื่อมีการแชร์ไฟล์ข้ามคอร์ส)
+                        var allUsages = await _courseResourceRepository.GetAsync(
+                            filter: x => x.ResourceId == res.Id,
+                            includeProperties: "CourseVersion"
+                        );
+
+                        bool isUsedElsewhere = allUsages.Any(x =>
+                            x.CourseVersionId == versionId || // กำลังจะถูกเปิดใช้ใน Version ใหม่
+                            (x.CourseVersion != null && x.CourseVersion.IsActive) // หรือถูกใช้ในเวอร์ชันอื่นที่ Active อยู่
+                        );
+
+                        // ถ้า "ไม่มีใครใช้งานไฟล์นี้แล้ว" ให้ทำการ เคลียร์ค่า และ ลบโฟลเดอร์ทิ้ง
+                        if (!isUsedElsewhere)
+                        {
+                            if (res.TypeId == 1 && !string.IsNullOrEmpty(res.URL))
+                            {
+                                // ลบโฟลเดอร์ SCORM ออกจาก Server (คืนพื้นที่)
+                                _scormService.DeleteScormFolder(res.URL);
+
+                                // เคลียร์ค่ากลับเป็นสถานะก่อนแตกไฟล์ (ย้อนกลับกระบวนการ Extract)
+                                res.URL = res.Name; // คืนค่า URL ให้กลับเป็นชื่อไฟล์ต้นฉบับ
+                                res.ResourceHref = null;
+                                res.SchemaVersion = null;
+                            }
+
+                            // ปิดสถานะ Resource
+                            res.IsActive = false;
+                            await _resourceRepository.UpdateAsync(res);
+                        }
                     }
                 }
             }
 
-            return Ok(new { success = true, message = "เปลี่ยนเวอร์ชันที่ใช้งานสำเร็จ" });
+            // ========================================================
+            // 🚀 ขั้นตอนที่ 2: เปิด Version ใหม่ และ "แตกไฟล์" Resource ที่เพิ่งเข้ามา
+            // ========================================================
+            var targetVersion = versions.First(v => v.Id == versionId);
+            if (!targetVersion.IsActive)
+            {
+                targetVersion.IsActive = true;
+                await _courseVersionRepository.UpdateAsync(targetVersion);
+
+                // ดึง Resource ของ Version ที่กำลังจะถูกเปิด
+                var newCourseResources = await _courseResourceRepository.GetAsync(
+                    filter: cr => cr.CourseVersionId == targetVersion.Id,
+                    includeProperties: "Resource"
+                );
+
+                foreach (var cr in newCourseResources)
+                {
+                    var res = cr.Resource;
+                    if (res != null)
+                    {
+                        // เช็คว่าเป็น SCORM (TypeId = 1), มีไฟล์ใน DB และ "ยังไม่ได้ Active"
+                        if (res.TypeId == 1 && res.FileStorageId.HasValue && !res.IsActive)
+                        {
+                            var fileStorage = await _fileStorageRepository.GetByIdAsync(res.FileStorageId.Value);
+                            if (fileStorage != null && fileStorage.Data != null)
+                            {
+                                // ใช้ชื่อไฟล์เดิม (ตัดนามสกุล .zip ออก) เป็นชื่อโฟลเดอร์ เพื่อความเป็นระเบียบ
+                                var folderName = Path.GetFileNameWithoutExtension(res.Name);
+
+                                try
+                                {
+                                    // แตกไฟล์และอ่าน Manifest
+                                    var scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
+
+                                    // อัปเดตข้อมูลลิงก์ SCORM และเปิดสถานะ
+                                    res.ResourceHref = scormInfo.ResourceHref;
+                                    res.SchemaVersion = scormInfo.SchemaVersion;
+                                    res.URL = scormInfo.FolderName;
+                                    res.IsActive = true;
+
+                                    await _resourceRepository.UpdateAsync(res);
+                                }
+                                catch (InvalidScormPackageException ex)
+                                {
+                                    // กรณี Error แตกไฟล์ไม่ผ่าน ให้ลบโฟลเดอร์ขยะทิ้ง
+                                    _scormService.DeleteScormFolder(folderName);
+                                    return BadRequest(new { success = false, message = $"เกิดข้อผิดพลาดในการเตรียมไฟล์ SCORM '{res.Name}': {ex.Message}" });
+                                }
+                            }
+                        }
+                        else if (res.TypeId != 1 && !res.IsActive)
+                        {
+                            // สำหรับไฟล์ธรรมดา (ที่ไม่ใช่ SCORM) ก็เปิด Active เฉยๆ
+                            res.IsActive = true;
+                            await _resourceRepository.UpdateAsync(res);
+                        }
+                    }
+                }
+            }
+
+            return Ok(new { success = true, message = "เปลี่ยนเวอร์ชันที่ใช้งาน พร้อมเตรียมและเคลียร์ไฟล์สำเร็จ" });
         }
 
         [HttpPost("CreateVersion")]
