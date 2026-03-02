@@ -45,7 +45,14 @@ namespace iLearn.API.Controllers
                 return Ok(new ApiResponse<string> { Success = true, Message = "Course is completed." });
             }
 
-            int versionId = enrollment.EnrolledCourseVersion;
+            // 🌟 ตรวจสอบก่อนว่าประวัติการเรียนนี้ยังมี Version ให้เรียนอยู่หรือไม่ (กรณีคอร์สถูกลบ)
+            if (!enrollment.EnrolledCourseVersion.HasValue)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "ไม่พบเวอร์ชันของหลักสูตรในระบบ (หลักสูตรอาจถูกลบไปแล้ว)" });
+            }
+
+            // 🌟 ดึงค่าตัวเลขออกมาอย่างปลอดภัยด้วย .Value
+            int versionId = enrollment.EnrolledCourseVersion.Value;
 
             // 2. ✅ ดึง Log โดยอ้างอิง EnrollmentId โดยตรง (แม่นยำกว่า StudentCode + Version อย่างเดียว)
             var existingLogs = await _logRepo.GetAsync(l => l.EnrollmentId == input.EnrollmentId);
@@ -114,9 +121,6 @@ namespace iLearn.API.Controllers
             }
 
             // 3. ตรวจสอบการจบหลักสูตร (Completion Check)
-            // ... (Logic การตรวจสอบว่าเรียนครบทุกบทหรือยัง เหมือนเดิม) ...
-
-            // [ส่วนเสริม] โค้ดตรวจสอบว่าผ่านครบทุกบทไหม (ใช้ existingLogs ที่เพิ่ง update ไปเช็คได้เลย)
             var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseResources")).FirstOrDefault();
             if (version != null && version.CourseResources != null)
             {
@@ -125,11 +129,11 @@ namespace iLearn.API.Controllers
 
                 var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
                 int passedCount = updatedLogs.Count(l =>
-                    allResourceIds.Contains(l.ResourceId) &&
+                    allResourceIds.Contains(l.ResourceId ?? 0) && // ป้องกัน error กรณี ResourceId เป็น null
                     (l.Status == "passed" || l.Status == "completed")
                 );
 
-                if (passedCount >= allResourceIds.Count)
+                if (passedCount >= allResourceIds.Count && allResourceIds.Count > 0)
                 {
                     enrollment.IsCompleted = true;
                     enrollment.CompletedDate = DateTime.Now;
@@ -137,8 +141,10 @@ namespace iLearn.API.Controllers
                 }
                 else
                 {
-                    enrollment.Progress = ((double)passedCount / allResourceIds.Count) * 100;
+                    // ป้องกันหารด้วย 0 กรณีคอร์สไม่มีเนื้อหา
+                    enrollment.Progress = allResourceIds.Count > 0 ? ((double)passedCount / allResourceIds.Count) * 100 : 0;
                 }
+
                 await _enrollmentRepo.UpdateAsync(enrollment);
             }
 

@@ -28,7 +28,7 @@
     public class AssignmentRuleDto
     {
         public int Id { get; set; }
-        public int CourseId { get; set; }
+        public int? CourseId { get; set; }
         public string? Division { get; set; }
         public string? Department { get; set; }
         public string? Section { get; set; }

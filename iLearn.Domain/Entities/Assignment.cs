@@ -10,7 +10,7 @@ namespace iLearn.Domain.Entities
         public string? AssignmentNo { get; set; }
         public string? Description { get; set; }
 
-        public int CourseId { get; set; }
+        public int? CourseId { get; set; }
         [ForeignKey("CourseId")]
         public Course? Course { get; set; }
 

@@ -219,28 +219,12 @@ namespace iLearn.Application.Services
                 throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
 
             // =========================================================
-            // 🌟 1. ตรวจสอบว่ามีประวัติการเรียนหรือการมอบหมายงานหรือไม่
+            // 1. ค้นหาข้อมูลที่ต้องจัดการทั้งหมดให้พร้อมก่อน
             // =========================================================
-            var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
-
-            if (enrollments.Any())
-            {
-                // ถ้ามีคนเรียนแล้ว จะไม่อนุญาตให้ลบ เพื่อรักษาประวัติ LearningLog และ Enrollment ไว้
-                throw new InvalidOperationException("ไม่สามารถลบหลักสูตรได้ เนื่องจากมีพนักงานลงทะเบียนและมีประวัติการเรียนแล้ว กรุณาใช้วิธี 'Close Course' แทนเพื่อเก็บประวัติครับ");
-            }
-
-            // =========================================================
-            // 🌟 2. ถ้าไม่มีคนเรียนเลย (คอร์สว่าง) ให้ดำเนินการลบแบบถอนรากถอนโคน
-            // =========================================================
-
-            // ลบ Assignment ที่ผูกกับ Course นี้ (ถ้าเคยมอบหมายแต่ยังไม่เกิด Enrollment - ปกติมักจะเกิดพร้อมกัน)
             var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
-            foreach (var assignment in assignments)
-            {
-                await _assignmentRepository.DeleteAsync(assignment);
-            }
+            var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
+            var enrollmentIds = enrollments.Select(e => e.Id).ToList();
 
-            // รวบรวมข้อมูล Version และ Resource เพื่อลบไฟล์
             var versions = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
             var versionIds = versions.Select(v => v.Id).ToList();
 
@@ -269,7 +253,6 @@ namespace iLearn.Application.Services
                     if (resource != null)
                     {
                         resourcesToDelete.Add(resource);
-
                         if (resource.FileStorageId.HasValue)
                         {
                             var file = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
@@ -287,28 +270,68 @@ namespace iLearn.Application.Services
                 }
             }
 
-            // ไล่ลบจากตารางลูกไปหาตารางแม่ (ตามลำดับที่ถูกต้องเพื่อป้องกัน FK Error)
-            foreach (var cr in courseResources)
-                await _courseResourceRepository.DeleteAsync(cr);
+            // =========================================================
+            // 🌟 2. เริ่มการทำงานด้วย Transaction (ปลอดภัย 100%)
+            // =========================================================
+            // ใช้ TransactionScopeAsyncFlowOption.Enabled เพื่อให้ทำงานรองรับ async/await
+            using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
+            {
+                // 2.1 ปลดความสัมพันธ์ (Set Null) ในประวัติการเรียนและการมอบหมายงาน
+                foreach (var assignment in assignments)
+                {
+                    assignment.CourseId = null;
+                    await _assignmentRepository.UpdateAsync(assignment);
+                }
 
-            foreach (var v in versions)
-                await _courseVersionRepository.DeleteAsync(v);
+                foreach (var enrollment in enrollments)
+                {
+                    enrollment.CourseId = null;
+                    enrollment.EnrolledCourseVersion = null;
+                    await _enrollmentRepository.UpdateAsync(enrollment);
+                }
 
-            foreach (var r in resourcesToDelete)
-                await _resourceRepository.DeleteAsync(r);
+                foreach (var eId in enrollmentIds)
+                {
+                    var logs = await _learningLogRepository.GetAsync(l => l.EnrollmentId == eId);
+                    foreach (var log in logs)
+                    {
+                        log.CourseVersionId = null;
+                        log.ResourceId = null;
+                        await _learningLogRepository.UpdateAsync(log);
+                    }
+                }
 
-            foreach (var f in fileStoragesToDelete)
-                await _fileStorageRepository.DeleteAsync(f);
+                // 2.2 ลบโครงสร้างไฟล์หลักสูตร (เรียงลำดับจากลูกไปแม่)
+                foreach (var cr in courseResources)
+                    await _courseResourceRepository.DeleteAsync(cr);
 
-            // ลบ Course ตัวแม่ เป็นอันดับสุดท้าย
-            await _courseRepo.DeleteAsync(course);
+                foreach (var v in versions)
+                    await _courseVersionRepository.DeleteAsync(v);
 
-            // เคลียร์ไฟล์ SCORM ที่แตกไว้ใน Server
+                foreach (var r in resourcesToDelete)
+                    await _resourceRepository.DeleteAsync(r);
+
+                foreach (var f in fileStoragesToDelete)
+                    await _fileStorageRepository.DeleteAsync(f);
+
+                // 2.3 ลบ Course ตัวแม่
+                await _courseRepo.DeleteAsync(course);
+
+                // ยืนยันว่าทุกอย่างทำงานเสร็จสมบูรณ์และไม่มี Error (Commit)
+                transaction.Complete();
+            }
+
+            // =========================================================
+            // 🌟 3. ลบไฟล์จริงบนเซิร์ฟเวอร์ (ทำนอก Transaction)
+            // =========================================================
+            // เหตุผล: เพราะถ้าลบไฟล์จริงๆ ในโฟลเดอร์ไปแล้ว หาก Database Error จะไม่สามารถเสกไฟล์กลับคืนมาได้ 
+            // จึงต้องรอให้ Transaction ของ DB ผ่านชัวร์ๆ ก่อนค่อยทำการลบ Physical file ครับ
             foreach (var folder in scormFoldersToDelete)
             {
                 _scormService.DeleteScormFolder(folder);
             }
         }
+
         public async Task TriggerAssignmentAsync(int courseId)
         {
             var course = await _courseRepo.GetByIdAsync(courseId);

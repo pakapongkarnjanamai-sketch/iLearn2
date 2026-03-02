@@ -8,8 +8,8 @@ namespace iLearn.Domain.Entities
         // ... (Properties เดิม) ...
 
         public string StudentCode { get; set; } = string.Empty;
-        public int CourseVersionId { get; set; }
-        public int ResourceId { get; set; }
+        public int? CourseVersionId { get; set; }
+        public int? ResourceId { get; set; }
 
         // ✅ [เพิ่ม] เชื่อมกับ Enrollment เพื่อให้รู้ว่าเป็นของรอบการลงทะเบียนไหน
         public int EnrollmentId { get; set; }
