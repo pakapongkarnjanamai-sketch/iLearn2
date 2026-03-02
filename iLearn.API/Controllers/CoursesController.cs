@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq; // จำเป็นสำหรับ LINQ
+using System.Linq; 
 using System.Threading.Tasks;
 using iLearn.Infrastructure.Persistence;
 
@@ -25,10 +25,11 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<CourseResource> _courseResourceRepository;
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly IGenericRepository<Resource> _resourceRepository;
-        private readonly IGenericRepository<FileStorage> _fileStorageRepository; // [เพิ่ม] สำหรับบันทึกไฟล์ลง DB
+        private readonly IGenericRepository<FileStorage> _fileStorageRepository;
         private readonly ICourseAssignmentService _assignmentService;
         private readonly IScormService _scormService;
         private readonly AppDbContext _context;
+       
         public CoursesController(
      ICourseRepository courseRepository,
      IGenericRepository<CourseResource> courseResourceRepository,
@@ -37,7 +38,7 @@ namespace iLearn.API.Controllers
      IGenericRepository<FileStorage> fileStorageRepository,
      ICourseAssignmentService assignmentService,
      IScormService scormService,
-     AppDbContext context) // <--- เพิ่มตรงนี้
+     AppDbContext context) 
         {
             _courseRepo = courseRepository;
             _courseResourceRepository = courseResourceRepository;
@@ -46,22 +47,22 @@ namespace iLearn.API.Controllers
             _fileStorageRepository = fileStorageRepository;
             _assignmentService = assignmentService;
             _scormService = scormService;
-            _context = context; // <--- เพิ่มตรงนี้
+            _context = context; 
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] bool isActive = true)
         {
-            // ดึงข้อมูล Course พร้อม Category และ Versions
+           
             var courses = await _courseRepo.GetAsync(
                 filter: c => c.IsActive == isActive,
                 includeProperties: "Category,Versions"
             );
 
-            // แปลงเป็น DTO (ตอนนี้จะเรียกใช้ .ToDto() ได้แล้ว)
+           
             var courseDtos = courses.Select(c => c.ToDto()).ToList();
 
-            // ส่งกลับในรูปแบบมาตรฐานที่ Frontend คาดหวัง { success: true, data: [...] }
+       
             return Ok(new { success = true, data = courseDtos });
         }
 
@@ -73,10 +74,9 @@ namespace iLearn.API.Controllers
 
             var versions = await _courseVersionRepository.GetAllAsync();
 
-            // 1. ลองหา Version ที่ Active ก่อน
             var targetVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
 
-            // 2. ถ้าไม่มี Active (เช่น เป็น Draft อยู่) ให้เอา Version ล่าสุดมาแสดงแทน
+ 
             if (targetVersion == null)
             {
                 targetVersion = versions
@@ -88,7 +88,7 @@ namespace iLearn.API.Controllers
             var resourceList = new List<object>();
             if (targetVersion != null)
             {
-                // ดึงข้อมูล Resource ของ Version นั้นๆ
+           
                 var courseResources = await _courseResourceRepository.GetAsync(
                     filter: cr => cr.CourseVersionId == targetVersion.Id,
                     includeProperties: "Resource"
@@ -101,7 +101,7 @@ namespace iLearn.API.Controllers
                     cr.Resource.TypeId,
                     TypeName = cr.Resource.TypeId == 2 ? "Exam" : "Learn",
                     cr.Resource.IsActive,
-                    // ส่ง URL หรือ ID ไฟล์กลับไปเผื่อใช้ดาวน์โหลด
+   
                     cr.Resource.URL
                 }).ToList<object>();
             }
@@ -115,7 +115,7 @@ namespace iLearn.API.Controllers
                 CourseType = (int)course.Type,
                 course.CategoryId,
                 course.IsActive,
-                Resources = resourceList // ✅ ตอนนี้จะมีข้อมูลแม้เป็น Draft
+                Resources = resourceList
             });
         }
         [HttpPost("Create")]
@@ -180,7 +180,6 @@ namespace iLearn.API.Controllers
             }
         }
 
-        // [ปรับปรุง] Update ให้รองรับการแก้ไข Resources
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CourseCreateDto dto)
         {
