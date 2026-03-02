@@ -1,4 +1,4 @@
-using iLearn.Application.DTOs;
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
@@ -323,33 +323,145 @@ namespace iLearn.Application.Services
             // ?? Version
             await _versionRepository.DeleteAsync(version);
         }
-
         public async Task SetActiveVersionAsync(int courseId, int versionId)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null)
-                throw new KeyNotFoundException($"Course ID: {courseId} ???????????");
+                throw new KeyNotFoundException($"Course ID: {courseId} ไม่พบในระบบ");
 
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null || version.CourseId != courseId)
-                throw new KeyNotFoundException($"Version ID: {versionId} ???????????");
+                throw new KeyNotFoundException($"Version ID: {versionId} ไม่พบในระบบ");
 
-            // ??? versions ??????????? active
+            // 1. หาเวอร์ชันเดิมที่เป็น Active อยู่ และกำลังจะถูกปิดการใช้งาน
             var activeVersions = await _versionRepository.GetAsync(
                 filter: v => v.CourseId == courseId && v.IsActive && v.Id != versionId
             );
 
+            // 2. ปรับให้เวอร์ชันเก่าเป็น Inactive
             foreach (var oldVersion in activeVersions)
             {
                 oldVersion.IsActive = false;
                 await _versionRepository.UpdateAsync(oldVersion);
             }
 
-            // ???? version ????
+            // 3. ปรับให้เวอร์ชันใหม่เป็น Active
             version.IsActive = true;
             await _versionRepository.UpdateAsync(version);
-        }
 
+            // ==========================================================
+            // ส่วนที่ 4: แตกไฟล์ Resources ของเวอร์ชันที่เพิ่งถูก Active
+            // ==========================================================
+            var newVersionResources = await _courseResourceRepository.GetAsync(
+                filter: cr => cr.CourseVersionId == versionId,
+                includeProperties: "Resource"
+            );
+
+            foreach (var cr in newVersionResources)
+            {
+                if (cr.Resource != null && !cr.Resource.IsActive)
+                {
+                    var resource = cr.Resource;
+
+                    // 🌟 แก้ไข: ตรวจสอบว่ามี FileStorageId หรือไม่
+                    if (resource.FileStorageId.HasValue)
+                    {
+                        // 🌟 แก้ไข: ใช้ .Value เพื่อดึงค่า int ส่งเข้าไป
+                        var fileStorage = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+
+                        if (fileStorage != null)
+                        {
+                            string extension = Path.GetExtension(fileStorage.Name)?.ToLower() ?? "";
+
+                            if (extension == ".zip")
+                            {
+                                try
+                                {
+                                    string folderName = string.IsNullOrEmpty(resource.URL) ? Guid.NewGuid().ToString() : resource.URL;
+
+                                    var scormInfo = await _scormService.ExtractAndParseScormAsync(
+                                        fileStorage.Data,
+                                        folderName
+                                    );
+
+                                    resource.ResourceHref = scormInfo.ResourceHref;
+                                    resource.SchemaVersion = scormInfo.SchemaVersion;
+                                    resource.URL = scormInfo.FolderName;
+                                    resource.IsActive = true;
+
+                                    await _resourceRepository.UpdateAsync(resource);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Failed to extract SCORM: {ex.Message}");
+                                }
+                            }
+                            else
+                            {
+                                resource.IsActive = true;
+                                await _resourceRepository.UpdateAsync(resource);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // ถ้า Resource นี้ไม่มี FileStorage (เช่น เป็น Link ภายนอก) ก็เปิดใช้งานปกติ
+                        resource.IsActive = true;
+                        await _resourceRepository.UpdateAsync(resource);
+                    }
+                }
+            }
+
+            // ==========================================================
+            // ส่วนที่ 5: ตรวจสอบและเคลียร์ Resources ของเวอร์ชันที่เพิ่งถูกปิด
+            // ==========================================================
+            var potentiallyOrphanedResourceIds = new HashSet<int>();
+
+            foreach (var oldVersion in activeVersions)
+            {
+                var oldResources = await _courseResourceRepository.GetAsync(
+                    filter: cr => cr.CourseVersionId == oldVersion.Id
+                );
+                foreach (var r in oldResources)
+                {
+                    potentiallyOrphanedResourceIds.Add(r.ResourceId);
+                }
+            }
+
+            foreach (var resourceId in potentiallyOrphanedResourceIds)
+            {
+                var linkedVersions = await _courseResourceRepository.GetAsync(
+                    filter: cr => cr.ResourceId == resourceId,
+                    includeProperties: "CourseVersion"
+                );
+
+                bool isStillUsed = linkedVersions.Any(cr => cr.CourseVersion != null && cr.CourseVersion.IsActive);
+
+                if (!isStillUsed)
+                {
+                    var resource = await _resourceRepository.GetByIdAsync(resourceId);
+                    if (resource != null && resource.IsActive)
+                    {
+                        string extension = "";
+
+                        // 🌟 แก้ไข: ตรวจสอบ FileStorageId ก่อนดึงข้อมูลเช่นกัน
+                        if (resource.FileStorageId.HasValue)
+                        {
+                            var fileStorage = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+                            extension = Path.GetExtension(fileStorage?.Name)?.ToLower() ?? "";
+                        }
+
+                        if (extension == ".zip" && !string.IsNullOrEmpty(resource.URL))
+                        {
+                            _scormService.DeleteScormFolder(resource.URL);
+                        }
+
+                        resource.IsActive = false;
+                        await _resourceRepository.UpdateAsync(resource);
+                    }
+                }
+            }
+        }
         /// <summary>
         /// Helper method - Process new uploaded file as Resource
         /// Handles SCORM extraction and activation
