@@ -10,9 +10,18 @@ namespace iLearn.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Assignments_Courses_CourseId",
-                table: "Assignments");
+            migrationBuilder.Sql(@"
+                DECLARE @ConstraintName nvarchar(200)
+                SELECT @ConstraintName = Name 
+                FROM sys.foreign_keys 
+                WHERE parent_object_id = OBJECT_ID('Assignments') 
+                  AND referenced_object_id = OBJECT_ID('Courses')
+
+                IF @ConstraintName IS NOT NULL
+                BEGIN
+                    EXEC('ALTER TABLE [Assignments] DROP CONSTRAINT [' + @ConstraintName + ']')
+                END
+            ");
 
             migrationBuilder.AlterColumn<int>(
                 name: "ResourceId",

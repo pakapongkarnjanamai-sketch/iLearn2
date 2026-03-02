@@ -277,29 +277,29 @@ namespace iLearn.Application.Services
             using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
             {
                 // 2.1 ปลดความสัมพันธ์ (Set Null) ในประวัติการเรียนและการมอบหมายงาน
-                foreach (var assignment in assignments)
-                {
-                    assignment.CourseId = null;
-                    await _assignmentRepository.UpdateAsync(assignment);
-                }
+                //foreach (var assignment in assignments)
+                //{
+                //    assignment.CourseId = null;
+                //    await _assignmentRepository.UpdateAsync(assignment);
+                //}
 
-                foreach (var enrollment in enrollments)
-                {
-                    enrollment.CourseId = null;
-                    enrollment.EnrolledCourseVersion = null;
-                    await _enrollmentRepository.UpdateAsync(enrollment);
-                }
+                //foreach (var enrollment in enrollments)
+                //{
+                //    enrollment.CourseId = null;
+                //    enrollment.EnrolledCourseVersion = null;
+                //    await _enrollmentRepository.UpdateAsync(enrollment);
+                //}
 
-                foreach (var eId in enrollmentIds)
-                {
-                    var logs = await _learningLogRepository.GetAsync(l => l.EnrollmentId == eId);
-                    foreach (var log in logs)
-                    {
-                        log.CourseVersionId = null;
-                        log.ResourceId = null;
-                        await _learningLogRepository.UpdateAsync(log);
-                    }
-                }
+                //foreach (var eId in enrollmentIds)
+                //{
+                //    var logs = await _learningLogRepository.GetAsync(l => l.EnrollmentId == eId);
+                //    foreach (var log in logs)
+                //    {
+                //        log.CourseVersionId = null;
+                //        log.ResourceId = null;
+                //        await _learningLogRepository.UpdateAsync(log);
+                //    }
+                //}
 
                 // 2.2 ลบโครงสร้างไฟล์หลักสูตร (เรียงลำดับจากลูกไปแม่)
                 foreach (var cr in courseResources)
