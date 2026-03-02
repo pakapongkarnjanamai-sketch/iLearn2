@@ -4,46 +4,51 @@
 }
 
 <style>
-    /* สไตล์สำหรับการ์ดปุ่มกด (Toolbar) */
+    /* ตั้งค่าพื้นหลังของหน้าให้เป็นสีเทาอ่อน สไตล์มินิมอล */
+    body {
+        background-color: #f8f9fa;
+    }
+
+    /* สไตล์การ์ดปุ่มกด (Quick Actions) */
     .action-card {
         transition: all 0.2s ease-in-out;
         cursor: pointer;
         text-decoration: none;
+        border: 1px solid transparent; /* เตรียมขอบไว้สำหรับ Hover */
     }
 
+        .action-card:hover {
+            transform: translateY(-4px);
+            border-color: #0d6efd !important; /* เปลี่ยนสีกรอบเป็นสีน้ำเงินตอน Hover */
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important;
+        }
+
+    /* กล่องสำหรับใส่ Icon ให้ดูเป็นสัดส่วนและนุ่มนวลขึ้น */
     .icon-box {
-        width: 52px;
-        height: 52px;
+        width: 50px;
+        height: 50px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 10px;
+        flex-shrink: 0;
     }
-
-    /* Preview Button Style */
-    .preview-btn {
-        padding: 2px 8px;
-        font-size: 0.75rem;
-        border-radius: 4px;
-        transition: all 0.2s;
-    }
-
-       
 </style>
 
-<!-- Header - Minimal & Clean -->
 <div class="bg-white border-bottom mb-4">
-    <div class="container-fluid px-4 py-3">
+    <div class="container-fluid px-4 py-4">
         <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-                <i class="fas fa-tachometer-alt text-primary fs-4"></i>
+                <div class="icon-box bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-book-open fs-5"></i>
+                </div>
                 <div>
-                    <h1 class="h4 mb-0">Course Dashboard</h1>
+                    <h1 class="h4 mb-0 fw-bold text-dark">Course Dashboard</h1>
                     <small class="text-muted">Manage course information and versions</small>
                 </div>
             </div>
-            <a href="@Url.Action("Index", "Courses")" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left"></i> Back
+            <a href="@Url.Action("Index", "Courses")" class="btn btn-light border shadow-sm btn-sm px-3 py-2 rounded-3">
+                <i class="fas fa-arrow-left me-1"></i> Back to Courses
             </a>
         </div>
     </div>
@@ -51,106 +56,102 @@
 
 <div class="container px-4 pb-4">
 
-    <!-- Course Information + Status Badge -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                <i class="fas fa-info-circle text-primary"></i> Course Information
-            </h5>
-            <span id="courseStatusBadge" class="badge bg-warning">Loading...</span>
-        </div>
-        <div class="card-body p-4">
-            <div id="courseInfoForm"></div>
+    <div class="row g-4 mb-4">
 
-            <!-- Save button -->
-            <div class="d-flex justify-content-end mt-3">
-                <button id="btnSaveCourse" class="btn btn-primary btn-sm shadow-sm px-4">
-                    <i class="fas fa-save me-1"></i> Save Changes
-                </button>
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark" style="font-size: 1.15rem;">
+                        Course Information
+                    </h5>
+                    <span id="courseStatusBadge" class="badge bg-secondary fw-normal px-3 py-2 rounded-pill">Loading...</span>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div id="courseInfoForm"></div>
+
+                    <div class="text-end mt-4 pt-3 border-top">
+                        <button id="btnSaveCourse" class="btn btn-primary px-4 py-2 rounded-3 shadow-sm">
+                            <i class="fas fa-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <div class="col-lg-4">
+            <div class="bg-white p-4 rounded-4 shadow-sm h-100">
+                <h5 class="fw-bold text-dark mb-4" style="font-size: 1.15rem;">
+                    Quick Actions
+                </h5>
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6 col-lg-12">
+                        <a href="javascript:void(0);" id="btnNewVersion" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none">
+                            <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                                <i class="fas fa-code-branch fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">New Version</h6>
+                                <small class="text-muted" style="font-size: 0.8rem;">Create new version</small>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-12">
+                        <a href="javascript:void(0);" id="btnAssignment" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none">
+                            <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                                <i class="fas fa-user-plus fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">Assignments</h6>
+                                <small class="text-muted" style="font-size: 0.8rem;">Manage assignments</small>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-12">
+                        <a href="javascript:void(0);" id="btnTogglePublish" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none">
+                            <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3" id="publishIconBox">
+                                <i id="publishIcon" class="fas fa-globe fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark" id="publishBtnText">Publish Course</h6>
+                                <small class="text-muted" id="publishBtnDesc" style="font-size: 0.8rem;">Make course active</small>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-12">
+                        <a href="javascript:void(0);" id="btnDeleteCourse" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none border border-light">
+                            <div class="icon-box bg-danger bg-opacity-10 text-danger me-3">
+                                <i class="fas fa-trash-alt fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">Delete Course</h6>
+                                <small class="text-muted" style="font-size: 0.8rem;">Remove permanently</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="warningMsg" class="text-muted small mt-3 px-1 d-none">
+                    <i class="fas fa-info-circle text-primary me-1"></i> You cannot delete an active course.
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Quick Actions (styled like Create Course page) -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom py-3">
-            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                <i class="fas fa-bolt text-primary"></i> Quick Actions
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
+            <h5 class="mb-0 fw-bold text-dark" style="font-size: 1.15rem;">
+                Versions History
             </h5>
         </div>
-        <div class="card-body p-4 bg-light">
-            <div class="row g-3">
-                <!-- New Version -->
-                <div class="col-md-3 col-sm-6">
-                    <a href="javascript:void(0);" id="btnNewVersion" class="action-card d-flex align-items-center p-3 border rounded shadow-sm bg-white h-100">
-                        <div class="icon-box bg-primary bg-opacity-10 me-3">
-                            <i class="fas fa-code-branch text-primary fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1 fw-bold text-dark">New Version</h6>
-                            <small class="text-muted">Create new version</small>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Assignments -->
-                <div class="col-md-3 col-sm-6">
-                    <a href="javascript:void(0);" id="btnAssignment" class="action-card d-flex align-items-center p-3 border rounded shadow-sm bg-white h-100">
-                        <div class="icon-box bg-info bg-opacity-10 me-3">
-                            <i class="fas fa-user-plus text-info fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1 fw-bold text-dark">Assignments</h6>
-                            <small class="text-muted">Manage assignments</small>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Publish/Close -->
-                <div class="col-md-3 col-sm-6">
-                    <a href="javascript:void(0);" id="btnTogglePublish" class="action-card d-flex align-items-center p-3 border rounded shadow-sm bg-white h-100">
-                        <div class="icon-box bg-success bg-opacity-10 me-3" id="publishIconBox">
-                            <i id="publishIcon" class="fas fa-globe text-success fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1 fw-bold text-dark" id="publishBtnText">Publish Course</h6>
-                            <small class="text-muted" id="publishBtnDesc">Make course active</small>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Delete -->
-                <div class="col-md-3 col-sm-6">
-                    <a href="javascript:void(0);" id="btnDeleteCourse" class="action-card d-flex align-items-center p-3 border rounded shadow-sm bg-white h-100">
-                        <div class="icon-box bg-danger bg-opacity-10 me-3">
-                            <i class="fas fa-trash-alt text-danger fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1 fw-bold text-dark">Delete Course</h6>
-                            <small class="text-muted">Remove permanently</small>
-                        </div>
-                    </a>
-                </div>
-            </div>
-
-            <div id="deleteWarningMsg" class="text-danger small mt-3 text-center d-none">
-              
-            </div>
-        </div>
-    </div>
-
-    <!-- Versions (vertical cards) -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                <i class="fas fa-layer-group text-primary"></i> Versions
-            </h5>
-          
-        </div>
-        <div class="card-body p-3 bg-light">
-            <div id="versionsContainer" class="row g-3">
-                <div class="col-12 text-center text-muted py-4" id="versionsLoading">
-                    <i class="fas fa-spinner fa-spin me-2"></i> Loading...
+        <div class="card-body px-4 pb-4">
+            <div id="versionsContainer" class="row g-4">
+                <div class="col-12 text-center text-muted py-5">
+                    <i class="fas fa-circle-notch fa-spin fa-2x mb-2 text-primary"></i>
+                    <p class="mb-0">Loading versions...</p>
                 </div>
             </div>
         </div>
@@ -172,16 +173,16 @@
         let isCourseActive = false;
 
         $(async () => {
-            // 1) Course Form
+            // Course Form
             const courseForm = $("#courseInfoForm").dxForm({
                 formData: {},
                 labelLocation: "top",
                 items: [
                     {
                         itemType: "group",
-                        colCount: 3,
+                        colCount: 2,
                         items: [
-                            { dataField: "courseCode", label: { text: "Course Code" }, isRequired: true },
+                         
                             {
                                 dataField: "categoryId",
                                 label: { text: "Category" },
@@ -205,12 +206,13 @@
                             }
                         ]
                     },
+                       { dataField: "courseCode", label: { text: "Course Code" }, isRequired: true },
                     { dataField: "courseName", label: { text: "Course Name" }, isRequired: true },
                     { dataField: "description", label: { text: "Description" }, editorType: "dxTextArea", editorOptions: { height: 80 } }
                 ]
             }).dxForm("instance");
 
-            // Load course data
+            // Load course
             $.ajax({
                 url: `${courseApiUrl}/${courseId}`,
                 type: 'GET',
@@ -222,7 +224,7 @@
                 updateStatusUI(isCourseActive);
             });
 
-            // 2) Save Course
+            // Save
             $("#btnSaveCourse").click(() => {
                 if(!courseForm.validate().isValid) return;
                 const data = courseForm.option("formData");
@@ -244,7 +246,7 @@
                 });
             });
 
-            // 3) Status Management
+            // Status UI (ปรับให้ใช้สี Primary/Secondary แทน เขียว/แดง/เหลือง)
             function updateStatusUI(isActive) {
                 const publishIcon = $("#publishIcon");
                 const publishIconBox = $("#publishIconBox");
@@ -253,29 +255,27 @@
                 const btnDelete = $("#btnDeleteCourse");
                 const btnAssignment = $("#btnAssignment");
                 const statusBadge = $("#courseStatusBadge");
-                const warnMsg = $("#deleteWarningMsg");
+                const warnMsg = $("#warningMsg");
 
                 if(isActive) {
-                    // Active
-                    publishIcon.removeClass("fa-globe text-success").addClass("fa-lock text-warning");
-                    publishIconBox.removeClass("bg-success bg-opacity-10").addClass("bg-warning bg-opacity-10");
+                    publishIcon.removeClass("fa-globe").addClass("fa-lock");
+                    publishIconBox.removeClass("bg-primary text-primary").addClass("bg-secondary text-secondary");
                     publishBtnText.text("Close Course");
                     publishBtnDesc.text("Deactivate course");
-                    statusBadge.removeClass("bg-warning").addClass("bg-success text-white").html('<i class="fas fa-check-circle me-1"></i> Active');
+                    statusBadge.removeClass("bg-secondary").addClass("bg-primary").html('<i class="fas fa-check-circle me-1"></i> Active');
 
-                    btnDelete.addClass("disabled").css("opacity", "0.5").css("pointer-events", "none");
-                    btnAssignment.removeClass("disabled").css("opacity", "1").css("pointer-events", "auto");
+                    btnDelete.addClass("disabled opacity-50 pe-none");
+                    btnAssignment.removeClass("disabled opacity-50 pe-none");
                     warnMsg.removeClass("d-none");
                 } else {
-                    // Inactive
-                    publishIcon.removeClass("fa-lock text-warning").addClass("fa-globe text-success");
-                    publishIconBox.removeClass("bg-warning bg-opacity-10").addClass("bg-success bg-opacity-10");
+                    publishIcon.removeClass("fa-lock").addClass("fa-globe");
+                    publishIconBox.removeClass("bg-secondary text-secondary").addClass("bg-primary text-primary");
                     publishBtnText.text("Publish Course");
                     publishBtnDesc.text("Make course active");
-                    statusBadge.removeClass("bg-success text-white").addClass("bg-warning").html('<i class="fas fa-lock me-1"></i> Closed');
+                    statusBadge.removeClass("bg-primary").addClass("bg-secondary").html('<i class="fas fa-lock me-1"></i> Closed');
 
-                    btnDelete.removeClass("disabled").css("opacity", "1").css("pointer-events", "auto");
-                    btnAssignment.addClass("disabled").css("opacity", "0.5").css("pointer-events", "none");
+                    btnDelete.removeClass("disabled opacity-50 pe-none");
+                    btnAssignment.addClass("disabled opacity-50 pe-none");
                     warnMsg.addClass("d-none");
                 }
             }
@@ -297,13 +297,12 @@
                         DevExpress.ui.notify(newState ? "Course published" : "Course closed", "success", 2000);
                     },
                     error: (xhr) => {
-                        let errorMsg = xhr.responseJSON?.message || "Error updating status";
-                        DevExpress.ui.notify(errorMsg, "error", 3000);
+                        DevExpress.ui.notify(xhr.responseJSON?.message || "Error updating status", "error", 3000);
                     }
                 });
             });
 
-            // Delete Course
+            // Delete
             $("#btnDeleteCourse").click(function(e) {
                 e.preventDefault();
                 if($(this).hasClass("disabled")) return;
@@ -341,7 +340,7 @@
                 window.location.href = '/Assignments/Form?courseId=' + courseId;
             });
 
-            // 4) Load Versions - แสดงทั้งหมด (ไม่กรอง)
+          // Load Versions
             function loadVersions() {
                 $.ajax({
                     url: serviceUrl + '/admin/CourseVersionsCRUD/Get',
@@ -355,56 +354,66 @@
                     container.empty();
 
                     if(versions.length === 0) {
-                        container.html('<div class="col-12 text-center text-muted py-4">No versions found. Create one to get started.</div>');
+                        container.html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-inbox fa-2x mb-3 text-light"></i><br>No versions found. Create one to get started.</div>');
                         return;
                     }
 
                     versions.forEach(v => {
                         const isActive = v.isActive;
 
-                        // Badge สำหรับสถานะ
-                        const badge = isActive
-                            ? '<span class="badge bg-success px-2 py-1"><i class="fas fa-check-circle me-1"></i> Active</span>'
-                            : '';
+                        // ถ้าระบุว่าเป็น Active ให้เติมขอบน้ำเงินที่ขอบซ้าย
+                        const activeBorderClass = isActive ? 'border-start border-primary border-4' : 'border border-light';
 
-                        // ปุ่ม Set Active (แสดงเฉพาะ version ที่ไม่ active)
-                        const activeBtn = isActive
-                            ? ''
-                            : `<button class="btn btn-sm btn-success text-white shadow-sm" onclick="setActiveVersion(${v.id})">
-                                 <i class="fas fa-check-circle me-1"></i> Set Active
-                               </button>`;
-
-
-                        // ปุ่ม Delete (แสดงเฉพาะ version ที่ไม่ active)
-                        const deleteBtn = isActive
-                            ? ''
-                            : `<button class="btn btn-sm btn-outline-danger" onclick="deleteVersion(${v.id})" title="Delete Version">
-                                 <i class="fas fa-trash"></i>
-                               </button>`;
-
-               
-
-                        // สไตล์ border ต่างกันระหว่าง Active และ Inactive
-                        const borderClass = isActive ? 'border-success border-2' : 'border';
+                        // จัดการเนื้อหามุมขวาบน (ถ้า Active โชว์ป้ายกำกับ, ถ้าไม่ Active โชว์เมนู Dropdown)
+                        // หมายเหตุ: ใช้ไอคอน 3 จุดแนวตั้ง (fa-ellipsis-v) ซึ่งเป็นมาตรฐานของการ์ดเมนู หากต้องการ Hamburger แบบเป๊ะๆ ให้เปลี่ยนเป็น fa-bars
+                        const rightContent = isActive
+                            ? `<span class="badge bg-primary px-3 py-2 fw-normal rounded-pill shadow-sm">
+                                 <i class="fas fa-check-circle me-1"></i> Active
+                               </span>`
+                            : `<div class="dropdown">
+                                   <button class="btn btn-light btn-sm text-secondary border-0 px-2 py-1 rounded-3" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Options">
+                                       <i class="fas fa-ellipsis-v fs-6"></i>
+                                   </button>
+                                   <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 py-2 mt-1">
+                                       <li>
+                                           <a class="dropdown-item py-2 fw-bold text-dark d-flex align-items-center" href="javascript:void(0);" onclick="setActiveVersion(${v.id})">
+                                               <div class="icon-box bg-primary bg-opacity-10 text-primary me-2" style="width: 30px; height: 30px; border-radius: 6px;">
+                                                    <i class="fas fa-check"></i>
+                                               </div>
+                                               Set Active
+                                           </a>
+                                       </li>
+                                       <li><hr class="dropdown-divider opacity-25 my-1"></li>
+                                       <li>
+                                           <a class="dropdown-item py-2 fw-bold text-danger d-flex align-items-center" href="javascript:void(0);" onclick="deleteVersion(${v.id})">
+                                               <div class="icon-box bg-danger bg-opacity-10 text-danger me-2" style="width: 30px; height: 30px; border-radius: 6px;">
+                                                    <i class="fas fa-trash-alt"></i>
+                                               </div>
+                                               Delete
+                                           </a>
+                                       </li>
+                                   </ul>
+                               </div>`;
 
                         const cardHtml = `
-                            <div class="col-12">
-                                <div class="card h-100 ${borderClass}">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <h5 class="mb-0">Version ${v.versionNumber}</h5>
-                                              <div class="d-flex gap-2 justify-content-end"> <div>${activeBtn}</div>
-                                             <div>${deleteBtn}</div>
-                                            <div>${badge}</div></div>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm rounded-4 ${activeBorderClass}" style="background-color: ${isActive ? '#fff' : '#fafafa'};">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="pe-2">
+                                                <h6 class="mb-0 fw-bold text-dark fs-5">Version ${v.versionNumber}</h6>
+                                            </div>
+                                            <div class="text-end" style="min-width: 80px;">
+                                                ${rightContent}
+                                            </div>
                                         </div>
-                                        <p class="text-muted small mb-2" style="min-height:40px;">${v.note || 'No description'}</p>
-                                       
 
-                                        <div class="bg-light rounded p-2 mb-2" style="min-height: 60px;">
-                                          
+                                        <p class="text-muted small mb-3 pb-3 border-bottom" style="min-height: 40px;">${v.note || '<span class="fst-italic">No description</span>'}</p>
+
+                                        <div>
+                                         
                                             <div id="res-container-${v.id}" class="small"></div>
                                         </div>
-
                                     </div>
                                 </div>
                             </div>
@@ -434,21 +443,14 @@
                         const r = cr.resource;
                         if(!r) return;
 
-                        const icon = r.typeId === 1 ? 'fa-book text-primary' : 'fa-pen text-danger';
-
-                        // แสดงปุ่ม Preview เฉพาะ Resource ที่ isActive = true
-                        const previewBtn = r.isActive
-                            ? `<button class="btn btn-primary-info preview-btn ms-auto"
-                                 onclick="window.viewContent(${r.id}, '${r.name.replace(/'/g, "\\'")}')"
-                                 title="Preview Content">
-                                 <i class="fas fa-play me-1"></i> Preview
-                               </button>`
-                            : '';
+                        // ลดความฉูดฉาดของไอคอน Resource
+                        const icon = r.typeId === 1 ? 'fa-book text-secondary' : 'fa-file-alt text-secondary';
+                        const previewBtn = r.isActive ? `<button class="btn btn-sm btn-link text-primary p-0 ms-2 text-decoration-none" onclick="window.viewContent(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="Preview">Preview</button>` : '';
 
                         resContainer.append(`
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="fas ${icon}" style="width:16px;"></i>
-                                <span class="text-truncate" style="flex:1;" title="${r.name}">${r.name}</span>
+                            <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-white border rounded-3 shadow-sm">
+                                <i class="fas ${icon} ms-1"></i>
+                                <span class="text-truncate flex-grow-1 text-dark" title="${r.name}">${r.name}</span>
                                 ${previewBtn}
                             </div>
                         `);
@@ -456,15 +458,15 @@
                 });
             }
 
-            // Preview Content (เหมือน Resource Library)
+            // Preview Content
             window.viewContent = function(resourceId, resourceName) {
                 const apiUrl = `${serviceUrl}/Resources/${resourceId}/content`;
 
                 if (resourceName.toLowerCase().endsWith('.zip')) {
                     const win = window.open('about:blank', '_blank');
                     if (win) {
-                        win.document.title = "Loading Content...";
-                        win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content URL...</div>";
+                        win.document.title = "Loading...";
+                        win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content...</div>";
                     }
 
                     $.ajax({
@@ -504,7 +506,7 @@
 
             // Delete Version
             window.deleteVersion = function(vId) {
-                const result = DevExpress.ui.dialog.confirm("Delete this version? This action cannot be undone.", "Confirm Delete");
+                const result = DevExpress.ui.dialog.confirm("Delete this version?", "Confirm Delete");
                 result.done(function(dialogResult) {
                     if(dialogResult) {
                         $.ajax({
@@ -521,7 +523,6 @@
                 });
             };
 
-            // Initialize
             loadVersions();
         });
     </script>
