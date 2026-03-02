@@ -1,4 +1,4 @@
-using iLearn.Application.DTOs;
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
@@ -6,6 +6,7 @@ using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,16 +19,39 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly ICourseAssignmentService _assignmentService;
 
+        // เพิ่มสำหรับจัดการลบไฟล์ Resource และ SCORM
+        private readonly IGenericRepository<Resource> _resourceRepository;
+        private readonly IGenericRepository<FileStorage> _fileStorageRepository;
+        private readonly IScormService _scormService;
+
+        private readonly IGenericRepository<Enrollment> _enrollmentRepository;
+        private readonly IGenericRepository<LearningLog> _learningLogRepository;
+        private readonly IGenericRepository<Assignment> _assignmentRepository;
+
         public CourseService(
             ICourseRepository courseRepository,
             IGenericRepository<CourseResource> courseResourceRepository,
             IGenericRepository<CourseVersion> courseVersionRepository,
-            ICourseAssignmentService assignmentService)
+            ICourseAssignmentService assignmentService,
+            IGenericRepository<Resource> resourceRepository,
+            IGenericRepository<FileStorage> fileStorageRepository,
+             IGenericRepository<Enrollment> enrollmentRepository,
+             IGenericRepository<LearningLog> learningLogRepository,
+             IGenericRepository<Assignment> assignmentRepository,
+            IScormService scormService)
         {
             _courseRepo = courseRepository;
             _courseResourceRepository = courseResourceRepository;
             _courseVersionRepository = courseVersionRepository;
             _assignmentService = assignmentService;
+            
+                _enrollmentRepository = enrollmentRepository;
+                _learningLogRepository = learningLogRepository;
+                _assignmentRepository = assignmentRepository;
+
+            _resourceRepository = resourceRepository;
+            _fileStorageRepository = fileStorageRepository;
+            _scormService = scormService;
         }
 
         public async Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool isActive = true)
@@ -88,7 +112,7 @@ namespace iLearn.Application.Services
         {
             if (!await _courseRepo.IsCourseCodeUniqueAsync(model.CourseCode))
             {
-                throw new InvalidOperationException($"???????? '{model.CourseCode}' ????????????????");
+                throw new InvalidOperationException($"รหัสวิชา '{model.CourseCode}' ถูกใช้งานไปแล้ว");
             }
 
             var course = new Course
@@ -121,12 +145,6 @@ namespace iLearn.Application.Services
                 await AddResourcesToCourseVersionAsync(courseVersion.Id, model.ResourceIds);
             }
 
-            // Process assignment if needed
-            if (course.Type == CourseType.General)
-            {
-                await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);
-            }
-
             return course.ToDto();
         }
 
@@ -134,7 +152,7 @@ namespace iLearn.Application.Services
         {
             if (!await _courseRepo.IsCourseCodeUniqueAsync(model.CourseCode))
             {
-                throw new InvalidOperationException($"???????? '{model.CourseCode}' ????????????????");
+                throw new InvalidOperationException($"รหัสวิชา '{model.CourseCode}' ถูกใช้งานไปแล้ว");
             }
 
             var course = new Course
@@ -173,7 +191,7 @@ namespace iLearn.Application.Services
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
-                throw new KeyNotFoundException($"???????? ID: {id} ???????????");
+                throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
 
             course.Title = dto.CourseName;
             course.Description = dto.Description;
@@ -194,21 +212,108 @@ namespace iLearn.Application.Services
 
             return course.ToDto();
         }
-
         public async Task DeleteCourseAsync(int id)
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
-                throw new KeyNotFoundException($"???????? ID: {id} ???????????");
+                throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
 
+            // =========================================================
+            // 🌟 1. ตรวจสอบว่ามีประวัติการเรียนหรือการมอบหมายงานหรือไม่
+            // =========================================================
+            var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
+
+            if (enrollments.Any())
+            {
+                // ถ้ามีคนเรียนแล้ว จะไม่อนุญาตให้ลบ เพื่อรักษาประวัติ LearningLog และ Enrollment ไว้
+                throw new InvalidOperationException("ไม่สามารถลบหลักสูตรได้ เนื่องจากมีพนักงานลงทะเบียนและมีประวัติการเรียนแล้ว กรุณาใช้วิธี 'Close Course' แทนเพื่อเก็บประวัติครับ");
+            }
+
+            // =========================================================
+            // 🌟 2. ถ้าไม่มีคนเรียนเลย (คอร์สว่าง) ให้ดำเนินการลบแบบถอนรากถอนโคน
+            // =========================================================
+
+            // ลบ Assignment ที่ผูกกับ Course นี้ (ถ้าเคยมอบหมายแต่ยังไม่เกิด Enrollment - ปกติมักจะเกิดพร้อมกัน)
+            var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
+            foreach (var assignment in assignments)
+            {
+                await _assignmentRepository.DeleteAsync(assignment);
+            }
+
+            // รวบรวมข้อมูล Version และ Resource เพื่อลบไฟล์
+            var versions = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
+            var versionIds = versions.Select(v => v.Id).ToList();
+
+            var courseResources = new List<CourseResource>();
+            foreach (var vId in versionIds)
+            {
+                var crs = await _courseResourceRepository.GetAsync(cr => cr.CourseVersionId == vId);
+                courseResources.AddRange(crs);
+            }
+
+            var resourceIdsToCheck = courseResources.Select(cr => cr.ResourceId).Distinct().ToList();
+
+            var resourcesToDelete = new List<Resource>();
+            var fileStoragesToDelete = new List<FileStorage>();
+            var scormFoldersToDelete = new List<string>();
+
+            foreach (var resId in resourceIdsToCheck)
+            {
+                var otherUsages = await _courseResourceRepository.GetAsync(
+                    cr => cr.ResourceId == resId && !versionIds.Contains(cr.CourseVersionId)
+                );
+
+                if (!otherUsages.Any())
+                {
+                    var resource = await _resourceRepository.GetByIdAsync(resId);
+                    if (resource != null)
+                    {
+                        resourcesToDelete.Add(resource);
+
+                        if (resource.FileStorageId.HasValue)
+                        {
+                            var file = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+                            if (file != null)
+                            {
+                                fileStoragesToDelete.Add(file);
+                                string ext = Path.GetExtension(file.Name)?.ToLower() ?? "";
+                                if (ext == ".zip" && !string.IsNullOrEmpty(resource.URL))
+                                {
+                                    scormFoldersToDelete.Add(resource.URL);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ไล่ลบจากตารางลูกไปหาตารางแม่ (ตามลำดับที่ถูกต้องเพื่อป้องกัน FK Error)
+            foreach (var cr in courseResources)
+                await _courseResourceRepository.DeleteAsync(cr);
+
+            foreach (var v in versions)
+                await _courseVersionRepository.DeleteAsync(v);
+
+            foreach (var r in resourcesToDelete)
+                await _resourceRepository.DeleteAsync(r);
+
+            foreach (var f in fileStoragesToDelete)
+                await _fileStorageRepository.DeleteAsync(f);
+
+            // ลบ Course ตัวแม่ เป็นอันดับสุดท้าย
             await _courseRepo.DeleteAsync(course);
-        }
 
+            // เคลียร์ไฟล์ SCORM ที่แตกไว้ใน Server
+            foreach (var folder in scormFoldersToDelete)
+            {
+                _scormService.DeleteScormFolder(folder);
+            }
+        }
         public async Task TriggerAssignmentAsync(int courseId)
         {
             var course = await _courseRepo.GetByIdAsync(courseId);
             if (course == null)
-                throw new KeyNotFoundException($"???????? ID: {courseId} ???????????");
+                throw new KeyNotFoundException($"Course ID: {courseId} ไม่พบในระบบ");
 
             await _assignmentService.ProcessAssignmentForCourseAsync(courseId);
         }
@@ -247,6 +352,26 @@ namespace iLearn.Application.Services
 
             // Add new resources
             await AddResourcesToCourseVersionAsync(versionId, newResourceIds);
+        }
+
+        public async Task<bool> UpdateCourseStatusAsync(int id, bool isActive)
+        {
+            var course = await _courseRepo.GetByIdAsync(id);
+            if (course == null)
+                throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
+
+            course.IsActive = isActive;
+            course.UpdatedAt = DateTime.UtcNow;
+
+            await _courseRepo.UpdateAsync(course);
+
+            // ถ้าเป็นการ Publish (isActive = true) และเป็น General Course ให้ทำการ Assign ให้อัตโนมัติ
+            if (isActive && course.Type == CourseType.General)
+            {
+                await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);
+            }
+
+            return course.IsActive;
         }
     }
 }

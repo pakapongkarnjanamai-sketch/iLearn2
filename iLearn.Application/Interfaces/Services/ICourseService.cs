@@ -13,14 +13,16 @@ namespace iLearn.Application.Interfaces.Services
         // Create Operations
         Task<CourseDto> CreateCourseAsync(CourseCreateDto model);
         Task<CourseDto> CreateCourseWithScormAsync(CourseCreateDto model);
-        
+
         // Update Operations
         Task<CourseDto> UpdateCourseAsync(int id, CourseCreateDto model);
-        
+        Task<bool> UpdateCourseStatusAsync(int id, bool isActive);
+
         // Delete Operations
         Task DeleteCourseAsync(int id);
         
         // Assignment
         Task TriggerAssignmentAsync(int courseId);
+
     }
 }

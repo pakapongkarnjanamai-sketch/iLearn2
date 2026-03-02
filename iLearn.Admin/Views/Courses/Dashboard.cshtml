@@ -298,26 +298,51 @@
                 }
             }
 
-            // Toggle Publish - ใช้ API ใหม่ (PATCH /api/courses/{id}/status)
+          // Toggle Publish - ใช้ API ใหม่ (PATCH /api/courses/{id}/status)
             $("#btnTogglePublish").click(function(e) {
                 e.preventDefault();
+
+                // 1. ป้องกันการกดปุ่มซ้ำรัวๆ
+                const $btn = $(this);
+                if ($btn.hasClass("disabled")) return;
+                $btn.addClass("disabled opacity-50 pe-none");
+
+                // 2. กำหนดสถานะใหม่ที่กำลังจะเปลี่ยนไป
                 const newState = !isCourseActive;
-                $.ajax({
-                    url: `${courseApiUrl}/${courseId}/status`,
-                    type: 'PATCH',
-                    contentType: 'application/json',
-                    xhrFields: { withCredentials: true },
-                    data: JSON.stringify({ isActive: newState }),
-                    success: (response) => {
-                        isCourseActive = newState;
-                        updateStatusUI(newState);
-                        loadVersions();
-                        const message = newState ? "Course published successfully" : "Course closed successfully";
-                        DevExpress.ui.notify(message, "success", 2000);
-                    },
-                    error: (xhr) => {
-                        const errorMsg = xhr.responseJSON?.message || "Error updating status";
-                        DevExpress.ui.notify(errorMsg, "error", 3000);
+
+                // 3. ข้อความแจ้งเตือนให้ผู้ใช้ยืนยัน
+                const confirmMsg = newState
+                    ? "ต้องการเปิดใช้งาน (Publish) หลักสูตรนี้ใช่หรือไม่? พนักงานจะสามารถเข้าเรียนได้ทันที"
+                    : "ต้องการปิด (Close) หลักสูตรนี้ใช่หรือไม่? พนักงานจะไม่สามารถเข้าเรียนได้ชั่วคราว";
+
+                // 4. เรียกใช้ Dialog ของ DevExtreme เพื่อให้หน้าเว็บมีการตอบสนอง
+                const result = DevExpress.ui.dialog.confirm(confirmMsg, "ยืนยันการเปลี่ยนสถานะ");
+                result.done(function(dialogResult) {
+                    if(dialogResult) {
+                        // ดำเนินการเรียก API
+                        $.ajax({
+                            url: `${courseApiUrl}/${courseId}/status`,
+                            type: 'PATCH',
+                            contentType: 'application/json',
+                            xhrFields: { withCredentials: true },
+                            data: JSON.stringify({ isActive: newState }),
+                            success: (response) => {
+                                const message = newState ? "เปิดใช้งานหลักสูตรสำเร็จ!" : "ปิดหลักสูตรสำเร็จ!";
+                                DevExpress.ui.notify(message, "success", 1500);
+
+                                // 🌟 5. สั่งรีเฟรชหน้าจอ (Reload) เพื่อให้สถานะทุกส่วนอัปเดตใหม่ทั้งหมด
+                                setTimeout(() => window.location.reload(), 1500);
+                            },
+                            error: (xhr) => {
+                                const errorMsg = xhr.responseJSON?.message || "เกิดข้อผิดพลาดในการเปลี่ยนสถานะ";
+                                DevExpress.ui.notify(errorMsg, "error", 3000);
+                                // ปลดล็อคปุ่มกรณีเกิด Error
+                                $btn.removeClass("disabled opacity-50 pe-none");
+                            }
+                        });
+                    } else {
+                        // ผู้ใช้กดยกเลิก ให้ปลดล็อคปุ่ม
+                        $btn.removeClass("disabled opacity-50 pe-none");
                     }
                 });
             });
@@ -354,30 +379,18 @@
             });
 
             // Assignment - ใช้ API ใหม่ (POST /api/courses/{id}/assign-now)
+         // Assignment - ลิงก์ไปยังหน้า Form ของ Assignments
             $("#btnAssignment").click(function(e) {
                 e.preventDefault();
+
+                // ตรวจสอบว่าคอร์สถูก Publish หรือยัง (บังคับให้ต้องเปิดคอร์สก่อนถึงจะมอบหมายได้)
                 if($(this).hasClass("disabled")) {
                     DevExpress.ui.notify("Please publish the course first", "warning", 2000);
                     return;
                 }
 
-                const result = DevExpress.ui.dialog.confirm("Trigger course assignments?", "Confirm");
-                result.done(function(dialogResult) {
-                    if(dialogResult) {
-                        $.ajax({
-                            url: `${courseApiUrl}/${courseId}/assign-now`,
-                            type: 'POST',
-                            xhrFields: { withCredentials: true },
-                            success: (response) => {
-                                DevExpress.ui.notify("Assignment process started successfully", "success", 3000);
-                            },
-                            error: (xhr) => {
-                                const errorMsg = xhr.responseJSON?.message || "Error triggering assignment";
-                                DevExpress.ui.notify(errorMsg, "error", 3000);
-                            }
-                        });
-                    }
-                });
+                // ส่ง courseId ไปที่หน้า Form เพื่อให้ระบบรู้ว่ากำลังจะมอบหมายงานของคอร์สไหน
+                window.location.href = '@Url.Action("Form", "Assignments")?courseId=' + courseId;
             });
 
           // Load Versions - ยังใช้ endpoint เดิมของ admin/CourseVersionsCRUD

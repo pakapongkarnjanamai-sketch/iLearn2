@@ -620,7 +620,7 @@
                     xhrFields: { withCredentials: true },
                     success: function(res) {
                         DevExpress.ui.notify("Courses assigned successfully!", "success", 3000);
-                        setTimeout(() => window.location.href = '@Url.Action("Index", "Enrollments")', 1500);
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "Assignments")', 1500);
                     },
                     error: function(err) {
                         DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign course"), "error", 4000);

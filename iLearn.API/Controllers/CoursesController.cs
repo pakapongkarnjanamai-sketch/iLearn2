@@ -1,5 +1,5 @@
 ﻿using iLearn.Application.DTOs;
-using iLearn.Application.DTOs;
+
 using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -78,11 +78,19 @@ namespace iLearn.API.Controllers
             try
             {
                 await _courseService.DeleteCourseAsync(id);
-                return Ok(new { success = true, message = "ลบหลักสูตรสำเร็จ" });
+                return Ok(new { success = true, message = "ลบหลักสูตรและไฟล์ที่เกี่ยวข้องสำเร็จ" });
+            }
+            catch (InvalidOperationException ex) // 🌟 ดักจับเคสที่ลบไม่ได้เพราะมีคนเรียนแล้ว
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาด", error = ex.Message });
             }
         }
 
@@ -229,6 +237,30 @@ namespace iLearn.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { success = false, message = ex.Message });
+            }
+        }
+
+        // คลาสที่เราสร้างไว้รับค่าชั่วคราวจาก JSON body ของคำขอ
+        public class CourseStatusUpdateDto
+        {
+            public bool IsActive { get; set; }
+        }
+
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] CourseStatusUpdateDto statusObj)
+        {
+            try
+            {
+                var newStatus = await _courseService.UpdateCourseStatusAsync(id, statusObj.IsActive);
+                return Ok(new { success = true, message = "อัปเดตสถานะสำเร็จ", isActive = newStatus });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาดในการอัปเดตสถานะ", error = ex.Message });
             }
         }
     }

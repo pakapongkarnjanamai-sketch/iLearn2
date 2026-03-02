@@ -485,61 +485,124 @@
                 onClick: () => submitData()
             });
 
-            function submitData() {
-                if (!formWidget.validate().isValid) {
-                    DevExpress.ui.notify("Please fill in all required course details.", "warning", 2000);
-                    return;
-                }
+                   async function submitData() {
+            // 1. ตรวจสอบความถูกต้องของ Form และ Resource
+            if (!formWidget.validate().isValid) {
+                DevExpress.ui.notify("Please fill in all required course details.", "warning", 2000);
+                return;
+            }
 
-                if (unifiedResources.length === 0) {
-                     DevExpress.ui.notify("Please add at least one resource.", "error", 4000);
-                     return;
-                }
+            if (unifiedResources.length === 0) {
+                    DevExpress.ui.notify("Please add at least one resource.", "error", 4000);
+                return;
+            }
 
-                loadPanel.option("message", "Saving course & processing files...");
-                loadPanel.show();
+            loadPanel.option("message", "Saving course details...");
+            loadPanel.show();
 
+            try {
                 const data = formWidget.option("formData");
-                let formDataObj = new FormData();
 
-                // ส่งข้อมูล Form
-                for (let key in data) {
-                    if (data[key] !== null && data[key] !== undefined && key !== 'resources') {
-                        formDataObj.append(key, data[key]);
-                    }
+                // กรองเอาเฉพาะ Resource เดิมที่มีอยู่แล้ว (ตัดไฟล์ใหม่ออกก่อนเพื่อกัน Error 500)
+                const safeResourceIds = unifiedResources
+                    .filter(r => !r.isNew)
+                    .map(r => r.realId);
+
+                // 2. เตรียมข้อมูล Course Payload (JSON)
+                const coursePayload = {
+                    courseCode: data.courseCode,
+                    courseName: data.courseName,
+                    description: data.description,
+                    courseType: data.courseType,
+                    categoryId: data.categoryId,
+                    resourceIds: safeResourceIds
+                };
+
+                let courseId = COURSE_ID;
+
+                // 3. บันทึกข้อมูลหลักสูตร (Create / Update)
+                if (IS_EDIT) {
+                    await $.ajax({
+                        url: `${serviceUrl}/courses/${courseId}`,
+                        method: "PUT",
+                        contentType: "application/json",
+                        data: JSON.stringify(coursePayload),
+                        xhrFields: { withCredentials: true }
+                    });
+                } else {
+                    const res = await $.ajax({
+                        url: `${serviceUrl}/courses/Create`,
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify(coursePayload),
+                        xhrFields: { withCredentials: true }
+                    });
+                    courseId = res.data.id;
                 }
 
-                // ส่งข้อมูลเรียงตามลำดับ Index ใน Master Grid
+                // 4. ค้นหา Version ปัจจุบันของ Course
+                loadPanel.option("message", "Preparing resources...");
+                const versionsRes = await $.ajax({
+                    url: `${serviceUrl}/courses/${courseId}/versions`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                });
+
+                let activeVersionId = null;
+                if (versionsRes.data && versionsRes.data.length > 0) {
+                    // เลือก Version ที่เปิดใช้งานอยู่ (Active) หรือเอาอันแรกล่าสุด
+                    const activeVersion = versionsRes.data.find(v => v.isActive) || versionsRes.data[0];
+                    activeVersionId = activeVersion.id;
+                }
+
+                // 5. เตรียมข้อมูล Version และไฟล์แนบ (FormData) สำหรับอัปโหลด
+                loadPanel.option("message", "Uploading files and processing SCORM...");
+                let formDataObj = new FormData();
+                formDataObj.append("Note", IS_EDIT ? "Updated resources via Form" : "Initial Content Upload");
+                formDataObj.append("IsActive", true);
+
+                // ใส่ข้อมูล Resources ทั้งหมด (ทั้งเก่าและใหม่)
                 unifiedResources.forEach((item) => {
                     if (item.isNew) {
                         formDataObj.append("Files", item.fileRef);
-                        formDataObj.append("ResourceIds", 0); // 0 = ไฟล์ใหม่
+                        formDataObj.append("ResourceIds", 0); // 0 คือสัญญาณบอก Backend ว่ามีไฟล์ใหม่
                     } else {
                         formDataObj.append("ResourceIds", item.realId);
                     }
                 });
 
-                const url = IS_EDIT
-                    ? `${serviceUrl}/courses/update-scorm/${COURSE_ID}`
-                    : `${serviceUrl}/courses/create-scorm`;
+                // 6. อัปเดตข้อมูลไฟล์ไปยัง Version API
+                if (activeVersionId) {
+                    await $.ajax({
+                        url: `${serviceUrl}/courses/versions/${activeVersionId}`,
+                        method: "PUT",
+                        data: formDataObj,
+                        processData: false,
+                        contentType: false,
+                        xhrFields: { withCredentials: true }
+                    });
+                } else {
+                    // สำรองเผื่อบั๊กไม่มี Version เลย ให้สร้าง Version ใหม่
+                    await $.ajax({
+                        url: `${serviceUrl}/courses/${courseId}/versions`,
+                        method: "POST",
+                        data: formDataObj,
+                        processData: false,
+                        contentType: false,
+                        xhrFields: { withCredentials: true }
+                    });
+                }
 
-                $.ajax({
-                    url: url,
-                    method: "POST",
-                    data: formDataObj,
-                    processData: false,
-                    contentType: false,
-                    xhrFields: { withCredentials: true },
-                    success: function() {
-                        DevExpress.ui.notify("Course saved successfully!", "success", 2000);
-                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
-                    },
-                    error: function(err) {
-                        DevExpress.ui.notify("Error: " + (err.responseJSON?.message || err.statusText), "error", 4000);
-                    },
-                    complete: () => loadPanel.hide()
-                });
+                DevExpress.ui.notify("Course and content saved successfully!", "success", 2000);
+                setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
+
+            } catch (err) {
+                console.error(err);
+                DevExpress.ui.notify("Error: " + (err.responseJSON?.message || err.statusText), "error", 4000);
+            } finally {
+                loadPanel.hide();
             }
+        }
         });
     </script>
 }
