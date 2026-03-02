@@ -36,28 +36,22 @@
 @section Scripts {
     <script>
         let gridInstance;
-
         $(() => {
-            // เรียกใช้ initDxGrid เพื่อนำการตั้งค่าจาก Layout มาใช้ร่วมกัน
             gridInstance = initDxGrid("#grid", {
                 dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
                 remoteOperations: true,
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search divisions..." },
-
-                // --- ปรับแต่ง UI ตารางหลัก ---
+                searchPanel: { visible: true, placeholder: "Search divisions..." },
                 showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
-
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
                     useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this division?" },
                     form: {
                         items: [
                             { dataField: 'id', editorOptions: { disabled: true } },
@@ -65,41 +59,15 @@
                         ]
                     }
                 },
-
                 columns: [
-                    {
-                        dataField: "id",
-                        caption: "ID",
-                        width: 80,
-                        allowUpdating: false,
-                        alignment: "center",
-                  
-                    },
-                    {
-                        dataField: "name",
-                        caption: "Division Name",
-                    
-                    },
-
-                    // --- คอลัมน์ Action แบบ Native DevExtreme ---
-                    {
-                        type: "buttons",
-                        caption: "Manage",
-                        width: 100,
-                        alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
-                        buttons: ["edit", "delete"]
-                    }
+                    { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
+                    { dataField: "name", caption: "Division Name" }
                 ]
             });
         });
 
-        // ฟังก์ชันสำหรับปุ่ม New Division ด้านบน
         function addNewDivision() {
-            if (gridInstance) {
-                gridInstance.addRow();
-            }
+            if (gridInstance) gridInstance.addRow();
         }
     </script>
 }

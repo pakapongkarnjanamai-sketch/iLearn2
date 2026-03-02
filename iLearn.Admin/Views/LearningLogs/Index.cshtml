@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Learning Logs (SCORM)";
+    ViewBag.Title = "Learning Logs";
 }
 
 <div class="page-header shadow-sm border-0 mb-4 rounded">
@@ -63,29 +63,7 @@
                         dataType: "string",
                         minWidth: 150,
                         alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const status = (options.value || "unknown").toLowerCase();
-                            let badgeClass = "bg-secondary text-white";
-                            let icon = "fa-question-circle";
-
-                            if (status === 'passed' || status === 'completed') {
-                                badgeClass = "bg-success text-white";
-                                icon = "fa-check-circle";
-                            } else if (status === 'failed') {
-                                badgeClass = "bg-danger text-white";
-                                icon = "fa-times-circle";
-                            } else if (status === 'incomplete' || status === 'browsed') {
-                                badgeClass = "bg-warning text-dark";
-                                icon = "fa-hourglass-half";
-                            } else if (status === 'not attempted') {
-                                badgeClass = "bg-light text-muted";
-                                icon = "fa-minus-circle";
-                            }
-
-                            $("<span>").addClass(`badge border ${badgeClass} px-2 py-1`)
-                                       .html(`<i class="fas ${icon} me-1"></i> ${options.value || 'N/A'}`)
-                                       .appendTo(container);
-                        }
+                       
                     },
                     {
                         dataField: "progress", // เพิ่มคอลัมน์ progress เข้ามาใหม่
@@ -93,11 +71,7 @@
                         dataType: "number",
                         minWidth: 100,
                         alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const progress = options.value || 0;
-                            const colorClass = progress === 100 ? "text-success" : "text-primary";
-                            $("<span>").addClass(`fw-bold ${colorClass}`).text(`${progress}%`).appendTo(container);
-                        }
+                     
                     },
                     {
                         dataField: "score", // เปลี่ยนจาก scoreRaw เป็น score
@@ -105,14 +79,7 @@
                         dataType: "number",
                         minWidth: 80,
                         alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const score = options.value;
-                            if (score !== null && score !== undefined) {
-                                $("<span>").addClass("fw-bold").text(score).appendTo(container);
-                            } else {
-                                $("<span>").addClass("text-muted small").text("-").appendTo(container);
-                            }
-                        }
+                       
                     },
                     {
                         dataField: "totalSecondsPlayed",

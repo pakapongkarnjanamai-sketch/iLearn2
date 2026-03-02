@@ -35,77 +35,37 @@
 
 @section Scripts {
     <script>
-        // กำหนด Enum สำหรับ RoleType ใน Frontend
         const roleTypes = [
             { id: 0, name: 'User' },
             { id: 1, name: 'Manager' },
             { id: 2, name: 'Admin' },
             { id: 3, name: 'SuperAdmin' }
         ];
-
         let gridInstance;
 
         $(() => {
-            // ใช้ initDxGrid ตามมาตรฐานระบบ
             gridInstance = initDxGrid("#grid", {
                 dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD'),
                 remoteOperations: true,
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search roles..." },
-                groupPanel: { emptyPanelText: 'Drag a column header here to group', visible: true },
-
-                // --- ปรับแต่ง UI ตารางหลัก ---
+                searchPanel: { visible: true, placeholder: "Search roles..." },
                 showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
-
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'Roles_Data'),
-
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
                     useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this role?" },
-                    popup: {
-                        title: "Role Information",
-                        showTitle: true,
-                        width: 500,
-                        height: 'auto'
-                    },
-                    form: {
-                        items: [
-                            {
-                                itemType: 'group',
-                                colCount: 1,
-                                items: [
-                                    { dataField: 'name', validationRules: [{ type: "required" }] },
-                                    { dataField: 'divisionId' },
-                                    { dataField: 'roleType', validationRules: [{ type: "required" }] }
-                                ]
-                            }
-                        ]
-                    }
+                    popup: { title: "Role Information", showTitle: true, width: 500, height: 'auto' }
                 },
-
                 columns: [
-                    {
-                        dataField: "id",
-                        caption: "ID",
-                        width: 80,
-                        allowUpdating: false,
-                        alignment: "center",
-            
-                    },
-                    {
-                        dataField: "name",
-                        caption: "Role Name",
-                        minWidth: 200,
-                
-                    },
+                    { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
+                    { dataField: "name", caption: "Role Name", minWidth: 200, validationRules: [{ type: "required" }] },
                     {
                         dataField: "divisionId",
                         caption: "Division",
@@ -118,39 +78,19 @@
                     {
                         dataField: "roleType",
                         caption: "Role Type",
+                        validationRules: [{ type: "required" }],
                         lookup: {
                             dataSource: roleTypes,
                             displayExpr: 'name',
                             valueExpr: 'id'
-                        },
-                        cellTemplate: function(container, options) {
-                            const text = options.displayValue;
-                            if(text) {
-                                // ทำให้ Type ดูโดดเด่นขึ้นด้วย Badge แบบสว่าง
-                                $("<span>").addClass("badge bg-light text-primary border px-2 py-1").text(text).appendTo(container);
-                            }
                         }
-                    },
-
-                    // --- คอลัมน์ Action แบบ Native DevExtreme ---
-                    {
-                        type: "buttons",
-                        caption: "Manage",
-                        width: 100,
-                        alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
-                        buttons: ["edit", "delete"]
                     }
                 ]
             });
         });
 
-        // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New Role ด้านบน
         function addNewRole() {
-            if(gridInstance) {
-                gridInstance.addRow();
-            }
+            if(gridInstance) gridInstance.addRow();
         }
     </script>
 }

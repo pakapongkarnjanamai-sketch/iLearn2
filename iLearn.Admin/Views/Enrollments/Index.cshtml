@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Course Enrollments";
+    ViewBag.Title = "Enrollments";
 }
 
 <div class="page-header shadow-sm border-0 mb-4 rounded">
@@ -36,11 +36,7 @@
 @section Scripts {
     <script>
         let gridInstance;
-
-        // Data Stores
         const enrollmentsStore = createDataStore(serviceUrl, 'admin/EnrollmentsCRUD');
-
-        // Lookup DataSources
         const dsCourses = {
             store: createDataStore(serviceUrl, 'admin/CoursesCRUD'),
             paginate: true,
@@ -48,11 +44,10 @@
         };
 
         $(() => {
-            // ใช้ initDxGrid ตามมาตรฐานระบบ
             gridInstance = initDxGrid("#grid", {
                 dataSource: enrollmentsStore,
                 remoteOperations: true,
-                searchPanel: { placeholder: "Search student code..." },
+                searchPanel: { visible: true, placeholder: "Search student code..." },
 
                 // --- ปรับแต่ง UI ตารางหลัก ---
                 showBorders: false,
@@ -60,160 +55,74 @@
                 showRowLines: true,
                 hoverStateEnabled: true,
 
-                export: { enabled: false }, // ซ่อนปุ่มเดิม ใช้ปุ่ม Custom ด้านบน
+                export: { enabled: false }, // ซ่อนปุ่มเดิมเพราะเราใช้ปุ่มด้านบน
                 onExporting: (e) => handleExporting(e, 'Enrollment_Report'),
 
-                // การตั้งค่า Popup สำหรับ Edit
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
-                    allowAdding: true, // อนุญาตให้ลงทะเบียน Manual
+                    allowAdding: true,
                     useIcons: true,
                     texts: { confirmDeleteMessage: "Are you sure you want to delete this enrollment?" },
-                    popup: {
-                        title: "Enrollment Details",
-                        showTitle: true,
-                        width: 500,
-                        height: 'auto'
-                    },
+                    popup: { title: "Enrollment Details", showTitle: true, width: 500, height: 'auto' },
                     form: {
                         items: [
                             {
-                                itemType: "group",
-                                caption: "Assignment Info",
-                                colCount: 1,
+                                itemType: "group", caption: "Assignment Info", colCount: 1,
                                 items: [
+                                    { dataField: "studentCode", label: { text: "Student Code" }, validationRules: [{ type: "required" }] },
                                     {
-                                        dataField: "studentCode",
-                                        label: { text: "Student Code" },
-                                        validationRules: [{ type: "required" }]
-                                    },
-                                    {
-                                        dataField: "courseId",
-                                        editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: dsCourses,
-                                            displayExpr: "code",
-                                            valueExpr: "id",
-                                            searchEnabled: true,
-                                            searchExpr: ["code", "title"] // ค้นหาได้ทั้ง Code และชื่อ
-                                        },
+                                        dataField: "courseId", editorType: "dxSelectBox",
+                                        editorOptions: { dataSource: dsCourses, displayExpr: "code", valueExpr: "id", searchEnabled: true, searchExpr: ["code", "title"] },
                                         validationRules: [{ type: "required" }]
                                     }
                                 ]
                             },
                             {
-                                itemType: "group",
-                                caption: "Progress Status",
-                                colCount: 2,
+                                itemType: "group", caption: "Progress Status", colCount: 2,
                                 items: [
-                                    {
-                                        dataField: "isCompleted",
-                                        editorType: "dxCheckBox",
-                                        editorOptions: { text: "Course Completed" }
-                                    },
-                                    {
-                                        dataField: "progress",
-                                        editorType: "dxNumberBox",
-                                        editorOptions: { min: 0, max: 100 }
-                                    }
+                                    { dataField: "isCompleted", editorType: "dxCheckBox", editorOptions: { text: "Course Completed" } },
+                                    { dataField: "progress", editorType: "dxNumberBox", editorOptions: { min: 0, max: 100 } }
                                 ]
                             }
                         ]
                     }
                 },
-
                 columns: [
                     { dataField: "id", caption: "ID", width: 80, visible: false },
+                    { dataField: "studentCode", caption: "Student Code", width: 150 },
                     {
-                        dataField: "studentCode",
-                        caption: "Student Code",
-                        width: 150,
-                       
+                        dataField: "courseId", caption: "Course Code / Title", minWidth: 200,
+                        lookup: { dataSource: dsCourses, displayExpr: "title", valueExpr: "id" }
                     },
                     {
-                        dataField: "courseId",
-                        caption: "Course Code / Title",
-                        minWidth: 200,
-                        lookup: {
-                            dataSource: dsCourses,
-                            displayExpr: "title", // ให้ DataGrid แปลง ID กลับเป็นชื่อคอร์ส
-                            valueExpr: "id"
-                        }
-                    },
-                    {
-                        // คำนวณสถานะจำลองขึ้นมาเพื่อให้โชว์ Badge สวยๆ ได้
-                        caption: "Status",
-                        width: 140,
-                        alignment: "center",
+                        caption: "Status", width: 140, alignment: "center",
                         calculateCellValue: function(rowData) {
                             if (rowData.isCompleted) return "Completed";
                             if (rowData.progress > 0) return "In Progress";
                             return "Enrolled";
-                        },
-                        cellTemplate: function(container, options) {
-                            const status = options.value;
-                            let badgeClass = "bg-primary text-white"; // default Enrolled
-                            let icon = "fa-clipboard-list";
-
-                            if (status === "Completed") {
-                                badgeClass = "bg-success text-white";
-                                icon = "fa-check-circle";
-                            } else if (status === "In Progress") {
-                                badgeClass = "bg-warning text-dark";
-                                icon = "fa-spinner fa-spin";
-                            }
-
-                            $("<span>")
-                                .addClass(`badge border ${badgeClass} px-2 py-1`)
-                                .html(`<i class="fas ${icon} me-1"></i> ${status}`)
-                                .appendTo(container);
                         }
                     },
                     {
-                        dataField: "progress",
-                        caption: "Progress",
-                        width: 180,
-                        alignment: "center",
+                        dataField: "progress", caption: "Progress", width: 180, alignment: "center",
+                        // ใช้ dxProgressBar ของ DevExtreme แทนการเขียน HTML String เอง
                         cellTemplate: function(container, options) {
-                            const val = options.value || 0;
-                            const colorClass = val === 100 ? 'bg-success' : 'bg-primary';
-
-                            // วาด Progress Bar เล็กๆ ในเซลล์ตาราง
-                            container.html(`
-                                <div class="d-flex align-items-center">
-                                    <div class="progress flex-grow-1 shadow-sm" style="height: 8px; border-radius: 4px; background-color: #e9ecef;">
-                                        <div class="progress-bar ${colorClass}" role="progressbar" style="width: ${val}%;" aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <span class="ms-2 small text-muted fw-bold" style="width: 35px; text-align: right;">${val}%</span>
-                                </div>
-                            `);
+                            $("<div/>").dxProgressBar({
+                                min: 0, max: 100, value: options.value || 0,
+                                statusFormat: function(ratio, value) { return value + "%"; }
+                            }).appendTo(container);
                         }
                     },
+                    { dataField: "createdAt", caption: "Assigned On", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 160 },
                     {
-                        dataField: "createdAt",
-                        caption: "Assigned On",
-                        dataType: "datetime",
-                        format: "dd MMM yyyy HH:mm",
-                        width: 160
-                    },
-
-                    // --- คอลัมน์ Action แบบ Native DevExtreme ---
-                    {
-                        type: "buttons",
-                        caption: "Manage",
-                        width: 100,
-                        alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
+                        type: "buttons", caption: "Manage", width: 100, alignment: "center", fixed: true, fixedPosition: "right",
                         buttons: ["edit", "delete"]
                     }
                 ]
             });
         });
 
-        // ฟังก์ชัน Export (เรียกใช้จากปุ่มด้านบน)
         function exportGrid() {
             if (gridInstance) {
                 gridInstance.exportToExcel(false);

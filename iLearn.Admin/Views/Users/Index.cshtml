@@ -36,67 +36,35 @@
 @section Scripts {
     <script>
         let gridInstance;
-
         $(() => {
-            // ใช้ initDxGrid ตามมาตรฐานระบบ
             gridInstance = initDxGrid("#grid", {
                 dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD'),
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search users..." },
-
-                // --- ปรับแต่ง UI ตารางหลัก ---
+                searchPanel: { visible: true, placeholder: "Search users..." },
                 showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
-
-                export: { enabled: true, allowExportSelectedData: false },
+                export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'User_Accounts'),
-
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
                     useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this user account?" },
-                    popup: {
-                        title: "User Info",
-                        showTitle: true,
-                        width: 700,
-                        height: 450
-                    },
+                    popup: { title: "User Info", showTitle: true, width: 700, height: 450 },
                     form: {
                         items: [
-                            {
-                                itemType: 'group',
-                                colCount: 2,
-                                colSpan: 2,
-                                items: [
-                                    { dataField: 'id', editorOptions: { disabled: true }, colSpan: 2 },
-                                    { dataField: 'nid', colSpan: 2 },
-                                    { dataField: 'roleIds', colSpan: 2, label: { text: 'Roles' } }
-                                ]
-                            }
+                            { dataField: 'id', editorOptions: { disabled: true } },
+                            { dataField: 'nid' },
+                            { dataField: 'roleIds', label: { text: 'Roles' } }
                         ]
                     }
                 },
-
                 columns: [
-                    {
-                        dataField: "id",
-                        caption: "ID",
-                        width: 80,
-                        allowUpdating: false,
-                        alignment: "center",
-                   
-                    },
-                    {
-                        dataField: "nid",
-                        caption: "National ID / Username",
-                        minWidth: 200,
-             
-                    },
+                    { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
+                    { dataField: "nid", caption: "National ID / Username", minWidth: 200 },
                     {
                         dataField: "roleIds",
                         caption: "Roles",
@@ -111,37 +79,13 @@
                         lookup: {
                             dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
                             displayExpr: 'name',
-                            valueExpr: 'id',
-                        },
-                        cellTemplate: function(container, options) {
-                            const items = options.value || [];
-                            const text = items.map(id => options.column.lookup.calculateCellValue(id)).join(", ");
-
-                            if (text) {
-                                // เปลี่ยนให้ Badge ดูเป็นสไตล์ที่สะอาดตา
-                                const badges = text.split(", ").map(role => `<span class="badge bg-light text-primary border me-1">${role}</span>`).join("");
-                                container.html(badges).attr('title', text);
-                            } else {
-                                container.html('<span class="text-muted small">-</span>');
-                            }
+                            valueExpr: 'id'
                         }
                     },
-                    { dataField: "createdAt", dataType: "date", format: "yyyy-MM-dd HH:mm", allowEditing: false, visible: false },
-
-                    // --- คอลัมน์ Action แบบ Native DevExtreme ---
-                    {
-                        type: "buttons",
-                        caption: "Manage",
-                        width: 100,
-                        alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
-                        buttons: ["edit", "delete"]
-                    }
+                    { dataField: "createdAt", dataType: "date", format: "yyyy-MM-dd HH:mm", visible: false }
                 ]
             });
 
-            // ฟังก์ชันสร้าง TagBox ตอนแก้ไข (สำหรับเลือกหลาย Role)
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
                     dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
@@ -149,26 +93,13 @@
                     valueExpr: 'id',
                     displayExpr: 'name',
                     showSelectionControls: true,
-                    maxDisplayedTags: 3,
-                    showMultiTagOnly: false,
-                    applyValueMode: 'useButtons',
-                    searchEnabled: true,
-                    placeholder: "Select Roles...",
-                    onValueChanged(e) {
-                        cellInfo.setValue(e.value);
-                    },
-                    onSelectionChanged(e) {
-                        cellInfo.component.updateDimensions();
-                    }
+                    onValueChanged(e) { cellInfo.setValue(e.value); }
                 });
             }
         });
 
-        // ฟังก์ชันสำหรับเรียกใช้งานปุ่ม New User ด้านบน
         function addNewUser() {
-            if(gridInstance) {
-                gridInstance.addRow();
-            }
+            if(gridInstance) gridInstance.addRow();
         }
     </script>
 }

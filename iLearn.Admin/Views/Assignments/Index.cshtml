@@ -118,20 +118,21 @@
                         alignment: "center"
                     },
                     {
-                        type: "buttons",
-                        caption: "Actions",
-                        width: 110,
+                          type: "buttons",
+                        caption: "Manage",
+                        width: 130,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
                         buttons: [
                             {
                                 hint: "View Progress Dashboard",
-                                icon: "eye",
+                                icon: "folder",
                                 onClick: function(e) {
                                     window.location.href = '@Url.Action("Progress", "Assignments")/' + e.row.data.id;
                                 }
                             },
+
                             "delete"
                         ]
                     }

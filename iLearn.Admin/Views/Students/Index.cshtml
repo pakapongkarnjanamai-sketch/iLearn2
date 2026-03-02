@@ -17,7 +17,7 @@
                 </div>
             </h1>
             <div>
-                <button class="btn btn-outline-secondary rounded shadow-sm px-3" onclick="gridInstance.refresh()">
+                <button class="btn btn-outline-secondary rounded shadow-sm px-3" onclick="refreshGrid()">
                     <i class="fas fa-sync-alt me-2"></i> Refresh
                 </button>
             </div>
@@ -37,72 +37,30 @@
     <script>
         let gridInstance;
         $(() => {
-            // เรียกใช้ initDxGrid เพื่อนำการตั้งค่าจาก Layout มาใช้ร่วมกัน
             gridInstance = initDxGrid("#grid", {
-                // ระบุชื่อ Controller ฝั่ง API ของคุณ (เช่น 'api/Students' หรือ 'Students')
-                // หาก API คุณไม่ได้ใช้ฟังก์ชัน /Get พื้นฐาน คุณอาจต้องตั้งค่า options.action เพิ่มเติม
                 dataSource: createDataStore(serviceUrl, 'Students', { key: 'EId' }),
                 remoteOperations: true,
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search students by Name, ID, or Division..." },
-
-                // --- ปรับแต่ง UI ตารางหลัก ---
+                searchPanel: { visible: true, placeholder: "Search students by Name, ID, or Division..." },
                 showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
-
-                // ปิดการแก้ไขข้อมูลหากข้อมูลนักเรียนดึงมาจากระบบ HR ส่วนกลาง
-                editing: {
-                    mode: "popup",
-                    allowUpdating: false,
-                    allowDeleting: false,
-                    allowAdding: false
-                },
-
+                editing: { allowUpdating: false, allowDeleting: false, allowAdding: false },
                 columns: [
-                    {
-                        dataField: "EId",
-                        caption: "Employee ID",
-                        width: 160,
-                        alignment: "center",
-                        fixed: true
-                    },
-                    {
-                        dataField: "EnglishFirstName",
-                        caption: "First Name",
-                        width: 250
-                    },
-                    {
-                        dataField: "EnglishLastName",
-                        caption: "Last Name",
-                        width: 250
-                    },
-                      {
-                        dataField: "Position",
-                        caption: "Position",
-                        width: 150
-                    },
-                    {
-                        dataField: "Division",
-                        caption: "Division",
-                        width: 120,
-                        alignment: "center"
-                    },
-                    {
-                        dataField: "Department",
-                        caption: "Department",
-                        width: 120,
-                        alignment: "center"
-                    },
-                    {
-                        dataField: "Section",
-                        caption: "Section",
-                     
-                    },
-                  
+                    { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true },
+                    { dataField: "EnglishFirstName", caption: "First Name", width: 250 },
+                    { dataField: "EnglishLastName", caption: "Last Name", width: 250 },
+                    { dataField: "Position", caption: "Position", width: 150 },
+                    { dataField: "Division", caption: "Division", width: 120, alignment: "center" },
+                    { dataField: "Department", caption: "Department", width: 120, alignment: "center" },
+                    { dataField: "Section", caption: "Section" }
                 ]
             });
         });
+
+        function refreshGrid() {
+            if(gridInstance) gridInstance.refresh();
+        }
     </script>
 }
