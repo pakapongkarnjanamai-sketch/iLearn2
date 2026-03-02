@@ -106,7 +106,7 @@
                             if (options.data.isActive === false) {
                                 $("<span>")
                                     .addClass("badge bg-warning text-dark border")
-                                    .html('<i class="fas fa-pen-nib me-1"></i>Draft')
+                                    .html('Draft')
                                     .appendTo(wrapper);
                             }
 
@@ -153,8 +153,8 @@
                            
                            
                             {
-            hint: "Go to Dashboard",
-            icon: "chart", // ใช้ไอคอนกราฟหรือฟันเฟือง
+            hint: "View Course Dashboard",
+            icon: "info", // ใช้ไอคอนกราฟหรือฟันเฟือง
             onClick: function(e) {
                 // เปลี่ยนเส้นทางไปที่หน้า Dashboard
                 window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + e.row.data.id;

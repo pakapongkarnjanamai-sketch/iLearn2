@@ -195,13 +195,7 @@
                         fixedPosition: "right",
                         buttons: [
                             "edit",
-                            {
-                                hint: "View Courses in this Category",
-                                icon: "folder",
-                                onClick: function(e) {
-                                    window.location.href = '@Url.Action("Index", "Courses")?categoryId=' + e.row.data.id;
-                                }
-                            },
+                          
                             {
                                 name: "delete",
                                 // เงื่อนไข: ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
