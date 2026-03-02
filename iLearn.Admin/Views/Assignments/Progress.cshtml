@@ -2,82 +2,169 @@
     ViewBag.Title = "Assignments Progress Dashboard";
 }
 
-<div class="page-header shadow-sm border-0 mb-4 rounded">
-    <div class="container-fluid px-4 py-2">
+<style>
+    /* Minimal & Clean White Theme */
+    body {
+        background-color: #ffffff;
+    }
+
+    /* Icon box styling */
+    .icon-box {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        flex-shrink: 0;
+        background-color: #f0f4f9;
+    }
+
+    /* Card styling - ultra minimal */
+    .card {
+        border: 1px solid #e8ecf1 !important;
+        background-color: #ffffff !important;
+    }
+
+    .card-header {
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #e8ecf1 !important;
+        padding: 1rem !important;
+    }
+
+    /* Stat card - subtle blue */
+    .stat-card {
+        background: linear-gradient(135deg, #f8fbff 0%, #f0f7ff 100%);
+        border: 1px solid #e8ecf1 !important;
+    }
+
+    .stat-value {
+        color: #1a3a52;
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .stat-label {
+        color: #6c7c93;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    /* Grid minimal styling */
+    .dx-datagrid {
+        background-color: transparent !important;
+    }
+
+    .dx-datagrid-container {
+        background-color: transparent !important;
+    }
+
+    /* Filter hint badge */
+    .filter-hint {
+        background-color: #f5f7fa;
+        border: 1px solid #dce1e6;
+        color: #5a6c7d;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 1200px) {
+        .stat-value {
+            font-size: 2rem;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .card-header h5 {
+            flex-wrap: wrap;
+        }
+        
+        #course-selector {
+            width: 100% !important;
+            margin-top: 0.5rem;
+        }
+    }
+</style>
+
+<!-- Header -->
+<div class="bg-white" style="border-bottom: 1px solid #e8ecf1;">
+    <div class="container-fluid px-4 py-4">
         <div class="d-flex align-items-center justify-content-between">
-            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
-                <div class="bg-info text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                    <i class="fas fa-chart-pie"></i>
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-box text-primary">
+                    <i class="fas fa-chart-pie fs-5"></i>
                 </div>
                 <div>
-                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
-                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
-                        Comprehensive overview of course assignments and learning progress.
-                    </div>
+                    <h1 class="h4 mb-1 fw-bold text-dark">@ViewBag.Title</h1>
+                    <small class="text-muted">Track course completion and monitor employee learning progress across assignments.</small>
                 </div>
-            </h1>
-            <div>
-                <a href="@Url.Action("Index", "Assignments")" class="btn btn-light border shadow-sm rounded px-3">
-                    <i class="fas fa-arrow-left me-2"></i> Back to Rules
-                </a>
             </div>
+            <a href="@Url.Action("Index", "Assignments")" class="btn btn-outline-secondary btn-sm px-3 py-2 rounded-2" style="border: 1px solid #dce1e6;">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
         </div>
     </div>
 </div>
 
-<div class="container-fluid px-4 pb-5">
+<!-- Main Content -->
+<div class="container-fluid px-4 py-4 pb-5 mb-5">
     <div id="load-panel"></div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
-                        <i class="fas fa-info-circle text-primary"></i> Assignment Details
-                    </h5>
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="card rounded-3 h-100">
+                <div class="card-header pb-0 border-0">
+                    <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.95rem;">
+                        <i class="fas fa-list-check me-2 text-muted" style="opacity: 0.6;"></i> Assignment Details
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <table class="table table-borderless table-sm mb-0">
-                        <tbody>
-                            <tr>
-                                <td class="text-muted" style="width: 120px;">Ref No:</td>
-                                <td class="fw-bold text-dark" id="lbl-assignment-no">-</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Description:</td>
-                                <td id="lbl-description">-</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Schedule:</td>
-                                <td id="lbl-schedule">-</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="card-body pt-3">
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">Reference No</small>
+                        <div class="fw-bold text-dark" id="lbl-assignment-no" style="font-size: 1.1rem;">-</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">Description</small>
+                        <div id="lbl-description" style="font-size: 0.95rem; line-height: 1.4;">-</div>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block mb-1">Schedule</small>
+                        <div id="lbl-schedule" style="font-size: 0.95rem;">-</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
-                <div class="card-body p-4 d-flex flex-column justify-content-center">
-                    <div class="row text-center mb-3">
-                        <div class="col-6 border-end border-light border-opacity-25">
-                            <div class="display-5 fw-bold" id="stat-total-courses">0</div>
-                            <div class="small text-white-50 text-uppercase fw-semibold tracking-wide mt-1">Total Courses</div>
+        <div class="col-lg-8">
+            <div class="card stat-card rounded-3 h-100">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-6 d-flex flex-column justify-content-center" style="border-right: 1px solid #e8ecf1;">
+                            <div class="stat-value text-primary" id="stat-total-courses">0</div>
+                            <div class="stat-label">Total Courses</div>
                         </div>
-                        <div class="col-6">
-                            <div class="display-5 fw-bold" id="stat-total-emp">0</div>
-                            <div class="small text-white-50 text-uppercase fw-semibold tracking-wide mt-1">Target Employees</div>
+                        <div class="col-6 d-flex flex-column justify-content-center ps-3">
+                            <div class="stat-value text-primary" id="stat-total-emp">0</div>
+                            <div class="stat-label">Target Employees</div>
                         </div>
                     </div>
 
-                    <div class="mt-2">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="small fw-semibold text-white-50">Overall Completion</span>
-                            <span class="small fw-bold" id="stat-progress-text">0%</span>
+                    <div class="mt-4 pt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted fw-semibold" style="font-size: 0.9rem;">Overall Completion Rate</span>
+                            <span class="fw-bold text-primary" id="stat-progress-text" style="font-size: 1.1rem;">0%</span>
                         </div>
-                        <div class="progress" style="height: 12px; background-color: rgba(255,255,255,0.2);">
-                            <div id="stat-progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
+                        <div class="progress rounded-2" style="height: 8px; background-color: #e8ecf1;">
+                            <div id="stat-progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%; border-radius: 2px;"></div>
                         </div>
                     </div>
                 </div>
@@ -85,38 +172,46 @@
         </div>
     </div>
 
-    <div class="row g-4">
-
-        <div class="col-xl-5 col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-bottom py-3 d-flex flex-column gap-2">
-                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
-                        <i class="fas fa-book-open text-primary"></i> Course Progress
-                    </h5>
-                    <span class="badge bg-light text-muted border shadow-sm align-self-start"><i class="fas fa-hand-pointer me-1"></i> Click row to filter students</span>
+    <!-- Data Tables Row -->
+    <div class="row g-3">
+        <!-- Left Panel: Course Summary -->
+        <div class="col-xl-5">
+            <div class="card rounded-3 h-100 d-flex flex-column">
+                <div class="card-header pb-0 border-0">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.95rem;">
+                            <i class="fas fa-book me-2 text-muted" style="opacity: 0.6;"></i> Course Summary
+                        </h6>
+                    </div>
+                    <div class="filter-hint">
+                        <i class="fas fa-info-circle" style="font-size: 0.85rem;"></i>
+                        <span>Click a row to filter employees by course</span>
+                    </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 flex-grow-1 overflow-hidden">
                     <div id="course-summary-grid"></div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-7 col-lg-7">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-bottom py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
-                        <i class="fas fa-users text-primary"></i> Student Details
-                    </h5>
-                    <div style="width: 300px;">
-                        <div id="course-selector"></div>
+        <!-- Right Panel: Student Details -->
+        <div class="col-xl-7">
+            <div class="card rounded-3 h-100 d-flex flex-column">
+                <div class="card-header pb-0 border-0">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2" style="flex-wrap: wrap;">
+                        <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.95rem;">
+                            <i class="fas fa-users me-2 text-muted" style="opacity: 0.6;"></i> Employee Progress
+                        </h6>
+                        <div style="min-width: 250px;">
+                            <div id="course-selector"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 flex-grow-1 overflow-hidden">
                     <div id="student-progress-grid"></div>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -132,7 +227,7 @@
                 showIndicator: true,
                 showPane: true,
                 shading: true,
-                message: "Analyzing assignment data..."
+                message: "Loading assignment data..."
             }).dxLoadPanel("instance");
 
             const getCourses = $.ajax({ url: `${serviceUrl}/admin/CoursesCRUD/Get?skip=0&take=5000`, method: "GET", xhrFields: { withCredentials: true } });
@@ -156,7 +251,7 @@
 
                     const sDate = currentRule.startDate ? new Date(currentRule.startDate).toLocaleDateString('en-GB') : '-';
                     const dDate = currentRule.dueDate ? new Date(currentRule.dueDate).toLocaleDateString('en-GB') : '-';
-                    $("#lbl-schedule").html(`<i class="far fa-calendar-alt text-muted me-1"></i> ${sDate} <i class="fas fa-arrow-right mx-1 text-muted"></i> ${dDate}`);
+                    $("#lbl-schedule").html(`<i class="far fa-calendar-alt text-muted me-2" style="opacity: 0.6;"></i> ${sDate} <i class="fas fa-arrow-right mx-2 text-muted" style="opacity: 0.4;"></i> ${dDate}`);
 
                     let ruleFilter = assignmentNo ? ["assignmentNo", "=", assignmentNo] : ["id", "=", ASSIGNMENT_ID];
 
@@ -176,7 +271,7 @@
                         }).done(function(enrollRes) {
                             const allEnrollments = enrollRes.data || [];
 
-                            // คำนวณ Overall
+                            // Calculate overall stats
                             const totalEnrollments = allEnrollments.length;
                             const completedEnrollments = allEnrollments.filter(e => e.isCompleted).length;
                             const overallProgress = totalEnrollments === 0 ? 0 : Math.round((completedEnrollments / totalEnrollments) * 100);
@@ -203,14 +298,14 @@
                                 };
                             });
 
-                            // --- 1. เรนเดอร์ Course Summary Grid ฝั่งซ้าย ---
+                            // --- 1. Course Summary Grid (Left) ---
                             $("#course-summary-grid").dxDataGrid({
                                 dataSource: courseSummaryData,
                                 keyExpr: "id",
                                 showBorders: false,
-                                rowAlternationEnabled: true,
+                                rowAlternationEnabled: false,
                                 hoverStateEnabled: true,
-                                height: 500, // กำหนดความสูงให้เท่ากับฝั่งขวา
+                                height: 450,
                                 scrolling: { mode: "virtual" },
                                 selection: { mode: "single" },
                                 onSelectionChanged: function(e) {
@@ -221,21 +316,52 @@
                                         selectBox.option("value", "ALL");
                                     }
                                 },
-                                // ปรับขนาด Column ให้พอดีกับพื้นที่แคบลง
                                 columns: [
-                                    { dataField: "courseCode", caption: "Code", width: 100, alignment: "center" },
-                                    { dataField: "courseTitle", caption: "Course Title" },
-                                    { dataField: "totalStudents", caption: "All", width: 60, alignment: "center" },
-                                    { dataField: "completedStudents", caption: "Done", width: 60, alignment: "center" },
+                                    { 
+                                        dataField: "courseCode", 
+                                        caption: "Code", 
+                                        width: 80, 
+                                        alignment: "center",
+                                        cssClass: "text-muted fw-semibold"
+                                    },
+                                    { 
+                                        dataField: "courseTitle", 
+                                        caption: "Course Title",
+                                        cssClass: "fw-semibold"
+                                    },
+                                    { 
+                                        dataField: "totalStudents", 
+                                        caption: "Total", 
+                                        width: 70, 
+                                        alignment: "center",
+                                        cellTemplate: function(container, options) {
+                                            $(`<span class="text-muted fw-semibold">${options.value}</span>`).appendTo(container);
+                                        }
+                                    },
+                                    { 
+                                        dataField: "completedStudents", 
+                                        caption: "Done", 
+                                        width: 70, 
+                                        alignment: "center",
+                                        cellTemplate: function(container, options) {
+                                            $(`<span class="fw-bold text-success">${options.value}</span>`).appendTo(container);
+                                        }
+                                    },
                                     {
                                         dataField: "progressPercent",
-                                        caption: "%",
-                                        width: 80,
+                                        caption: "Progress",
+                                        width: 110,
                                         alignment: "center",
                                         cellTemplate: function(container, options) {
                                             const val = options.value;
-                                            const badgeColor = val === 100 ? 'bg-success' : 'bg-info text-dark';
-                                            $(`<div><span class="badge ${badgeColor} px-2 py-1 w-100">${val}%</span></div>`).appendTo(container);
+                                            const width = Math.max(val, 5);
+                                            const color = val >= 80 ? '#10b981' : val >= 50 ? '#3b82f6' : '#ef4444';
+                                            const progressBar = `
+                                                <div class="progress" style="height: 6px; background-color: #e8ecf1; border-radius: 3px;">
+                                                    <div class="progress-bar" style="width: ${val}%; background-color: ${color}; border-radius: 3px;"></div>
+                                                </div>
+                                                <small class="text-muted fw-semibold mt-1 d-block">${val}%</small>`;
+                                            $(progressBar).appendTo(container);
                                         }
                                     }
                                 ]
@@ -245,9 +371,9 @@
                                 id: r.id,
                                 displayText: `${coursesMap[r.courseId]?.code || ''} - ${coursesMap[r.courseId]?.title || ''}`
                             }));
-                            dropdownOptions.unshift({ id: "ALL", displayText: "-- View All Courses --" });
+                            dropdownOptions.unshift({ id: "ALL", displayText: "All Courses" });
 
-                            // --- 2. เรนเดอร์ Dropdown กรองวิชา ---
+                            // --- 2. Course Filter Dropdown ---
                             $("#course-selector").dxSelectBox({
                                 dataSource: dropdownOptions,
                                 valueExpr: "id",
@@ -255,6 +381,7 @@
                                 value: "ALL",
                                 searchEnabled: true,
                                 placeholder: "Filter by course...",
+                                stylingMode: "outlined",
                                 onValueChanged: function(e) {
                                     const studentGrid = $("#student-progress-grid").dxDataGrid("instance");
                                     const summaryGrid = $("#course-summary-grid").dxDataGrid("instance");
@@ -272,60 +399,92 @@
                                 }
                             });
 
-                            // --- 3. เรนเดอร์ Student Detailed Grid ฝั่งขวา ---
+                            // --- 3. Student Progress Grid (Right) ---
                             $("#student-progress-grid").dxDataGrid({
                                 dataSource: {
                                     store: createDataStore(serviceUrl, 'admin/EnrollmentsCRUD'),
                                     filter: enrollFilter
                                 },
                                 showBorders: false,
-                                rowAlternationEnabled: true,
+                                rowAlternationEnabled: false,
                                 hoverStateEnabled: true,
-                                filterRow: { visible: true },
-                                searchPanel: { visible: true, width: 250, placeholder: "Search Emp ID..." },
+                                filterRow: { visible: false },
+                                searchPanel: { visible: true, width: 200, placeholder: "Search Emp ID..." },
                                 scrolling: { mode: "virtual" },
-                                height: 500, // กำหนดความสูงให้เท่ากับฝั่งซ้าย
+                                height: 450,
                                 export: { enabled: true, allowExportSelectedData: true },
                                 columns: [
-                                    { dataField: "studentCode", caption: "Emp ID", width: 120, alignment: "center" },
+                                    { 
+                                        dataField: "studentCode", 
+                                        caption: "Emp ID", 
+                                        width: 100, 
+                                        alignment: "center",
+                                        cssClass: "fw-semibold text-muted"
+                                    },
                                     {
-                                        caption: "Course Code",
-                                        width: 130,
+                                        caption: "Course",
+                                        width: 90,
                                         alignment: "center",
                                         calculateCellValue: function(rowData) {
                                             const rule = allRules.find(r => r.id === rowData.assignmentRuleId);
                                             return rule && coursesMap[rule.courseId] ? coursesMap[rule.courseId].code : "-";
+                                        },
+                                        cssClass: "text-muted fw-semibold"
+                                    },
+                                    {
+                                        caption: "Employee",
+                                        minWidth: 150,
+                                        calculateCellValue: function(rowData) {
+                                            return `${rowData.studentCode || ''}`;
+                                        },
+                                        cellTemplate: function(container, options) {
+                                            const data = options.data;
+                                            const rule = allRules.find(r => r.id === data.assignmentRuleId);
+                                            const courseName = rule && coursesMap[rule.courseId] ? coursesMap[rule.courseId].code : '';
+                                            $(`<div class="fw-semibold text-dark">${data.studentCode}</div><small class="text-muted">${courseName}</small>`).appendTo(container);
                                         }
                                     },
                                     {
                                         dataField: "progress",
                                         caption: "Progress",
-                                        minWidth: 150,
+                                        minWidth: 140,
                                         cellTemplate: function(container, options) {
                                             const val = options.value || 0;
-                                            const barColor = val === 100 ? 'bg-success' : 'bg-primary';
+                                            const color = val === 100 ? '#10b981' : '#3b82f6';
                                             const progressBar = `
-                                                <div class="progress shadow-sm mt-1" style="height: 14px; border-radius: 4px;">
-                                                    <div class="progress-bar ${barColor}" style="width: ${val}%; font-size: 0.7rem;">${val}%</div>
-                                                </div>`;
+                                                <div class="progress shadow-sm" style="height: 6px; background-color: #e8ecf1; border-radius: 3px; overflow: hidden;">
+                                                    <div class="progress-bar" style="width: ${val}%; background-color: ${color}; border-radius: 3px;"></div>
+                                                </div>
+                                                <small class="text-muted fw-semibold mt-1 d-block">${val}%</small>`;
                                             $(progressBar).appendTo(container);
                                         }
                                     },
                                     {
                                         dataField: "isCompleted",
                                         caption: "Status",
-                                        width: 120,
+                                        width: 110,
                                         alignment: "center",
-                                        dataType: "boolean",
                                         cellTemplate: function(container, options) {
                                             if (options.value) {
-                                                $("<span>").addClass("badge bg-success px-2 py-1").text("Completed").appendTo(container);
+                                                $(`<span class="badge bg-success bg-opacity-10 text-success fw-semibold" style="font-size: 0.85rem;">
+                                                    <i class="fas fa-check-circle me-1"></i> Done
+                                                </span>`).appendTo(container);
                                             } else {
-                                                $("<span>").addClass("badge bg-warning text-dark px-2 py-1").text("In Progress").appendTo(container);
+                                                $(`<span class="badge bg-warning bg-opacity-10 text-warning fw-semibold" style="font-size: 0.85rem;">
+                                                    <i class="fas fa-hourglass-half me-1"></i> In Progress
+                                                </span>`).appendTo(container);
                                             }
                                         }
                                     },
-                                    { dataField: "completedDate", caption: "Completed On", dataType: "datetime", format: "dd/MM/yyyy HH:mm", alignment: "center", width: 140 }
+                                    { 
+                                        dataField: "completedDate", 
+                                        caption: "Completed", 
+                                        dataType: "datetime", 
+                                        format: "dd/MM/yyyy HH:mm", 
+                                        alignment: "center", 
+                                        width: 140,
+                                        cssClass: "text-muted"
+                                    }
                                 ],
                                 onContentReady: () => loadPanel.hide()
                             });
@@ -339,7 +498,7 @@
 
             function showApiError() {
                 loadPanel.hide();
-                DevExpress.ui.notify("Failed to load dashboard data. You may need to log in again.", "error", 4000);
+                DevExpress.ui.notify("Unable to load assignment data. Please try again.", "error", 4000);
             }
         });
     </script>
