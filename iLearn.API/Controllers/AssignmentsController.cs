@@ -15,14 +15,17 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Assignment> _repo;
         private readonly ICourseAssignmentService _assignmentService;
         public readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        public readonly IGenericRepository<Course> _courseRepo;
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
             ICourseAssignmentService assignmentService,
-            IGenericRepository<Enrollment> enrollmentRepo)
+            IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<Course> courseRepo)
         {
             _repo = repo;
             _assignmentService = assignmentService;
             _enrollmentRepo = enrollmentRepo;
+            _courseRepo = courseRepo;
         }
 
         [HttpGet("history")]
@@ -139,5 +142,45 @@ namespace iLearn.API.Controllers
 
             return Ok(new { success = true, data = result });
         }
+
+        [HttpPost("validate-before-assign")]
+        public async Task<IActionResult> ValidateBeforeAssign([FromBody] BulkAssignDto dto)
+        {
+            // หาว่ามี Enrollment ไหนที่พนักงานกลุ่มนี้ กำลังเรียน (IsCompleted = false) ในคอร์สกลุ่มนี้อยู่บ้าง
+            var conflicts = await _enrollmentRepo.GetAsync(
+                filter: e => dto.EmployeeCodes.Contains(e.StudentCode) &&
+                             dto.CourseIds.Contains(e.CourseId ?? 0) &&
+                             !e.IsCompleted,
+                includeProperties: "Course"
+            );
+
+            var result = conflicts.Select(c => new {
+                StudentCode = c.StudentCode,
+                CourseTitle = c.Course?.Title ?? "Unknown",
+                DueDate = c.DueDate
+            }).ToList();
+
+            return Ok(new { success = true, conflicts = result });
+        }
+
+        [HttpGet("lookup-courses")]
+        public async Task<IActionResult> GetLookupCourses()
+        {
+            // ดึงเฉพาะคอร์สที่ใช้งานอยู่ (IsActive) พร้อมผูก DivisionId มาจาก Category
+            var courses = await _courseRepo.GetAsync(c => c.IsActive, includeProperties: "Category");
+
+            var result = courses.Select(c => new LookupCourseDto
+            {
+                Id = c.Id,
+                Code = c.Code,
+                Title = c.Title,
+                CategoryId = c.CategoryId,
+                DivisionId = c.Category?.DivisionId // ดึง DivisionId จาก Category
+            }).ToList();
+
+            return Ok(new { data = result });
+        }
+
+     
     }
 }
