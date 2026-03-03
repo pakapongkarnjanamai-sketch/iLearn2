@@ -4,7 +4,9 @@
 }
 
 <style>
-
+    body {
+        background-color: #f8f9fa;
+    }
 
     .action-card {
         transition: all 0.2s ease-in-out;
@@ -18,15 +20,13 @@
             border-color: #0d6efd !important; /* เปลี่ยนสีกรอบเป็นสีน้ำเงินตอน Hover */
             box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important;
         }
-
- 
 </style>
 
 <div class="bg-white border-bottom mb-4">
     <div class="container-fluid px-4 py-4">
         <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-                <div class="icon-box bg-primary bg-opacity-10 text-primary">
+                <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
                     <i class="fas fa-book-open fs-5"></i>
                 </div>
                 <div>
@@ -44,7 +44,6 @@
 <div class="container px-4 pb-4">
 
     <div class="row g-4 mb-4">
-
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
@@ -66,14 +65,14 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="bg-white p-4 rounded-4 shadow-sm h-100">
+            <div class="bg-white p-4 rounded-4 shadow-sm h-100 border-0">
                 <h5 class="fw-bold text-dark mb-4" style="font-size: 1.15rem;">
                     Quick Actions
                 </h5>
                 <div class="row g-3">
                     <div class="col-12 col-sm-6 col-lg-12">
                         <a href="javascript:void(0);" id="btnNewVersion" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 me-3">
                                 <i class="fas fa-code-branch fs-5"></i>
                             </div>
                             <div>
@@ -85,7 +84,7 @@
 
                     <div class="col-12 col-sm-6 col-lg-12">
                         <a href="javascript:void(0);" id="btnAssignment" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 me-3">
                                 <i class="fas fa-user-plus fs-5"></i>
                             </div>
                             <div>
@@ -97,7 +96,7 @@
 
                     <div class="col-12 col-sm-6 col-lg-12">
                         <a href="javascript:void(0);" id="btnTogglePublish" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3" id="publishIconBox">
+                            <div class="icon-box bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-3 me-3" id="publishIconBox">
                                 <i id="publishIcon" class="fas fa-globe fs-5"></i>
                             </div>
                             <div>
@@ -109,7 +108,7 @@
 
                     <div class="col-12 col-sm-6 col-lg-12">
                         <a href="javascript:void(0);" id="btnDeleteCourse" class="action-card d-flex align-items-center p-3 rounded-4 bg-light shadow-sm text-decoration-none border border-light">
-                            <div class="icon-box bg-danger bg-opacity-10 text-danger me-3">
+                            <div class="icon-box bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-3 me-3">
                                 <i class="fas fa-trash-alt fs-5"></i>
                             </div>
                             <div>
@@ -128,16 +127,15 @@
 
     </div>
 
-  
-        <div class="card-body pb-4">
-            <div id="versionsContainer" class="row g-4">
-                <div class="col-12 text-center text-muted py-5">
-                    <i class="fas fa-circle-notch fa-spin fa-2x mb-2 text-primary"></i>
-                    <p class="mb-0">Loading versions...</p>
-                </div>
+    <div class="card-body pb-4 px-0">
+
+        <div id="versionsContainer" class="row g-4">
+            <div class="col-12 text-center text-muted py-5">
+                <i class="fas fa-circle-notch fa-spin fa-2x mb-2 text-primary"></i>
+                <p class="mb-0">Loading versions...</p>
             </div>
         </div>
-
+    </div>
 
 </div>
 
@@ -146,12 +144,10 @@
         const courseId = @courseId;
         const courseApiUrl = serviceUrl + '/courses';
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-
         const courseTypes = [
             { id: 0, name: 'Special' },
             { id: 1, name: 'General' }
         ];
-
         let isCourseActive = false;
 
         $(async () => {
@@ -164,7 +160,6 @@
                         itemType: "group",
                         colCount: 2,
                         items: [
-                         
                             {
                                 dataField: "categoryId",
                                 label: { text: "Category" },
@@ -188,22 +183,21 @@
                             }
                         ]
                     },
-                       { dataField: "courseCode", label: { text: "Course Code" }, isRequired: true },
+                    { dataField: "courseCode", label: { text: "Course Code" }, isRequired: true },
                     { dataField: "courseName", label: { text: "Course Name" }, isRequired: true },
                     { dataField: "description", label: { text: "Description" }, editorType: "dxTextArea", editorOptions: { height: 80 } }
                 ]
             }).dxForm("instance");
 
-            // Load course - API สาย ICourseService ที่ส่งค่า courseDetailDto
+            // Load course - API
             $.ajax({
                 url: `${courseApiUrl}/${courseId}`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done((response) => {
-                // Response format: { success: true, data: CourseDetailDto }
                 const data = response.data || response;
-                
-                // Map API response ให้สอดคล้องกับ Form
+
+                // Map API response
                 courseForm.option("formData", {
                     courseCode: data.courseCode,
                     courseName: data.courseName,
@@ -211,14 +205,14 @@
                     categoryId: data.categoryId,
                     courseType: data.courseType
                 });
-                
+
                 isCourseActive = data.isActive;
                 updateStatusUI(isCourseActive);
             }).fail((xhr) => {
                 DevExpress.ui.notify("Error loading course: " + (xhr.responseJSON?.message || "Unknown error"), "error", 3000);
             });
 
-            // Save - ใช้ API ใหม่ (PUT /api/courses/{id})
+            // Save
             $("#btnSaveCourse").click(() => {
                 if(!courseForm.validate().isValid) return;
                 const data = courseForm.option("formData");
@@ -234,7 +228,7 @@
                         description: data.description,
                         categoryId: data.categoryId,
                         courseType: data.courseType,
-                        resourceIds: [] // ถ้ามีการจัดการ Resource ให้ส่งไปด้วย
+                        resourceIds: []
                     }),
                     success: (response) => {
                         DevExpress.ui.notify("Course updated successfully", "success", 2000);
@@ -246,7 +240,7 @@
                 });
             });
 
-            // Status UI (ปรับให้ใช้สี Primary/Secondary แทน เขียว/แดง/เหลือง)
+            // Status UI
             function updateStatusUI(isActive) {
                 const publishIcon = $("#publishIcon");
                 const publishIconBox = $("#publishIconBox");
@@ -280,28 +274,21 @@
                 }
             }
 
-          // Toggle Publish - ใช้ API ใหม่ (PATCH /api/courses/{id}/status)
+            // Toggle Publish
             $("#btnTogglePublish").click(function(e) {
                 e.preventDefault();
-
-                // 1. ป้องกันการกดปุ่มซ้ำรัวๆ
                 const $btn = $(this);
                 if ($btn.hasClass("disabled")) return;
                 $btn.addClass("disabled opacity-50 pe-none");
 
-                // 2. กำหนดสถานะใหม่ที่กำลังจะเปลี่ยนไป
                 const newState = !isCourseActive;
-
-                // 3. ข้อความแจ้งเตือนให้ผู้ใช้ยืนยัน
                 const confirmMsg = newState
                     ? "ต้องการเปิดใช้งาน (Publish) หลักสูตรนี้ใช่หรือไม่? พนักงานจะสามารถเข้าเรียนได้ทันที"
                     : "ต้องการปิด (Close) หลักสูตรนี้ใช่หรือไม่? พนักงานจะไม่สามารถเข้าเรียนได้ชั่วคราว";
 
-                // 4. เรียกใช้ Dialog ของ DevExtreme เพื่อให้หน้าเว็บมีการตอบสนอง
                 const result = DevExpress.ui.dialog.confirm(confirmMsg, "ยืนยันการเปลี่ยนสถานะ");
                 result.done(function(dialogResult) {
                     if(dialogResult) {
-                        // ดำเนินการเรียก API
                         $.ajax({
                             url: `${courseApiUrl}/${courseId}/status`,
                             type: 'PATCH',
@@ -311,25 +298,21 @@
                             success: (response) => {
                                 const message = newState ? "เปิดใช้งานหลักสูตรสำเร็จ!" : "ปิดหลักสูตรสำเร็จ!";
                                 DevExpress.ui.notify(message, "success", 1500);
-
-                                // 🌟 5. สั่งรีเฟรชหน้าจอ (Reload) เพื่อให้สถานะทุกส่วนอัปเดตใหม่ทั้งหมด
                                 setTimeout(() => window.location.reload(), 1500);
                             },
                             error: (xhr) => {
                                 const errorMsg = xhr.responseJSON?.message || "เกิดข้อผิดพลาดในการเปลี่ยนสถานะ";
                                 DevExpress.ui.notify(errorMsg, "error", 3000);
-                                // ปลดล็อคปุ่มกรณีเกิด Error
                                 $btn.removeClass("disabled opacity-50 pe-none");
                             }
                         });
                     } else {
-                        // ผู้ใช้กดยกเลิก ให้ปลดล็อคปุ่ม
                         $btn.removeClass("disabled opacity-50 pe-none");
                     }
                 });
             });
 
-            // Delete - ใช้ API ใหม่ (DELETE /api/courses/{id})
+            // Delete Course
             $("#btnDeleteCourse").click(function(e) {
                 e.preventDefault();
                 if($(this).hasClass("disabled")) return;
@@ -360,22 +343,17 @@
                 window.location.href = '@Url.Action("VersionForm", "Courses")?courseId=' + courseId;
             });
 
-            // Assignment - ใช้ API ใหม่ (POST /api/courses/{id}/assign-now)
-         // Assignment - ลิงก์ไปยังหน้า Form ของ Assignments
+            // Assignment
             $("#btnAssignment").click(function(e) {
                 e.preventDefault();
-
-                // ตรวจสอบว่าคอร์สถูก Publish หรือยัง (บังคับให้ต้องเปิดคอร์สก่อนถึงจะมอบหมายได้)
                 if($(this).hasClass("disabled")) {
                     DevExpress.ui.notify("Please publish the course first", "warning", 2000);
                     return;
                 }
-
-                // ส่ง courseId ไปที่หน้า Form เพื่อให้ระบบรู้ว่ากำลังจะมอบหมายงานของคอร์สไหน
                 window.location.href = '@Url.Action("Form", "Assignments")?courseId=' + courseId;
             });
 
-          // Load Versions - ยังใช้ endpoint เดิมของ admin/CourseVersionsCRUD
+            // Load Versions
             function loadVersions() {
                 $.ajax({
                     url: serviceUrl + '/admin/CourseVersionsCRUD/Get',
@@ -389,94 +367,87 @@
                     container.empty();
 
                     if(versions.length === 0) {
-                        container.html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-inbox fa-2x mb-3 text-light"></i><br>No versions found. Create one to get started.</div>');
+                        container.html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-inbox fa-3x mb-3 text-light"></i><br>No versions found. Create one to get started.</div>');
                         return;
                     }
-                            versions.forEach(v => {
-            const isActive = v.isActive;
-            const activeBorderClass = isActive ? 'border-start border-primary border-4' : 'border border-light';
 
-            // 1. จัดการ Dropdown Menu (ให้อยู่ใน Dropdown ทั้งหมด)
-            // เมนู Edit (มีในทุกสถานะ)
-            let dropdownItems = `
-                <li>
-                    <a class="dropdown-item py-2 fw-bold text-dark d-flex align-items-center" href="@Url.Action("VersionForm", "Courses")?id=${v.id}&courseId=${courseId}">
-                        <div class="icon-box bg-warning bg-opacity-10 text-warning me-2" style="width: 26px; height: 26px; border-radius: 5px; font-size: 0.75rem;">
-                            <i class="fas fa-edit"></i>
-                        </div>
-                        Edit
-                    </a>
-                </li>
-            `;
+                    versions.forEach(v => {
+                        const isActive = v.isActive;
+                        const activeBorderClass = isActive ? 'border-start border-primary border-4' : 'border border-light';
 
-            // ถ้ายังไม่ Active ให้เพิ่มปุ่ม Set Active และ Delete เข้าไปใน Dropdown
-            if (!isActive) {
-                dropdownItems = `
-                    <li>
-                        <a class="dropdown-item py-2 fw-bold text-dark d-flex align-items-center" href="javascript:void(0);" onclick="setActiveVersion(${v.id})">
-                            <div class="icon-box bg-primary bg-opacity-10 text-primary me-2" style="width: 26px; height: 26px; border-radius: 5px; font-size: 0.75rem;">
-                                <i class="fas fa-check"></i>
+                        let dropdownItems = `
+                            <li>
+                                <a class="dropdown-item py-2 fw-bold text-dark d-flex align-items-center" href="@Url.Action("VersionForm", "Courses")?id=${v.id}&courseId=${courseId}">
+                                    <div class="icon-box bg-warning bg-opacity-10 text-warning me-2 px-2 py-1 rounded-3" style="font-size: 0.8rem;">
+                                        <i class="fas fa-edit"></i>
+                                    </div>
+                                    Edit
+                                </a>
+                            </li>
+                        `;
+
+                        if (!isActive) {
+                            dropdownItems = `
+                                <li>
+                                    <a class="dropdown-item py-2 fw-bold text-dark d-flex align-items-center" href="javascript:void(0);" onclick="setActiveVersion(${v.id})">
+                                        <div class="icon-box bg-primary bg-opacity-10 text-primary me-2 px-2 py-1 rounded-3" style="font-size: 0.8rem;">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        Set Active
+                                    </a>
+                                </li>
+                                ${dropdownItems}
+                                <li><hr class="dropdown-divider opacity-25 my-1"></li>
+                                <li>
+                                    <a class="dropdown-item py-2 fw-bold text-danger d-flex align-items-center" href="javascript:void(0);" onclick="deleteVersion(${v.id})">
+                                        <div class="icon-box bg-danger bg-opacity-10 text-danger me-2 px-2 py-1 rounded-3" style="font-size: 0.8rem;">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </div>
+                                        Delete
+                                    </a>
+                                </li>
+                            `;
+                        }
+
+                        const rightContent = `
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm text-secondary border-0 px-2 py-1 rounded-3" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Options">
+                                    <i class="fas fa-ellipsis-v fs-6"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 py-2 mt-1">
+                                    ${dropdownItems}
+                                </ul>
                             </div>
-                            Set Active
-                        </a>
-                    </li>
-                    ${dropdownItems}
-                    <li><hr class="dropdown-divider opacity-25 my-1"></li>
-                    <li>
-                        <a class="dropdown-item py-2 fw-bold text-danger d-flex align-items-center" href="javascript:void(0);" onclick="deleteVersion(${v.id})">
-                            <div class="icon-box bg-danger bg-opacity-10 text-danger me-2" style="width: 30px; height: 30px; border-radius: 6px;">
-                                <i class="fas fa-trash-alt"></i>
-                            </div>
-                            Delete
-                        </a>
-                    </li>
-                `;
-            }
+                        `;
 
-            const rightContent = `
-                <div class="dropdown">
-                    <button class="btn btn-light btn-sm text-secondary border-0 px-2 py-1 rounded-3" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Options">
-                        <i class="fas fa-ellipsis-v fs-6"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 py-2 mt-1">
-                        ${dropdownItems}
-                    </ul>
-                </div>
-            `;
+                        const activeIcon = isActive ? `<i class="fas fa-check-circle text-primary me-2 fs-5" title="Active Version"></i>` : '';
 
-            // 2. ย้ายไอคอน Active มาไว้ข้างหน้าชื่อ Version
-            const activeIcon = isActive
-                ? `<i class="fas fa-check-circle text-primary me-2 fs-5" title="Active Version"></i>`
-                : '';
+                        const cardHtml = `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm rounded-4 ${activeBorderClass}" style="background-color: ${isActive ? '#fff' : '#fafafa'};">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="pe-2 d-flex align-items-center">
+                                                ${activeIcon}
+                                                <h6 class="mb-0 fw-bold text-dark fs-5">Version ${v.versionNumber}</h6>
+                                            </div>
+                                            <div class="text-end" style="min-width: 40px;">
+                                                ${rightContent}
+                                            </div>
+                                        </div>
 
-            const cardHtml = `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 border-0 shadow-sm rounded-4 ${activeBorderClass}" style="background-color: ${isActive ? '#fff' : '#fafafa'};">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div class="pe-2 d-flex align-items-center">
-                                    ${activeIcon}
-                                    <h6 class="mb-0 fw-bold text-dark fs-5">Version ${v.versionNumber}</h6>
+                                        <p class="text-muted small mb-3 pb-3 border-bottom" style="min-height: 40px;">${v.note || '<span class="fst-italic">No description</span>'}</p>
+
+                                        <div>
+                                            <div id="res-container-${v.id}" class="small"></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-end" style="min-width: 40px;">
-                                    ${rightContent}
-                                </div>
                             </div>
-
-                            <p class="text-muted small mb-3 pb-3 border-bottom" style="min-height: 40px;">${v.note || '<span class="fst-italic">No description</span>'}</p>
-
-                            <div>
-                                <div id="res-container-${v.id}" class="small"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            container.append(cardHtml);
-            loadVersionResources(v.id);
-        });
-                   
+                        `;
+                        container.append(cardHtml);
+                        loadVersionResources(v.id);
+                    });
                 }).fail(function(xhr) {
                     console.error("Error loading versions:", xhr);
                     const container = $("#versionsContainer");
@@ -484,53 +455,48 @@
                 });
             }
 
-                  function loadVersionResources(versionId) {
-            $.ajax({
-                url: serviceUrl + '/admin/CourseResourcesCRUD/Get',
-                data: { filter: JSON.stringify(["courseVersionId", "=", versionId]), expand: "resource" },
-                xhrFields: { withCredentials: true }
-            }).done(function(res) {
-                let resources = (res.data || res) instanceof Array ? (res.data || res) : [];
-                const resContainer = $(`#res-container-${versionId}`);
-                resContainer.empty();
+            function loadVersionResources(versionId) {
+                $.ajax({
+                    url: serviceUrl + '/admin/CourseResourcesCRUD/Get',
+                    data: { filter: JSON.stringify(["courseVersionId", "=", versionId]), expand: "resource" },
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    let resources = (res.data || res) instanceof Array ? (res.data || res) : [];
+                    const resContainer = $(`#res-container-${versionId}`);
+                    resContainer.empty();
 
-                if(resources.length === 0) {
-                    resContainer.html('<span class="text-muted fst-italic">No files</span>');
-                    return;
-                }
+                    if(resources.length === 0) {
+                        resContainer.html('<span class="text-muted fst-italic">No files</span>');
+                        return;
+                    }
 
-                // [เพิ่มใหม่] เรียงลำดับตาม Property Order จากน้อยไปมาก
-                // ถ้าข้อมูลเก่าไม่มี order ให้จัดการเผื่อไว้ (fallback เป็น 0)
-                resources.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    resources.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-                resources.forEach((cr, index) => {
-                    const r = cr.resource;
-                    if(!r) return;
+                    resources.forEach((cr, index) => {
+                        const r = cr.resource;
+                        if(!r) return;
 
-                    // นำลำดับจาก Database มาโชว์ ถ้าไม่มีให้ใช้ index + 1
-                    const orderNumber = cr.order !== undefined && cr.order !== null ? cr.order : (index + 1);
+                        const orderNumber = cr.order !== undefined && cr.order !== null ? cr.order : (index + 1);
+                        const icon = r.typeId === 1 ? 'fa-book text-secondary' : 'fa-file-alt text-secondary';
+                        const previewBtn = r.isActive ? `<button class="btn btn-sm btn-link text-primary p-0 ms-2 text-decoration-none fw-medium" onclick="window.viewContent(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="Preview">Preview</button>` : '';
 
-                    const icon = r.typeId === 1 ? 'fa-book text-secondary' : 'fa-file-alt text-secondary';
-                    const previewBtn = r.isActive ? `<button class="btn btn-sm btn-link text-primary p-0 ms-2 text-decoration-none" onclick="window.viewContent(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="Preview">Preview</button>` : '';
-
-                    // [เพิ่มส่วนแสดง Order Badge] <span class="badge bg-light text-dark border me-2">${orderNumber}</span>
-                    resContainer.append(`
-                        <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-white border rounded-3 shadow-sm">
-                            <span class="badge bg-light text-dark border me-1" style="min-width: 25px;">${orderNumber}</span>
-                            <i class="fas ${icon} ms-1"></i>
-                            <span class="text-truncate flex-grow-1 text-dark" title="${r.name}">${r.name}</span>
-                            ${previewBtn}
-                        </div>
-                    `);
+                        resContainer.append(`
+                            <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-white border border-light rounded-3 shadow-sm">
+                                <span class="badge bg-light text-dark border me-1" style="min-width: 25px;">${orderNumber}</span>
+                                <i class="fas ${icon} ms-1"></i>
+                                <span class="text-truncate flex-grow-1 text-dark fw-medium" title="${r.name}">${r.name}</span>
+                                ${previewBtn}
+                            </div>
+                        `);
+                    });
+                }).fail(function(xhr) {
+                    console.error("Error loading version resources:", xhr);
                 });
-            }).fail(function(xhr) {
-                console.error("Error loading version resources:", xhr);
-            });
-        }
+            }
+
             // Preview Content
             window.viewContent = function(resourceId, resourceName) {
                 const apiUrl = `${serviceUrl}/Resources/${resourceId}/content`;
-
                 if (resourceName.toLowerCase().endsWith('.zip')) {
                     const win = window.open('about:blank', '_blank');
                     if (win) {
@@ -560,7 +526,7 @@
                 }
             };
 
-            // Set Active Version - ใช้ API ใหม่ (PATCH /api/courses/{courseId}/versions/{versionId}/set-active)
+            // Set Active Version
             window.setActiveVersion = function(vId) {
                 $.ajax({
                     url: `${courseApiUrl}/${courseId}/versions/${vId}/set-active`,
@@ -577,7 +543,7 @@
                 });
             };
 
-            // Delete Version - ยังใช้ endpoint เดิม
+            // Delete Version
             window.deleteVersion = function(vId) {
                 const result = DevExpress.ui.dialog.confirm("Delete this version?", "Confirm Delete");
                 result.done(function(dialogResult) {

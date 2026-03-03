@@ -2,28 +2,32 @@
     ViewBag.Title = "Assignments History";
 }
 
-<div class="bg-white border-bottom mb-4">
-    <div class="container-fluid px-4 py-4">
-        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
-            <div class="d-flex align-items-center gap-3">
-                <div class="icon-box bg-primary bg-opacity-10 text-primary">
-                    <i class="fas fa-tasks fs-5"></i>
-                </div>
-                <div>
-                    <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                    <small class="text-muted">View and manage all course assignments. Track employee learning progress.</small>
-                </div>
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+</style>
+
+<div class="bg-white border-bottom mb-4 py-4">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
+                <i class="fas fa-tasks fs-5"></i>
             </div>
-            <a href="@Url.Action("Form", "Assignments")" class="btn btn-primary rounded-2 px-4 py-2 d-flex align-items-center gap-2">
-                <i class="fas fa-plus"></i> New Assignment
-            </a>
+            <div>
+                <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
+                <small class="text-muted">View and manage all course assignments. Track employee learning progress.</small>
+            </div>
         </div>
+        <a href="@Url.Action("Form", "Assignments")" class="btn btn-primary rounded-3 shadow-sm px-4 py-2 d-flex align-items-center gap-2 fw-medium">
+            <i class="fas fa-plus"></i> New Assignment
+        </a>
     </div>
 </div>
 
 <div class="container-fluid px-4 pb-5">
-    <div class="card border rounded-3" style="border-color: #e8ecf1 !important; box-shadow: none;">
-        <div class="card-body p-0">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0 pt-2">
             <div id="grid"></div>
         </div>
     </div>
@@ -35,7 +39,6 @@
 
         $(() => {
             gridInstance = initDxGrid("#grid", {
-                // Load data from API
                 dataSource: new DevExpress.data.CustomStore({
                     key: "id",
                     load: function () {
@@ -53,162 +56,78 @@
                 showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: false,
+                hoverStateEnabled: true,
 
-                // Search & Filter
-                searchPanel: {
-                    visible: true,
-                    placeholder: "Search assignments..."
-                },
+                searchPanel: { visible: true, placeholder: "Search assignments..." },
                 headerFilter: { visible: true },
-
-                // Edit mode
                 editing: {
                     mode: "popup",
                     allowUpdating: false,
                     allowDeleting: true,
                     allowAdding: false,
                     useIcons: true,
-                    texts: {
-                        confirmDeleteMessage: "Are you sure you want to delete this assignment?\n(All associated course enrollments will be removed)"
-                    }
+                    texts: { confirmDeleteMessage: "Are you sure you want to delete this assignment?\n(All associated course enrollments will be removed)" }
                 },
 
                 columns: [
                     {
-                        dataField: "assignmentNo",
-                        caption: "Assignment No",
-                        width: 140,
-                        alignment: "center",
-                        sortOrder: "desc",
+                        dataField: "assignmentNo", caption: "Assignment No", width: 140, alignment: "center", sortOrder: "desc",
                         cellTemplate: function(container, options) {
-                            $("<span class='fw-bold text-dark'>")
-                                .text(options.value || '-')
-                                .appendTo(container);
+                            $("<span class='fw-bold text-dark'>").text(options.value || '-').appendTo(container);
                         }
                     },
                     {
-                        dataField: "courseNames",
-                        caption: "Assigned Courses",
-                        minWidth: 280,
+                        dataField: "courseNames", caption: "Assigned Courses", minWidth: 280,
                         cellTemplate: function(container, options) {
                             const courses = options.value ? options.value.split(', ').filter(c => c.trim()) : [];
-
-                            if (courses.length === 0) {
-                                $("<span class='text-muted'>-</span>").appendTo(container);
-                                return;
-                            }
-
+                            if (courses.length === 0) { $("<span class='text-muted'>-</span>").appendTo(container); return; }
                             const wrapper = $("<div class='d-flex flex-wrap gap-1'></div>").appendTo(container);
                             courses.forEach(course => {
-                                $(`<span class='badge bg-light text-dark border' style="border-color: #e8ecf1 !important; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500;">${course}</span>`)
-                                    .appendTo(wrapper);
+                                $(`<span class='badge bg-light text-dark border px-2 py-1 rounded-2 fw-medium'>${course}</span>`).appendTo(wrapper);
                             });
                         }
                     },
                     {
-                        dataField: "description",
-                        caption: "Description",
-                        minWidth: 200,
+                        dataField: "description", caption: "Description", minWidth: 200,
                         cellTemplate: function(container, options) {
                             const text = options.value || '-';
                             const truncated = text.length > 60 ? text.substring(0, 60) + '...' : text;
-                            $("<span class='text-muted'>")
-                                .text(truncated)
-                                .attr('title', text)
-                                .appendTo(container);
+                            $("<span class='text-muted'>").text(truncated).attr('title', text).appendTo(container);
                         }
                     },
                     {
-                        dataField: "employeeCodes",
-                        caption: "Assigned To",
-                        width: 130,
-                        alignment: "center",
+                        dataField: "employeeCodes", caption: "Assigned To", width: 130, alignment: "center",
                         cellTemplate: function(container, options) {
                             const count = options.value ? options.value.split(',').length : 0;
-                            $("<span class='badge' style='background-color: #f8fbff; border: 1px solid #0d6efd; border-opacity: 0.25; color: #0d6efd; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;'>")
-                                .html(`<i class="fas fa-users me-1"></i> ${count}`)
-                                .appendTo(container);
+                            $("<span class='badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-bold'>")
+                                .html(`<i class="fas fa-users me-1"></i> ${count}`).appendTo(container);
                         }
                     },
+                    { dataField: "startDate", caption: "Start Date", dataType: "date", format: "dd/MM/yyyy", width: 120, alignment: "center" },
+                    { dataField: "dueDate", caption: "Due Date", dataType: "date", format: "dd/MM/yyyy", width: 120, alignment: "center" },
                     {
-                        dataField: "startDate",
-                        caption: "Start Date",
-                        dataType: "date",
-                        format: "dd/MM/yyyy",
-                        width: 120,
-                        alignment: "center"
-                    },
-                    {
-                        dataField: "dueDate",
-                        caption: "Due Date",
-                        dataType: "date",
-                        format: "dd/MM/yyyy",
-                        width: 120,
-                        alignment: "center"
-                    },
-                    {
-                        dataField: "status",
-                        caption: "Status",
-                        width: 140,
-                        alignment: "center",
+                        dataField: "status", caption: "Status", width: 140, alignment: "center",
                         cellTemplate: function(container, options) {
                             const status = options.value;
-                            let badgeClass = "";
-                            let icon = "";
-                            let text = status || "Unknown";
+                            let badgeClass = "", icon = "", text = status || "Unknown";
 
-                            // กำหนดสีและไอคอนตามสถานะ
                             switch(status) {
-                                case "Completed":
-                                    badgeClass = "bg-success bg-opacity-10 text-success border-success";
-                                    icon = "fa-check-circle";
-                                    text = "Completed";
-                                    break;
-                                case "Upcoming":
-                                    badgeClass = "bg-warning bg-opacity-10 text-warning border-warning";
-                                    icon = "fa-clock";
-                                    text = "Upcoming";
-                                    break;
-                                case "Expired":
-                                    badgeClass = "bg-danger bg-opacity-10 text-danger border-danger";
-                                    icon = "fa-times-circle";
-                                    text = "Expired";
-                                    break;
-                                case "InProgress":
-                                    badgeClass = "bg-primary bg-opacity-10 text-primary border-primary";
-                                    icon = "fa-play-circle";
-                                    text = "In Progress";
-                                    break;
-                                default:
-                                    badgeClass = "bg-secondary bg-opacity-10 text-secondary border-secondary";
-                                    icon = "fa-circle";
-                                    break;
+                                case "Completed": badgeClass = "bg-success bg-opacity-10 text-success border-success"; icon = "fa-check-circle"; text = "Completed"; break;
+                                case "Upcoming": badgeClass = "bg-warning bg-opacity-10 text-warning border-warning"; icon = "fa-clock"; text = "Upcoming"; break;
+                                case "Expired": badgeClass = "bg-danger bg-opacity-10 text-danger border-danger"; icon = "fa-times-circle"; text = "Expired"; break;
+                                case "InProgress": badgeClass = "bg-primary bg-opacity-10 text-primary border-primary"; icon = "fa-play-circle"; text = "In Progress"; break;
+                                default: badgeClass = "bg-secondary bg-opacity-10 text-secondary border-secondary"; icon = "fa-circle"; break;
                             }
 
-                            // สร้าง UI สำหรับ Badge
-                            $("<span>")
-                                .addClass(`badge border border-opacity-25 px-3 py-1 rounded-pill fw-medium ${badgeClass}`)
-                                .html(`<i class="fas ${icon} me-1" style="font-size: 0.75rem;"></i>${text}`)
-                                .appendTo(container);
+                            $("<span>").addClass(`badge border border-opacity-25 px-3 py-1 rounded-pill fw-medium ${badgeClass}`)
+                                .html(`<i class="fas ${icon} me-1" style="font-size: 0.75rem;"></i>${text}`).appendTo(container);
                         }
                     },
                     {
-                        type: "buttons",
-                        caption: "Actions",
-                        width: 110,
-                        alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
+                        type: "buttons", caption: "Actions", width: 110, alignment: "center", fixed: true, fixedPosition: "right",
                         buttons: [
-                            {
-                                hint: "View Progress Dashboard",
-                                icon: "info",
-                                onClick: function(e) {
-                                    window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`;
-                                }
-                            },
-                           
-                            
+                            { hint: "View Dashboard", icon: "info", onClick: function(e) { window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`; } },
+                            { hint: "Delete", icon: "trash", onClick: function(e) { if (confirm('Delete this assignment? All associated enrollments will be removed.')) { gridInstance.deleteRow(e.row.rowIndex); } } }
                         ]
                     }
                 ]

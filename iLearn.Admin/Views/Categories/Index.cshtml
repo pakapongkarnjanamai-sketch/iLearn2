@@ -8,75 +8,65 @@
         background-color: #f8f9fa;
     }
 
-    /* กล่องสำหรับใส่ Icon ใน Header ให้เป็นสัดส่วนเดียวกับหน้าอื่นๆ */
-    .icon-box {
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        flex-shrink: 0;
+    /* Override ความสูงของ TreeView และ Grid เพื่อให้เต็มการ์ดพอดี */
+    .dx-treeview, .dx-datagrid {
+        height: 100% !important;
     }
 </style>
 
-<div class="bg-white border-bottom mb-4">
-    <div class="container-fluid px-4 py-4">
-        <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <div class="icon-box bg-primary bg-opacity-10 text-primary">
-                    <i class="fas fa-tags fs-5"></i>
-                </div>
-                <div>
-                    <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                    <small class="text-muted">Manage course categories and assign them to divisions.</small>
-                </div>
+<div class="bg-white border-bottom mb-4 py-4">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
+                <i class="fas fa-tags fs-5"></i>
             </div>
             <div>
-                <button class="btn btn-primary rounded-3 shadow-sm px-4 py-2" onclick="addNewCategory()">
-                    <i class="fas fa-plus me-1"></i> New Category
-                </button>
+                <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
+                <small class="text-muted">Manage course categories and assign them to divisions.</small>
             </div>
+        </div>
+        <div>
+            <button class="btn btn-primary rounded-3 shadow-sm px-4 py-2 fw-medium" onclick="addNewCategory()">
+                <i class="fas fa-plus me-1"></i> New Category
+            </button>
         </div>
     </div>
 </div>
 
-<div class="container-fluid px-4 pb-5 mb-5">
-    <div class="row g-4">
-        <div class="col-md-4 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
-                    <h6 class="mb-0 fw-bold text-dark" style="font-size: 1.1rem;">
+<div class="container-fluid px-4 pb-5 mb-5" style="height: calc(100vh - 180px);">
+    <div class="row g-4 h-100">
+
+        <div class="col-md-4 col-lg-3 h-100">
+            <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4">
+                    <h6 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-sitemap me-2 text-primary"></i> Filter by Division
                     </h6>
                 </div>
-                <div class="card-body px-3 pb-4">
+                <div class="card-body px-3 pb-4 flex-grow-1 overflow-hidden">
                     <div id="divisionTreeView"></div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-8 col-lg-9">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-4">
-                    <div class="rounded-3 overflow-hidden border border-light">
-                        <div id="grid"></div>
-                    </div>
+        <div class="col-md-8 col-lg-9 h-100">
+            <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
+                <div class="card-body p-0 flex-grow-1 overflow-hidden rounded-4">
+                    <div id="grid"></div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
 @section Scripts {
     <script>
         let gridInstance;
-
         // DataStores
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD');
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
 
-        // เปลี่ยนฟังก์ชันหลักเป็น async เพื่อให้รองรับการดึงข้อมูลสร้าง TreeView
         $(async () => {
 
             // ==========================================
@@ -84,16 +74,16 @@
             // ==========================================
             gridInstance = initDxGrid("#grid", {
                 dataSource: categoriesStore,
-                height: "calc(100vh - 230px)", // จำกัดความสูงให้อยู่ในหน้าจอ
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { placeholder: "Search categories..." },
 
                 // --- ปรับแต่ง UI ตารางหลักให้คลีน ---
-                showBorders: false,
-                rowAlternationEnabled: true,
-                showRowLines: true,
+                showBorders: false, // ปิดขอบตาราง
+                rowAlternationEnabled: false, // ปิดสีสลับแถวให้ดูสะอาดตาขึ้น
+                showRowLines: true, // โชว์แค่เส้นใต้แถว
                 hoverStateEnabled: true,
+                scrolling: { mode: "virtual" },
 
                // Editing Configuration (Popup)
                 editing: {
@@ -111,8 +101,7 @@
                         position: { my: "center", at: "center", of: window },
                         dragEnabled: true,
                         hideOnOutsideClick: true,
-                        // ปรับหน้าตา popup ให้มุมมน (ผ่าน wrapper class)
-                        wrapperAttr: { class: "rounded-4" }
+                        wrapperAttr: { class: "rounded-4 shadow-lg" } // เพิ่มเงาให้ Popup
                     },
                     form: {
                         labelLocation: "top",
@@ -166,6 +155,7 @@
                         alignment: "center",
                         allowEditing: false,
                         sortOrder: 'desc',
+                        cssClass: "text-muted"
                     },
                     {
                         dataField: "name",
@@ -196,16 +186,15 @@
                         },
                         cellTemplate: function(container, options) {
                             const isActive = options.value;
-                            // ปรับสไตล์ Badge ให้ดูนุ่มนวลโปร่งใสขึ้น
                             if (isActive) {
                                 $("<span>")
-                                    .addClass("badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill fw-normal")
-                                    .html('<i class="fas fa-check-circle me-1"></i> Active')
+                                    .addClass("badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill fw-medium")
+                                    .html('<i class="fas fa-check me-1"></i> Active')
                                     .appendTo(container);
                             } else {
                                 $("<span>")
-                                    .addClass("badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill fw-normal")
-                                    .html('<i class="fas fa-times-circle me-1"></i> Inactive')
+                                    .addClass("badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill fw-medium")
+                                    .html('<i class="fas fa-times me-1"></i> Inactive')
                                     .appendTo(container);
                             }
                         }
@@ -222,7 +211,7 @@
                             "edit",
                             {
                                 name: "delete",
-                                // เงื่อนไข: ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
+                                // ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
                                 visible: function(e) {
                                     return e.row.data.isActive === false;
                                 }
@@ -236,20 +225,15 @@
             // 2. ดึงข้อมูล Divisions และสร้าง TreeView ด้านซ้าย
             // ==========================================
             try {
-                // ดึงข้อมูล Division ทั้งหมด
                 const divisionsData = await divisionsStore.load();
-
-                // เรียงลำดับชื่อ A-Z
                 divisionsData.sort((a, b) => (a.name > b.name) ? 1 : -1);
 
-                // สร้างโครงสร้างข้อมูลสำหรับ TreeView
                 const treeData = [{
                     id: 'root',
                     text: 'All Categories',
                     icon: 'home',
                     expanded: true,
                     isRoot: true,
-                    // สร้าง Node ย่อยเป็นรายชื่อ Division
                     items: divisionsData.map(d => ({
                         id: 'div_' + d.id,
                         text: d.isActive ? d.name : `🚫 ${d.name} (Draft)`,
@@ -258,10 +242,8 @@
                     }))
                 }];
 
-                // สร้าง dxTreeView
                 $("#divisionTreeView").dxTreeView({
                     dataSource: treeData,
-                    height: "calc(100vh - 280px)",
                     dataStructure: 'tree',
                     keyExpr: 'id',
                     displayExpr: 'text',
@@ -275,25 +257,22 @@
 
                         const grid = gridElement.dxDataGrid("instance");
 
-                        // ระบบกรอง (Filter)
                         if (node.isRoot) {
-                            grid.clearFilter(); // ล้าง Filter ดูทั้งหมด
+                            grid.clearFilter();
                         } else if (node.divisionId) {
-                            grid.filter(["divisionId", "=", node.divisionId]); // กรองตาม Division ID
+                            grid.filter(["divisionId", "=", node.divisionId]);
                         }
                     },
                     onContentReady: function(e) {
-                        // เลือก Root (All Categories) เป็นค่าเริ่มต้น
                         e.component.selectItem('root');
                     }
                 });
-
             } catch (err) {
                 console.error("Error loading divisions for treeview", err);
             }
         });
 
-        // ฟังก์ชันสำหรับปุ่ม New Category ด้านบน
+        // ฟังก์ชันสำหรับปุ่ม New Category
         function addNewCategory() {
             if (gridInstance) {
                 gridInstance.addRow();
