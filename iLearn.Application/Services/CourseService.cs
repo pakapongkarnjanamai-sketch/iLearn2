@@ -289,14 +289,7 @@ namespace iLearn.Application.Services
             }
         }
 
-        public async Task TriggerAssignmentAsync(int courseId)
-        {
-            var course = await _courseRepo.GetByIdAsync(courseId);
-            if (course == null)
-                throw new KeyNotFoundException($"Course ID: {courseId} ไม่พบในระบบ");
-
-            await _assignmentService.ProcessAssignmentForCourseAsync(courseId);
-        }
+ 
 
         private async Task AddResourcesToCourseVersionAsync(int versionId, List<int> resourceIds)
         {
@@ -344,10 +337,10 @@ namespace iLearn.Application.Services
 
             await _courseRepo.UpdateAsync(course);
 
-            if (isActive && course.Type == CourseType.General)
-            {
-                await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);
-            }
+            //if (isActive && course.Type == CourseType.General)
+            //{
+            //    await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);
+            //}
 
             return course.IsActive;
         }

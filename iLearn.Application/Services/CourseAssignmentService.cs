@@ -32,23 +32,7 @@ namespace iLearn.Application.Services
             _versionRepo = versionRepo;
         }
 
-        // --- 1. ฟังก์ชันจับคู่กฎ ---
-        private Assignment? GetMatchingRuleForStudent(StudentDto student, IReadOnlyList<Assignment>  assignments)
-        {
-            if (assignments == null || !assignments.Any()) return null;
-
-            foreach (var assignment in assignments)
-            {
-                bool divisionMatch = string.IsNullOrEmpty(assignment.Division) || student.Division == assignment.Division;
-                if (divisionMatch)
-                {
-                    return assignment;
-                }
-            }
-            return null;
-        }
-
-        // --- 2. กรณีพนักงานใหม่เข้ามา ---
+     
         public async Task AssignGeneralCoursesToNewUserAsync(string employeeId)
         {
             var activeCourses = await _courseRepo.GetActiveCoursesAsync();
@@ -60,42 +44,7 @@ namespace iLearn.Application.Services
             }
         }
 
-        // --- 3. กรณี Admin กด Assign หรือสร้างคอร์สใหม่ ---
-        public async Task ProcessAssignmentForCourseAsync(int courseId)
-        {
-            var course = await _courseRepo.GetByIdAsync(courseId);
-            if (course == null || !course.IsActive) return;
-
-            var apiResponse = await _studentApiService.GetStudentAsync();
-            if (apiResponse == null || !apiResponse.success || apiResponse.data == null) return;
-
-            var allStudents = apiResponse.data;
-            var assignments = await _assignmentRepo.GetAsync(r => r.CourseId == courseId);
-
-            foreach (var student in allStudents)
-            {
-                Assignment? matchedAssignment = null;
-                bool shouldAssign = false;
-
-                if (course.Type == CourseType.General)
-                {
-                    shouldAssign = true;
-                }
-                else if (course.Type == CourseType.Special)
-                {
-                    matchedAssignment = GetMatchingRuleForStudent(student, assignments);
-                    shouldAssign = matchedAssignment != null;
-                }
-
-                if (shouldAssign)
-                {
-                    // ส่งข้อมูล ID และ Date แยกส่วนเข้าไป เพื่อให้ Helper method รับค่าง่ายขึ้น
-                    await CreateOrUpdateEnrollment(student.EId, course, matchedAssignment?.Id, matchedAssignment?.StartDate, matchedAssignment?.DueDate);
-                }
-            }
-        }
-
-        // --- [NEW] 4. ฟังก์ชันสำหรับการ Assign จากหน้าจอมอบหมายงานโดยตรง ---
+       
         public async Task AssignCourseToEmployees(int courseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, int? assignmentRuleId = null)
         {
             if (employeeCodes == null || !employeeCodes.Any()) return;

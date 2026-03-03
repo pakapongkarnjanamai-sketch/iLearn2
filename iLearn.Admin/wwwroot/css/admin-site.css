@@ -11,7 +11,16 @@ body {
     padding-top: 60px;
     color: #333;
 }
-
+/* กล่องสำหรับใส่ Icon ให้ดูเป็นสัดส่วนและนุ่มนวลขึ้น */
+.icon-box {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
 /* ----------------------------------------------------------------- */
 /* Navbar (รูปแบบเดิม)                                                */
 /* ----------------------------------------------------------------- */

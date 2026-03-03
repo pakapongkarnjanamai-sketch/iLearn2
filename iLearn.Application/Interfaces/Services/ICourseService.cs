@@ -21,8 +21,7 @@ namespace iLearn.Application.Interfaces.Services
         // Delete Operations
         Task DeleteCourseAsync(int id);
         
-        // Assignment
-        Task TriggerAssignmentAsync(int courseId);
+      
 
     }
 }

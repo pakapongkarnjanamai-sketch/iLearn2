@@ -94,19 +94,6 @@ namespace iLearn.API.Controllers
             }
         }
 
-        [HttpPost("{id}/assign-now")]
-        public async Task<IActionResult> TriggerAssignment(int id)
-        {
-            try
-            {
-                await _courseService.TriggerAssignmentAsync(id);
-                return Ok(new { success = true, message = "เริ่มกระบวนการมอบหมายหลักสูตรแล้ว" });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { success = false, message = ex.Message });
-            }
-        }
 
         [HttpPost("create-scorm")]
         [Consumes("multipart/form-data")]
