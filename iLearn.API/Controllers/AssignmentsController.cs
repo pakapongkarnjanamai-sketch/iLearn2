@@ -14,44 +14,25 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<Assignment> _repo;
         private readonly ICourseAssignmentService _assignmentService;
-
+        public readonly IGenericRepository<Enrollment> _enrollmentRepo;
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
-            ICourseAssignmentService assignmentService)
+            ICourseAssignmentService assignmentService,
+            IGenericRepository<Enrollment> enrollmentRepo)
         {
             _repo = repo;
             _assignmentService = assignmentService;
+            _enrollmentRepo = enrollmentRepo;
         }
 
-        // --- [NEW] API สำหรับดึงประวัติมาแสดงที่หน้า Index แบบยุบรวม Row ---
         [HttpGet("history")]
         public async Task<IActionResult> GetHistory()
         {
-            // 1. ดึงข้อมูล Rule ทั้งหมด และบอก Repository ให้ Include ตาราง Course มาด้วย
-            var assignments = await _repo.GetAsync(includeProperties: "Course");
-
-            // 2. จัดกลุ่มข้อมูล (Group By) ด้วย AssignmentNo
-            var groupedHistory = assignments
-                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo)) // ป้องกันรายการที่ไม่มีเลขที่
-                .GroupBy(r => r.AssignmentNo)
-                .Select(g => new
-                {
-                    // ใช้ Id ของวิชาแรกในกลุ่ม เป็นตัวแทนเพื่อส่งไปหน้า Progress Dashboard
-                    Id = g.First().Id,
-                    AssignmentNo = g.Key,
-                    Description = g.First().Description,
-                    EmployeeCodes = g.First().EmployeeCodes,
-                    StartDate = g.First().StartDate,
-                    DueDate = g.First().DueDate,
-
-                    // 3. เอาชื่อ Course ของทุก Row ในกลุ่มนี้มาต่อกันด้วยเครื่องหมายจุลภาค (Comma)
-                    CourseNames = string.Join(", ", g.Select(c => c.Course?.Title ?? "Unknown Course").Distinct())
-                })
-                .OrderByDescending(x => x.AssignmentNo) // เรียงจากล่าสุดไปเก่าสุด
-                .ToList();
+            // เรียกใช้ Logic จาก Service ที่เราสร้างไว้ 
+            var history = await _assignmentService.GetAssignmentHistoryAsync();
 
             // ส่งกลับในรูปแบบที่ DevExtreme ต้องการ
-            return Ok(new { data = groupedHistory, totalCount = groupedHistory.Count });
+            return Ok(new { data = history, totalCount = history.Count });
         }
 
         [HttpGet("course/{courseId}")]
@@ -67,14 +48,96 @@ namespace iLearn.API.Controllers
             var rule = await _repo.GetByIdAsync(id);
             if (rule == null) return NotFound();
 
-            // Optional: ถ้าจะลบ ควรเขียน Logic ลบทุก Rule ที่มี AssignmentNo เดียวกันด้วย
             var relatedRules = await _repo.GetAsync(r => r.AssignmentNo == rule.AssignmentNo);
+            var relatedRuleIds = relatedRules.Select(r => r.Id).ToList();
+
+            // 🌟 3. ค้นหา Enrollment ทั้งหมดที่ผูกกับ Assignment กลุ่มนี้
+            var relatedEnrollments = await _enrollmentRepo.GetAsync(e =>
+                e.AssignmentRuleId.HasValue && relatedRuleIds.Contains(e.AssignmentRuleId.Value));
+
+            // 🌟 4. สั่งลบ Enrollment (ลูก) ทิ้งก่อน
+            foreach (var enrollment in relatedEnrollments)
+            {
+                await _enrollmentRepo.DeleteAsync(enrollment);
+            }
+
+            // 🌟 5. เมื่อลบลูกหมดแล้ว จึงจะสามารถลบ Assignment (แม่) ได้อย่างปลอดภัย
             foreach (var r in relatedRules)
             {
                 await _repo.DeleteAsync(r);
             }
 
             return NoContent();
+        }
+        [HttpGet("dashboard/{id}")]
+        public async Task<IActionResult> GetDashboardData(int id)
+        {
+            // 1. หา Assignment หลักเพื่อเอา AssignmentNo
+            var mainRule = await _repo.GetByIdAsync(id);
+            if (mainRule == null) return NotFound(new { message = "Assignment not found" });
+
+            // 2. ดึง Assignments ทั้งหมดในกลุ่มเดียวกัน พร้อมข้อมูล Course
+            var allRules = await _repo.GetAsync(
+                r => r.AssignmentNo == mainRule.AssignmentNo,
+                includeProperties: "Course"
+            );
+
+            var ruleIds = allRules.Select(r => r.Id).ToList();
+
+            // 3. ดึง Enrollments เฉพาะที่ผูกกับ Rule ในกลุ่มนี้
+            var enrollments = await _enrollmentRepo.GetAsync(
+                e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value)
+            );
+
+            // 4. คำนวณสถิติ
+            var totalEnrollments = enrollments.Count();
+            var completedCount = enrollments.Count(e => e.IsCompleted);
+            var inProgressCount = enrollments.Count(e => !e.IsCompleted && e.Progress > 0);
+            var notStartedCount = totalEnrollments - completedCount - inProgressCount;
+            var uniqueStudentsCount = enrollments.Select(e => e.StudentCode).Distinct().Count();
+            var completionRate = totalEnrollments == 0 ? 0 : Math.Round(((double)completedCount / totalEnrollments) * 100);
+
+            // 5. เตรียมข้อมูลสรุปรายวิชา
+            var courseSummaries = allRules.Select(r => new CourseSummaryDto
+            {
+                AssignmentRuleId = r.Id,
+                CourseCode = r.Course?.Code ?? "-",
+                CourseTitle = r.Course?.Title ?? "Unknown Course",
+                CompletedStudents = enrollments.Count(e => e.AssignmentRuleId == r.Id && e.IsCompleted),
+                TotalStudents = enrollments.Count(e => e.AssignmentRuleId == r.Id)
+            }).ToList();
+
+            // 6. เตรียมข้อมูลนักเรียน
+            var studentsProgress = enrollments.Select(e => new StudentProgressDto
+            {
+                StudentCode = e.StudentCode,
+                AssignmentRuleId = e.AssignmentRuleId,
+                Progress = e.Progress,
+                IsCompleted = e.IsCompleted,
+                CompletedDate = e.CompletedDate
+            }).ToList();
+
+            // 7. ประกอบร่าง DTO
+            var result = new AssignmentDashboardDto
+            {
+                AssignmentNo = mainRule.AssignmentNo,
+                Description = mainRule.Description,
+                StartDate = mainRule.StartDate,
+                DueDate = mainRule.DueDate,
+                TotalEmployees = uniqueStudentsCount,
+                TotalCourses = allRules.Count(),
+                CompletionRate = completionRate,
+                ChartData = new DashboardChartDto
+                {
+                    Completed = completedCount,
+                    InProgress = inProgressCount,
+                    NotStarted = notStartedCount
+                },
+                Courses = courseSummaries,
+                Students = studentsProgress
+            };
+
+            return Ok(new { success = true, data = result });
         }
     }
 }

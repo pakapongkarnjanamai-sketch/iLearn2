@@ -1,4 +1,5 @@
-﻿using System;
+﻿using iLearn.Application.DTOs;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -11,5 +12,7 @@ namespace iLearn.Application.Interfaces.Services
 
         // [New] ฟังก์ชันสำหรับการ Assign รายบุคคลแบบเจาะจง (Bulk Assign)
         Task AssignCourseToEmployees(int courseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, int? assignmentRuleId = null);
+
+        Task<List<AssignmentHistoryDto>> GetAssignmentHistoryAsync();
     }
 }

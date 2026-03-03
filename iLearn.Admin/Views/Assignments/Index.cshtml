@@ -2,9 +2,6 @@
     ViewBag.Title = "Assignments History";
 }
 
-
-
-<!-- Header -->
 <div class="bg-white border-bottom mb-4">
     <div class="container-fluid px-4 py-4">
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
@@ -24,7 +21,6 @@
     </div>
 </div>
 
-<!-- Main Content -->
 <div class="container-fluid px-4 pb-5">
     <div class="card border rounded-3" style="border-color: #e8ecf1 !important; box-shadow: none;">
         <div class="card-body p-0">
@@ -96,7 +92,7 @@
                         minWidth: 280,
                         cellTemplate: function(container, options) {
                             const courses = options.value ? options.value.split(', ').filter(c => c.trim()) : [];
-                            
+
                             if (courses.length === 0) {
                                 $("<span class='text-muted'>-</span>").appendTo(container);
                                 return;
@@ -151,6 +147,52 @@
                         alignment: "center"
                     },
                     {
+                        dataField: "status",
+                        caption: "Status",
+                        width: 140,
+                        alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const status = options.value;
+                            let badgeClass = "";
+                            let icon = "";
+                            let text = status || "Unknown";
+
+                            // กำหนดสีและไอคอนตามสถานะ
+                            switch(status) {
+                                case "Completed":
+                                    badgeClass = "bg-success bg-opacity-10 text-success border-success";
+                                    icon = "fa-check-circle";
+                                    text = "Completed";
+                                    break;
+                                case "Upcoming":
+                                    badgeClass = "bg-warning bg-opacity-10 text-warning border-warning";
+                                    icon = "fa-clock";
+                                    text = "Upcoming";
+                                    break;
+                                case "Expired":
+                                    badgeClass = "bg-danger bg-opacity-10 text-danger border-danger";
+                                    icon = "fa-times-circle";
+                                    text = "Expired";
+                                    break;
+                                case "InProgress":
+                                    badgeClass = "bg-primary bg-opacity-10 text-primary border-primary";
+                                    icon = "fa-play-circle";
+                                    text = "In Progress";
+                                    break;
+                                default:
+                                    badgeClass = "bg-secondary bg-opacity-10 text-secondary border-secondary";
+                                    icon = "fa-circle";
+                                    break;
+                            }
+
+                            // สร้าง UI สำหรับ Badge
+                            $("<span>")
+                                .addClass(`badge border border-opacity-25 px-3 py-1 rounded-pill fw-medium ${badgeClass}`)
+                                .html(`<i class="fas ${icon} me-1" style="font-size: 0.75rem;"></i>${text}`)
+                                .appendTo(container);
+                        }
+                    },
+                    {
                         type: "buttons",
                         caption: "Actions",
                         width: 110,
@@ -159,21 +201,14 @@
                         fixedPosition: "right",
                         buttons: [
                             {
-                                hint: "View Progress",
+                                hint: "View Progress Dashboard",
                                 icon: "info",
                                 onClick: function(e) {
                                     window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`;
                                 }
                             },
-                            {
-                                hint: "Delete",
-                                icon: "trash",
-                                onClick: function(e) {
-                                    if (confirm('Delete this assignment? All associated enrollments will be removed.')) {
-                                        gridInstance.deleteRow(e.row.rowIndex);
-                                    }
-                                }
-                            }
+                           
+                            
                         ]
                     }
                 ]
@@ -181,4 +216,3 @@
         });
     </script>
 }
-

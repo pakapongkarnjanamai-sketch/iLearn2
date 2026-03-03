@@ -120,5 +120,65 @@ namespace iLearn.Application.Services
                 }
             }
         }
+
+        // เพิ่ม Method นี้เข้าไปในคลาส CourseAssignmentService 
+        public async Task<List<AssignmentHistoryDto>> GetAssignmentHistoryAsync()
+        {
+            // 1. ดึงข้อมูล Assignment พร้อม Course
+            var assignments = await _assignmentRepo.GetAsync(includeProperties: "Course");
+
+            // 2. ดึง Enrollment ที่เกี่ยวข้องทั้งหมดมาเพื่อเช็คสถานะการเรียนจบ
+            // (เลือกเฉพาะที่ผูกกับ Assignment)
+            var enrollments = await _enrollmentRepo.GetAsync(e => e.AssignmentRuleId != null);
+
+            var currentDate = DateTime.UtcNow.AddHours(7); // ปรับ TimeZone ตามระบบของคุณ (เช่น ไทย +7)
+
+            var groupedHistory = assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Select(g =>
+                {
+                    var first = g.First();
+                    var assignmentIds = g.Select(a => a.Id).ToList();
+
+                    // 3. หา Enrollments ที่ผูกกับ Assignment กลุ่มนี้ (อ้างอิงจากทุกรายวิชาในกลุ่ม)
+                    var relatedEnrollments = enrollments
+                        .Where(e => e.AssignmentRuleId.HasValue && assignmentIds.Contains(e.AssignmentRuleId.Value))
+                        .ToList();
+
+                    // 4. คำนวณ Status
+                    bool isCompleted = relatedEnrollments.Any() && relatedEnrollments.All(e => e.IsCompleted);
+
+                    string status = "InProgress";
+                    if (isCompleted)
+                    {
+                        status = "Completed";
+                    }
+                    else if (first.StartDate.HasValue && first.StartDate.Value > currentDate)
+                    {
+                        status = "Upcoming";
+                    }
+                    else if (first.DueDate.HasValue && first.DueDate.Value < currentDate)
+                    {
+                        status = "Expired";
+                    }
+
+                    return new AssignmentHistoryDto
+                    {
+                        Id = first.Id, // ใช้ Id ของแถวแรกเพื่อทำ Link ไปหน้า Progress
+                        AssignmentNo = g.Key,
+                        Description = first.Description,
+                        EmployeeCodes = first.EmployeeCodes,
+                        StartDate = first.StartDate,
+                        DueDate = first.DueDate,
+                        CourseNames = string.Join(", ", g.Select(c => c.Course?.Title ?? "Unknown Course").Distinct()),
+                        Status = status
+                    };
+                })
+                .OrderByDescending(x => x.AssignmentNo)
+                .ToList();
+
+            return groupedHistory;
+        }
     }
 }

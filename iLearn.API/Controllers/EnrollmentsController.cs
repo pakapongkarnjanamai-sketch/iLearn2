@@ -8,6 +8,10 @@ using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
@@ -44,6 +48,7 @@ namespace iLearn.API.Controllers
             _versionRepo = versionRepo;
             _scormService = scormService;
         }
+
         [HttpPost("ResetStatus")]
         public async Task<IActionResult> ResetStatus([FromQuery] int key)
         {
@@ -68,20 +73,45 @@ namespace iLearn.API.Controllers
 
             return Ok(new { success = true });
         }
+
+        // --- ปรับปรุงฟังก์ชัน GetMyCourses ---
         [HttpGet("my-courses")]
         public async Task<IActionResult> GetMyCourses([FromQuery] string studentCode)
         {
             if (string.IsNullOrEmpty(studentCode))
             {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "StudentDto code is required." });
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Student code is required." });
             }
 
+            var currentDate = DateTime.UtcNow; // ปรับเป็นเวลามาตรฐาน หรือใช้ Local Time ของเซิร์ฟเวอร์
+            var oneMonthAgo = currentDate.AddMonths(-1);
+
+            // กรองข้อมูลจาก Database
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => e.StudentCode == studentCode,
+                filter: e => e.StudentCode == studentCode &&
+                             e.Course != null && // ต้องมีข้อมูลคอร์สอยู่จริง ไม่เอา null
+                             (
+                                 // กรณีที่ 1: ยังเรียนไม่จบ และอยู่ในระยะเวลาที่กำหนด (หรือไม่มีการกำหนดเวลา)
+                                 (!e.IsCompleted &&
+                                  (!e.StartDate.HasValue || e.StartDate <= currentDate) &&
+                                  (!e.DueDate.HasValue || e.DueDate >= currentDate))
+
+                                 ||
+
+                                 // กรณีที่ 2: เรียนจบแล้ว แต่เพิ่งจบไปไม่เกิน 1 เดือน
+                                 (e.IsCompleted &&
+                                  e.CompletedDate.HasValue &&
+                                  e.CompletedDate >= oneMonthAgo)
+                             ),
                 includeProperties: "Course"
             );
 
-            var dtos = enrollments.OrderBy(a => a.IsCompleted).OrderBy(b =>b.DueDate).Select(e => e.ToDto()).ToList();
+            // แปลงข้อมูลเป็น DTO และจัดเรียง
+            var dtos = enrollments
+                .OrderBy(e => e.IsCompleted)
+                .ThenBy(e => e.DueDate) // ใช้ ThenBy เพื่อซ้อนการจัดเรียง
+                .Select(e => e.ToDto())
+                .ToList();
 
             return Ok(new ApiResponse<IEnumerable<EnrollmentDto>>
             {
@@ -108,12 +138,12 @@ namespace iLearn.API.Controllers
             if (enrollment != null)
             {
                 // --- กรณีมี Enrollment (Scoring Mode) ---
-                var targetVersionId = enrollment.EnrolledCourseVersion; // เปลี่ยนชื่อเป็น targetVersionId ให้ชัดเจน
+                var targetVersionId = enrollment.EnrolledCourseVersion;
                 isCompleted = enrollment.IsCompleted;
 
                 // ดึง Version ที่ลงทะเบียนไว้ (ค้นหาจาก Id)
                 var versions = await _versionRepo.GetAsync(
-                    filter: v => v.CourseId == courseId && v.Id == targetVersionId, // ค้นหาด้วย Id ถูกต้องแล้วครับ!
+                    filter: v => v.CourseId == courseId && v.Id == targetVersionId,
                     includeProperties: "CourseResources.Resource,Course"
                 );
                 targetVersion = versions.FirstOrDefault();
@@ -137,7 +167,7 @@ namespace iLearn.API.Controllers
                   filter: v => v.CourseId == courseId && v.IsActive,
                   includeProperties: "CourseResources.Resource,Course"
                 );
-                // เรียงตาม VersionNumber แล้วเอาตัวล่าสุด (อันนี้เรียงด้วย Number ถูกต้องครับ)
+                // เรียงตาม VersionNumber แล้วเอาตัวล่าสุด
                 targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
 
@@ -146,16 +176,16 @@ namespace iLearn.API.Controllers
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found or Course is not active" });
             }
 
-            // 2. Map ข้อมูลลง DTO (โค้ดส่วนนี้ของคุณเขียนไว้ดีแล้วครับ ใช้เดิมได้เลย)
+            // 2. Map ข้อมูลลง DTO
             var resources = targetVersion.CourseResources
                 .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Lesson first
                 .ThenBy(cr => cr.Resource.Name)
                 .Select(cr => {
                     var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
                     bool isDone = log != null && (
-                log.Status.ToLower() == "completed" ||
-                log.Status.ToLower() == "passed"
-            );
+                        log.Status.ToLower() == "completed" ||
+                        log.Status.ToLower() == "passed"
+                    );
 
                     return new PlayerResourceDto
                     {
@@ -163,8 +193,8 @@ namespace iLearn.API.Controllers
                         Name = cr.Resource.Name,
                         Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
                         LaunchUrl = !string.IsNullOrEmpty(cr.Resource.URL) && !string.IsNullOrEmpty(cr.Resource.ResourceHref)
-                    ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
-                    : cr.Resource.URL ?? string.Empty,
+                            ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
+                            : cr.Resource.URL ?? string.Empty,
                         IsCompleted = isDone,
                         Score = log?.Score,
                         Time = log?.SessionTime
@@ -185,9 +215,7 @@ namespace iLearn.API.Controllers
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
         }
-        // --- Existing Methods ---
-        // (Methods เดิมเช่น GetById, UpdateCompletion สามารถคงไว้ได้ตามปกติ)
-        // ... (ตัด code เดิมออกเพื่อความกระชับ แต่ในการใช้งานจริงให้คงไว้)
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -240,7 +268,7 @@ namespace iLearn.API.Controllers
                 // เรียงลำดับจากมากไปน้อย เพื่อเอาตัวล่าสุด
                 var latestAssignment = existingAssignments.OrderByDescending(a => a.AssignmentNo).First();
 
-                // แตกข้อความด้วยขีด '-' แล้วเอาส่วนสุดท้ายที่เป็นตัวเลขมาแปลงเป็น int (เช่น AS-20260223-005 ตัดเอา 005)
+                // แตกข้อความด้วยขีด '-' แล้วเอาส่วนสุดท้ายที่เป็นตัวเลขมาแปลงเป็น int
                 var parts = latestAssignment.AssignmentNo.Split('-');
                 if (parts.Length >= 3 && int.TryParse(parts.Last(), out int lastNumber))
                 {
