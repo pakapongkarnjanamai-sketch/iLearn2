@@ -336,23 +336,32 @@
                         isActive: detailData.isActive
                     });
 
-                    let resourceIds = detailData.resourceIds || [];
-                    if (resourceIds.length > 0) {
-                        resourceIds.forEach(rId => {
-                            // Load resource details from resourcesStore
-                            const resource = resourcesStore._data.find(r => r.id === rId);
-                            if(resource) {
-                                unifiedResources.push({
-                                    uid: `EXISTING_${rId}`,
-                                    realId: rId,
-                                    name: resource.name,
-                                    typeId: resource.typeId,
-                                    isNew: false
-                                });
-                            }
+                           let resourceIds = detailData.resourceIds || [];
+        if (resourceIds.length > 0) {
+            // สั่งโหลดข้อมูล Resources ทั้งหมดจาก Store ก่อนทำการ map ข้อมูล
+            resourcesStore.load().done(function(res) {
+                const allResources = res.data || res || [];
+
+                resourceIds.forEach(rId => {
+                    const resource = allResources.find(r => r.id === rId);
+                    if(resource) {
+                        unifiedResources.push({
+                            uid: `EXISTING_${rId}`,
+                            realId: rId,
+                            name: resource.name,
+                            typeId: resource.typeId,
+                            isNew: false
                         });
-                        refreshMasterGrid();
                     }
+                });
+
+                // รีเฟรชตารางเมื่อจัดเตรียมข้อมูลเสร็จแล้ว
+                refreshMasterGrid();
+
+            }).fail(function() {
+                DevExpress.ui.notify("Error loading resource details", "error", 3000);
+            });
+        }
                 }).fail(function(xhr) {
                     const errorMsg = xhr.responseJSON?.message || "Error loading version";
                     DevExpress.ui.notify(errorMsg, "error", 3000);

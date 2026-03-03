@@ -19,7 +19,6 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly ICourseAssignmentService _assignmentService;
 
-        // เพิ่มสำหรับจัดการลบไฟล์ Resource และ SCORM
         private readonly IGenericRepository<Resource> _resourceRepository;
         private readonly IGenericRepository<FileStorage> _fileStorageRepository;
         private readonly IScormService _scormService;
@@ -35,19 +34,19 @@ namespace iLearn.Application.Services
             ICourseAssignmentService assignmentService,
             IGenericRepository<Resource> resourceRepository,
             IGenericRepository<FileStorage> fileStorageRepository,
-             IGenericRepository<Enrollment> enrollmentRepository,
-             IGenericRepository<LearningLog> learningLogRepository,
-             IGenericRepository<Assignment> assignmentRepository,
+            IGenericRepository<Enrollment> enrollmentRepository,
+            IGenericRepository<LearningLog> learningLogRepository,
+            IGenericRepository<Assignment> assignmentRepository,
             IScormService scormService)
         {
             _courseRepo = courseRepository;
             _courseResourceRepository = courseResourceRepository;
             _courseVersionRepository = courseVersionRepository;
             _assignmentService = assignmentService;
-            
-                _enrollmentRepository = enrollmentRepository;
-                _learningLogRepository = learningLogRepository;
-                _assignmentRepository = assignmentRepository;
+
+            _enrollmentRepository = enrollmentRepository;
+            _learningLogRepository = learningLogRepository;
+            _assignmentRepository = assignmentRepository;
 
             _resourceRepository = resourceRepository;
             _fileStorageRepository = fileStorageRepository;
@@ -84,7 +83,8 @@ namespace iLearn.Application.Services
                     includeProperties: "Resource"
                 );
 
-                resourceList = courseResources.Select(cr => new CourseResourceDto
+                // 🌟 [แก้ไขที่นี่] เพิ่ม .OrderBy(cr => cr.Order) เพื่อเรียงลำดับ Resource
+                resourceList = courseResources.OrderBy(cr => cr.Order).Select(cr => new CourseResourceDto
                 {
                     Id = cr.Resource.Id,
                     Name = cr.Resource.Name,
@@ -128,7 +128,6 @@ namespace iLearn.Application.Services
 
             await _courseRepo.AddAsync(course);
 
-            // Create initial version
             var courseVersion = new CourseVersion
             {
                 CourseId = course.Id,
@@ -139,7 +138,6 @@ namespace iLearn.Application.Services
             };
             await _courseVersionRepository.AddAsync(courseVersion);
 
-            // Add resources
             if (model.ResourceIds?.Count > 0)
             {
                 await AddResourcesToCourseVersionAsync(courseVersion.Id, model.ResourceIds);
@@ -178,7 +176,6 @@ namespace iLearn.Application.Services
             };
             await _courseVersionRepository.AddAsync(version);
 
-            // Add resources if provided
             if (model.ResourceIds?.Count > 0)
             {
                 await AddResourcesToCourseVersionAsync(version.Id, model.ResourceIds);
@@ -201,7 +198,6 @@ namespace iLearn.Application.Services
 
             await _courseRepo.UpdateAsync(course);
 
-            // Update course resources in active version
             var versions = await _courseVersionRepository.GetAllAsync();
             var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
 
@@ -212,15 +208,13 @@ namespace iLearn.Application.Services
 
             return course.ToDto();
         }
+
         public async Task DeleteCourseAsync(int id)
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
                 throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
 
-            // =========================================================
-            // 1. ค้นหาข้อมูลที่ต้องจัดการทั้งหมดให้พร้อมก่อน
-            // =========================================================
             var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
             var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
             var enrollmentIds = enrollments.Select(e => e.Id).ToList();
@@ -270,38 +264,8 @@ namespace iLearn.Application.Services
                 }
             }
 
-            // =========================================================
-            // 🌟 2. เริ่มการทำงานด้วย Transaction (ปลอดภัย 100%)
-            // =========================================================
-            // ใช้ TransactionScopeAsyncFlowOption.Enabled เพื่อให้ทำงานรองรับ async/await
             using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
             {
-                // 2.1 ปลดความสัมพันธ์ (Set Null) ในประวัติการเรียนและการมอบหมายงาน
-                //foreach (var assignment in assignments)
-                //{
-                //    assignment.CourseId = null;
-                //    await _assignmentRepository.UpdateAsync(assignment);
-                //}
-
-                //foreach (var enrollment in enrollments)
-                //{
-                //    enrollment.CourseId = null;
-                //    enrollment.EnrolledCourseVersion = null;
-                //    await _enrollmentRepository.UpdateAsync(enrollment);
-                //}
-
-                //foreach (var eId in enrollmentIds)
-                //{
-                //    var logs = await _learningLogRepository.GetAsync(l => l.EnrollmentId == eId);
-                //    foreach (var log in logs)
-                //    {
-                //        log.CourseVersionId = null;
-                //        log.ResourceId = null;
-                //        await _learningLogRepository.UpdateAsync(log);
-                //    }
-                //}
-
-                // 2.2 ลบโครงสร้างไฟล์หลักสูตร (เรียงลำดับจากลูกไปแม่)
                 foreach (var cr in courseResources)
                     await _courseResourceRepository.DeleteAsync(cr);
 
@@ -314,18 +278,11 @@ namespace iLearn.Application.Services
                 foreach (var f in fileStoragesToDelete)
                     await _fileStorageRepository.DeleteAsync(f);
 
-                // 2.3 ลบ Course ตัวแม่
                 await _courseRepo.DeleteAsync(course);
 
-                // ยืนยันว่าทุกอย่างทำงานเสร็จสมบูรณ์และไม่มี Error (Commit)
                 transaction.Complete();
             }
 
-            // =========================================================
-            // 🌟 3. ลบไฟล์จริงบนเซิร์ฟเวอร์ (ทำนอก Transaction)
-            // =========================================================
-            // เหตุผล: เพราะถ้าลบไฟล์จริงๆ ในโฟลเดอร์ไปแล้ว หาก Database Error จะไม่สามารถเสกไฟล์กลับคืนมาได้ 
-            // จึงต้องรอให้ Transaction ของ DB ผ่านชัวร์ๆ ก่อนค่อยทำการลบ Physical file ครับ
             foreach (var folder in scormFoldersToDelete)
             {
                 _scormService.DeleteScormFolder(folder);
@@ -341,17 +298,19 @@ namespace iLearn.Application.Services
             await _assignmentService.ProcessAssignmentForCourseAsync(courseId);
         }
 
-        // Helper Methods
         private async Task AddResourcesToCourseVersionAsync(int versionId, List<int> resourceIds)
         {
             if (resourceIds?.Count > 0)
             {
+                // กำหนดตัวแปรสำหรับลำดับ Order เริ่มต้นจาก 1
+                int orderIndex = 1;
                 foreach (var resourceId in resourceIds)
                 {
                     var courseResource = new CourseResource
                     {
                         CourseVersionId = versionId,
                         ResourceId = resourceId,
+                        Order = orderIndex++, // 🌟 เก็บค่า Order
                         CreatedAt = DateTime.UtcNow
                     };
                     await _courseResourceRepository.AddAsync(courseResource);
@@ -361,19 +320,16 @@ namespace iLearn.Application.Services
 
         private async Task ReplaceVersionResourcesAsync(int versionId, List<int> newResourceIds)
         {
-            // Get current resources
             var allCourseResources = await _courseResourceRepository.GetAllAsync();
             var currentResources = allCourseResources
                 .Where(cr => cr.CourseVersionId == versionId)
                 .ToList();
 
-            // Delete old resources
             foreach (var item in currentResources)
             {
                 await _courseResourceRepository.DeleteAsync(item);
             }
 
-            // Add new resources
             await AddResourcesToCourseVersionAsync(versionId, newResourceIds);
         }
 
@@ -388,7 +344,6 @@ namespace iLearn.Application.Services
 
             await _courseRepo.UpdateAsync(course);
 
-            // ถ้าเป็นการ Publish (isActive = true) และเป็น General Course ให้ทำการ Assign ให้อัตโนมัติ
             if (isActive && course.Type == CourseType.General)
             {
                 await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);

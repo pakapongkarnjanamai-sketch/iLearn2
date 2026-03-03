@@ -9,6 +9,7 @@ namespace iLearn.Domain.Entities
 
         public int ResourceId { get; set; }
         public Resource? Resource { get; set; }
+        public int? Order { get; set; }
 
     }
 }

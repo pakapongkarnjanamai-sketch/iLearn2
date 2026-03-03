@@ -1,5 +1,4 @@
 ﻿using iLearn.Application.DTOs;
-using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -42,18 +41,21 @@ namespace iLearn.Application.Services
         {
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null)
-                throw new KeyNotFoundException($"Version ID: {versionId} ???????????");
+                throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
             var courseResources = await _courseResourceRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
+
+            // เรียงตาม Order ก่อนส่งไปให้หน้าเว็บแสดงผล
+            var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
 
             return new CreateCourseVersionDto
             {
                 CourseId = version.CourseId,
                 Note = version.Note,
                 IsActive = version.IsActive,
-                ResourceIds = courseResources.Select(cr => cr.ResourceId).ToList()
+                ResourceIds = sortedResources.Select(cr => cr.ResourceId).ToList()
             };
         }
 
@@ -63,9 +65,7 @@ namespace iLearn.Application.Services
                 filter: v => v.CourseId == courseId
             );
 
-            // Sort by VersionNumber descending
             var sortedVersions = versions.OrderByDescending(v => v.VersionNumber).ToList();
-            
             var result = new List<CourseVersionDto>();
 
             foreach (var version in sortedVersions)
@@ -75,6 +75,9 @@ namespace iLearn.Application.Services
                     includeProperties: "Resource"
                 );
 
+                // เรียงตาม Order สำหรับหน้าต่างโชว์ประวัติ Version
+                var sortedCourseResources = courseResources.OrderBy(cr => cr.Order).ToList();
+
                 var versionDto = new CourseVersionDto
                 {
                     Id = version.Id,
@@ -83,7 +86,7 @@ namespace iLearn.Application.Services
                     Note = version.Note,
                     IsActive = version.IsActive,
                     CreatedAt = version.CreatedAt,
-                    Resources = courseResources.Select(cr => new CourseResourceDto
+                    Resources = sortedCourseResources.Select(cr => new CourseResourceDto
                     {
                         Id = cr.Resource?.Id ?? 0,
                         Name = cr.Resource?.Name ?? "Unknown",
@@ -104,9 +107,8 @@ namespace iLearn.Application.Services
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null)
-                throw new KeyNotFoundException($"Course ID: {courseId} ???????????");
+                throw new KeyNotFoundException($"Course ID: {courseId} not found.");
 
-            // ??????? IsActive = true ?????? version ??????? active ????
             if (model.IsActive)
             {
                 var activeVersions = await _versionRepository.GetAsync(
@@ -120,15 +122,14 @@ namespace iLearn.Application.Services
                 }
             }
 
-            // ????? version number ????
             var existingVersions = await _versionRepository.GetAsync(
                 filter: v => v.CourseId == courseId
             );
+
             int nextVersionNumber = existingVersions.Any()
                 ? existingVersions.Max(v => v.VersionNumber) + 1
                 : 1;
 
-            // ????? Version ????
             var newVersion = new CourseVersion
             {
                 CourseId = courseId,
@@ -140,38 +141,38 @@ namespace iLearn.Application.Services
 
             await _versionRepository.AddAsync(newVersion);
 
-            // ?????? Resources
             if (model.ResourceIds != null && model.ResourceIds.Count > 0)
             {
                 int fileIndex = 0;
+                int orderIndex = 1;
+
                 foreach (var resourceId in model.ResourceIds)
                 {
                     if (resourceId == 0 && fileIndex < (files?.Count ?? 0))
                     {
-                        // ???????? - ??????????????????
                         var file = files[fileIndex];
                         var newResource = await ProcessNewResourceAsync(file);
-                        
+
                         if (newResource != null)
                         {
                             var courseResource = new CourseResource
                             {
                                 CourseVersionId = newVersion.Id,
                                 ResourceId = newResource.Id,
+                                Order = orderIndex++,
                                 CreatedAt = DateTime.UtcNow
                             };
                             await _courseResourceRepository.AddAsync(courseResource);
                         }
-
                         fileIndex++;
                     }
                     else if (resourceId > 0)
                     {
-                        // Resource ?????????????
                         var courseResource = new CourseResource
                         {
                             CourseVersionId = newVersion.Id,
                             ResourceId = resourceId,
+                            Order = orderIndex++,
                             CreatedAt = DateTime.UtcNow
                         };
                         await _courseResourceRepository.AddAsync(courseResource);
@@ -184,6 +185,8 @@ namespace iLearn.Application.Services
                 includeProperties: "Resource"
             );
 
+            var sortedResources = courseResourcesForNew.OrderBy(cr => cr.Order).ToList();
+
             return new CourseVersionDto
             {
                 Id = newVersion.Id,
@@ -192,7 +195,7 @@ namespace iLearn.Application.Services
                 Note = newVersion.Note,
                 IsActive = newVersion.IsActive,
                 CreatedAt = newVersion.CreatedAt,
-                Resources = courseResourcesForNew.Select(cr => new CourseResourceDto
+                Resources = sortedResources.Select(cr => new CourseResourceDto
                 {
                     Id = cr.Resource?.Id ?? 0,
                     Name = cr.Resource?.Name ?? "Unknown",
@@ -208,12 +211,10 @@ namespace iLearn.Application.Services
         {
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null)
-                throw new KeyNotFoundException($"Version ID: {versionId} ???????????");
+                throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
-            // ?????? Note ??? IsActive
             version.Note = model.Note;
 
-            // ??????? IsActive = true ?????? version ??????? active
             if (model.IsActive && !version.IsActive)
             {
                 var activeVersions = await _versionRepository.GetAsync(
@@ -231,7 +232,7 @@ namespace iLearn.Application.Services
 
             await _versionRepository.UpdateAsync(version);
 
-            // ?????? Resources - ???????????????????
+            // Clear old resources before adding new ordered ones
             var oldResources = await _courseResourceRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
@@ -241,29 +242,29 @@ namespace iLearn.Application.Services
                 await _courseResourceRepository.DeleteAsync(oldResource);
             }
 
-            // ????? Resources ????
             if (model.ResourceIds != null && model.ResourceIds.Count > 0)
             {
                 int fileIndex = 0;
+                int orderIndex = 1;
+
                 foreach (var resourceId in model.ResourceIds)
                 {
                     if (resourceId == 0 && fileIndex < (files?.Count ?? 0))
                     {
-                        // ???????? - ??????????????????
                         var file = files[fileIndex];
                         var newResource = await ProcessNewResourceAsync(file);
-                        
+
                         if (newResource != null)
                         {
                             var courseResource = new CourseResource
                             {
                                 CourseVersionId = versionId,
                                 ResourceId = newResource.Id,
+                                Order = orderIndex++,
                                 CreatedAt = DateTime.UtcNow
                             };
                             await _courseResourceRepository.AddAsync(courseResource);
                         }
-
                         fileIndex++;
                     }
                     else if (resourceId > 0)
@@ -272,6 +273,7 @@ namespace iLearn.Application.Services
                         {
                             CourseVersionId = versionId,
                             ResourceId = resourceId,
+                            Order = orderIndex++,
                             CreatedAt = DateTime.UtcNow
                         };
                         await _courseResourceRepository.AddAsync(courseResource);
@@ -284,6 +286,8 @@ namespace iLearn.Application.Services
                 includeProperties: "Resource"
             );
 
+            var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
+
             return new CourseVersionDto
             {
                 Id = version.Id,
@@ -292,7 +296,7 @@ namespace iLearn.Application.Services
                 Note = version.Note,
                 IsActive = version.IsActive,
                 CreatedAt = version.CreatedAt,
-                Resources = courseResources.Select(cr => new CourseResourceDto
+                Resources = sortedResources.Select(cr => new CourseResourceDto
                 {
                     Id = cr.Resource?.Id ?? 0,
                     Name = cr.Resource?.Name ?? "Unknown",
@@ -308,9 +312,8 @@ namespace iLearn.Application.Services
         {
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null)
-                throw new KeyNotFoundException($"Version ID: {versionId} ???????????");
+                throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
-            // ?? CourseResources ?????????????
             var courseResources = await _courseResourceRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
@@ -320,38 +323,32 @@ namespace iLearn.Application.Services
                 await _courseResourceRepository.DeleteAsync(cr);
             }
 
-            // ?? Version
             await _versionRepository.DeleteAsync(version);
         }
+
         public async Task SetActiveVersionAsync(int courseId, int versionId)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null)
-                throw new KeyNotFoundException($"Course ID: {courseId} ไม่พบในระบบ");
+                throw new KeyNotFoundException($"Course ID: {courseId} not found.");
 
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null || version.CourseId != courseId)
-                throw new KeyNotFoundException($"Version ID: {versionId} ไม่พบในระบบ");
+                throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
-            // 1. หาเวอร์ชันเดิมที่เป็น Active อยู่ และกำลังจะถูกปิดการใช้งาน
             var activeVersions = await _versionRepository.GetAsync(
                 filter: v => v.CourseId == courseId && v.IsActive && v.Id != versionId
             );
 
-            // 2. ปรับให้เวอร์ชันเก่าเป็น Inactive
             foreach (var oldVersion in activeVersions)
             {
                 oldVersion.IsActive = false;
                 await _versionRepository.UpdateAsync(oldVersion);
             }
 
-            // 3. ปรับให้เวอร์ชันใหม่เป็น Active
             version.IsActive = true;
             await _versionRepository.UpdateAsync(version);
 
-            // ==========================================================
-            // ส่วนที่ 4: แตกไฟล์ Resources ของเวอร์ชันที่เพิ่งถูก Active
-            // ==========================================================
             var newVersionResources = await _courseResourceRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId,
                 includeProperties: "Resource"
@@ -363,10 +360,8 @@ namespace iLearn.Application.Services
                 {
                     var resource = cr.Resource;
 
-                    // 🌟 แก้ไข: ตรวจสอบว่ามี FileStorageId หรือไม่
                     if (resource.FileStorageId.HasValue)
                     {
-                        // 🌟 แก้ไข: ใช้ .Value เพื่อดึงค่า int ส่งเข้าไป
                         var fileStorage = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
 
                         if (fileStorage != null)
@@ -405,16 +400,12 @@ namespace iLearn.Application.Services
                     }
                     else
                     {
-                        // ถ้า Resource นี้ไม่มี FileStorage (เช่น เป็น Link ภายนอก) ก็เปิดใช้งานปกติ
                         resource.IsActive = true;
                         await _resourceRepository.UpdateAsync(resource);
                     }
                 }
             }
 
-            // ==========================================================
-            // ส่วนที่ 5: ตรวจสอบและเคลียร์ Resources ของเวอร์ชันที่เพิ่งถูกปิด
-            // ==========================================================
             var potentiallyOrphanedResourceIds = new HashSet<int>();
 
             foreach (var oldVersion in activeVersions)
@@ -444,7 +435,6 @@ namespace iLearn.Application.Services
                     {
                         string extension = "";
 
-                        // 🌟 แก้ไข: ตรวจสอบ FileStorageId ก่อนดึงข้อมูลเช่นกัน
                         if (resource.FileStorageId.HasValue)
                         {
                             var fileStorage = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
@@ -462,16 +452,12 @@ namespace iLearn.Application.Services
                 }
             }
         }
-        /// <summary>
-        /// Helper method - Process new uploaded file as Resource
-        /// Handles SCORM extraction and activation
-        /// </summary>
+
         private async Task<Resource> ProcessNewResourceAsync(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return null;
 
-            // Step 1: Save file to FileStorage
             var fileStorage = new FileStorage
             {
                 Name = file.FileName,
@@ -487,31 +473,28 @@ namespace iLearn.Application.Services
 
             var savedFile = await _fileStorageRepository.AddAsync(fileStorage);
 
-            // Step 2: Create Resource (inactive initially)
             var resource = new Resource
             {
                 Name = file.FileName,
-                TypeId = 1, // Default to "Learn" type
+                TypeId = 1, // Default to "Learn"
                 IsActive = false,
                 FileStorageId = savedFile.Id
             };
 
             var savedResource = await _resourceRepository.AddAsync(resource);
 
-            // Step 3: If SCORM file (.zip), extract and parse immediately
             string extension = Path.GetExtension(file.FileName).ToLower();
             if (extension == ".zip")
             {
                 try
                 {
                     string folderName = Guid.NewGuid().ToString();
-                    
+
                     var scormInfo = await _scormService.ExtractAndParseScormAsync(
                         fileStorage.Data,
                         folderName
                     );
 
-                    // Update resource with SCORM info
                     savedResource.ResourceHref = scormInfo.ResourceHref;
                     savedResource.SchemaVersion = scormInfo.SchemaVersion;
                     savedResource.URL = scormInfo.FolderName;
@@ -519,20 +502,15 @@ namespace iLearn.Application.Services
 
                     await _resourceRepository.UpdateAsync(savedResource);
                 }
-                catch (InvalidScormPackageException ex)
+                catch (InvalidScormPackageException)
                 {
-                    // If SCORM parsing fails, leave resource inactive but don't throw
-                    // This allows partial processing
                     savedResource.IsActive = false;
                     await _resourceRepository.UpdateAsync(savedResource);
-                    
-                    // Re-throw to notify the caller
                     throw;
                 }
             }
             else
             {
-                // For non-SCORM files, just activate immediately
                 savedResource.IsActive = true;
                 await _resourceRepository.UpdateAsync(savedResource);
             }
