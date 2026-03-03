@@ -217,6 +217,7 @@ namespace iLearn.Application.Services
 
             var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
             var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
+         
             var enrollmentIds = enrollments.Select(e => e.Id).ToList();
 
             var versions = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
@@ -264,22 +265,50 @@ namespace iLearn.Application.Services
                 }
             }
 
+            // 4. เริ่ม Transaction ทำการตัดความสัมพันธ์ก่อนลบ
             using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
             {
+                //// 🌟 [ปรับปรุง] แทนที่จะลบ ให้เรา "ตัดความสัมพันธ์ (Unlink)" เพื่อเก็บประวัติไว้
+                //// 1. อัปเดต LearningLog ไม่ให้ผูกติดกับ Version/Resource ที่กำลังจะถูกลบ
+                //foreach (var log in learningLogs)
+                //{
+                //    log.CourseVersionId = null;
+                //    log.ResourceId = null;
+                //    await _learningLogRepository.UpdateAsync(log);
+                //}
+
+                //// 2. อัปเดต Enrollment ไม่ให้ผูกติดกับ Course/Assignment ที่กำลังจะถูกลบ
+                //foreach (var enrollment in enrollments)
+                //{
+                //    enrollment.CourseId = null;
+                //    enrollment.AssignmentRuleId = null;
+                //    // อาจจะเก็บชื่อคอร์สเดิมไว้ในฟิลด์อื่นถ้ามีการออกแบบเผื่อไว้
+                //    await _enrollmentRepository.UpdateAsync(enrollment);
+                //}
+
+                // 3. ลบรายการ Assignment ที่ผูกกับคอร์สนี้ทิ้ง
+                foreach (var assignment in assignments)
+                    await _assignmentRepository.DeleteAsync(assignment);
+
+                // ลบความสัมพันธ์ระหว่าง Version กับ Resource
                 foreach (var cr in courseResources)
                     await _courseResourceRepository.DeleteAsync(cr);
 
+                // ลบ Version ต่างๆ ของคอร์ส
                 foreach (var v in versions)
                     await _courseVersionRepository.DeleteAsync(v);
 
+                // ลบ Resource และ File ทิ้ง
                 foreach (var r in resourcesToDelete)
                     await _resourceRepository.DeleteAsync(r);
 
                 foreach (var f in fileStoragesToDelete)
                     await _fileStorageRepository.DeleteAsync(f);
 
+                // สุดท้าย ลบ Course หลัก
                 await _courseRepo.DeleteAsync(course);
 
+                // กดยืนยันการเปลี่ยนแปลงทั้งหมด
                 transaction.Complete();
             }
 
@@ -336,11 +365,6 @@ namespace iLearn.Application.Services
             course.UpdatedAt = DateTime.UtcNow;
 
             await _courseRepo.UpdateAsync(course);
-
-            //if (isActive && course.Type == CourseType.General)
-            //{
-            //    await _assignmentService.ProcessAssignmentForCourseAsync(course.Id);
-            //}
 
             return course.IsActive;
         }
