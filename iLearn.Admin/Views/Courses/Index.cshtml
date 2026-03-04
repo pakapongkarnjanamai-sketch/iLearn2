@@ -51,7 +51,7 @@
 
         <div class="col-md-8 col-lg-9 h-100">
             <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
-                <div class="card-body p-0 flex-grow-1 overflow-hidden rounded-4">
+                <div class="card-body p-0 flex-grow-1 overflow-hidden ">
                     <div id="grid"></div>
                 </div>
             </div>
@@ -83,7 +83,7 @@
 
                 // --- ปรับแต่ง UI ตารางให้คลีน ---
                 showBorders: false, 
-                rowAlternationEnabled: false, // ปิดสีสลับแถวให้ดูสะอาดตา
+                rowAlternationEnabled: true, 
                 showRowLines: true,
                 hoverStateEnabled: true,
                 scrolling: { mode: "virtual" },
@@ -149,7 +149,7 @@
                             const text = options.displayValue;
                             // ปรับสีไอคอนให้ดูซอฟต์ลง [cite: 68-71]
                             const icon = options.value === 1 ? "fa-book text-primary" : "fa-star text-secondary";
-                            $("<div>").html(`<i class="fas ${icon} me-1 opacity-75"></i> <span class="text-dark fw-medium">${text}</span>`).appendTo(container);
+                            $("<div>").html(`<i class="fas ${icon} me-1"></i> <span class="text-dark fw-medium">${text}</span>`).appendTo(container);
                         }
                     },
                     {
