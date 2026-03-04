@@ -178,7 +178,7 @@ namespace iLearn.API.Controllers
 
             // 2. Map ข้อมูลลง DTO
             var resources = targetVersion.CourseResources
-                .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Lesson first
+                .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Learn first
                 .ThenBy(cr => cr.Resource.Name)
                 .Select(cr => {
                     var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
@@ -191,7 +191,7 @@ namespace iLearn.API.Controllers
                     {
                         Id = cr.Resource.Id,
                         Name = cr.Resource.Name,
-                        Type = cr.Resource.TypeId == 2 ? "Exam" : "Lesson",
+                        Type = cr.Resource.TypeId == 2 ? "Exam" : "Learn",
                         LaunchUrl = !string.IsNullOrEmpty(cr.Resource.URL) && !string.IsNullOrEmpty(cr.Resource.ResourceHref)
                             ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
                             : cr.Resource.URL ?? string.Empty,

@@ -114,7 +114,7 @@
                     </div>
 
                     <div class="text-muted small fw-medium mb-3">
-                        <i class="fas fa-info-circle text-primary me-1"></i> You can drag & drop rows to reorder the content.
+                        <i class="fas fa-info-circle text-primary me-1"></i> You can drag & drop rows to reorder the content, and click on Type to change it for new files.
                     </div>
 
                     <div class="border border-light rounded-3 overflow-hidden">
@@ -164,7 +164,7 @@
                 ]
             }).dxForm("instance");
 
-            // --- 2. Master Grid (ตารางหลัก) ---
+            // --- 2. Master Grid (ตารางหลัก รองรับการคลิกแก้ Type ได้สำหรับไฟล์ใหม่) ---
             masterGrid = $("#master-resources-grid").dxDataGrid({
                 dataSource: unifiedResources,
                 keyExpr: "uid",
@@ -174,6 +174,18 @@
                 showRowLines: true,
                 columnAutoWidth: true,
                 noDataText: "No content added yet. Click buttons above to add.",
+                editing: {
+                    mode: "cell", // เปิดโหมดแก้ไขแบบคลิกที่เซลล์
+                    allowUpdating: true
+                },
+                onEditorPreparing: function(e) {
+                    // อนุญาตให้แก้ได้เฉพาะคอลัมน์ Type และต้องเป็นไฟล์ใหม่ (isNew) เท่านั้น
+                    if (e.parentType === "dataRow") {
+                        if (e.dataField !== "typeId" || !e.row.data.isNew) {
+                            e.editorOptions.disabled = true;
+                        }
+                    }
+                },
                 rowDragging: {
                     allowReordering: true,
                     showDragIcons: true,
@@ -188,39 +200,58 @@
                 },
                 columns: [
                     {
-                        caption: "Order", width: 80, alignment: "center",
+                        caption: "Order", width: 80, alignment: "center", allowEditing: false,
                         cellTemplate: function(container, options) {
                             $("<span>").addClass("text-muted fw-bold").text(options.rowIndex + 1).appendTo(container);
                         }
                     },
                     {
-                        dataField: "name", caption: "Content Name",
+                        dataField: "name", caption: "Content Name", allowEditing: false,
                         cellTemplate: function(container, options) {
                             const data = options.data;
                             const isNew = data.isNew;
                             const iconClass = isNew ? "fa-file-upload text-primary" : "fa-file-archive text-secondary";
 
-                            $("<div>").addClass("d-flex align-items-center gap-2")
+                            const wrapper = $("<div>").addClass("d-flex align-items-center gap-2")
                                 .append($("<i>").addClass(`fas ${iconClass} opacity-75`))
-                                .append($("<span>").addClass("fw-medium text-dark text-truncate").text(data.name))
+                                .append($("<span>").addClass("fw-medium text-dark text-truncate").text(data.name));
+
+                            if(isNew) {
+                                wrapper.append($("<span>").addClass("badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-0 ms-2").css("font-size", "0.7rem").text("New"));
+                            }
+                            wrapper.appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "typeId", caption: "Type (Click to edit)", width: 180, alignment: "center",
+                        lookup: {
+                            dataSource: [
+                                { id: 1, name: "Learn" },
+                                { id: 2, name: "Exam" }
+                            ],
+                            displayExpr: "name",
+                            valueExpr: "id"
+                        },
+                        cellTemplate: function(container, options) {
+                            const data = options.data;
+                            const tName = data.typeId === 1 ? "Learn" : (data.typeId === 2 ? "Exam" : "Unknown");
+                            const badgeClass = data.typeId === 1 ? "bg-info text-info border-info" : "bg-warning text-warning border-warning";
+
+                            // ถ้าเป็นไฟล์ใหม่ ให้เพิ่มไอคอนลูกศรชี้ลง และเปลี่ยนเคอร์เซอร์เพื่อให้รู้ว่ากดแก้ได้
+                            const editHint = data.isNew ? '<i class="fas fa-caret-down ms-2 opacity-50"></i>' : '';
+                            const cursorStyle = data.isNew ? "cursor: pointer;" : "cursor: default;";
+                            const tooltip = data.isNew ? "Click to change type" : "Existing resource type cannot be changed here";
+
+                            $("<div>")
+                                .addClass(`badge ${badgeClass} bg-opacity-10 border border-opacity-25 px-3 py-1 rounded-pill fw-medium`)
+                                .attr("style", cursorStyle)
+                                .attr("title", tooltip)
+                                .html(`${tName} ${editHint}`)
                                 .appendTo(container);
                         }
                     },
                     {
-                        caption: "Type", width: 140, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const data = options.data;
-                            if(data.isNew) {
-                                $("<span>").addClass("badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 fw-medium").html('<i class="fas fa-plus me-1"></i>New').appendTo(container);
-                            } else {
-                                const tName = data.typeId === 1 ? "Learn" : "Exam";
-                                const badgeClass = data.typeId === 1 ? "bg-info text-info border-info" : "bg-warning text-warning border-warning";
-                                $("<span>").addClass(`badge ${badgeClass} bg-opacity-10 border border-opacity-25 px-3 py-1 rounded-pill fw-medium`).text(tName).appendTo(container);
-                            }
-                        }
-                    },
-                    {
-                        type: "buttons", width: 80, alignment: "center",
+                        type: "buttons", width: 80, alignment: "center", allowEditing: false,
                         buttons: [{
                             icon: "trash", hint: "Remove from list",
                             onClick: function(e) {
@@ -303,6 +334,7 @@
                                 uid: `NEW_${Date.now()}_${index}`,
                                 name: file.name,
                                 isNew: true,
+                                typeId: 1, // 🌟 Default เป็น 1 (Learn) ให้คลิกแก้ใน Grid ทีหลัง
                                 fileRef: file
                             });
                         });
@@ -373,6 +405,9 @@
                     } else {
                         formDataObj.append("ResourceIds", item.realId);
                     }
+
+                    // 🌟 ส่งค่า Type ของแต่ละไฟล์ไปด้วย
+                    formDataObj.append("ResourceTypes", item.typeId);
                 });
 
                 const url = IS_EDIT ? `${serviceUrl}/courses/versions/${VERSION_ID}` : `${serviceUrl}/courses/${COURSE_ID}/versions`;

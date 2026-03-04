@@ -392,7 +392,7 @@
                 <button class="btn btn-sm btn-light me-2 d-lg-none" onclick="scrollToToc()">
                     <i class="fas fa-list"></i>
                 </button>
-                <div class="fw-bold text-truncate" id="lessonTitle" style="max-width: 600px;">
+                <div class="fw-bold text-truncate" id="learnTitle" style="max-width: 600px;">
                     Loading...
                 </div>
             </div>
@@ -430,7 +430,7 @@
                         </div>
                         <hr class="my-3 text-muted" style="opacity: 0.2;">
                         <div class="alert alert-info small">
-                            <i class="fas fa-info-circle me-1"></i> คุณทำครบทุกบทเรียนแล้ว ตรวจสอบเวลาเรียนและกด "ยืนยัน" เพื่อบันทึก
+                            <i class="fas fa-info-circle me-1"></i>ตรวจสอบเวลาเรียนและกด "ยืนยัน" เพื่อบันทึก
                         </div>
                         <div class="info-row">
                             <table class="summary-table">
@@ -679,7 +679,7 @@
 
             data.resources.forEach((item, index) => {
                 let iconClass = "far fa-file";
-                if (item.type === "Lesson") iconClass = "fas fa-book-open text-primary";
+                if (item.type === "Learn ") iconClass = "fas fa-book-open text-primary";
                 else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-primary";
 
                 const html = `
@@ -727,7 +727,7 @@
 
             $(".resource-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
-            $("#lessonTitle").text(resource.name);
+            $("#learnTitle").text(resource.name);
 
             // แสดง Start Overlay
             $("#startOverlay").fadeIn(200);
@@ -735,7 +735,7 @@
 
             // รีเซ็ต SCORM Model ทันทีเมื่อเลือกบทใหม่
             resetScormModel();
-            console.log(`✅ SCORM Model cleared for new lesson`);
+            console.log(`✅ SCORM Model cleared for new Learn `);
             console.log(`🛑 Previous iframe stopped`);
         }
 
@@ -1025,7 +1025,8 @@
                     if (res.success) {
                         console.log(`✅ Save successful`);
                         DevExpress.ui.notify("บันทึกข้อมูลเรียบร้อยแล้ว", "success", 3000);
-                        setTimeout(() => location.reload(), 1500);
+                        // setTimeout(() => location.reload(), 1500);
+                           setTimeout(() => window.location.href = '@Url.Action("Index", "MyLearning")', 1500);
                     } else {
                         console.error(`❌ Save failed:`, res.message);
                         DevExpress.ui.notify(res.message, "error", 3000);

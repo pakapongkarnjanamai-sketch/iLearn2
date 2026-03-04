@@ -91,7 +91,7 @@
 
     <div class="row g-4 mb-4">
 
-        <div class="col-lg-4 d-flex flex-column gap-4">
+        <div class="col-lg-4 d-flex flex-column">
             <div class="card border-0 shadow-sm rounded-4 flex-grow-1">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
                     <h6 class="mb-0 fw-bold text-dark">
@@ -219,7 +219,7 @@
                 $("#lbl-description").text(data.description || '-');
                 const sDate = data.startDate ? new Date(data.startDate).toLocaleDateString('en-GB') : '-';
                 const dDate = data.dueDate ? new Date(data.dueDate).toLocaleDateString('en-GB') : 'No Limit';
-                $("#lbl-schedule").text(`${sDate} to ${dDate}`);
+                $("#lbl-schedule").text(`${sDate} -> ${dDate}`);
 
                 // Bind Stat Cards
                 $("#stat-total-emp").text(data.totalEmployees);
@@ -236,10 +236,22 @@
                         { status: "In Progress", count: data.chartData.inProgress },
                         { status: "Not Started", count: data.chartData.notStarted }
                     ],
-                    series: [{ argumentField: "status", valueField: "count", label: { visible: false } }],
+                    series: [{ argumentField: "status", valueField: "count",
+                     label: {
+                                visible: true,
+                                format: 'fixedPoint',
+                                customizeText(point) {
+                                    return `${point.argumentText}: ${point.valueText}`;
+                                },
+                                connector: {
+                                    visible: true,
+                                    width: 1,
+                                },
+                            },
+                            }],
                     legend: {
-                        verticalAlignment: "bottom",
-                        horizontalAlignment: "center",
+                      horizontalAlignment: 'right',
+                            verticalAlignment: 'top',
                         margin: 0,
                         font: { size: 12, color: "#586069", weight: 500 }
                     },

@@ -47,7 +47,6 @@ namespace iLearn.Application.Services
                 filter: cr => cr.CourseVersionId == versionId
             );
 
-            // เรียงตาม Order ก่อนส่งไปให้หน้าเว็บแสดงผล
             var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
 
             return new CreateCourseVersionDto
@@ -75,7 +74,6 @@ namespace iLearn.Application.Services
                     includeProperties: "Resource"
                 );
 
-                // เรียงตาม Order สำหรับหน้าต่างโชว์ประวัติ Version
                 var sortedCourseResources = courseResources.OrderBy(cr => cr.Order).ToList();
 
                 var versionDto = new CourseVersionDto
@@ -145,13 +143,18 @@ namespace iLearn.Application.Services
             {
                 int fileIndex = 0;
                 int orderIndex = 1;
+                int globalIndex = 0;
 
                 foreach (var resourceId in model.ResourceIds)
                 {
+                    int currentTypeId = (model.ResourceTypes != null && model.ResourceTypes.Count > globalIndex)
+                                        ? model.ResourceTypes[globalIndex]
+                                        : 1;
+
                     if (resourceId == 0 && fileIndex < (files?.Count ?? 0))
                     {
                         var file = files[fileIndex];
-                        var newResource = await ProcessNewResourceAsync(file);
+                        var newResource = await ProcessNewResourceAsync(file, currentTypeId);
 
                         if (newResource != null)
                         {
@@ -177,6 +180,8 @@ namespace iLearn.Application.Services
                         };
                         await _courseResourceRepository.AddAsync(courseResource);
                     }
+
+                    globalIndex++;
                 }
             }
 
@@ -232,7 +237,6 @@ namespace iLearn.Application.Services
 
             await _versionRepository.UpdateAsync(version);
 
-            // Clear old resources before adding new ordered ones
             var oldResources = await _courseResourceRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
@@ -246,13 +250,18 @@ namespace iLearn.Application.Services
             {
                 int fileIndex = 0;
                 int orderIndex = 1;
+                int globalIndex = 0;
 
                 foreach (var resourceId in model.ResourceIds)
                 {
+                    int currentTypeId = (model.ResourceTypes != null && model.ResourceTypes.Count > globalIndex)
+                                        ? model.ResourceTypes[globalIndex]
+                                        : 1;
+
                     if (resourceId == 0 && fileIndex < (files?.Count ?? 0))
                     {
                         var file = files[fileIndex];
-                        var newResource = await ProcessNewResourceAsync(file);
+                        var newResource = await ProcessNewResourceAsync(file, currentTypeId);
 
                         if (newResource != null)
                         {
@@ -278,6 +287,8 @@ namespace iLearn.Application.Services
                         };
                         await _courseResourceRepository.AddAsync(courseResource);
                     }
+
+                    globalIndex++;
                 }
             }
 
@@ -453,7 +464,7 @@ namespace iLearn.Application.Services
             }
         }
 
-        private async Task<Resource> ProcessNewResourceAsync(IFormFile file)
+        private async Task<Resource> ProcessNewResourceAsync(IFormFile file, int typeId)
         {
             if (file == null || file.Length == 0)
                 return null;
@@ -476,7 +487,7 @@ namespace iLearn.Application.Services
             var resource = new Resource
             {
                 Name = file.FileName,
-                TypeId = 1, // Default to "Learn"
+                TypeId = typeId,
                 IsActive = false,
                 FileStorageId = savedFile.Id
             };
