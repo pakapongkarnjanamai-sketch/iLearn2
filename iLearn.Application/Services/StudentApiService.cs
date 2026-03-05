@@ -122,7 +122,6 @@ namespace iLearn.Infrastructure.Services
         {
             try
             {
-                // อัปเดต URL เป็น GetDistinctDepartments
                 var url = $"{BaseStudentLookupUrl}/GetDistinctDepartments{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;
@@ -130,6 +129,21 @@ namespace iLearn.Infrastructure.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching Departments: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<object> GetPositionsAsync(string queryString)
+        {
+            try
+            {
+                var url = $"{BaseStudentLookupUrl}/GetDistinctPositions{queryString}";
+                var response = await _httpClient.GetFromJsonAsync<object>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching Positions: {ex.Message}");
                 return null;
             }
         }

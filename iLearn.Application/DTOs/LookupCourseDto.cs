@@ -13,6 +13,8 @@ namespace iLearn.Application.DTOs
         public string Title { get; set; }
         public int? CategoryId { get; set; }
         public int? DivisionId { get; set; }
+        public int? CourseTypeId { get; set; }
+        public string? CourseTypeName { get; set; }
     }
 
     public class LookupStudentDto

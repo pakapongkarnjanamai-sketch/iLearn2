@@ -151,202 +151,371 @@
 
             // --- Courses Popup ---
             const coursesPopup = $("#courses-popup").dxPopup({
-                title: "Select Courses", width: 900, height: 650,
+                title: "Select Courses", width: "90vw", maxWidth: 1100, height: "85vh",
+                showCloseButton: true, dragEnabled: true,
+                wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
-                    const layout = $(`
-                        <div class="row h-100 g-3">
-                            <div class="col-md-4 border-end pe-3">
-                                <div class="filter-panel h-100">
-                                    <h6 class="fw-bold mb-3"><i class="fas fa-filter text-muted me-2"></i>Filters</h6>
-                                    <div class="mb-3">
-                                        <label class="small fw-bold text-muted mb-1">Division</label>
+                    $(`
+                        <div class="d-flex h-100 gap-3">
+                            <div style="width:260px; flex-shrink:0;">
+                                <div class="filter-panel h-100 d-flex flex-column gap-3">
+                                    <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
+                                        <div id="filter-course-type"></div>
+                                    </div>
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Division</label>
                                         <div id="filter-course-div"></div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="small fw-bold text-muted mb-1">Category</label>
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Category</label>
                                         <div id="filter-course-cat"></div>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btn-clear-course-filter">Clear Filters</button>
+
+                                    <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-course-filter">
+                                        <i class="fas fa-times me-1"></i> Clear Filters
+                                    </button>
                                 </div>
                             </div>
-                            <div class="col-md-8 h-100 pb-3">
-                                <div id="grid-courses"></div>
+                            <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                                <div id="grid-courses" class="flex-grow-1"></div>
+                                <div class="pt-2 text-muted small fw-medium" id="course-selection-hint">
+                                    <i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.
+                                </div>
                             </div>
                         </div>
                     `).appendTo(contentElement);
 
+                    // ── DataStore สำหรับ grid (load ครั้งเดียว, filter ฝั่ง client) ──
+                    let allCoursesData = [];
+                    const coursesLocalStore = new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData });
+
                     const courseGrid = $("#grid-courses").dxDataGrid({
-                        dataSource: new DevExpress.data.CustomStore({
-                            key: "id",
-                            load: () => $.ajax({
-                                url: `${serviceUrl}/Assignments/lookup-courses`,
-                                method: "GET",
-                                xhrFields: { withCredentials: true }
-                            }).then(res => res.data)
-                        }),
-                        showBorders: true, showRowLines: true, filterRow: { visible: true },
-                        searchPanel: { visible: true, placeholder: "Search code or title..." },
+                        dataSource: new DevExpress.data.DataSource({ store: coursesLocalStore }),
+                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                        hoverStateEnabled: true,
+                        filterRow: { visible: true },
+                        searchPanel: { visible: true, placeholder: "Search code or title...", width: 250 },
                         selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        scrolling: { mode: "virtual" }, height: "100%",
+                        scrolling: { mode: "virtual" },
+                        height: "100%",
+                        noDataText: "No courses found.",
                         columns: [
-                            { dataField: "code", caption: "Code", width: 100, cssClass: "fw-bold" },
-                            { dataField: "title", caption: "Course Title" }
+                            {
+                                dataField: "code", caption: "Code", width: 110,
+                                cellTemplate: function(c, o) {
+                                    $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c);
+                                }
+                            },
+                            { dataField: "title", caption: "Course Title", minWidth: 180 },
+                            {
+                                dataField: "courseTypeName", caption: "Type", width: 130, alignment: "center",
+                                cellTemplate: function(c, o) {
+                                    if (!o.value) return;
+                                    $("<span>")
+                                        .addClass("badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 fw-medium")
+                                        .text(o.value)
+                                        .appendTo(c);
+                                }
+                            }
                         ],
                         selectedRowKeys: selectedCourseIds,
                         onSelectionChanged: function(e) {
                             selectedCourseIds = e.selectedRowKeys;
                             updateCardUI("#btn-select-courses", "#selected-courses-text", selectedCourseIds.length, "course");
+                            $("#course-selection-hint").html(
+                                selectedCourseIds.length > 0
+                                    ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedCourseIds.length}</b> course(s) selected.`
+                                    : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
+                            );
                         }
                     }).dxDataGrid("instance");
 
-                    const divBox = $("#filter-course-div").dxSelectBox({
-                        dataSource: new DevExpress.data.CustomStore({
-                            key: "id", 
-                            load: () => $.ajax({
-                                url: `${serviceUrl}/admin/DivisionsCRUD/Get`,
-                                method: "GET",
-                                xhrFields: { withCredentials: true }
-                            }).then(res => res.data)
-                        }),
-                        displayExpr: "name", valueExpr: "id", placeholder: "All Divisions",
+                    // โหลดข้อมูล courses ครั้งเดียว
+                    $.ajax({
+                        url: `${serviceUrl}/Assignments/lookup-courses`,
+                        method: "GET", xhrFields: { withCredentials: true }
+                    }).done(function(res) {
+                        allCoursesData = res.data || [];
+                        courseGrid.option("dataSource", new DevExpress.data.DataSource({
+                            store: new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData })
+                        }));
+                        courseGrid.option("selectedRowKeys", selectedCourseIds);
+                    });
+
+                    // ── Helper: รวม filter ทุกตัว ──
+                    function applyFilters() {
+                        const typeVal = $("#filter-course-type").dxSelectBox("instance").option("value");
+                        const divVal  = $("#filter-course-div").dxSelectBox("instance").option("value");
+                        const catVal  = $("#filter-course-cat").dxSelectBox("instance").option("value");
+
+                        const conditions = [];
+                        if (typeVal) conditions.push(["courseTypeId", "=", typeVal]);
+                        if (divVal)  conditions.push(["divisionId",   "=", divVal]);
+                        if (catVal)  conditions.push(["categoryId",   "=", catVal]);
+
+                        if (conditions.length === 0) { courseGrid.clearFilter(); return; }
+                        // รวมด้วย "and"
+                        let combined = conditions[0];
+                        for (let i = 1; i < conditions.length; i++) combined = [combined, "and", conditions[i]];
+                        courseGrid.filter(combined);
+                    }
+
+                    // ── Filter: Course Type ──
+                    $("#filter-course-type").dxSelectBox({
+                        dataSource: createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' }),
+                        displayExpr: "name", valueExpr: "id",
+                        placeholder: "All Types", showClearButton: true,
+                        onValueChanged: applyFilters
+                    });
+
+                    // ── Filter: Division ──
+                    $("#filter-course-div").dxSelectBox({
+                        dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                        displayExpr: "name", valueExpr: "id",
+                        placeholder: "All Divisions", showClearButton: true,
                         onValueChanged: function(e) {
                             const catBox = $("#filter-course-cat").dxSelectBox("instance");
-                            if(e.value) {
-                                courseGrid.filter(["divisionId", "=", e.value]);
-                                catBox.option("dataSource", new DevExpress.data.CustomStore({
-                                    key: "id", 
-                                    load: () => $.ajax({
-                                        url: `${serviceUrl}/admin/CategoriesCRUD/Get?filter=["divisionId","=",${e.value}]`,
-                                        method: "GET",
-                                        xhrFields: { withCredentials: true }
-                                    }).then(res => res.data)
+                            catBox.option("value", null);
+                            if (e.value) {
+                                catBox.option("dataSource", createDataStore(serviceUrl, 'admin/CategoriesCRUD', {
+                                    key: 'id', action: 'Get', filter: ["divisionId", "=", e.value]
                                 }));
-                                catBox.option("value", null);
+                                catBox.option("disabled", false);
                             } else {
-                                courseGrid.clearFilter();
                                 catBox.option("dataSource", []);
+                                catBox.option("disabled", true);
                             }
+                            applyFilters();
                         }
-                    }).dxSelectBox("instance");
+                    });
 
-                    const catBox = $("#filter-course-cat").dxSelectBox({
-                        displayExpr: "name", valueExpr: "id", placeholder: "All Categories",
-                        onValueChanged: function(e) {
-                            if(e.value) {
-                                courseGrid.filter([["divisionId", "=", divBox.option("value")], "and", ["categoryId", "=", e.value]]);
-                            } else if(divBox.option("value")) {
-                                courseGrid.filter(["divisionId", "=", divBox.option("value")]);
-                            } else {
-                                courseGrid.clearFilter();
-                            }
-                        }
-                    }).dxSelectBox("instance");
+                    // ── Filter: Category ──
+                    $("#filter-course-cat").dxSelectBox({
+                        displayExpr: "name", valueExpr: "id",
+                        placeholder: "All Categories", showClearButton: true,
+                        disabled: true,
+                        onValueChanged: applyFilters
+                    });
 
-                    $("#btn-clear-course-filter").click(() => { divBox.option("value", null); catBox.option("value", null); courseGrid.clearFilter(); });
+                    // ── Clear ──
+                    $("#btn-clear-course-filter").click(function() {
+                        $("#filter-course-type").dxSelectBox("instance").option("value", null);
+                        $("#filter-course-div").dxSelectBox("instance").option("value", null);
+                        $("#filter-course-cat").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+                        courseGrid.clearFilter();
+                    });
                 },
-                toolbarItems: [{ widget: "dxButton", toolbar: "bottom", location: "after", options: { text: "Done", type: "default", onClick: () => coursesPopup.hide() } }]
+                toolbarItems: [{
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Done", type: "default", stylingMode: "contained",
+                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        onClick: () => coursesPopup.hide()
+                    }
+                }]
             }).dxPopup("instance");
 
             // --- Employees Popup ---
             const employeesPopup = $("#employees-popup").dxPopup({
-                title: "Select Employees", width: 1000, height: 650,
+                title: "Select Employees", width: "90vw", maxWidth: 1280, height: "85vh",
+                showCloseButton: true, dragEnabled: true,
+                wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
-                    const layout = $(`
-                        <div class="row h-100 g-3">
-                            <div class="col-md-4 border-end pe-3">
-                                <div class="filter-panel h-100">
-                                    <h6 class="fw-bold mb-3"><i class="fas fa-filter text-muted me-2"></i>Filters</h6>
-                                    <div class="mb-3">
-                                        <label class="small fw-bold text-muted mb-1">Division</label>
+                    $(`
+                        <div class="d-flex h-100 gap-3">
+                            <div style="width:240px; flex-shrink:0;">
+                                <div class="filter-panel h-100 d-flex flex-column gap-3">
+                                    <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Division</label>
                                         <div id="filter-emp-div"></div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="small fw-bold text-muted mb-1">Department</label>
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Department</label>
                                         <div id="filter-emp-dept"></div>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btn-clear-emp-filter">Clear Filters</button>
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                        <div id="filter-emp-section"></div>
+                                    </div>
+                                    <div>
+                                        <label class="small fw-bold text-muted mb-1 d-block">Position</label>
+                                        <div id="filter-emp-position"></div>
+                                    </div>
+
+                                    <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-emp-filter">
+                                        <i class="fas fa-times me-1"></i> Clear Filters
+                                    </button>
                                 </div>
                             </div>
-                            <div class="col-md-8 h-100 pb-3">
-                                <div id="grid-employees"></div>
+                            <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                                <div id="grid-employees" class="flex-grow-1"></div>
+                                <div class="pt-2 text-muted small fw-medium" id="emp-selection-hint">
+                                    <i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.
+                                </div>
                             </div>
                         </div>
                     `).appendTo(contentElement);
 
                     const empGrid = $("#grid-employees").dxDataGrid({
                         dataSource: DevExpress.data.AspNet.createStore({
-                            key: "EId", 
+                            key: "EId",
                             loadUrl: `${serviceUrl}/Students/Get`,
                             onBeforeSend: function(method, ajaxOptions) {
-                                ajaxOptions.xhrFields = { withCredentials: true }; 
+                                ajaxOptions.xhrFields = { withCredentials: true };
                             }
                         }),
                         remoteOperations: true,
-                        showBorders: true, showRowLines: true, filterRow: { visible: true },
-                        searchPanel: { visible: true, placeholder: "Search ID or Name..." },
+                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                        hoverStateEnabled: true,
+                        filterRow: { visible: true },
+                        searchPanel: { visible: true, placeholder: "Search ID or name...", width: 240 },
                         selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        scrolling: { mode: "virtual" }, height: "100%",
+                        scrolling: { mode: "virtual" },
+                        height: "100%",
+                        noDataText: "No employees found.",
                         columns: [
-                            { dataField: "EId", caption: "ID", width: 90, cssClass: "fw-bold" },
-                            { 
-                                caption: "Name", 
-                                calculateCellValue: (d) => `${d.EnglishFirstName || ''} ${d.EnglishLastName || ''}` 
+                            {
+                                dataField: "EId", caption: "ID", width: 95,
+                                cellTemplate: function(c, o) {
+                                    $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c);
+                                }
                             },
-                            { dataField: "Department", caption: "Department", width: 100 }
+                            {
+                                caption: "Name", minWidth: 160,
+                                calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
+                                cellTemplate: function(c, o) {
+                                    $("<span>").addClass("fw-medium text-dark").text(o.value).appendTo(c);
+                                }
+                            },
+                            {
+                                dataField: "Position", caption: "Position", width: 90, alignment: "center",
+                                cellTemplate: function(c, o) {
+                                    if (!o.value) return;
+                                    $("<span>")
+                                        .addClass("badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 fw-medium")
+                                        .text(o.value)
+                                        .appendTo(c);
+                                }
+                            },
+                            { dataField: "Department", caption: "Dept.", width: 90 },
+                            { dataField: "Section", caption: "Section", minWidth: 120,
+                                cellTemplate: function(c, o) {
+                                    $("<span>").addClass("text-muted small").text(o.value || "—").appendTo(c);
+                                }
+                            }
                         ],
                         selectedRowKeys: selectedEmployeeCodes,
                         onSelectionChanged: function(e) {
                             selectedEmployeeCodes = e.selectedRowKeys;
                             updateCardUI("#btn-select-employees", "#selected-employees-text", selectedEmployeeCodes.length, "employee");
+                            $("#emp-selection-hint").html(
+                                selectedEmployeeCodes.length > 0
+                                    ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedEmployeeCodes.length}</b> employee(s) selected.`
+                                    : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
+                            );
                         }
                     }).dxDataGrid("instance");
 
-                    const empDivBox = $("#filter-emp-div").dxSelectBox({
-                        dataSource: new DevExpress.data.CustomStore({
-                            key: "Name", 
+                    // ── Helper: สร้าง filter query string และ reload grid ──
+                    function buildEmpFilterQuery() {
+                        const filters = [];
+                        const divVal  = $("#filter-emp-div").dxSelectBox("instance").option("value");
+                        const deptVal = $("#filter-emp-dept").dxSelectBox("instance").option("value");
+                        const secVal  = $("#filter-emp-section").dxSelectBox("instance").option("value");
+                        const posVal  = $("#filter-emp-position").dxSelectBox("instance").option("value");
+
+                        if (divVal)  filters.push(["Division",   "=", divVal]);
+                        if (deptVal) filters.push(["Department", "=", deptVal]);
+                        if (secVal)  filters.push(["Section",    "=", secVal]);
+                        if (posVal)  filters.push(["Position",   "=", posVal]);
+
+                        if (filters.length === 0) { empGrid.clearFilter(); return; }
+                        let combined = filters[0];
+                        for (let i = 1; i < filters.length; i++) combined = [combined, "and", filters[i]];
+                        empGrid.filter(combined);
+                    }
+
+                    // ── Helper: สร้าง CustomStore สำหรับ dependent dropdowns ──
+                    function makeEmpLookupStore(endpoint, extraQuery) {
+                        return new DevExpress.data.CustomStore({
+                            key: "Name",
                             load: () => $.ajax({
-                                url: `${serviceUrl}/Students/GetDivisions`,
-                                method: "GET",
-                                xhrFields: { withCredentials: true }
-                            }).then(res => res.data)
-                        }),
-                        displayExpr: "Name", valueExpr: "Name", placeholder: "All Divisions",
+                                url: `${serviceUrl}/Students/${endpoint}${extraQuery || ""}`,
+                                method: "GET", xhrFields: { withCredentials: true }
+                            }).then(res => res.data || res)
+                        });
+                    }
+
+                    // ── Filter: Division ──
+                    const empDivBox = $("#filter-emp-div").dxSelectBox({
+                        dataSource: makeEmpLookupStore("GetDivisions", ""),
+                        displayExpr: "Name", valueExpr: "Name",
+                        placeholder: "All Divisions", showClearButton: true,
                         onValueChanged: function(e) {
-                            const empDeptBox = $("#filter-emp-dept").dxSelectBox("instance");
-                            if(e.value) {
-                                empGrid.filter(["Division", "=", e.value]);
-                                empDeptBox.option("dataSource", new DevExpress.data.CustomStore({
-                                    key: "Name", 
-                                    load: () => $.ajax({
-                                        url: `${serviceUrl}/Students/GetDepartments?filter=["Division","=","${e.value}"]`,
-                                        method: "GET",
-                                        xhrFields: { withCredentials: true }
-                                    }).then(res => res.data)
-                                }));
-                                empDeptBox.option("value", null);
-                            } else {
-                                empGrid.clearFilter();
-                                empDeptBox.option("dataSource", []);
-                            }
+                            const deptBox    = $("#filter-emp-dept").dxSelectBox("instance");
+                            const sectionBox = $("#filter-emp-section").dxSelectBox("instance");
+                            deptBox.option({ value: null, disabled: !e.value, dataSource: e.value
+                                ? makeEmpLookupStore("GetDepartments", `?filter=["Division","=","${e.value}"]`)
+                                : [] });
+                            sectionBox.option({ value: null, disabled: true, dataSource: [] });
+                            buildEmpFilterQuery();
                         }
                     }).dxSelectBox("instance");
 
+                    // ── Filter: Department ──
                     const empDeptBox = $("#filter-emp-dept").dxSelectBox({
-                        displayExpr: "Name", valueExpr: "Name", placeholder: "All Departments",
+                        displayExpr: "Name", valueExpr: "Name",
+                        placeholder: "All Departments", showClearButton: true, disabled: true,
                         onValueChanged: function(e) {
-                            if(e.value) {
-                                empGrid.filter([["Division", "=", empDivBox.option("value")], "and", ["Department", "=", e.value]]);
-                            } else if(empDivBox.option("value")) {
-                                empGrid.filter(["Division", "=", empDivBox.option("value")]);
-                            } else {
-                                empGrid.clearFilter();
-                            }
+                            const sectionBox = $("#filter-emp-section").dxSelectBox("instance");
+                            const divVal = empDivBox.option("value");
+                            const q = e.value
+                                ? `?filter=[["Division","=","${divVal}"],"and",["Department","=","${e.value}"]]`
+                                : (divVal ? `?filter=["Division","=","${divVal}"]` : "");
+                            sectionBox.option({ value: null, disabled: !e.value, dataSource: e.value
+                                ? makeEmpLookupStore("GetSections", q)
+                                : [] });
+                            buildEmpFilterQuery();
                         }
                     }).dxSelectBox("instance");
 
-                    $("#btn-clear-emp-filter").click(() => { empDivBox.option("value", null); empDeptBox.option("value", null); empGrid.clearFilter(); });
+                    // ── Filter: Section ──
+                    const empSectionBox = $("#filter-emp-section").dxSelectBox({
+                        displayExpr: "Name", valueExpr: "Name",
+                        placeholder: "All Sections", showClearButton: true, disabled: true,
+                        onValueChanged: buildEmpFilterQuery
+                    }).dxSelectBox("instance");
+
+                    // ── Filter: Position (independent — ดึงทั้งหมดแล้ว filter ใน grid) ──
+                    $("#filter-emp-position").dxSelectBox({
+                        dataSource: makeEmpLookupStore("GetPositions", ""),
+                        displayExpr: "Name", valueExpr: "Name",
+                        placeholder: "All Positions", showClearButton: true,
+                        onValueChanged: buildEmpFilterQuery
+                    });
+
+                    // ── Clear all filters ──
+                    $("#btn-clear-emp-filter").click(function() {
+                        empDivBox.option("value", null);
+                        empDeptBox.option({ value: null, disabled: true, dataSource: [] });
+                        empSectionBox.option({ value: null, disabled: true, dataSource: [] });
+                        $("#filter-emp-position").dxSelectBox("instance").option("value", null);
+                        empGrid.clearFilter();
+                    });
                 },
-                toolbarItems: [{ widget: "dxButton", toolbar: "bottom", location: "after", options: { text: "Done", type: "default", onClick: () => employeesPopup.hide() } }]
+                toolbarItems: [{
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Done", type: "default", stylingMode: "contained",
+                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        onClick: () => employeesPopup.hide()
+                    }
+                }]
             }).dxPopup("instance");
 
             // Event binding for Cards

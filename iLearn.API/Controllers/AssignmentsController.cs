@@ -166,8 +166,7 @@ namespace iLearn.API.Controllers
         [HttpGet("lookup-courses")]
         public async Task<IActionResult> GetLookupCourses()
         {
-            // ดึงเฉพาะคอร์สที่ใช้งานอยู่ (IsActive) พร้อมผูก DivisionId มาจาก Category
-            var courses = await _courseRepo.GetAsync(c => c.IsActive, includeProperties: "Category");
+            var courses = await _courseRepo.GetAsync(c => c.IsActive, includeProperties: "Category,CourseType");
 
             var result = courses.Select(c => new LookupCourseDto
             {
@@ -175,7 +174,9 @@ namespace iLearn.API.Controllers
                 Code = c.Code,
                 Title = c.Title,
                 CategoryId = c.CategoryId,
-                DivisionId = c.Category?.DivisionId // ดึง DivisionId จาก Category
+                DivisionId = c.Category?.DivisionId,
+                CourseTypeId = c.CourseTypeId,
+                CourseTypeName = c.CourseType?.Name
             }).ToList();
 
             return Ok(new { data = result });

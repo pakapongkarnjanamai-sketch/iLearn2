@@ -16,5 +16,6 @@ namespace iLearn.Application.Interfaces.Services
         Task<object> GetSectionsAsync(string queryString);
         Task<object> GetDivisionsAsync(string queryString);
         Task<object> GetDepartmentsAsync(string queryString);
+        Task<object> GetPositionsAsync(string queryString);
     }
 }

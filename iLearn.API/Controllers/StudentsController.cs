@@ -105,6 +105,20 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("GetPositions")]
+        public async Task<IActionResult> GetPositions()
+        {
+            var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+            var result = await _studentService.GetPositionsAsync(queryString);
+
+            if (result == null)
+            {
+                return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการดึงข้อมูลตำแหน่ง (Positions) จากเซิร์ฟเวอร์หลักครับ" });
+            }
+
+            return Ok(result);
+        }
+
         [HttpGet("Get")]
         public async Task<IActionResult> Get()
         {
