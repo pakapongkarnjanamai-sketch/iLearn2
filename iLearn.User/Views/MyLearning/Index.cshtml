@@ -353,17 +353,8 @@
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
+            color: white;
         }
-
-            .type-badge.general {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-            }
-
-            .type-badge.special {
-                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                color: white;
-            }
 
         /* ========== Search Highlight ========== */
         .search-highlight {
@@ -456,6 +447,11 @@ else
                     </li>
 
                     <li class="nav-item">
+                        <a class="nav-link" onclick="filterMyCourses('not-started')">
+                            <i class="fas fa-hourglass-start me-1 small"></i> ยังไม่เริ่ม
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" onclick="filterMyCourses('progress')">
                             <i class="fas fa-spinner me-1 small"></i> กำลังเรียน
                         </a>
@@ -488,16 +484,6 @@ else
                         <li class="nav-item">
                             <a class="nav-link active" onclick="filterCatalogByType('all')">
                                 <i class="fas fa-th-large me-1 small"></i> ทั้งหมด
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" onclick="filterCatalogByType('general')">
-                                <i class="fas fa-book me-1 small"></i> ทั่วไป
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" onclick="filterCatalogByType('special')">
-                                <i class="fas fa-star me-1 small"></i> พิเศษ
                             </a>
                         </li>
                     </ul>
@@ -535,13 +521,27 @@ else
         let currentFilter = 'all';
         let selectedCategoryId = 'all';
         let selectedCourseType = 'all';
-        // New: Track selected course type
+        let allCourseTypes = []; // dynamic course types loaded from API
         let categorizedCourses = {};
+
+        const typeColorPalette = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+        ];
+
+        function getTypeColor(index) {
+            return typeColorPalette[index % typeColorPalette.length];
+        }
+
         $(function() {
             initSearchBox();
             initLogout();
             loadMyCourses();
-            loadAllCourses();
+            loadCourseTypes();
         });
         function initLogout(){
             $("#btnLogout").dxButton({
@@ -683,7 +683,9 @@ else
 
             let filteredData = myCoursesData;
 
-            if (type === 'progress') {
+            if (type === 'not-started') {
+                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) === 0);
+            } else if (type === 'progress') {
                 filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) > 0);
             } else if (type === 'completed') {
                 filteredData = myCoursesData.filter(e => !!e.isCompleted);
@@ -693,6 +695,7 @@ else
             if (filteredData.length === 0) {
                 const messages = {
                     'all': 'คุณยังไม่มีคอร์สที่ลงทะเบียน',
+                    'not-started': 'คุณไม่มีคอร์สที่ยังไม่เริ่มเรียน',
                     'progress': 'คุณยังไม่มีคอร์สที่กำลังเรียน',
                     'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
                 };
@@ -710,6 +713,40 @@ else
             } else {
                 renderMyCourses(filteredData);
             }
+        }
+
+        // ========== Load Course Types (dynamic) ==========
+        function loadCourseTypes() {
+            $.ajax({
+                url: `${baseUrl}/admin/CourseTypesCRUD/Get`,
+                method: 'GET',
+                xhrFields: { withCredentials: true },
+                success: function(res) {
+                    allCourseTypes = res.data || (Array.isArray(res) ? res : []);
+                    renderTypeFilterPills();
+                    loadAllCourses();
+                },
+                error: function() {
+                    loadAllCourses(); // load courses even if types fail
+                }
+            });
+        }
+
+        // ========== Render Type Filter Pills ==========
+        function renderTypeFilterPills() {
+            const $filter = $('#catalog-type-filter');
+            // remove any previously injected type pills
+            $filter.find('.dynamic-type-pill').remove();
+
+            allCourseTypes.forEach(function(ct) {
+                $filter.append(`
+                    <li class="nav-item dynamic-type-pill">
+                        <a class="nav-link" onclick="filterCatalogByType(${ct.id})">
+                            <i class="fas fa-tag me-1 small"></i> ${ct.name}
+                        </a>
+                    </li>
+                `);
+            });
         }
 
         // ========== Load Catalog ==========
@@ -795,7 +832,7 @@ else
             });
         }
 
-        // ========== NEW: Filter Catalog by Course Type ==========
+        // ========== Filter Catalog by Course Type ==========
         function filterCatalogByType(type) {
             selectedCourseType = type;
             $('#catalog-type-filter .nav-link').removeClass('active');
@@ -804,7 +841,7 @@ else
             renderCatalogContent(selectedCategoryId);
         }
 
-               // ========== Render Catalog Content (with Course Type Filter) ==========
+        // ========== Render Catalog Content (dynamic Course Type grouping) ==========
         function renderCatalogContent(categoryId) {
             const $content = $("#catalogContent");
             $content.empty();
@@ -812,67 +849,78 @@ else
             let coursesToShow = categoryId === 'all'
                 ? allCoursesData
                 : (categorizedCourses[categoryId]?.courses || []);
+
             // Apply Course Type Filter
-            if (selectedCourseType === 'general') {
-                coursesToShow = coursesToShow.filter(c => c.courseTypeId === 2);
-            } else if (selectedCourseType === 'special') {
-                coursesToShow = coursesToShow.filter(c => c.courseTypeId === 1);
+            if (selectedCourseType !== 'all') {
+                coursesToShow = coursesToShow.filter(c => c.courseTypeId === selectedCourseType);
             }
 
             if (coursesToShow.length === 0) {
                 $content.html(`
                     <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 362px;">
-                     <div>
-                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                        <p class="mb-0">ไม่พบหลักสูตรในหมวดหมู่นี้</p>
-                    </div></div>
+                        <div>
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="mb-0">ไม่พบหลักสูตรในหมวดหมู่นี้</p>
+                        </div>
+                    </div>
                 `);
                 return;
             }
 
-            // Group by Course Type
-            const generalCourses = coursesToShow.filter(c => c.type === 1); // General
-            const specialCourses = coursesToShow.filter(c => c.type === 0); // Special (จาก Enum: 0)
+            // Determine which types are present in the current result set
+            const typesToRender = selectedCourseType !== 'all'
+                ? allCourseTypes.filter(t => t.id === selectedCourseType)
+                : allCourseTypes;
 
-            // Render General Courses
-            if (generalCourses.length > 0) {
-                const $generalSection = $(`
+            let renderedAny = false;
+            typesToRender.forEach(function(ct, index) {
+                const typeCourses = coursesToShow.filter(c => c.courseTypeId === ct.id);
+                if (typeCourses.length === 0) return;
+
+                renderedAny = true;
+                const color = getTypeColor(index);
+                const gridId = `typeGrid_${ct.id}`;
+
+                const $section = $(`
                     <div class="course-type-section">
                         <div class="course-type-header">
-                            <span class="type-badge general">
-                                <i class="fas fa-book"></i>
-                                หลักสูตรทั่วไป
+                            <span class="type-badge" style="background: ${color};">
+                                <i class="fas fa-tag"></i>
+                                ${ct.name}
                             </span>
-                            <span class="text-muted small">(${generalCourses.length} หลักสูตร)</span>
+                            <span class="text-muted small">(${typeCourses.length} หลักสูตร)</span>
                         </div>
-
-                    <div class="row g-4" id="generalCoursesGrid"></div>
+                        <div class="row g-4" id="${gridId}"></div>
                     </div>
                 `);
-                generalCourses.forEach(course => {
-                    $generalSection.find('#generalCoursesGrid').append(renderCatalogCard(course));
+                typeCourses.forEach(course => {
+                    $section.find(`#${gridId}`).append(renderCatalogCard(course));
                 });
-                $content.append($generalSection);
-            }
+                $content.append($section);
+            });
 
-            // Render Special Courses
-            if (specialCourses.length > 0) {
-                const $specialSection = $(`
-                    <div class="course-type-section">
-                        <div class="course-type-header">
-                            <span class="type-badge special">
-                                <i class="fas fa-star"></i>
-                                หลักสูตรพิเศษ
-                            </span>
-                            <span class="text-muted small">(${specialCourses.length} หลักสูตร)</span>
+            // Courses with no matching type definition (fallback)
+            if (!renderedAny || selectedCourseType === 'all') {
+                const knownTypeIds = allCourseTypes.map(t => t.id);
+                const unknownCourses = coursesToShow.filter(c => !knownTypeIds.includes(c.courseTypeId));
+                if (unknownCourses.length > 0) {
+                    const $fallbackSection = $(`
+                        <div class="course-type-section">
+                            <div class="course-type-header">
+                                <span class="type-badge" style="background: linear-gradient(135deg, #b0bec5 0%, #78909c 100%);">
+                                    <i class="fas fa-question-circle"></i>
+                                    ไม่ระบุประเภท
+                                </span>
+                                <span class="text-muted small">(${unknownCourses.length} หลักสูตร)</span>
+                            </div>
+                            <div class="row g-4" id="unknownTypeGrid"></div>
                         </div>
-                        <div class="row g-4" id="specialCoursesGrid"></div>
-                    </div>
-                `);
-                specialCourses.forEach(course => {
-                    $specialSection.find('#specialCoursesGrid').append(renderCatalogCard(course));
-                });
-                $content.append($specialSection);
+                    `);
+                    unknownCourses.forEach(course => {
+                        $fallbackSection.find('#unknownTypeGrid').append(renderCatalogCard(course));
+                    });
+                    $content.append($fallbackSection);
+                }
             }
         }
 
@@ -896,7 +944,7 @@ else
 
                             <div class="progress-section">
                                 <a href="/MyLearning/Player?courseId=${course.id}" class="btn btn-outline-primary w-100 btn-continue">
-                                    <i class="fas fa-eye me-1"></i> ดูเนื้อหา / เรียน
+                                    <i class="fas fa-eye me-1"></i> ดูเนื้อหา
                                 </a>
                             </div>
                         </div>
