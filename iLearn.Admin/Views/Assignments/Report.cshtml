@@ -1,0 +1,484 @@
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    Layout = null;
+    var apiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Assignment Report</title>
+    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
+    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #fff; color: #222; font-size: 13px; }
+
+        .report-header { border-bottom: 2px solid #0d6efd; padding-bottom: 12px; margin-bottom: 20px; }
+        .report-title  { font-size: 1.4rem; font-weight: 700; color: #0d6efd; }
+        .report-meta   { font-size: 0.8rem; color: #6c757d; }
+
+        .section-title {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #6c7c93; margin-bottom: 8px;
+            border-bottom: 1px solid #e8ecf1; padding-bottom: 4px;
+        }
+
+        /* ── Infographic ── */
+        .infographic-section {
+            background: linear-gradient(135deg, #f0f7ff 0%, #fafbff 100%);
+            border: 1px solid #e0eaff; border-radius: 12px; padding: 20px;
+        }
+        .infographic-title {
+            font-size: 0.95rem; font-weight: 700; color: #2b3643;
+            margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+        }
+        .stat-card {
+            border-radius: 10px; padding: 16px; text-align: center;
+            border: 1px solid transparent; position: relative; overflow: hidden;
+        }
+        .stat-card::before {
+            content: ''; position: absolute; top: -20px; right: -20px;
+            width: 70px; height: 70px; border-radius: 50%; opacity: 0.08;
+        }
+        .stat-card.total  { background:#eff6ff; border-color:#bfdbfe; }
+        .stat-card.total::before { background:#3b82f6; }
+        .stat-card.rate   { background:#fdf4ff; border-color:#e9d5ff; }
+        .stat-card.rate::before  { background:#a855f7; }
+
+        .stat-icon  { font-size: 1.5rem; margin-bottom: 6px; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; line-height: 1; margin-bottom: 2px; }
+        .stat-lbl   { font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+                      letter-spacing: 0.4px; color: #6c7c93; }
+
+        /* ── Pie Chart ── */
+        .chart-export-section {
+            border: 1px solid #e8ecf1; border-radius: 12px; padding: 16px; background: #fff;
+        }
+        .chart-export-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .export-btn-group { display: flex; gap: 6px; }
+        .export-btn {
+            border: 1px solid #e8ecf1; background: #fff; border-radius: 6px;
+            padding: 5px 12px; font-size: 11px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all .15s ease;
+        }
+        .export-btn.png  { color:#059669; border-color:#d1fae5; }
+        .export-btn.png:hover  { background:#f0fdf4; border-color:#059669; }
+        .export-btn.jpeg { color:#d97706; border-color:#fde68a; }
+        .export-btn.jpeg:hover { background:#fffbeb; border-color:#d97706; }
+
+        /* ── Tables ── */
+        .badge-completed  { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .badge-inprogress { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+        .badge-notstarted { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+
+        table { width:100%; border-collapse:collapse; font-size:12px; }
+        thead th { background:#f0f7ff; color:#2b3643; font-weight:600; padding:8px 10px; border:1px solid #dee2e6; }
+        tbody td { padding:7px 10px; border:1px solid #dee2e6; vertical-align:middle; }
+        tbody tr:nth-child(even) { background:#f8f9fa; }
+
+        .progress-bar-bg   { background:#e9ecef; border-radius:4px; height:6px; }
+        .progress-bar-fill { height:6px; border-radius:4px; }
+
+        .dot            { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+        .dot-completed  { background:#2da44e; }
+        .dot-progress   { background:#dbab09; }
+        .dot-notstarted { background:#d1d5da; }
+
+                    /* ── Pivot Table (ลดสี) ── */
+        .pivot-section { border:1px solid #e8ecf1; border-radius:12px; margin-bottom:20px; overflow:hidden; }
+        .pivot-header  { background:#f8fafc; border-bottom:1px solid #e8ecf1; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
+        .pivot-scroll  { overflow-x:auto; }
+
+        .pivot-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+        .pivot-table .th-corner,
+        .pivot-table .th-row-label { background:#f8fafc; font-weight:700; color:#2b3643; border:1px solid #dee2e6; padding:8px 12px; white-space:nowrap; }
+        .pivot-table .th-corner    { text-align:center; min-width:120px; }
+        .pivot-table .th-course    { background:#f0f7ff; font-weight:700; color:#2b3643; border:1px solid #dee2e6; padding:8px 10px; text-align:center; min-width:130px; }
+        .pivot-table .th-course .course-code  { display:block; font-size:11px; background:#2b3643; color:#fff; border-radius:4px; padding:1px 6px; margin-bottom:3px; font-weight:700; }
+        .pivot-table .th-course .course-title { font-size:10px; color:#374151; font-weight:500; white-space:normal; max-width:120px; line-height:1.3; }
+        .pivot-table .th-summary   { background:#f8fafc; font-weight:700; color:#2b3643; border:1px solid #dee2e6; padding:8px 10px; text-align:center; min-width:90px; }
+
+        /* cell สีขาวล้วน ใช้แค่ chip แสดง status */
+        .pivot-table .cell-any     { background:#fff; text-align:center; border:1px solid #dee2e6; padding:6px 8px; }
+        .pivot-table .cell-summary { background:#f8fafc; text-align:center; font-weight:700; border:1px solid #dee2e6; padding:6px 8px; color:#374151; }
+        .pivot-table .tr-footer td { background:#f8fafc; font-weight:600; border:1px solid #dee2e6; padding:7px 10px; text-align:center; color:#374151; }
+        .pivot-table .tr-footer .td-label { text-align:left; color:#2b3643; }
+
+        .chip         { display:inline-flex; align-items:center; gap:4px; border-radius:20px; padding:2px 8px; font-size:10px; font-weight:600; }
+        .chip-done    { background:#dcfce7; color:#15803d; }
+        .chip-active  { background:#fef9c3; color:#92400e; }
+        .chip-pending { background:#f1f5f9; color:#64748b; }
+
+        /* ── Toolbar ── */
+        .toolbar { position:fixed; top:0; left:0; right:0; z-index:999;
+            background:rgba(255,255,255,.95); backdrop-filter:blur(4px);
+            border-bottom:1px solid #e8ecf1; padding:10px 20px; display:flex; align-items:center; gap:10px; }
+        .toolbar-title { font-weight:700; font-size:14px; color:#2b3643; flex:1; }
+        .toolbar-btn   { border:none; border-radius:6px; padding:7px 16px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
+        .toolbar-btn.primary { background:#0d6efd; color:#fff; }
+        .toolbar-btn.primary:hover { background:#0b5ed7; }
+        .toolbar-btn.light   { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+        .toolbar-btn.light:hover { background:#e8ecf1; }
+
+        body { padding-top: 58px; }
+
+        @@media print {
+            .toolbar { display:none !important; }
+            body { padding-top:0; background:#fff; }
+            .export-btn-group { display:none; }
+        }
+    </style>
+</head>
+<body class="px-4 pb-5">
+
+    <div class="toolbar">
+        <span class="toolbar-title">Report</span>
+        <button class="toolbar-btn light" onclick="window.close()">
+            <i class="fas fa-times"></i> Close
+        </button>
+        <button class="toolbar-btn primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Print / Save PDF
+        </button>
+    </div>
+
+    <div id="report-content">
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3 d-block"></i>
+            Loading report...
+        </div>
+    </div>
+
+    <script src="~/js/devextreme/jquery.js"></script>
+    <script src="~/js/devextreme/dx.all.js"></script>
+    <script src="~/src/devextreme-license.js"></script>
+
+    <script>
+        const ASSIGNMENT_ID = @ViewBag.AssignmentId;
+        const serviceUrl    = "@apiBaseUrl";
+
+        fetch(`${serviceUrl}/Assignments/dashboard/${ASSIGNMENT_ID}`, { credentials: "include" })
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success || !res.data) {
+                    document.getElementById("report-content").innerHTML =
+                        '<div class="text-danger text-center py-4">Failed to load report data.</div>';
+                    return;
+                }
+                renderReport(res.data);
+            })
+            .catch(() => {
+                document.getElementById("report-content").innerHTML =
+                    '<div class="text-danger text-center py-4">Network error.</div>';
+            });
+
+        function buildPivotTable(courses, students) {
+            const studentMap = {};
+            students.forEach(s => {
+                if (!studentMap[s.studentCode]) studentMap[s.studentCode] = {};
+                studentMap[s.studentCode][s.assignmentRuleId] = s;
+            });
+            const uniqueStudents = Object.keys(studentMap).sort();
+
+            const colHeaders = courses.map(c => `
+                <th class="th-course">
+                    <span class="course-code">${c.courseCode}</span>
+                    <span class="course-title">${c.courseTitle}</span>
+                </th>`).join("");
+
+            const dataRows = uniqueStudents.map(code => {
+                const enrollments = studentMap[code];
+                const name = Object.values(enrollments)[0]?.studentName || code;
+                let completedCount = 0;
+                const cells = courses.map(c => {
+                    const e = enrollments[c.assignmentRuleId];
+                    if (!e) return `<td class="cell-any"><span class="chip chip-pending">—</span></td>`;
+                    if (e.isCompleted) {
+                        completedCount++;
+                        const d = e.completedDate ? new Date(e.completedDate).toLocaleDateString("en-GB") : "";
+                        return `<td class="cell-any">
+                                    <span class="chip chip-done"><span class="dot dot-completed"></span>Done</span>
+                                    ${d ? `<div style="font-size:9.5px;color:#6c757d;margin-top:2px;">${d}</div>` : ""}
+                                </td>`;
+                    } else if (e.progress > 0) {
+                        return `<td class="cell-any">
+                                    <span class="chip chip-active"><span class="dot dot-progress"></span>${e.progress}%</span>
+                                </td>`;
+                    } else {
+                        return `<td class="cell-any">
+                                    <span class="chip chip-pending"><span class="dot dot-notstarted"></span>Pending</span>
+                                </td>`;
+                    }
+                }).join("");
+
+                const totalCourses = courses.length;
+                const summaryColor = completedCount === totalCourses ? "#15803d" : completedCount > 0 ? "#d97706" : "#64748b";
+                return `<tr>
+                            <td class="th-row-label">
+                                <span class="badge bg-light text-dark border fw-bold">${code}</span>
+                                ${name !== code ? `<div style="font-size:10px;color:#6c757d;margin-top:2px;">${name}</div>` : ""}
+                            </td>
+                            ${cells}
+                            <td class="cell-summary" style="color:${summaryColor};">${completedCount} / ${totalCourses}</td>
+                        </tr>`;
+            }).join("");
+
+            const footerCells = courses.map(c => {
+                const done  = students.filter(s => s.assignmentRuleId === c.assignmentRuleId && s.isCompleted).length;
+                const total = students.filter(s => s.assignmentRuleId === c.assignmentRuleId).length || 1;
+                const pct   = Math.round((done / total) * 100);
+                const color = pct === 100 ? "#15803d" : pct > 0 ? "#d97706" : "#64748b";
+                return `<td style="color:${color};">${done}/${total} (${pct}%)</td>`;
+            }).join("");
+
+            return `<table class="pivot-table">
+                        <thead>
+                            <tr>
+                                <th class="th-corner">
+                                    <i class="fas fa-user me-1"></i>Student
+                                    <span style="font-size:9px;display:block;color:#94a3b8;font-weight:500;">↓ / Course →</span>
+                                </th>
+                                ${colHeaders}
+                                <th class="th-summary">Completed</th>
+                            </tr>
+                        </thead>
+                        <tbody>${dataRows}</tbody>
+                        <tfoot>
+                            <tr class="tr-footer">
+                                <td class="td-label"><i class="fas fa-chart-bar me-1"></i>Course Total</td>
+                                ${footerCells}
+                                <td>—</td>
+                            </tr>
+                        </tfoot>
+                    </table>`;
+        }
+
+        function renderReport(data) {
+            const sDate = data.startDate ? new Date(data.startDate).toLocaleDateString("en-GB") : "-";
+            const dDate = data.dueDate   ? new Date(data.dueDate).toLocaleDateString("en-GB")   : "No Limit";
+            const now   = new Date().toLocaleString("en-GB");
+            const cd    = data.chartData;
+
+            const courseRows = (data.courses || []).map(c => {
+                const pct   = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
+                const color = pct === 100 ? "#198754" : pct > 0 ? "#0d6efd" : "#dee2e6";
+                return `<tr>
+                    <td><span class="badge bg-light text-dark border fw-bold">${c.courseCode}</span></td>
+                    <td>${c.courseTitle}</td>
+                    <td class="text-center">${c.totalStudents}</td>
+                    <td class="text-center text-success fw-bold">${c.completedStudents}</td>
+                    <td class="text-center">${c.totalStudents - c.completedStudents}</td>
+                    <td style="min-width:100px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress-bar-bg flex-grow-1">
+                                <div class="progress-bar-fill" style="width:${pct}%;background:${color};"></div>
+                            </div>
+                            <small class="fw-bold" style="min-width:32px;color:${color};">${pct}%</small>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join("");
+
+            const studentGroups = {};
+            (data.students || []).forEach(s => {
+                if (!studentGroups[s.studentCode]) studentGroups[s.studentCode] = [];
+                studentGroups[s.studentCode].push(s);
+            });
+            const studentRows = Object.entries(studentGroups).map(([code, rows]) => {
+                const allCompleted = rows.every(r => r.isCompleted);
+                const anyStarted   = rows.some(r => r.isCompleted || r.progress > 0);
+                const overallPct   = Math.round(rows.reduce((a, r) => a + r.progress, 0) / rows.length);
+                const color        = overallPct === 100 ? "#198754" : overallPct > 0 ? "#0d6efd" : "#dee2e6";
+                const name         = rows[0]?.studentName || "";
+                const completedOn  = allCompleted
+                    ? rows.map(r => r.completedDate).filter(Boolean)
+                          .map(d => new Date(d).toLocaleDateString("en-GB")).join(", ")
+                    : "-";
+                const statusBadge = allCompleted
+                    ? `<span class="badge badge-completed rounded-pill px-2"><span class="dot dot-completed"></span>Completed</span>`
+                    : anyStarted
+                        ? `<span class="badge badge-inprogress rounded-pill px-2"><span class="dot dot-progress"></span>In Progress</span>`
+                        : `<span class="badge badge-notstarted rounded-pill px-2"><span class="dot dot-notstarted"></span>Pending</span>`;
+                return `<tr>
+                    <td>
+                        <span class="badge bg-light text-dark border fw-bold">${code}</span>
+                        ${name ? `<div style="font-size:10px;color:#6c757d;margin-top:2px;">${name}</div>` : ""}
+                    </td>
+                    <td>${rows.length} / ${data.totalCourses ?? data.courses.length}</td>
+                    <td style="min-width:120px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress-bar-bg flex-grow-1">
+                                <div class="progress-bar-fill" style="width:${overallPct}%;background:${color};"></div>
+                            </div>
+                            <small class="fw-bold" style="min-width:32px;color:${color};">${overallPct}%</small>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td class="text-muted" style="font-size:11px;">${completedOn}</td>
+                </tr>`;
+            }).join("");
+
+            document.getElementById("report-content").innerHTML = `
+                <div class="report-header d-flex justify-content-between align-items-start mt-2">
+                    <div>
+                        <div class="report-title">📋 Assignment Report</div>
+                        <div class="report-meta mt-1">Generated: ${now}</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-dark">${data.assignmentNo || "-"}</div>
+                        <div class="text-muted" style="font-size:0.8rem;">${data.description || ""}</div>
+                    </div>
+                </div>
+
+                <!-- ═══ INFOGRAPHIC + PIE CHART (same row) ═══ -->
+                <div class="row g-3 mb-4">
+
+                    <!-- Infographic: 3 stat cards + details -->
+                    <div class="col-md-5 d-flex">
+                        <div class="infographic-section w-100">
+                            <div class="infographic-title">
+                                <i class="fas fa-chart-bar text-primary"></i> Progress Overview
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-4">
+                                    <div class="stat-card total">
+                                        <div class="stat-icon">👥</div>
+                                        <div class="stat-value" style="color:#3b82f6;">${data.totalEmployees}</div>
+                                        <div class="stat-lbl">Students</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card total" style="background:#eff8ff;border-color:#bae6fd;">
+                                        <div class="stat-icon">📚</div>
+                                        <div class="stat-value" style="color:#0284c7;">${data.totalCourses}</div>
+                                        <div class="stat-lbl">Courses</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card rate">
+                                        <div class="stat-icon">🎯</div>
+                                        <div class="stat-value" style="color:#a855f7;">${data.completionRate}%</div>
+                                        <div class="stat-lbl">Completion</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white border rounded-3 p-3" style="font-size:12px;">
+                                <div class="fw-bold mb-2 text-dark" style="font-size:13px;">
+                                    <i class="fas fa-info-circle text-primary me-1"></i> Assignment Details
+                                </div>
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr><td class="text-muted" style="width:90px;">Ref. No.</td>
+                                        <td class="fw-bold">${data.assignmentNo || "-"}</td></tr>
+                                    <tr><td class="text-muted">Schedule</td>
+                                        <td class="fw-medium">${sDate} → ${dDate}</td></tr>
+                                    <tr><td class="text-muted">Created By</td>
+                                        <td class="fw-medium">${data.createdBy || "-"}</td></tr>
+                                    <tr><td class="text-muted">Description</td>
+                                        <td class="fw-medium">${data.description || "-"}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pie Chart -->
+                    <div class="col-md-7 d-flex">
+                        <div class="chart-export-section w-100">
+                            <div class="chart-export-header">
+                                <div class="section-title mb-0">
+                                    <i class="fas fa-chart-pie text-primary me-1"></i> Status Distribution
+                                </div>
+                                <div class="export-btn-group">
+                                    <button class="export-btn png" onclick="exportChart('PNG')">
+                                        <i class="fas fa-image"></i> Save PNG
+                                    </button>
+                                    <button class="export-btn jpeg" onclick="exportChart('JPEG')">
+                                        <i class="fas fa-file-image"></i> Save JPEG
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="report-pie-chart" style="height:260px;"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- PIVOT TABLE -->
+                <div class="pivot-section mb-4">
+                    <div class="pivot-header">
+                        <div class="section-title mb-0">
+                            <i class="fas fa-table text-primary me-1"></i> Student × Course Matrix
+                        </div>
+                        <div style="font-size:11px;color:#6c7c93;">
+                            <span class="chip chip-done me-2">Done</span>
+                            <span class="chip chip-active me-2">In Progress</span>
+                            <span class="chip chip-pending">Pending</span>
+                        </div>
+                    </div>
+                    <div class="pivot-scroll">${buildPivotTable(data.courses, data.students)}</div>
+                </div>
+
+                <!-- COURSE SUMMARY -->
+                <div class="mb-4">
+                    <div class="section-title">Course Summary</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:100px;">Code</th><th>Course Title</th>
+                                <th class="text-center" style="width:70px;">Students</th>
+                                <th class="text-center" style="width:80px;">Completed</th>
+                                <th class="text-center" style="width:80px;">Remaining</th>
+                                <th style="width:130px;">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>${courseRows}</tbody>
+                    </table>
+                </div>
+
+                <!-- STUDENT TRACKING -->
+                <div>
+                    <div class="section-title">Student Tracking</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:110px;">Student ID</th>
+                                <th style="width:100px;">Enrolled</th>
+                                <th style="width:140px;">Overall Progress</th>
+                                <th style="width:120px;">Status</th>
+                                <th>Completed On</th>
+                            </tr>
+                        </thead>
+                        <tbody>${studentRows}</tbody>
+                    </table>
+                </div>
+            `;
+
+            $("#report-pie-chart").dxPieChart({
+                type: "doughnut", innerRadius: 0.65,
+                palette: ["#22c55e", "#f59e0b", "#94a3b8"],
+                dataSource: [
+                    { status: "Completed",   count: cd.completed  },
+                    { status: "In Progress", count: cd.inProgress },
+                    { status: "Not Started", count: cd.notStarted }
+                ],
+                series: [{ argumentField: "status", valueField: "count",
+                    label: { visible: true,
+                        customizeText: p => `${p.argumentText}\n${p.valueText} (${p.percentText})`,
+                        connector: { visible: true, width: 1 } }
+                }],
+                legend: { horizontalAlignment: "right", verticalAlignment: "center",
+                    font: { size: 12, color: "#586069", weight: 500 } },
+                tooltip: { enabled: true,
+                    customizeTooltip: arg => ({ text: `${arg.argumentText}: ${arg.valueText} students` }) },
+                title: { text: `${data.assignmentNo} — Student Status`,
+                    font: { size: 13, weight: 600, color: "#2b3643" } },
+                export: { enabled: false }
+            });
+        }
+
+        function exportChart(format) {
+            const chart = $("#report-pie-chart").dxPieChart("instance");
+            chart.exportTo("Assignment_Status_Chart", format);
+        }
+    </script>
+</body>
+</html>

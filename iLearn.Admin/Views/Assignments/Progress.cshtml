@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewBag.Title = "Assignment Dashboard";
 }
 
@@ -104,6 +104,32 @@
                     <small class="text-muted" style="font-size:0.8rem;">Remove completely from system</small>
                 </div>
             </a>
+
+            <a href="javascript:void(0);" id="btn-extend-due-date"
+               class="action-card d-flex align-items-center p-3 shadow-sm">
+                <div class="icon-box bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-3 me-3">
+                    <i class="fas fa-calendar-plus fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">Extend Due Date</h6>
+                    <small class="text-muted" style="font-size:0.8rem;">Give students more time</small>
+                </div>
+            </a>
+
+            <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
+               target="_blank"
+               class="action-card d-flex align-items-center p-3 shadow-sm">
+                <div class="icon-box bg-success bg-opacity-10 text-success px-3 py-2 rounded-3 me-3">
+                    <i class="fas fa-file-alt fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">Export Report</h6>
+                    <small class="text-muted" style="font-size:0.8rem;">Print or save as PDF</small>
+                </div>
+            </a>
+
+            <!-- Extend Due Date Popup -->
+            <div id="extend-due-date-popup"></div>
         </div>
 
         <!-- Progress Overview -->
@@ -209,16 +235,17 @@
                 $("#lbl-assignment-no").text(`Ref: ${refNo}`);
                 $("#lbl-assignment-no-detail").text(refNo);
                 $("#lbl-description").text(data.description || '-');
+                currentDueDate = data.dueDate ? new Date(data.dueDate) : null;
+                currentStartDate = data.startDate ? new Date(data.startDate) : null;
                 const sDate = data.startDate ? new Date(data.startDate).toLocaleDateString('en-GB') : '-';
                 const dDate = data.dueDate   ? new Date(data.dueDate).toLocaleDateString('en-GB')   : 'No Limit';
-                $("#lbl-schedule").html(`<i class="fas fa-calendar-alt text-primary me-1"></i>${sDate} ? ${dDate}`);
+                $("#lbl-schedule")
+                    .attr("data-start", sDate)
+                    .html(`<i class="fas fa-calendar-alt text-primary me-1"></i>${sDate} -> ${dDate}`);
                 if (data.createdBy) {
                     $("#lbl-created-by").html(
                         `<div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold"
-                                 style="width:26px;height:26px;font-size:.72rem;flex-shrink:0;">
-                                ${data.createdBy.substring(0,2).toUpperCase()}
-                            </div>
+                          
                             <span>${data.createdBy}</span>
                          </div>`
                     );
@@ -230,7 +257,7 @@
                 $("#stat-total-courses").text(data.totalCourses);
                 $("#stat-progress-text").text(`${data.completionRate}%`);
 
-                // chartData ??????????????? Backend ???? (per student)
+                // chartData คำนวณถูกต้องจาก Backend แล้ว (per student)
                 const cd = data.chartData;
 
                 // ?? Pie Chart ??
@@ -277,7 +304,7 @@
                             ? `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 fw-bold" style="font-size:.72rem;">100% <i class="fas fa-check ms-1"></i></span>`
                             : `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 fw-bold" style="font-size:.72rem;">${c.pct}%</span>`;
                         const title      = c.courseTitle || '';
-                        const shortTitle = title.length > 34 ? title.substring(0, 34) + '�' : title;
+                        const shortTitle = title.length > 34 ? title.substring(0, 34) + '…' : title;
 
                         $(`<div class="course-card ${selectedRuleId === c.assignmentRuleId ? 'active' : ''}"
                                 data-rule="${c.assignmentRuleId}" data-title="${title}"
@@ -315,11 +342,11 @@
                 // ?? Course Selector dropdown ??
                 const dropdownOptions = data.courses.map(c => ({
                     assignmentRuleId: c.assignmentRuleId,
-                    displayText: `${c.courseCode} � ${c.courseTitle}`
+                    displayText: `${c.courseCode} – ${c.courseTitle}`
                 }));
                 const firstRuleId = dropdownOptions.length > 0 ? dropdownOptions[0].assignmentRuleId : null;
 
-                // render cards ???????? ALL � active card ???
+                // render cards ???????? ALL — active card ???
                 renderCourseCards(courseStats, firstRuleId);
 
                 $("#course-selector").dxSelectBox({
@@ -350,14 +377,21 @@
                         }
                     },
                     columns: [
-                        {
-                            dataField: "studentCode", caption: "Student ID", width: 130,
-                            cellTemplate: function(c, o) {
-                                $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c);
-                            }
-                        },
-                        {
-                            dataField: "progress", caption: "Progress", width: 140, alignment: "center",
+                    {
+                        dataField: "studentCode", caption: "Student ID", width: 130,
+                        cellTemplate: function(c, o) {
+                            $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "studentName", caption: "Name", minWidth: 140,
+                        cellTemplate: function(c, o) {
+                            $("<span>").addClass("text-dark fw-medium small")
+                                .text(o.value || "-").appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "progress", caption: "Progress", width: 140, alignment: "center",
                             cellTemplate: function(c, o) {
                                 const pct   = o.value || 0;
                                 const color = pct === 100 ? "#198754" : pct > 0 ? "#0d6efd" : "#dee2e6";
@@ -436,6 +470,88 @@
                         });
                     }
                 });
+            });
+
+            // ?? Extend Due Date ??
+            let currentDueDate = null;
+            let currentStartDate = null;
+
+            // เก็บ dueDate ปัจจุบันไว้ใช้เป็น default ใน date picker
+            // (ดึงจาก data ที่โหลดมาแล้วใน done callback — ต้องประกาศ currentDueDate ก่อน ajax)
+            $("#btn-extend-due-date").click(function () {
+                const popup = $("#extend-due-date-popup").dxPopup({
+                    title: "Extend Due Date",
+                    width: 380, height: "auto",
+                    showCloseButton: true, dragEnabled: false,
+                    contentTemplate: function (content) {
+                        $("<div>").addClass("p-2").append(
+                            $("<div>").addClass("mb-3").append(
+                                $("<div>").addClass("stat-label mb-2").text("New Due Date"),
+                                $("<div>").attr("id", "new-due-date-picker")
+                            ),
+                            $("<div>").addClass("d-flex gap-2 justify-content-end mt-3").append(
+                                $("<div>").attr("id", "btn-popup-cancel"),
+                                $("<div>").attr("id", "btn-popup-confirm")
+                            )
+                        ).appendTo(content);
+
+                        const minDate = currentStartDate
+                            ? new Date(currentStartDate.getFullYear(), currentStartDate.getMonth(), currentStartDate.getDate() + 1)
+                            : new Date();
+
+                        $("#new-due-date-picker").dxDateBox({
+                            type: "date", value: currentDueDate,
+                            min: minDate, displayFormat: "dd/MM/yyyy",
+                            stylingMode: "outlined", width: "100%"
+                        });
+
+                        $("#btn-popup-cancel").dxButton({
+                            text: "Cancel", stylingMode: "outlined",
+                            onClick: () => $("#extend-due-date-popup").dxPopup("instance").hide()
+                        });
+
+                        $("#btn-popup-confirm").dxButton({
+                            text: "Confirm", type: "default", stylingMode: "contained",
+                            onClick: function () {
+                                const newDate = $("#new-due-date-picker").dxDateBox("instance").option("value");
+                                if (!newDate) {
+                                    DevExpress.ui.notify("Please select a new due date.", "warning", 2500);
+                                    return;
+                                }
+                                if (currentStartDate && new Date(newDate) <= currentStartDate) {
+                                    DevExpress.ui.notify("Due date must be after the start date.", "warning", 2500);
+                                    return;
+                                }
+                                loadPanel.option("message", "Extending due date...");
+                                loadPanel.show();
+                                $.ajax({
+                                    url: `${serviceUrl}/Assignments/${ASSIGNMENT_ID}/extend-due-date`,
+                                    type: "PATCH", contentType: "application/json",
+                                    xhrFields: { withCredentials: true },
+                                    data: JSON.stringify({ newDueDate: newDate }),
+                                    success: function (res) {
+                                        $("#extend-due-date-popup").dxPopup("instance").hide();
+                                        loadPanel.hide();
+                                        currentDueDate = newDate;
+                                        const formatted = new Date(newDate).toLocaleDateString("en-GB");
+                                        const sDate = $("#lbl-schedule").data("start");
+                                        $("#lbl-schedule").html(
+                                            `<i class="fas fa-calendar-alt text-primary me-1"></i>${sDate} → ${formatted}`
+                                        );
+                                        DevExpress.ui.notify("Due date extended successfully.", "success", 3000);
+                                    },
+                                    error: function (xhr) {
+                                        loadPanel.hide();
+                                        const msg = xhr.responseJSON?.message || "Error extending due date.";
+                                        DevExpress.ui.notify(msg, "error", 4000);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }).dxPopup("instance");
+
+                popup.show();
             });
 
             function showApiError(msg) {

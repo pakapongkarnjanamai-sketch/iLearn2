@@ -7,6 +7,7 @@ namespace iLearn.Application.DTOs
     {
         public string AssignmentNo { get; set; }
         public string Description { get; set; }
+        public string? CreatedBy { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
         public int TotalEmployees { get; set; }
@@ -36,6 +37,7 @@ namespace iLearn.Application.DTOs
     public class StudentProgressDto
     {
         public string StudentCode { get; set; }
+        public string? StudentName { get; set; }
         public int? AssignmentRuleId { get; set; }
         public double Progress { get; set; }
         public bool IsCompleted { get; set; }

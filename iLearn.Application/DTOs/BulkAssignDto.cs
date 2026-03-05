@@ -18,4 +18,9 @@ namespace iLearn.Application.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
     }
+
+    public class ExtendDueDateDto
+    {
+        public DateTime NewDueDate { get; set; }
+    }
 }

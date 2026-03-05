@@ -22,5 +22,12 @@ namespace iLearn.Admin.Controllers
             ViewBag.AssignmentId = id; // ส่ง ID ของกฎไปให้หน้า View ใช้งาน
             return View();
         }
+
+        [HttpGet]
+        public IActionResult Report(int id)
+        {
+            ViewBag.AssignmentId = id;
+            return View("Report");
+        }
     }
 }
