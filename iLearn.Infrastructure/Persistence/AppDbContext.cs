@@ -34,6 +34,7 @@ namespace iLearn.Infrastructure.Persistence
         public DbSet<CourseResource> CourseResources { get; set; }
         public DbSet<FileStorage> FileStorages { get; set; }
         public DbSet<LearningLog> LearningLogs { get; set; }
+        public DbSet<CourseType> CourseTypes { get; set; }
 
         // DbSet เดิมที่มีอยู่แล้ว (ตรวจสอบว่ามีครบไหม)
         public DbSet<Division> Divisions { get; set; }
@@ -77,6 +78,19 @@ namespace iLearn.Infrastructure.Persistence
                 .WithMany(c => c.Versions)
                 .HasForeignKey(cv => cv.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Config Course <-> CourseType
+            modelBuilder.Entity<Course>()
+                .HasOne(c => c.CourseType)
+                .WithMany(ct => ct.Courses)
+                .HasForeignKey(c => c.CourseTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Seed ข้อมูล CourseType เริ่มต้น (จาก enum เดิม: Special=0 -> Id=1, General=1 -> Id=2)
+            modelBuilder.Entity<CourseType>().HasData(
+                new CourseType { Id = 1, Name = "Special", Description = "วิชาเฉพาะทาง (Rule-based)", IsActive = true, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new CourseType { Id = 2, Name = "General", Description = "วิชาทั่วไป (Auto-assign)", IsActive = true, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+            );
         }
 
         public override int SaveChanges()

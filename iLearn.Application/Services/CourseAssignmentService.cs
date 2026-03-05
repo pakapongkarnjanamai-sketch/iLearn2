@@ -2,7 +2,6 @@
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
-using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +35,7 @@ namespace iLearn.Application.Services
         public async Task AssignGeneralCoursesToNewUserAsync(string employeeId)
         {
             var activeCourses = await _courseRepo.GetActiveCoursesAsync();
-            var generalCourses = activeCourses.Where(c => c.Type == CourseType.General);
+            var generalCourses = activeCourses.Where(c => c.CourseType != null && c.CourseType.Name == "General");
 
             foreach (var course in generalCourses)
             {

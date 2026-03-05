@@ -1,5 +1,6 @@
 ﻿using iLearn.Domain.Enums;
 
+
 namespace iLearn.Application.DTOs
 {
     // ใช้แสดงผล (Response)
@@ -12,7 +13,7 @@ namespace iLearn.Application.DTOs
         public bool IsActive { get; set; }
 
         public string TypeName { get; set; } = string.Empty;
-        public CourseType Type { get; set; }
+        public int CourseTypeId { get; set; }
 
         // [เพิ่มใหม่] เพื่อให้ Frontend นำไป Group ได้ง่าย
         public int CategoryId { get; set; }
@@ -30,7 +31,7 @@ namespace iLearn.Application.DTOs
         public string Code { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public CourseType Type { get; set; }
+        public int CourseTypeId { get; set; }
     }
     public class UpdateCourseInfoDto
     {
@@ -38,7 +39,7 @@ namespace iLearn.Application.DTOs
         public string CourseName { get; set; } = string.Empty; // ชื่อวิชา
         public string? Description { get; set; }               // รายละเอียด
         public int CategoryId { get; set; }                    // หมวดหมู่
-        public int CourseType { get; set; }
+        public int CourseTypeId { get; set; }
     }
 
     public class UpdateCourseStatusDto

@@ -1,6 +1,4 @@
 ﻿using iLearn.Domain.Common;
-using iLearn.Domain.Enums;
-
 namespace iLearn.Domain.Entities
 {
     public class Course : BaseEntity
@@ -10,7 +8,8 @@ namespace iLearn.Domain.Entities
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
 
-        public CourseType Type { get; set; }
+        public int CourseTypeId { get; set; }
+        public virtual CourseType? CourseType { get; set; }
 
         public int CategoryId { get; set; }
         public virtual Category? Category { get; set; }

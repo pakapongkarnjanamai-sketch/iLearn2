@@ -3,7 +3,6 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
-using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -57,7 +56,7 @@ namespace iLearn.Application.Services
         {
             var courses = await _courseRepo.GetAsync(
                 filter: c => c.IsActive == isActive,
-                includeProperties: "Category,Versions"
+                includeProperties: "Category,Versions,CourseType"
             );
 
             return courses.Select(c => c.ToDto()).ToList();
@@ -101,7 +100,7 @@ namespace iLearn.Application.Services
                 CourseCode = course.Code,
                 CourseName = course.Title,
                 Description = course.Description,
-                CourseType = (int)course.Type,
+                CourseType = course.CourseTypeId,
                 CategoryId = course.CategoryId,
                 IsActive = course.IsActive,
                 Resources = resourceList
@@ -121,7 +120,7 @@ namespace iLearn.Application.Services
                 Title = model.CourseName,
                 CategoryId = model.CategoryId,
                 Description = model.Description,
-                Type = (CourseType)model.CourseType,
+                CourseTypeId = model.CourseType,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -159,7 +158,7 @@ namespace iLearn.Application.Services
                 Title = model.CourseName,
                 Description = model.Description,
                 CategoryId = model.CategoryId,
-                Type = (CourseType)model.CourseType,
+                CourseTypeId = model.CourseType,
                 IsActive = false, // Draft status
                 CreatedAt = DateTime.UtcNow
             };
@@ -194,7 +193,7 @@ namespace iLearn.Application.Services
             course.Description = dto.Description;
             course.Code = dto.CourseCode;
             course.CategoryId = dto.CategoryId;
-            course.Type = (CourseType)dto.CourseType;
+            course.CourseTypeId = dto.CourseType;
 
             await _courseRepo.UpdateAsync(course);
 

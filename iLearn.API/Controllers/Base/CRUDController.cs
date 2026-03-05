@@ -44,7 +44,8 @@ namespace iLearn.API.Controllers.Base
         {
             var query = _repository.GetQuery()
                 .Include(c => c.Category)
-                    .ThenInclude(cat => cat.Division);
+                    .ThenInclude(cat => cat.Division)
+                .Include(c => c.CourseType);
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
@@ -56,11 +57,19 @@ namespace iLearn.API.Controllers.Base
             var query = _repository.GetQuery()
                 .Include(c => c.Category)
                     .ThenInclude(cat => cat.Division)
+                .Include(c => c.CourseType)
                 .Include(c => c.Versions)
                 // ตรวจสอบว่า Course ใช้งานอยู่ และมี Version ที่ใช้งานอยู่อย่างน้อย 1
                 .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive));
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+    }
+
+    public class CourseTypesCRUDController : GenericController<CourseType>
+    {
+        public CourseTypesCRUDController(IGenericRepository<CourseType> repository) : base(repository)
+        {
         }
     }
 

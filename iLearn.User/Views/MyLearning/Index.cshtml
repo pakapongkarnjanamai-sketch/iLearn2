@@ -812,20 +812,11 @@ else
             let coursesToShow = categoryId === 'all'
                 ? allCoursesData
                 : (categorizedCourses[categoryId]?.courses || []);
-            // Apply Course Type Filter - แก้ไขตรงนี้
+            // Apply Course Type Filter
             if (selectedCourseType === 'general') {
-                coursesToShow = coursesToShow.filter(c => c.type === 1);
-                // ✅ เปลี่ยนเป็น c.type === 1
+                coursesToShow = coursesToShow.filter(c => c.courseTypeId === 2);
             } else if (selectedCourseType === 'special') {
-                coursesToShow = coursesToShow.filter(c => c.type === 0); // 0? -> ใน CourseType 0=Special, 1=General
-                // ✅ เปลี่ยนตาม Enum: 0=Special, 1=General
-                // หมายเหตุ: เช็ค Enum ของคุณอีกที ในที่นี้ 1=General, 2=??
-                // จากไฟล์ CourseType.cs: Special = 0, General = 1
-                // แต่ในโค้ดเดิมเขียน if (c.type === 2) ซึ่งอาจจะผิด ถ้า Special คือ 0
-                // **แก้ไข**: ถ้า Special คือ 0 ให้ใช้ c.type === 0
-                // แต่ถ้าตามโค้ดเดิมของคุณที่ใช้ 1 กับ 2, ผมจะคง 1 กับ 2 ไว้ก่อนเพื่อความปลอดภัย หรือปรับตามความจริง
-                // (สมมติว่า Special = 0 ตามไฟล์ Enum ที่ให้มา)
-                // coursesToShow = coursesToShow.filter(c => c.type === 0);
+                coursesToShow = coursesToShow.filter(c => c.courseTypeId === 1);
             }
 
             if (coursesToShow.length === 0) {

@@ -14,6 +14,7 @@ namespace iLearn.Infrastructure.Repositories
         public async Task<IEnumerable<Course>> GetActiveCoursesAsync()
         {
             return await _dbSet
+                .Include(c => c.CourseType)
                 .Where(c => c.IsActive)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();

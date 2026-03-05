@@ -65,11 +65,7 @@
         // DataStores [cite: 50-51]
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
         const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
-
-        const courseTypes = [
-            { id: 0, name: 'Special' },
-            { id: 1, name: 'General' }
-        ];
+        const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' });
 
         $(async () => {
             // ==========================================
@@ -137,18 +133,17 @@
                         }
                     },
                     {
-                        dataField: "type",
+                        dataField: "courseTypeId",
                         caption: "Type",
                         width: 160,
                         lookup: {
-                            dataSource: courseTypes,
+                            dataSource: courseTypesStore,
                             displayExpr: 'name',
                             valueExpr: 'id'
                         },
                         cellTemplate: function(container, options) {
                             const text = options.displayValue;
-                            // ปรับสีไอคอนให้ดูซอฟต์ลง [cite: 68-71]
-                            const icon = options.value === 1 ? "fa-book text-primary" : "fa-star text-secondary";
+                            const icon = options.data.courseTypeId === 2 ? "fa-book text-primary" : "fa-star text-secondary";
                             $("<div>").html(`<i class="fas ${icon} me-1"></i> <span class="text-dark fw-medium">${text}</span>`).appendTo(container);
                         }
                     },

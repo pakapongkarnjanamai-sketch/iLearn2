@@ -144,10 +144,7 @@
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
-        const courseTypes = [
-            { id: 0, name: 'Special' },
-            { id: 1, name: 'General' }
-        ];
+        const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' });
 
         let formWidget;
         let masterGrid;
@@ -226,7 +223,7 @@
                                 label: { text: "Course Type" },
                                 editorType: "dxSelectBox",
                                 editorOptions: {
-                                    dataSource: courseTypes,
+                                    dataSource: courseTypesStore,
                                     displayExpr: "name",
                                     valueExpr: "id",
                                     placeholder: "Select Type"

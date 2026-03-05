@@ -24,8 +24,8 @@ namespace iLearn.Application.Mappings
                 Title = entity.Title,
                 Description = entity.Description,
                 IsActive = entity.IsActive,
-                Type = entity.Type,
-                TypeName = entity.Type.ToString(), // หรือจะ Map เป็นภาษาไทยที่นี่เลยก็ได้ เช่น entity.Type == CourseType.General ? "วิชาทั่วไป" : "วิชาเฉพาะทาง"
+                CourseTypeId = entity.CourseTypeId,
+                TypeName = entity.CourseType?.Name ?? string.Empty,
 
                 // [เพิ่มใหม่] Map ข้อมูล Category
                 CategoryId = entity.CategoryId,
@@ -44,7 +44,7 @@ namespace iLearn.Application.Mappings
                 Code = dto.Code,
                 Title = dto.Title,
                 Description = dto.Description,
-                Type = dto.Type,
+                CourseTypeId = dto.CourseTypeId,
                 IsActive = true
             };
 
