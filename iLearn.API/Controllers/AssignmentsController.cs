@@ -92,13 +92,28 @@ namespace iLearn.API.Controllers
                 e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value)
             );
 
-            // 4. คำนวณสถิติ
+            // 4. คำนวณสถิติ — นับ per student ไม่ใช่ per enrollment
+            var studentEnrollments = enrollments
+                .GroupBy(e => e.StudentCode)
+                .Select(g => new
+                {
+                    StudentCode = g.Key,
+                    AllCompleted = g.All(e => e.IsCompleted),
+                    AnyStarted   = g.Any(e => e.IsCompleted || e.Progress > 0)
+                })
+                .ToList();
+
+            var uniqueStudentsCount = studentEnrollments.Count;
+            var completedCount   = studentEnrollments.Count(s => s.AllCompleted);
+            var inProgressCount  = studentEnrollments.Count(s => !s.AllCompleted && s.AnyStarted);
+            var notStartedCount  = studentEnrollments.Count(s => !s.AllCompleted && !s.AnyStarted);
+
+            // completionRate = สัดส่วน enrollments ที่เสร็จแล้วทั้งหมด (ทุก course ทุกคน)
             var totalEnrollments = enrollments.Count();
-            var completedCount = enrollments.Count(e => e.IsCompleted);
-            var inProgressCount = enrollments.Count(e => !e.IsCompleted && e.Progress > 0);
-            var notStartedCount = totalEnrollments - completedCount - inProgressCount;
-            var uniqueStudentsCount = enrollments.Select(e => e.StudentCode).Distinct().Count();
-            var completionRate = totalEnrollments == 0 ? 0 : Math.Round(((double)completedCount / totalEnrollments) * 100);
+            var completedEnrollments = enrollments.Count(e => e.IsCompleted);
+            var completionRate = totalEnrollments == 0
+                ? 0
+                : Math.Round(((double)completedEnrollments / totalEnrollments) * 100);
 
             // 5. เตรียมข้อมูลสรุปรายวิชา
             var courseSummaries = allRules.Select(r => new CourseSummaryDto
