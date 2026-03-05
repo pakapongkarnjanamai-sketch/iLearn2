@@ -5,7 +5,9 @@
 }
 
 <style>
-    body { background-color: #f8f9fa; }
+    body {
+        background-color: #f8f9fa;
+    }
 
     /* Action Card Styles */
     .action-card {
@@ -17,17 +19,20 @@
         text-align: center;
         padding: 2.5rem 1.5rem;
     }
-    .action-card:hover {
-        border-color: #0d6efd;
-        background-color: #f8fbff;
-        transform: translateY(-3px);
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05);
-    }
-    
+
+        .action-card:hover {
+            border-color: #0d6efd;
+            background-color: #f8fbff;
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05);
+        }
+
     /* Fixed Bottom Toolbar */
     .fixed-bottom-toolbar {
         position: fixed;
-        bottom: 0; left: 0; right: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
         background: #ffffff;
         padding: 1rem 2rem;
         box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
@@ -55,7 +60,7 @@
             </div>
             <div>
                 <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                <small class="text-muted fw-medium">Assign training courses to multiple employees based on specific criteria.</small>
+                <small class="text-muted fw-medium">Assign training courses to multiple students based on specific criteria.</small>
             </div>
         </div>
         <button class="btn btn-light border shadow-sm btn-sm px-3 py-2 rounded-3 fw-medium" onclick="history.back()">
@@ -67,44 +72,42 @@
 <div class="container px-4 pb-5" style="margin-bottom: 80px;">
     <div id="load-panel"></div>
 
-   
-        <div class="row g-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-edit text-primary me-2"></i> Assignment Criteria</h6>
-                </div>
-                <div class="card-body p-4">
-                    <div id="form-assignment"></div>
-                </div>
+    <div class="row g-4 mb-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-edit text-primary me-2"></i> Assignment Criteria</h6>
+            </div>
+            <div class="card-body p-4">
+                <div id="form-assignment"></div>
             </div>
         </div>
+    </div>
 
-        <div class="row g-4">
-            <div class="card border-0 shadow-sm rounded-4 flex-grow-1">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-bullseye text-primary me-2"></i> Target Selection</h6>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="action-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-select-courses">
-                                <i class="fas fa-book-open fa-2x text-primary mb-3"></i>
-                                <h6 class="fw-bold text-dark mb-1">Select Courses</h6>
-                                <p class="text-muted small mb-0 fw-medium" id="selected-courses-text">No course selected</p>
-                            </div>
+    <div class="row g-4">
+        <div class="card border-0 shadow-sm rounded-4 flex-grow-1">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-bullseye text-primary me-2"></i> Target Selection</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="action-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-select-courses">
+                            <i class="fas fa-book-open fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold text-dark mb-1">Select Courses</h6>
+                            <p class="text-muted small mb-0 fw-medium" id="selected-courses-text">No course selected</p>
                         </div>
-                        <div class="col-md-6">
-                            <div class="action-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-select-employees">
-                                <i class="fas fa-users fa-2x text-primary mb-3"></i>
-                                <h6 class="fw-bold text-dark mb-1">Select Employees</h6>
-                                <p class="text-muted small mb-0 fw-medium" id="selected-employees-text">No employee selected</p>
-                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="action-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-select-employees">
+                            <i class="fas fa-users fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold text-dark mb-1">Select Students</h6>
+                            <p class="text-muted small mb-0 fw-medium" id="selected-employees-text">No student selected</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
- 
+    </div>
 </div>
 
 <div class="fixed-bottom-toolbar">
@@ -116,14 +119,14 @@
 
 <div id="courses-popup"></div>
 <div id="employees-popup"></div>
-<div id="summary-popup"></div> 
+<div id="summary-popup"></div>
 
 @section Scripts {
     <script>
         // 🌟 1. รับค่า courseId จาก Query String และนำไปใส่เป็นค่า Default
         const initialCourseId = '@preselectedCourseId';
         let selectedCourseIds = initialCourseId ? [parseInt(initialCourseId)] : [];
-        let selectedEmployeeCodes = [];
+        let selectedStudentCodes = [];
         let currentPayload = null;
 
         $(() => {
@@ -160,7 +163,6 @@
                             <div style="width:260px; flex-shrink:0;">
                                 <div class="filter-panel h-100 d-flex flex-column gap-3">
                                     <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
-
                                     <div>
                                         <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
                                         <div id="filter-course-type"></div>
@@ -173,7 +175,6 @@
                                         <label class="small fw-bold text-muted mb-1 d-block">Category</label>
                                         <div id="filter-course-cat"></div>
                                     </div>
-
                                     <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-course-filter">
                                         <i class="fas fa-times me-1"></i> Clear Filters
                                     </button>
@@ -181,14 +182,11 @@
                             </div>
                             <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
                                 <div id="grid-courses" class="flex-grow-1"></div>
-                                <div class="pt-2 text-muted small fw-medium" id="course-selection-hint">
-                                    <i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.
-                                </div>
                             </div>
                         </div>
                     `).appendTo(contentElement);
 
-                    // ── DataStore สำหรับ grid (load ครั้งเดียว, filter ฝั่ง client) ──
+                    // ── DataStore สำหรับ grid ──
                     let allCoursesData = [];
                     const coursesLocalStore = new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData });
 
@@ -233,7 +231,7 @@
                         }
                     }).dxDataGrid("instance");
 
-                    // โหลดข้อมูล courses ครั้งเดียว
+                    // โหลดข้อมูล courses
                     $.ajax({
                         url: `${serviceUrl}/Assignments/lookup-courses`,
                         method: "GET", xhrFields: { withCredentials: true }
@@ -257,7 +255,6 @@
                         if (catVal)  conditions.push(["categoryId",   "=", catVal]);
 
                         if (conditions.length === 0) { courseGrid.clearFilter(); return; }
-                        // รวมด้วย "and"
                         let combined = conditions[0];
                         for (let i = 1; i < conditions.length; i++) combined = [combined, "and", conditions[i]];
                         courseGrid.filter(combined);
@@ -308,17 +305,29 @@
                         courseGrid.clearFilter();
                     });
                 },
-                toolbarItems: [{
-                    widget: "dxButton", toolbar: "bottom", location: "after",
-                    options: {
-                        text: "Done", type: "default", stylingMode: "contained",
-                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
-                        onClick: () => coursesPopup.hide()
+                // 🌟 ปรับแต่ง Toolbar ซ้าย-ขวา 🌟
+                toolbarItems: [
+                    {
+                        toolbar: "bottom",
+                        location: "before",
+                        template: function() {
+                            return $(`<div id="course-selection-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center"><i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.</div>`);
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "Done", type: "default", stylingMode: "contained",
+                            elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                            onClick: () => coursesPopup.hide()
+                        }
                     }
-                }]
+                ]
             }).dxPopup("instance");
 
-            // --- Employees Popup ---
+            // --- Students Popup ---
             const employeesPopup = $("#employees-popup").dxPopup({
                 title: "Select Employees", width: "90vw", maxWidth: 1280, height: "85vh",
                 showCloseButton: true, dragEnabled: true,
@@ -329,7 +338,6 @@
                             <div style="width:240px; flex-shrink:0;">
                                 <div class="filter-panel h-100 d-flex flex-column gap-3">
                                     <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
-
                                     <div>
                                         <label class="small fw-bold text-muted mb-1 d-block">Division</label>
                                         <div id="filter-emp-div"></div>
@@ -346,22 +354,18 @@
                                         <label class="small fw-bold text-muted mb-1 d-block">Position</label>
                                         <div id="filter-emp-position"></div>
                                     </div>
-
                                     <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-emp-filter">
                                         <i class="fas fa-times me-1"></i> Clear Filters
                                     </button>
                                 </div>
                             </div>
                             <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
-                                <div id="grid-employees" class="flex-grow-1"></div>
-                                <div class="pt-2 text-muted small fw-medium" id="emp-selection-hint">
-                                    <i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.
-                                </div>
+                                <div id="grid-students" class="flex-grow-1"></div>
                             </div>
                         </div>
                     `).appendTo(contentElement);
 
-                    const empGrid = $("#grid-employees").dxDataGrid({
+                    const empGrid = $("#grid-students").dxDataGrid({
                         dataSource: DevExpress.data.AspNet.createStore({
                             key: "EId",
                             loadUrl: `${serviceUrl}/Students/Get`,
@@ -377,7 +381,7 @@
                         selection: { mode: "multiple", showCheckBoxesMode: "always" },
                         scrolling: { mode: "virtual" },
                         height: "100%",
-                        noDataText: "No employees found.",
+                        noDataText: "No students found.",
                         columns: [
                             {
                                 dataField: "EId", caption: "ID", width: 95,
@@ -409,30 +413,36 @@
                                 }
                             }
                         ],
-                        selectedRowKeys: selectedEmployeeCodes,
+                        selectedRowKeys: selectedStudentCodes,
                         onSelectionChanged: function(e) {
-                            selectedEmployeeCodes = e.selectedRowKeys;
-                            updateCardUI("#btn-select-employees", "#selected-employees-text", selectedEmployeeCodes.length, "employee");
+                            selectedStudentCodes = e.selectedRowKeys;
+                            updateCardUI("#btn-select-employees", "#selected-employees-text", selectedStudentCodes.length, "student");
                             $("#emp-selection-hint").html(
-                                selectedEmployeeCodes.length > 0
-                                    ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedEmployeeCodes.length}</b> employee(s) selected.`
+                                selectedStudentCodes.length > 0
+                                    ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedStudentCodes.length}</b> student(s) selected.`
                                     : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
                             );
                         }
                     }).dxDataGrid("instance");
 
-                    // ── Helper: สร้าง filter query string และ reload grid ──
+                    // ── Helper: สร้าง filter query string ──
                     function buildEmpFilterQuery() {
                         const filters = [];
                         const divVal  = $("#filter-emp-div").dxSelectBox("instance").option("value");
                         const deptVal = $("#filter-emp-dept").dxSelectBox("instance").option("value");
                         const secVal  = $("#filter-emp-section").dxSelectBox("instance").option("value");
-                        const posVal  = $("#filter-emp-position").dxSelectBox("instance").option("value");
+                        const posVals = $("#filter-emp-position").dxTagBox("instance").option("value") || [];
 
                         if (divVal)  filters.push(["Division",   "=", divVal]);
                         if (deptVal) filters.push(["Department", "=", deptVal]);
                         if (secVal)  filters.push(["Section",    "=", secVal]);
-                        if (posVal)  filters.push(["Position",   "=", posVal]);
+                        if (posVals.length > 0) {
+                            let posFilter = ["Position", "=", posVals[0]];
+                            for (let i = 1; i < posVals.length; i++) {
+                                posFilter = [posFilter, "or", ["Position", "=", posVals[i]]];
+                            }
+                            filters.push(posFilter);
+                        }
 
                         if (filters.length === 0) { empGrid.clearFilter(); return; }
                         let combined = filters[0];
@@ -491,11 +501,14 @@
                         onValueChanged: buildEmpFilterQuery
                     }).dxSelectBox("instance");
 
-                    // ── Filter: Position (independent — ดึงทั้งหมดแล้ว filter ใน grid) ──
-                    $("#filter-emp-position").dxSelectBox({
+                    // ── Filter: Position (multi-select) ──
+                    $("#filter-emp-position").dxTagBox({
                         dataSource: makeEmpLookupStore("GetPositions", ""),
                         displayExpr: "Name", valueExpr: "Name",
-                        placeholder: "All Positions", showClearButton: true,
+                        placeholder: "All Positions",
+                        showClearButton: true,
+                        showSelectionControls: true,
+                        applyValueMode: "useButtons",
                         onValueChanged: buildEmpFilterQuery
                     });
 
@@ -504,18 +517,30 @@
                         empDivBox.option("value", null);
                         empDeptBox.option({ value: null, disabled: true, dataSource: [] });
                         empSectionBox.option({ value: null, disabled: true, dataSource: [] });
-                        $("#filter-emp-position").dxSelectBox("instance").option("value", null);
+                        $("#filter-emp-position").dxTagBox("instance").option("value", []);
                         empGrid.clearFilter();
                     });
                 },
-                toolbarItems: [{
-                    widget: "dxButton", toolbar: "bottom", location: "after",
-                    options: {
-                        text: "Done", type: "default", stylingMode: "contained",
-                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
-                        onClick: () => employeesPopup.hide()
+                // 🌟 ปรับแต่ง Toolbar ซ้าย-ขวา 🌟
+                toolbarItems: [
+                    {
+                        toolbar: "bottom",
+                        location: "before",
+                        template: function() {
+                            return $(`<div id="emp-selection-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center"><i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.</div>`);
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "Done", type: "default", stylingMode: "contained",
+                            elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                            onClick: () => employeesPopup.hide()
+                        }
                     }
-                }]
+                ]
             }).dxPopup("instance");
 
             // Event binding for Cards
@@ -532,8 +557,7 @@
                 }
             }
 
-
-            // 🌟 2. Summary Popup (หน้าต่างสรุปผลการตรวจสอบ) 🌟
+            // 🌟 2. Summary Popup 🌟
             const summaryPopup = $("#summary-popup").dxPopup({
                 title: "Assignment Summary",
                 width: 750,
@@ -541,10 +565,9 @@
                 maxHeight: window.innerHeight * 0.8,
                 showCloseButton: true,
                 dragEnabled: true,
-                deferRendering: false, // 🌟 เพิ่มบรรทัดนี้: บังคับให้ Render DOM ทันทีตั้งแต่โหลดหน้า
+                deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
-                    // 🌟 ปรับวิธีแนบ content ลงใน Popup
                     contentElement.append($("<div id='summary-content'></div>"));
                 },
                 toolbarItems: [
@@ -575,11 +598,10 @@
 
                 let conflictHtml = "";
                 if (conflicts.length > 0) {
-                    // แสดงรายชื่อคนซ้ำ
                     const listItems = conflicts.map(c => `
                         <li class="mb-2 pb-2 border-bottom border-danger border-opacity-10 last-no-border">
-                            <span class="fw-bold text-dark">${c.studentCode}</span> 
-                            <span class="text-muted mx-1">in</span> 
+                            <span class="fw-bold text-dark">${c.studentCode}</span>
+                            <span class="text-muted mx-1">in</span>
                             <span class="fw-medium">${c.courseTitle}</span>
                             <div class="small text-danger mt-1"><i class="fas fa-exclamation-circle me-1"></i> Already assigned & in progress</div>
                         </li>
@@ -612,7 +634,7 @@
                 const html = `
                     <div class="px-2">
                         <p class="text-muted mb-4 fw-medium">Please review the details below before confirming the assignment.</p>
-                        
+
                         <div class="row g-3">
                             <div class="col-6">
                                 <div class="p-3 bg-light rounded-4 border text-center">
@@ -622,7 +644,7 @@
                             </div>
                             <div class="col-6">
                                 <div class="p-3 bg-light rounded-4 border text-center">
-                                    <div class="text-muted small text-uppercase fw-bold mb-1">Target Employees</div>
+                        <div class="text-muted small text-uppercase fw-bold mb-1">Target Students</div>
                                     <div class="fs-3 fw-bold text-info">${payload.employeeCodes.length}</div>
                                 </div>
                             </div>
@@ -636,17 +658,16 @@
                 summaryPopup.show();
             }
 
-
-            // --- Save Action (เริ่มตรวจสอบผ่าน API) ---
+            // --- Save Action ---
             $('#btn-save').click(function () {
                 if (!form.validate().isValid) return;
                 if (selectedCourseIds.length === 0) { DevExpress.ui.notify("Please select at least one course.", "error", 3000); return; }
-                if (selectedEmployeeCodes.length === 0) { DevExpress.ui.notify("Please select at least one employee.", "error", 3000); return; }
+                if (selectedStudentCodes.length === 0) { DevExpress.ui.notify("Please select at least one student.", "error", 3000); return; }
 
                 const formData = form.option('formData');
                 const payload = {
                     courseIds: selectedCourseIds,
-                    employeeCodes: selectedEmployeeCodes,
+                    employeeCodes: selectedStudentCodes,
                     startDate: formData.startDate,
                     dueDate: formData.dueDate,
                     description: formData.description
@@ -661,7 +682,6 @@
                     data: JSON.stringify(payload), xhrFields: { withCredentials: true },
                     success: function (res) {
                         loadPanel.hide();
-                        // นำผลลัพธ์มาสร้างเป็น Summary Popup ให้ Admin ดูสรุป
                         showSummaryDialog(res, payload);
                     },
                     error: function () {
@@ -676,7 +696,7 @@
                 loadPanel.option("message", "Assigning courses...");
                 loadPanel.show();
                 $.ajax({
-                    url: `${serviceUrl}/Enrollments/BulkAssign`, 
+                    url: `${serviceUrl}/Enrollments/BulkAssign`,
                     method: "POST", contentType: "application/json",
                     data: JSON.stringify(payload), xhrFields: { withCredentials: true },
                     success: function (res) {

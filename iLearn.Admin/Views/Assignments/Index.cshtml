@@ -6,6 +6,59 @@
     body {
         background-color: #f8f9fa;
     }
+
+    .kpi-card {
+        border: 1px solid #e8ecf1;
+        border-radius: 12px;
+        background: #fff;
+        padding: 1.1rem 1.4rem;
+        cursor: pointer;
+        transition: all 0.18s ease-in-out;
+        border-left: 4px solid transparent;
+    }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.07);
+        }
+
+        .kpi-card.active {
+            box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.07);
+        }
+
+        .kpi-card.kpi-inprogress {
+            border-left-color: #0d6efd;
+        }
+
+        .kpi-card.kpi-upcoming {
+            border-left-color: #ffc107;
+        }
+
+        .kpi-card.kpi-expired {
+            border-left-color: #dc3545;
+        }
+
+        .kpi-card.kpi-completed {
+            border-left-color: #198754;
+        }
+
+        .kpi-card.kpi-all {
+            border-left-color: #6c757d;
+        }
+
+    .kpi-number {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .kpi-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        color: #6c7c93;
+    }
 </style>
 
 <div class="bg-white border-bottom mb-4 py-4">
@@ -16,7 +69,7 @@
             </div>
             <div>
                 <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                <small class="text-muted">View and manage all course assignments. Track employee learning progress.</small>
+                <small class="text-muted fw-medium">View and manage all course assignments. Track student learning progress.</small>
             </div>
         </div>
         <a href="@Url.Action("Form", "Assignments")" class="btn btn-primary rounded-3 shadow-sm px-4 py-2 d-flex align-items-center gap-2 fw-medium">
@@ -26,6 +79,40 @@
 </div>
 
 <div class="container-fluid px-4 pb-5">
+
+    <div class="row g-3 mb-4" id="kpi-bar">
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-all active" onclick="filterByStatus(null, this)">
+                <div class="kpi-label text-secondary"><i class="fas fa-list me-1"></i> All</div>
+                <div class="kpi-number text-dark" id="kpi-all">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-inprogress" onclick="filterByStatus('InProgress', this)">
+                <div class="kpi-label text-primary"><i class="fas fa-play-circle me-1"></i> In Progress</div>
+                <div class="kpi-number text-primary" id="kpi-inprogress">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-upcoming" onclick="filterByStatus('Upcoming', this)">
+                <div class="kpi-label text-warning"><i class="fas fa-clock me-1"></i> Upcoming</div>
+                <div class="kpi-number text-warning" id="kpi-upcoming">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-expired" onclick="filterByStatus('Expired', this)">
+                <div class="kpi-label text-danger"><i class="fas fa-times-circle me-1"></i> Expired</div>
+                <div class="kpi-number text-danger" id="kpi-expired">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-completed" onclick="filterByStatus('Completed', this)">
+                <div class="kpi-label text-success"><i class="fas fa-check-circle me-1"></i> Completed</div>
+                <div class="kpi-number text-success" id="kpi-completed">—</div>
+            </div>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-body p-0 pt-2">
             <div id="grid"></div>
@@ -36,101 +123,165 @@
 @section Scripts {
     <script>
         let gridInstance;
+        let allData = [];
+        let activeStatus = null;
+
+        // ── Helper: Status badge HTML ──
+        function statusBadge(status) {
+            const map = {
+                "Completed":  { cls: "bg-success bg-opacity-10 text-success border-success",  icon: "fa-check-circle",  text: "Completed"   },
+                "Upcoming":   { cls: "bg-warning bg-opacity-10 text-warning border-warning",  icon: "fa-clock",         text: "Upcoming"    },
+                "Expired":    { cls: "bg-danger bg-opacity-10 text-danger border-danger",      icon: "fa-times-circle",  text: "Expired"    },
+                "InProgress": { cls: "bg-primary bg-opacity-10 text-primary border-primary",   icon: "fa-play-circle",   text: "In Progress" }
+            };
+            const s = map[status] || { cls: "bg-secondary bg-opacity-10 text-secondary border-secondary", icon: "fa-circle", text: status || "Unknown" };
+            return `<span class="badge border border-opacity-25 px-3 py-1 rounded-pill fw-medium ${s.cls}">
+                        <i class="fas ${s.icon} me-1" style="font-size:.75rem;"></i>${s.text}
+                    </span>`;
+        }
+
+        // ── KPI: อัปเดตตัวเลข ──
+        function updateKpi(data) {
+            $("#kpi-all").text(data.length);
+            $("#kpi-inprogress").text(data.filter(d => d.status === "InProgress").length);
+            $("#kpi-upcoming").text(data.filter(d => d.status === "Upcoming").length);
+            $("#kpi-expired").text(data.filter(d => d.status === "Expired").length);
+            $("#kpi-completed").text(data.filter(d => d.status === "Completed").length);
+        }
+
+        // ── Filter: กรองตาม status (กดจาก KPI Card) ──
+        function filterByStatus(status, el) {
+            activeStatus = status;
+            $(".kpi-card").removeClass("active");
+            $(el).addClass("active");
+            applyFilters();
+        }
+
+        // ── Filter: กรองข้อมูลที่แสดงใน Grid ──
+        function applyFilters() {
+            let filtered = allData;
+            if (activeStatus) filtered = filtered.filter(d => d.status === activeStatus);
+            gridInstance.option("dataSource", filtered);
+        }
 
         $(() => {
+            // ── Grid ──
             gridInstance = initDxGrid("#grid", {
-                dataSource: new DevExpress.data.CustomStore({
-                    key: "id",
-                    load: function () {
-                        return $.ajax({
-                            url: `${serviceUrl}/Assignments/history`,
-                            method: "GET",
-                            xhrFields: { withCredentials: true }
-                        });
-                    }
-                }),
+                dataSource: [],
                 remoteOperations: false,
-                selection: { mode: 'single' },
-
-                // Minimal styling
+                selection: { mode: "single" },
                 showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: false,
                 hoverStateEnabled: true,
-
                 searchPanel: { visible: true, placeholder: "Search assignments..." },
                 headerFilter: { visible: true },
                 editing: {
                     mode: "popup",
-                    allowUpdating: false,
-                    allowDeleting: true,
-                    allowAdding: false,
+                    allowUpdating: false, allowDeleting: true, allowAdding: false,
                     useIcons: true,
                     texts: { confirmDeleteMessage: "Are you sure you want to delete this assignment?\n(All associated course enrollments will be removed)" }
                 },
-
+                onRowPrepared: function(e) {
+                    if (e.rowType === "data" && e.data.status === "Expired") {
+                        $(e.rowElement).css("background-color", "#fff8f8");
+                    }
+                },
                 columns: [
                     {
-                        dataField: "assignmentNo", caption: "Assignment No", width: 140, alignment: "center", sortOrder: "desc",
-                        cellTemplate: function(container, options) {
-                            $("<span class='fw-bold text-dark'>").text(options.value || '-').appendTo(container);
+                        dataField: "assignmentNo", caption: "Assignment No", width: 145, alignment: "center", sortOrder: "desc",
+                        cellTemplate: function(c, o) {
+                            $("<span class='fw-bold text-dark'>").text(o.value || '-').appendTo(c);
                         }
                     },
                     {
-                        dataField: "courseNames", caption: "Assigned Courses", minWidth: 280,
-                        cellTemplate: function(container, options) {
-                            const courses = options.value ? options.value.split(', ').filter(c => c.trim()) : [];
-                            if (courses.length === 0) { $("<span class='text-muted'>-</span>").appendTo(container); return; }
-                            const wrapper = $("<div class='d-flex flex-wrap gap-1'></div>").appendTo(container);
-                            courses.forEach(course => {
-                                $(`<span class='badge bg-light text-dark border px-2 py-1 rounded-2 fw-medium'>${course}</span>`).appendTo(wrapper);
+                        dataField: "createdBy", caption: "Created By", width: 140,
+                        cellTemplate: function(c, o) {
+                            const val = o.value || '-';
+                            $("<div>").addClass("d-flex align-items-center gap-2")
+                                .append($("<span>").addClass("small fw-medium text-dark text-truncate").text(val))
+                                .appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "courseNames", caption: "Courses", minWidth: 220,
+                        cellTemplate: function(c, o) {
+                            const courses = o.value ? o.value.split(', ').filter(x => x.trim()) : [];
+                            if (!courses.length) { $("<span class='text-muted'>-</span>").appendTo(c); return; }
+                            const wrapper = $("<div class='d-flex flex-wrap gap-1'>").appendTo(c);
+                            courses.slice(0, 3).forEach(course => {
+                                $(`<span class='badge bg-light text-dark border px-2 py-1 rounded-2 fw-medium small'>${course}</span>`).appendTo(wrapper);
                             });
-                        }
-                    },
-                    {
-                        dataField: "description", caption: "Description", minWidth: 200,
-                        cellTemplate: function(container, options) {
-                            const text = options.value || '-';
-                            const truncated = text.length > 60 ? text.substring(0, 60) + '...' : text;
-                            $("<span class='text-muted'>").text(truncated).attr('title', text).appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "employeeCodes", caption: "Assigned To", width: 130, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const count = options.value ? options.value.split(',').length : 0;
-                            $("<span class='badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-bold'>")
-                                .html(`<i class="fas fa-users me-1"></i> ${count}`).appendTo(container);
-                        }
-                    },
-                    { dataField: "startDate", caption: "Start Date", dataType: "date", format: "dd/MM/yyyy", width: 120, alignment: "center" },
-                    { dataField: "dueDate", caption: "Due Date", dataType: "date", format: "dd/MM/yyyy", width: 120, alignment: "center" },
-                    {
-                        dataField: "status", caption: "Status", width: 140, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const status = options.value;
-                            let badgeClass = "", icon = "", text = status || "Unknown";
-
-                            switch(status) {
-                                case "Completed": badgeClass = "bg-success bg-opacity-10 text-success border-success"; icon = "fa-check-circle"; text = "Completed"; break;
-                                case "Upcoming": badgeClass = "bg-warning bg-opacity-10 text-warning border-warning"; icon = "fa-clock"; text = "Upcoming"; break;
-                                case "Expired": badgeClass = "bg-danger bg-opacity-10 text-danger border-danger"; icon = "fa-times-circle"; text = "Expired"; break;
-                                case "InProgress": badgeClass = "bg-primary bg-opacity-10 text-primary border-primary"; icon = "fa-play-circle"; text = "In Progress"; break;
-                                default: badgeClass = "bg-secondary bg-opacity-10 text-secondary border-secondary"; icon = "fa-circle"; break;
+                            if (courses.length > 3) {
+                                $(`<span class='badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-2 fw-medium small'>+${courses.length - 3} more</span>`).appendTo(wrapper);
                             }
-
-                            $("<span>").addClass(`badge border border-opacity-25 px-3 py-1 rounded-pill fw-medium ${badgeClass}`)
-                                .html(`<i class="fas ${icon} me-1" style="font-size: 0.75rem;"></i>${text}`).appendTo(container);
                         }
                     },
                     {
-                        type: "buttons", caption: "Actions", width: 110, alignment: "center", fixed: true, fixedPosition: "right",
+                        dataField: "description", caption: "Description", minWidth: 180,
+                        cellTemplate: function(c, o) {
+                            const text = o.value || '-';
+                            const truncated = text.length > 55 ? text.substring(0, 55) + '…' : text;
+                            $("<span class='text-muted small'>").text(truncated).attr("title", text).appendTo(c);
+                        }
+                    },
+                    {
+                        caption: "Students", width: 105, alignment: "center",
+                        calculateCellValue: function(d) {
+                            return d.studentCount || (d.employeeCodes ? d.employeeCodes.split(',').filter(x => x.trim()).length : 0);
+                        },
+                        cellTemplate: function(c, o) {
+                            $("<span class='badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-bold'>")
+                                .html(`<i class="fas fa-users me-1"></i>${o.value}`).appendTo(c);
+                        }
+                    },
+                    {
+                        caption: "Progress", width: 130, alignment: "center",
+                        calculateCellValue: function(d) {
+                            const total = d.totalEnrollmentCount || 0;
+                            const done  = d.completedEnrollmentCount || 0;
+                            return total > 0 ? Math.round((done / total) * 100) : 0;
+                        },
+                        cellTemplate: function(c, o) {
+                            const pct = o.value;
+                            const color = pct === 100 ? "#198754" : pct >= 50 ? "#0d6efd" : "#ffc107";
+                            $("<div>").addClass("d-flex align-items-center gap-2")
+                                .append($("<div>").addClass("progress flex-grow-1").css("height", "6px")
+                                    .append($("<div>").addClass("progress-bar").css({ width: pct + "%", backgroundColor: color })))
+                                .append($("<small>").addClass("text-muted fw-medium").css("min-width", "32px").text(pct + "%"))
+                                .appendTo(c);
+                        }
+                    },
+                    { dataField: "startDate", caption: "Start", dataType: "date", format: "dd/MM/yyyy", width: 105, alignment: "center" },
+                    { dataField: "dueDate",   caption: "Due",   dataType: "date", format: "dd/MM/yyyy", width: 105, alignment: "center" },
+                    {
+                        dataField: "status", caption: "Status", width: 145, alignment: "center",
+                        cellTemplate: function(c, o) { $(statusBadge(o.value)).appendTo(c); }
+                    },
+                    {
+                        type: "buttons", caption: "Actions", width: 80, alignment: "center", fixed: true, fixedPosition: "right",
                         buttons: [
-                            { hint: "View Dashboard", icon: "info", onClick: function(e) { window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`; } },
-                            { hint: "Delete", icon: "trash", onClick: function(e) { if (confirm('Delete this assignment? All associated enrollments will be removed.')) { gridInstance.deleteRow(e.row.rowIndex); } } }
+                            { hint: "View Progress", icon: "info", onClick: function(e) { window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`; } }
                         ]
                     }
                 ]
+            });
+
+            // ── Load data ──
+            $.ajax({
+                url: `${serviceUrl}/Assignments/history`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            }).done(function(res) {
+                allData = Array.isArray(res) ? res : (res.data || []);
+
+                // อัปเดต KPI
+                updateKpi(allData);
+
+                // ใส่ข้อมูลลง grid
+                gridInstance.option("dataSource", allData);
+            }).fail(function() {
+                DevExpress.ui.notify("Error loading assignment history.", "error", 3000);
             });
         });
     </script>

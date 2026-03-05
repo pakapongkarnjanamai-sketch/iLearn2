@@ -164,14 +164,26 @@ namespace iLearn.Application.Services
 
                     return new AssignmentHistoryDto
                     {
-                        Id = first.Id, // ใช้ Id ของแถวแรกเพื่อทำ Link ไปหน้า Progress
+                        Id = first.Id,
                         AssignmentNo = g.Key,
                         Description = first.Description,
                         EmployeeCodes = first.EmployeeCodes,
                         StartDate = first.StartDate,
                         DueDate = first.DueDate,
                         CourseNames = string.Join(", ", g.Select(c => c.Course?.Title ?? "Unknown Course").Distinct()),
-                        Status = status
+                        Status = status,
+
+                        // ✅ Admin tracking
+                        CreatedBy = first.CreatedBy,
+                        CreatedAt = first.CreatedAt,
+
+                        // ✅ Summary counts
+                        CourseCount = g.Select(a => a.CourseId).Distinct().Count(),
+                        StudentCount = string.IsNullOrEmpty(first.EmployeeCodes)
+                            ? 0
+                            : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
+                        CompletedEnrollmentCount = relatedEnrollments.Count(e => e.IsCompleted),
+                        TotalEnrollmentCount = relatedEnrollments.Count
                     };
                 })
                 .OrderByDescending(x => x.AssignmentNo)

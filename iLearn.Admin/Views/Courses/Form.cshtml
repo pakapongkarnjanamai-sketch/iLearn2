@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = (ViewBag.Id == null ? "Create New Course" : "Edit Course");
+    ViewBag.Title = (ViewBag.Id == null ? "New Course" : "Edit Course");
     var isEdit = ViewBag.Id != null;
 }
 
@@ -418,54 +418,93 @@
 
             // --- 3. Popup สำหรับเลือกไฟล์เก่า ---
             const popupExisting = $("#popup-existing").dxPopup({
-                title: "Select Existing Resources", width: 800, height: 600,
+                title: "Select Existing Resources",
+                width: "90vw", maxWidth: 1100, height: "85vh",
                 showCloseButton: true, dragEnabled: true,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
-                    const gridContainer = $("<div id='grid-existing-pick'>").appendTo(contentElement);
+                    const gridContainer = $("<div id='grid-existing-pick' style='height:100%;'>").appendTo(contentElement);
                     gridExisting = gridContainer.dxDataGrid({
                         dataSource: resourcesStore,
-                        showBorders: false, showRowLines: true, rowAlternationEnabled: false,
-                        height: 430, scrolling: { mode: "virtual" },
+                        remoteOperations: true,
+                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                        hoverStateEnabled: true,
+                        height: "100%",
+                        scrolling: { mode: "virtual" },
                         selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        searchPanel: { visible: true, placeholder: "Search for Learn or Exam..." },
+                        searchPanel: { visible: true, placeholder: "Search by name or type...", width: 280 },
+                        sorting: { mode: "multiple" },
                         columns: [
-                            { dataField: "name", caption: "Resource Name", cssClass: "fw-medium" },
                             {
-                                dataField: "typeId", caption: "Type", width: 120, alignment: "center",
+                                dataField: "name", caption: "Resource Name", minWidth: 200,
+                                cellTemplate: function(container, options) {
+                                    $("<span>").addClass("fw-medium text-dark").text(options.value).appendTo(container);
+                                }
+                            },
+                            {
+                                dataField: "typeId", caption: "Type", width: 110, alignment: "center",
                                 cellTemplate: function(container, options) {
                                     const isLearn = options.value === 1;
                                     const text = isLearn ? "Learn" : "Exam";
                                     const badgeClass = isLearn ? "bg-info text-info border-info" : "bg-warning text-warning border-warning";
                                     $("<span>").addClass(`badge ${badgeClass} bg-opacity-10 border border-opacity-25 px-3 py-1 rounded-pill fw-medium`).text(text).appendTo(container);
                                 }
+                            },
+                            {
+                                caption: "Used In", width: 100, alignment: "center", allowSorting: true,
+                                calculateCellValue: function(d) { return (d.courseResources || []).length; },
+                                cellTemplate: function(container, options) {
+                                    const count = options.value;
+                                    const cls = count > 0
+                                        ? "bg-success bg-opacity-10 text-success border-success"
+                                        : "bg-secondary bg-opacity-10 text-secondary border-secondary";
+                                    $("<span>")
+                                        .addClass(`badge ${cls} border border-opacity-25 rounded-pill px-2 fw-medium`)
+                                        .html(`<i class="fas fa-book me-1"></i>${count}`)
+                                        .appendTo(container);
+                                }
+                            },
+                            {
+                                dataField: "createdAt", caption: "Created", width: 155, alignment: "center",
+                                dataType: "datetime",
+                                sortOrder: "desc", sortIndex: 0,
+                                cellTemplate: function(container, options) {
+                                    if (!options.value) return;
+                                    const d = new Date(options.value);
+                                    const formatted = d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                        + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                                    $("<span>").addClass("text-muted small").text(formatted).appendTo(container);
+                                }
                             }
                         ]
                     }).dxDataGrid("instance");
-
-                    const btnContainer = $("<div class='text-end mt-4'>").appendTo(contentElement);
-                    $("<div id='btn-confirm-existing'>").appendTo(btnContainer).dxButton({
-                        text: "Add Selected", type: "default", stylingMode: "contained", icon: "check",
-                        elementAttr: { class: "rounded-3 fw-medium px-3 shadow-sm" },
-                        onClick: function() {
-                            const selectedData = gridExisting.getSelectedRowsData();
-                            selectedData.forEach(item => {
-                                if(!unifiedResources.some(r => !r.isNew && r.realId === item.id)) {
-                                    unifiedResources.push({
-                                        uid: `EXISTING_${item.id}`,
-                                        realId: item.id,
-                                        name: item.name,
-                                        typeId: item.typeId,
-                                        isNew: false
-                                    });
-                                }
-                            });
-                            refreshMasterGrid();
-                            gridExisting.clearSelection();
-                            popupExisting.hide();
+                },
+                toolbarItems: [
+                    {
+                        widget: "dxButton", toolbar: "bottom", location: "after",
+                        options: {
+                            text: "Add Selected", type: "default", stylingMode: "contained", icon: "check",
+                            elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                            onClick: function() {
+                                const selectedData = gridExisting.getSelectedRowsData();
+                                selectedData.forEach(item => {
+                                    if(!unifiedResources.some(r => !r.isNew && r.realId === item.id)) {
+                                        unifiedResources.push({
+                                            uid: `EXISTING_${item.id}`,
+                                            realId: item.id,
+                                            name: item.name,
+                                            typeId: item.typeId,
+                                            isNew: false
+                                        });
+                                    }
+                                });
+                                refreshMasterGrid();
+                                gridExisting.clearSelection();
+                                popupExisting.hide();
+                            }
                         }
-                    });
-                }
+                    }
+                ]
             }).dxPopup("instance");
 
             $("#btn-show-existing").click(() => popupExisting.show());
