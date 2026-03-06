@@ -47,7 +47,7 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-4" style="max-width:1400px;">
+<div class="container-fluid px-4 py-4" >
     <div id="load-panel"></div>
 
     <!-- ── Row 1: Meta / Stats / Chart ──────────────────────────── -->
@@ -257,7 +257,7 @@
 
             const dropdownOptions = data.courses.map(c => ({
                 assignmentRuleId: c.assignmentRuleId,
-                displayText: `${c.courseCode} – ${c.courseTitle}`
+                displayText: `${c.courseCode}`
             }));
             const firstRuleId = dropdownOptions.length > 0 ? dropdownOptions[0].assignmentRuleId : null;
 
@@ -371,16 +371,16 @@
                         caption: "Status",
                         width: 110,
                         cellTemplate: (c, o) => {
-                            let color, dot, label;
+                            let dotCls, label;
                             if (o.value) {
-                                color = "var(--success-color)"; dot = color; label = "Completed";
+                                dotCls = "dot-success"; label = "Completed";
                             } else if (o.data.progress > 0) {
-                                color = "var(--warning-color)"; dot = color; label = "In Progress";
+                                dotCls = "dot-warning"; label = "In Progress";
                             } else {
-                                color = "var(--text-secondary)"; dot = "#d9d9d9"; label = "Pending";
+                                dotCls = "dot-default"; label = "Pending";
                             }
-                            $("<span>").css({ fontSize: "12px", color })
-                                .append($("<span>").addClass("status-dot").css("background", dot))
+                            $("<span>").css({ fontSize: "12px" })
+                                .append($("<span>").addClass(`status-dot ${dotCls}`))
                                 .append(label)
                                 .appendTo(c);
                         }

@@ -13,7 +13,7 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-4" style="max-width:1400px;">
+<div class="container-fluid px-4 py-4">
 
     <!-- ── KPI Bar ── -->
     <div class="row g-2 mb-4" id="kpi-bar">
@@ -63,22 +63,16 @@
         let allData = [];
         let activeStatus = null;
 
-        // ── Status badge (minimal style) ──
+        // ── Status badge ──
         function statusBadge(status) {
             const map = {
-                "Completed":  { color: "#52c41a", bg: "#f6ffed", text: "Completed"   },
-                "Upcoming":   { color: "#faad14", bg: "#fffbe6", text: "Upcoming"    },
-                "Expired":    { color: "#ff4d4f", bg: "#fff2f0", text: "Expired"     },
-                "InProgress": { color: "#1890ff", bg: "#e6f4ff", text: "In Progress" }
+                "Completed":  { cls: "pill-success", text: "Completed"   },
+                "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
+                "Expired":    { cls: "pill-danger",   text: "Expired"     },
+                "InProgress": { cls: "pill-info",     text: "In Progress" }
             };
-            const s = map[status] ?? { color: "#595959", bg: "#fafafa", text: status || "Unknown" };
-            return `<span style="
-                        display:inline-block; padding:2px 10px; border-radius:20px;
-                        font-size:11px; font-weight:600; letter-spacing:0.2px;
-                        background:${s.bg}; color:${s.color};
-                        border:1px solid ${s.color}33;">
-                        ${s.text}
-                    </span>`;
+            const s = map[status] ?? { cls: "pill-default", text: status || "Unknown" };
+            return `<span class="status-pill ${s.cls}">${s.text}</span>`;
         }
 
         function updateKpi(data) {
@@ -105,7 +99,7 @@
         $(() => {
             gridInstance = initDxGrid("#grid", {
                 dataSource: [],
-                remoteOperations: false,
+                remoteOperations: true,
                 selection: { mode: "single" },
                 showBorders: false,
                 rowAlternationEnabled: false,
@@ -140,9 +134,7 @@
                             if (!courses.length) { $("<span>").css("color", "var(--text-secondary)").text("—").appendTo(c); return; }
                             const wrap = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(c);
                             courses.slice(0, 3).forEach(name =>
-                                $("<span>").css({ fontSize: "11px", padding: "2px 7px", borderRadius: "3px",
-                                                  background: "var(--bg-light)", border: "1px solid var(--border-color)",
-                                                  color: "var(--text-primary)", fontWeight: "500" })
+                                $("<span>").addClass("tag-pill pill-default")
                                            .text(name).appendTo(wrap)
                             );
                             if (courses.length > 3)

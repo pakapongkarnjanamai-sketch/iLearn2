@@ -22,9 +22,15 @@
 @section Scripts {
     <script>
         let gridInstance;
+        const dsRolesLookup = {
+            store: createDataStore(serviceUrl, 'admin/RolesCRUD'),
+            loadMode: 'raw',
+            cacheRawData: true
+        };
         $(() => {
             gridInstance = initDxGrid("#grid", {
                 dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD'),
+                remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { visible: true, placeholder: "Search users..." },
                 showBorders: false,
@@ -63,7 +69,7 @@
                         },
                         editCellTemplate: tagBoxEditorTemplate,
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
+                            dataSource: dsRolesLookup,
                             displayExpr: 'name',
                             valueExpr: 'id'
                         }
@@ -74,7 +80,7 @@
 
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
-                    dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD', { key: 'id' }),
+                    dataSource: dsRolesLookup,
                     value: cellInfo.value || [],
                     valueExpr: 'id',
                     displayExpr: 'name',

@@ -23,7 +23,17 @@
     <script>
         let gridInstance;
         const enrollmentsStore = createDataStore(serviceUrl, 'admin/EnrollmentsCRUD');
-        const dsCourses = {
+
+        // lookup ใช้ loadMode:'raw' — ดึงครั้งเดียว, filter ฝั่ง client
+        // ป้องกัน DevExtreme ยิง 1 request ต่อแถวเพื่อ resolve key → label
+        const dsCoursesLookup = {
+            store: createDataStore(serviceUrl, 'admin/CoursesCRUD'),
+            loadMode: 'raw',
+            cacheRawData: true
+        };
+
+        // form editor ใช้ paginate เพื่อ search แบบ lazy (UX ดี ไม่โหลดหนัก)
+        const dsCoursesSelect = {
             store: createDataStore(serviceUrl, 'admin/CoursesCRUD'),
             paginate: true,
             pageSize: 20
@@ -60,7 +70,7 @@
                                     { dataField: "studentCode", label: { text: "Student Code" }, validationRules: [{ type: "required" }] },
                                     {
                                         dataField: "courseId", editorType: "dxSelectBox",
-                                        editorOptions: { dataSource: dsCourses, displayExpr: "code", valueExpr: "id", searchEnabled: true, searchExpr: ["code", "title"] },
+                                        editorOptions: { dataSource: dsCoursesSelect, displayExpr: "code", valueExpr: "id", searchEnabled: true, searchExpr: ["code", "title"] },
                                         validationRules: [{ type: "required" }]
                                     }
                                 ]
@@ -80,7 +90,7 @@
                     { dataField: "studentCode", caption: "Student Code", width: 150 },
                     {
                         dataField: "courseId", caption: "Course Code / Title", minWidth: 200,
-                        lookup: { dataSource: dsCourses, displayExpr: "title", valueExpr: "id" }
+                        lookup: { dataSource: dsCoursesLookup, displayExpr: "title", valueExpr: "id" }
                     },
                     {
                         caption: "Status", width: 140, alignment: "center",
@@ -88,6 +98,15 @@
                             if (rowData.isCompleted) return "Completed";
                             if (rowData.progress > 0) return "In Progress";
                             return "Enrolled";
+                        },
+                        cellTemplate: function(container, options) {
+                            const map = {
+                                "Completed":  "status-pill pill-success",
+                                "In Progress":"status-pill pill-info",
+                                "Enrolled":   "status-pill pill-default"
+                            };
+                            $("<span>").addClass(map[options.value] || "status-pill pill-default")
+                                       .text(options.value).appendTo(container);
                         }
                     },
                     {

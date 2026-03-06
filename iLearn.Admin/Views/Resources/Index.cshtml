@@ -40,6 +40,13 @@
         let uploadPopupInstance;
         let gridInstance;
 
+        // lookup column — raw+cached ดึงครั้งเดียว resolve courseId → code
+        const dsCoursesLookup = {
+            store: createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` }),
+            loadMode: 'raw',
+            cacheRawData: true
+        };
+
         $(() => {
             // 1. Popup Upload
             uploadPopupInstance = $("#uploadPopup").dxPopup({
@@ -82,6 +89,7 @@
             let isShowingUnassigned = true;
             gridInstance = initDxGrid("#grid", {
                 dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' }),
+                remoteOperations: true,
                 filterValue: ["courseIdsCount", "=", 0],
                 searchPanel: { visible: true, placeholder: "Search resources..." },
                 showBorders: false,
@@ -114,7 +122,14 @@
                 },
                 columns: [
                     { dataField: "name", caption: "Resource File Name", dataType: "string", minWidth: 250 },
-                    { dataField: "typeId", caption: "Resource Type", dataType: "number", lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' } },
+                    { dataField: "typeId", caption: "Resource Type", dataType: "number",
+                        lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
+                        alignment: "center", width: 140,
+                        cellTemplate: function(container, options) {
+                            const cls = options.value === 1 ? "tag-pill pill-learn" : "tag-pill pill-exam";
+                            $("<span>").addClass(cls).text(options.displayValue || "—").appendTo(container);
+                        }
+                    },
                     {
                         dataField: "courseIdsCount", dataType: "number", visible: false,
                         calculateCellValue: rowData => rowData.courseResources ? rowData.courseResources.length : 0
@@ -122,9 +137,19 @@
                     {
                         dataField: "courseIds", caption: "Assigned Courses", dataType: "object", allowSorting: false,
                         calculateCellValue: rowData => rowData.courseResources ? rowData.courseResources.map(cr => cr.courseId) : [],
-                        lookup: { dataSource: createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' }), displayExpr: 'code', valueExpr: 'id' }
+                        lookup: {
+                            dataSource: dsCoursesLookup,
+                            displayExpr: 'code',
+                            valueExpr: 'id'
+                        }
                     },
-                    { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center" },
+                    { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const cls = options.value ? "status-pill pill-success" : "status-pill pill-default";
+                            const label = options.value ? "Active" : "Draft";
+                            $("<span>").addClass(cls).text(label).appendTo(container);
+                        }
+                    },
                     {
                         type: "buttons", caption: "Manage", width: 140, alignment: "center",
                         buttons: [

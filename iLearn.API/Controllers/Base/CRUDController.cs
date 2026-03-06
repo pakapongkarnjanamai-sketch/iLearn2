@@ -50,7 +50,16 @@ namespace iLearn.API.Controllers.Base
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
 
-        // 🚀 เพิ่ม Endpoint ใหม่สำหรับดึงเฉพาะ Course และ Version ที่ Active
+        // ✅ Endpoint เบาๆ สำหรับ Lookup ใน Grid — ดึงแค่ id + code
+        [HttpGet("GetForLookup")]
+        public async Task<IActionResult> GetForLookup(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Select(c => new { c.Id, c.Code });
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
         [HttpGet("GetActive")]
         public async Task<IActionResult> GetActive(DataSourceLoadOptions loadOptions)
         {
@@ -136,11 +145,12 @@ namespace iLearn.API.Controllers.Base
                     r.URL,
                     r.FileStorageId,
                     r.CreatedAt,
-                    // ดึงมาแค่ CourseId ก็พอ เพราะ Frontend (TagBox) ต้องการแค่นี้
                     courseResources = r.CourseResources.Select(cr => new
                     {
                         courseId = cr.CourseVersion.CourseId
-                    }).ToList()
+                    }).ToList(),
+                    // ✅ เพิ่ม field จริงที่ Server รู้จัก เพื่อให้ filter ได้
+                    courseIdsCount = r.CourseResources.Select(cr => cr.CourseVersion.CourseId).Distinct().Count()
                 });
 
             return Ok(DataSourceLoader.Load(query, loadOptions));

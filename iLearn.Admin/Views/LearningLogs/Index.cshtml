@@ -44,12 +44,24 @@
                     { dataField: "studentCode", caption: "Employee ID", dataType: "string", minWidth: 120 },
                     { dataField: "enrollmentId", caption: "Enrollment ID", dataType: "number", minWidth: 120, alignment: "center" },
                     {
-                        dataField: "status", // อัปเดตให้ตรงกับ API ใหม่
+                        dataField: "status",
                         caption: "Status",
                         dataType: "string",
                         minWidth: 150,
                         alignment: "center",
-                       
+                        cellTemplate: function(container, options) {
+                            const val = options.value || "";
+                            const map = {
+                                "completed":   "status-pill pill-success",
+                                "passed":      "status-pill pill-success",
+                                "failed":      "status-pill pill-danger",
+                                "incomplete":  "status-pill pill-warning",
+                                "in_progress": "status-pill pill-info",
+                                "not_started": "status-pill pill-default"
+                            };
+                            const cls = map[val.toLowerCase()] || "status-pill pill-default";
+                            $("<span>").addClass(cls).text(val || "—").appendTo(container);
+                        }
                     },
                     {
                         dataField: "progress", // เพิ่มคอลัมน์ progress เข้ามาใหม่

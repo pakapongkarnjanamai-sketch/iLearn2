@@ -86,7 +86,7 @@
                     <a href="@Url.Action("Index", "Assignments")" class="quick-action">
                         <div class="qa-icon" style="background:var(--bg-light); color:var(--text-secondary);"><i class="fas fa-tasks"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Auto-Assignments</div>
+                            <div style="font-size:12px; font-weight:600;">Assignments</div>
                             <div style="font-size:11px; color:var(--text-secondary);">Bulk course assignment</div>
                         </div>
                     </a>
@@ -187,7 +187,7 @@
     <script>
         $(() => {
             loadDashboardStats();
-            initEnrollmentChart();
+            loadEnrollmentTrends();
         });
 
         function loadDashboardStats() {
@@ -198,11 +198,9 @@
                 success: function (res) {
                     if (res.success && res.data) {
                         animateCount('count-active-courses', res.data.activeCourses || 0);
-                        animateCount('count-draft-courses', res.data.draftCourses || 0);
-                        animateCount('count-users', res.data.totalUsers || 0);
-                        animateCount('count-resources', res.data.totalResources || 0);
-
-                        // Update pending count in notices
+                        animateCount('count-draft-courses',  res.data.draftCourses  || 0);
+                        animateCount('count-users',          res.data.totalUsers    || 0);
+                        animateCount('count-resources',      res.data.totalResources || 0);
                         $('#pending-count').text(res.data.draftCourses || 0);
                     }
                 },
@@ -213,37 +211,34 @@
             });
         }
 
-        function animateCount(elementId, value) {
-            const $el = $(`#${elementId}`);
-            if(value === 0) {
-                $el.text("0");
-                return;
-            }
-
-            $({ counter: 0 }).animate({
-                counter: value
-            }, {
-                duration: 1200,
-                easing: 'swing',
-                step: function () {
-                    $el.text(Math.ceil(this.counter));
+        function loadEnrollmentTrends() {
+            $.ajax({
+                url: `${serviceUrl}/admin/Dashboard/EnrollmentTrends`,
+                method: "GET",
+                xhrFields: { withCredentials: true },
+                success: function (res) {
+                    initEnrollmentChart(res.success && res.data ? res.data : []);
                 },
-                complete: function() {
-                    $el.text(value);
+                error: function (err) {
+                    console.error("Failed to load enrollment trends", err);
+                    initEnrollmentChart([]);
                 }
             });
         }
 
-        function initEnrollmentChart() {
-            const chartData = [
-                { month: "Aug", enrollments: 120 },
-                { month: "Sep", enrollments: 150 },
-                { month: "Oct", enrollments: 190 },
-                { month: "Nov", enrollments: 140 },
-                { month: "Dec", enrollments: 250 },
-                { month: "Jan", enrollments: 300 }
-            ];
+        function animateCount(elementId, value) {
+            const $el = $(`#${elementId}`);
+            if (value === 0) { $el.text("0"); return; }
 
+            $({ counter: 0 }).animate({ counter: value }, {
+                duration: 1200,
+                easing: 'swing',
+                step: function () { $el.text(Math.ceil(this.counter)); },
+                complete: function () { $el.text(value); }
+            });
+        }
+
+        function initEnrollmentChart(chartData) {
             $("#enrollmentChart").dxChart({
                 dataSource: chartData,
                 series: {

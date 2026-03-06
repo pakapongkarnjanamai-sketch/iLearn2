@@ -25,8 +25,7 @@
             <div class="border rounded bg-white h-100 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="section-title mb-0" style="border:none; padding:0;">Course Information</div>
-                    <span id="courseStatusBadge" style="font-size:11px; padding:2px 10px; border-radius:20px;
-                          background:#fafafa; border:1px solid #f0f0f0; color:#595959; font-weight:600;">
+                    <span id="courseStatusBadge" class="status-pill pill-default">
                         <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
                     </span>
                 </div>
@@ -319,8 +318,8 @@
                     $publishIconBox.css({ background: "#fffbe6", color: "var(--warning-color)" });
                     $publishBtnText.text("Close Course");
                     $publishBtnDesc.text("Deactivate — stop new learners");
-                    $statusBadge.css({ background: "#f6ffed", color: "var(--success-color)",
-                                       border: "1px solid #b7eb8f" })
+                    $statusBadge.removeClass("pill-default pill-warning pill-danger pill-info")
+                                .addClass("pill-success")
                                 .html('<i class="fas fa-check-circle me-1"></i> Active');
 
                     $btnDelete.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
@@ -331,8 +330,8 @@
                     $publishIconBox.css({ background: "#fafafa", color: "var(--text-secondary)" });
                     $publishBtnText.text("Publish Course");
                     $publishBtnDesc.text("Make course available");
-                    $statusBadge.css({ background: "#fafafa", color: "var(--text-secondary)",
-                                       border: "1px solid var(--border-color)" })
+                    $statusBadge.removeClass("pill-success pill-warning pill-danger pill-info")
+                                .addClass("pill-default")
                                 .html('<i class="fas fa-lock me-1"></i> Closed');
 
                     $btnDelete.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
@@ -454,14 +453,8 @@
                         const isActive = v.isActive;
 
                         const activeBadge = isActive
-                            ? `<span style="font-size:11px; padding:2px 8px; border-radius:3px;
-                                   background:#e6f4ff; color:var(--accent-color);
-                                   border:1px solid #91d5ff; font-weight:600;">
-                                   <i class="fas fa-check-circle me-1"></i>Active
-                               </span>`
-                            : `<span style="font-size:11px; padding:2px 8px; border-radius:3px;
-                                   background:var(--bg-light); color:var(--text-secondary);
-                                   border:1px solid var(--border-color); font-weight:500;">Draft</span>`;
+                            ? `<span class="tag-pill pill-info"><i class="fas fa-check-circle me-1"></i>Active</span>`
+                            : `<span class="tag-pill pill-default">Draft</span>`;
 
                         const editItem = `
                             <li>
@@ -552,7 +545,7 @@
                         if (!r) return;
 
                         const order     = cr.order ?? (idx + 1);
-                        const typeColor = r.typeId === 1 ? "#1890ff" : "#faad14";
+                        const typeCls  = r.typeId === 1 ? "pill-learn" : "pill-exam";
                         const typeName  = r.typeId === 1 ? "Learn" : "Exam";
                         const previewBtn = r.isActive
                             ? `<a href="javascript:void(0);" onclick="window.viewContent(${r.id},'${r.name.replace(/'/g, "\\'")}')"
@@ -569,9 +562,7 @@
                                              text-align:center;">${order}</span>
                                 <span class="text-truncate flex-grow-1"
                                       style="color:var(--text-primary); font-weight:500;" title="${r.name}">${r.name}</span>
-                                <span style="flex-shrink:0; font-size:10px; padding:1px 6px; border-radius:3px;
-                                             background:${r.typeId === 1 ? "#e6f4ff" : "#fffbe6"};
-                                             color:${typeColor}; font-weight:600;">${typeName}</span>
+                                <span class="tag-pill ${typeCls}" style="flex-shrink:0; font-size:10px;">${typeName}</span>
                                 ${previewBtn}
                             </div>`);
                     });

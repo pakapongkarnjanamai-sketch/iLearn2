@@ -19,7 +19,13 @@
         <!-- Categories TreeView -->
         <div class="col-md-4 col-lg-3 h-100">
             <div class="border rounded bg-white h-100 d-flex flex-column">
-                <div class="section-label">Categories</div>
+          
+                               <div class="section-label" style="font-size:11px; font-weight:600; color:var(--text-secondary);
+                            text-transform:uppercase; letter-spacing:0.6px; padding:10px 14px 8px;
+                            border-bottom:1px solid var(--border-color);">
+                    Categories
+                </div>
+
                 <div class="p-2 flex-grow-1 overflow-hidden">
                     <div id="categoryTreeView"></div>
                 </div>
@@ -42,6 +48,10 @@
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
         const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
         const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' });
+
+        // Lookup DataSources — raw+cached เพื่อดึงครั้งเดียว resolve label ในฝั่ง client
+        const dsCategoriesLookup = { store: categoriesStore, loadMode: 'raw', cacheRawData: true };
+        const dsCourseTypesLookup = { store: courseTypesStore, loadMode: 'raw', cacheRawData: true };
 
         $(async () => {
             // ==========================================
@@ -76,7 +86,7 @@
                     {
                         dataField: "code",
                         caption: "Code",
-                        width: 130,
+                        width: 150,
                         alignment: "center",
                         cellTemplate: (c, o) =>
                             $("<span>").css({ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" })
@@ -90,10 +100,7 @@
                             const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
 
                             if (options.data.isActive === false) {
-                                $("<span>").css({ fontSize: "11px", padding: "1px 7px",
-                                                  borderRadius: "3px", background: "var(--bg-light)",
-                                                  border: "1px solid var(--border-color)",
-                                                  color: "var(--text-secondary)", fontWeight: "500" })
+                                $("<span>").addClass("tag-pill pill-default")
                                            .text("Draft").appendTo(wrapper);
                             }
 
@@ -108,7 +115,7 @@
                         caption: "Category",
                         width: 200,
                         lookup: {
-                            dataSource: categoriesStore,
+                            dataSource: dsCategoriesLookup,
                             displayExpr: 'name',
                             valueExpr: 'id'
                         },
@@ -121,7 +128,7 @@
                         caption: "Type",
                         width: 140,
                         lookup: {
-                            dataSource: courseTypesStore,
+                            dataSource: dsCourseTypesLookup,
                             displayExpr: 'name',
                             valueExpr: 'id'
                         },

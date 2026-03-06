@@ -27,6 +27,11 @@
             { id: 2, name: 'Admin' },
             { id: 3, name: 'SuperAdmin' }
         ];
+        const dsDivisionsLookup = {
+            store: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
+            loadMode: 'raw',
+            cacheRawData: true
+        };
         let gridInstance;
 
         $(() => {
@@ -56,7 +61,7 @@
                         dataField: "divisionId",
                         caption: "Division",
                         lookup: {
-                            dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
+                            dataSource: dsDivisionsLookup,
                             displayExpr: 'name',
                             valueExpr: 'id'
                         }

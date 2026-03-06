@@ -158,7 +158,7 @@
                             {
                                 dataField: "code", caption: "Code", width: 110,
                                 cellTemplate: function(c, o) {
-                                    $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c);
+                                    $('<span>').addClass('tag-pill pill-default fw-bold').text(o.value).appendTo(c);
                                 }
                             },
                             { dataField: "title", caption: "Course Title", minWidth: 180 },
@@ -166,10 +166,7 @@
                                 dataField: "courseTypeName", caption: "Type", width: 130, alignment: "center",
                                 cellTemplate: function(c, o) {
                                     if (!o.value) return;
-                                    $("<span>")
-                                        .addClass("badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 fw-medium")
-                                        .text(o.value)
-                                        .appendTo(c);
+                                    $('<span>').addClass('tag-pill pill-info').text(o.value).appendTo(c);
                                 }
                             }
                         ],
@@ -341,7 +338,7 @@
                             {
                                 dataField: "EId", caption: "ID", width: 95,
                                 cellTemplate: function(c, o) {
-                                    $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c);
+                                    $('<span>').addClass('tag-pill pill-default fw-bold').text(o.value).appendTo(c);
                                 }
                             },
                             {
@@ -355,10 +352,7 @@
                                 dataField: "Position", caption: "Position", width: 90, alignment: "center",
                                 cellTemplate: function(c, o) {
                                     if (!o.value) return;
-                                    $("<span>")
-                                        .addClass("badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 fw-medium")
-                                        .text(o.value)
-                                        .appendTo(c);
+                                    $('<span>').addClass('tag-pill pill-default').text(o.value).appendTo(c);
                                 }
                             },
                             { dataField: "Department", caption: "Dept.", width: 90 },

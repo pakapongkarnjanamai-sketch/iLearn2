@@ -29,9 +29,7 @@
     <div class="border rounded bg-white p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="section-title mb-0" style="border:none; padding:0;">Course Content List</div>
-            <span style="font-size:11px; padding:2px 8px; border-radius:3px;
-                         background:var(--bg-light); border:1px solid var(--border-color);
-                         color:var(--text-secondary); font-weight:600;" id="total-count-badge">0 Items</span>
+            <span class="tag-pill pill-default" id="total-count-badge">0 Items</span>
         </div>
 
         <div class="row g-3 mb-3">
@@ -305,7 +303,7 @@
 
                             // แสดงป้าย New สำหรับไฟล์ใหม่
                             if(isNew) {
-                                wrapper.append($("<span>").addClass("badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-0 ms-2").css("font-size", "0.7rem").text("New"));
+                                wrapper.append($('<span>').addClass('tag-pill pill-info ms-2').css('font-size', '0.7rem').text('New'));
                             }
                             wrapper.appendTo(container);
                         }
@@ -323,15 +321,13 @@
                         cellTemplate: function(container, options) {
                             const data = options.data;
                             const tName = data.typeId === 1 ? "Learn" : (data.typeId === 2 ? "Exam" : "Unknown");
-                            const badgeClass = data.typeId === 1 ? "bg-info text-info border-info" : "bg-warning text-warning border-warning";
+                            const typeCls = data.typeId === 1 ? "pill-learn" : "pill-exam";
 
-                            // ถ้าเป็นไฟล์ใหม่ ให้เพิ่มไอคอนลูกศรชี้ลง และเปลี่ยนเคอร์เซอร์เพื่อให้รู้ว่ากดแก้ได้
                             const editHint = data.isNew ? '<i class="fas fa-caret-down ms-2 opacity-50"></i>' : '';
                             const cursorStyle = data.isNew ? "cursor: pointer;" : "cursor: default;";
                             const tooltip = data.isNew ? "Click to change type" : "Existing resource type cannot be changed here";
 
-                            $("<div>")
-                                .addClass(`badge ${badgeClass} bg-opacity-10 border border-opacity-25 px-3 py-1 rounded-pill fw-medium`)
+                            $('<div>').addClass(`tag-pill ${typeCls}`)
                                 .attr("style", cursorStyle)
                                 .attr("title", tooltip)
                                 .html(`${tName} ${editHint}`)
@@ -386,8 +382,7 @@
                                 cellTemplate: function(container, options) {
                                     const isLearn = options.value === 1;
                                     const text = isLearn ? "Learn" : "Exam";
-                                    const badgeClass = isLearn ? "bg-info text-info border-info" : "bg-warning text-warning border-warning";
-                                    $("<span>").addClass(`badge ${badgeClass} bg-opacity-10 border border-opacity-25 px-3 py-1 rounded-pill fw-medium`).text(text).appendTo(container);
+                                    $('<span>').addClass(`tag-pill ${isLearn ? 'pill-learn' : 'pill-exam'}`).text(text).appendTo(container);
                                 }
                             },
                             {
@@ -395,11 +390,8 @@
                                 calculateCellValue: function(d) { return (d.courseResources || []).length; },
                                 cellTemplate: function(container, options) {
                                     const count = options.value;
-                                    const cls = count > 0
-                                        ? "bg-success bg-opacity-10 text-success border-success"
-                                        : "bg-secondary bg-opacity-10 text-secondary border-secondary";
-                                    $("<span>")
-                                        .addClass(`badge ${cls} border border-opacity-25 rounded-pill px-2 fw-medium`)
+                                    $('<span>')
+                                        .addClass(`tag-pill ${count > 0 ? 'pill-success' : 'pill-default'}`)
                                         .html(`<i class="fas fa-book me-1"></i>${count}`)
                                         .appendTo(container);
                                 }

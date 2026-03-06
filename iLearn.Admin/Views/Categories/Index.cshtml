@@ -43,6 +43,11 @@
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD');
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
 
+        // lookup column — raw+cached ดึงครั้งเดียว resolve label ในฝั่ง client
+        const dsDivisionsLookup = { store: divisionsStore, loadMode: 'raw', cacheRawData: true };
+        // form selectbox — paginate lazy search
+        const dsDivisionsSelect = { store: divisionsStore, paginate: true, pageSize: 20 };
+
         $(async () => {
 
             // ==========================================
@@ -98,7 +103,7 @@
                                         label: { text: "Division" },
                                         editorType: "dxSelectBox",
                                         editorOptions: {
-                                            dataSource: divisionsStore,
+                                            dataSource: dsDivisionsSelect,
                                             displayExpr: "name",
                                             valueExpr: "id",
                                             showClearButton: true,
@@ -146,7 +151,7 @@
                         caption: "Division",
                         width: 200,
                         lookup: {
-                            dataSource: divisionsStore,
+                            dataSource: dsDivisionsLookup,
                             displayExpr: 'name',
                             valueExpr: 'id'
                         }
@@ -163,13 +168,11 @@
                         cellTemplate: function(container, options) {
                             const isActive = options.value;
                             if (isActive) {
-                                $("<span>")
-                                    .addClass("badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill fw-medium")
+                                $("<span>").addClass("status-pill pill-success")
                                     .html('<i class="fas fa-check me-1"></i> Active')
                                     .appendTo(container);
                             } else {
-                                $("<span>")
-                                    .addClass("badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill fw-medium")
+                                $("<span>").addClass("status-pill pill-default")
                                     .html('<i class="fas fa-times me-1"></i> Inactive')
                                     .appendTo(container);
                             }

@@ -2,6 +2,8 @@
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
@@ -13,15 +15,18 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<User> _userRepo;
         private readonly IGenericRepository<Resource> _resourceRepo;
+        private readonly IGenericRepository<Enrollment> _enrollmentRepo;
 
         public DashboardController(
             IGenericRepository<Course> courseRepo,
             IGenericRepository<User> userRepo,
-            IGenericRepository<Resource> resourceRepo)
+            IGenericRepository<Resource> resourceRepo,
+            IGenericRepository<Enrollment> enrollmentRepo)
         {
             _courseRepo = courseRepo;
             _userRepo = userRepo;
             _resourceRepo = resourceRepo;
+            _enrollmentRepo = enrollmentRepo;
         }
 
         [HttpGet("Stats")]
@@ -45,5 +50,33 @@ namespace iLearn.API.Controllers
                 }
             });
         }
+
+        [HttpGet("EnrollmentTrends")]
+        public IActionResult GetEnrollmentTrends()
+        {
+            var today = DateTime.Today;
+
+            // สร้าง 6 เดือนย้อนหลัง (เดือนปัจจุบัน + 5 เดือนก่อนหน้า)
+            var months = Enumerable.Range(0, 6)
+                .Select(i => today.AddMonths(-5 + i))
+                .Select(d => new { d.Year, d.Month })
+                .ToList();
+
+            var cutoff = new DateTime(months[0].Year, months[0].Month, 1);
+
+            // ดึง enrollments ที่ StartDate อยู่ใน range
+            var enrollments = _enrollmentRepo.GetQuery()
+                .Where(e => e.StartDate.HasValue && e.StartDate.Value >= cutoff)
+                .Select(e => new { e.StartDate!.Value.Year, e.StartDate!.Value.Month })
+                .ToList();
+
+            var trends = months.Select(m => new
+            {
+                month = new DateTime(m.Year, m.Month, 1).ToString("MMM"),
+                enrollments = enrollments.Count(e => e.Year == m.Year && e.Month == m.Month)
+            });
+
+            return Ok(new { success = true, data = trends });
+        }
     }
-}
+}   
