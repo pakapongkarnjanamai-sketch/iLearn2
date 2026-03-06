@@ -4,148 +4,197 @@
 }
 
 <style>
-    body {
-        background-color: #f8f9fa;
+    :root {
+        --text-primary:   #262626;
+        --text-secondary: #595959;
+        --border-color:   #f0f0f0;
+        --accent-color:   #1890ff;
+        --success-color:  #52c41a;
+        --warning-color:  #faad14;
+        --danger-color:   #ff4d4f;
+        --bg-light:       #fafafa;
     }
 
-    .action-card {
-        transition: all 0.2s ease-in-out;
+    body { background: #fff; color: var(--text-primary); font-size: 13px; }
+
+    .page-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 24px;
+        background: #fff;
+    }
+
+    .section-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: 0.15s;
+        cursor: pointer;
+    }
+    .action-link:hover { background: var(--bg-light); color: var(--text-primary); }
+    .action-link.primary { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
+    .action-link.primary:hover { background: #096dd9; border-color: #096dd9; color: #fff; }
+
+    /* ── Quick Action Items ── */
+    .quick-action {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
         cursor: pointer;
         text-decoration: none;
-        border: 1px solid transparent;
+        color: var(--text-primary);
+        transition: 0.15s;
+    }
+    .quick-action:hover { background: var(--bg-light); color: var(--text-primary); border-color: var(--accent-color); }
+    .quick-action.danger:hover { border-color: var(--danger-color); background: #fff2f0; }
+    .quick-action .qa-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        flex-shrink: 0;
+        font-size: 14px;
     }
 
-        .action-card:hover {
-            transform: translateY(-3px);
-            border-color: #0d6efd !important;
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important;
-        }
-
-    .version-card-active {
-        border-left: 4px solid #0d6efd !important;
+    /* ── Version Cards ── */
+    .version-card {
+        border: 1px solid var(--border-color);
+        border-left: 3px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        padding: 16px;
+        transition: 0.15s;
     }
+    .version-card:hover { background: var(--bg-light); }
+    .version-card.active { border-left-color: var(--accent-color); background: #e6f4ff; }
 </style>
 
-<div class="bg-white border-bottom mb-4">
-    <div class="container-fluid px-4 py-4">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
-                    <i class="fas fa-book-open fs-5"></i>
-                </div>
-                <div>
-                    <h1 class="h4 mb-0 fw-bold text-dark" id="pageTitle">Course Dashboard</h1>
-                    <small class="text-muted" id="pageSubtitle">Manage course information and versions</small>
-                </div>
-            </div>
-            <a href="@Url.Action("Index", "Courses")" class="btn btn-light border shadow-sm btn-sm px-3 py-2 rounded-3 fw-medium">
-                <i class="fas fa-arrow-left me-1"></i> Back to Courses
-            </a>
-        </div>
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;" id="pageTitle">Course Dashboard</div>
+        <div class="text-secondary" style="font-size:12px;" id="pageSubtitle">Manage course information and versions</div>
     </div>
+    <a href="@Url.Action("Index", "Courses")" class="action-link">
+        <i class="fas fa-arrow-left text-secondary"></i> Back to Courses
+    </a>
 </div>
 
-<div class="container-fluid px-4 pb-5">
+<div class="container-fluid px-4 py-4" style="max-width:1400px;">
 
-    <div class="row g-4 mb-4">
+    <div class="row g-3 mb-4">
 
+        <!-- Course Information Form -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-info-circle text-primary me-2"></i> Course Information
-                    </h6>
-                    <span id="courseStatusBadge" class="badge bg-secondary fw-normal px-3 py-1 rounded-pill">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="section-title mb-0" style="border:none; padding:0;">Course Information</div>
+                    <span id="courseStatusBadge" style="font-size:11px; padding:2px 10px; border-radius:20px;
+                          background:#fafafa; border:1px solid #f0f0f0; color:#595959; font-weight:600;">
                         <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
                     </span>
                 </div>
-                <div class="card-body px-4 pb-4">
-                    <div id="courseInfoForm"></div>
-                    <div class="text-end mt-4 pt-3 border-top">
-                        <button id="btnSaveCourse" class="btn btn-primary px-4 py-2 rounded-3 shadow-sm fw-medium">
-                            <i class="fas fa-save me-1"></i> Save Changes
-                        </button>
-                    </div>
+                <div id="courseInfoForm"></div>
+                <div class="text-end mt-3 pt-3" style="border-top:1px solid var(--border-color);">
+                    <a href="javascript:void(0);" id="btnSaveCourse" class="action-link primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </a>
                 </div>
             </div>
         </div>
 
+        <!-- Quick Actions -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
-                    <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-bolt text-primary me-2"></i> Quick Actions
-                    </h6>
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Quick Actions</div>
+                <div class="d-flex flex-column gap-2">
+
+                    <a href="javascript:void(0);" id="btnNewVersion" class="quick-action">
+                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);">New Version</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Create a new content version</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btnAssignment" class="quick-action">
+                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);">Assignments</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Assign course to employees</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btnTogglePublish" class="quick-action">
+                        <div class="qa-icon" id="publishIconBox" style="background:#fafafa; color:var(--text-secondary);">
+                            <i id="publishIcon" class="fas fa-globe"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);" id="publishBtnText">Publish Course</div>
+                            <div style="font-size:11px; color:var(--text-secondary);" id="publishBtnDesc">Make course available</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btnDeleteCourse" class="quick-action danger">
+                        <div class="qa-icon" style="background:#fff2f0; color:var(--danger-color);">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);">Delete Course</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Remove permanently</div>
+                        </div>
+                    </a>
+
                 </div>
-                <div class="card-body px-4 pb-4">
-                    <div class="d-flex flex-column gap-3">
 
-                        <a href="javascript:void(0);" id="btnNewVersion" class="action-card d-flex align-items-center p-3 rounded-3 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 me-3 flex-shrink-0">
-                                <i class="fas fa-code-branch fs-5"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold text-dark">New Version</h6>
-                                <small class="text-muted">Create a new content version</small>
-                            </div>
-                        </a>
-
-                        <a href="javascript:void(0);" id="btnAssignment" class="action-card d-flex align-items-center p-3 rounded-3 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 me-3 flex-shrink-0">
-                                <i class="fas fa-user-plus fs-5"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold text-dark">Assignments</h6>
-                                <small class="text-muted">Assign course to employees</small>
-                            </div>
-                        </a>
-
-                        <a href="javascript:void(0);" id="btnTogglePublish" class="action-card d-flex align-items-center p-3 rounded-3 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-3 me-3 flex-shrink-0" id="publishIconBox">
-                                <i id="publishIcon" class="fas fa-globe fs-5"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold text-dark" id="publishBtnText">Publish Course</h6>
-                                <small class="text-muted" id="publishBtnDesc">Make course available</small>
-                            </div>
-                        </a>
-
-                        <a href="javascript:void(0);" id="btnDeleteCourse" class="action-card d-flex align-items-center p-3 rounded-3 bg-light shadow-sm text-decoration-none">
-                            <div class="icon-box bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-3 me-3 flex-shrink-0">
-                                <i class="fas fa-trash-alt fs-5"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold text-dark">Delete Course</h6>
-                                <small class="text-muted">Remove permanently</small>
-                            </div>
-                        </a>
-
-                    </div>
-
-                    <div id="warningMsg" class="alert alert-warning border-0 rounded-3 small mt-3 mb-0 py-2 px-3 d-none">
-                        <i class="fas fa-exclamation-triangle me-1"></i> Cannot delete an active course.
-                    </div>
+                <div id="warningMsg" class="mt-3 pt-3 d-none" style="border-top:1px solid var(--border-color); font-size:11px; color:var(--warning-color);">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Cannot delete an active course.
                 </div>
             </div>
         </div>
 
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-white border-bottom pt-4 pb-3 px-4 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold text-dark">
-                <i class="fas fa-code-branch text-primary me-2"></i> Content Versions
-            </h6>
-            <button class="btn btn-primary btn-sm rounded-3 px-3 fw-medium shadow-sm" id="btnNewVersionHeader">
-                <i class="fas fa-plus me-1"></i> New Version
-            </button>
+    <!-- Content Versions -->
+    <div class="border rounded bg-white p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="section-title mb-0" style="border:none; padding:0;">Content Versions</div>
+            <a href="javascript:void(0);" id="btnNewVersionHeader" class="action-link primary">
+                <i class="fas fa-plus"></i> New Version
+            </a>
         </div>
-        <div class="card-body p-4">
-            <div id="versionsContainer" class="row g-4">
-                <div class="col-12 text-center text-muted py-5">
-                    <i class="fas fa-circle-notch fa-spin fa-2x mb-3 text-primary"></i>
-                    <p class="mb-0 fw-medium">Loading versions...</p>
-                </div>
+        <div id="versionsContainer" class="row g-3">
+            <div class="col-12 text-center py-5" style="color:var(--text-secondary);">
+                <i class="fas fa-circle-notch fa-spin fa-lg mb-3" style="color:var(--accent-color); display:block;"></i>
+                Loading versions...
             </div>
         </div>
     </div>
@@ -308,13 +357,13 @@
             }
 
             // ── 3. Save ────────────────────────────────────────────────
-            $("#btnSaveCourse").click(function() {
+            $("#btnSaveCourse").on("click", function() {
                 if (!courseForm.validate().isValid) {
                     DevExpress.ui.notify("Please fill in all required fields.", "warning", 2000);
                     return;
                 }
                 const fd = courseForm.option("formData");
-                const $btn = $(this).prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+                const $btn = $(this).css("opacity", 0.6).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
                 $.ajax({
                     url: `${courseApiUrl}/${courseId}`,
@@ -336,9 +385,11 @@
                 }).fail((xhr) => {
                     DevExpress.ui.notify(xhr.responseJSON?.message || "Error updating course.", "error", 3000);
                 }).always(() => {
-                    $btn.prop("disabled", false).html('<i class="fas fa-save me-1"></i> Save Changes');
+                    $btn.css("opacity", 1).html('<i class="fas fa-save"></i> Save Changes');
                 });
             });
+
+
 
             // ── 4. Status UI helpers ───────────────────────────────────
             function updateStatusUI(isActive) {
@@ -353,25 +404,27 @@
 
                 if (isActive) {
                     $publishIcon.removeClass("fa-globe").addClass("fa-lock");
-                    $publishIconBox.removeClass("bg-primary text-primary").addClass("bg-warning text-warning");
+                    $publishIconBox.css({ background: "#fffbe6", color: "var(--warning-color)" });
                     $publishBtnText.text("Close Course");
                     $publishBtnDesc.text("Deactivate — stop new learners");
-                    $statusBadge.removeClass("bg-secondary").addClass("bg-success")
-                        .html('<i class="fas fa-check-circle me-1"></i> Active');
+                    $statusBadge.css({ background: "#f6ffed", color: "var(--success-color)",
+                                       border: "1px solid #b7eb8f" })
+                                .html('<i class="fas fa-check-circle me-1"></i> Active');
 
-                    $btnDelete.addClass("disabled opacity-50 pe-none");
-                    $btnAssignment.removeClass("disabled opacity-50 pe-none");
+                    $btnDelete.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
+                    $btnAssignment.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
                     $warnMsg.removeClass("d-none");
                 } else {
                     $publishIcon.removeClass("fa-lock").addClass("fa-globe");
-                    $publishIconBox.removeClass("bg-warning text-warning").addClass("bg-primary text-primary");
+                    $publishIconBox.css({ background: "#fafafa", color: "var(--text-secondary)" });
                     $publishBtnText.text("Publish Course");
                     $publishBtnDesc.text("Make course available");
-                    $statusBadge.removeClass("bg-success").addClass("bg-secondary")
-                        .html('<i class="fas fa-lock me-1"></i> Closed');
+                    $statusBadge.css({ background: "#fafafa", color: "var(--text-secondary)",
+                                       border: "1px solid var(--border-color)" })
+                                .html('<i class="fas fa-lock me-1"></i> Closed');
 
-                    $btnDelete.removeClass("disabled opacity-50 pe-none");
-                    $btnAssignment.addClass("disabled opacity-50 pe-none");
+                    $btnDelete.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
+                    $btnAssignment.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
                     $warnMsg.addClass("d-none");
                 }
             }
@@ -475,12 +528,12 @@
 
                     if (versions.length === 0) {
                         $container.html(`
-                            <div class="col-12 text-center text-muted py-5">
-                                <i class="fas fa-layer-group fa-3x mb-3 opacity-25"></i>
-                                <p class="mb-3 fw-medium">No versions yet.</p>
-                                <button class="btn btn-primary btn-sm rounded-3 px-4 fw-medium" onclick="$('#btnNewVersion').trigger('click')">
-                                    <i class="fas fa-plus me-1"></i> Create First Version
-                                </button>
+                            <div class="col-12 text-center py-5" style="color:var(--text-secondary);">
+                                <i class="fas fa-layer-group fa-2x mb-3" style="opacity:0.2; display:block;"></i>
+                                <div class="mb-3" style="font-size:13px;">No versions yet.</div>
+                                <a href="javascript:void(0);" class="action-link primary" onclick="$('#btnNewVersion').trigger('click')">
+                                    <i class="fas fa-plus"></i> Create First Version
+                                </a>
                             </div>`);
                         return;
                     }
@@ -489,64 +542,69 @@
                         const isActive = v.isActive;
 
                         const activeBadge = isActive
-                            ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill fw-medium" style="font-size:0.7rem;">
+                            ? `<span style="font-size:11px; padding:2px 8px; border-radius:3px;
+                                   background:#e6f4ff; color:var(--accent-color);
+                                   border:1px solid #91d5ff; font-weight:600;">
                                    <i class="fas fa-check-circle me-1"></i>Active
                                </span>`
-                            : `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 rounded-pill fw-medium" style="font-size:0.7rem;">Draft</span>`;
+                            : `<span style="font-size:11px; padding:2px 8px; border-radius:3px;
+                                   background:var(--bg-light); color:var(--text-secondary);
+                                   border:1px solid var(--border-color); font-weight:500;">Draft</span>`;
 
                         const editItem = `
                             <li>
                                 <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="@Url.Action("VersionForm", "Courses")?id=${v.id}&courseId=${courseId}">
-                                    <i class="fas fa-edit text-warning" style="width:16px;"></i> Edit
+                                    <i class="fas fa-edit" style="width:16px; color:var(--warning-color);"></i>
+                                    <span style="font-size:12px;">Edit</span>
                                 </a>
                             </li>`;
 
                         const inactiveItems = !isActive ? `
                             <li>
                                 <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${v.id})">
-                                    <i class="fas fa-check-circle text-primary" style="width:16px;"></i> Set as Active
+                                    <i class="fas fa-check-circle" style="width:16px; color:var(--accent-color);"></i>
+                                    <span style="font-size:12px;">Set as Active</span>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
                             <li>
                                 <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${v.id})">
-                                    <i class="fas fa-trash-alt" style="width:16px;"></i> Delete
+                                    <i class="fas fa-trash-alt" style="width:16px;"></i>
+                                    <span style="font-size:12px;">Delete</span>
                                 </a>
                             </li>` : '';
 
-                        const cardBorderClass = isActive ? 'version-card-active' : '';
-                        const cardBg          = isActive ? '' : 'style="background-color:#fafafa;"';
-
                         const cardHtml = `
                             <div class="col-md-6 col-xl-4">
-                                <div class="card h-100 border-0 shadow-sm rounded-4 ${cardBorderClass}" ${cardBg}>
-                                    <div class="card-body p-4">
-
-                                        <div class="d-flex justify-content-between align-items-start mb-3">
-                                            <div>
-                                                <h6 class="mb-1 fw-bold text-dark fs-5">Version ${v.versionNumber}</h6>
-                                                ${activeBadge}
+                                <div class="version-card ${isActive ? "active" : ""}">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
+                                                Version ${v.versionNumber}
                                             </div>
-                                            <div class="dropdown">
-                                                <button class="btn btn-light btn-sm border-0 px-2 py-1 rounded-3 text-secondary"
-                                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    <i class="fas fa-ellipsis-v"></i>
-                                                </button>
-                                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 py-2 mt-1">
-                                                    ${editItem}${inactiveItems}
-                                                </ul>
-                                            </div>
+                                            ${activeBadge}
                                         </div>
-
-                                        <p class="text-muted small mb-3 pb-3 border-bottom" style="min-height:36px;">
-                                            ${v.note ? v.note : '<span class="fst-italic opacity-50">No description</span>'}
-                                        </p>
-
-                                        <div id="res-container-${v.id}" class="small">
-                                            <span class="text-muted fst-italic">
-                                                <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
-                                            </span>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm p-1 text-secondary" style="background:none; border:none;"
+                                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v" style="font-size:12px;"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 mt-1"
+                                                style="border-color:var(--border-color) !important; border-radius:4px; min-width:160px;">
+                                                ${editItem}${inactiveItems}
+                                            </ul>
                                         </div>
+                                    </div>
+
+                                    <div style="font-size:11px; color:var(--text-secondary); min-height:32px;
+                                                padding: 8px 0; border-bottom:1px solid var(--border-color); margin-bottom:10px;">
+                                        ${v.note ? v.note : '<span style="opacity:0.5; font-style:italic;">No description</span>'}
+                                    </div>
+
+                                    <div id="res-container-${v.id}">
+                                        <span style="font-size:11px; color:var(--text-secondary);">
+                                            <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
+                                        </span>
                                     </div>
                                 </div>
                             </div>`;
@@ -581,24 +639,27 @@
                         const r = cr.resource;
                         if (!r) return;
 
-                        const order      = cr.order ?? (idx + 1);
-                        const icon       = r.typeId === 1 ? 'fa-book text-info' : 'fa-file-alt text-warning';
-                        const typeBadge  = r.typeId === 1
-                            ? `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2" style="font-size:0.65rem;">Learn</span>`
-                            : `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2" style="font-size:0.65rem;">Exam</span>`;
+                        const order     = cr.order ?? (idx + 1);
+                        const typeColor = r.typeId === 1 ? "#1890ff" : "#faad14";
+                        const typeName  = r.typeId === 1 ? "Learn" : "Exam";
                         const previewBtn = r.isActive
-                            ? `<button class="btn btn-sm btn-link text-primary p-0 ms-1 text-decoration-none fw-medium flex-shrink-0"
-                                       onclick="window.viewContent(${r.id},'${r.name.replace(/'/g, "\\'")}')" title="Preview">
-                                   <i class="fas fa-external-link-alt" style="font-size:0.75rem;"></i>
-                               </button>`
+                            ? `<a href="javascript:void(0);" onclick="window.viewContent(${r.id},'${r.name.replace(/'/g, "\\'")}')"
+                                  style="font-size:11px; color:var(--accent-color); flex-shrink:0;" title="Preview">
+                                   <i class="fas fa-external-link-alt"></i>
+                               </a>`
                             : '';
 
                         $cont.append(`
-                            <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-white border border-light rounded-3 shadow-sm">
-                                <span class="badge bg-light text-muted border fw-normal flex-shrink-0" style="min-width:24px;">${order}</span>
-                                <i class="fas ${icon} flex-shrink-0"></i>
-                                <span class="text-truncate flex-grow-1 text-dark fw-medium small" title="${r.name}">${r.name}</span>
-                                ${typeBadge}
+                            <div class="d-flex align-items-center gap-2 mb-1"
+                                 style="padding:5px 8px; border:1px solid var(--border-color);
+                                        border-radius:3px; background:#fff; font-size:11px;">
+                                <span style="min-width:18px; font-weight:600; color:var(--text-secondary);
+                                             text-align:center;">${order}</span>
+                                <span class="text-truncate flex-grow-1"
+                                      style="color:var(--text-primary); font-weight:500;" title="${r.name}">${r.name}</span>
+                                <span style="flex-shrink:0; font-size:10px; padding:1px 6px; border-radius:3px;
+                                             background:${r.typeId === 1 ? "#e6f4ff" : "#fffbe6"};
+                                             color:${typeColor}; font-weight:600;">${typeName}</span>
                                 ${previewBtn}
                             </div>`);
                     });
