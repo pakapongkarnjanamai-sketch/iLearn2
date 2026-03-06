@@ -2,34 +2,20 @@
     ViewBag.Title = "Roles Management";
 }
 
-<div class="page-header shadow-sm border-0 mb-4 rounded">
-    <div class="container-fluid px-4 py-2">
-        <div class="d-flex align-items-center justify-content-between">
-            <h1 class="page-title mb-0 d-flex align-items-center gap-3">
-                <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-                <div>
-                    <div class="fw-bold text-dark" style="font-size: 1.25rem;">@ViewBag.Title</div>
-                    <div class="text-muted fw-normal mt-1" style="font-size: 0.85rem;">
-                        Manage system roles, permissions, and role types.
-                    </div>
-                </div>
-            </h1>
-            <div>
-                <button class="btn btn-primary rounded shadow-sm px-3" onclick="addNewRole()">
-                    <i class="fas fa-plus me-2"></i> New Role
-                </button>
-            </div>
-        </div>
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;">Roles Management</div>
+        <div class="text-secondary" style="font-size:12px;">Manage system roles, permissions, and role types.</div>
     </div>
+    <a href="javascript:void(0);" class="action-link primary" onclick="addNewRole()">
+        <i class="fas fa-plus"></i> New Role
+    </a>
 </div>
 
-<div class="container-fluid px-4 pb-4">
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-3">
-            <div id="grid"></div>
-        </div>
+<div class="container-fluid px-4 py-3">
+    <div class="border rounded bg-white">
+        <div id="grid"></div>
     </div>
 </div>
 

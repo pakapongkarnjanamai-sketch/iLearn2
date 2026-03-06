@@ -11,22 +11,13 @@
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/admin-minimal.css" rel="stylesheet" />
+
 
     <style>
-        /* ── Design Tokens (Clean Minimal) ── */
-        :root {
-            --text-primary: #262626;
-            --text-secondary: #595959;
-            --border-color: #f0f0f0;
-            --accent-color: #1890ff;
-            --success-color: #52c41a;
-            --warning-color: #faad14;
-            --bg-light: #fafafa;
-        }
-
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            background: #ffffff;
+            font-family: var(--font-stack);
+            background: #fff;
             color: var(--text-primary);
             font-size: 13px;
             padding-top: 50px;
@@ -35,9 +26,7 @@
         /* ── Header & Toolbar ── */
         .toolbar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             z-index: 999;
             background: #fff;
             border-bottom: 1px solid var(--border-color);

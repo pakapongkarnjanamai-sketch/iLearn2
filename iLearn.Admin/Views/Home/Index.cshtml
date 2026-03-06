@@ -1,243 +1,101 @@
 ﻿@{
     ViewBag.Title = "Admin Dashboard";
     var adminName = User.Identity?.Name ?? "Administrator";
-    var profileImage = "https://ui-avatars.com/api/?name=" + adminName + "&background=0d6efd&color=fff&size=128";
 }
 
-<style>
-    /* Minimal Background */
-    body {
-        background-color: #f8f9fa;
-    }
-
-    /* Hover Effects for Stat Cards */
-    .stat-card-hover {
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-        text-decoration: none;
-    }
-
-        .stat-card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important;
-        }
-
-            .stat-card-hover:hover .stat-link i {
-                transform: translateX(4px);
-            }
-
-    .stat-link i {
-        transition: transform 0.2s ease;
-    }
-
-    /* Large Icon Box for Stat Cards */
-    .icon-box-lg {
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        flex-shrink: 0;
-    }
-
-    /* Quick Action Item Styles */
-    .action-item {
-        display: flex;
-        align-items: flex-start;
-        padding: 1rem 1.25rem;
-        border-radius: 12px;
-        text-decoration: none;
-        color: inherit;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-        margin-bottom: 0.5rem;
-    }
-
-        .action-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .action-item:hover {
-            background-color: #f8fbff;
-            border-color: #0d6efd;
-        }
-
-    .action-icon {
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        margin-right: 1rem;
-        flex-shrink: 0;
-        font-size: 1.25rem;
-    }
-
-    /* Custom Badges */
-    .activity-badge {
-        display: inline-block;
-        padding: 0.35rem 0.85rem;
-        border-radius: 8px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-</style>
-
-<div class="bg-white border-bottom mb-4 py-4">
-    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <img src="@profileImage" class="rounded-circle border border-2 border-white shadow-sm" width="56" height="56" alt="Profile">
-            <div>
-                <h1 class="h4 mb-1 fw-bold text-dark">@ViewBag.Title</h1>
-                <small class="text-muted fw-medium mb-0">
-                    Welcome back, <strong class="text-dark">@adminName</strong>
-                    <span class="mx-2 text-light">•</span>
-                    <i class="far fa-calendar me-1"></i> @DateTime.Now.ToString("dddd, MMMM d, yyyy")
-                </small>
-            </div>
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;">Admin Dashboard</div>
+        <div class="text-secondary" style="font-size:12px;">
+            Welcome back, <strong>@adminName</strong>
+            &nbsp;·&nbsp;
+            <i class="far fa-calendar me-1"></i>@DateTime.Now.ToString("dddd, d MMMM yyyy")
         </div>
-        <a href="@Url.Action("Form", "Courses")" class="btn btn-primary rounded-3 shadow-sm px-4 py-2 d-flex align-items-center gap-2 fw-medium">
-            <i class="fas fa-plus"></i> New Course
-        </a>
     </div>
+    <a href="@Url.Action("Form", "Courses")" class="action-link primary">
+        <i class="fas fa-plus"></i> New Course
+    </a>
 </div>
 
-<div class="container-fluid px-4 pb-5 mb-5">
+<div class="container-fluid px-4 py-4" style="max-width:1400px;">
 
-    <div class="row g-4 mb-4">
+    <!-- ── Stat Cards ── -->
+    <div class="row g-3 mb-4">
         <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Courses")" class="card border-0 shadow-sm rounded-4 h-100 stat-card-hover d-block">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted fw-bold text-uppercase small mb-2" style="letter-spacing: 0.5px;">Active Courses</div>
-                        <div class="fs-1 fw-bold text-dark lh-1" id="count-active-courses">0</div>
-                        <div class="stat-link text-primary small fw-bold mt-3 d-flex align-items-center gap-1">
-                            View All <i class="fas fa-arrow-right"></i>
-                        </div>
-                    </div>
-                    <div class="icon-box-lg bg-primary bg-opacity-10 text-primary fs-3">
-                        <i class="fas fa-book-reader"></i>
-                    </div>
-                </div>
+            <a href="@Url.Action("Index", "Courses")" class="dash-stat-card blue">
+                <div class="ds-lbl">Active Courses</div>
+                <div class="ds-val" id="count-active-courses">0</div>
+                <div class="ds-link" style="color:var(--accent-color);">View All <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
-
         <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Courses")" class="card border-0 shadow-sm rounded-4 h-100 stat-card-hover d-block">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted fw-bold text-uppercase small mb-2" style="letter-spacing: 0.5px;">Draft Courses</div>
-                        <div class="fs-1 fw-bold text-dark lh-1" id="count-draft-courses">0</div>
-                        <div class="stat-link text-warning small fw-bold mt-3 d-flex align-items-center gap-1">
-                            Review <i class="fas fa-arrow-right"></i>
-                        </div>
-                    </div>
-                    <div class="icon-box-lg bg-warning bg-opacity-10 text-warning fs-3">
-                        <i class="fas fa-pen-nib"></i>
-                    </div>
-                </div>
+            <a href="@Url.Action("Index", "Courses")" class="dash-stat-card yellow">
+                <div class="ds-lbl">Draft Courses</div>
+                <div class="ds-val" id="count-draft-courses">0</div>
+                <div class="ds-link" style="color:var(--warning-color);">Review <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
-
         <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Users")" class="card border-0 shadow-sm rounded-4 h-100 stat-card-hover d-block">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted fw-bold text-uppercase small mb-2" style="letter-spacing: 0.5px;">Total Employees</div>
-                        <div class="fs-1 fw-bold text-dark lh-1" id="count-users">0</div>
-                        <div class="stat-link text-info small fw-bold mt-3 d-flex align-items-center gap-1">
-                            Manage <i class="fas fa-arrow-right"></i>
-                        </div>
-                    </div>
-                    <div class="icon-box-lg bg-info bg-opacity-10 text-info fs-3">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
+            <a href="@Url.Action("Index", "Users")" class="dash-stat-card green">
+                <div class="ds-lbl">Total Employees</div>
+                <div class="ds-val" id="count-users">0</div>
+                <div class="ds-link" style="color:var(--success-color);">Manage <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
-
         <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Resources")" class="card border-0 shadow-sm rounded-4 h-100 stat-card-hover d-block">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted fw-bold text-uppercase small mb-2" style="letter-spacing: 0.5px;">Resources</div>
-                        <div class="fs-1 fw-bold text-dark lh-1" id="count-resources">0</div>
-                        <div class="stat-link small fw-bold mt-3 d-flex align-items-center gap-1" style="color: #6f42c1;">
-                            Library <i class="fas fa-arrow-right"></i>
-                        </div>
-                    </div>
-                    <div class="icon-box-lg bg-opacity-10 fs-3" style="background-color: #f8f0ff; color: #6f42c1;">
-                        <i class="fas fa-folder-open"></i>
-                    </div>
-                </div>
+            <a href="@Url.Action("Index", "Resources")" class="dash-stat-card purple">
+                <div class="ds-lbl">Resources</div>
+                <div class="ds-val" id="count-resources">0</div>
+                <div class="ds-link" style="color:#722ed1;">Library <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
+    <!-- ── Chart + Quick Actions ── -->
+    <div class="row g-3 mb-4">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                    <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-chart-line text-primary me-2"></i> Enrollment Trends
-                    </h6>
-                </div>
-                <div class="card-body p-4 flex-grow-1">
-                    <div id="enrollmentChart" style="height: 320px;"></div>
+            <div class="dash-panel h-100">
+                <div class="dash-panel-header">Enrollment Trends</div>
+                <div class="dash-panel-body">
+                    <div id="enrollmentChart" style="height:300px;"></div>
                 </div>
             </div>
         </div>
-
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
-                    <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-zap text-warning me-2"></i> Quick Actions
-                    </h6>
-                </div>
-                <div class="card-body p-3 flex-grow-1">
+            <div class="dash-panel h-100">
+                <div class="dash-panel-header">Quick Actions</div>
+                <div class="dash-panel-body d-flex flex-column gap-2">
 
-                    <a href="@Url.Action("Index", "Courses")" class="action-item">
-                        <div class="action-icon bg-primary bg-opacity-10 text-primary">
-                            <i class="fas fa-book"></i>
-                        </div>
-                        <div class="action-content mt-1">
-                            <h6 class="mb-1 fw-bold text-dark" style="font-size: 0.95rem;">Course Manager</h6>
-                            <small class="text-muted fw-medium">Create & manage courses</small>
+                    <a href="@Url.Action("Index", "Courses")" class="quick-action">
+                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);"><i class="fas fa-book"></i></div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Course Manager</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Create &amp; manage courses</div>
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Index", "Enrollments")" class="action-item">
-                        <div class="action-icon bg-success bg-opacity-10 text-success">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                        <div class="action-content mt-1">
-                            <h6 class="mb-1 fw-bold text-dark" style="font-size: 0.95rem;">Enrollments</h6>
-                            <small class="text-muted fw-medium">Track course assignments</small>
+                    <a href="@Url.Action("Index", "Enrollments")" class="quick-action">
+                        <div class="qa-icon" style="background:#f6ffed; color:var(--success-color);"><i class="fas fa-user-check"></i></div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Enrollments</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Track course assignments</div>
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Index", "Assignments")" class="action-item">
-                        <div class="action-icon bg-secondary bg-opacity-10 text-secondary">
-                            <i class="fas fa-tasks"></i>
-                        </div>
-                        <div class="action-content mt-1">
-                            <h6 class="mb-1 fw-bold text-dark" style="font-size: 0.95rem;">Auto-Assignments</h6>
-                            <small class="text-muted fw-medium">Bulk course assignment</small>
+                    <a href="@Url.Action("Index", "Assignments")" class="quick-action">
+                        <div class="qa-icon" style="background:var(--bg-light); color:var(--text-secondary);"><i class="fas fa-tasks"></i></div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Auto-Assignments</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Bulk course assignment</div>
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Index", "LearningLogs")" class="action-item">
-                        <div class="action-icon bg-info bg-opacity-10 text-info">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <div class="action-content mt-1">
-                            <h6 class="mb-1 fw-bold text-dark" style="font-size: 0.95rem;">Learning Logs</h6>
-                            <small class="text-muted fw-medium">View progress & scores</small>
+                    <a href="@Url.Action("Index", "LearningLogs")" class="quick-action">
+                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);"><i class="fas fa-chart-bar"></i></div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Learning Logs</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">View progress &amp; scores</div>
                         </div>
                     </a>
 
@@ -246,91 +104,78 @@
         </div>
     </div>
 
-    <div class="row g-4">
+    <!-- ── System Status + Notices ── -->
+    <div class="row g-3">
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                    <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-server text-success me-2"></i> System Status
-                    </h6>
-                </div>
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom border-light">
+            <div class="dash-panel">
+                <div class="dash-panel-header">System Status</div>
+                <div class="dash-panel-body">
+
+                    <div class="d-flex align-items-center pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
                         <div class="flex-grow-1">
-                            <div class="fw-bold text-dark mb-1">Database Connection</div>
-                            <small class="text-muted fw-medium">API Server Status</small>
+                            <div style="font-size:12px; font-weight:600;">Database Connection</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">API Server Status</div>
                         </div>
-                        <span class="activity-badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
-                            <i class="fas fa-check-circle me-1"></i> Active
-                        </span>
+                        <span class="status-pill active"><i class="fas fa-check-circle me-1"></i>Active</span>
                     </div>
 
-                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom border-light">
+                    <div class="d-flex align-items-center pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
                         <div class="flex-grow-1">
-                            <div class="fw-bold text-dark mb-1">Authentication Service</div>
-                            <small class="text-muted fw-medium">User Login System</small>
+                            <div style="font-size:12px; font-weight:600;">Authentication Service</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">User Login System</div>
                         </div>
-                        <span class="activity-badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
-                            <i class="fas fa-check-circle me-1"></i> Running
-                        </span>
+                        <span class="status-pill active"><i class="fas fa-check-circle me-1"></i>Running</span>
                     </div>
 
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="fw-bold text-dark mb-1">File Storage Service</div>
-                            <small class="text-muted fw-medium">Resource Upload System</small>
+                            <div style="font-size:12px; font-weight:600;">File Storage Service</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Resource Upload System</div>
                         </div>
-                        <span class="activity-badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
-                            <i class="fas fa-check-circle me-1"></i> Operational
-                        </span>
+                        <span class="status-pill active"><i class="fas fa-check-circle me-1"></i>Operational</span>
                     </div>
+
                 </div>
             </div>
         </div>
 
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                    <h6 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-bell text-warning me-2"></i> Important Notices
-                    </h6>
-                </div>
-                <div class="card-body p-4">
-                    <div class="mb-3 pb-3 border-bottom border-light">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="icon-box bg-info bg-opacity-10 text-info px-2 py-2 rounded-3 mt-1">
-                                <i class="fas fa-info-circle"></i>
-                            </div>
-                            <div style="flex: 1;">
-                                <div class="fw-bold text-dark mb-1">Course Content Updated</div>
-                                <small class="text-muted fw-medium">5 courses have been updated in the last 7 days</small>
+            <div class="dash-panel">
+                <div class="dash-panel-header">Important Notices</div>
+                <div class="dash-panel-body">
+
+                    <div class="d-flex align-items-start gap-3 pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
+                        <div class="qa-icon flex-shrink-0" style="background:#e6f4ff; color:var(--accent-color); margin-top:2px;">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Course Content Updated</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">5 courses have been updated in the last 7 days</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3 pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
+                        <div class="qa-icon flex-shrink-0" style="background:#fffbe6; color:var(--warning-color); margin-top:2px;">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Pending Course Reviews</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">
+                                <span id="pending-count" class="fw-bold">0</span> draft courses waiting for approval
                             </div>
                         </div>
                     </div>
 
-                    <div class="mb-3 pb-3 border-bottom border-light">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="icon-box bg-warning bg-opacity-10 text-warning px-2 py-2 rounded-3 mt-1">
-                                <i class="fas fa-exclamation-circle"></i>
-                            </div>
-                            <div style="flex: 1;">
-                                <div class="fw-bold text-dark mb-1">Pending Course Reviews</div>
-                                <small class="text-muted fw-medium">You have <span id="pending-count" class="fw-bold">0</span> draft courses waiting for approval</small>
-                            </div>
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="qa-icon flex-shrink-0" style="background:#f6ffed; color:var(--success-color); margin-top:2px;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">All Systems Operational</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Last backup completed 2 hours ago</div>
                         </div>
                     </div>
 
-                    <div>
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="icon-box bg-success bg-opacity-10 text-success px-2 py-2 rounded-3 mt-1">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div style="flex: 1;">
-                                <div class="fw-bold text-dark mb-1">All Systems Operational</div>
-                                <small class="text-muted fw-medium">Last backup completed 2 hours ago</small>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -401,29 +246,26 @@
 
             $("#enrollmentChart").dxChart({
                 dataSource: chartData,
-                palette: ["#0d6efd"],
-                margin: { top: 20, bottom: 0, left: 0, right: 0 }, // ปรับให้กราฟสวยขึ้นใน Card
                 series: {
                     argumentField: "month",
                     valueField: "enrollments",
                     name: "Enrollments",
                     type: "bar",
-                    color: "#0d6efd",
-                    cornerRadius: 4 // มุมของแท่งกราฟมนขึ้นนิดหน่อย
+                    color: "#1890ff",
+                    cornerRadius: 2
                 },
                 argumentAxis: {
-                    label: { overlappingBehavior: "stagger", font: { color: "#6c7c93", weight: 500 } }
+                    label: { font: { color: "#595959", size: 11 } }
                 },
                 valueAxis: {
                     grid: { visible: true, color: "#f0f0f0" },
-                    label: { format: "#,##0", font: { color: "#6c7c93", weight: 500 } }
+                    label: { format: "#,##0", font: { color: "#595959", size: 11 } }
                 },
                 legend: { visible: false },
+                margin: { top: 10, bottom: 0, left: 0, right: 0 },
                 tooltip: {
                     enabled: true,
-                    customizeTooltip: function(args) {
-                        return { text: args.valueText + " enrollments" };
-                    }
+                    customizeTooltip: (args) => ({ text: args.valueText + " enrollments" })
                 }
             });
         }

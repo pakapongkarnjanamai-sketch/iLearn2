@@ -3,161 +3,30 @@
 }
 
 <style>
-    /* ── Design Tokens ── */
-    :root {
-        --text-primary:   #262626;
-        --text-secondary: #595959;
-        --border-color:   #f0f0f0;
-        --accent-color:   #1890ff;
-        --success-color:  #52c41a;
-        --warning-color:  #faad14;
-        --danger-color:   #ff4d4f;
-        --bg-light:       #fafafa;
-    }
-
-    body { background: #fff; color: var(--text-primary); font-size: 13px; }
-
-    /* ── Page Header ── */
-    .page-header {
-        border-bottom: 1px solid var(--border-color);
-        padding: 12px 24px;
-        background: #fff;
-    }
-
-    /* ── Section Title ── */
-    .section-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 8px;
-        margin-bottom: 16px;
-    }
-
-    /* ── Stat Block ── */
-    .stat-block { line-height: 1; }
-    .stat-block .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
-    .stat-block .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-
-    /* ── Meta List ── */
+    /* ── Meta List (local) ── */
     .meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
     .meta-item:last-child { border-bottom: none; }
     .meta-label { font-size: 11px; color: var(--text-secondary); font-weight: 600;
                   text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
     .meta-value { font-size: 13px; color: var(--text-primary); }
 
-    /* ── Course List ── */
-    .course-item {
-        padding: 10px 12px;
-        border-left: 3px solid var(--border-color);
-        border-radius: 0 4px 4px 0;
-        cursor: pointer;
-        transition: 0.15s;
-        background: #fff;
-        margin-bottom: 4px;
-        border: 1px solid var(--border-color);
-        border-left-width: 3px;
-    }
-    .course-item:hover { background: var(--bg-light); border-left-color: var(--accent-color); }
-    .course-item.active { background: #e6f4ff; border-left-color: var(--accent-color); }
-    .course-item.done   { border-left-color: var(--success-color); }
-    .course-item.active.done { border-left-color: var(--success-color); }
-
-    /* ── Progress Bar slim ── */
-    .progress-slim {
-        height: 3px;
-        background: var(--border-color);
-        border-radius: 2px;
-        overflow: hidden;
-        margin-top: 6px;
-    }
-
-    /* ── Status dot ── */
-    .status-dot {
-        display: inline-block;
-        width: 6px; height: 6px;
-        border-radius: 50%;
-        margin-right: 5px;
-    }
-
-    /* ── Action Links ── */
-    .action-link {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fff;
-        color: var(--text-primary);
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        text-decoration: none;
-        transition: 0.15s;
-    }
-    .action-link:hover { background: var(--bg-light); color: var(--text-primary); }
-    .action-link.danger:hover { border-color: var(--danger-color); color: var(--danger-color); background: #fff2f0; }
-
-    /* ── Pivot Table (HTML table — same as Report) ── */
-    .pivot-table {
-        font-size: 12px;
-        border-color: var(--border-color) !important;
-        margin-bottom: 0;
-    }
-    .pivot-table th {
-        background: var(--bg-light);
-        font-weight: 600;
-        color: var(--text-secondary);
-        font-size: 11px;
-    }
-    .pivot-table td { vertical-align: middle; }
-    .pivot-table tbody tr:hover { background-color: var(--bg-light); }
-    .pivot-table tbody tr:hover .sticky-col { background-color: var(--bg-light); }
-
-    /* Sticky first column */
-    .sticky-col {
-        position: sticky;
-        left: 0;
-        background-color: #fff;
-        z-index: 2;
-        border-right: 2px solid var(--border-color) !important;
-    }
-    th.sticky-col {
-        background-color: var(--bg-light);
-        z-index: 3;
-    }
-
-    /* Status colors (same as Report) */
-    .status-done    { color: var(--success-color); }
-    .status-active  { color: var(--warning-color); }
-    .status-pending { color: var(--text-secondary); }
-
-    /* ── dxPivotGrid column header: allow multiline ── */
+    /* ── dxPivotGrid overrides ── */
     #pivot-grid .dx-pivotgrid-horizontal-headers td {
         white-space: normal !important;
         vertical-align: middle !important;
         min-width: 140px;
         padding: 6px 8px !important;
     }
-
     #pivot-grid .dx-pivotgrid-vertical-headers td {
         white-space: nowrap;
         max-width: 200px;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-
     #pivot-grid .dx-pivotgrid-area td {
         font-size: 12px !important;
-        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
-        border-color: #f0f0f0 !important;
-    }
-
-    @@media print {
-        .page-header { display: none !important; }
+        font-family: var(--font-stack) !important;
+        border-color: var(--border-color) !important;
     }
 </style>
 
