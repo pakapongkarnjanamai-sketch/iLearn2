@@ -1,120 +1,163 @@
 ﻿@{
     ViewBag.Title = "Bulk Course Assignments";
-    // รับค่า courseId จาก URL (ถ้ามี)
     var preselectedCourseId = Context.Request.Query["courseId"].ToString();
 }
 
 <style>
-    body {
-        background-color: #f8f9fa;
+    :root {
+        --text-primary:   #262626;
+        --text-secondary: #595959;
+        --border-color:   #f0f0f0;
+        --accent-color:   #1890ff;
+        --success-color:  #52c41a;
+        --warning-color:  #faad14;
+        --danger-color:   #ff4d4f;
+        --bg-light:       #fafafa;
     }
 
-    /* Action Card Styles */
-    .action-card {
-        border: 2px dashed #e8ecf1;
-        border-radius: 12px;
-        background-color: #ffffff;
-        transition: all 0.2s ease-in-out;
+    body { background: #fff; color: var(--text-primary); font-size: 13px; }
+
+    /* ── Page Header ── */
+    .page-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 24px;
+        background: #fff;
+    }
+
+    /* ── Section Title ── */
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+
+    /* ── Action Link ── */
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 500;
         cursor: pointer;
+        text-decoration: none;
+        transition: 0.15s;
+    }
+    .action-link:hover { background: var(--bg-light); color: var(--text-primary); }
+
+    /* ── Target Cards (Select Courses / Students) ── */
+    .target-card {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        padding: 28px 20px;
+        cursor: pointer;
+        transition: 0.15s;
         text-align: center;
-        padding: 2.5rem 1.5rem;
+    }
+    .target-card:hover {
+        background: var(--bg-light);
+        border-color: var(--accent-color);
+    }
+    .target-card.has-selection {
+        border-color: var(--accent-color);
+        background: #e6f4ff;
     }
 
-        .action-card:hover {
-            border-color: #0d6efd;
-            background-color: #f8fbff;
-            transform: translateY(-3px);
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05);
-        }
+    /* ── Filter Panel ── */
+    .filter-panel {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 16px;
+    }
+    .filter-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+        display: block;
+    }
 
-    /* Fixed Bottom Toolbar */
-    .fixed-bottom-toolbar {
+    /* ── Fixed Bottom Toolbar ── */
+    .bottom-toolbar {
         position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: #ffffff;
-        padding: 1rem 2rem;
-        box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+        bottom: 0; left: 0; right: 0;
+        background: #fff;
+        border-top: 1px solid var(--border-color);
+        padding: 12px 24px;
         z-index: 1000;
-        border-top: 1px solid #e8ecf1;
         display: flex;
         justify-content: flex-end;
-        gap: 1rem;
+        gap: 8px;
     }
-
-    /* Filter Panel Style */
-    .filter-panel {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 1rem;
-        border: 1px solid #e8ecf1;
+    .bottom-toolbar .action-link.primary {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
     }
+    .bottom-toolbar .action-link.primary:hover { background: #096dd9; border-color: #096dd9; }
 </style>
 
-<div class="bg-white border-bottom mb-4 py-4">
-    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
-                <i class="fas fa-users-cog fs-5"></i>
-            </div>
-            <div>
-                <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                <small class="text-muted fw-medium">Assign training courses to multiple students based on specific criteria.</small>
-            </div>
-        </div>
-        <button class="btn btn-light border shadow-sm btn-sm px-3 py-2 rounded-3 fw-medium" onclick="history.back()">
-            <i class="fas fa-arrow-left me-1"></i> Back
-        </button>
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;">Bulk Course Assignments</div>
+        <div class="text-secondary" style="font-size:12px;">Assign training courses to multiple students</div>
     </div>
+    <a href="javascript:history.back();" class="action-link">
+        <i class="fas fa-arrow-left text-secondary"></i> Back
+    </a>
 </div>
 
-<div class="container px-4 pb-5" style="margin-bottom: 80px;">
+<div class="container px-4 py-4" style="max-width:960px; margin-bottom:70px;">
     <div id="load-panel"></div>
 
-    <div class="row g-4 mb-4">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-edit text-primary me-2"></i> Assignment Criteria</h6>
-            </div>
-            <div class="card-body p-4">
-                <div id="form-assignment"></div>
-            </div>
-        </div>
+    <!-- ── Assignment Criteria ── -->
+    <div class="border rounded bg-white p-3 mb-3">
+        <div class="section-title">Assignment Criteria</div>
+        <div id="form-assignment"></div>
     </div>
 
-    <div class="row g-4">
-        <div class="card border-0 shadow-sm rounded-4 flex-grow-1">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-bullseye text-primary me-2"></i> Target Selection</h6>
+    <!-- ── Target Selection ── -->
+    <div class="border rounded bg-white p-3">
+        <div class="section-title">Target Selection</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="target-card" id="btn-select-courses">
+                    <i class="fas fa-book-open fa-lg mb-3" style="color:var(--accent-color);"></i>
+                    <div class="fw-bold text-dark mb-1" style="font-size:13px;">Select Courses</div>
+                    <div class="text-secondary" style="font-size:11px;" id="selected-courses-text">No course selected</div>
+                </div>
             </div>
-            <div class="card-body p-4">
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="action-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-select-courses">
-                            <i class="fas fa-book-open fa-2x text-primary mb-3"></i>
-                            <h6 class="fw-bold text-dark mb-1">Select Courses</h6>
-                            <p class="text-muted small mb-0 fw-medium" id="selected-courses-text">No course selected</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="action-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-select-employees">
-                            <i class="fas fa-users fa-2x text-primary mb-3"></i>
-                            <h6 class="fw-bold text-dark mb-1">Select Students</h6>
-                            <p class="text-muted small mb-0 fw-medium" id="selected-employees-text">No student selected</p>
-                        </div>
-                    </div>
+            <div class="col-md-6">
+                <div class="target-card" id="btn-select-employees">
+                    <i class="fas fa-users fa-lg mb-3" style="color:var(--accent-color);"></i>
+                    <div class="fw-bold text-dark mb-1" style="font-size:13px;">Select Students</div>
+                    <div class="text-secondary" style="font-size:11px;" id="selected-employees-text">No student selected</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="fixed-bottom-toolbar">
-    <button class="btn btn-light border px-4 py-2 fw-medium rounded-3" onclick="history.back()">Cancel</button>
-    <button class="btn btn-primary px-4 py-2 fw-medium rounded-3 shadow-sm" id="btn-save">
-        <i class="fas fa-save me-2"></i> Save & Review
-    </button>
+<!-- ── Fixed Bottom Toolbar ── -->
+<div class="bottom-toolbar">
+    <a href="javascript:history.back();" class="action-link">Cancel</a>
+    <a href="javascript:void(0);" class="action-link primary" id="btn-save">
+        <i class="fas fa-save"></i> Save &amp; Review
+    </a>
 </div>
 
 <div id="courses-popup"></div>
@@ -149,6 +192,7 @@
                         { dataField: "startDate", editorType: "dxDateBox", editorOptions: { width: "100%", displayFormat: "dd/MM/yyyy" }, validationRules: [{ type: "required", message: "Required" }] },
                         { dataField: "dueDate", editorType: "dxDateBox", editorOptions: { width: "100%", displayFormat: "dd/MM/yyyy" }, validationRules: [{ type: "required", message: "Required" }] }
                     ]}
+
                 ]
             }).dxForm("instance");
 
@@ -159,6 +203,7 @@
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
                     $(`
+
                         <div class="d-flex h-100 gap-3">
                             <div style="width:260px; flex-shrink:0;">
                                 <div class="filter-panel h-100 d-flex flex-column gap-3">
@@ -334,6 +379,7 @@
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
                     $(`
+
                         <div class="d-flex h-100 gap-3">
                             <div style="width:240px; flex-shrink:0;">
                                 <div class="filter-panel h-100 d-flex flex-column gap-3">

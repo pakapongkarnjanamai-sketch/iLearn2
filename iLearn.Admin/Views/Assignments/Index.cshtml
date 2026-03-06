@@ -3,121 +3,150 @@
 }
 
 <style>
-    body {
-        background-color: #f8f9fa;
+    :root {
+        --text-primary:   #262626;
+        --text-secondary: #595959;
+        --border-color:   #f0f0f0;
+        --accent-color:   #1890ff;
+        --success-color:  #52c41a;
+        --warning-color:  #faad14;
+        --danger-color:   #ff4d4f;
+        --bg-light:       #fafafa;
     }
 
-    .kpi-card {
-        border: 1px solid #e8ecf1;
-        border-radius: 12px;
+    body { background: #fff; color: var(--text-primary); font-size: 13px; }
+
+    /* ── Page Header ── */
+    .page-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 24px;
         background: #fff;
-        padding: 1.1rem 1.4rem;
-        cursor: pointer;
-        transition: all 0.18s ease-in-out;
-        border-left: 4px solid transparent;
     }
 
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.07);
-        }
+    /* ── Action Link (header buttons) ── */
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: 0.15s;
+    }
+    .action-link:hover { background: var(--bg-light); color: var(--text-primary); }
+    .action-link.primary {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+    }
+    .action-link.primary:hover { background: #096dd9; border-color: #096dd9; color: #fff; }
 
-        .kpi-card.active {
-            box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.07);
-        }
+    /* ── KPI Cards ── */
+    .kpi-card {
+        border: 1px solid var(--border-color);
+        border-left: 3px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+    .kpi-card:hover  { background: var(--bg-light); }
+    .kpi-card.active { background: var(--bg-light); }
 
-        .kpi-card.kpi-inprogress {
-            border-left-color: #0d6efd;
-        }
-
-        .kpi-card.kpi-upcoming {
-            border-left-color: #ffc107;
-        }
-
-        .kpi-card.kpi-expired {
-            border-left-color: #dc3545;
-        }
-
-        .kpi-card.kpi-completed {
-            border-left-color: #198754;
-        }
-
-        .kpi-card.kpi-all {
-            border-left-color: #6c757d;
-        }
+    .kpi-card.kpi-all        { border-left-color: var(--text-secondary); }
+    .kpi-card.kpi-inprogress { border-left-color: var(--accent-color);   }
+    .kpi-card.kpi-upcoming   { border-left-color: var(--warning-color);  }
+    .kpi-card.kpi-expired    { border-left-color: var(--danger-color);   }
+    .kpi-card.kpi-completed  { border-left-color: var(--success-color);  }
 
     .kpi-number {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
         line-height: 1.1;
+        color: var(--text-primary);
     }
-
     .kpi-label {
-        font-size: 0.78rem;
+        font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: .4px;
-        color: #6c7c93;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+
+    /* ── Section Title ── */
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+        margin-bottom: 0;
     }
 </style>
 
-<div class="bg-white border-bottom mb-4 py-4">
-    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="icon-box bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
-                <i class="fas fa-tasks fs-5"></i>
-            </div>
-            <div>
-                <h1 class="h4 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                <small class="text-muted fw-medium">View and manage all course assignments. Track student learning progress.</small>
-            </div>
-        </div>
-        <a href="@Url.Action("Form", "Assignments")" class="btn btn-primary rounded-3 shadow-sm px-4 py-2 d-flex align-items-center gap-2 fw-medium">
-            <i class="fas fa-plus"></i> New Assignment
-        </a>
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;">Assignments History</div>
+        <div class="text-secondary" style="font-size:12px;">View and manage all course assignments</div>
     </div>
+    <a href="@Url.Action("Form", "Assignments")" class="action-link primary">
+        <i class="fas fa-plus"></i> New Assignment
+    </a>
 </div>
 
-<div class="container-fluid px-4 pb-5">
+<div class="container-fluid px-4 py-4" style="max-width:1400px;">
 
-    <div class="row g-3 mb-4" id="kpi-bar">
+    <!-- ── KPI Bar ── -->
+    <div class="row g-2 mb-4" id="kpi-bar">
         <div class="col-6 col-md">
             <div class="kpi-card kpi-all active" onclick="filterByStatus(null, this)">
-                <div class="kpi-label text-secondary"><i class="fas fa-list me-1"></i> All</div>
-                <div class="kpi-number text-dark" id="kpi-all">—</div>
+                <div class="kpi-label">All</div>
+                <div class="kpi-number" id="kpi-all">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-inprogress" onclick="filterByStatus('InProgress', this)">
-                <div class="kpi-label text-primary"><i class="fas fa-play-circle me-1"></i> In Progress</div>
-                <div class="kpi-number text-primary" id="kpi-inprogress">—</div>
+                <div class="kpi-label" style="color:var(--accent-color);">In Progress</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-upcoming" onclick="filterByStatus('Upcoming', this)">
-                <div class="kpi-label text-warning"><i class="fas fa-clock me-1"></i> Upcoming</div>
-                <div class="kpi-number text-warning" id="kpi-upcoming">—</div>
+                <div class="kpi-label" style="color:var(--warning-color);">Upcoming</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-upcoming">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-expired" onclick="filterByStatus('Expired', this)">
-                <div class="kpi-label text-danger"><i class="fas fa-times-circle me-1"></i> Expired</div>
-                <div class="kpi-number text-danger" id="kpi-expired">—</div>
+                <div class="kpi-label" style="color:var(--danger-color);">Expired</div>
+                <div class="kpi-number" style="color:var(--danger-color);" id="kpi-expired">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-completed" onclick="filterByStatus('Completed', this)">
-                <div class="kpi-label text-success"><i class="fas fa-check-circle me-1"></i> Completed</div>
-                <div class="kpi-number text-success" id="kpi-completed">—</div>
+                <div class="kpi-label" style="color:var(--success-color);">Completed</div>
+                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-body p-0 pt-2">
-            <div id="grid"></div>
-        </div>
+    <!-- ── DataGrid ── -->
+    <div class="border rounded bg-white">
+        <div class="p-3 section-title">Assignment List</div>
+        <div id="grid"></div>
     </div>
+
 </div>
 
 @section Scripts {
@@ -126,21 +155,24 @@
         let allData = [];
         let activeStatus = null;
 
-        // ── Helper: Status badge HTML ──
+        // ── Status badge (minimal style) ──
         function statusBadge(status) {
             const map = {
-                "Completed":  { cls: "bg-success bg-opacity-10 text-success border-success",  icon: "fa-check-circle",  text: "Completed"   },
-                "Upcoming":   { cls: "bg-warning bg-opacity-10 text-warning border-warning",  icon: "fa-clock",         text: "Upcoming"    },
-                "Expired":    { cls: "bg-danger bg-opacity-10 text-danger border-danger",      icon: "fa-times-circle",  text: "Expired"    },
-                "InProgress": { cls: "bg-primary bg-opacity-10 text-primary border-primary",   icon: "fa-play-circle",   text: "In Progress" }
+                "Completed":  { color: "#52c41a", bg: "#f6ffed", text: "Completed"   },
+                "Upcoming":   { color: "#faad14", bg: "#fffbe6", text: "Upcoming"    },
+                "Expired":    { color: "#ff4d4f", bg: "#fff2f0", text: "Expired"     },
+                "InProgress": { color: "#1890ff", bg: "#e6f4ff", text: "In Progress" }
             };
-            const s = map[status] || { cls: "bg-secondary bg-opacity-10 text-secondary border-secondary", icon: "fa-circle", text: status || "Unknown" };
-            return `<span class="badge border border-opacity-25 px-3 py-1 rounded-pill fw-medium ${s.cls}">
-                        <i class="fas ${s.icon} me-1" style="font-size:.75rem;"></i>${s.text}
+            const s = map[status] ?? { color: "#595959", bg: "#fafafa", text: status || "Unknown" };
+            return `<span style="
+                        display:inline-block; padding:2px 10px; border-radius:20px;
+                        font-size:11px; font-weight:600; letter-spacing:0.2px;
+                        background:${s.bg}; color:${s.color};
+                        border:1px solid ${s.color}33;">
+                        ${s.text}
                     </span>`;
         }
 
-        // ── KPI: อัปเดตตัวเลข ──
         function updateKpi(data) {
             $("#kpi-all").text(data.length);
             $("#kpi-inprogress").text(data.filter(d => d.status === "InProgress").length);
@@ -149,7 +181,6 @@
             $("#kpi-completed").text(data.filter(d => d.status === "Completed").length);
         }
 
-        // ── Filter: กรองตาม status (กดจาก KPI Card) ──
         function filterByStatus(status, el) {
             activeStatus = status;
             $(".kpi-card").removeClass("active");
@@ -157,7 +188,6 @@
             applyFilters();
         }
 
-        // ── Filter: กรองข้อมูลที่แสดงใน Grid ──
         function applyFilters() {
             let filtered = allData;
             if (activeStatus) filtered = filtered.filter(d => d.status === activeStatus);
@@ -165,124 +195,134 @@
         }
 
         $(() => {
-            // ── Grid ──
             gridInstance = initDxGrid("#grid", {
                 dataSource: [],
                 remoteOperations: false,
                 selection: { mode: "single" },
                 showBorders: false,
-                rowAlternationEnabled: true,
-                showRowLines: false,
+                rowAlternationEnabled: false,
+                showRowLines: true,
                 hoverStateEnabled: true,
                 searchPanel: { visible: true, placeholder: "Search assignments..." },
                 headerFilter: { visible: true },
-                editing: {
-                    mode: "popup",
-                    allowUpdating: false, allowDeleting: true, allowAdding: false,
-                    useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this assignment?\n(All associated course enrollments will be removed)" }
-                },
-                onRowPrepared: function(e) {
-                    if (e.rowType === "data" && e.data.status === "Expired") {
-                        $(e.rowElement).css("background-color", "#fff8f8");
-                    }
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data" && e.data.status === "Expired")
+                        $(e.rowElement).css("background-color", "#fff2f0");
+                    if (e.rowType === "data" && e.data.status === "Completed")
+                        $(e.rowElement).css("background-color", "#f6ffed");
                 },
                 columns: [
                     {
-                        dataField: "assignmentNo", caption: "Assignment No", width: 145, alignment: "center", sortOrder: "desc",
-                        cellTemplate: function(c, o) {
-                            $("<span class='fw-bold text-dark'>").text(o.value || '-').appendTo(c);
-                        }
+                        dataField: "assignmentNo", caption: "Assignment No", width: 145,
+                        alignment: "center", sortOrder: "desc",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" })
+                                       .text(o.value || "-").appendTo(c)
                     },
                     {
                         dataField: "createdBy", caption: "Created By", width: 140,
-                        cellTemplate: function(c, o) {
-                            const val = o.value || '-';
-                            $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<span>").addClass("small fw-medium text-dark text-truncate").text(val))
-                                .appendTo(c);
-                        }
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                       .text(o.value || "-").appendTo(c)
                     },
                     {
                         dataField: "courseNames", caption: "Courses", minWidth: 220,
-                        cellTemplate: function(c, o) {
-                            const courses = o.value ? o.value.split(', ').filter(x => x.trim()) : [];
-                            if (!courses.length) { $("<span class='text-muted'>-</span>").appendTo(c); return; }
-                            const wrapper = $("<div class='d-flex flex-wrap gap-1'>").appendTo(c);
-                            courses.slice(0, 3).forEach(course => {
-                                $(`<span class='badge bg-light text-dark border px-2 py-1 rounded-2 fw-medium small'>${course}</span>`).appendTo(wrapper);
-                            });
-                            if (courses.length > 3) {
-                                $(`<span class='badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-2 fw-medium small'>+${courses.length - 3} more</span>`).appendTo(wrapper);
-                            }
+                        cellTemplate: function (c, o) {
+                            const courses = o.value ? o.value.split(", ").filter(x => x.trim()) : [];
+                            if (!courses.length) { $("<span>").css("color", "var(--text-secondary)").text("—").appendTo(c); return; }
+                            const wrap = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(c);
+                            courses.slice(0, 3).forEach(name =>
+                                $("<span>").css({ fontSize: "11px", padding: "2px 7px", borderRadius: "3px",
+                                                  background: "var(--bg-light)", border: "1px solid var(--border-color)",
+                                                  color: "var(--text-primary)", fontWeight: "500" })
+                                           .text(name).appendTo(wrap)
+                            );
+                            if (courses.length > 3)
+                                $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                           .text(`+${courses.length - 3} more`).appendTo(wrap);
                         }
                     },
                     {
                         dataField: "description", caption: "Description", minWidth: 180,
-                        cellTemplate: function(c, o) {
-                            const text = o.value || '-';
-                            const truncated = text.length > 55 ? text.substring(0, 55) + '…' : text;
-                            $("<span class='text-muted small'>").text(truncated).attr("title", text).appendTo(c);
+                        cellTemplate: (c, o) => {
+                            const t = o.value || "-";
+                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                       .text(t.length > 55 ? t.slice(0, 55) + "…" : t)
+                                       .attr("title", t).appendTo(c);
                         }
                     },
                     {
-                        caption: "Students", width: 105, alignment: "center",
-                        calculateCellValue: function(d) {
-                            return d.studentCount || (d.employeeCodes ? d.employeeCodes.split(',').filter(x => x.trim()).length : 0);
-                        },
-                        cellTemplate: function(c, o) {
-                            $("<span class='badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-bold'>")
-                                .html(`<i class="fas fa-users me-1"></i>${o.value}`).appendTo(c);
-                        }
+                        caption: "Students", width: 90, alignment: "center",
+                        calculateCellValue: d =>
+                            d.studentCount || (d.employeeCodes ? d.employeeCodes.split(",").filter(x => x.trim()).length : 0),
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", fontWeight: "600", color: "var(--accent-color)" })
+                                       .text(o.value).appendTo(c)
                     },
                     {
                         caption: "Progress", width: 130, alignment: "center",
-                        calculateCellValue: function(d) {
+                        calculateCellValue: d => {
                             const total = d.totalEnrollmentCount || 0;
                             const done  = d.completedEnrollmentCount || 0;
                             return total > 0 ? Math.round((done / total) * 100) : 0;
                         },
-                        cellTemplate: function(c, o) {
-                            const pct = o.value;
-                            const color = pct === 100 ? "#198754" : pct >= 50 ? "#0d6efd" : "#ffc107";
+                        cellTemplate: (c, o) => {
+                            const pct   = o.value;
+                            const color = pct === 100 ? "var(--success-color)" : pct >= 50 ? "var(--accent-color)" : "var(--warning-color)";
                             $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<div>").addClass("progress flex-grow-1").css("height", "6px")
-                                    .append($("<div>").addClass("progress-bar").css({ width: pct + "%", backgroundColor: color })))
-                                .append($("<small>").addClass("text-muted fw-medium").css("min-width", "32px").text(pct + "%"))
+                                .append(
+                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
+                                                     borderRadius: "2px", overflow: "hidden" })
+                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
+                                )
+                                .append(
+                                    $("<span>").css({ fontSize: "11px", fontWeight: "600",
+                                                      minWidth: "32px", color: "var(--text-secondary)" })
+                                               .text(pct + "%")
+                                )
                                 .appendTo(c);
                         }
                     },
-                    { dataField: "startDate", caption: "Start", dataType: "date", format: "dd/MM/yyyy", width: 105, alignment: "center" },
-                    { dataField: "dueDate",   caption: "Due",   dataType: "date", format: "dd/MM/yyyy", width: 105, alignment: "center" },
                     {
-                        dataField: "status", caption: "Status", width: 145, alignment: "center",
-                        cellTemplate: function(c, o) { $(statusBadge(o.value)).appendTo(c); }
+                        dataField: "startDate", caption: "Start", dataType: "date",
+                        format: "dd/MM/yyyy", width: 100, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                       .appendTo(c)
                     },
                     {
-                        type: "buttons", caption: "Actions", width: 80, alignment: "center", fixed: true, fixedPosition: "right",
-                        buttons: [
-                            { hint: "View Progress", icon: "info", onClick: function(e) { window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`; } }
-                        ]
+                        dataField: "dueDate", caption: "Due", dataType: "date",
+                        format: "dd/MM/yyyy", width: 100, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                       .appendTo(c)
+                    },
+                    {
+                        dataField: "status", caption: "Status", width: 130, alignment: "center",
+                        cellTemplate: (c, o) => $(statusBadge(o.value)).appendTo(c)
+                    },
+                    {
+                        type: "buttons", caption: "Actions", width: 70,
+                        alignment: "center", fixed: true, fixedPosition: "right",
+                        buttons: [{
+                            hint: "View Progress", icon: "info",
+                            onClick: e => window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`
+                        }]
                     }
                 ]
             });
 
-            // ── Load data ──
             $.ajax({
                 url: `${serviceUrl}/Assignments/history`,
                 method: "GET",
                 xhrFields: { withCredentials: true }
-            }).done(function(res) {
+            }).done(function (res) {
                 allData = Array.isArray(res) ? res : (res.data || []);
-
-                // อัปเดต KPI
                 updateKpi(allData);
-
-                // ใส่ข้อมูลลง grid
                 gridInstance.option("dataSource", allData);
-            }).fail(function() {
-                DevExpress.ui.notify("Error loading assignment history.", "error", 3000);
-            });
+            }).fail(() => DevExpress.ui.notify("Error loading assignment history.", "error", 3000));
         });
     </script>
 }
