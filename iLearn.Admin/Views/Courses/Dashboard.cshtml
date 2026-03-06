@@ -385,8 +385,8 @@
 
                 const newState  = !isCourseActive;
                 const confirmMsg = newState
-                    ? "Publish this course? Employees will be able to enroll immediately."
-                    : "Close this course? Employees will no longer be able to enroll.";
+                    ? "Publish this course?"
+                    : "Close this course?";
 
                 DevExpress.ui.dialog.confirm(confirmMsg, "Confirm Status Change").done(function(ok) {
                     if (!ok) { $btn.removeClass("disabled opacity-50 pe-none"); return; }
