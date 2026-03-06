@@ -360,6 +360,46 @@ namespace iLearn.Application.Services
             if (course == null)
                 throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
 
+            // 🌟 ตรวจสอบความพร้อมของข้อมูลก่อนอนุญาตให้เปิดใช้งาน (เมื่อ isActive เป็น true)
+            if (isActive)
+            {
+                // 1. ตรวจสอบว่ามี CourseVersion ที่เปิดใช้งานอยู่หรือไม่
+                var activeVersions = await _courseVersionRepository.GetAsync(v => v.CourseId == id && v.IsActive);
+                var activeVersion = activeVersions.FirstOrDefault();
+
+                if (activeVersion == null)
+                {
+                    throw new InvalidOperationException("ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากยังไม่มีเวอร์ชัน (Version) ที่เปิดใช้งานอยู่");
+                }
+
+                // 2. ตรวจสอบว่าเวอร์ชันที่ใช้งานอยู่ มีเนื้อหาบทเรียน (CourseResource) หรือไม่
+                var courseResources = await _courseResourceRepository.GetAsync(
+                    filter: cr => cr.CourseVersionId == activeVersion.Id,
+                    includeProperties: "Resource" // โหลด Resource เข้ามาด้วยเพื่อเช็คความสมบูรณ์
+                );
+
+                if (!courseResources.Any())
+                {
+                    throw new InvalidOperationException("ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากเวอร์ชันปัจจุบันยังไม่มีการเพิ่มเนื้อหาบทเรียน");
+                }
+
+                // 3. ตรวจสอบความสมบูรณ์ของไฟล์/ข้อมูลใน Resource
+                foreach (var cr in courseResources)
+                {
+                    if (cr.Resource == null)
+                    {
+                        throw new InvalidOperationException("ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากพบเนื้อหาบทเรียนที่สูญหายหรืออ้างอิงไม่ถูกต้อง");
+                    }
+
+                    // ตรวจสอบว่า Resource มีการผูกไฟล์ (FileStorageId) หรือมี Link (URL) อย่างใดอย่างหนึ่งหรือไม่
+                    if (!cr.Resource.FileStorageId.HasValue && string.IsNullOrWhiteSpace(cr.Resource.URL))
+                    {
+                        throw new InvalidOperationException($"ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากเนื้อหา '{cr.Resource.Name}' ไม่สมบูรณ์ (ไม่มีไฟล์หรือ URL แนบมาด้วย)");
+                    }
+                }
+            }
+
+            // หากผ่านด่านตรวจสอบทั้งหมด หรือเป็นการตั้งค่าปิดใช้งาน (isActive = false) ให้อัปเดตสถานะปกติ
             course.IsActive = isActive;
             course.UpdatedAt = DateTime.UtcNow;
 

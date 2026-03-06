@@ -1,9 +1,10 @@
 ﻿using iLearn.Application.DTOs;
-
 using iLearn.Application.Interfaces.Services;
+using iLearn.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
@@ -33,10 +34,11 @@ namespace iLearn.API.Controllers
         {
             var course = await _courseService.GetCourseByIdAsync(id);
             if (course == null)
-                return NotFound(new { success = false, message = "ไม่พบหลักสูตร" });
+                return NotFound(new { success = false, message = "Course not found." });
 
             return Ok(new { success = true, data = course });
         }
+
         [HttpPost("Create")]
         public async Task<IActionResult> Create([FromBody] CourseCreateDto model)
         {
@@ -46,8 +48,8 @@ namespace iLearn.API.Controllers
             try
             {
                 var course = await _courseService.CreateCourseAsync(model);
-                return CreatedAtAction(nameof(GetById), new { id = course.Id }, 
-                    new { success = true, message = "สร้างหลักสูตรสำเร็จ", data = course });
+                return CreatedAtAction(nameof(GetById), new { id = course.Id },
+                    new { success = true, message = "Course created successfully.", data = course });
             }
             catch (InvalidOperationException ex)
             {
@@ -64,7 +66,7 @@ namespace iLearn.API.Controllers
             try
             {
                 var course = await _courseService.UpdateCourseAsync(id, dto);
-                return Ok(new { success = true, message = "อัปเดตข้อมูลและเอกสารสำเร็จ", data = course });
+                return Ok(new { success = true, message = "Course updated successfully.", data = course });
             }
             catch (KeyNotFoundException ex)
             {
@@ -78,7 +80,7 @@ namespace iLearn.API.Controllers
             try
             {
                 await _courseService.DeleteCourseAsync(id);
-                return Ok(new { success = true, message = "ลบหลักสูตรและไฟล์ที่เกี่ยวข้องสำเร็จ" });
+                return Ok(new { success = true, message = "Course and related files deleted successfully." });
             }
             catch (InvalidOperationException ex) // 🌟 ดักจับเคสที่ลบไม่ได้เพราะมีคนเรียนแล้ว
             {
@@ -90,10 +92,9 @@ namespace iLearn.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาด", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "An internal server error occurred.", error = ex.Message });
             }
         }
-
 
         [HttpPost("create-scorm")]
         [Consumes("multipart/form-data")]
@@ -106,7 +107,7 @@ namespace iLearn.API.Controllers
             {
                 var course = await _courseService.CreateCourseWithScormAsync(model);
                 return CreatedAtAction(nameof(GetById), new { id = course.Id },
-                    new { success = true, message = "สร้างหลักสูตรพร้อม SCORM สำเร็จ", data = course });
+                    new { success = true, message = "Course with SCORM created successfully.", data = course });
             }
             catch (InvalidOperationException ex)
             {
@@ -114,7 +115,7 @@ namespace iLearn.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาดในการบันทึกข้อมูล", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "An error occurred while saving data.", error = ex.Message });
             }
         }
 
@@ -161,10 +162,10 @@ namespace iLearn.API.Controllers
             {
                 // Get uploaded files from request
                 var files = Request.Form.Files.ToList();
-                
+
                 var version = await _versionService.CreateVersionAsync(courseId, model, files);
                 return CreatedAtAction(nameof(GetVersion), new { versionId = version.Id },
-                    new { success = true, message = "สร้างเวอร์ชันใหม่สำเร็จ", data = version });
+                    new { success = true, message = "New version created successfully.", data = version });
             }
             catch (KeyNotFoundException ex)
             {
@@ -172,7 +173,7 @@ namespace iLearn.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาดในการสร้างเวอร์ชัน", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "An error occurred while creating the version.", error = ex.Message });
             }
         }
 
@@ -187,7 +188,7 @@ namespace iLearn.API.Controllers
             {
                 var files = Request.Form.Files.ToList();
                 var version = await _versionService.UpdateVersionAsync(versionId, model, files);
-                return Ok(new { success = true, message = "อัปเดตเวอร์ชันสำเร็จ", data = version });
+                return Ok(new { success = true, message = "Version updated successfully.", data = version });
             }
             catch (KeyNotFoundException ex)
             {
@@ -195,7 +196,7 @@ namespace iLearn.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาดในการอัปเดตเวอร์ชัน", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "An error occurred while updating the version.", error = ex.Message });
             }
         }
 
@@ -205,7 +206,7 @@ namespace iLearn.API.Controllers
             try
             {
                 await _versionService.DeleteVersionAsync(versionId);
-                return Ok(new { success = true, message = "ลบเวอร์ชันสำเร็จ" });
+                return Ok(new { success = true, message = "Version deleted successfully." });
             }
             catch (KeyNotFoundException ex)
             {
@@ -219,7 +220,7 @@ namespace iLearn.API.Controllers
             try
             {
                 await _versionService.SetActiveVersionAsync(courseId, versionId);
-                return Ok(new { success = true, message = "เปลี่ยนเวอร์ชันที่ใช้งานสำเร็จ" });
+                return Ok(new { success = true, message = "Active version changed successfully." });
             }
             catch (KeyNotFoundException ex)
             {
@@ -228,26 +229,41 @@ namespace iLearn.API.Controllers
         }
 
         // คลาสที่เราสร้างไว้รับค่าชั่วคราวจาก JSON body ของคำขอ
+        // หมายเหตุ: ถ้าคุณมีคลาสนี้ใน iLearn.Application.DTOs อยู่แล้ว สามารถลบตรงนี้ทิ้งได้เลยนะครับ
         public class CourseStatusUpdateDto
         {
             public bool IsActive { get; set; }
         }
 
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] CourseStatusUpdateDto statusObj)
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] CourseStatusUpdateDto dto)
         {
             try
             {
-                var newStatus = await _courseService.UpdateCourseStatusAsync(id, statusObj.IsActive);
-                return Ok(new { success = true, message = "อัปเดตสถานะสำเร็จ", isActive = newStatus });
+                var result = await _courseService.UpdateCourseStatusAsync(id, dto.IsActive);
+                return Ok(new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = dto.IsActive ? "Course activated successfully." : "Course deactivated successfully.",
+                    Data = result
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // 🌟 ส่งข้อความแจ้งเตือนกลับไปหา Frontend
+                return BadRequest(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = ex.Message // ถ้าต้องการให้ตรงนี้เป็นภาษาอังกฤษด้วย ต้องไปแก้ throw Exception ใน CourseService.cs นะครับ
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาดในการอัปเดตสถานะ", error = ex.Message });
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
     }

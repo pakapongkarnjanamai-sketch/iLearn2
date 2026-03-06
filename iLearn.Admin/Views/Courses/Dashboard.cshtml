@@ -376,10 +376,11 @@
                 }
             }
 
-            // ── 5. Toggle Publish ──────────────────────────────────────
+           // ── 5. Toggle Publish ──────────────────────────────────────
             $("#btnTogglePublish").click(function(e) {
                 e.preventDefault();
                 const $btn = $(this);
+
                 if ($btn.hasClass("disabled")) return;
                 $btn.addClass("disabled opacity-50 pe-none");
 
@@ -393,17 +394,31 @@
 
                     $.ajax({
                         url: `${courseApiUrl}/${courseId}/status`,
-                        type: 'PATCH',
+                        type: 'PUT', // 🌟 [แก้ไขที่นี่ 1] เปลี่ยนจาก 'PATCH' เป็น 'PUT'
                         contentType: 'application/json',
                         xhrFields: { withCredentials: true },
                         data: JSON.stringify({ isActive: newState })
-                    }).done(() => {
+                    }).done((response) => { // 🌟 รับ response แบบ ApiResponse
                         isCourseActive = newState;
                         updateStatusUI(isCourseActive);
-                        DevExpress.ui.notify(newState ? "Course published!" : "Course closed.", "success", 2000);
+
+                        // 🌟 ดึง message จาก response.message ถ้ามี
+                        const successMsg = response.message || (newState ? "Course published!" : "Course closed.");
+                        DevExpress.ui.notify(successMsg, "success", 2000);
+
                         $btn.removeClass("disabled opacity-50 pe-none");
                     }).fail((xhr) => {
-                        DevExpress.ui.notify(xhr.responseJSON?.message || "Error updating status.", "error", 3000);
+                        // 🌟 [แก้ไขที่นี่ 2] ปรับการดึงข้อความ Error จาก ApiResponse ให้ครอบคลุมมากขึ้น
+                        let errorMsg = "Error updating status.";
+                        if (xhr.responseJSON) {
+                            // ถ้า API ส่ง ApiResponse กลับมาในรูปแบบ { success: false, message: "..." }
+                            errorMsg = xhr.responseJSON.message || errorMsg;
+                        } else if (xhr.responseText) {
+                            // กรณีที่ error เป็น text ธรรมดา
+                            errorMsg = xhr.responseText;
+                        }
+
+                        DevExpress.ui.notify(errorMsg, "error", 4000); // เพิ่มเวลาแสดงผลเป็น 4 วินาทีเพื่อให้อ่านทัน
                         $btn.removeClass("disabled opacity-50 pe-none");
                     });
                 });
