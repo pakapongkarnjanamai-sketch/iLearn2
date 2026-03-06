@@ -39,8 +39,12 @@ namespace iLearn.Application.DTOs
         public string StudentCode { get; set; }
         public string? StudentName { get; set; }
         public int? AssignmentRuleId { get; set; }
+        public string? CourseCode { get; set; }
+        public string? CourseTitle { get; set; }
         public double Progress { get; set; }
         public bool IsCompleted { get; set; }
         public DateTime? CompletedDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
     }
 }

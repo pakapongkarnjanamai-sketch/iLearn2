@@ -3,163 +3,306 @@
 }
 
 <style>
-    body { background-color: #f8f9fa; }
-
-    .stat-number { font-size: 2rem; font-weight: 700; color: #2b3643; line-height: 1.1; }
-    .stat-label  { font-size: 0.75rem; color: #6c7c93; font-weight: 600;
-                   text-transform: uppercase; letter-spacing: 0.5px; }
-
-    .status-dot     { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-    .dot-completed  { background-color: #2da44e; }
-    .dot-progress   { background-color: #dbab09; }
-    .dot-notstarted { background-color: #d1d5da; }
-
-    .course-card {
-        border: 1.5px solid #e8ecf1; border-radius: 8px; background: #fff;
-        padding: 0.75rem 0.9rem; cursor: pointer; transition: all 0.15s ease;
-        border-left: 4px solid #dee2e6;
+    /* ── Design Tokens ── */
+    :root {
+        --text-primary:   #262626;
+        --text-secondary: #595959;
+        --border-color:   #f0f0f0;
+        --accent-color:   #1890ff;
+        --success-color:  #52c41a;
+        --warning-color:  #faad14;
+        --danger-color:   #ff4d4f;
+        --bg-light:       #fafafa;
     }
-    .course-card:hover  { border-color: #0d6efd; background: #f8fbff; }
-    .course-card.active { border-left-color: #0d6efd !important; background: #f0f7ff; border-color: #0d6efd; }
 
-    .action-card {
-        transition: all 0.2s ease; cursor: pointer; text-decoration: none;
-        border: 1.5px dashed #e8ecf1; background: #fff; border-radius: 10px;
+    body { background: #fff; color: var(--text-primary); font-size: 13px; }
+
+    /* ── Page Header ── */
+    .page-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 24px;
+        background: #fff;
     }
-    .action-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-    .action-card.delete-card:hover { border-color: #dc3545 !important; background: #fff5f5; }
 
-    /* Pivot grid cell customization */
-    .pivot-cell-done     { background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; }
-    .pivot-cell-active   { background: #fefce8 !important; color: #92400e !important; font-weight: 600; }
-    .pivot-cell-pending  { color: #94a3b8 !important; }
+    /* ── Section Title ── */
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
 
-    /* Tab panel minimal style */
-    .dx-tabpanel .dx-tab { font-size: 12px; font-weight: 600; }
+    /* ── Stat Block ── */
+    .stat-block { line-height: 1; }
+    .stat-block .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
+    .stat-block .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* ── Meta List ── */
+    .meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .meta-item:last-child { border-bottom: none; }
+    .meta-label { font-size: 11px; color: var(--text-secondary); font-weight: 600;
+                  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+    .meta-value { font-size: 13px; color: var(--text-primary); }
+
+    /* ── Course List ── */
+    .course-item {
+        padding: 10px 12px;
+        border-left: 3px solid var(--border-color);
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        transition: 0.15s;
+        background: #fff;
+        margin-bottom: 4px;
+        border: 1px solid var(--border-color);
+        border-left-width: 3px;
+    }
+    .course-item:hover { background: var(--bg-light); border-left-color: var(--accent-color); }
+    .course-item.active { background: #e6f4ff; border-left-color: var(--accent-color); }
+    .course-item.done   { border-left-color: var(--success-color); }
+    .course-item.active.done { border-left-color: var(--success-color); }
+
+    /* ── Progress Bar slim ── */
+    .progress-slim {
+        height: 3px;
+        background: var(--border-color);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 6px;
+    }
+
+    /* ── Status dot ── */
+    .status-dot {
+        display: inline-block;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    /* ── Action Links ── */
+    .action-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: 0.15s;
+    }
+    .action-link:hover { background: var(--bg-light); color: var(--text-primary); }
+    .action-link.danger:hover { border-color: var(--danger-color); color: var(--danger-color); background: #fff2f0; }
+
+    /* ── Pivot Table (HTML table — same as Report) ── */
+    .pivot-table {
+        font-size: 12px;
+        border-color: var(--border-color) !important;
+        margin-bottom: 0;
+    }
+    .pivot-table th {
+        background: var(--bg-light);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
+    .pivot-table td { vertical-align: middle; }
+    .pivot-table tbody tr:hover { background-color: var(--bg-light); }
+    .pivot-table tbody tr:hover .sticky-col { background-color: var(--bg-light); }
+
+    /* Sticky first column */
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: #fff;
+        z-index: 2;
+        border-right: 2px solid var(--border-color) !important;
+    }
+    th.sticky-col {
+        background-color: var(--bg-light);
+        z-index: 3;
+    }
+
+    /* Status colors (same as Report) */
+    .status-done    { color: var(--success-color); }
+    .status-active  { color: var(--warning-color); }
+    .status-pending { color: var(--text-secondary); }
+
+    /* ── dxPivotGrid column header: allow multiline ── */
+    #pivot-grid .dx-pivotgrid-horizontal-headers td {
+        white-space: normal !important;
+        vertical-align: middle !important;
+        min-width: 140px;
+        padding: 6px 8px !important;
+    }
+
+    #pivot-grid .dx-pivotgrid-vertical-headers td {
+        white-space: nowrap;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #pivot-grid .dx-pivotgrid-area td {
+        font-size: 12px !important;
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+        border-color: #f0f0f0 !important;
+    }
+
+    @@media print {
+        .page-header { display: none !important; }
+    }
 </style>
 
-<!-- Page Header -->
-<div class="bg-white border-bottom mb-3 py-3">
-    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-3">
-            <div class="bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3">
-                <i class="fas fa-chart-pie fs-5"></i>
-            </div>
-            <div>
-                <h1 class="h5 mb-0 fw-bold text-dark">@ViewBag.Title</h1>
-                <small class="text-muted" id="lbl-assignment-no">Loading...</small>
-            </div>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
-               target="_blank" class="btn btn-sm btn-outline-success fw-medium">
-                <i class="fas fa-file-alt me-1"></i> Export Report
-            </a>
-            <button class="btn btn-sm btn-light border fw-medium"
-                    onclick="window.location.href='@Url.Action("Index", "Assignments")'">
-                <i class="fas fa-arrow-left me-1"></i> Back
-            </button>
-        </div>
+<!-- ── Page Header ────────────────────────────────────────────────── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;">Assignment Dashboard</div>
+        <div class="text-secondary" id="lbl-assignment-no" style="font-size:12px;">Loading...</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
+           target="_blank" class="action-link">
+            <i class="fas fa-file-alt text-secondary"></i> Export Report
+        </a>
+        <a href="@Url.Action("Index", "Assignments")" class="action-link">
+            <i class="fas fa-arrow-left text-secondary"></i> Back
+        </a>
     </div>
 </div>
 
-<div class="container-fluid px-4 pb-5">
+<div class="container-fluid px-4 py-4" style="max-width:1400px;">
     <div id="load-panel"></div>
 
-    <!-- Row 1: Details + Stats + Pie -->
-    <div class="row g-3 mb-3">
+    <!-- ── Row 1: Meta / Stats / Chart ──────────────────────────── -->
+    <div class="row g-3 mb-4">
 
-        <!-- Assignment Details & Actions -->
+        <!-- Meta Info -->
         <div class="col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body px-4 py-3 d-flex flex-column gap-3">
-                    <div>
-                        <div class="stat-label mb-1">Assignment No.</div>
-                        <div id="lbl-assignment-no-detail" class="fw-bold text-dark">-</div>
-                    </div>
-                    <div>
-                        <div class="stat-label mb-1">Description</div>
-                        <div id="lbl-description" class="text-dark small">-</div>
-                    </div>
-                    <div>
-                        <div class="stat-label mb-1">Schedule</div>
-                        <div id="lbl-schedule" class="text-dark small">-</div>
-                    </div>
-                    <div>
-                        <div class="stat-label mb-1">Created By</div>
-                        <div id="lbl-created-by" class="text-dark small">-</div>
-                    </div>
-                    <div class="border-top pt-3 d-flex flex-column gap-2 mt-auto">
-                        <a href="javascript:void(0);" id="btn-extend-due-date"
-                           class="action-card d-flex align-items-center gap-2 p-2 px-3">
-                            <i class="fas fa-calendar-plus text-warning"></i>
-                            <span class="small fw-semibold text-dark">Extend Due Date</span>
-                        </a>
-                        <a href="javascript:void(0);" id="btn-delete-assignment"
-                           class="action-card delete-card d-flex align-items-center gap-2 p-2 px-3">
-                            <i class="fas fa-trash-alt text-danger"></i>
-                            <span class="small fw-semibold text-dark">Delete Assignment</span>
-                        </a>
-                    </div>
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Assignment Info</div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Assignment No.</div>
+                    <div class="meta-value fw-bold" id="lbl-assignment-no-detail">-</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Description</div>
+                    <div class="meta-value" id="lbl-description">-</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Schedule</div>
+                    <div class="meta-value" id="lbl-schedule">-</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Created By</div>
+                    <div class="meta-value" id="lbl-created-by">-</div>
+                </div>
+
+                <div class="d-flex flex-column gap-2 mt-3 pt-3" style="border-top:1px solid var(--border-color);">
+                    <a href="javascript:void(0);" id="btn-extend-due-date" class="action-link">
+                        <i class="fas fa-calendar-plus" style="color:var(--warning-color);"></i>
+                        Extend Due Date
+                    </a>
+                    <a href="javascript:void(0);" id="btn-delete-assignment" class="action-link danger">
+                        <i class="fas fa-trash-alt" style="color:var(--danger-color);"></i>
+                        Delete Assignment
+                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Stat Cards -->
         <div class="col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-4 d-flex flex-column justify-content-center gap-3">
-                    <div class="row g-2 text-center">
-                        <div class="col-6">
-                            <div class="bg-primary bg-opacity-10 rounded-3 py-3">
-                                <div class="stat-number text-primary" id="stat-total-emp">0</div>
-                                <div class="stat-label mt-1">Students</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="bg-info bg-opacity-10 rounded-3 py-3">
-                                <div class="stat-number text-info" id="stat-total-courses">0</div>
-                                <div class="stat-label mt-1">Courses</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="bg-success bg-opacity-10 rounded-3 py-3">
-                                <div class="stat-number text-success" id="stat-completed">0</div>
-                                <div class="stat-label mt-1">Completed</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="bg-warning bg-opacity-10 rounded-3 py-3">
-                                <div class="stat-number text-warning" id="stat-inprogress">0</div>
-                                <div class="stat-label mt-1">In Progress</div>
-                            </div>
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Summary</div>
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-6">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-total-emp">0</div>
+                            <div class="stat-label">Students</div>
                         </div>
                     </div>
-                    <div class="bg-light rounded-3 border text-center py-2">
-                        <div class="stat-label mb-0">Overall Completion</div>
-                        <div class="stat-number text-success" id="stat-progress-text"
-                             style="font-size:1.8rem;">0%</div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-total-courses">0</div>
+                            <div class="stat-label">Courses</div>
+                        </div>
                     </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-completed" style="color:var(--success-color);">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-inprogress" style="color:var(--warning-color);">0</div>
+                            <div class="stat-label">In Progress</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded p-3 text-center bg-white">
+                    <div class="stat-label mb-1">Overall Completion</div>
+                    <div class="stat-value" id="stat-progress-text" style="color:var(--success-color);">0%</div>
                 </div>
             </div>
         </div>
 
         <!-- Pie Chart -->
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3">
-                    <div id="status-pie-chart" style="height:230px;"></div>
-                </div>
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Status Distribution</div>
+                <div id="status-pie-chart" style="height:220px;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Row 2: Tab Panel (Courses+Grid | Pivot) -->
-    <div id="main-tab-panel"></div>
+    <!-- ── Row 2: Course Cards + Student Grid ───────────────────── -->
+    <div class="row g-3 mb-4">
+        <!-- Course List -->
+        <div class="col-xl-4">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Assigned Courses
+                    <span class="float-end fw-normal text-secondary" style="font-size:11px;">
+                        Click to filter
+                    </span>
+                </div>
+                <div id="course-list" class="d-flex flex-column" style="max-height:420px; overflow-y:auto;"></div>
+            </div>
+        </div>
 
-    <!-- Extend Due Date Popup -->
-    <div id="extend-due-date-popup"></div>
+        <!-- Student DataGrid -->
+        <div class="col-xl-8">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="section-title mb-0" style="border:none; padding:0;">
+                        Student Tracking
+                        <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
+                              style="font-size:11px; text-transform:none; letter-spacing:0;">— All</span>
+                    </div>
+                    <div id="course-selector" style="width:220px;"></div>
+                </div>
+                <div id="student-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Row 3: Pivot Table ────────────────────────────────────── -->
+    <div class="border rounded bg-white p-3 mb-4">
+        <div class="section-title">Student × Course Matrix</div>
+        <div id="pivot-container"></div>
+    </div>
 </div>
+
+<div id="extend-due-date-popup"></div>
 
 @section Scripts {
 <script>
@@ -167,34 +310,40 @@
 
     $(() => {
         const loadPanel = $("#load-panel").dxLoadPanel({
-            shadingColor: "rgba(255,255,255,0.8)", position: { of: "body" },
-            visible: true, showIndicator: true, showPane: false,
-            shading: true, message: "Loading dashboard data..."
+            shadingColor: "rgba(255,255,255,0.8)",
+            position: { of: "body" },
+            visible: true,
+            showIndicator: true,
+            showPane: false,
+            shading: true,
+            message: "Loading..."
         }).dxLoadPanel("instance");
 
         $.ajax({
             url: `${serviceUrl}/Assignments/dashboard/${ASSIGNMENT_ID}`,
-            method: "GET", xhrFields: { withCredentials: true }
-        }).done(function(res) {
+            method: "GET",
+            xhrFields: { withCredentials: true }
+        }).done(function (res) {
             if (!res.success || !res.data) { showApiError("Invalid data format."); return; }
             const data = res.data;
 
-            // ── Header ──────────────────────────────────────────────────────
+            // ── Header ──────────────────────────────────────────────────────────
             const refNo = data.assignmentNo || "-";
             $("#lbl-assignment-no").text(`Ref: ${refNo}`);
             $("#lbl-assignment-no-detail").text(refNo);
             $("#lbl-description").text(data.description || "-");
+
             currentDueDate   = data.dueDate   ? new Date(data.dueDate)   : null;
             currentStartDate = data.startDate ? new Date(data.startDate) : null;
+
             const sDate = data.startDate ? new Date(data.startDate).toLocaleDateString("en-GB") : "-";
             const dDate = data.dueDate   ? new Date(data.dueDate).toLocaleDateString("en-GB")   : "No Limit";
             $("#lbl-schedule")
                 .attr("data-start", sDate)
-                .html(`<i class="fas fa-calendar-alt text-primary me-1"></i>${sDate} → ${dDate}`);
-            if (data.createdBy)
-                $("#lbl-created-by").text(data.createdBy);
+                .text(`${sDate} → ${dDate}`);
+            if (data.createdBy) $("#lbl-created-by").text(data.createdBy);
 
-            // ── Stat Cards ───────────────────────────────────────────────────
+            // ── Stats ────────────────────────────────────────────────────────────
             const totalStudents = data.totalStudents ?? data.totalEmployees;
             const cd = data.chartData;
             $("#stat-total-emp").text(totalStudents);
@@ -203,388 +352,312 @@
             $("#stat-inprogress").text(cd.inProgress);
             $("#stat-progress-text").text(`${data.completionRate}%`);
 
-            // ── Pie Chart ────────────────────────────────────────────────────
+            // ── Pie Chart ────────────────────────────────────────────────────────
             $("#status-pie-chart").dxPieChart({
-                type: "doughnut", innerRadius: 0.65,
-                palette: ["#198754", "#ffc107", "#d1d5da"],
+                type: "doughnut",
+                innerRadius: 0.7,
+                palette: ["#52c41a", "#faad14", "#d9d9d9"],
                 dataSource: [
                     { status: "Completed",   count: cd.completed  },
                     { status: "In Progress", count: cd.inProgress },
                     { status: "Not Started", count: cd.notStarted }
                 ],
-                series: [{ argumentField: "status", valueField: "count",
-                    label: { visible: true,
-                        customizeText: p => `${p.argumentText}: ${p.valueText} (${p.percentText})`,
-                        connector: { visible: true, width: 1 } }
+                series: [{
+                    argumentField: "status",
+                    valueField: "count",
+                    label: {
+                        visible: true,
+                        position: "outside",
+                        customizeText: p => `${p.valueText} (${p.percentText})`,
+                        font: { size: 11, color: "#595959" },
+                        connector: { visible: true, width: 1 }
+                    }
                 }],
-                legend: { horizontalAlignment: "right", verticalAlignment: "center",
-                    font: { size: 12, color: "#586069", weight: 500 } },
-                tooltip: { enabled: true,
-                    customizeTooltip: arg => ({ text: `${arg.argumentText}: ${arg.valueText} students` }) },
-                title: { text: `${refNo} — Student Status`,
-                    font: { size: 12, weight: 600, color: "#2b3643" } }
+                legend: {
+                    horizontalAlignment: "right",
+                    verticalAlignment: "center",
+                    margin: 0,
+                    font: { size: 12, color: "#595959" }
+                },
+                tooltip: { enabled: true }
             });
 
-            // ── Build Pivot flat data ────────────────────────────────────────
-            // flatten students → [{studentCode, studentName, courseCode, courseTitle, progress, status}]
+            // ── Course List ──────────────────────────────────────────────────────
             const courseMap = {};
             data.courses.forEach(c => { courseMap[c.assignmentRuleId] = c; });
 
-            const pivotFlat = data.students.map(s => {
-                const course = courseMap[s.assignmentRuleId] ?? {};
-                return {
-                    studentCode:  s.studentCode,
-                    studentLabel: s.studentName && s.studentName !== s.studentCode
-                                    ? `${s.studentCode} – ${s.studentName}`
-                                    : s.studentCode,
-                    courseCode:   course.courseCode  ?? "-",
-                    courseTitle:  course.courseTitle ?? "-",
-                    progress:     s.progress ?? 0,
-                    statusValue:  s.isCompleted ? 2 : (s.progress > 0 ? 1 : 0),
-                    statusLabel:  s.isCompleted ? "Completed" : (s.progress > 0 ? "In Progress" : "Pending")
-                };
-            });
-
-            // ── Tab Panel ────────────────────────────────────────────────────
-            $("#main-tab-panel").dxTabPanel({
-                animationEnabled: true,
-                swipeEnabled: false,
-                deferRendering: false,
-                items: [
-                    {
-                        title: "📋  Course & Student Tracking",
-                        template: function(itemData, itemIndex, container) {
-                            renderTracking(data, container);
-                        }
-                    },
-                    {
-                        title: "🔢  Student × Course Matrix",
-                        template: function(itemData, itemIndex, container) {
-                            renderPivot(pivotFlat, container);
-                        }
-                    }
-                ]
-            });
-
-            loadPanel.hide();
-
-        }).fail(() => showApiError("Error loading dashboard data."));
-
-        // ── Tab 1: Course Cards + DataGrid ───────────────────────────────────
-        function renderTracking(data, container) {
-            const $row = $("<div>").addClass("row g-3 pt-2").appendTo(container);
-
-            // Course cards column
-            const $courseCol = $("<div>").addClass("col-xl-5").appendTo($row);
-            const $courseCard = $("<div>").addClass("card border-0 shadow-sm rounded-4 h-100").appendTo($courseCol);
-            $("<div>").addClass("card-header bg-white border-bottom pt-3 pb-2 px-4")
-                .html(`<h6 class="mb-0 fw-bold text-dark">
-                            <i class="fas fa-book text-primary me-2"></i>Assigned Courses
-                        </h6>
-                        <p class="text-muted small mt-1 mb-0">Click to filter grid</p>`)
-                .appendTo($courseCard);
-            const $courseBody = $("<div>").addClass("card-body p-3 overflow-auto")
-                .css("max-height", "420px").appendTo($courseCard);
-            const $courseContainer = $("<div>").addClass("d-flex flex-column gap-2").appendTo($courseBody);
-
-            // DataGrid column
-            const $gridCol = $("<div>").addClass("col-xl-7").appendTo($row);
-            const $gridCard = $("<div>").addClass("card border-0 shadow-sm rounded-4 h-100 d-flex flex-column").appendTo($gridCol);
-            const $gridHeader = $("<div>")
-                .addClass("card-header bg-white border-bottom pt-3 pb-2 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2")
-                .appendTo($gridCard);
-            $("<div>").html(`<h6 class="mb-0 fw-bold text-dark">
-                                <i class="fas fa-users text-primary me-2"></i>Student Tracking
-                             </h6>
-                             <p class="text-muted small mt-1 mb-0" id="student-grid-subtitle">Showing all students</p>`)
-                .appendTo($gridHeader);
-            const $selectorWrap = $("<div>").css("width", "260px").appendTo($gridHeader);
-            const $selectorDiv  = $("<div>").attr("id", "course-selector-inner").appendTo($selectorWrap);
-            const $gridBody = $("<div>").addClass("card-body p-0 overflow-hidden rounded-bottom-4 border-top").appendTo($gridCard);
-            const $gridDiv  = $("<div>").attr("id", "student-grid-inner").appendTo($gridBody);
-
-            // Build course stats
-            function buildCourseStats(courses, students) {
-                return courses.map(c => {
-                    const s = students.filter(x => x.assignmentRuleId === c.assignmentRuleId);
-                    const completed  = s.filter(x => x.isCompleted).length;
-                    const inProgress = s.filter(x => !x.isCompleted && x.progress > 0).length;
-                    const notStarted = s.filter(x => !x.isCompleted && x.progress === 0).length;
-                    const total = s.length || c.totalStudents || 0;
-                    const pct   = total > 0 ? Math.round((completed / total) * 100) : 0;
-                    return { ...c, completed, inProgress, notStarted, total, pct };
-                });
-            }
-
-            const courseStats = buildCourseStats(data.courses, data.students);
             const dropdownOptions = data.courses.map(c => ({
                 assignmentRuleId: c.assignmentRuleId,
                 displayText: `${c.courseCode} – ${c.courseTitle}`
             }));
             const firstRuleId = dropdownOptions.length > 0 ? dropdownOptions[0].assignmentRuleId : null;
 
-            // Render course cards
-            courseStats.forEach(c => {
-                const leftColor = c.pct === 100 ? "#198754" : c.pct > 0 ? "#0d6efd" : "#dee2e6";
-                const pctBadge  = c.pct === 100
-                    ? `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 fw-bold" style="font-size:.7rem;">100% ✓</span>`
-                    : `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 fw-bold" style="font-size:.7rem;">${c.pct}%</span>`;
-                const shortTitle = c.courseTitle.length > 32 ? c.courseTitle.slice(0, 32) + "…" : c.courseTitle;
-                $(`<div class="course-card ${firstRuleId === c.assignmentRuleId ? "active" : ""}"
+            const $courseList = $("#course-list");
+            data.courses.forEach(c => {
+                const pct       = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
+                const leftColor = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
+                const isDone    = pct === 100;
+
+                $(`<div class="course-item ${isDone ? "done" : ""} ${c.assignmentRuleId === firstRuleId ? "active" : ""}"
                         data-rule="${c.assignmentRuleId}" data-title="${c.courseTitle}"
                         style="border-left-color:${leftColor};">
-                    <div class="d-flex justify-content-between align-items-start mb-1">
-                        <div style="min-width:0;flex:1;">
-                            <span class="badge bg-light text-dark border fw-bold me-1" style="font-size:.7rem;">${c.courseCode}</span>
-                            <span class="fw-medium text-dark small">${shortTitle}</span>
-                        </div>${pctBadge}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold" style="font-size:11px;">${c.courseCode}</span>
+                            <span class="text-secondary ms-2" style="font-size:11px;">${c.courseTitle}</span>
+                        </div>
+                        <span class="fw-bold ms-2" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${pct}%</span>
                     </div>
-                    <div class="d-flex gap-3 mt-1" style="font-size:.72rem;">
-                        <span class="text-success"><i class="fas fa-check-circle me-1"></i>${c.completed}</span>
-                        <span class="text-warning"><i class="fas fa-play-circle me-1"></i>${c.inProgress}</span>
-                        <span class="text-muted"><i class="fas fa-minus-circle me-1"></i>${c.notStarted}</span>
-                        <span class="text-muted ms-auto">${c.total} students</span>
+                    <div class="progress-slim">
+                        <div style="height:100%; width:${pct}%; background:${leftColor};"></div>
                     </div>
-                </div>`).appendTo($courseContainer);
+                    <div class="d-flex gap-3 mt-2" style="font-size:11px; color:var(--text-secondary);">
+                        <span style="color:var(--success-color);">✓ ${c.completedStudents}</span>
+                        <span style="color:var(--text-secondary);">◐ ${c.totalStudents - c.completedStudents}</span>
+                        <span class="ms-auto">${c.totalStudents} students</span>
+                    </div>
+                </div>`).appendTo($courseList);
             });
 
-            $courseContainer.find(".course-card").on("click", function() {
+            $courseList.find(".course-item").on("click", function () {
                 const ruleId = $(this).data("rule");
                 const title  = $(this).data("title");
-                $courseContainer.find(".course-card").removeClass("active");
+                $courseList.find(".course-item").removeClass("active");
                 $(this).addClass("active");
-                $selectorDiv.dxSelectBox("instance").option("value", ruleId);
-                $("#student-grid-subtitle").text(`Filtered: ${title}`);
+                $("#course-selector").dxSelectBox("instance").option("value", ruleId);
+                $("#student-grid-subtitle").text(`— ${title}`);
+                $("#student-grid").dxDataGrid("instance").filter(["assignmentRuleId", "=", ruleId]);
             });
 
-            // Course selector dropdown
-            $selectorDiv.dxSelectBox({
+            // ── Course Selector Dropdown ─────────────────────────────────────────
+            $("#course-selector").dxSelectBox({
                 dataSource: dropdownOptions,
-                valueExpr: "assignmentRuleId", displayExpr: "displayText",
-                value: firstRuleId, stylingMode: "underlined",
-                onValueChanged: function(e) {
-                    const grid = $gridDiv.dxDataGrid("instance");
-                    grid.filter(["assignmentRuleId", "=", e.value]);
-                    $courseContainer.find(".course-card").removeClass("active");
-                    const card = $courseContainer.find(`.course-card[data-rule="${e.value}"]`).addClass("active");
-                    $("#student-grid-subtitle").text(`Filtered: ${card.data("title")}`);
+                valueExpr: "assignmentRuleId",
+                displayExpr: "displayText",
+                value: firstRuleId,
+                stylingMode: "underlined",
+                placeholder: "Select course...",
+                onValueChanged: function (e) {
+                    $("#student-grid").dxDataGrid("instance").filter(["assignmentRuleId", "=", e.value]);
+                    $courseList.find(".course-item").removeClass("active");
+                    const $card = $courseList.find(`.course-item[data-rule="${e.value}"]`).addClass("active");
+                    $("#student-grid-subtitle").text(`— ${$card.data("title")}`);
                 }
             });
 
-            // DataGrid
-            $gridDiv.dxDataGrid({
+            // ── Student DataGrid ─────────────────────────────────────────────────
+            $("#student-grid").dxDataGrid({
                 dataSource: data.students,
-                showBorders: false, showRowLines: true,
-                rowAlternationEnabled: true, hoverStateEnabled: true,
-                filterRow: { visible: true },
-                searchPanel: { visible: true, placeholder: "Search...", width: 180 },
-                height: 420, scrolling: { mode: "virtual" },
-                onRowPrepared: function(e) {
+                showBorders: false,
+                showRowLines: true,
+                rowAlternationEnabled: false,
+                hoverStateEnabled: true,
+                filterRow: { visible: false },
+                searchPanel: { visible: true, placeholder: "Search student...", width: 160 },
+                height: 420,
+                scrolling: { mode: "virtual" },
+                onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.data.isCompleted)
-                        $(e.rowElement).css("background-color", "#f0fdf4");
+                        $(e.rowElement).css("background-color", "#f6ffed");
                 },
                 columns: [
                     {
-                        dataField: "studentCode", caption: "ID", width: 110,
+                        dataField: "studentCode",
+                        caption: "ID",
+                        width: 100,
                         cellTemplate: (c, o) =>
-                            $("<span>").addClass("badge bg-light text-dark border fw-bold").text(o.value).appendTo(c)
+                            $("<span>").css({ fontSize: "11px", fontWeight: "600", color: "var(--text-primary)" })
+                                       .text(o.value).appendTo(c)
                     },
                     {
-                        dataField: "studentName", caption: "Name", minWidth: 120,
+                        dataField: "studentName",
+                        caption: "Name",
+                        minWidth: 120,
                         cellTemplate: (c, o) =>
-                            $("<span>").addClass("small text-dark").text(o.value || "-").appendTo(c)
+                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                       .text(o.value || "-").appendTo(c)
                     },
                     {
-                        dataField: "progress", caption: "Progress", width: 130, alignment: "center",
+                        dataField: "progress",
+                        caption: "Progress",
+                        width: 140,
+                        alignment: "center",
                         cellTemplate: (c, o) => {
                             const pct   = o.value || 0;
-                            const color = pct === 100 ? "#198754" : pct > 0 ? "#0d6efd" : "#dee2e6";
+                            const color = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
                             $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<div>").addClass("progress flex-grow-1").css("height", "5px")
-                                    .append($("<div>").addClass("progress-bar")
-                                        .css({ width: pct + "%", backgroundColor: color })))
-                                .append($("<small>").addClass("fw-medium text-muted")
-                                    .css("min-width", "30px").text(pct + "%"))
+                                .append(
+                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)", borderRadius: "2px", overflow: "hidden" })
+                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
+                                )
+                                .append(
+                                    $("<span>").css({ fontSize: "11px", fontWeight: "600", minWidth: "32px", color: "var(--text-secondary)" })
+                                               .text(pct + "%")
+                                )
                                 .appendTo(c);
                         }
                     },
                     {
-                        dataField: "isCompleted", caption: "Status", width: 120,
+                        dataField: "isCompleted",
+                        caption: "Status",
+                        width: 110,
                         cellTemplate: (c, o) => {
-                            if (o.value)
-                                $(`<span><span class="status-dot dot-completed"></span><span class="small fw-bold text-success">Completed</span></span>`).appendTo(c);
-                            else if (o.data.progress > 0)
-                                $(`<span><span class="status-dot dot-progress"></span><span class="small text-warning">In Progress</span></span>`).appendTo(c);
-                            else
-                                $(`<span><span class="status-dot dot-notstarted"></span><span class="small text-muted">Pending</span></span>`).appendTo(c);
+                            let color, dot, label;
+                            if (o.value) {
+                                color = "var(--success-color)"; dot = color; label = "Completed";
+                            } else if (o.data.progress > 0) {
+                                color = "var(--warning-color)"; dot = color; label = "In Progress";
+                            } else {
+                                color = "var(--text-secondary)"; dot = "#d9d9d9"; label = "Pending";
+                            }
+                            $("<span>").css({ fontSize: "12px", color })
+                                .append($("<span>").addClass("status-dot").css("background", dot))
+                                .append(label)
+                                .appendTo(c);
                         }
                     },
                     {
-                        dataField: "completedDate", caption: "Completed On",
-                        dataType: "date", format: "dd/MM/yyyy",
-                        alignment: "center", cssClass: "text-muted small", width: 110
+                        dataField: "completedDate",
+                        caption: "Completed On",
+                        dataType: "date",
+                        format: "dd/MM/yyyy",
+                        alignment: "center",
+                        width: 110,
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                       .appendTo(c)
                     }
                 ]
             });
 
             if (firstRuleId) {
-                $gridDiv.dxDataGrid("instance").filter(["assignmentRuleId", "=", firstRuleId]);
-                $("#student-grid-subtitle").text(`Filtered: ${dropdownOptions[0]?.displayText || ""}`);
+                $("#student-grid").dxDataGrid("instance").filter(["assignmentRuleId", "=", firstRuleId]);
+                $("#student-grid-subtitle").text(`— ${dropdownOptions[0]?.displayText || ""}`);
             }
+
+            // ── Pivot Table (HTML — same as Report) ──────────────────────────────
+            $("#pivot-container").html(buildPivotTable(data.courses, data.students));
+
+            loadPanel.hide();
+        }).fail(() => showApiError("Error loading dashboard data."));
+
+        // ── buildPivotTable — identical logic to Report.cshtml ──────────────────
+        function buildPivotTable(courses, students) {
+            // สร้าง map: studentCode → { assignmentRuleId → studentRecord }
+            const studentMap = {};
+            students.forEach(s => {
+                if (!studentMap[s.studentCode]) studentMap[s.studentCode] = {};
+                studentMap[s.studentCode][s.assignmentRuleId] = s;
+            });
+            const uniqueStudents = Object.keys(studentMap).sort();
+
+            // Column headers
+            const colHeaders = courses.map(c =>
+                `<th class="text-center align-middle" style="min-width:160px;">
+                    <div class="fw-bold text-dark" style="font-size:11px;">${c.courseCode}</div>
+                    <div class="text-muted mt-1" style="font-size:10px; font-weight:normal; white-space:normal; line-height:1.2;">${c.courseTitle}</div>
+                </th>`
+            ).join("");
+
+            // Data rows
+            const dataRows = uniqueStudents.map(code => {
+                const enrollments = studentMap[code];
+                const name        = Object.values(enrollments)[0]?.studentName || code;
+                let completedCount = 0;
+
+                const cells = courses.map(c => {
+                    const e = enrollments[c.assignmentRuleId];
+                    if (!e) return `<td class="text-center"><span class="status-pending">—</span></td>`;
+
+                    if (e.isCompleted) {
+                        completedCount++;
+                        const d = e.completedDate
+                            ? new Date(e.completedDate).toLocaleDateString("en-GB")
+                            : "";
+                        return `<td class="text-center status-done">
+                                    <i class="fas fa-check"></i>
+                                    <div style="font-size:10px; color:#8c8c8c;">${d}</div>
+                                </td>`;
+                    } else if (e.progress > 0) {
+                        return `<td class="text-center status-active" style="font-size:11px;">${e.progress}%</td>`;
+                    } else {
+                        return `<td class="text-center status-pending" style="font-size:11px;">Pending</td>`;
+                    }
+                }).join("");
+
+                return `<tr>
+                    <td class="sticky-col align-middle">
+                        <div class="fw-bold" style="font-size:12px;">${code}</div>
+                        <div class="text-muted" style="font-size:11px;">${name !== code ? name : ""}</div>
+                    </td>
+                    ${cells}
+                    <td class="text-center align-middle fw-bold" style="background:var(--bg-light); font-size:12px;">
+                        ${completedCount} / ${courses.length}
+                    </td>
+                </tr>`;
+            }).join("");
+
+            return `<div class="table-responsive border rounded" style="max-height:560px;">
+                        <table class="table table-bordered table-hover pivot-table m-0">
+                            <thead style="position:sticky; top:0; z-index:4;">
+                                <tr>
+                                    <th class="sticky-col align-middle" style="min-width:180px;">Student \\ Course</th>
+                                    ${colHeaders}
+                                    <th class="text-center align-middle" style="min-width:80px; background:var(--bg-light);">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>${dataRows}</tbody>
+                        </table>
+                    </div>`;
         }
 
-        // ── Tab 2: dxPivotGrid + dxChart ─────────────────────────────────────
-        function renderPivot(pivotFlat, container) {
-            const $wrap = $("<div>").addClass("pt-2").appendTo(container);
-
-            // Chart above pivot
-            const $chartDiv = $("<div>").attr("id", "pivot-chart")
-                .css("height", "200px").addClass("mb-2").appendTo($wrap);
-            const $pivotDiv = $("<div>").attr("id", "pivot-grid").appendTo($wrap);
-
-            const pivotDS = new DevExpress.data.PivotGridDataSource({
-                retrieveFields: false,
-                store: pivotFlat,
-                fields: [
-                    {
-                        // Row: student
-                        dataField: "studentLabel",
-                        area: "row",
-                        caption: "Student",
-                        sortOrder: "asc"
-                    },
-                    {
-                        // Column: course
-                        dataField: "courseCode",
-                        area: "column",
-                        caption: "Course",
-                        sortOrder: "asc",
-                        // เพิ่ม courseTitle ใน tooltip โดย custom caption
-                        customizeText: function(cellInfo) { return cellInfo.value; }
-                    },
-                    {
-                        // Data: progress %
-                        dataField: "progress",
-                        caption: "Progress (%)",
-                        area: "data",
-                        summaryType: "avg",
-                        format: { type: "fixedPoint", precision: 0 }
-                    },
-                    {
-                        // Data: statusValue (0=pending,1=active,2=done) — hidden, for chart
-                        dataField: "statusValue",
-                        caption: "Status Score",
-                        area: "data",
-                        summaryType: "avg",
-                        format: { type: "fixedPoint", precision: 1 },
-                        visible: false
-                    }
-                ]
-            });
-
-            // dxChart bound to pivot
-            $chartDiv.dxChart({
-                commonSeriesSettings: { type: "bar", argumentField: "arg" },
-                series: [
-                    { valueField: "val1", name: "Avg Progress (%)", color: "#0d6efd" }
-                ],
-                legend: { visible: true, verticalAlignment: "bottom", horizontalAlignment: "center" },
-                tooltip: { enabled: true, customizeTooltip: arg => ({ text: `${arg.seriesName}: ${arg.valueText}` }) },
-                title: { text: "Progress by Course", font: { size: 12, weight: 600, color: "#2b3643" } },
-                argumentAxis: { label: { font: { size: 10 } } }
-            });
-
-            // dxPivotGrid
-            $pivotDiv.dxPivotGrid({
-                dataSource: pivotDS,
-                allowSortingBySummary: true,
-                allowFiltering: true,
-                showBorders: true,
-                showColumnTotals: true,
-                showRowTotals: true,
-                showColumnGrandTotals: true,
-                showRowGrandTotals: true,
-                fieldChooser: { enabled: false },
-                fieldPanel: { visible: false },
-                scrolling: { mode: "virtual" },
-                height: 380,
-                texts: {
-                    grandTotal: "Grand Total",
-                    total: "{0} Total",
-                    noData: "No data"
-                },
-                onCellPrepared: function(e) {
-                    if (e.area !== "data" || e.cell.dataIndex !== 0) return;
-                    if (e.cell.value == null) return;
-                    const v = e.cell.value;
-                    if (v === 100)
-                        $(e.cellElement).addClass("pivot-cell-done");
-                    else if (v > 0)
-                        $(e.cellElement).addClass("pivot-cell-active");
-                    else
-                        $(e.cellElement).addClass("pivot-cell-pending");
-                },
-                // bind chart to pivot
-                onContentReady: function(e) {
-                    const chartData = [];
-                    const ds = e.component.getDataSource();
-                    const colFields = ds.getAreaFields("column", true);
-                    const cellData  = ds.getData();
-
-                    if (cellData && cellData.columns) {
-                        cellData.columns.forEach((col, ci) => {
-                            let sum = 0, count = 0;
-                            if (cellData.rows) {
-                                cellData.rows.forEach((row, ri) => {
-                                    const cell = cellData.values?.[ri]?.[ci];
-                                    if (cell && cell[0] != null) { sum += cell[0]; count++; }
-                                });
-                            }
-                            chartData.push({ arg: col.text || col.value, val1: count ? Math.round(sum / count) : 0 });
-                        });
-                    }
-                    if (chartData.length)
-                        $("#pivot-chart").dxChart("instance").option("dataSource", chartData);
-                }
-            });
-        }
-
-        // ── Delete ────────────────────────────────────────────────────────────
-        $("#btn-delete-assignment").click(function(e) {
+        // ── Delete ────────────────────────────────────────────────────────────────
+        $("#btn-delete-assignment").click(function (e) {
             e.preventDefault();
             DevExpress.ui.dialog.confirm(
-                `<div class="text-center">
-                    <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
-                    <h5 class="fw-bold">Delete Assignment?</h5>
-                    <p class="text-muted mb-0">This will permanently remove the assignment and all related enrollments.</p>
+                `<div class="py-2">
+                    <div class="fw-bold mb-1">Delete this assignment?</div>
+                    <div class="text-muted" style="font-size:12px;">
+                        All related enrollments will be permanently removed.
+                    </div>
                 </div>`,
                 "Confirm Deletion"
-            ).done(function(ok) {
+            ).done(function (ok) {
                 if (!ok) return;
                 loadPanel.option("message", "Deleting..."); loadPanel.show();
                 $.ajax({
                     url: `${serviceUrl}/Assignments/${ASSIGNMENT_ID}`,
-                    type: "DELETE", xhrFields: { withCredentials: true },
-                    success: function() {
+                    type: "DELETE",
+                    xhrFields: { withCredentials: true },
+                    success: function () {
                         DevExpress.ui.notify("Deleted successfully.", "success", 2000);
                         setTimeout(() => window.location.href = "@Url.Action("Index", "Assignments")", 1500);
                     },
-                    error: function() { DevExpress.ui.notify("Error deleting.", "error", 3000); loadPanel.hide(); }
+                    error: function () {
+                        DevExpress.ui.notify("Error deleting.", "error", 3000);
+                        loadPanel.hide();
+                    }
                 });
             });
         });
 
-        // ── Extend Due Date ───────────────────────────────────────────────────
+        // ── Extend Due Date ───────────────────────────────────────────────────────
         let currentDueDate = null, currentStartDate = null;
 
-        $("#btn-extend-due-date").click(function() {
+        $("#btn-extend-due-date").click(function () {
             const popup = $("#extend-due-date-popup").dxPopup({
-                title: "Extend Due Date", width: 360, height: "auto",
-                showCloseButton: true, dragEnabled: false,
-                contentTemplate: function(content) {
+                title: "Extend Due Date",
+                width: 340,
+                height: "auto",
+                showCloseButton: true,
+                dragEnabled: false,
+                contentTemplate: function (content) {
                     $("<div>").addClass("p-2").append(
                         $("<div>").addClass("mb-3").append(
-                            $("<div>").addClass("stat-label mb-2").text("New Due Date"),
+                            $("<div>").css({ fontSize: "11px", fontWeight: "600", color: "var(--text-secondary)",
+                                            textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: "6px" })
+                                       .text("New Due Date"),
                             $("<div>").attr("id", "new-due-date-picker")
                         ),
                         $("<div>").addClass("d-flex gap-2 justify-content-end mt-3").append(
@@ -601,36 +674,38 @@
                         type: "date", value: currentDueDate, min: minDate,
                         displayFormat: "dd/MM/yyyy", stylingMode: "outlined", width: "100%"
                     });
+
                     $("#btn-popup-cancel").dxButton({
                         text: "Cancel", stylingMode: "outlined",
                         onClick: () => $("#extend-due-date-popup").dxPopup("instance").hide()
                     });
+
                     $("#btn-popup-confirm").dxButton({
                         text: "Confirm", type: "default", stylingMode: "contained",
-                        onClick: function() {
+                        onClick: function () {
                             const newDate = $("#new-due-date-picker").dxDateBox("instance").option("value");
                             if (!newDate) { DevExpress.ui.notify("Please select a date.", "warning", 2500); return; }
                             if (currentStartDate && new Date(newDate) <= currentStartDate) {
-                                DevExpress.ui.notify("Due date must be after start date.", "warning", 2500); return;
+                                DevExpress.ui.notify("Due date must be after start date.", "warning", 2500);
+                                return;
                             }
                             loadPanel.option("message", "Updating..."); loadPanel.show();
                             $.ajax({
                                 url: `${serviceUrl}/Assignments/${ASSIGNMENT_ID}/extend-due-date`,
-                                type: "PATCH", contentType: "application/json",
+                                type: "PATCH",
+                                contentType: "application/json",
                                 xhrFields: { withCredentials: true },
                                 data: JSON.stringify({ newDueDate: newDate }),
-                                success: function() {
+                                success: function () {
                                     $("#extend-due-date-popup").dxPopup("instance").hide();
                                     loadPanel.hide();
                                     currentDueDate = newDate;
                                     const formatted = new Date(newDate).toLocaleDateString("en-GB");
                                     const sDate = $("#lbl-schedule").data("start");
-                                    $("#lbl-schedule").html(
-                                        `<i class="fas fa-calendar-alt text-primary me-1"></i>${sDate} → ${formatted}`
-                                    );
+                                    $("#lbl-schedule").text(`${sDate} → ${formatted}`);
                                     DevExpress.ui.notify("Due date extended.", "success", 3000);
                                 },
-                                error: function(xhr) {
+                                error: function (xhr) {
                                     loadPanel.hide();
                                     DevExpress.ui.notify(xhr.responseJSON?.message || "Error.", "error", 4000);
                                 }
@@ -642,7 +717,145 @@
             popup.show();
         });
 
-        function showApiError(msg) { loadPanel.hide(); DevExpress.ui.notify(msg, "error", 4000); }
+        // ── Pivot Grid (dxPivotGrid — styled to match Report) ────────────
+        const pivotFlat = data.students.map(s => {
+            const course = courseMap[s.assignmentRuleId] ?? {};
+            return {
+                studentCode:  s.studentCode,
+                studentLabel: s.studentName && s.studentName !== s.studentCode
+                            ? `${s.studentCode} – ${s.studentName}`
+                            : s.studentCode,
+                courseCode:   course.courseCode  ?? "-",
+                courseTitle:  course.courseTitle ?? "-",
+                progress:     s.progress   ?? 0,
+                isCompleted:  s.isCompleted ?? false,
+                completedDate: s.completedDate ?? null
+            };
+        });
+
+        const pivotDS = new DevExpress.data.PivotGridDataSource({
+            retrieveFields: false,
+            store: pivotFlat,
+            fields: [
+                {
+                    dataField: "studentLabel",
+                    area: "row",
+                    caption: "Student",
+                    sortOrder: "asc",
+                    width: 180
+                },
+                {
+                    dataField: "courseCode",
+                    area: "column",
+                    caption: "Course",
+                    sortOrder: "asc"
+                },
+                {
+                    // ใช้ progress เป็น data field หลัก (0–100)
+                    dataField: "progress",
+                    caption: "Progress",
+                    area: "data",
+                    summaryType: "avg",
+                    format: { type: "fixedPoint", precision: 0 }
+                }
+            ]
+        });
+
+        $("#pivot-grid").dxPivotGrid({
+            dataSource: pivotDS,
+            allowSortingBySummary: false,
+            allowFiltering: false,
+            showBorders: true,
+            showColumnTotals: true,
+            showRowTotals: false,
+            showColumnGrandTotals: true,
+            showRowGrandTotals: true,
+            fieldChooser: { enabled: false },
+            fieldPanel:   { visible: false },
+            texts: { grandTotal: "Grand Total", total: "Total", noData: "—" },
+            onCellPrepared: function (e) {
+                const $cell = $(e.cellElement);
+
+                // ── Base: font สำหรับทุก cell ──────────────────────────────
+                $cell.css({
+                    "font-family": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
+                    "font-size":   "12px",
+                    "border-color": "#f0f0f0"
+                });
+
+                // ── Column area: Course header ─────────────────────────────
+                if (e.area === "column") {
+                    $cell.css({ "background-color": "#fafafa", "color": "#595959", "font-weight": "600" });
+
+                    // แสดง courseTitle ใต้ courseCode เหมือน Report
+                    if (e.cell.type === "D" && e.cell.text) {
+                        // หา courseTitle จาก pivotFlat
+                        const match = pivotFlat.find(r => r.courseCode === e.cell.text);
+                        if (match?.courseTitle) {
+                            $cell.html(
+                                `<div class="fw-bold text-dark" style="font-size:11px;">${e.cell.text}</div>
+                                 <div class="text-muted mt-1" style="font-size:10px; font-weight:normal; white-space:normal; line-height:1.3;">${match.courseTitle}</div>`
+                            );
+                        }
+                    }
+                    // Total / Grand Total column header
+                    if (e.cell.type === "T" || e.cell.type === "GT") {
+                        $cell.css({ "background-color": "#fafafa", "color": "#595959", "font-weight": "600" });
+                    }
+                    return;
+                }
+
+                // ── Row area: Student label ────────────────────────────────
+                if (e.area === "row") {
+                    $cell.css({ "color": "#262626", "font-weight": "500", "background-color": "#fff" });
+                    if (e.cell.type === "GT") {
+                        $cell.css({ "color": "#595959", "font-weight": "600", "background-color": "#fafafa" });
+                    }
+                    return;
+                }
+
+                // ── Data area ─────────────────────────────────────────────
+                if (e.area === "data") {
+
+                    // Total / Grand Total cells
+                    if (e.cell.rowType === "GT" || e.cell.columnType === "GT" ||
+                        e.cell.rowType === "T"  || e.cell.columnType === "T") {
+                        $cell.css({ "background-color": "#fafafa", "color": "#595959", "font-weight": "600" });
+                        return;
+                    }
+
+                    if (e.cell.value == null) {
+                        $cell.css({ "color": "#bfbfbf" }).text("—");
+                        return;
+                    }
+
+                    const pct = e.cell.value;
+
+                    if (pct === 100) {
+                        // หาวันที่ complete จาก pivotFlat (row = studentLabel, col = courseCode)
+                        const rowPath = e.cell.rowPath?.[0];
+                        const colPath = e.cell.columnPath?.[0];
+                        const match   = pivotFlat.find(r => r.studentLabel === rowPath && r.courseCode === colPath);
+                        const dateStr = match?.completedDate
+                            ? new Date(match.completedDate).toLocaleDateString("en-GB")
+                            : "";
+
+                        $cell.css({ "background-color": "#f6ffed", "color": "#389e0d" })
+                             .html(`<div><i class="fas fa-check"></i></div>
+                                    <div style="font-size:10px; color:#8c8c8c;">${dateStr}</div>`);
+
+                    } else if (pct > 0) {
+                        $cell.css({ "background-color": "#fffbe6", "color": "#d48806", "font-weight": "600" })
+                             .text(`${Math.round(pct)}%`);
+                    } else {
+                        $cell.css({ "color": "#bfbfbf", "font-weight": "400" })
+                             .text("Pending");
+                    }
+                }
+            }
+        });
     });
+
+    function showApiError(msg) { loadPanel.hide(); DevExpress.ui.notify(msg, "error", 4000); }
 </script>
 }

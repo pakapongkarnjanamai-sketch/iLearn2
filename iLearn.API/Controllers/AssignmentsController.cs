@@ -84,9 +84,10 @@ namespace iLearn.API.Controllers
 
             var ruleIds = allRules.Select(r => r.Id).ToList();
 
-            // 3. ดึง Enrollments เฉพาะที่ผูกกับ Rule ในกลุ่มนี้
+            // 3. ดึง Enrollments เฉพาะที่ผูกกับ Rule ในกลุ่มนี้ พร้อม Course
             var enrollments = await _enrollmentRepo.GetAsync(
-                e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value)
+                e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value),
+                includeProperties: "Course"
             );
 
             // 4. คำนวณสถิติ — นับ per student ไม่ใช่ per enrollment
@@ -138,14 +139,25 @@ namespace iLearn.API.Controllers
             var nameResults  = await Task.WhenAll(nameTasks);
             var studentNames = nameResults.ToDictionary(x => x.code, x => x.name);
 
-            var studentsProgress = enrollments.Select(e => new StudentProgressDto
+            // สร้าง lookup: assignmentRuleId → Course จาก allRules
+            var ruleCourseMap = allRules.ToDictionary(r => r.Id, r => r.Course);
+
+            var studentsProgress = enrollments.Select(e =>
             {
-                StudentCode      = e.StudentCode,
-                StudentName      = studentNames.GetValueOrDefault(e.StudentCode, e.StudentCode),
-                AssignmentRuleId = e.AssignmentRuleId,
-                Progress         = e.Progress,
-                IsCompleted      = e.IsCompleted,
-                CompletedDate    = e.CompletedDate
+                var course = e.Course ?? (e.AssignmentRuleId.HasValue && ruleCourseMap.TryGetValue(e.AssignmentRuleId.Value, out var c) ? c : null);
+                return new StudentProgressDto
+                {
+                    StudentCode      = e.StudentCode,
+                    StudentName      = studentNames.GetValueOrDefault(e.StudentCode, e.StudentCode),
+                    AssignmentRuleId = e.AssignmentRuleId,
+                    CourseCode       = course?.Code ?? "-",
+                    CourseTitle      = course?.Title ?? "Unknown Course",
+                    Progress         = e.Progress,
+                    IsCompleted      = e.IsCompleted,
+                    CompletedDate    = e.CompletedDate,
+                    StartDate        = e.StartDate,
+                    DueDate          = e.DueDate
+                };
             }).ToList();
 
             // 7. ประกอบร่าง DTO
