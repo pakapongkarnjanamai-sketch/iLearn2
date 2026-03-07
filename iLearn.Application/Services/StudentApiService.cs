@@ -1,7 +1,8 @@
-﻿using DevExtreme.AspNet.Mvc;
-using iLearn.Application.DTOs;
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -12,8 +13,8 @@ namespace iLearn.Infrastructure.Services
     public class StudentApiService : IStudentApiService
     {
         private readonly HttpClient _httpClient;
-        // กำหนด Base URL ให้เรียกใช้ซ้ำได้ง่ายและลดการพิมพ์ผิด
         private const string BaseStudentLookupUrl = "https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/StudentLookup";
+        private const string BaseStudentUrl       = "https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student";
 
         public StudentApiService(HttpClient httpClient)
         {
@@ -24,9 +25,7 @@ namespace iLearn.Infrastructure.Services
         {
             try
             {
-                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student{queryString}";
-                var response = await _httpClient.GetStringAsync(url);
-                return response;
+                return await _httpClient.GetStringAsync($"{BaseStudentUrl}{queryString}");
             }
             catch (Exception ex)
             {
@@ -53,9 +52,8 @@ namespace iLearn.Infrastructure.Services
         {
             try
             {
-                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student/all";
-                var response = await _httpClient.GetFromJsonAsync<AllStudentsApiResponse>(url);
-                return response;
+                return await _httpClient.GetFromJsonAsync<AllStudentsApiResponse>(
+                    $"{BaseStudentUrl}/all");
             }
             catch
             {
@@ -63,21 +61,55 @@ namespace iLearn.Infrastructure.Services
             }
         }
 
+        /// <summary>
+        /// Bulk lookup: ยิง HTTP 1 ครั้งผ่าน /api/Student/all (Server cache 24h)
+        /// แล้ว filter เฉพาะ codes ที่ต้องการใน memory
+        /// แทนการยิง GetStudentByCodeAsync ทีละคน (N+1 problem)
+        /// </summary>
+        public async Task<Dictionary<string, ExternalStudentDto>> GetStudentsByCodesAsync(
+            IEnumerable<string> codes)
+        {
+            try
+            {
+                var codeSet  = codes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var response = await GetStudentAsync(); // reuse — server มี MemoryCache 24h
+
+                if (response?.data == null)
+                    return new Dictionary<string, ExternalStudentDto>(StringComparer.OrdinalIgnoreCase);
+
+                return response.data
+                    .Where(s => !string.IsNullOrEmpty(s.EId) && codeSet.Contains(s.EId))
+                    .ToDictionary(
+                        s => s.EId,
+                        s => new ExternalStudentDto
+                        {
+                            Code       = s.EId,
+                            Name       = $"{s.EnglishFirstName} {s.EnglishLastName}".Trim(),
+                            Division   = s.Division,
+                            Department = s.Department,
+                            Section    = s.Section,
+                            Position   = s.Position
+                        },
+                        StringComparer.OrdinalIgnoreCase
+                    );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetStudentsByCodesAsync: {ex.Message}");
+                return new Dictionary<string, ExternalStudentDto>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
         public async Task<DivisionApiResponse> GetStudentsByDivisionsAsync(string[] divisions, int skip = 0, int take = 20)
         {
             try
             {
-                var keyObj = new { divisions = divisions };
-                var keyJson = JsonSerializer.Serialize(keyObj);
-
-                var encodedKey = Uri.EscapeDataString(keyJson);
+                var keyObj         = new { divisions };
+                var encodedKey     = Uri.EscapeDataString(JsonSerializer.Serialize(keyObj));
                 var encodedSummary = Uri.EscapeDataString("[{\"selector\":\"EId\",\"summaryType\":\"count\"}]");
-
-                var url = $"https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student/divisions?key={encodedKey}&skip={skip}&take={take}&requireTotalCount=true&totalSummary={encodedSummary}";
-
-                var response = await _httpClient.GetFromJsonAsync<DivisionApiResponse>(url);
-
-                return response;
+                var url = $"{BaseStudentUrl}/divisions?key={encodedKey}&skip={skip}&take={take}" +
+                          $"&requireTotalCount=true&totalSummary={encodedSummary}";
+                return await _httpClient.GetFromJsonAsync<DivisionApiResponse>(url);
             }
             catch (Exception ex)
             {

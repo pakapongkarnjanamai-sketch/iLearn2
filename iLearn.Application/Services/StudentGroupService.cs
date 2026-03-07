@@ -48,41 +48,31 @@ namespace iLearn.Application.Services
             var group = groups.FirstOrDefault();
             if (group == null) return null;
 
-            // ???????????????????? External API ??? parallel
-            var profileTasks = group.Members.Select(async m =>
+            // ?? Bulk lookup: 1 HTTP call ??? N calls ??
+            var codes      = group.Members.Select(m => m.StudentCode);
+            var profileMap = await _studentApiService.GetStudentsByCodesAsync(codes);
+
+            var memberDtos = group.Members.Select(m =>
             {
-                try
+                profileMap.TryGetValue(m.StudentCode, out var s);
+                return new StudentGroupMemberDto
                 {
-                    var s = await _studentApiService.GetStudentByCodeAsync(m.StudentCode);
-                    return new StudentGroupMemberDto
-                    {
-                        Id          = m.Id,
-                        StudentCode = m.StudentCode,
-                        StudentName = s?.Name       ?? m.StudentCode,
-                        Division    = s?.Division,
-                        Department  = s?.Department,
-                        Section     = s?.Section,
-                        Position    = s?.Position
-                    };
-                }
-                catch
-                {
-                    return new StudentGroupMemberDto
-                    {
-                        Id          = m.Id,
-                        StudentCode = m.StudentCode,
-                        StudentName = m.StudentCode
-                    };
-                }
-            });
-            var memberDtos = await Task.WhenAll(profileTasks);
+                    Id          = m.Id,
+                    StudentCode = m.StudentCode,
+                    StudentName = s?.Name       ?? m.StudentCode,
+                    Division    = s?.Division,
+                    Department  = s?.Department,
+                    Section     = s?.Section,
+                    Position    = s?.Position
+                };
+            }).ToList();
 
             return new StudentGroupDetailDto
             {
                 Id          = group.Id,
                 Name        = group.Name,
                 Description = group.Description,
-                Members     = memberDtos.ToList()
+                Members     = memberDtos
             };
         }
 

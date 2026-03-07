@@ -1,6 +1,8 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using DevExtreme.AspNet.Mvc;
+
 namespace iLearn.Application.Interfaces.Services
 {
     public interface IStudentApiService
@@ -8,14 +10,16 @@ namespace iLearn.Application.Interfaces.Services
         Task<ExternalStudentDto> GetStudentByCodeAsync(string Code);
         Task<AllStudentsApiResponse> GetStudentAsync();
         Task<DivisionApiResponse> GetStudentsByDivisionsAsync(string[] divisions, int skip = 0, int take = 20);
-
-        // --- เพิ่มฟังก์ชันนี้เข้าไปใหม่ ---
-        // ฟังก์ชันนี้จะทำหน้าที่เป็น Proxy รับ Query String ส่งไปให้ API ต้นทาง
         Task<string> GetStudentsDxGridAsync(string queryString);
-
         Task<object> GetSectionsAsync(string queryString);
         Task<object> GetDivisionsAsync(string queryString);
         Task<object> GetDepartmentsAsync(string queryString);
         Task<object> GetPositionsAsync(string queryString);
+
+        /// <summary>
+        /// Bulk lookup — ยิง HTTP 1 ครั้งผ่าน /api/Student/all (Server cache 24h)
+        /// แล้ว filter + map ใน memory แทน GetStudentByCodeAsync ทีละคน (N+1 problem)
+        /// </summary>
+        Task<Dictionary<string, ExternalStudentDto>> GetStudentsByCodesAsync(IEnumerable<string> codes);
     }
 }
