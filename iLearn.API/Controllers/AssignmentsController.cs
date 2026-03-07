@@ -268,5 +268,71 @@ namespace iLearn.API.Controllers
 
             return Ok(new { data = result });
         }
+
+        // ── Assignment History for a specific Student Group ──────────────────────
+        [HttpGet("group/{groupId}/history")]
+        public async Task<IActionResult> GetGroupHistory(int groupId)
+        {
+            var assignments = await _repo.GetAsync(
+                r => r.StudentGroupId == groupId,
+                includeProperties: "Course"
+            );
+
+            if (!assignments.Any())
+                return Ok(new { success = true, data = new List<object>() });
+
+            var allIds      = assignments.Select(a => a.Id).ToList();
+            var enrollments = await _enrollmentRepo.GetAsync(
+                e => e.AssignmentRuleId.HasValue && allIds.Contains(e.AssignmentRuleId.Value)
+            );
+
+            var now = DateTime.UtcNow.AddHours(7);
+
+            var history = assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Select(g =>
+                {
+                    var first   = g.First();
+                    var ruleIds = g.Select(a => a.Id).ToList();
+                    var related = enrollments
+                        .Where(e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value))
+                        .ToList();
+
+                    bool allDone = related.Any() && related.All(e => e.IsCompleted);
+                    string status = "InProgress";
+                    if (allDone)
+                        status = "Completed";
+                    else if (first.StartDate.HasValue && first.StartDate.Value > now)
+                        status = "Upcoming";
+                    else if (first.DueDate.HasValue && first.DueDate.Value < now)
+                        status = "Expired";
+
+                    var done  = related.Count(e => e.IsCompleted);
+                    var total = related.Count;
+                    var pct   = total > 0 ? Math.Round((double)done / total * 100) : 0;
+
+                    return new
+                    {
+                        id                       = first.Id,
+                        assignmentNo             = g.Key,
+                        description              = first.Description,
+                        courseNames              = string.Join(", ", g
+                            .Select(c => c.Course != null ? c.Course.Title : "Unknown")
+                            .Distinct()),
+                        courseCount              = g.Select(a => a.CourseId).Distinct().Count(),
+                        startDate                = first.StartDate,
+                        dueDate                  = first.DueDate,
+                        status,
+                        completedEnrollmentCount = done,
+                        totalEnrollmentCount     = total,
+                        completionPct            = pct
+                    };
+                })
+                .OrderByDescending(x => x.assignmentNo)
+                .ToList();
+
+            return Ok(new { success = true, data = history });
+        }
     }
 }

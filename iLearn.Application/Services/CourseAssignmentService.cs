@@ -103,20 +103,26 @@ namespace iLearn.Application.Services
             }
             else
             {
-                // 2. ถ้ามีข้อมูลอยู่แล้ว เช็กว่า Version ID ที่เรียนอยู่ ไม่ตรงกับ Version ID ปัจจุบัน ใช่หรือไม่?
+                bool needsUpdate = false;
+
                 if (existing.EnrolledCourseVersion != activeVersion.Id)
                 {
-                    existing.EnrolledCourseVersion = activeVersion.Id; // อัปเดตให้มาเรียน Version ล่าสุด
-                    existing.IsCompleted = false;
-                    existing.CompletedDate = null;
-                    existing.AssignmentRuleId = assignmentRuleId;
-
-                    // อัปเดตวันที่เฉพาะตอนที่มีการส่งค่าใหม่มาให้
-                    existing.StartDate = startDate ?? existing.StartDate;
-                    existing.DueDate = dueDate ?? existing.DueDate;
-
-                    await _enrollmentRepo.UpdateAsync(existing);
+                    existing.EnrolledCourseVersion = activeVersion.Id;
+                    existing.IsCompleted           = false;
+                    existing.CompletedDate         = null;
+                    needsUpdate                    = true;
                 }
+
+                if (assignmentRuleId.HasValue)
+                {
+                    existing.AssignmentRuleId = assignmentRuleId;
+                    existing.StartDate        = startDate ?? existing.StartDate;
+                    existing.DueDate          = dueDate   ?? existing.DueDate;
+                    needsUpdate               = true;
+                }
+
+                if (needsUpdate)
+                    await _enrollmentRepo.UpdateAsync(existing);
             }
         }
 

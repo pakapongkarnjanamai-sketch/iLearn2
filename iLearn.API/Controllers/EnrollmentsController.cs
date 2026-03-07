@@ -302,13 +302,14 @@ namespace iLearn.API.Controllers
             {
                 var rule = new Assignment
                 {
-                    AssignmentNo = assignmentNo,
-                    Description = dto.Description,
-                    CourseId = courseId,
+                    AssignmentNo  = assignmentNo,
+                    Description   = dto.Description,
+                    CourseId      = courseId,
                     EmployeeCodes = employeesStr,
-                    StartDate = dto.StartDate,
-                    DueDate = dto.DueDate,
-                    Division = dto.Division
+                    StartDate     = dto.StartDate,
+                    DueDate       = dto.DueDate,
+                    Division      = dto.Division,
+                    StudentGroupId = dto.GroupId
                 };
 
                 // บันทึก Rule ลง Database

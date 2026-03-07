@@ -165,18 +165,23 @@ namespace iLearn.API.Controllers
                 .OrderByDescending(e => e.StartDate ?? e.CompletedDate)
                 .Select(e => new
                 {
-                    enrollmentId     = e.Id,
-                    courseId         = e.CourseId,
-                    courseCode       = e.Course != null ? e.Course.Code : "-",
-                    courseTitle      = e.Course != null ? e.Course.Title : "Unknown Course",
-                    progress         = e.Progress,
-                    isCompleted      = e.IsCompleted,
-                    startDate        = e.StartDate,
-                    dueDate          = e.DueDate,
-                    completedDate    = e.CompletedDate,
-                    totalScore       = e.TotalScore,
-                    totalTimeSpent   = e.TotalTimeSpent,
-                    assignmentRuleId = e.AssignmentRuleId
+                    enrollmentId          = e.Id,
+                    courseId              = e.CourseId,
+                    courseCode            = e.Course != null ? e.Course.Code  : "-",
+                    courseTitle           = e.Course != null ? e.Course.Title : "Unknown Course",
+                    progress              = e.Progress,
+                    isCompleted           = e.IsCompleted,
+                    startDate             = e.StartDate,
+                    dueDate               = e.DueDate,
+                    completedDate         = e.CompletedDate,
+                    totalScore            = e.TotalScore,
+                    totalTimeSpent        = e.TotalTimeSpent,
+                    assignmentRuleId      = e.AssignmentRuleId,
+                    // Enrollment ที่ไม่มี AssignmentRuleId, ยังไม่จบ และเคยมี StartDate หรือ DueDate
+                    // = เคยถูก Assign แต่ Assignment ถูกลบไปแล้ว
+                    isAssignmentCancelled = !e.AssignmentRuleId.HasValue
+                                           && !e.IsCompleted
+                                           && (e.StartDate.HasValue || e.DueDate.HasValue)
                 }).ToList();
 
             // 4. KPI

@@ -120,11 +120,12 @@
         // ?? Status Filter ????????????????????????????????????????????????
         $("#status-filter").dxSelectBox({
             items: [
-                { value: null,          text: "All Status" },
-                { value: "completed",   text: "Completed"  },
+                { value: null,          text: "All Status"  },
+                { value: "completed",   text: "Completed"   },
                 { value: "inprogress",  text: "In Progress" },
                 { value: "notstarted",  text: "Not Started" },
-                { value: "overdue",     text: "Overdue"     }
+                { value: "overdue",     text: "Overdue"     },
+                { value: "cancelled",   text: "Cancelled"   }
             ],
             displayExpr: "text", valueExpr: "value",
             value: null,
@@ -146,6 +147,7 @@
                                                         "and",["progress",">",0]]);
             else if (val === "overdue")    grid.filter([["isCompleted","=",false],
                                                         "and",["dueDate","<",now]]);
+            else if (val === "cancelled")   grid.filter(["isAssignmentCancelled","=",true]);
         }
 
         // ?? History Grid ?????????????????????????????????????????????????
@@ -155,8 +157,9 @@
             searchPanel: { visible: true, placeholder: "Search courses..." },
             onRowPrepared: function (e) {
                 if (e.rowType !== "data") return;
-                if (e.data.isCompleted)       $(e.rowElement).css("background-color", "#f6ffed");
-                else if (e.data.progress > 0) $(e.rowElement).css("background-color", "#fffbe6");
+                if (e.data.isCompleted)               $(e.rowElement).css("background-color", "#f6ffed");
+                else if (e.data.isAssignmentCancelled) $(e.rowElement).css({ "background-color": "#f5f5f5", "opacity": "0.75" });
+                else if (e.data.progress > 0)          $(e.rowElement).css("background-color", "#fffbe6");
             },
             columns: [
                 {
@@ -194,11 +197,14 @@
                     }
                 },
                 {
-                    dataField: "isCompleted", caption: "Status", width: 120, alignment: "center",
+                    dataField: "isCompleted", caption: "Status", width: 130, alignment: "center",
                     cellTemplate: (c, o) => {
                         const now = new Date();
-                        let cls, label;
-                        if (o.value) {
+                        let cls, label, icon = "";
+                        if (o.data.isAssignmentCancelled) {
+                            cls = "pill-default"; label = "Cancelled";
+                            icon = `<i class="fas fa-ban me-1" style="font-size:10px;opacity:.55;"></i>`;
+                        } else if (o.value) {
                             cls = "pill-success"; label = "Completed";
                         } else if (o.data.dueDate && new Date(o.data.dueDate) < now) {
                             cls = "pill-danger";  label = "Overdue";
@@ -207,7 +213,7 @@
                         } else {
                             cls = "pill-default"; label = "Not Started";
                         }
-                        $("<span>").addClass(`tag-pill ${cls}`).text(label).appendTo(c);
+                        $(`<span class="tag-pill ${cls}">${icon}${label}</span>`).appendTo(c);
                     }
                 },
                 {

@@ -34,7 +34,7 @@
 <div class="container-fluid px-4 py-4">
 
     <!-- ?? Group Info Card ?? -->
-    <div class="border rounded bg-white p-3 mb-4 d-flex align-items-center gap-3">
+    <div class="border rounded bg-white p-3 mb-4 d-flex align-items-center gap-3 flex-wrap">
         <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
              style="width:48px;height:48px;background:#e6f4ff;color:var(--accent-color);">
             <i class="fas fa-users fa-lg"></i>
@@ -43,16 +43,42 @@
             <div class="fw-bold text-dark" style="font-size:14px;" id="info-name">—</div>
             <div class="text-secondary" style="font-size:12px;" id="info-desc">—</div>
         </div>
-        <div class="text-center px-4 border-start">
+        <div class="text-center px-3 border-start">
             <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="info-count">—</div>
             <div class="text-secondary" style="font-size:11px;">Members</div>
         </div>
+        <div class="text-center px-3 border-start">
+            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="kpi-assignment-count">—</div>
+            <div class="text-secondary" style="font-size:11px;">Assignments</div>
+        </div>
+        <div class="text-center px-3 border-start">
+            <div class="fw-bold" style="font-size:22px;color:var(--success-color);" id="kpi-completed-count">—</div>
+            <div class="text-secondary" style="font-size:11px;">Completed</div>
+        </div>
     </div>
 
-    <!-- ?? Members Grid ?? -->
+    <!-- ?? Tabs ?? -->
     <div class="border rounded bg-white">
-        <div class="p-3 section-title">Members</div>
-        <div id="grid-members"></div>
+        <div class="d-flex border-bottom px-1">
+            <button id="tab-btn-members" onclick="switchTab('members', this)"
+                    style="padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;
+                           color:var(--accent-color);border-bottom:2px solid var(--accent-color);cursor:pointer;">
+                <i class="fas fa-users me-1"></i> Members
+                <span class="tag-pill pill-default ms-1" style="font-size:10px;" id="tab-badge-members">0</span>
+            </button>
+            <button id="tab-btn-assignments" onclick="switchTab('assignments', this)"
+                    style="padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;
+                           color:var(--text-secondary);border-bottom:2px solid transparent;cursor:pointer;">
+                <i class="fas fa-clipboard-list me-1"></i> Assignment History
+                <span class="tag-pill pill-default ms-1" style="font-size:10px;" id="tab-badge-assignments">0</span>
+            </button>
+        </div>
+        <div id="panel-members">
+            <div id="grid-members"></div>
+        </div>
+        <div id="panel-assignments" style="display:none;">
+            <div id="grid-assignments"></div>
+        </div>
     </div>
 
 </div>
@@ -685,10 +711,150 @@
             $("#info-name").text(g.name);
             $("#info-desc").text(g.description || "No description");
             $("#info-count").text(members.length);
+            $("#tab-badge-members").text(members.length);
 
             membersGrid.option("dataSource", members);
         }).fail(function () {
             DevExpress.ui.notify("Error loading group detail.", "error", 3000);
+        });
+    }
+
+    // ?? Tab Switch ??
+    function switchTab(tab, btn) {
+        ["members", "assignments"].forEach(t => {
+            const b = document.getElementById(`tab-btn-${t}`);
+            b.style.color        = "var(--text-secondary)";
+            b.style.borderBottom = "2px solid transparent";
+        });
+        btn.style.color        = "var(--accent-color)";
+        btn.style.borderBottom = "2px solid var(--accent-color)";
+        document.getElementById("panel-members").style.display     = tab === "members"     ? "" : "none";
+        document.getElementById("panel-assignments").style.display = tab === "assignments" ? "" : "none";
+        if (tab === "assignments" && !assignmentHistoryLoaded) loadAssignmentHistory();
+    }
+
+    // ?? Assignment History Grid ??
+    let assignmentHistoryLoaded = false;
+
+    const assignmentGrid = initDxGrid("#grid-assignments", {
+        dataSource: [],
+        showBorders: false, showRowLines: true, hoverStateEnabled: true,
+        searchPanel: { visible: true, placeholder: "Search assignments..." },
+        onRowPrepared: function (e) {
+            if (e.rowType !== "data") return;
+            if (e.data.status === "Expired")   $(e.rowElement).css("background-color", "#fff2f0");
+            if (e.data.status === "Completed") $(e.rowElement).css("background-color", "#f6ffed");
+        },
+        columns: [
+            {
+                dataField: "assignmentNo", caption: "Assignment No", width: 150,
+                sortOrder: "desc", alignment: "center",
+                cellTemplate: (c, o) =>
+                    $("<span>").css({ fontSize: "12px", fontWeight: "700", color: "var(--text-primary)" })
+                               .text(o.value || "—").appendTo(c)
+            },
+            {
+                dataField: "courseNames", caption: "Courses", minWidth: 200,
+                cellTemplate: function (c, o) {
+                    const courses = (o.value || "").split(", ").filter(x => x.trim());
+                    if (!courses.length) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
+                    const wrap = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(c);
+                    courses.slice(0, 2).forEach(n =>
+                        $("<span>").addClass("tag-pill pill-default").css("font-size","10px").text(n).appendTo(wrap)
+                    );
+                    if (courses.length > 2)
+                        $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                   .text(`+${courses.length - 2} more`).appendTo(wrap);
+                }
+            },
+            {
+                dataField: "description", caption: "Description", minWidth: 160,
+                cellTemplate: (c, o) => {
+                    const t = o.value || "—";
+                    $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                               .text(t.length > 50 ? t.slice(0, 50) + "…" : t)
+                               .attr("title", t).appendTo(c);
+                }
+            },
+            {
+                dataField: "completionPct", caption: "Progress", width: 140, alignment: "center",
+                cellTemplate: (c, o) => {
+                    const pct   = o.value || 0;
+                    const color = pct === 100 ? "var(--success-color)"
+                                : pct >= 50  ? "var(--accent-color)"
+                                :               "var(--warning-color)";
+                    $("<div>").addClass("d-flex align-items-center gap-2")
+                        .append(
+                            $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
+                                             borderRadius: "2px", overflow: "hidden" })
+                                .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
+                        )
+                        .append(
+                            $("<span>").css({ fontSize: "11px", fontWeight: "600",
+                                              minWidth: "32px", color: "var(--text-secondary)" })
+                                       .text(pct + "%")
+                        )
+                        .appendTo(c);
+                }
+            },
+            {
+                dataField: "status", caption: "Status", width: 120, alignment: "center",
+                cellTemplate: (c, o) => {
+                    const map = {
+                        "Completed":  { cls: "pill-success", text: "Completed"   },
+                        "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
+                        "Expired":    { cls: "pill-danger",   text: "Expired"     },
+                        "InProgress": { cls: "pill-info",     text: "In Progress" }
+                    };
+                    const s = map[o.value] ?? { cls: "pill-default", text: o.value || "—" };
+                    $(`<span class="status-pill ${s.cls}">${s.text}</span>`).appendTo(c);
+                }
+            },
+            {
+                dataField: "startDate", caption: "Start", width: 100, alignment: "center",
+                cellTemplate: (c, o) =>
+                    $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                               .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                               .appendTo(c)
+            },
+            {
+                dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
+                cellTemplate: (c, o) => {
+                    if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
+                    const isPast = new Date(o.value) < new Date();
+                    $("<span>").css({ fontSize: "11px",
+                                      color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
+                                      fontWeight: isPast ? "600" : "400" })
+                               .text(new Date(o.value).toLocaleDateString("en-GB")).appendTo(c);
+                }
+            },
+            {
+                type: "buttons", caption: "Actions", width: 70,
+                alignment: "center", fixed: true, fixedPosition: "right",
+                buttons: [{
+                    hint: "View Dashboard", icon: "info",
+                    onClick: e => window.location.href =
+                        `@Url.Action("Progress", "Assignments")/${e.row.data.id}`
+                }]
+            }
+        ]
+    });
+
+    function loadAssignmentHistory() {
+        $.ajax({
+            url: `${serviceUrl}/Assignments/group/${GROUP_ID}/history`,
+            method: "GET",
+            xhrFields: { withCredentials: true }
+        }).done(function (res) {
+            const data = res.data || [];
+            assignmentHistoryLoaded = true;
+            const completedCount = data.filter(d => d.status === "Completed").length;
+            $("#kpi-assignment-count").text(data.length);
+            $("#kpi-completed-count").text(completedCount);
+            $("#tab-badge-assignments").text(data.length);
+            assignmentGrid.option("dataSource", data);
+        }).fail(function () {
+            DevExpress.ui.notify("Error loading assignment history.", "error", 3000);
         });
     }
 </script>
