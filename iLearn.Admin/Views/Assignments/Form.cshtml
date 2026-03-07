@@ -649,8 +649,8 @@
                     method: "POST", contentType: "application/json",
                     data: JSON.stringify(payload), xhrFields: { withCredentials: true },
                     success: function (res) {
-                        DevExpress.ui.notify("Assigned successfully!", "success", 3000);
-                        setTimeout(() => window.location.href = '@Url.Action("Index", "Assignments")', 1500);
+                        DevExpress.ui.notify("Assigned successfully!", "success", 2000);
+                        setTimeout(() => window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`, 1500);
                     },
                     error: function (err) {
                         DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);

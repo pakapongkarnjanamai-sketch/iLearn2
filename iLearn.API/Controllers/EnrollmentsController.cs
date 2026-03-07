@@ -28,6 +28,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
         private readonly IScormService _scormService;
+        private readonly IStudentGroupService _studentGroupService;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -37,7 +38,8 @@ namespace iLearn.API.Controllers
             ICurrentUserService currentUser,
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<CourseVersion> versionRepo,
-            IScormService scormService)
+            IScormService scormService,
+            IStudentGroupService studentGroupService)
         {
             _enrollmentRepo = enrollmentRepo;
             _enrollmentService = enrollmentService;
@@ -47,6 +49,7 @@ namespace iLearn.API.Controllers
             _logRepo = logRepo;
             _versionRepo = versionRepo;
             _scormService = scormService;
+            _studentGroupService = studentGroupService;
         }
 
         [HttpPost("ResetStatus")]
@@ -247,6 +250,12 @@ namespace iLearn.API.Controllers
         [HttpPost("BulkAssign")]
         public async Task<IActionResult> BulkAssign([FromBody] BulkAssignDto dto)
         {
+            // resolve GroupId → EmployeeCodes ถ้า Assign จาก Student Group
+            if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
+            {
+                dto.EmployeeCodes = await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
+            }
+
             if (dto.CourseIds == null || !dto.CourseIds.Any() || dto.EmployeeCodes == null || !dto.EmployeeCodes.Any())
             {
                 return BadRequest(new { message = "Courses and Employees are required." });
@@ -288,6 +297,7 @@ namespace iLearn.API.Controllers
             string employeesStr = string.Join(",", dto.EmployeeCodes);
 
             // 2. วนลูปสร้าง Assignments Rule ตามจำนวนวิชาที่เลือก
+            int firstAssignmentId = 0;
             foreach (var courseId in dto.CourseIds)
             {
                 var rule = new Assignment
@@ -304,11 +314,13 @@ namespace iLearn.API.Controllers
                 // บันทึก Rule ลง Database
                 await _assignmentRepo.AddAsync(rule);
 
+                if (firstAssignmentId == 0) firstAssignmentId = rule.Id;
+
                 // 3. นำ EmployeeCodes ไป Insert ลงตาราง Enrollment และผูกกับ rule.Id ด้วย
                 await _enrollmentService.AssignCourseToEmployees(courseId, dto.EmployeeCodes, dto.StartDate, dto.DueDate, rule.Id);
             }
 
-            return Ok(new { message = "Courses assigned successfully!", assignmentNo = assignmentNo });
+            return Ok(new { message = "Courses assigned successfully!", assignmentNo = assignmentNo, assignmentId = firstAssignmentId });
         }
     }
 }

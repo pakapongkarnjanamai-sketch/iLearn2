@@ -19,19 +19,22 @@ namespace iLearn.API.Controllers
         public readonly IGenericRepository<Enrollment> _enrollmentRepo;
         public readonly IGenericRepository<Course> _courseRepo;
         private readonly IStudentApiService _studentApiService;
+        private readonly IStudentGroupService _studentGroupService;
 
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
             ICourseAssignmentService assignmentService,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Course> courseRepo,
-            IStudentApiService studentApiService)
+            IStudentApiService studentApiService,
+            IStudentGroupService studentGroupService)
         {
             _repo = repo;
             _assignmentService = assignmentService;
             _enrollmentRepo = enrollmentRepo;
             _courseRepo = courseRepo;
             _studentApiService = studentApiService;
+            _studentGroupService = studentGroupService;
         }
 
         [HttpGet("history")]
@@ -192,6 +195,14 @@ namespace iLearn.API.Controllers
         [HttpPost("validate-before-assign")]
         public async Task<IActionResult> ValidateBeforeAssign([FromBody] BulkAssignDto dto)
         {
+            // resolve GroupId → EmployeeCodes ถ้า Assign จาก Student Group
+            if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
+            {
+                dto.EmployeeCodes = await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
+                if (dto.EmployeeCodes.Count == 0)
+                    return BadRequest(new { message = "The selected group has no members." });
+            }
+
             var conflicts = await _enrollmentRepo.GetAsync(
                 filter: e => dto.EmployeeCodes.Contains(e.StudentCode) &&
                              dto.CourseIds.Contains(e.CourseId ?? 0) &&
@@ -205,7 +216,7 @@ namespace iLearn.API.Controllers
                 DueDate     = c.DueDate
             }).ToList();
 
-            return Ok(new { success = true, conflicts = result });
+            return Ok(new { success = true, conflicts = result, resolvedCount = dto.EmployeeCodes.Count });
         }
 
         [HttpPatch("{id}/extend-due-date")]

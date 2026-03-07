@@ -19,6 +19,9 @@
         <div class="text-secondary" style="font-size:12px;" id="page-subtitle">Loading...</div>
     </div>
     <div class="d-flex gap-2">
+        <a href="javascript:void(0);" class="action-link primary" id="btn-assign-course">
+            <i class="fas fa-book-open"></i> Assign Course
+        </a>
         <a href="javascript:void(0);" class="action-link primary" id="btn-add-members">
             <i class="fas fa-user-plus"></i> Add Members
         </a>
@@ -56,6 +59,9 @@
 
 <!-- ?? Add Members Popup ?? -->
 <div id="popup-add-members"></div>
+
+<!-- ?? Assign Course Popup ?? -->
+<div id="popup-assign-course"></div>
 
 @section Scripts {
 <script>
@@ -339,6 +345,307 @@
 
         // ?? Open Add Members Popup ??
         $("#btn-add-members").click(() => addPopup.show());
+
+        // ?? Assign Course Popup ??
+        let selectedCourseIds = [];
+
+        const assignCoursePopup = $("#popup-assign-course").dxPopup({
+            title: "Assign Course to Group",
+            width: "90vw", maxWidth: 1200, height: "85vh",
+            showCloseButton: true, dragEnabled: true,
+            wrapperAttr: { class: "shadow-lg rounded-4" },
+            contentTemplate: function (contentElement) {
+                $(`
+                    <div class="d-flex h-100 gap-3">
+                        <div style="width:260px; flex-shrink:0;">
+                            <div class="filter-panel h-100 d-flex flex-column gap-3">
+                                <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
+                                    <div id="ac-filter-type"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <div id="ac-filter-div"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Category</label>
+                                    <div id="ac-filter-cat"></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="ac-btn-clear-filter">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                            <div id="ac-grid-courses" class="flex-grow-1"></div>
+                        </div>
+                    </div>
+                `).appendTo(contentElement);
+
+                let allCoursesData = [];
+
+                const courseGrid = $("#ac-grid-courses").dxDataGrid({
+                    dataSource: [],
+                    showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                    hoverStateEnabled: true,
+                    filterRow: { visible: true },
+                    searchPanel: { visible: true, placeholder: "Search code or title...", width: 250 },
+                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                    scrolling: { mode: "virtual" },
+                    height: "100%",
+                    noDataText: "No courses found.",
+                    columns: [
+                        {
+                            dataField: "code", caption: "Code", width: 110,
+                            cellTemplate: (c, o) =>
+                                $('<span>').addClass('tag-pill pill-default fw-bold').text(o.value).appendTo(c)
+                        },
+                        { dataField: "title", caption: "Course Title", minWidth: 180 },
+                        {
+                            dataField: "courseTypeName", caption: "Type", width: 130, alignment: "center",
+                            cellTemplate: (c, o) => {
+                                if (!o.value) return;
+                                $('<span>').addClass('tag-pill pill-info').text(o.value).appendTo(c);
+                            }
+                        }
+                    ],
+                    onSelectionChanged: function (e) {
+                        selectedCourseIds = e.selectedRowKeys;
+                        $("#ac-selection-hint").html(
+                            selectedCourseIds.length > 0
+                                ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedCourseIds.length}</b> course(s) selected.`
+                                : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
+                        );
+                    }
+                }).dxDataGrid("instance");
+
+                $.ajax({
+                    url: `${serviceUrl}/Assignments/lookup-courses`,
+                    method: "GET", xhrFields: { withCredentials: true }
+                }).done(function (res) {
+                    allCoursesData = res.data || [];
+                    courseGrid.option("dataSource", new DevExpress.data.DataSource({
+                        store: new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData })
+                    }));
+                });
+
+                function applyFilters() {
+                    const typeVal = $("#ac-filter-type").dxSelectBox("instance").option("value");
+                    const divVal  = $("#ac-filter-div").dxSelectBox("instance").option("value");
+                    const catVal  = $("#ac-filter-cat").dxSelectBox("instance").option("value");
+                    const conds = [];
+                    if (typeVal) conds.push(["courseTypeId", "=", typeVal]);
+                    if (divVal)  conds.push(["divisionId",   "=", divVal]);
+                    if (catVal)  conds.push(["categoryId",   "=", catVal]);
+                    if (!conds.length) { courseGrid.clearFilter(); return; }
+                    let f = conds[0];
+                    for (let i = 1; i < conds.length; i++) f = [f, "and", conds[i]];
+                    courseGrid.filter(f);
+                }
+
+                $("#ac-filter-type").dxSelectBox({
+                    dataSource: createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' }),
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Types", showClearButton: true,
+                    onValueChanged: applyFilters
+                });
+
+                $("#ac-filter-div").dxSelectBox({
+                    dataSource: createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Divisions", showClearButton: true,
+                    onValueChanged: function (e) {
+                        const catBox = $("#ac-filter-cat").dxSelectBox("instance");
+                        catBox.option("value", null);
+                        if (e.value) {
+                            catBox.option("dataSource", createDataStore(serviceUrl, 'admin/CategoriesCRUD', {
+                                key: 'id', action: 'Get', filter: ["divisionId", "=", e.value]
+                            }));
+                            catBox.option("disabled", false);
+                        } else {
+                            catBox.option({ dataSource: [], disabled: true });
+                        }
+                        applyFilters();
+                    }
+                });
+
+                $("#ac-filter-cat").dxSelectBox({
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Categories", showClearButton: true, disabled: true,
+                    onValueChanged: applyFilters
+                });
+
+                $("#ac-btn-clear-filter").click(function () {
+                    $("#ac-filter-type").dxSelectBox("instance").option("value", null);
+                    $("#ac-filter-div").dxSelectBox("instance").option("value", null);
+                    $("#ac-filter-cat").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+                    courseGrid.clearFilter();
+                });
+            },
+            toolbarItems: [
+                {
+                    toolbar: "bottom", location: "before",
+                    template: () => $(`<div id="ac-selection-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center"><i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.</div>`)
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Cancel", stylingMode: "outlined",
+                        onClick: () => assignCoursePopup.hide()
+                    }
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Next: Set Details", type: "default", stylingMode: "contained",
+                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        onClick: () => openAssignDetailsPopup()
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+
+        $("#btn-assign-course").click(function () {
+            selectedCourseIds = [];
+            assignCoursePopup.show();
+        });
+
+        // ?? Assign Details Popup (description + dates) ??
+        const assignDetailsPopup = $("<div id='popup-assign-details'>").appendTo("body").dxPopup({
+            title: "Assignment Details",
+            width: 500, height: "auto",
+            showCloseButton: true, dragEnabled: true,
+            deferRendering: false,
+            wrapperAttr: { class: "shadow-lg rounded-4" },
+            contentTemplate: function (contentElement) {
+                $(`<div id="form-assign-details" class="px-1 pt-2"></div>`).appendTo(contentElement);
+                $("#form-assign-details").dxForm({
+                    labelMode: "floating",
+                    formData: { description: "", startDate: null, dueDate: null },
+                    items: [
+                        {
+                            dataField: "description",
+                            label: { text: "Description" },
+                            editorType: "dxTextArea",
+                            editorOptions: { height: 100 },
+                            validationRules: [{ type: "required", message: "Required" }]
+                        },
+                        {
+                            itemType: "group", colCount: 2,
+                            items: [
+                                {
+                                    dataField: "startDate",
+                                    label: { text: "Start Date" },
+                                    editorType: "dxDateBox",
+                                    editorOptions: { displayFormat: "dd/MM/yyyy", width: "100%" },
+                                    validationRules: [{ type: "required", message: "Required" }]
+                                },
+                                {
+                                    dataField: "dueDate",
+                                    label: { text: "Due Date" },
+                                    editorType: "dxDateBox",
+                                    editorOptions: { displayFormat: "dd/MM/yyyy", width: "100%" },
+                                    validationRules: [{ type: "required", message: "Required" }]
+                                }
+                            ]
+                        }
+                    ]
+                });
+            },
+            toolbarItems: [
+                {
+                    toolbar: "bottom", location: "before",
+                    template: () => $(`
+                        <div class="text-muted small d-flex align-items-center gap-1">
+                            <i class="fas fa-book-open text-primary"></i>
+                            <span id="ad-course-count" class="fw-bold text-dark"></span>
+                            <span class="text-muted">course(s) selected</span>
+                        </div>`)
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Back", stylingMode: "outlined",
+                        onClick: () => { assignDetailsPopup.hide(); assignCoursePopup.show(); }
+                    }
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Assign", type: "default", stylingMode: "contained",
+                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        onClick: () => submitGroupAssign()
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+
+        function openAssignDetailsPopup() {
+            if (selectedCourseIds.length === 0) {
+                DevExpress.ui.notify("Please select at least one course.", "warning", 3000);
+                return;
+            }
+            $("#ad-course-count").text(selectedCourseIds.length);
+            $("#form-assign-details").dxForm("instance").option("formData", {
+                description: "", startDate: null, dueDate: null
+            });
+            assignCoursePopup.hide();
+            assignDetailsPopup.show();
+        }
+
+        function submitGroupAssign() {
+            const form = $("#form-assign-details").dxForm("instance");
+            if (!form.validate().isValid) return;
+            const fd = form.option("formData");
+
+            const payload = {
+                groupId: GROUP_ID,
+                courseIds: selectedCourseIds,
+                description: fd.description,
+                startDate: fd.startDate,
+                dueDate: fd.dueDate,
+                employeeCodes: []
+            };
+
+            $.ajax({
+                url: `${serviceUrl}/Assignments/validate-before-assign`,
+                method: "POST", contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
+            }).done(function (res) {
+                const memberCount = res.resolvedCount || 0;
+                const conflictCount = res.conflicts?.length || 0;
+                const conflictNote = conflictCount > 0
+                    ? `<br><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${conflictCount} existing enrollment(s) will get a new attempt</small>`
+                    : `<br><small class="text-success"><i class="fas fa-check-circle me-1"></i>No conflicts found</small>`;
+
+                assignDetailsPopup.hide();
+
+                DevExpress.ui.dialog.confirm(
+                    `Assign <b>${selectedCourseIds.length}</b> course(s) to <b>${memberCount}</b> member(s)?${conflictNote}`,
+                    "Confirm Assignment"
+                ).then(function (confirmed) {
+                    if (!confirmed) return;
+                    $.ajax({
+                        url: `${serviceUrl}/Enrollments/BulkAssign`,
+                        method: "POST", contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        xhrFields: { withCredentials: true }
+                    }).done(function (res) {
+                        DevExpress.ui.notify("Courses assigned successfully!", "success", 2000);
+                        setTimeout(() => {
+                            window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`;
+                        }, 1500);
+                    }).fail(function (err) {
+                        DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
+                    });
+                });
+            }).fail(function (err) {
+                assignDetailsPopup.hide();
+                DevExpress.ui.notify("Validation error: " + (err.responseJSON?.message || "Failed"), "error", 4000);
+            });
+        }
 
         // ?? Remove Member ??
         window.confirmRemoveMember = function (data) {
