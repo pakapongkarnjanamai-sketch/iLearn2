@@ -1,0 +1,387 @@
+@{
+    ViewBag.Title = "Manage Group Members";
+    var groupId = ViewBag.GroupId is int gid ? gid : 0;
+}
+
+<style>
+    .filter-panel {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 16px;
+    }
+</style>
+
+<!-- ?? Page Header ?? -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;" id="page-title">Manage Group Members</div>
+        <div class="text-secondary" style="font-size:12px;" id="page-subtitle">Loading...</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="javascript:void(0);" class="action-link primary" id="btn-add-members">
+            <i class="fas fa-user-plus"></i> Add Members
+        </a>
+        <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
+            <i class="fas fa-arrow-left text-secondary"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- ?? Group Info Card ?? -->
+    <div class="border rounded bg-white p-3 mb-4 d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:48px;height:48px;background:#e6f4ff;color:var(--accent-color);">
+            <i class="fas fa-users fa-lg"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="fw-bold text-dark" style="font-size:14px;" id="info-name">—</div>
+            <div class="text-secondary" style="font-size:12px;" id="info-desc">—</div>
+        </div>
+        <div class="text-center px-4 border-start">
+            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="info-count">—</div>
+            <div class="text-secondary" style="font-size:11px;">Members</div>
+        </div>
+    </div>
+
+    <!-- ?? Members Grid ?? -->
+    <div class="border rounded bg-white">
+        <div class="p-3 section-title">Members</div>
+        <div id="grid-members"></div>
+    </div>
+
+</div>
+
+<!-- ?? Add Members Popup ?? -->
+<div id="popup-add-members"></div>
+
+@section Scripts {
+<script>
+    const GROUP_ID = @groupId;
+    let membersGrid;
+
+    $(() => {
+
+        // ?? Members Grid ??
+        membersGrid = initDxGrid("#grid-members", {
+            dataSource: [],
+            showBorders: false,
+            showRowLines: true,
+            hoverStateEnabled: true,
+            searchPanel: { visible: true, placeholder: "Search by ID or name..." },
+            columns: [
+                {
+                    dataField: "studentCode", caption: "Employee ID", width: 130,
+                    cellTemplate: (c, o) =>
+                        $("<span>").addClass("tag-pill pill-default fw-bold")
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "studentName", caption: "Full Name", minWidth: 180,
+                    cellTemplate: (c, o) =>
+                        $("<span>").addClass("fw-medium text-dark")
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "division", caption: "Division", width: 130,
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "department", caption: "Department", width: 130,
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "section", caption: "Section", minWidth: 130,
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "position", caption: "Position", width: 110, alignment: "center",
+                    cellTemplate: (c, o) => {
+                        if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
+                        $("<span>").addClass("tag-pill pill-default").text(o.value).appendTo(c);
+                    }
+                },
+                {
+                    type: "buttons", caption: "Actions", width: 90,
+                    alignment: "center", fixed: true, fixedPosition: "right",
+                    buttons: [{
+                        hint: "Remove from group", icon: "remove",
+                        onClick: e => confirmRemoveMember(e.row.data)
+                    }]
+                }
+            ]
+        });
+
+        loadGroupDetail();
+
+        // ?? Add Members Popup ??
+        let confirmAddFn = null;
+
+        const addPopup = $("#popup-add-members").dxPopup({
+            title: "Add Members to Group",
+            width: "90vw", maxWidth: 1200, height: "85vh",
+            showCloseButton: true, dragEnabled: true,
+            wrapperAttr: { class: "shadow-lg rounded-4" },
+            contentTemplate: function (contentElement) {
+                $(`
+                    <div class="d-flex h-100 gap-3">
+                        <div style="width:240px; flex-shrink:0;">
+                            <div class="filter-panel h-100 d-flex flex-column gap-3">
+                                <h6 class="fw-bold mb-0">
+                                    <i class="fas fa-filter text-primary me-2"></i>Filters
+                                </h6>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <div id="filter-div"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                    <div id="filter-dept"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                    <div id="filter-section"></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-filter">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                            <div id="grid-add-students" class="flex-grow-1"></div>
+                        </div>
+                    </div>
+                `).appendTo(contentElement);
+
+                let selectedCodes = [];
+
+                const addGrid = $("#grid-add-students").dxDataGrid({
+                    dataSource: DevExpress.data.AspNet.createStore({
+                        key: "EId",
+                        loadUrl: `${serviceUrl}/Students/Get`,
+                        onBeforeSend: (m, opts) => opts.xhrFields = { withCredentials: true }
+                    }),
+                    remoteOperations: true,
+                    showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                    hoverStateEnabled: true,
+                    filterRow: { visible: true },
+                    searchPanel: { visible: true, placeholder: "Search ID or name...", width: 240 },
+                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                    scrolling: { mode: "virtual" },
+                    height: "100%",
+                    noDataText: "No students found.",
+                    columns: [
+                        {
+                            dataField: "EId", caption: "ID", width: 110,
+                            cellTemplate: (c, o) =>
+                                $("<span>").addClass("tag-pill pill-default fw-bold").text(o.value).appendTo(c)
+                        },
+                        {
+                            caption: "Name", minWidth: 160,
+                            calculateCellValue: d =>
+                                [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
+                            cellTemplate: (c, o) =>
+                                $("<span>").addClass("fw-medium text-dark").text(o.value).appendTo(c)
+                        },
+                        { dataField: "Division", caption: "Division", width: 120 },
+                        { dataField: "Department", caption: "Dept.", width: 100 },
+                        {
+                            dataField: "Section", caption: "Section", minWidth: 120,
+                            cellTemplate: (c, o) =>
+                                $("<span>").addClass("text-muted small").text(o.value || "—").appendTo(c)
+                        }
+                    ],
+                    onSelectionChanged: function (e) {
+                        selectedCodes = e.selectedRowKeys;
+                        $("#add-hint").html(
+                            selectedCodes.length > 0
+                                ? `<i class="fas fa-check-circle text-success me-1"></i>
+                                   <b>${selectedCodes.length}</b> student(s) selected.`
+                                : `<i class="fas fa-info-circle text-primary me-1"></i>
+                                   Check the rows to add.`
+                        );
+                    }
+                }).dxDataGrid("instance");
+
+                // ?? Lookup store helper ??
+                function makeLookup(endpoint, q) {
+                    return new DevExpress.data.CustomStore({
+                        key: "Name",
+                        load: () => $.ajax({
+                            url: `${serviceUrl}/Students/${endpoint}${q || ""}`,
+                            method: "GET", xhrFields: { withCredentials: true }
+                        }).then(res => res.data || res)
+                    });
+                }
+
+                // ?? Filter helpers ??
+                function buildFilter() {
+                    const divVal  = $("#filter-div").dxSelectBox("instance").option("value");
+                    const deptVal = $("#filter-dept").dxSelectBox("instance").option("value");
+                    const secVal  = $("#filter-section").dxSelectBox("instance").option("value");
+                    const conds = [];
+                    if (divVal)  conds.push(["Division",   "=", divVal]);
+                    if (deptVal) conds.push(["Department", "=", deptVal]);
+                    if (secVal)  conds.push(["Section",    "=", secVal]);
+                    if (!conds.length) { addGrid.clearFilter(); return; }
+                    let f = conds[0];
+                    for (let i = 1; i < conds.length; i++) f = [f, "and", conds[i]];
+                    addGrid.filter(f);
+                }
+
+                const divBox = $("#filter-div").dxSelectBox({
+                    dataSource: makeLookup("GetDivisions"),
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Divisions", showClearButton: true,
+                    onValueChanged: function (e) {
+                        const deptBox = $("#filter-dept").dxSelectBox("instance");
+                        deptBox.option({
+                            value: null, disabled: !e.value,
+                            dataSource: e.value
+                                ? makeLookup("GetDepartments", `?filter=["Division","=","${e.value}"]`)
+                                : []
+                        });
+                        $("#filter-section").dxSelectBox("instance")
+                                            .option({ value: null, disabled: true, dataSource: [] });
+                        buildFilter();
+                    }
+                }).dxSelectBox("instance");
+
+                $("#filter-dept").dxSelectBox({
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Departments", showClearButton: true, disabled: true,
+                    onValueChanged: function (e) {
+                        const secBox = $("#filter-section").dxSelectBox("instance");
+                        const divVal = divBox.option("value");
+                        const q = e.value
+                            ? `?filter=[["Division","=","${divVal}"],"and",["Department","=","${e.value}"]]`
+                            : (divVal ? `?filter=["Division","=","${divVal}"]` : "");
+                        secBox.option({
+                            value: null, disabled: !e.value,
+                            dataSource: e.value ? makeLookup("GetSections", q) : []
+                        });
+                        buildFilter();
+                    }
+                });
+
+                $("#filter-section").dxSelectBox({
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Sections", showClearButton: true, disabled: true,
+                    onValueChanged: buildFilter
+                });
+
+                $("#btn-clear-filter").click(function () {
+                    divBox.option("value", null);
+                    $("#filter-dept").dxSelectBox("instance")
+                                     .option({ value: null, disabled: true, dataSource: [] });
+                    $("#filter-section").dxSelectBox("instance")
+                                        .option({ value: null, disabled: true, dataSource: [] });
+                    addGrid.clearFilter();
+                });
+
+                // ???? function confirm ??? toolbar button ??????
+                confirmAddFn = function () {
+                    if (selectedCodes.length === 0) {
+                        DevExpress.ui.notify("Please select at least one student.", "warning", 3000);
+                        return;
+                    }
+                    $.ajax({
+                        url: `${serviceUrl}/StudentGroups/${GROUP_ID}/members`,
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ studentCodes: selectedCodes }),
+                        xhrFields: { withCredentials: true }
+                    }).done(function () {
+                        DevExpress.ui.notify("Members added successfully.", "success", 3000);
+                        addPopup.hide();
+                        loadGroupDetail();
+                    }).fail(function (err) {
+                        DevExpress.ui.notify(
+                            "Error: " + (err.responseJSON?.message || "Failed to add"),
+                            "error", 4000
+                        );
+                    });
+                };
+            },
+            toolbarItems: [
+                {
+                    toolbar: "bottom", location: "before",
+                    template: () => $(`
+                        <div id="add-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center">
+                            <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to add.
+                        </div>`)
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Cancel", stylingMode: "outlined",
+                        onClick: () => addPopup.hide()
+                    }
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Add to Group", type: "default", stylingMode: "contained",
+                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        onClick: () => confirmAddFn && confirmAddFn()
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+
+        // ?? Open Add Members Popup ??
+        $("#btn-add-members").click(() => addPopup.show());
+
+        // ?? Remove Member ??
+        window.confirmRemoveMember = function (data) {
+            DevExpress.ui.dialog.confirm(
+                `Remove <b>${data.studentName || data.studentCode}</b> from this group?`,
+                "Confirm Remove"
+            ).then(function (confirmed) {
+                if (!confirmed) return;
+                $.ajax({
+                    url: `${serviceUrl}/StudentGroups/${GROUP_ID}/members/${data.id}`,
+                    method: "DELETE",
+                    xhrFields: { withCredentials: true }
+                }).done(function () {
+                    DevExpress.ui.notify("Member removed.", "success", 3000);
+                    loadGroupDetail();
+                }).fail(function () {
+                    DevExpress.ui.notify("Failed to remove member.", "error", 3000);
+                });
+            });
+        };
+    });
+
+    // ?? Load group + members ??
+    function loadGroupDetail() {
+        $.ajax({
+            url: `${serviceUrl}/StudentGroups/${GROUP_ID}`,
+            method: "GET",
+            xhrFields: { withCredentials: true }
+        }).done(function (res) {
+            const g = res.data;
+            if (!g) return;
+            const members = g.members || [];
+
+            $("#page-title").text(g.name);
+            $("#page-subtitle").text(g.description || "No description");
+            $("#info-name").text(g.name);
+            $("#info-desc").text(g.description || "No description");
+            $("#info-count").text(members.length);
+
+            membersGrid.option("dataSource", members);
+        }).fail(function () {
+            DevExpress.ui.notify("Error loading group detail.", "error", 3000);
+        });
+    }
+</script>
+}

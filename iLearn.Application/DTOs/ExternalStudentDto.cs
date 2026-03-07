@@ -14,6 +14,7 @@ namespace iLearn.Application.DTOs
         public string Section { get; set; }
         public string Division { get; set; }
         public string Department { get; set; }
+        public string Position { get; set; }
     }
 
     public class StudentDto

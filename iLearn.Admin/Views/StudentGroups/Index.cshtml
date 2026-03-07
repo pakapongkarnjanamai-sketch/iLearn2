@@ -1,0 +1,254 @@
+@{
+    ViewBag.Title = "Student Groups";
+}
+
+<!-- ?? Page Header ?? -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;">Student Groups</div>
+        <div class="text-secondary" style="font-size:12px;">Manage reusable groups of learners for course assignments</div>
+    </div>
+    <a href="javascript:void(0);" class="action-link primary" id="btn-create-group">
+        <i class="fas fa-plus"></i> New Group
+    </a>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- ?? KPI Bar ?? -->
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Groups</div>
+                <div class="kpi-number" id="kpi-total">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-label" style="color:var(--accent-color);">Total Members</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-members">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ?? DataGrid ?? -->
+    <div class="border rounded bg-white">
+        <div class="p-3 section-title">Group List</div>
+        <div id="grid-groups"></div>
+    </div>
+
+</div>
+
+<!-- ?? Create / Edit Popup ?? -->
+<div id="popup-form"></div>
+
+@section Scripts {
+<script>
+    let gridInstance;
+    let allGroups = [];
+    let editingGroupId = null;
+
+    $(() => {
+
+        // ?? DataGrid ??
+        gridInstance = initDxGrid("#grid-groups", {
+            dataSource: [],
+            selection: { mode: "single" },
+            showBorders: false,
+            showRowLines: true,
+            hoverStateEnabled: true,
+            searchPanel: { visible: true, placeholder: "Search groups..." },
+            columns: [
+                {
+                    dataField: "name", caption: "Group Name", minWidth: 200,
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" })
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "description", caption: "Description", minWidth: 240,
+                    cellTemplate: (c, o) => {
+                        const t = o.value || "—";
+                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                   .text(t.length > 70 ? t.slice(0, 70) + "…" : t)
+                                   .attr("title", t).appendTo(c);
+                    }
+                },
+                {
+                    dataField: "memberCount", caption: "Members", width: 120, alignment: "center",
+                    cellTemplate: (c, o) =>
+                        $("<span>").addClass("tag-pill pill-info")
+                                   .text(`${o.value ?? 0} members`).appendTo(c)
+                },
+                {
+                    dataField: "createdBy", caption: "Created By", width: 140,
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "createdAt", caption: "Created", width: 110, alignment: "center",
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .appendTo(c)
+                },
+                {
+                    type: "buttons", caption: "Actions", width: 130,
+                    alignment: "center", fixed: true, fixedPosition: "right",
+                    buttons: [
+                        {
+                            hint: "Manage Members", icon: "group",
+                            onClick: e => window.location.href =
+                                `@Url.Action("Detail", "StudentGroups")?id=${e.row.data.id}`
+                        },
+                        {
+                            hint: "Edit", icon: "edit",
+                            onClick: e => openEditPopup(e.row.data)
+                        },
+                        {
+                            hint: "Delete", icon: "trash",
+                            onClick: e => confirmDelete(e.row.data)
+                        }
+                    ]
+                }
+            ]
+        });
+
+        loadGroups();
+
+        // ?? Create/Edit Popup ??
+        const formPopup = $("#popup-form").dxPopup({
+            title: "New Student Group",
+            width: 500,
+            height: "auto",
+            showCloseButton: true,
+            dragEnabled: true,
+            deferRendering: false,
+            wrapperAttr: { class: "shadow-lg rounded-4" },
+            contentTemplate: function (contentElement) {
+                $(`<div id="form-group" class="px-1 pt-2"></div>`).appendTo(contentElement);
+
+                $("#form-group").dxForm({
+                    labelMode: "floating",
+                    formData: { name: "", description: "" },
+                    items: [
+                        {
+                            dataField: "name",
+                            label: { text: "Group Name" },
+                            validationRules: [{ type: "required", message: "Group name is required" }]
+                        },
+                        {
+                            dataField: "description",
+                            label: { text: "Description (optional)" },
+                            editorType: "dxTextArea",
+                            editorOptions: { height: 100 }
+                        }
+                    ]
+                });
+            },
+            toolbarItems: [
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "before",
+                    options: {
+                        text: "Cancel", stylingMode: "outlined",
+                        onClick: () => formPopup.hide()
+                    }
+                },
+                {
+                    widget: "dxButton", toolbar: "bottom", location: "after",
+                    options: {
+                        text: "Save", type: "default", stylingMode: "contained",
+                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        onClick: () => saveGroup()
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+
+        // ?? Open Create ??
+        $("#btn-create-group").click(function () {
+            editingGroupId = null;
+            formPopup.option("title", "New Student Group");
+            getFormInstance().option("formData", { name: "", description: "" });
+            formPopup.show();
+        });
+
+        // ?? Open Edit ??
+        window.openEditPopup = function (data) {
+            editingGroupId = data.id;
+            formPopup.option("title", "Edit Student Group");
+            getFormInstance().option("formData", { name: data.name, description: data.description || "" });
+            formPopup.show();
+        };
+
+        // ?? Save (Create or Update) ??
+        function saveGroup() {
+            const form = getFormInstance();
+            if (!form.validate().isValid) return;
+            const data = form.option("formData");
+
+            const url    = editingGroupId ? `${serviceUrl}/StudentGroups/${editingGroupId}` : `${serviceUrl}/StudentGroups`;
+            const method = editingGroupId ? "PUT" : "POST";
+
+            $.ajax({
+                url, method,
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                xhrFields: { withCredentials: true }
+            }).done(function () {
+                DevExpress.ui.notify(
+                    editingGroupId ? "Group updated successfully." : "Group created successfully.",
+                    "success", 3000
+                );
+                formPopup.hide();
+                loadGroups();
+            }).fail(function (err) {
+                DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to save"), "error", 4000);
+            });
+        }
+
+        // ?? Confirm Delete ??
+        window.confirmDelete = function (data) {
+            DevExpress.ui.dialog.confirm(
+                `<b>Delete group "${data.name}"?</b><br>
+                 <small class="text-muted">All members in this group will also be removed.</small>`,
+                "Confirm Delete"
+            ).then(function (confirmed) {
+                if (!confirmed) return;
+                $.ajax({
+                    url: `${serviceUrl}/StudentGroups/${data.id}`,
+                    method: "DELETE",
+                    xhrFields: { withCredentials: true }
+                }).done(function () {
+                    DevExpress.ui.notify("Group deleted.", "success", 3000);
+                    loadGroups();
+                }).fail(function () {
+                    DevExpress.ui.notify("Failed to delete group.", "error", 3000);
+                });
+            });
+        };
+
+        // ?? Load Data ??
+        function loadGroups() {
+            $.ajax({
+                url: `${serviceUrl}/StudentGroups`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            }).done(function (res) {
+                allGroups = res.data || [];
+                const totalMembers = allGroups.reduce((sum, g) => sum + (g.memberCount || 0), 0);
+                $("#kpi-total").text(allGroups.length);
+                $("#kpi-members").text(totalMembers);
+                gridInstance.option("dataSource", allGroups);
+            }).fail(function () {
+                DevExpress.ui.notify("Error loading student groups.", "error", 3000);
+            });
+        }
+
+        function getFormInstance() {
+            return $("#form-group").dxForm("instance");
+        }
+    });
+</script>
+}

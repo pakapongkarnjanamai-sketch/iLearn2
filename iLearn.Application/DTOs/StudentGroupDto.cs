@@ -26,6 +26,10 @@ namespace iLearn.Application.DTOs
         public int Id { get; set; }
         public string StudentCode { get; set; } = string.Empty;
         public string? StudentName { get; set; }
+        public string? Division { get; set; }
+        public string? Department { get; set; }
+        public string? Section { get; set; }
+        public string? Position { get; set; }
     }
 
     public class CreateStudentGroupDto

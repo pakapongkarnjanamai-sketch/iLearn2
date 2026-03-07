@@ -48,32 +48,41 @@ namespace iLearn.Application.Services
             var group = groups.FirstOrDefault();
             if (group == null) return null;
 
-            // ?????????????????? External API (parallel)
-            var nameTasks = group.Members.Select(async m =>
+            // ???????????????????? External API ??? parallel
+            var profileTasks = group.Members.Select(async m =>
             {
                 try
                 {
-                    var student = await _studentApiService.GetStudentByCodeAsync(m.StudentCode);
-                    return (m.Id, m.StudentCode, Name: student?.Name ?? m.StudentCode);
+                    var s = await _studentApiService.GetStudentByCodeAsync(m.StudentCode);
+                    return new StudentGroupMemberDto
+                    {
+                        Id          = m.Id,
+                        StudentCode = m.StudentCode,
+                        StudentName = s?.Name       ?? m.StudentCode,
+                        Division    = s?.Division,
+                        Department  = s?.Department,
+                        Section     = s?.Section,
+                        Position    = s?.Position
+                    };
                 }
                 catch
                 {
-                    return (m.Id, m.StudentCode, Name: m.StudentCode);
+                    return new StudentGroupMemberDto
+                    {
+                        Id          = m.Id,
+                        StudentCode = m.StudentCode,
+                        StudentName = m.StudentCode
+                    };
                 }
             });
-            var nameResults = await Task.WhenAll(nameTasks);
+            var memberDtos = await Task.WhenAll(profileTasks);
 
             return new StudentGroupDetailDto
             {
                 Id          = group.Id,
                 Name        = group.Name,
                 Description = group.Description,
-                Members     = nameResults.Select(r => new StudentGroupMemberDto
-                {
-                    Id          = r.Id,
-                    StudentCode = r.StudentCode,
-                    StudentName = r.Name
-                }).ToList()
+                Members     = memberDtos.ToList()
             };
         }
 
