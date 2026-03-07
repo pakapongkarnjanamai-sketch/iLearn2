@@ -335,8 +335,10 @@
                         caption: "ID",
                         width: 100,
                         cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "11px", fontWeight: "600", color: "var(--text-primary)" })
-                                       .text(o.value).appendTo(c)
+                            $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
+                                   .css({ fontSize: "11px", fontWeight: "600" })
+                                   .addClass("tag-pill pill-default")
+                                   .text(o.value).appendTo(c)
                     },
                     {
                         dataField: "studentName",
@@ -457,7 +459,8 @@
 
                 return `<tr>
                     <td class="sticky-col align-middle">
-                        <div class="fw-bold" style="font-size:12px;">${code}</div>
+                        <a href="@Url.Action("Profile", "Students")?code=${code}"
+                           class="fw-bold text-dark" style="font-size:12px; text-decoration:none;">${code}</a>
                         <div class="text-muted" style="font-size:11px;">${name !== code ? name : ""}</div>
                     </td>
                     ${cells}

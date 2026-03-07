@@ -1,6 +1,9 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
@@ -10,10 +13,14 @@ namespace iLearn.API.Controllers
     public class StudentsController : ControllerBase
     {
         private readonly IStudentApiService _studentService;
+        private readonly IGenericRepository<Enrollment> _enrollmentRepo;
 
-        public StudentsController(IStudentApiService studentService)
+        public StudentsController(
+            IStudentApiService studentService,
+            IGenericRepository<Enrollment> enrollmentRepo)
         {
             _studentService = studentService;
+            _enrollmentRepo = enrollmentRepo;
         }
 
         [HttpGet("GetStudentbyEID/{employeeCode}")]
@@ -135,6 +142,70 @@ namespace iLearn.API.Controllers
 
             // 3. ส่ง JSON ที่ได้กลับไปให้หน้าบ้านตรงๆ เลย ด้วย ContentType application/json
             return Content(resultJson, "application/json");
+        }
+
+        // ── Student Profile: ข้อมูลส่วนตัว + ประวัติการเรียน ────────────────────
+        [HttpGet("profile/{code}")]
+        public async Task<IActionResult> GetProfile(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return BadRequest(new { message = "Employee code is required." });
+
+            // 1. ข้อมูลส่วนตัวจาก External API
+            var studentInfo = await _studentService.GetStudentByCodeAsync(code);
+
+            // 2. Enrollment ทั้งหมดของ student พร้อม Course
+            var enrollments = await _enrollmentRepo.GetAsync(
+                filter: e => e.StudentCode == code,
+                includeProperties: "Course"
+            );
+
+            // 3. สร้าง history
+            var history = enrollments
+                .OrderByDescending(e => e.StartDate ?? e.CompletedDate)
+                .Select(e => new
+                {
+                    enrollmentId     = e.Id,
+                    courseId         = e.CourseId,
+                    courseCode       = e.Course != null ? e.Course.Code : "-",
+                    courseTitle      = e.Course != null ? e.Course.Title : "Unknown Course",
+                    progress         = e.Progress,
+                    isCompleted      = e.IsCompleted,
+                    startDate        = e.StartDate,
+                    dueDate          = e.DueDate,
+                    completedDate    = e.CompletedDate,
+                    totalScore       = e.TotalScore,
+                    totalTimeSpent   = e.TotalTimeSpent,
+                    assignmentRuleId = e.AssignmentRuleId
+                }).ToList();
+
+            // 4. KPI
+            var totalCourses      = history.Count;
+            var completedCourses  = history.Count(e => e.isCompleted);
+            var inProgressCourses = history.Count(e => !e.isCompleted && e.progress > 0);
+            var totalTimeSpent    = history.Sum(e => e.totalTimeSpent);
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    code       = studentInfo != null ? studentInfo.Code       : code,
+                    name       = studentInfo != null ? studentInfo.Name       : code,
+                    division   = studentInfo != null ? studentInfo.Division   : null,
+                    department = studentInfo != null ? studentInfo.Department : null,
+                    section    = studentInfo != null ? studentInfo.Section    : null,
+                    position   = studentInfo != null ? studentInfo.Position   : null,
+                    kpi = new
+                    {
+                        totalCourses,
+                        completedCourses,
+                        inProgressCourses,
+                        totalTimeSpentSeconds = totalTimeSpent
+                    },
+                    enrollments = history
+                }
+            });
         }
     }
 }

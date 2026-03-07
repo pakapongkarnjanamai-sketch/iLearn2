@@ -81,8 +81,9 @@
                 {
                     dataField: "studentCode", caption: "Employee ID", width: 130,
                     cellTemplate: (c, o) =>
-                        $("<span>").addClass("tag-pill pill-default fw-bold")
-                                   .text(o.value || "—").appendTo(c)
+                        $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
+                               .addClass("tag-pill pill-default fw-bold")
+                               .text(o.value || "—").appendTo(c)
                 },
                 {
                     dataField: "studentName", caption: "Full Name", minWidth: 180,

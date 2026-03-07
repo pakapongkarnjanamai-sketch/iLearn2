@@ -1,0 +1,325 @@
+@{
+    ViewBag.Title = "Student Profile";
+    var studentCode = ViewBag.StudentCode as string ?? "";
+}
+
+<style>
+    .profile-avatar {
+        width: 72px; height: 72px;
+        background: linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%);
+        color: var(--accent-color);
+        border-radius: 50%;
+        font-size: 26px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    }
+    .meta-row { font-size: 12px; color: var(--text-secondary); }
+    .meta-row i { width: 14px; text-align: center; margin-right: 4px; }
+    .history-bar-wrap {
+        flex: 1; height: 5px;
+        background: var(--border-color);
+        border-radius: 3px; overflow: hidden;
+    }
+    .history-bar-fill { height: 100%; border-radius: 3px; }
+    .overdue-badge { color: var(--danger-color); font-weight: 600; }
+</style>
+
+<!-- ?? Page Header ?? -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="fw-bold text-dark" style="font-size:15px;" id="page-title">Student Profile</div>
+        <div class="text-secondary" style="font-size:12px;" id="page-subtitle">Loading...</div>
+    </div>
+    <a href="javascript:history.back();" class="action-link">
+        <i class="fas fa-arrow-left text-secondary"></i> Back
+    </a>
+</div>
+
+<div class="container-fluid px-4 py-4">
+    <div id="load-panel"></div>
+
+    <!-- ?? Profile Card ??????????????????????????????????????????????????? -->
+    <div class="border rounded bg-white p-4 mb-4">
+        <div class="d-flex align-items-center gap-4 flex-wrap">
+            <div class="profile-avatar" id="avatar-initials">—</div>
+            <div class="flex-grow-1">
+                <div class="fw-bold text-dark mb-1" style="font-size:20px;" id="info-name">—</div>
+                <div class="mb-2"><span class="tag-pill pill-default" id="info-position">—</span></div>
+                <div class="d-flex flex-wrap gap-4 meta-row">
+                    <span><i class="fas fa-id-badge"></i><span id="info-code">—</span></span>
+                    <span><i class="fas fa-building"></i><span id="info-division">—</span></span>
+                    <span><i class="fas fa-layer-group"></i><span id="info-department">—</span></span>
+                    <span><i class="fas fa-sitemap"></i><span id="info-section">—</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ?? KPI Bar ??????????????????????????????????????????????????????? -->
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Courses</div>
+                <div class="kpi-number" id="kpi-total">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-label" style="color:var(--success-color);">Completed</div>
+                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-label" style="color:var(--accent-color);">In Progress</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-label" style="color:var(--warning-color);">Total Time</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-time">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ?? Completion Rate Bar ??????????????????????????????????????????? -->
+    <div class="border rounded bg-white p-3 mb-4 d-flex align-items-center gap-3">
+        <div style="font-size:12px; font-weight:600; color:var(--text-secondary); min-width:120px;">
+            Overall Completion
+        </div>
+        <div class="history-bar-wrap">
+            <div class="history-bar-fill" id="overall-bar" style="width:0%; background:var(--success-color);"></div>
+        </div>
+        <div class="fw-bold" style="font-size:14px; color:var(--success-color); min-width:44px;" id="overall-pct">0%</div>
+    </div>
+
+    <!-- ?? Learning History Grid ????????????????????????????????????????? -->
+    <div class="border rounded bg-white">
+        <div class="p-3 d-flex align-items-center justify-content-between">
+            <div class="section-title mb-0">Learning History</div>
+            <div id="status-filter" style="width:160px;"></div>
+        </div>
+        <div id="grid-history"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const STUDENT_CODE = '@studentCode';
+
+    $(() => {
+        const loadPanel = $("#load-panel").dxLoadPanel({
+            shadingColor: "rgba(255,255,255,0.8)",
+            position: { of: "body" }, visible: true,
+            showPane: false, shading: true, message: "Loading profile..."
+        }).dxLoadPanel("instance");
+
+        // ?? Status Filter ????????????????????????????????????????????????
+        $("#status-filter").dxSelectBox({
+            items: [
+                { value: null,          text: "All Status" },
+                { value: "completed",   text: "Completed"  },
+                { value: "inprogress",  text: "In Progress" },
+                { value: "notstarted",  text: "Not Started" },
+                { value: "overdue",     text: "Overdue"     }
+            ],
+            displayExpr: "text", valueExpr: "value",
+            value: null,
+            stylingMode: "outlined",
+            onValueChanged: function (e) {
+                applyStatusFilter(e.value);
+            }
+        });
+
+        function applyStatusFilter(val) {
+            const grid = $("#grid-history").dxDataGrid("instance");
+            if (!val) { grid.clearFilter(); return; }
+
+            const now = new Date();
+            if (val === "completed")  grid.filter(["isCompleted", "=", true]);
+            else if (val === "notstarted") grid.filter([["isCompleted","=",false],
+                                                        "and",["progress","=",0]]);
+            else if (val === "inprogress") grid.filter([["isCompleted","=",false],
+                                                        "and",["progress",">",0]]);
+            else if (val === "overdue")    grid.filter([["isCompleted","=",false],
+                                                        "and",["dueDate","<",now]]);
+        }
+
+        // ?? History Grid ?????????????????????????????????????????????????
+        const historyGrid = initDxGrid("#grid-history", {
+            dataSource: [],
+            showBorders: false, showRowLines: true, hoverStateEnabled: true,
+            searchPanel: { visible: true, placeholder: "Search courses..." },
+            onRowPrepared: function (e) {
+                if (e.rowType !== "data") return;
+                if (e.data.isCompleted)       $(e.rowElement).css("background-color", "#f6ffed");
+                else if (e.data.progress > 0) $(e.rowElement).css("background-color", "#fffbe6");
+            },
+            columns: [
+                {
+                    dataField: "courseCode", caption: "Code", width: 120,
+                    cellTemplate: (c, o) =>
+                        $("<span>").addClass("tag-pill pill-default fw-bold")
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "courseTitle", caption: "Course Title", minWidth: 220,
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "13px", fontWeight: "600",
+                                          color: "var(--text-primary)" })
+                                   .text(o.value || "—").appendTo(c)
+                },
+                {
+                    dataField: "progress", caption: "Progress", width: 170, alignment: "center",
+                    cellTemplate: (c, o) => {
+                        const pct   = o.value || 0;
+                        const color = pct === 100 ? "var(--success-color)"
+                                    : pct  >  0  ? "var(--accent-color)"
+                                    :               "var(--border-color)";
+                        $("<div>").addClass("d-flex align-items-center gap-2")
+                            .append(
+                                $("<div>").addClass("history-bar-wrap")
+                                    .append($("<div>").addClass("history-bar-fill")
+                                                      .css({ width: pct + "%", background: color }))
+                            )
+                            .append(
+                                $("<span>").css({ fontSize: "11px", fontWeight: "600",
+                                                  minWidth: "36px", color: "var(--text-secondary)" })
+                                           .text(pct + "%")
+                            )
+                            .appendTo(c);
+                    }
+                },
+                {
+                    dataField: "isCompleted", caption: "Status", width: 120, alignment: "center",
+                    cellTemplate: (c, o) => {
+                        const now = new Date();
+                        let cls, label;
+                        if (o.value) {
+                            cls = "pill-success"; label = "Completed";
+                        } else if (o.data.dueDate && new Date(o.data.dueDate) < now) {
+                            cls = "pill-danger";  label = "Overdue";
+                        } else if (o.data.progress > 0) {
+                            cls = "pill-warning"; label = "In Progress";
+                        } else {
+                            cls = "pill-default"; label = "Not Started";
+                        }
+                        $("<span>").addClass(`tag-pill ${cls}`).text(label).appendTo(c);
+                    }
+                },
+                {
+                    dataField: "totalScore", caption: "Score", width: 85, alignment: "center",
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "12px", fontWeight: "600",
+                                          color: o.value > 0 ? "var(--accent-color)"
+                                                             : "var(--text-secondary)" })
+                                   .text(o.value > 0 ? o.value : "—").appendTo(c)
+                },
+                {
+                    dataField: "totalTimeSpent", caption: "Time Spent", width: 110, alignment: "center",
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                   .text(formatDuration(o.value || 0)).appendTo(c)
+                },
+                {
+                    dataField: "startDate", caption: "Started", width: 105, alignment: "center",
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .appendTo(c)
+                },
+                {
+                    dataField: "dueDate", caption: "Due", width: 105, alignment: "center",
+                    cellTemplate: (c, o) => {
+                        if (!o.value) {
+                            $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c);
+                            return;
+                        }
+                        const isPast = !o.data.isCompleted && new Date(o.value) < new Date();
+                        $("<span>").css({ fontSize: "11px",
+                                          color:      isPast ? "var(--danger-color)" : "var(--text-secondary)",
+                                          fontWeight: isPast ? "600" : "400" })
+                                   .text(new Date(o.value).toLocaleDateString("en-GB"))
+                                   .appendTo(c);
+                    }
+                },
+                {
+                    dataField: "completedDate", caption: "Completed On", width: 120, alignment: "center",
+                    cellTemplate: (c, o) =>
+                        $("<span>").css({ fontSize: "11px", color: "var(--success-color)" })
+                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .appendTo(c)
+                }
+            ]
+        });
+
+        // ?? Load Profile ?????????????????????????????????????????????????
+        $.ajax({
+            url: `${serviceUrl}/Students/profile/${encodeURIComponent(STUDENT_CODE)}`,
+            method: "GET",
+            xhrFields: { withCredentials: true }
+        }).done(function (res) {
+            if (!res.success || !res.data) {
+                DevExpress.ui.notify("Invalid profile data.", "error", 3000);
+                loadPanel.hide(); return;
+            }
+
+            const d = res.data;
+
+            // Header
+            const initial = (d.name || d.code || "?").charAt(0).toUpperCase();
+            $("#avatar-initials").text(initial);
+            $("#page-title").text(d.name || d.code);
+            $("#page-subtitle").text(
+                [d.division, d.department, d.section].filter(Boolean).join(" › ")
+                || "No department info"
+            );
+            $("#info-name").text(d.name || d.code);
+            $("#info-code").text(d.code || "—");
+            $("#info-division").text(d.division || "—");
+            $("#info-department").text(d.department || "—");
+            $("#info-section").text(d.section || "—");
+
+            if (d.position) {
+                $("#info-position").text(d.position);
+            } else {
+                $("#info-position").closest(".mb-2").hide();
+            }
+
+            // KPI
+            const k = d.kpi;
+            $("#kpi-total").text(k.totalCourses);
+            $("#kpi-completed").text(k.completedCourses);
+            $("#kpi-inprogress").text(k.inProgressCourses);
+            $("#kpi-time").text(formatDuration(k.totalTimeSpentSeconds));
+
+            // Overall completion bar
+            const pct = k.totalCourses > 0
+                ? Math.round((k.completedCourses / k.totalCourses) * 100) : 0;
+            $("#overall-bar").css("width", pct + "%");
+            $("#overall-pct").text(pct + "%");
+
+            // Grid
+            historyGrid.option("dataSource", d.enrollments || []);
+            loadPanel.hide();
+
+        }).fail(function () {
+            DevExpress.ui.notify("Error loading student profile.", "error", 3000);
+            loadPanel.hide();
+        });
+
+        // ?? Helper ???????????????????????????????????????????????????????
+        function formatDuration(seconds) {
+            if (!seconds || seconds <= 0) return "—";
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m`;
+            return `${seconds}s`;
+        }
+    });
+</script>
+}

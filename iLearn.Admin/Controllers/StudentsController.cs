@@ -8,5 +8,11 @@ namespace iLearn.Admin.Controllers
         {
             return View();
         }
+
+        public IActionResult Profile(string code)
+        {
+            ViewBag.StudentCode = code ?? "";
+            return View();
+        }
     }
 }

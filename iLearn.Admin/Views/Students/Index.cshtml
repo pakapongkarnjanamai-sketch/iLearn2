@@ -34,7 +34,13 @@
                 hoverStateEnabled: true,
                 editing: { allowUpdating: false, allowDeleting: false, allowAdding: false },
                 columns: [
-                    { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true },
+                    { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,
+                        cellTemplate: (c, o) => {
+                            $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
+                                   .addClass("tag-pill pill-default fw-bold")
+                                   .text(o.value || "—").appendTo(c);
+                        }
+                    },
                     { dataField: "EnglishFirstName", caption: "First Name", width: 250 },
                     { dataField: "EnglishLastName", caption: "Last Name", width: 250 },
                     { dataField: "Position", caption: "Position", width: 150 },
