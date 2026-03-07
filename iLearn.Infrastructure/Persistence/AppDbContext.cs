@@ -40,9 +40,13 @@ namespace iLearn.Infrastructure.Persistence
         // DbSet เดิมที่มีอยู่แล้ว (ตรวจสอบว่ามีครบไหม)
         public DbSet<Division> Divisions { get; set; }
         public DbSet<Role> Roles { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<User> Users { get; set; } //User คือผู้ดูแลระบบ (Admin) ไม่ใช่นักเรียน ข้อมูลนักเรียนอยู่ใน StudentsController ซึ่งดึงมาจากระบบหลักผ่าน API
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Assignment> Assignments { get; set; }
+
+        // ── กลุ่มผู้เรียน ──
+        public DbSet<StudentGroup> StudentGroups { get; set; }
+        public DbSet<StudentGroupMember> StudentGroupMembers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -82,6 +86,20 @@ namespace iLearn.Infrastructure.Persistence
                 .WithMany(c => c.Versions)
                 .HasForeignKey(cv => cv.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Config StudentGroup <-> StudentGroupMember
+            modelBuilder.Entity<StudentGroupMember>()
+                .HasOne(m => m.StudentGroup)
+                .WithMany(g => g.Members)
+                .HasForeignKey(m => m.StudentGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Config Assignment <-> StudentGroup
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.StudentGroup)
+                .WithMany(g => g.Assignments)
+                .HasForeignKey(a => a.StudentGroupId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Config Course <-> CourseType
             modelBuilder.Entity<Course>()

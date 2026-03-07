@@ -58,6 +58,7 @@ builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileS
 builder.Services.AddTransient<IDateTime, DateTimeService>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
+builder.Services.AddScoped<IStudentGroupService, StudentGroupService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICourseVersionService, CourseVersionService>();

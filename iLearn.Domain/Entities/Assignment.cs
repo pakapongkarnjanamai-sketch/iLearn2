@@ -21,5 +21,10 @@ namespace iLearn.Domain.Entities
 
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
+
+        // FK ไปยังกลุ่มผู้เรียน (nullable — backward compatible กับ EmployeeCodes เดิม)
+        public int? StudentGroupId { get; set; }
+        [ForeignKey("StudentGroupId")]
+        public StudentGroup? StudentGroup { get; set; }
     }
 }
