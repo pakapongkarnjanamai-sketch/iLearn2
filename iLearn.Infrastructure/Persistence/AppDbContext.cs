@@ -48,6 +48,9 @@ namespace iLearn.Infrastructure.Persistence
         public DbSet<StudentGroup> StudentGroups { get; set; }
         public DbSet<StudentGroupMember> StudentGroupMembers { get; set; }
 
+        // ── ตารางกลาง Enrollment <-> Assignment ──
+        public DbSet<EnrollmentAssignment> EnrollmentAssignments { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -61,6 +64,24 @@ namespace iLearn.Infrastructure.Persistence
                 .WithMany(c => c.Enrollments)
                 .HasForeignKey(e => e.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Config EnrollmentAssignment (ตารางกลาง)
+            modelBuilder.Entity<EnrollmentAssignment>()
+                .HasOne(ea => ea.Enrollment)
+                .WithMany(e => e.AssignmentLinks)
+                .HasForeignKey(ea => ea.EnrollmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EnrollmentAssignment>()
+                .HasOne(ea => ea.Assignment)
+                .WithMany()
+                .HasForeignKey(ea => ea.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique: 1 Enrollment ต่อ 1 Assignment (ไม่ซ้ำ)
+            modelBuilder.Entity<EnrollmentAssignment>()
+                .HasIndex(ea => new { ea.EnrollmentId, ea.AssignmentId })
+                .IsUnique();
 
             // 2. Config CourseResource (Many-to-Many)
             modelBuilder.Entity<CourseResource>()

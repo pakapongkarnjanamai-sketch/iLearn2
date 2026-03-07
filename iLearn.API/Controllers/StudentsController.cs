@@ -14,13 +14,16 @@ namespace iLearn.API.Controllers
     {
         private readonly IStudentApiService _studentService;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
 
         public StudentsController(
             IStudentApiService studentService,
-            IGenericRepository<Enrollment> enrollmentRepo)
+            IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo)
         {
             _studentService = studentService;
             _enrollmentRepo = enrollmentRepo;
+            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
         }
 
         [HttpGet("GetStudentbyEID/{employeeCode}")]
@@ -157,10 +160,11 @@ namespace iLearn.API.Controllers
             // 2. Enrollment ทั้งหมดของ student พร้อม Course
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.StudentCode == code,
-                includeProperties: "Course"
+                includeProperties: "Course,AssignmentLinks"
             );
 
-            // 3. สร้าง history
+            // 3. สร้าง history — 1 Enrollment = 1 row ใน grid
+            //    isAssignmentCancelled = เคยถูก Assign แต่ link ถูกลบทั้งหมดแล้ว
             var history = enrollments
                 .OrderByDescending(e => e.StartDate ?? e.CompletedDate)
                 .Select(e => new
@@ -176,10 +180,10 @@ namespace iLearn.API.Controllers
                     completedDate         = e.CompletedDate,
                     totalScore            = e.TotalScore,
                     totalTimeSpent        = e.TotalTimeSpent,
-                    assignmentRuleId      = e.AssignmentRuleId,
-                    // Enrollment ที่ไม่มี AssignmentRuleId, ยังไม่จบ และเคยมี StartDate หรือ DueDate
+                    hasActiveAssignment   = e.AssignmentLinks.Any(),
+                    // Enrollment ที่ไม่มี link เหลือ, ยังไม่จบ และเคยมี StartDate/DueDate
                     // = เคยถูก Assign แต่ Assignment ถูกลบไปแล้ว
-                    isAssignmentCancelled = !e.AssignmentRuleId.HasValue
+                    isAssignmentCancelled = !e.AssignmentLinks.Any()
                                            && !e.IsCompleted
                                            && (e.StartDate.HasValue || e.DueDate.HasValue)
                 }).ToList();

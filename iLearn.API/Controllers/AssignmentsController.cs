@@ -17,6 +17,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Assignment> _repo;
         private readonly ICourseAssignmentService _assignmentService;
         public readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        public readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         public readonly IGenericRepository<Course> _courseRepo;
         private readonly IStudentApiService _studentApiService;
         private readonly IStudentGroupService _studentGroupService;
@@ -25,6 +26,7 @@ namespace iLearn.API.Controllers
             IGenericRepository<Assignment> repo,
             ICourseAssignmentService assignmentService,
             IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
             IStudentApiService studentApiService,
             IStudentGroupService studentGroupService)
@@ -32,6 +34,7 @@ namespace iLearn.API.Controllers
             _repo = repo;
             _assignmentService = assignmentService;
             _enrollmentRepo = enrollmentRepo;
+            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
             _studentApiService = studentApiService;
             _studentGroupService = studentGroupService;
@@ -57,18 +60,14 @@ namespace iLearn.API.Controllers
             var rule = await _repo.GetByIdAsync(id);
             if (rule == null) return NotFound();
 
-            var relatedRules = await _repo.GetAsync(r => r.AssignmentNo == rule.AssignmentNo);
-            var relatedRuleIds = relatedRules.Select(r => r.Id).ToList();
+            var relatedRules   = await _repo.GetAsync(r => r.AssignmentNo == rule.AssignmentNo);
+            var relatedIds = relatedRules.Select(r => r.Id).ToList();
 
-            // Unlink Enrollment จาก Assignment — ไม่ลบ Enrollment เพราะเป็น audit trail ของการเรียน
-            var relatedEnrollments = await _enrollmentRepo.GetAsync(e =>
-                e.AssignmentRuleId.HasValue && relatedRuleIds.Contains(e.AssignmentRuleId.Value));
-
-            foreach (var enrollment in relatedEnrollments)
-            {
-                enrollment.AssignmentRuleId = null;
-                await _enrollmentRepo.UpdateAsync(enrollment);
-            }
+            // ลบ EnrollmentAssignment links (audit trail ของ Enrollment ยังคงอยู่)
+            var links = await _enrollmentAssignmentRepo.GetAsync(
+                ea => relatedIds.Contains(ea.AssignmentId));
+            foreach (var link in links)
+                await _enrollmentAssignmentRepo.DeleteAsync(link);
 
             // Soft Delete Assignments
             foreach (var r in relatedRules)
@@ -89,16 +88,30 @@ namespace iLearn.API.Controllers
                 r => r.AssignmentNo == mainRule.AssignmentNo,
                 includeProperties: "Course"
             );
-
             var ruleIds = allRules.Select(r => r.Id).ToList();
 
-            // 3. ดึง Enrollments เฉพาะที่ผูกกับ Rule ในกลุ่มนี้ พร้อม Course
-            var enrollments = await _enrollmentRepo.GetAsync(
-                e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value),
-                includeProperties: "Course"
+            // 3. ดึง EnrollmentAssignment links + Enrollment ผ่านตารางกลาง
+            var links = await _enrollmentAssignmentRepo.GetAsync(
+                ea => ruleIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment,Enrollment.Course"
             );
 
-            // 4. คำนวณสถิติ — นับ per student ไม่ใช่ per enrollment
+            // แปลงเป็น flat list สำหรับคำนวณ (1 link = 1 student-course pair ของ Assignment นี้)
+            var enrollments = links
+                .Where(ea => ea.Enrollment != null)
+                .Select(ea => new
+                {
+                    StudentCode      = ea.Enrollment!.StudentCode,
+                    AssignmentId     = ea.AssignmentId,
+                    Progress         = ea.Enrollment.Progress,
+                    IsCompleted      = ea.Enrollment.IsCompleted,
+                    CompletedDate    = ea.Enrollment.CompletedDate,
+                    StartDate        = ea.StartDate,
+                    DueDate          = ea.DueDate,
+                    Course           = ea.Enrollment.Course
+                }).ToList();
+
+            // 4. คำนวณสถิติ per student
             var studentEnrollments = enrollments
                 .GroupBy(e => e.StudentCode)
                 .Select(g => new
@@ -106,58 +119,47 @@ namespace iLearn.API.Controllers
                     StudentCode  = g.Key,
                     AllCompleted = g.All(e => e.IsCompleted),
                     AnyStarted   = g.Any(e => e.IsCompleted || e.Progress > 0)
-                })
-                .ToList();
+                }).ToList();
 
             var uniqueStudentsCount  = studentEnrollments.Count;
             var completedCount       = studentEnrollments.Count(s => s.AllCompleted);
             var inProgressCount      = studentEnrollments.Count(s => !s.AllCompleted && s.AnyStarted);
             var notStartedCount      = studentEnrollments.Count(s => !s.AllCompleted && !s.AnyStarted);
-
-            var totalEnrollments     = enrollments.Count();
+            var totalEnrollments     = enrollments.Count;
             var completedEnrollments = enrollments.Count(e => e.IsCompleted);
             var completionRate       = totalEnrollments == 0
-                ? 0
-                : Math.Round(((double)completedEnrollments / totalEnrollments) * 100);
+                ? 0 : Math.Round((double)completedEnrollments / totalEnrollments * 100);
 
-            // 5. เตรียมข้อมูลสรุปรายวิชา
+            // 5. Course summaries
             var courseSummaries = allRules.Select(r => new CourseSummaryDto
             {
                 AssignmentRuleId  = r.Id,
                 CourseCode        = r.Course?.Code ?? "-",
                 CourseTitle       = r.Course?.Title ?? "Unknown Course",
-                CompletedStudents = enrollments.Count(e => e.AssignmentRuleId == r.Id && e.IsCompleted),
-                TotalStudents     = enrollments.Count(e => e.AssignmentRuleId == r.Id)
+                CompletedStudents = enrollments.Count(e => e.AssignmentId == r.Id && e.IsCompleted),
+                TotalStudents     = enrollments.Count(e => e.AssignmentId == r.Id)
             }).ToList();
 
-            // 6. ดึงชื่อนักเรียนจาก External API (parallel เพื่อความเร็ว)
-            var uniqueCodes  = enrollments.Select(e => e.StudentCode).Distinct().ToList();
-            var nameTasks    = uniqueCodes.Select(async code =>
+            // 6. ดึงชื่อนักเรียน
+            var uniqueCodes = enrollments.Select(e => e.StudentCode).Distinct().ToList();
+            var nameTasks   = uniqueCodes.Select(async code =>
             {
-                try
-                {
-                    var student = await _studentApiService.GetStudentByCodeAsync(code);
-                    return (code, name: student?.Name ?? code);
-                }
-                catch
-                {
-                    return (code, name: code); // fallback เป็น code ถ้า API ล้มเหลว
-                }
+                try { var s = await _studentApiService.GetStudentByCodeAsync(code); return (code, name: s?.Name ?? code); }
+                catch { return (code, name: code); }
             });
             var nameResults  = await Task.WhenAll(nameTasks);
             var studentNames = nameResults.ToDictionary(x => x.code, x => x.name);
 
-            // สร้าง lookup: assignmentRuleId → Course จาก allRules
             var ruleCourseMap = allRules.ToDictionary(r => r.Id, r => r.Course);
 
             var studentsProgress = enrollments.Select(e =>
             {
-                var course = e.Course ?? (e.AssignmentRuleId.HasValue && ruleCourseMap.TryGetValue(e.AssignmentRuleId.Value, out var c) ? c : null);
+                var course = e.Course ?? (ruleCourseMap.TryGetValue(e.AssignmentId, out var c) ? c : null);
                 return new StudentProgressDto
                 {
                     StudentCode      = e.StudentCode,
                     StudentName      = studentNames.GetValueOrDefault(e.StudentCode, e.StudentCode),
-                    AssignmentRuleId = e.AssignmentRuleId,
+                    AssignmentRuleId = e.AssignmentId,
                     CourseCode       = course?.Code ?? "-",
                     CourseTitle      = course?.Title ?? "Unknown Course",
                     Progress         = e.Progress,
@@ -168,7 +170,7 @@ namespace iLearn.API.Controllers
                 };
             }).ToList();
 
-            // 7. ประกอบร่าง DTO
+            // 7. ประกอบ DTO
             var result = new AssignmentDashboardDto
             {
                 AssignmentNo   = mainRule.AssignmentNo,
@@ -181,9 +183,9 @@ namespace iLearn.API.Controllers
                 CompletionRate = completionRate,
                 ChartData      = new DashboardChartDto
                 {
-                    Completed   = completedCount,
-                    InProgress  = inProgressCount,
-                    NotStarted  = notStartedCount
+                    Completed  = completedCount,
+                    InProgress = inProgressCount,
+                    NotStarted = notStartedCount
                 },
                 Courses  = courseSummaries,
                 Students = studentsProgress
@@ -195,7 +197,6 @@ namespace iLearn.API.Controllers
         [HttpPost("validate-before-assign")]
         public async Task<IActionResult> ValidateBeforeAssign([FromBody] BulkAssignDto dto)
         {
-            // resolve GroupId → EmployeeCodes ถ้า Assign จาก Student Group
             if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
             {
                 dto.EmployeeCodes = await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
@@ -203,16 +204,28 @@ namespace iLearn.API.Controllers
                     return BadRequest(new { message = "The selected group has no members." });
             }
 
-            var conflicts = await _enrollmentRepo.GetAsync(
-                filter: e => dto.EmployeeCodes.Contains(e.StudentCode) &&
-                             dto.CourseIds.Contains(e.CourseId ?? 0) &&
-                             !e.IsCompleted,
-                includeProperties: "Course"
+            // ตรวจ conflict ผ่าน EnrollmentAssignment + Enrollment
+            var existingLinks = await _enrollmentAssignmentRepo.GetAsync(
+                ea => dto.CourseIds.Contains(ea.Assignment != null ? (ea.Assignment.CourseId ?? 0) : 0),
+                includeProperties: "Enrollment,Assignment,Assignment.Course"
             );
+
+            var conflicts = existingLinks
+                .Where(ea => ea.Enrollment != null
+                          && dto.EmployeeCodes.Contains(ea.Enrollment.StudentCode)
+                          && !ea.Enrollment.IsCompleted)
+                .Select(ea => new {
+                    StudentCode = ea.Enrollment!.StudentCode,
+                    CourseTitle = ea.Assignment?.Course?.Title ?? "Unknown",
+                    DueDate     = ea.DueDate
+                }).ToList();
+
+
+
 
             var result = conflicts.Select(c => new {
                 StudentCode = c.StudentCode,
-                CourseTitle = c.Course?.Title ?? "Unknown",
+                CourseTitle = c.CourseTitle,
                 DueDate     = c.DueDate
             }).ToList();
 
@@ -236,15 +249,14 @@ namespace iLearn.API.Controllers
             }
 
             var ruleIds = allRules.Select(r => r.Id).ToList();
-            var activeEnrollments = await _enrollmentRepo.GetAsync(
-                e => e.AssignmentRuleId.HasValue &&
-                     ruleIds.Contains(e.AssignmentRuleId.Value) &&
-                     !e.IsCompleted
+            var activeLinks = await _enrollmentAssignmentRepo.GetAsync(
+                ea => ruleIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment"
             );
-            foreach (var enrollment in activeEnrollments)
+            foreach (var link in activeLinks.Where(ea => ea.Enrollment != null && !ea.Enrollment.IsCompleted))
             {
-                enrollment.DueDate = dto.NewDueDate;
-                await _enrollmentRepo.UpdateAsync(enrollment);
+                link.DueDate = dto.NewDueDate;
+                await _enrollmentAssignmentRepo.UpdateAsync(link);
             }
 
             return Ok(new { success = true, message = "Due date extended successfully.", newDueDate = dto.NewDueDate });
@@ -281,9 +293,12 @@ namespace iLearn.API.Controllers
             if (!assignments.Any())
                 return Ok(new { success = true, data = new List<object>() });
 
-            var allIds      = assignments.Select(a => a.Id).ToList();
-            var enrollments = await _enrollmentRepo.GetAsync(
-                e => e.AssignmentRuleId.HasValue && allIds.Contains(e.AssignmentRuleId.Value)
+            var allIds = assignments.Select(a => a.Id).ToList();
+
+            // ดึงผ่าน EnrollmentAssignment แทน Enrollment.AssignmentRuleId
+            var links = await _enrollmentAssignmentRepo.GetAsync(
+                ea => allIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment"
             );
 
             var now = DateTime.UtcNow.AddHours(7);
@@ -295,8 +310,10 @@ namespace iLearn.API.Controllers
                 {
                     var first   = g.First();
                     var ruleIds = g.Select(a => a.Id).ToList();
-                    var related = enrollments
-                        .Where(e => e.AssignmentRuleId.HasValue && ruleIds.Contains(e.AssignmentRuleId.Value))
+
+                    var related = links
+                        .Where(ea => ruleIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
+                        .Select(ea => ea.Enrollment!)
                         .ToList();
 
                     bool allDone = related.Any() && related.All(e => e.IsCompleted);
@@ -318,8 +335,7 @@ namespace iLearn.API.Controllers
                         assignmentNo             = g.Key,
                         description              = first.Description,
                         courseNames              = string.Join(", ", g
-                            .Select(c => c.Course != null ? c.Course.Title : "Unknown")
-                            .Distinct()),
+                            .Select(c => c.Course != null ? c.Course.Title : "Unknown").Distinct()),
                         courseCount              = g.Select(a => a.CourseId).Distinct().Count(),
                         startDate                = first.StartDate,
                         dueDate                  = first.DueDate,

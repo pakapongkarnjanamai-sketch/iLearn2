@@ -13,6 +13,7 @@ namespace iLearn.Application.Services
     {
         private readonly ICourseRepository _courseRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IStudentApiService _studentApiService;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
@@ -20,12 +21,14 @@ namespace iLearn.Application.Services
         public CourseAssignmentService(
             ICourseRepository courseRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Assignment> assignmentRepo,
             IStudentApiService studentApiService,
             IGenericRepository<CourseVersion> versionRepo)
         {
             _courseRepo = courseRepo;
             _enrollmentRepo = enrollmentRepo;
+            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _assignmentRepo = assignmentRepo;
             _studentApiService = studentApiService;
             _versionRepo = versionRepo;
@@ -70,126 +73,128 @@ namespace iLearn.Application.Services
                 .FirstOrDefault();
         }
 
-        // --- 5. ฟังก์ชันบันทึกลงฐานข้อมูล (ปรับให้รับ ID กฎ และ วันที่ โดยตรง) ---
+        // --- ฟังก์ชันบันทึกลงฐานข้อมูล ---
         private async Task CreateOrUpdateEnrollment(string studentCode, Course course, int? assignmentRuleId = null, DateTime? startDate = null, DateTime? dueDate = null)
         {
-            // 1. ดึง Object ของ Version ที่ Active อยู่มาเลย เพื่อเอา Id
+            // 1. หา Active Version
             var activeVersions = await _versionRepo.GetAsync(v => v.CourseId == course.Id && v.IsActive);
             var activeVersion = activeVersions.FirstOrDefault();
+            if (activeVersion == null) return;
 
-            if (activeVersion == null)
-                return; // ป้องกัน Error กรณีไม่มีคอร์สไหน Active เลย
-
+            // 2. หา Enrollment เดิมของ Student+Course (1 row เท่านั้น)
             var existingEnrollments = await _enrollmentRepo.GetAsync(e =>
                 e.StudentCode == studentCode &&
-                e.CourseId == course.Id);
+                e.CourseId    == course.Id);
 
             var existing = existingEnrollments.FirstOrDefault();
 
             if (existing == null)
             {
-                var newEnrollment = new Enrollment
+                // ยังไม่มี Enrollment → สร้างใหม่
+                existing = new Enrollment
                 {
-                    StudentCode = studentCode,
-                    CourseId = course.Id,
-                    EnrolledCourseVersion = activeVersion.Id, // เก็บเป็น ID (Primary Key)
-                    IsCompleted = false,
-                    CreatedAt = DateTime.UtcNow,
-                    AssignmentRuleId = assignmentRuleId,
-                    StartDate = startDate,
-                    DueDate = dueDate
+                    StudentCode           = studentCode,
+                    CourseId              = course.Id,
+                    EnrolledCourseVersion = activeVersion.Id,
+                    IsCompleted           = false,
+                    CreatedAt             = DateTime.UtcNow,
+                    StartDate             = startDate,
+                    DueDate               = dueDate
                 };
-                await _enrollmentRepo.AddAsync(newEnrollment);
+                await _enrollmentRepo.AddAsync(existing);
             }
-            else
+            else if (existing.EnrolledCourseVersion != activeVersion.Id)
             {
-                bool needsUpdate = false;
+                // มี Enrollment แล้ว แต่ Version เปลี่ยน → reset progress
+                existing.EnrolledCourseVersion = activeVersion.Id;
+                existing.IsCompleted           = false;
+                existing.CompletedDate         = null;
+                await _enrollmentRepo.UpdateAsync(existing);
+            }
 
-                if (existing.EnrolledCourseVersion != activeVersion.Id)
+            // 3. เชื่อม EnrollmentAssignment ถ้ามี assignmentRuleId
+            if (assignmentRuleId.HasValue)
+            {
+                var linkRepo = _enrollmentAssignmentRepo;
+                var existingLinks = await linkRepo.GetAsync(ea =>
+                    ea.EnrollmentId == existing.Id &&
+                    ea.AssignmentId == assignmentRuleId.Value);
+
+                if (!existingLinks.Any())
                 {
-                    existing.EnrolledCourseVersion = activeVersion.Id;
-                    existing.IsCompleted           = false;
-                    existing.CompletedDate         = null;
-                    needsUpdate                    = true;
+                    await linkRepo.AddAsync(new EnrollmentAssignment
+                    {
+                        EnrollmentId = existing.Id,
+                        AssignmentId = assignmentRuleId.Value,
+                        StartDate    = startDate,
+                        DueDate      = dueDate,
+                        CreatedAt    = DateTime.UtcNow
+                    });
                 }
-
-                if (assignmentRuleId.HasValue)
+                else
                 {
-                    existing.AssignmentRuleId = assignmentRuleId;
-                    existing.StartDate        = startDate ?? existing.StartDate;
-                    existing.DueDate          = dueDate   ?? existing.DueDate;
-                    needsUpdate               = true;
+                    // อัปเดต dates ถ้า link มีอยู่แล้ว (กรณี Assign ซ้ำ)
+                    var link = existingLinks.First();
+                    link.StartDate = startDate ?? link.StartDate;
+                    link.DueDate   = dueDate   ?? link.DueDate;
+                    await linkRepo.UpdateAsync(link);
                 }
-
-                if (needsUpdate)
-                    await _enrollmentRepo.UpdateAsync(existing);
             }
         }
 
-        // เพิ่ม Method นี้เข้าไปในคลาส CourseAssignmentService 
         public async Task<List<AssignmentHistoryDto>> GetAssignmentHistoryAsync()
         {
-            // 1. ดึงข้อมูล Assignment พร้อม Course
             var assignments = await _assignmentRepo.GetAsync(includeProperties: "Course");
 
-            // 2. ดึง Enrollment ที่เกี่ยวข้องทั้งหมดมาเพื่อเช็คสถานะการเรียนจบ
-            // (เลือกเฉพาะที่ผูกกับ Assignment)
-            var enrollments = await _enrollmentRepo.GetAsync(e => e.AssignmentRuleId != null);
+            // ดึง links ทั้งหมดผ่าน EnrollmentAssignment
+            var links = await _enrollmentAssignmentRepo.GetAsync(
+                filter: null,
+                includeProperties: "Enrollment"
+            );
 
-            var currentDate = DateTime.UtcNow.AddHours(7); // ปรับ TimeZone ตามระบบของคุณ (เช่น ไทย +7)
+            var currentDate = DateTime.UtcNow.AddHours(7);
 
             var groupedHistory = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
                 .GroupBy(r => r.AssignmentNo)
                 .Select(g =>
                 {
-                    var first = g.First();
+                    var first         = g.First();
                     var assignmentIds = g.Select(a => a.Id).ToList();
 
-                    // 3. หา Enrollments ที่ผูกกับ Assignment กลุ่มนี้ (อ้างอิงจากทุกรายวิชาในกลุ่ม)
-                    var relatedEnrollments = enrollments
-                        .Where(e => e.AssignmentRuleId.HasValue && assignmentIds.Contains(e.AssignmentRuleId.Value))
+                    var relatedEnrollments = links
+                        .Where(ea => assignmentIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
+                        .Select(ea => ea.Enrollment!)
                         .ToList();
 
-                    // 4. คำนวณ Status
                     bool isCompleted = relatedEnrollments.Any() && relatedEnrollments.All(e => e.IsCompleted);
 
                     string status = "InProgress";
                     if (isCompleted)
-                    {
                         status = "Completed";
-                    }
                     else if (first.StartDate.HasValue && first.StartDate.Value > currentDate)
-                    {
                         status = "Upcoming";
-                    }
                     else if (first.DueDate.HasValue && first.DueDate.Value < currentDate)
-                    {
                         status = "Expired";
-                    }
 
                     return new AssignmentHistoryDto
                     {
-                        Id = first.Id,
+                        Id           = first.Id,
                         AssignmentNo = g.Key,
-                        Description = first.Description,
+                        Description  = first.Description,
                         EmployeeCodes = first.EmployeeCodes,
-                        StartDate = first.StartDate,
-                        DueDate = first.DueDate,
-                        CourseNames = string.Join(", ", g.Select(c => c.Course?.Title ?? "Unknown Course").Distinct()),
-                        Status = status,
-
-                        // ✅ Admin tracking
-                        CreatedBy = first.CreatedBy,
-                        CreatedAt = first.CreatedAt,
-
-                        // ✅ Summary counts
-                        CourseCount = g.Select(a => a.CourseId).Distinct().Count(),
+                        StartDate    = first.StartDate,
+                        DueDate      = first.DueDate,
+                        CourseNames  = string.Join(", ", g.Select(c => c.Course?.Title ?? "Unknown Course").Distinct()),
+                        Status       = status,
+                        CreatedBy    = first.CreatedBy,
+                        CreatedAt    = first.CreatedAt,
+                        CourseCount  = g.Select(a => a.CourseId).Distinct().Count(),
                         StudentCount = string.IsNullOrEmpty(first.EmployeeCodes)
                             ? 0
                             : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
                         CompletedEnrollmentCount = relatedEnrollments.Count(e => e.IsCompleted),
-                        TotalEnrollmentCount = relatedEnrollments.Count
+                        TotalEnrollmentCount     = relatedEnrollments.Count
                     };
                 })
                 .OrderByDescending(x => x.AssignmentNo)

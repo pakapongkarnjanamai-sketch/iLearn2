@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iLearn.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iLearn.Infrastructure.Persistence;
 namespace iLearn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260307072257_AddEnrollmentAssignmentTable")]
+    partial class AddEnrollmentAssignmentTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -496,7 +499,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AssignmentId")
+                    b.Property<int>("AssignmentRuleId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -537,9 +540,9 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignmentId");
+                    b.HasIndex("AssignmentRuleId");
 
-                    b.HasIndex("EnrollmentId", "AssignmentId")
+                    b.HasIndex("EnrollmentId", "AssignmentRuleId")
                         .IsUnique();
 
                     b.ToTable("EnrollmentAssignments");
@@ -1067,9 +1070,9 @@ namespace iLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("iLearn.Domain.Entities.EnrollmentAssignment", b =>
                 {
-                    b.HasOne("iLearn.Domain.Entities.Assignment", "Assignment")
+                    b.HasOne("iLearn.Domain.Entities.Assignment", "AssignmentRule")
                         .WithMany()
-                        .HasForeignKey("AssignmentId")
+                        .HasForeignKey("AssignmentRuleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1079,7 +1082,7 @@ namespace iLearn.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Assignment");
+                    b.Navigation("AssignmentRule");
 
                     b.Navigation("Enrollment");
                 });
