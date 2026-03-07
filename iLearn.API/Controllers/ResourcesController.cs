@@ -178,12 +178,14 @@ namespace iLearn.API.Controllers
                 }
             }
 
+            // Soft Delete Resource — LearningLog.ResourceId ยังอ้างอิงได้
             await _resourceRepo.DeleteAsync(resource);
 
             if (resource.FileStorageId.HasValue)
             {
                 var file = await _fileRepo.GetByIdAsync(resource.FileStorageId.Value);
-                if (file != null) await _fileRepo.DeleteAsync(file);
+                // Hard Delete FileStorage — ลบ binary data จริง ไม่มี FK อ้างอิงมา
+                if (file != null) await _fileRepo.HardDeleteAsync(file);
             }
 
             return NoContent();

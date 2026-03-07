@@ -2,6 +2,7 @@
 using iLearn.Domain.Common;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq.Expressions;
 
 namespace iLearn.Infrastructure.Repositories
@@ -44,6 +45,14 @@ namespace iLearn.Infrastructure.Repositories
         }
 
         public async Task DeleteAsync(T entity)
+        {
+            entity.IsDeleted  = true;
+            entity.DeletedAt  = DateTime.UtcNow;
+            _context.Entry(entity).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task HardDeleteAsync(T entity)
         {
             _dbSet.Remove(entity);
             await _context.SaveChangesAsync();

@@ -57,12 +57,17 @@ namespace iLearn.API.Controllers
             var relatedRules = await _repo.GetAsync(r => r.AssignmentNo == rule.AssignmentNo);
             var relatedRuleIds = relatedRules.Select(r => r.Id).ToList();
 
+            // Unlink Enrollment จาก Assignment — ไม่ลบ Enrollment เพราะเป็น audit trail ของการเรียน
             var relatedEnrollments = await _enrollmentRepo.GetAsync(e =>
                 e.AssignmentRuleId.HasValue && relatedRuleIds.Contains(e.AssignmentRuleId.Value));
 
             foreach (var enrollment in relatedEnrollments)
-                await _enrollmentRepo.DeleteAsync(enrollment);
+            {
+                enrollment.AssignmentRuleId = null;
+                await _enrollmentRepo.UpdateAsync(enrollment);
+            }
 
+            // Soft Delete Assignments
             foreach (var r in relatedRules)
                 await _repo.DeleteAsync(r);
 

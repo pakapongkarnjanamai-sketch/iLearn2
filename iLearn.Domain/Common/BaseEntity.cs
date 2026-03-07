@@ -12,5 +12,11 @@ namespace iLearn.Domain.Common
         public string? CreatedBy { get; set; }
         [StringLength(100)]
         public string? UpdatedBy { get; set; }
+
+        // ── Soft Delete ──────────────────────────────────────────────
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        [StringLength(100)]
+        public string? DeletedBy { get; set; }
     }
 }

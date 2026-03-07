@@ -214,13 +214,21 @@ namespace iLearn.Application.Services
             if (course == null)
                 throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
 
-            var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
-            var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
-         
-            var enrollmentIds = enrollments.Select(e => e.Id).ToList();
+            // ── Guard: ห้ามลบถ้ายังมีผู้เรียนที่เรียนจริงอยู่ ──────────────
+            // นับเฉพาะ Enrollment ที่: ยังไม่จบ + เคยเปิดเรียน + มี Progress จริง (> 0)
+            // กรอง "zombie enrollment" (StartDate ค้างแต่ไม่มี Progress) ออก
+            var inProgressCount = await _enrollmentRepository.CountAsync(
+                e => e.CourseId == id && !e.IsCompleted && e.StartDate != null && e.Progress > 0
+            );
+            if (inProgressCount > 0)
+                throw new InvalidOperationException(
+                    $"ไม่สามารถลบคอร์สได้ เนื่องจากมีผู้เรียนที่กำลังเรียนอยู่ {inProgressCount} คน"
+                );
 
-            var versions = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
-            var versionIds = versions.Select(v => v.Id).ToList();
+            // ── รวบรวม Resource + FileStorage ที่ต้องจัดการ ────────────
+            var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
+            var versions    = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
+            var versionIds  = versions.Select(v => v.Id).ToList();
 
             var courseResources = new List<CourseResource>();
             foreach (var vId in versionIds)
@@ -229,92 +237,72 @@ namespace iLearn.Application.Services
                 courseResources.AddRange(crs);
             }
 
-            var resourceIdsToCheck = courseResources.Select(cr => cr.ResourceId).Distinct().ToList();
-
-            var resourcesToDelete = new List<Resource>();
-            var fileStoragesToDelete = new List<FileStorage>();
-            var scormFoldersToDelete = new List<string>();
+            // หา FileStorage + SCORM folder ที่ไม่ได้ใช้โดย course อื่น → Hard Delete ทีหลัง
+            var resourceIdsToCheck  = courseResources.Select(cr => cr.ResourceId).Distinct().ToList();
+            var resourcesToSoftDel  = new List<Resource>();
+            var fileStoragesToHardDel = new List<FileStorage>();
+            var scormFoldersToDelete  = new List<string>();
 
             foreach (var resId in resourceIdsToCheck)
             {
+                // ตรวจว่า Resource นี้ถูกใช้โดย Course อื่นด้วยหรือเปล่า (ผ่าน CourseResource ที่ไม่ใช่ version ของ course นี้)
                 var otherUsages = await _courseResourceRepository.GetAsync(
                     cr => cr.ResourceId == resId && !versionIds.Contains(cr.CourseVersionId)
                 );
 
-                if (!otherUsages.Any())
+                var resource = await _resourceRepository.GetByIdAsync(resId);
+                if (resource == null) continue;
+
+                resourcesToSoftDel.Add(resource);
+
+                // Hard Delete FileStorage เฉพาะ Resource ที่ไม่ได้แชร์กับ Course อื่น
+                if (!otherUsages.Any() && resource.FileStorageId.HasValue)
                 {
-                    var resource = await _resourceRepository.GetByIdAsync(resId);
-                    if (resource != null)
+                    var file = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+                    if (file != null)
                     {
-                        resourcesToDelete.Add(resource);
-                        if (resource.FileStorageId.HasValue)
-                        {
-                            var file = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
-                            if (file != null)
-                            {
-                                fileStoragesToDelete.Add(file);
-                                string ext = Path.GetExtension(file.Name)?.ToLower() ?? "";
-                                if (ext == ".zip" && !string.IsNullOrEmpty(resource.URL))
-                                {
-                                    scormFoldersToDelete.Add(resource.URL);
-                                }
-                            }
-                        }
+                        fileStoragesToHardDel.Add(file);
+                        string ext = Path.GetExtension(file.Name)?.ToLower() ?? "";
+                        if (ext == ".zip" && !string.IsNullOrEmpty(resource.URL))
+                            scormFoldersToDelete.Add(resource.URL);
                     }
                 }
             }
 
-            // 4. เริ่ม Transaction ทำการตัดความสัมพันธ์ก่อนลบ
-            using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
+            // ── Soft Delete: Course, Version, CourseResource, Resource, Assignment ──
+            // ── Hard Delete: FileStorage (bytes) + SCORM folders ────────────────────
+            using (var transaction = new System.Transactions.TransactionScope(
+                System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
             {
-                //// 🌟 [ปรับปรุง] แทนที่จะลบ ให้เรา "ตัดความสัมพันธ์ (Unlink)" เพื่อเก็บประวัติไว้
-                //// 1. อัปเดต LearningLog ไม่ให้ผูกติดกับ Version/Resource ที่กำลังจะถูกลบ
-                //foreach (var log in learningLogs)
-                //{
-                //    log.CourseVersionId = null;
-                //    log.ResourceId = null;
-                //    await _learningLogRepository.UpdateAsync(log);
-                //}
+                // Soft-delete Assignments
+                foreach (var a in assignments)
+                    await _assignmentRepository.DeleteAsync(a);
 
-                //// 2. อัปเดต Enrollment ไม่ให้ผูกติดกับ Course/Assignment ที่กำลังจะถูกลบ
-                //foreach (var enrollment in enrollments)
-                //{
-                //    enrollment.CourseId = null;
-                //    enrollment.AssignmentRuleId = null;
-                //    // อาจจะเก็บชื่อคอร์สเดิมไว้ในฟิลด์อื่นถ้ามีการออกแบบเผื่อไว้
-                //    await _enrollmentRepository.UpdateAsync(enrollment);
-                //}
-
-                // 3. ลบรายการ Assignment ที่ผูกกับคอร์สนี้ทิ้ง
-                foreach (var assignment in assignments)
-                    await _assignmentRepository.DeleteAsync(assignment);
-
-                // ลบความสัมพันธ์ระหว่าง Version กับ Resource
+                // Soft-delete CourseResources (linking table)
                 foreach (var cr in courseResources)
                     await _courseResourceRepository.DeleteAsync(cr);
 
-                // ลบ Version ต่างๆ ของคอร์ส
+                // Soft-delete CourseVersions
                 foreach (var v in versions)
                     await _courseVersionRepository.DeleteAsync(v);
 
-                // ลบ Resource และ File ทิ้ง
-                foreach (var r in resourcesToDelete)
+                // Soft-delete Resources (LearningLog.ResourceId ยังอ้างอิงได้)
+                foreach (var r in resourcesToSoftDel)
                     await _resourceRepository.DeleteAsync(r);
 
-                foreach (var f in fileStoragesToDelete)
-                    await _fileStorageRepository.DeleteAsync(f);
+                // Hard-delete FileStorage — ลบ binary data จริง ไม่มี FK จากที่ไหนอ้างอิงมา
+                foreach (var f in fileStoragesToHardDel)
+                    await _fileStorageRepository.HardDeleteAsync(f);
 
-                // สุดท้าย ลบ Course หลัก
+                // Soft-delete Course หลัก (Enrollment + LearningLog ยังอยู่ครบ)
                 await _courseRepo.DeleteAsync(course);
 
-                // กดยืนยันการเปลี่ยนแปลงทั้งหมด
                 transaction.Complete();
             }
 
+            // ── ลบ SCORM folder จาก disk หลัง transaction สำเร็จ ──────
             foreach (var folder in scormFoldersToDelete)
-            {
                 _scormService.DeleteScormFolder(folder);
-            }
         }
 
  
@@ -390,16 +378,21 @@ namespace iLearn.Application.Services
             }
             else
             {
-                // 🔒 ตรวจสอบว่ามี Enrollment ที่ยังไม่เสร็จสิ้น (In Progress) อยู่หรือไม่ ก่อนอนุญาตให้ปิดคอร์ส
-                var inProgressEnrollments = await _enrollmentRepository.GetAsync(
-                    e => e.CourseId == id && !e.IsCompleted
+                // 🔒 นับเฉพาะ Enrollment ที่ผู้เรียนเรียนจริงแล้ว โดยต้องผ่านทุกเงื่อนไขต่อไปนี้:
+                //   1. ยังไม่เสร็จ (IsCompleted = false)
+                //   2. เริ่มเรียนไปแล้ว (StartDate != null)
+                //   3. มี Progress จริง (Progress > 0) — กรอง "zombie enrollment" ออก
+                //      (Enrollment ที่ Assignment ถูกยกเลิกแต่ StartDate ถูก set ไว้แล้ว)
+                var activeEnrollments = await _enrollmentRepository.GetAsync(
+                    e => e.CourseId == id && !e.IsCompleted && e.StartDate != null && e.Progress > 0
                 );
 
-                if (inProgressEnrollments.Any())
+                if (activeEnrollments.Any())
                 {
-                    var count = inProgressEnrollments.Count();
+                    var count = activeEnrollments.Count();
                     throw new InvalidOperationException(
-                        $"ไม่สามารถปิดคอร์สได้ เนื่องจากมีผู้เรียนที่กำลังเรียนอยู่ {count} คน กรุณารอให้ผู้เรียนทุกคนเรียนจบก่อน หรือยกเลิก Enrollment ที่เกี่ยวข้องก่อนดำเนินการ"
+                        $"ไม่สามารถปิดคอร์สได้ เนื่องจากมีผู้เรียนที่กำลังเรียนอยู่ {count} คน " +
+                        $"กรุณารอให้ผู้เรียนทุกคนเรียนจบก่อน หรือยกเลิก Enrollment ที่เกี่ยวข้องก่อนดำเนินการ"
                     );
                 }
             }

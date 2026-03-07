@@ -4,6 +4,7 @@ using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Linq.Expressions;
 
 namespace iLearn.Infrastructure.Persistence
 {
@@ -46,6 +47,9 @@ namespace iLearn.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // ── Global Query Filter: ซ่อน soft-deleted records จากทุก query อัตโนมัติ ──
+            ApplySoftDeleteFilters(modelBuilder);
 
             // 1. Config Enrollment (StudentCode ไม่มี FK -> User)
             modelBuilder.Entity<Enrollment>()
@@ -105,7 +109,24 @@ namespace iLearn.Infrastructure.Persistence
             return await base.SaveChangesAsync(cancellationToken);
         }
 
-        // ✅ แยก Logic ออกมาเป็น Private Method เพื่อลด Code Duplication
+        /// <summary>
+        /// วน loop ทุก Entity ที่สืบทอด BaseEntity แล้วใส่ HasQueryFilter(e => !e.IsDeleted) อัตโนมัติ
+        /// </summary>
+        private static void ApplySoftDeleteFilters(ModelBuilder modelBuilder)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                    continue;
+
+                var param     = Expression.Parameter(entityType.ClrType, "e");
+                var property  = Expression.Property(param, nameof(BaseEntity.IsDeleted));
+                var condition = Expression.Lambda(Expression.Not(property), param);
+
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(condition);
+            }
+        }
+
         private void SetAuditFields()
         {
             var entries = ChangeTracker.Entries<BaseEntity>();
@@ -118,8 +139,16 @@ namespace iLearn.Infrastructure.Persistence
                 }
                 else if (entry.State == EntityState.Modified)
                 {
-                    entry.Entity.UpdatedAt = _dateTime.Now;
-                    entry.Entity.UpdatedBy = _currentUserService.UserId;
+                    // ถ้าเป็น Soft Delete ให้บันทึก DeletedBy แทน UpdatedBy
+                    if (entry.Entity.IsDeleted && entry.Entity.DeletedBy == null)
+                    {
+                        entry.Entity.DeletedBy = _currentUserService.UserId;
+                    }
+                    else
+                    {
+                        entry.Entity.UpdatedAt = _dateTime.Now;
+                        entry.Entity.UpdatedBy = _currentUserService.UserId;
+                    }
 
                     // 🛡️ ป้องกันไม่ให้ CreatedAt และ CreatedBy ถูกแก้ไขโดยไม่ตั้งใจตอน Update
                     entry.Property(x => x.CreatedAt).IsModified = false;

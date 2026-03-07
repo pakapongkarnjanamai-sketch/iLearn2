@@ -250,7 +250,8 @@ namespace iLearn.API.Controllers.Base
                     var file = await _fileRepo.GetByIdAsync(resource.FileStorageId.Value);
                     if (file != null)
                     {
-                        await _fileRepo.DeleteAsync(file);
+                        // Hard Delete FileStorage — ลบ binary data จริง ไม่มี FK อ้างอิงมา
+                        await _fileRepo.HardDeleteAsync(file);
                     }
                 }
             }
@@ -259,7 +260,7 @@ namespace iLearn.API.Controllers.Base
                 // Log error but continue
             }
 
-            // 2. ลบ Record ใน DB
+            // 2. Soft Delete Resource record
             await _repository.DeleteAsync(resource);
             return Ok();
         }
