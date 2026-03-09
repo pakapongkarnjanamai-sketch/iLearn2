@@ -1,6 +1,5 @@
-﻿using iLearn.Application.Interfaces.Services;
-using iLearn.Application.Middleware;
-using iLearn.Application.Services;
+﻿using iLearn.User.Middleware;
+using iLearn.User.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
