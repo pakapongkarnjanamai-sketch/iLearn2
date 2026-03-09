@@ -1,3 +1,4 @@
+
 namespace iLearn.Application.Common
 {
     public class FileSettings
@@ -6,7 +7,7 @@ namespace iLearn.Application.Common
         public string HostUnc { get; set; } = string.Empty;
         public string CourseFolder { get; set; } = "course";
 
-        // Helper Properties (???????? PathConst ????)
+        // Helper Properties
         public string FileUrl => $"{HostUrl}/{CourseFolder}";
         public string FileUnc => Path.Combine(HostUnc, CourseFolder);
     }

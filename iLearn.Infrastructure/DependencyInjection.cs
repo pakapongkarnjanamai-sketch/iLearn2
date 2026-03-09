@@ -1,4 +1,4 @@
-using iLearn.Application.Common;
+﻿using iLearn.Application.Common;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -18,29 +18,29 @@ namespace iLearn.Infrastructure
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            // ?? Database ??
+            // ── Database ──
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection")));
 
-            // ?? Configuration ??
+            // ── Configuration ──
             services.Configure<FileSettings>(
                 configuration.GetSection("FileSettings"));
 
-            // ?? Unit of Work ??
+            // ── Unit of Work ──
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // ?? Repositories ??
+            // ── Repositories ──
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<ICourseRepository, CourseRepository>();
 
-            // ?? Infrastructure Services ??
+            // ── Infrastructure Services ──
             services.AddTransient<IDateTime, DateTimeService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IAssignmentNoGenerator, AssignmentNoGenerator>();
             services.AddScoped<IScormService, ScormService>();
 
-            // ?? External HTTP Services ??
+            // ── External HTTP Services ──
             services.AddHttpClient<IStudentApiService, StudentApiService>();
 
             return services;

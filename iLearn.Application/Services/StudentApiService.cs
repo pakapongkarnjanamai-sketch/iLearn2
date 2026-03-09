@@ -8,7 +8,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace iLearn.Infrastructure.Services
+namespace iLearn.Application.Services
 {
     public class StudentApiService : IStudentApiService
     {

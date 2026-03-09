@@ -12,6 +12,6 @@
     <PackageReference Include="DevExtreme.AspNet.Data" Version="5.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\iLearn.API\iLearn.API.csproj" />
+    <ProjectReference Include="..\iLearn.Infrastructure\iLearn.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

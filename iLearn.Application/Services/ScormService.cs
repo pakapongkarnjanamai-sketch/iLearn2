@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using System.IO.Compression;
 using System.Xml.Linq;
 
-namespace iLearn.Infrastructure.Services
+namespace iLearn.Application.Services
 {
     public class ScormService : IScormService
     {

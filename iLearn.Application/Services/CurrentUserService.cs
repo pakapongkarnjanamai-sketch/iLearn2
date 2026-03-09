@@ -1,7 +1,7 @@
 ﻿using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
 
-namespace iLearn.Infrastructure.Services
+namespace iLearn.Application.Services
 {
     public class CurrentUserService : ICurrentUserService
     {
