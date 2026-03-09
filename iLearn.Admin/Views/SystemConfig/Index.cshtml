@@ -1,0 +1,385 @@
+@model iLearn.Admin.Controllers.SystemConfigViewModel
+@{
+    ViewBag.Title = "System Configuration";
+    Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
+
+    string EnvBadge(string env) => env switch
+    {
+        "Production"  => "status-pill green",
+        "Staging"     => "status-pill yellow",
+        _             => "status-pill blue",
+    };
+    string LogLevelClass(string level) => level switch
+    {
+        "Trace"       => "purple",
+        "Debug"       => "blue",
+        "Information" => "green",
+        "Warning"     => "yellow",
+        "Error"       => "red",
+        "Critical"    => "red",
+        _             => ""
+    };
+}
+
+<!-- ?? Page Header ?? -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="page-title">System Configuration</div>
+        <div class="page-subtitle">Runtime settings and environment information</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        @if (Model.ApiReachable)
+        {
+            <span class="tag-pill green"><i class="fas fa-circle me-1" style="font-size:8px;"></i> API Online</span>
+        }
+        else
+        {
+            <span class="tag-pill red"><i class="fas fa-circle me-1" style="font-size:8px;"></i> API Unreachable</span>
+        }
+        <span class="@EnvBadge(Model.AdminEnvironment)">
+            <i class="fas fa-circle me-1" style="font-size:8px;"></i> @Model.AdminEnvironment
+        </span>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- ???? ROW 1: Database + File Settings ???? -->
+    <div class="row g-4 mb-4">
+
+        <!-- Database -->
+        <div class="col-lg-4">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <i class="fas fa-database me-2 text-primary"></i>Database (API)
+                </div>
+                <div class="panel-body">
+                    @if (Model.ApiReachable)
+                    {
+                        <table class="config-table">
+                            <tbody>
+                                <tr>
+                                    <td class="config-key">Data Source</td>
+                                    <td><code>@Model.Database.DataSource</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">Database</td>
+                                    <td><code>@Model.Database.DatabaseName</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">User ID</td>
+                                    <td><code>@Model.Database.UserId</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">Trust Server Cert</td>
+                                    <td>
+                                        @if (Model.Database.TrustCert.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="tag-pill green">True</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag-pill yellow">False</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-secondary small py-2"><i class="fas fa-exclamation-circle me-1"></i>Cannot reach API</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- File Settings -->
+        <div class="col-lg-4">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <i class="fas fa-folder-open me-2 text-primary"></i>File Settings (API)
+                </div>
+                <div class="panel-body">
+                    @if (Model.ApiReachable)
+                    {
+                        <table class="config-table">
+                            <tbody>
+                                <tr>
+                                    <td class="config-key">HostUrl</td>
+                                    <td><code>@Model.FileSettings.HostUrl</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">HostUnc</td>
+                                    <td><code>@Model.FileSettings.HostUnc</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">CourseFolder</td>
+                                    <td><code>@Model.FileSettings.CourseFolder</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">FileUrl <span class="config-computed">(computed)</span></td>
+                                    <td><code class="text-primary">@Model.FileSettings.FileUrl</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">FileUnc <span class="config-computed">(computed)</span></td>
+                                    <td><code class="text-primary">@Model.FileSettings.FileUnc</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-secondary small py-2"><i class="fas fa-exclamation-circle me-1"></i>Cannot reach API</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Service -->
+        <div class="col-lg-4">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <i class="fas fa-users me-2 text-primary"></i>Employee Service (API)
+                </div>
+                <div class="panel-body">
+                    @if (Model.ApiReachable)
+                    {
+                        <table class="config-table">
+                            <tbody>
+                                <tr>
+                                    <td class="config-key">BaseStudentUrl</td>
+                                    <td><code>@Model.EmployeeService.BaseStudentUrl</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">BaseStudentLookupUrl</td>
+                                    <td><code>@Model.EmployeeService.BaseStudentLookupUrl</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-secondary small py-2"><i class="fas fa-exclamation-circle me-1"></i>Cannot reach API</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ???? ROW 2: Connectivity + Runtime ???? -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-lg-6">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <i class="fas fa-plug me-2 text-primary"></i>Connectivity
+                </div>
+                <div class="panel-body">
+                    <div class="config-section-label">Admin App</div>
+                    <table class="config-table mb-3">
+                        <tbody>
+                            <tr>
+                                <td class="config-key">API Base URL</td>
+                                <td><code>@Model.AdminApiBaseUrl</code></td>
+                            </tr>
+                            <tr>
+                                <td class="config-key">Allowed Hosts</td>
+                                <td><code>@Model.AdminAllowedHosts</code></td>
+                            </tr>
+                            <tr>
+                                <td class="config-key">Environment</td>
+                                <td><span class="@EnvBadge(Model.AdminEnvironment)">@Model.AdminEnvironment</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    @if (Model.ApiReachable)
+                    {
+                        <div class="config-section-label">API App</div>
+                        <table class="config-table">
+                            <tbody>
+                                <tr>
+                                    <td class="config-key">Allowed Hosts</td>
+                                    <td><code>@Model.ApiAllowedHosts</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">Environment</td>
+                                    <td><span class="@EnvBadge(Model.ApiEnvironment)">@Model.ApiEnvironment</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <i class="fas fa-server me-2 text-primary"></i>Runtime &amp; Server (API)
+                </div>
+                <div class="panel-body">
+                    @if (Model.ApiReachable)
+                    {
+                        <table class="config-table">
+                            <tbody>
+                                <tr>
+                                    <td class="config-key">Machine</td>
+                                    <td><code>@Model.ApiRuntime.MachineName</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">OS</td>
+                                    <td><code>@Model.ApiRuntime.OsDescription</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">Architecture</td>
+                                    <td><code>@Model.ApiRuntime.OsArchitecture</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">.NET Runtime</td>
+                                    <td><code>@Model.ApiRuntime.DotNetVersion</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">App Version</td>
+                                    <td><code>@Model.ApiRuntime.AppVersion</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="config-key">Server Time</td>
+                                    <td><code>@Model.ApiRuntime.ServerTime</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-secondary small py-2"><i class="fas fa-exclamation-circle me-1"></i>Cannot reach API</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ???? ROW 3: Logging ???? -->
+    <div class="row g-4">
+
+        <div class="col-lg-6">
+            <div class="panel">
+                <div class="panel-header">
+                    <i class="fas fa-list-alt me-2 text-primary"></i>Logging — Admin App
+                </div>
+                <div class="panel-body">
+                    <table class="config-table">
+                        <thead><tr><th class="config-key">Category</th><th>Level</th></tr></thead>
+                        <tbody>
+                            @foreach (var kv in Model.AdminLogLevels)
+                            {
+                                <tr>
+                                    <td class="config-key">@kv.Key</td>
+                                    <td><span class="tag-pill @LogLevelClass(kv.Value)">@kv.Value</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.ApiReachable && Model.ApiLogLevels.Count > 0)
+        {
+            <div class="col-lg-6">
+                <div class="panel">
+                    <div class="panel-header">
+                        <i class="fas fa-list-alt me-2 text-primary"></i>Logging — API App
+                    </div>
+                    <div class="panel-body">
+                        <table class="config-table">
+                            <thead><tr><th class="config-key">Category</th><th>Level</th></tr></thead>
+                            <tbody>
+                                @foreach (var kv in Model.ApiLogLevels)
+                                {
+                                    <tr>
+                                        <td class="config-key">@kv.Key</td>
+                                        <td><span class="tag-pill @LogLevelClass(kv.Value)">@kv.Value</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@section Styles {
+<style>
+    .config-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    .config-table th,
+    .config-table td {
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
+    }
+    .config-table tr:last-child td {
+        border-bottom: none;
+    }
+    .config-table th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        background: var(--bg-light);
+    }
+    .config-key {
+        color: var(--text-secondary);
+        width: 170px;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+    .config-computed {
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    .config-section-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+        padding: 0 2px;
+    }
+    .config-table code {
+        font-size: 12px;
+        color: var(--text-primary);
+        background: var(--bg-light);
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid var(--border-color);
+        word-break: break-all;
+    }
+    .config-table code.text-primary { color: var(--brand-color) !important; }
+
+    /* tag-pill colour variants */
+    .tag-pill.purple { background: #f9f0ff; color: #531dab; border-color: #d3adf7; }
+    .tag-pill.blue   { background: #e6f4ff; color: #0050b3; border-color: #91caff; }
+    .tag-pill.green  { background: #f6ffed; color: #389e0d; border-color: #b7eb8f; }
+    .tag-pill.yellow { background: #fffbe6; color: #d48806; border-color: #ffe58f; }
+    .tag-pill.red    { background: #fff2f0; color: #cf1322; border-color: #ffadd2; }
+
+    /* status-pill colour variants */
+    .status-pill.green  { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+    .status-pill.yellow { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+    .status-pill.blue   { background: #e6f4ff; color: #0050b3; border: 1px solid #91caff; }
+</style>
+}

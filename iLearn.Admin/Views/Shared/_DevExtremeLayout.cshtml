@@ -75,9 +75,16 @@
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" asp-controller="Resources" asp-action="Index">Resources Library</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="Enrollments" asp-action="Index">Enrollments</a></li>
+                    <li><a class="dropdown-item" asp-controller="Enrollments" asp-action="Index">Enrollments</a></li>
                             <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Learning Logs</a></li>
                         </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SystemConfig" ? "active" : "")"
+                           asp-controller="SystemConfig" asp-action="Index">
+                            <i class="fas fa-cog me-1"></i> System Config
+                        </a>
                     </li>
                     
                 </ul>

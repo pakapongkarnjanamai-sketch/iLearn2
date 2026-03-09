@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -26,6 +27,9 @@ namespace iLearn.Infrastructure
             // ── Configuration ──
             services.Configure<FileSettings>(
                 configuration.GetSection("FileSettings"));
+            services.Configure<EmployeeServiceSettings>(
+                configuration.GetSection("EmployeeServiceSettings"));
+
 
             // ── Unit of Work ──
             services.AddScoped<IUnitOfWork, UnitOfWork>();

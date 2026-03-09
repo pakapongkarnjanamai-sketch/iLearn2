@@ -33,10 +33,10 @@
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Users")" class="dash-stat-card green">
-                <div class="ds-lbl">Total Employees</div>
-                <div class="ds-val" id="count-users">0</div>
-                <div class="ds-link" style="color:var(--success-color);">Manage <i class="fas fa-arrow-right ms-1"></i></div>
+            <a href="@Url.Action("Index", "Assignments")" class="dash-stat-card green">
+                <div class="ds-lbl">Total Assignments (In Progress)</div>
+                <div class="ds-val" id="count-inprogress-assignments">0</div>
+                <div class="ds-link" style="color:var(--success-color);">View <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
@@ -52,9 +52,12 @@
     <div class="row g-3 mb-4">
         <div class="col-lg-8">
             <div class="dash-panel h-100">
-                <div class="dash-panel-header">Enrollment Trends</div>
+                <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                    <span>Learning Activity Trends</span>
+                    <span style="font-size:11px; color:var(--text-secondary); font-weight:400;">learning sessions per month (last 6 months)</span>
+                </div>
                 <div class="dash-panel-body">
-                    <div id="enrollmentChart" style="height:300px;"></div>
+                    <div id="learningActivityChart" style="height:300px;"></div>
                 </div>
             </div>
         </div>
@@ -71,27 +74,35 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Index", "Enrollments")" class="quick-action">
-                        <div class="qa-icon" style="background:#f6ffed; color:var(--success-color);"><i class="fas fa-user-check"></i></div>
-                        <div>
-                            <div style="font-size:12px; font-weight:600;">Enrollments</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Track course assignments</div>
-                        </div>
-                    </a>
-
                     <a href="@Url.Action("Index", "Assignments")" class="quick-action">
-                        <div class="qa-icon" style="background:var(--bg-light); color:var(--text-secondary);"><i class="fas fa-tasks"></i></div>
+                        <div class="qa-icon" style="background:#fff7e6; color:var(--warning-color);"><i class="fas fa-tasks"></i></div>
                         <div>
                             <div style="font-size:12px; font-weight:600;">Assignments</div>
                             <div style="font-size:11px; color:var(--text-secondary);">Bulk course assignment</div>
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Index", "LearningLogs")" class="quick-action">
-                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);"><i class="fas fa-chart-bar"></i></div>
+                    <a href="@Url.Action("Index", "Students")" class="quick-action">
+                        <div class="qa-icon" style="background:#f6ffed; color:var(--success-color);"><i class="fas fa-user-graduate"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Learning Logs</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">View progress &amp; scores</div>
+                            <div style="font-size:12px; font-weight:600;">Students</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Browse &amp; manage learners</div>
+                        </div>
+                    </a>
+
+                    <a href="@Url.Action("Index", "Resources")" class="quick-action">
+                        <div class="qa-icon" style="background:#f9f0ff; color:#722ed1;"><i class="fas fa-folder-open"></i></div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Resources</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Manage learning materials</div>
+                        </div>
+                    </a>
+
+                    <a href="@Url.Action("Index", "StudentGroups")" class="quick-action">
+                        <div class="qa-icon" style="background:var(--bg-light); color:var(--text-secondary);"><i class="fas fa-users"></i></div>
+                        <div>
+                            <div style="font-size:12px; font-weight:600;">Student Groups</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Organise learner groups</div>
                         </div>
                     </a>
 
@@ -183,7 +194,7 @@
     <script>
         $(() => {
             loadDashboardStats();
-            loadEnrollmentTrends();
+            loadLearningActivityTrends();
         });
 
         function loadDashboardStats() {
@@ -193,31 +204,31 @@
                 xhrFields: { withCredentials: true },
                 success: function (res) {
                     if (res.success && res.data) {
-                        animateCount('count-active-courses', res.data.activeCourses || 0);
-                        animateCount('count-draft-courses',  res.data.draftCourses  || 0);
-                        animateCount('count-users',          res.data.totalUsers    || 0);
-                        animateCount('count-resources',      res.data.totalResources || 0);
+                        animateCount('count-active-courses',        res.data.activeCourses          || 0);
+                        animateCount('count-draft-courses',          res.data.draftCourses            || 0);
+                        animateCount('count-inprogress-assignments', res.data.inProgressAssignments   || 0);
+                        animateCount('count-resources',              res.data.totalResources          || 0);
                         $('#pending-count').text(res.data.draftCourses || 0);
                     }
                 },
                 error: function (err) {
                     console.error("Failed to load dashboard stats", err);
-                    $('#count-active-courses, #count-draft-courses, #count-users, #count-resources').text("0");
+                    $('#count-active-courses, #count-draft-courses, #count-inprogress-assignments, #count-resources').text("0");
                 }
             });
         }
 
-        function loadEnrollmentTrends() {
+        function loadLearningActivityTrends() {
             $.ajax({
-                url: `${serviceUrl}/admin/Dashboard/EnrollmentTrends`,
+                url: `${serviceUrl}/admin/Dashboard/LearningActivityTrends`,
                 method: "GET",
                 xhrFields: { withCredentials: true },
                 success: function (res) {
-                    initEnrollmentChart(res.success && res.data ? res.data : []);
+                    initLearningActivityChart(res.success && res.data ? res.data : []);
                 },
                 error: function (err) {
-                    console.error("Failed to load enrollment trends", err);
-                    initEnrollmentChart([]);
+                    console.error("Failed to load learning activity trends", err);
+                    initLearningActivityChart([]);
                 }
             });
         }
@@ -234,13 +245,13 @@
             });
         }
 
-        function initEnrollmentChart(chartData) {
-            $("#enrollmentChart").dxChart({
+        function initLearningActivityChart(chartData) {
+            $("#learningActivityChart").dxChart({
                 dataSource: chartData,
                 series: {
                     argumentField: "month",
-                    valueField: "enrollments",
-                    name: "Enrollments",
+                    valueField: "sessions",
+                    name: "Sessions",
                     type: "bar",
                     color: "#1890ff",
                     cornerRadius: 2
@@ -256,7 +267,7 @@
                 margin: { top: 10, bottom: 0, left: 0, right: 0 },
                 tooltip: {
                     enabled: true,
-                    customizeTooltip: (args) => ({ text: args.valueText + " enrollments" })
+                    customizeTooltip: (args) => ({ text: args.valueText + " sessions" })
                 }
             });
         }

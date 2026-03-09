@@ -1,5 +1,7 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,19 +15,21 @@ namespace iLearn.Application.Services
     public class StudentApiService : IStudentApiService
     {
         private readonly HttpClient _httpClient;
-        private const string BaseStudentLookupUrl = "https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/StudentLookup";
-        private const string BaseStudentUrl       = "https://AP-NTC2137-PRWB/Utility/EmployeeServiceV2/api/Student";
+        private readonly string _baseStudentLookupUrl;
+        private readonly string _baseStudentUrl;
 
-        public StudentApiService(HttpClient httpClient)
+        public StudentApiService(HttpClient httpClient, IOptions<EmployeeServiceSettings> settings)
         {
-            _httpClient = httpClient;
+            _httpClient           = httpClient;
+            _baseStudentLookupUrl = settings.Value.BaseStudentLookupUrl;
+            _baseStudentUrl       = settings.Value.BaseStudentUrl;
         }
 
         public async Task<string> GetStudentsDxGridAsync(string queryString)
         {
             try
             {
-                return await _httpClient.GetStringAsync($"{BaseStudentUrl}{queryString}");
+                return await _httpClient.GetStringAsync($"{_baseStudentUrl}{queryString}");
             }
             catch (Exception ex)
             {
@@ -38,7 +42,7 @@ namespace iLearn.Application.Services
         {
             try
             {
-                var url = $"{BaseStudentLookupUrl}/{Code}";
+                var url = $"{_baseStudentLookupUrl}/{Code}";
                 var response = await _httpClient.GetFromJsonAsync<ExternalStudentDto>(url);
                 return response;
             }
@@ -53,7 +57,7 @@ namespace iLearn.Application.Services
             try
             {
                 return await _httpClient.GetFromJsonAsync<AllStudentsApiResponse>(
-                    $"{BaseStudentUrl}/all");
+                    $"{_baseStudentUrl}/all");
             }
             catch
             {
@@ -107,7 +111,7 @@ namespace iLearn.Application.Services
                 var keyObj         = new { divisions };
                 var encodedKey     = Uri.EscapeDataString(JsonSerializer.Serialize(keyObj));
                 var encodedSummary = Uri.EscapeDataString("[{\"selector\":\"EId\",\"summaryType\":\"count\"}]");
-                var url = $"{BaseStudentUrl}/divisions?key={encodedKey}&skip={skip}&take={take}" +
+                var url = $"{_baseStudentUrl}/divisions?key={encodedKey}&skip={skip}&take={take}" +
                           $"&requireTotalCount=true&totalSummary={encodedSummary}";
                 return await _httpClient.GetFromJsonAsync<DivisionApiResponse>(url);
             }
@@ -123,7 +127,7 @@ namespace iLearn.Application.Services
             try
             {
                 // อัปเดต URL เป็น GetDistinctSections
-                var url = $"{BaseStudentLookupUrl}/GetDistinctSections{queryString}";
+                var url = $"{_baseStudentLookupUrl}/GetDistinctSections{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;
             }
@@ -139,7 +143,7 @@ namespace iLearn.Application.Services
             try
             {
                 // อัปเดต URL เป็น GetDistinctDivisions
-                var url = $"{BaseStudentLookupUrl}/GetDistinctDivisions{queryString}";
+                var url = $"{_baseStudentLookupUrl}/GetDistinctDivisions{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;
             }
@@ -154,7 +158,7 @@ namespace iLearn.Application.Services
         {
             try
             {
-                var url = $"{BaseStudentLookupUrl}/GetDistinctDepartments{queryString}";
+                var url = $"{_baseStudentLookupUrl}/GetDistinctDepartments{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;
             }
@@ -169,7 +173,7 @@ namespace iLearn.Application.Services
         {
             try
             {
-                var url = $"{BaseStudentLookupUrl}/GetDistinctPositions{queryString}";
+                var url = $"{_baseStudentLookupUrl}/GetDistinctPositions{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;
             }
