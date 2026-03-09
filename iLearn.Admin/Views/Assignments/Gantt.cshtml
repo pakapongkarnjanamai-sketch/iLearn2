@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewBag.Title = "Assignment Schedule";
 }
 
@@ -13,7 +13,7 @@
 <style>
     #gantt-container { height: calc(100vh - 220px); }
 
-    /* ?? Toolbar strip ?? */
+    /* ── Toolbar strip ── */
     .gantt-toolbar {
         display: flex;
         align-items: center;
@@ -45,7 +45,7 @@
     .gantt-filter-btn.btn-expired.active    { background:var(--danger-color);  border-color:var(--danger-color); }
     .gantt-filter-btn.btn-completed.active  { background:var(--success-color); border-color:var(--success-color); }
 
-    /* ?? KPI row ?? */
+    /* ── KPI row ── */
     .gantt-kpi-row {
         display: flex;
         gap: 8px;
@@ -68,7 +68,7 @@
     }
     .gantt-kpi .val { font-weight: 700; color: var(--text-primary); }
 
-    /* ?? Legend ?? */
+    /* ── Legend ── */
     .gantt-legend {
         display: flex;
         gap: 16px;
@@ -82,19 +82,20 @@
     .legend-bar  { width: 22px; height: 9px; border-radius: 3px; }
 </style>
 
-<!-- ?? Page Header ?? -->
+<!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <div class="fw-bold text-dark" style="font-size:15px;">Assignment Schedule</div>
-        <div class="text-secondary" style="font-size:12px;">Gantt view � overview and planning</div>
+        <div class="text-secondary" style="font-size:12px;">Gantt view – overview and planning</div>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
             <i class="fas fa-table text-secondary"></i> List View
         </a>
-        <a href="@Url.Action("Form", "Assignments")" class="action-link primary">
-            <i class="fas fa-plus"></i> New Assignment
+        <a href="@Url.Action("Scheduler", "Assignments")" class="action-link">
+            <i class="fas fa-calendar-alt text-secondary"></i> Calendar View
         </a>
+     
     </div>
 </div>
 
@@ -102,31 +103,31 @@
 
     <div class="border rounded bg-white mx-4 mt-3 mb-4" style="overflow:hidden;">
 
-        <!-- ?? KPI bar ?? -->
+        <!-- ── KPI bar ── -->
         <div class="gantt-kpi-row" id="kpi-row">
             <div class="gantt-kpi">
                 <span class="dot" style="background:#595959"></span>
-                All: <span class="val" id="kpi-all">�</span>
+                All: <span class="val" id="kpi-all">—</span>
             </div>
             <div class="gantt-kpi">
                 <span class="dot" style="background:var(--accent-color)"></span>
-                In Progress: <span class="val" id="kpi-inprogress">�</span>
+                In Progress: <span class="val" id="kpi-inprogress">—</span>
             </div>
             <div class="gantt-kpi">
                 <span class="dot" style="background:var(--warning-color)"></span>
-                Upcoming: <span class="val" id="kpi-upcoming">�</span>
+                Upcoming: <span class="val" id="kpi-upcoming">—</span>
             </div>
             <div class="gantt-kpi">
                 <span class="dot" style="background:var(--danger-color)"></span>
-                Expired: <span class="val" id="kpi-expired">�</span>
+                Expired: <span class="val" id="kpi-expired">—</span>
             </div>
             <div class="gantt-kpi">
                 <span class="dot" style="background:var(--success-color)"></span>
-                Completed: <span class="val" id="kpi-completed">�</span>
+                Completed: <span class="val" id="kpi-completed">—</span>
             </div>
         </div>
 
-        <!-- ?? Toolbar: scale + status filter ?? -->
+        <!-- ── Toolbar: scale + status filter ── -->
         <div class="gantt-toolbar">
             <span style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-right:4px;">Scale:</span>
             <div id="dx-scale-toolbar"></div>
@@ -141,7 +142,7 @@
             <button class="gantt-filter-btn btn-completed"         onclick="applyFilter('Completed',this)">Completed</button>
         </div>
 
-        <!-- ?? Legend ?? -->
+        <!-- ── Legend ── -->
         <div class="gantt-legend">
             <span class="legend-item"><span class="legend-bar" style="background:#1890ff"></span> In Progress</span>
             <span class="legend-item"><span class="legend-bar" style="background:#faad14"></span> Upcoming</span>
@@ -150,7 +151,7 @@
             <span class="legend-item"><span class="legend-bar" style="background:#aaaaaa"></span> No schedule</span>
         </div>
 
-        <!-- ?? Gantt ?? -->
+        <!-- ── Gantt ── -->
         <div id="gantt-container"></div>
 
     </div>
@@ -162,7 +163,7 @@
     let activeStatus = null;
     let ganttInstance;
 
-    // ?? KPI counts (parent tasks only) ???????????????????????????
+    // ── KPI counts (parent tasks only) ───────────────────────────
     function updateKpi(tasks) {
         const parents = tasks.filter(t => t.parentId === 0);
         $("#kpi-all").text(parents.length);
@@ -172,7 +173,7 @@
         $("#kpi-completed").text(tasks.filter(t => t.status === "Completed" && t.parentId === 0).length);
     }
 
-    // ?? Filter: keep matched parents + their children ?????????????
+    // ── Filter: keep matched parents + their children ─────────────
     function applyFilter(status, el) {
         activeStatus = status;
         $(".gantt-filter-btn").removeClass("active");
@@ -195,7 +196,7 @@
         );
     }
 
-    // ?? Build / rebuild the Gantt with current data ???????????????
+    // ── Build / rebuild the Gantt with current data ───────────────
     function rebuildGantt() {
         const filtered = getFilteredTasks();
 
@@ -244,7 +245,7 @@
         }).dxGantt("instance");
     }
 
-    // ?? Scale toolbar (dxSelectBox) ???????????????????????????????
+    // ── Scale toolbar (dxSelectBox) ───────────────────────────────
     function initScaleToolbar() {
         $("#dx-scale-toolbar").dxSelectBox({
             items: [
@@ -266,7 +267,7 @@
         });
     }
 
-    // ?? Bootstrap ?????????????????????????????????????????????????
+    // ── Bootstrap ─────────────────────────────────────────────────
     $(() => {
         initScaleToolbar();
 

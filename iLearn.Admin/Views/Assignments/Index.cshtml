@@ -8,9 +8,17 @@
         <div class="fw-bold text-dark" style="font-size:15px;">Assignments History</div>
         <div class="text-secondary" style="font-size:12px;">View and manage all course assignments</div>
     </div>
-    <a href="@Url.Action("Form", "Assignments")" class="action-link primary">
-        <i class="fas fa-plus"></i> New Assignment
-    </a>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Scheduler", "Assignments")" class="action-link">
+            <i class="fas fa-calendar-alt text-secondary"></i> Calendar View
+        </a>
+        <a href="@Url.Action("Gantt", "Assignments")" class="action-link">
+            <i class="fas fa-project-diagram text-secondary"></i> Gantt View
+        </a>
+        <a href="@Url.Action("Form", "Assignments")" class="action-link primary">
+            <i class="fas fa-plus"></i> New Assignment
+        </a>
+    </div>
 </div>
 
 <div class="container-fluid px-4 py-4">
