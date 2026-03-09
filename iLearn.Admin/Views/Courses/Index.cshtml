@@ -5,8 +5,8 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="fw-bold text-dark" style="font-size:15px;">Course Management</div>
-        <div class="text-secondary" style="font-size:12px;">Manage all training courses and versions</div>
+        <div class="page-title">Course Management</div>
+        <div class="page-subtitle">Manage all training courses and versions</div>
     </div>
     <a href="@Url.Action("Form", "Courses")" class="action-link primary">
         <i class="fas fa-plus"></i> New Course
@@ -20,11 +20,7 @@
         <div class="col-md-4 col-lg-3 h-100">
             <div class="border rounded bg-white h-100 d-flex flex-column">
           
-                               <div class="section-label" style="font-size:11px; font-weight:600; color:var(--text-secondary);
-                            text-transform:uppercase; letter-spacing:0.6px; padding:10px 14px 8px;
-                            border-bottom:1px solid var(--border-color);">
-                    Categories
-                </div>
+                <div class="panel-header">Categories</div>
 
                 <div class="p-2 flex-grow-1 overflow-hidden">
                     <div id="categoryTreeView"></div>
@@ -63,11 +59,7 @@
                 selection: { mode: 'single' },
                 searchPanel: { placeholder: "Search courses..." },
 
-                // --- ปรับแต่ง UI ตารางให้คลีน ---
-                showBorders: false, 
-                rowAlternationEnabled: true, 
-                showRowLines: true,
-                hoverStateEnabled: true,
+                showBorders: false,
                 scrolling: { mode: "virtual" },
 
                 editing: {

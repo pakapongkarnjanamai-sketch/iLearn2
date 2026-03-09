@@ -500,6 +500,44 @@ iframe#scormFrame { width: 100%; height: calc(100% - 45px); border: none; }
 .dx-texteditor.dx-state-active { border-color: var(--brand-color) !important; }
 .dx-texteditor.dx-state-focused .dx-texteditor-label { color: var(--brand-color) !important; }
 
+/* =============================================================
+   23. TYPOGRAPHY UTILITIES  (replaces recurring inline styles)
+   ============================================================= */
+.page-title    { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+.page-subtitle { font-size: 12px; color: var(--text-secondary); }
+
+/* =============================================================
+   24. FILTER PANEL  (shared across Form / Detail pages)
+   ============================================================= */
+.filter-panel {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 16px;
+}
+.filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* =============================================================
+   25. PANEL HEADER  (border-bottom label inside .border panels)
+   ============================================================= */
+.panel-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
 /* ?????????????????????????????????????????????????????????????
    21. FOOTER
    ????????????????????????????????????????????????????????????? */

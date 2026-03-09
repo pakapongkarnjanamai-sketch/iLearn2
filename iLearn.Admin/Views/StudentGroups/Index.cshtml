@@ -5,8 +5,8 @@
 <!-- ?? Page Header ?? -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="fw-bold text-dark" style="font-size:15px;">Student Groups</div>
-        <div class="text-secondary" style="font-size:12px;">Manage reusable groups of learners for course assignments</div>
+        <div class="page-title">Student Groups</div>
+        <div class="page-subtitle">Manage reusable groups of learners for course assignments</div>
     </div>
     <a href="javascript:void(0);" class="action-link primary" id="btn-create-group">
         <i class="fas fa-plus"></i> New Group
@@ -33,7 +33,7 @@
 
     <!-- ?? DataGrid ?? -->
     <div class="border rounded bg-white">
-        <div class="p-3 section-title">Group List</div>
+        <div class="panel-header">Group List</div>
         <div id="grid-groups"></div>
     </div>
 
@@ -54,9 +54,7 @@
         gridInstance = initDxGrid("#grid-groups", {
             dataSource: [],
             selection: { mode: "single" },
-            showBorders: false,
-            showRowLines: true,
-            hoverStateEnabled: true,
+        showBorders: false,
             searchPanel: { visible: true, placeholder: "Search groups..." },
             columns: [
                 {

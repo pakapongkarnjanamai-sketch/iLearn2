@@ -7,10 +7,8 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="fw-bold text-dark" style="font-size:15px;">@ViewBag.Title</div>
-        <div class="text-secondary" style="font-size:12px;">
-            @(isEdit ? "Update version details and rearrange resources." : "Create a new version and manage learning materials.")
-        </div>
+        <div class="page-title">@ViewBag.Title</div>
+        <div class="page-subtitle">@(isEdit ? "Update version details and rearrange resources." : "Create a new version and manage learning materials.")</div>
     </div>
     <a href="javascript:history.back();" class="action-link">
         <i class="fas fa-arrow-left text-secondary"></i> Back
