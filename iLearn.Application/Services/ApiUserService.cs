@@ -47,7 +47,7 @@ namespace iLearn.Application.Services
                 var json = JsonSerializer.Serialize(request, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("api/users/windows-auth", content);
+                var response = await _httpClient.PostAsync("users/windows-auth", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)

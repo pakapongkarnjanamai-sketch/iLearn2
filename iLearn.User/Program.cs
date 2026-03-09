@@ -49,12 +49,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IApiUserService, ApiUserService>();
-builder.Services.AddHttpClient<IStudentApiService, StudentApiService>();
+
 
 // HTTP Client for API calls
 builder.Services.AddHttpClient("iLearnAPI", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "https://localhost:7128");
+    var baseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "https://localhost:7128/api";
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(30);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
 {

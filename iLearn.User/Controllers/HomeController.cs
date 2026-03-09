@@ -1,18 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using iLearn.Application.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Json;
 using System.Security.Claims;
-using iLearn.Application.Interfaces.Services;
 
 namespace iLearn.User.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly IStudentApiService _employeeService;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public HomeController(IStudentApiService employeeService)
+        public HomeController(IHttpClientFactory httpClientFactory)
         {
-            _employeeService = employeeService;
+            _httpClientFactory = httpClientFactory;
         }
 
         public IActionResult Index()
@@ -27,7 +28,22 @@ namespace iLearn.User.Controllers
         [HttpPost]
         public async Task<IActionResult> VerifyEmployee(string employeeCode)
         {
-            var employee = await _employeeService.GetStudentByCodeAsync(employeeCode);
+            if (string.IsNullOrWhiteSpace(employeeCode))
+                return Json(new { success = false, message = "กรุณาระบุรหัสพนักงาน" });
+
+            ExternalStudentDto? employee = null;
+            try
+            {
+                var client = _httpClientFactory.CreateClient("iLearnAPI");
+                var response = await client.GetAsync($"Students/GetStudentbyEID/{Uri.EscapeDataString(employeeCode)}");
+
+                if (response.IsSuccessStatusCode)
+                    employee = await response.Content.ReadFromJsonAsync<ExternalStudentDto>();
+            }
+            catch
+            {
+                return Json(new { success = false, message = "ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง" });
+            }
 
             if (employee != null)
             {

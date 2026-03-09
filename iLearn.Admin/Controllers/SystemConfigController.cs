@@ -91,7 +91,7 @@ namespace iLearn.Admin.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient("iLearnAPI");
-                var resp = await client.GetAsync("api/admin/SystemConfig");
+                var resp = await client.GetAsync("admin/SystemConfig");
                 if (resp.IsSuccessStatusCode)
                 {
                     var json = await resp.Content.ReadAsStringAsync();
