@@ -3,7 +3,6 @@
     int courseId = ViewBag.CourseId;
 }
 
-<!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <div class="fw-bold text-dark" style="font-size:15px;" id="pageTitle">Course Dashboard</div>
@@ -14,13 +13,10 @@
     </a>
 </div>
 
-
-
 <div class="container-fluid px-4 py-4" style="max-width:1400px;">
 
     <div class="row g-3 mb-4">
 
-        <!-- Course Information Form -->
         <div class="col-lg-8">
             <div class="border rounded bg-white h-100 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -38,7 +34,6 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
         <div class="col-lg-4">
             <div class="border rounded bg-white h-100 p-3">
                 <div class="section-title">Quick Actions</div>
@@ -94,19 +89,20 @@
 
     </div>
 
-    <!-- Content Versions -->
-    <div class="border rounded bg-white p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0" style="border:none; padding:0;">Content Versions</div>
-            <a href="javascript:void(0);" id="btnNewVersionHeader" class="action-link primary">
-                <i class="fas fa-plus"></i> New Version
-            </a>
+    <div class="border rounded bg-white">
+        <div id="dashboardTabs"></div>
+
+        <div id="panel-versions" class="p-3">
+            <div id="versionsToolbar" class="mb-3"></div>
+            <div id="versionsCardContainer" class="row g-3"></div>
         </div>
-        <div id="versionsContainer" class="row g-3">
-            <div class="col-12 text-center py-5" style="color:var(--text-secondary);">
-                <i class="fas fa-circle-notch fa-spin fa-lg mb-3" style="color:var(--accent-color); display:block;"></i>
-                Loading versions...
-            </div>
+
+        <div id="panel-learners" class="p-3" style="display:none;">
+            <div id="grid-learners"></div>
+        </div>
+
+        <div id="panel-assignments" class="p-3" style="display:none;">
+            <div id="grid-assignments"></div>
         </div>
     </div>
 
@@ -123,7 +119,7 @@
 
         let isCourseActive = false;
         let courseForm;
-
+        let versionsData = [];
         $(async () => {
 
             // ── 1. Build form ──────────────────────────────────────────
@@ -216,17 +212,17 @@
                 ]
             }).dxForm("instance");
 
-            // ── 2. Load course data ────────────────────────────────────
+            // ── 2. Load dashboard data (single consolidated call) ──────
             try {
                 const response = await $.ajax({
-                    url: `${courseApiUrl}/${courseId}`,
+                    url: `${courseApiUrl}/${courseId}/dashboard`,
                     type: 'GET',
                     xhrFields: { withCredentials: true }
                 });
 
-                const data = response.data || response;
+                const { course: data, versions, kpi } = response.data;
 
-                // Update page header with course title
+                // Update page header
                 $("#pageTitle").text(data.courseName || "Course Dashboard");
                 $("#pageSubtitle").text(data.courseCode ? `Code: ${data.courseCode}` : "Manage course information and versions");
 
@@ -263,8 +259,12 @@
                 isCourseActive = data.isActive;
                 updateStatusUI(isCourseActive);
 
+                // Render versions from dashboard response
+                renderVersionCards(versions);
+
             } catch(xhr) {
                 DevExpress.ui.notify("Error loading course: " + (xhr.responseJSON?.message || "Unknown error"), "error", 3000);
+                console.log(xhr);
             }
 
             // ── 3. Save ────────────────────────────────────────────────
@@ -300,8 +300,6 @@
                 });
             });
 
-
-
             // ── 4. Status UI helpers ───────────────────────────────────
             function updateStatusUI(isActive) {
                 const $publishIcon    = $("#publishIcon");
@@ -321,7 +319,6 @@
                     $statusBadge.removeClass("pill-default pill-warning pill-danger pill-info")
                                 .addClass("pill-success")
                                 .html('<i class="fas fa-check-circle me-1"></i> Active');
-
                     $btnDelete.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
                     $btnAssignment.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
                     $warnMsg.removeClass("d-none");
@@ -333,7 +330,6 @@
                     $statusBadge.removeClass("pill-success pill-warning pill-danger pill-info")
                                 .addClass("pill-default")
                                 .html('<i class="fas fa-lock me-1"></i> Closed');
-
                     $btnDelete.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
                     $btnAssignment.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
                     $warnMsg.addClass("d-none");
@@ -358,31 +354,27 @@
 
                     $.ajax({
                         url: `${courseApiUrl}/${courseId}/status`,
-                        type: 'PUT', // 🌟 [แก้ไขที่นี่ 1] เปลี่ยนจาก 'PATCH' เป็น 'PUT'
+                        type: 'PUT',
                         contentType: 'application/json',
                         xhrFields: { withCredentials: true },
                         data: JSON.stringify({ isActive: newState })
-                    }).done((response) => { // 🌟 รับ response แบบ ApiResponse
+                    }).done((response) => {
                         isCourseActive = newState;
                         updateStatusUI(isCourseActive);
 
-                        // 🌟 ดึง message จาก response.message ถ้ามี
                         const successMsg = response.message || (newState ? "Course published!" : "Course closed.");
                         DevExpress.ui.notify(successMsg, "success", 2000);
 
                         $btn.removeClass("disabled opacity-50 pe-none");
                     }).fail((xhr) => {
-                        // 🌟 [แก้ไขที่นี่ 2] ปรับการดึงข้อความ Error จาก ApiResponse ให้ครอบคลุมมากขึ้น
                         let errorMsg = "Error updating status.";
                         if (xhr.responseJSON) {
-                            // ถ้า API ส่ง ApiResponse กลับมาในรูปแบบ { success: false, message: "..." }
                             errorMsg = xhr.responseJSON.message || errorMsg;
                         } else if (xhr.responseText) {
-                            // กรณีที่ error เป็น text ธรรมดา
                             errorMsg = xhr.responseText;
                         }
 
-                        DevExpress.ui.notify(errorMsg, "error", 4000); // เพิ่มเวลาแสดงผลเป็น 4 วินาทีเพื่อให้อ่านทัน
+                        DevExpress.ui.notify(errorMsg, "error", 4000);
                         $btn.removeClass("disabled opacity-50 pe-none");
                     });
                 });
@@ -409,11 +401,10 @@
             });
 
             // ── 7. Navigation buttons ──────────────────────────────────
-            const goNewVersion = () => {
-                window.location.href = '@Url.Action("VersionForm", "Courses")?courseId=' + courseId;
-            };
+                   function goNewVersion() {
+            window.location.href = '@Url.Action("VersionForm", "Courses")?courseId=' + courseId;
+        }
             $("#btnNewVersion").on("click", (e) => { e.preventDefault(); goNewVersion(); });
-            $("#btnNewVersionHeader").on("click", goNewVersion);
 
             $("#btnAssignment").click(function(e) {
                 e.preventDefault();
@@ -424,151 +415,146 @@
                 window.location.href = '@Url.Action("Form", "Assignments")?courseId=' + courseId;
             });
 
-            // ── 8. Load Versions ───────────────────────────────────────
-            function loadVersions() {
-                $.ajax({
-                    url: `${serviceUrl}/admin/CourseVersionsCRUD/Get`,
-                    data: { filter: JSON.stringify(["courseId", "=", courseId]) },
-                    xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    const rawData = res.data || res;
-                    const versions = Array.isArray(rawData) ? rawData : (rawData.data || []);
-                    versions.sort((a, b) => b.versionNumber - a.versionNumber);
+            // ── 8. Versions CardView ──────────────────────────────────
+        
 
-                    const $container = $("#versionsContainer").empty();
+            function renderVersionCards(versions) {
+                versionsData = versions || [];
 
-                    if (versions.length === 0) {
-                        $container.html(`
-                            <div class="col-12 text-center py-5" style="color:var(--text-secondary);">
-                                <i class="fas fa-layer-group fa-2x mb-3" style="opacity:0.2; display:block;"></i>
-                                <div class="mb-3" style="font-size:13px;">No versions yet.</div>
-                                <a href="javascript:void(0);" class="action-link primary" onclick="$('#btnNewVersion').trigger('click')">
-                                    <i class="fas fa-plus"></i> Create First Version
-                                </a>
-                            </div>`);
-                        return;
-                    }
-
-                    versions.forEach(v => {
-                        const isActive = v.isActive;
-
-                        const activeBadge = isActive
-                            ? `<span class="tag-pill pill-info"><i class="fas fa-check-circle me-1"></i>Active</span>`
-                            : `<span class="tag-pill pill-default">Draft</span>`;
-
-                        const editItem = `
-                            <li>
-                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="@Url.Action("VersionForm", "Courses")?id=${v.id}&courseId=${courseId}">
-                                    <i class="fas fa-edit" style="width:16px; color:var(--warning-color);"></i>
-                                    <span style="font-size:12px;">Edit</span>
-                                </a>
-                            </li>`;
-
-                        const inactiveItems = !isActive ? `
-                            <li>
-                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${v.id})">
-                                    <i class="fas fa-check-circle" style="width:16px; color:var(--accent-color);"></i>
-                                    <span style="font-size:12px;">Set as Active</span>
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider my-1"></li>
-                            <li>
-                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${v.id})">
-                                    <i class="fas fa-trash-alt" style="width:16px;"></i>
-                                    <span style="font-size:12px;">Delete</span>
-                                </a>
-                            </li>` : '';
-
-                        const cardHtml = `
-                            <div class="col-md-6 col-xl-4">
-                                <div class="version-card ${isActive ? "active" : ""}">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
-                                                Version ${v.versionNumber}
-                                            </div>
-                                            ${activeBadge}
-                                        </div>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm p-1 text-secondary" style="background:none; border:none;"
-                                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="fas fa-ellipsis-v" style="font-size:12px;"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 mt-1"
-                                                style="border-color:var(--border-color) !important; border-radius:4px; min-width:160px;">
-                                                ${editItem}${inactiveItems}
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div style="font-size:11px; color:var(--text-secondary); min-height:32px;
-                                                padding: 8px 0; border-bottom:1px solid var(--border-color); margin-bottom:10px;">
-                                        ${v.note ? v.note : '<span style="opacity:0.5; font-style:italic;">No description</span>'}
-                                    </div>
-
-                                    <div id="res-container-${v.id}">
-                                        <span style="font-size:11px; color:var(--text-secondary);">
-                                            <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>`;
-
-                        $container.append(cardHtml);
-                        loadVersionResources(v.id);
+                // 1. สร้าง Toolbar สำหรับช่องค้นหา และปุ่มเพิ่มเวอร์ชัน (ทำแค่ครั้งแรก)
+                if (!$("#versionsToolbar").hasClass("dx-toolbar")) {
+                    $("#versionsToolbar").dxToolbar({
+                        items: [
+                            {
+                                location: "before",
+                                widget: "dxTextBox",
+                                options: {
+                                    placeholder: "Search versions...",
+                                    width: 250,
+                                    mode: "search",
+                                    valueChangeEvent: "keyup",
+                                    onValueChanged: function(e) {
+                                        drawCards(e.value);
+                                    }
+                                }
+                            },
+                            {
+                                location: "after",
+                                widget: "dxButton",
+                                options: {
+                                    icon: "plus",
+                                    text: "New Version",
+                                    type: "default",
+                                    stylingMode: "text",
+                                    onClick: goNewVersion
+                                }
+                            }
+                        ]
                     });
+                }
 
-                }).fail(function() {
-                    $("#versionsContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
-                });
+                // 2. สั่งวาด Cards
+                drawCards("");
             }
 
-            function loadVersionResources(versionId) {
-                $.ajax({
-                    url: `${serviceUrl}/admin/CourseResourcesCRUD/Get`,
-                    data: { filter: JSON.stringify(["courseVersionId", "=", versionId]), expand: "resource" },
-                    xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    const rawData  = res.data || res;
-                    const resources = Array.isArray(rawData) ? rawData : (rawData.data || []);
-                    const $cont    = $(`#res-container-${versionId}`).empty();
+            function drawCards(searchText) {
+                const $container = $("#versionsCardContainer");
+                $container.empty();
 
-                    if (resources.length === 0) {
-                        $cont.html('<span class="text-muted fst-italic opacity-75">No files attached</span>');
-                        return;
+                // กรองข้อมูลตามคำค้นหา
+                const filtered = versionsData.filter(v => {
+                    if (!searchText) return true;
+                    const term = searchText.toLowerCase();
+                    return (v.note && v.note.toLowerCase().includes(term)) ||
+                           (v.versionNumber && v.versionNumber.toString().includes(term));
+                });
+
+                if (filtered.length === 0) {
+                    $container.html('<div class="col-12 text-center text-secondary py-4">No versions found.</div>');
+                    return;
+                }
+
+                // วนลูปวาด Card ตามดีไซน์เดิม
+                filtered.forEach(v => {
+                    const ia = v.isActive;
+                    const resources = v.resources || [];
+                    const badge = ia
+                        ? '<span class="tag-pill pill-info" style="font-size:10px;"><i class="fas fa-check-circle me-1"></i>Active</span>'
+                        : '<span class="tag-pill pill-default" style="font-size:10px;">Draft</span>';
+
+                    const editHref = `@Url.Action("VersionForm", "Courses")?id=${v.id}&courseId=${courseId}`;
+                    let actions = `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="${editHref}"><i class="fas fa-edit" style="width:14px;color:var(--warning-color);"></i><span style="font-size:12px;">Edit</span></a>`;
+
+                    if (!ia) {
+                        actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${v.id})"><i class="fas fa-check-circle" style="width:14px;color:var(--accent-color);"></i><span style="font-size:12px;">Set Active</span></a>`;
+                        actions += '<hr class="dropdown-divider my-1">';
+                        actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${v.id})"><i class="fas fa-trash-alt" style="width:14px;"></i><span style="font-size:12px;">Delete</span></a>`;
                     }
 
-                    resources.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                    // Build resource list HTML directly from embedded data
+                    let resourcesHtml = '';
+                    if (resources.length === 0) {
+                        resourcesHtml = '<span style="font-size:11px;color:var(--text-secondary);opacity:.5;font-style:italic;">No files attached</span>';
+                    } else {
+                        resources.forEach((r, idx) => {
+                            const typeCls  = r.typeId === 1 ? "pill-learn" : "pill-exam";
+                            const typeName = r.typeName || (r.typeId === 1 ? "Learn" : "Exam");
+                            const previewBtn = r.isActive
+                                ? `<a href="javascript:void(0);" onclick="window.viewContent(${r.id},'${(r.name || '').replace(/'/g, "\\'")}')" style="font-size:11px;color:var(--accent-color);flex-shrink:0;" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
+                                : '';
+                            resourcesHtml += `
+                                <div class="d-flex align-items-center gap-2 mb-1" style="padding:4px 8px;border:1px solid var(--border-color);border-radius:3px;font-size:11px;">
+                                    <span style="min-width:16px;font-weight:600;color:var(--text-secondary);text-align:center;">${idx + 1}</span>
+                                    <span class="text-truncate flex-grow-1" style="color:var(--text-primary);font-weight:500;" title="${r.name}">${r.name}</span>
+                                    <span class="tag-pill ${typeCls}" style="flex-shrink:0;font-size:10px;">${typeName}</span>
+                                    ${previewBtn}
+                                </div>`;
+                        });
+                    }
 
-                    resources.forEach((cr, idx) => {
-                        const r = cr.resource;
-                        if (!r) return;
+                    const cardHtml = `
+                        <div class="col-md-4 mb-2">
+                            <div style="padding:16px 18px;border:1px solid var(--border-color);border-radius:6px; height:100%;
+                                        background:${ia ? '#fafeff' : '#fff'};${ia ? 'border-left:3px solid var(--accent-color);' : ''}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Version ${v.versionNumber}</div>
+                                        ${badge}
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm p-1 text-secondary" style="background:none;border:none;" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v" style="font-size:11px;"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1" style="border-radius:4px;min-width:150px;">${actions}</ul>
+                                    </div>
+                                </div>
+                                <div style="font-size:11px;color:var(--text-secondary);min-height:28px;padding:6px 0; border-bottom:1px solid var(--border-color);margin-bottom:8px;">
+                                    ${v.note || '<span style="opacity:.4;font-style:italic;">No description</span>'}
+                                </div>
+                                <div class="cv-res">${resourcesHtml}</div>
+                            </div>
+                        </div>
+                    `;
+                    $container.append(cardHtml);
+                });
 
-                        const order     = cr.order ?? (idx + 1);
-                        const typeCls  = r.typeId === 1 ? "pill-learn" : "pill-exam";
-                        const typeName  = r.typeId === 1 ? "Learn" : "Exam";
-                        const previewBtn = r.isActive
-                            ? `<a href="javascript:void(0);" onclick="window.viewContent(${r.id},'${r.name.replace(/'/g, "\\'")}')"
-                                  style="font-size:11px; color:var(--accent-color); flex-shrink:0;" title="Preview">
-                                   <i class="fas fa-external-link-alt"></i>
-                               </a>`
-                            : '';
-
-                        $cont.append(`
-                            <div class="d-flex align-items-center gap-2 mb-1"
-                                 style="padding:5px 8px; border:1px solid var(--border-color);
-                                        border-radius:3px; background:#fff; font-size:11px;">
-                                <span style="min-width:18px; font-weight:600; color:var(--text-secondary);
-                                             text-align:center;">${order}</span>
-                                <span class="text-truncate flex-grow-1"
-                                      style="color:var(--text-primary); font-weight:500;" title="${r.name}">${r.name}</span>
-                                <span class="tag-pill ${typeCls}" style="flex-shrink:0; font-size:10px;">${typeName}</span>
-                                ${previewBtn}
-                            </div>`);
+                // Init bootstrap dropdowns after DOM insertion
+                setTimeout(() => {
+                    $container.find('[data-bs-toggle="dropdown"]').each(function() {
+                        new bootstrap.Dropdown(this);
                     });
+                }, 0);
+            }
 
+            // Reload versions via dedicated endpoint (used after set-active / delete)
+            function reloadVersions() {
+                $.ajax({
+                    url: `${courseApiUrl}/${courseId}/versions`,
+                    type: 'GET',
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    const versions = res.data || [];
+                    renderVersionCards(versions);
                 }).fail(function() {
-                    $(`#res-container-${versionId}`).html('<span class="text-danger small">Error loading files</span>');
+                    $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
                 });
             }
 
@@ -597,7 +583,7 @@
                     xhrFields: { withCredentials: true }
                 }).done(() => {
                     DevExpress.ui.notify("Active version updated.", "success", 2000);
-                    loadVersions();
+                    reloadVersions();
                 }).fail((xhr) => {
                     DevExpress.ui.notify(xhr.responseJSON?.message || "Error updating active version.", "error", 3000);
                 });
@@ -607,20 +593,286 @@
                 DevExpress.ui.dialog.confirm("Delete this version? This cannot be undone.", "Confirm Delete").done(function(ok) {
                     if (!ok) return;
                     $.ajax({
-                        url: `${serviceUrl}/admin/CourseVersionsCRUD/Delete`,
+                        url: `${courseApiUrl}/versions/${vId}`,
                         type: 'DELETE',
-                        data: { key: vId },
                         xhrFields: { withCredentials: true }
                     }).done(() => {
                         DevExpress.ui.notify("Version deleted.", "success", 2000);
-                        loadVersions();
+                        reloadVersions();
                     }).fail((xhr) => {
                         DevExpress.ui.notify(xhr.responseJSON?.message || "Error deleting version.", "error", 3000);
                     });
                 });
             };
 
-            loadVersions();
+            // ── 11. Dashboard Tabs ─────────────────────────────────────
+            const tabItems = [
+                { text: "Content Versions", icon: "fas fa-code-branch", panel: "panel-versions" },
+                { text: "Learners",         icon: "fas fa-users",       panel: "panel-learners" },
+                { text: "Assignments",      icon: "fas fa-clipboard-list", panel: "panel-assignments" }
+            ];
+
+            $("#dashboardTabs").dxTabs({
+                dataSource: tabItems,
+                selectedIndex: 0,
+                itemTemplate: function(itemData) {
+                    return $("<span>").append(
+                        $("<i>").addClass(itemData.icon + " me-1"),
+                        $("<span>").text(itemData.text)
+                    );
+                },
+                onItemClick: function(e) {
+                    tabItems.forEach(t => $("#" + t.panel).hide());
+                    $("#" + e.itemData.panel).show();
+
+                    if (e.itemData.panel === "panel-learners" && !learnersLoaded) {
+                        loadLearners();
+                    }
+                    if (e.itemData.panel === "panel-assignments" && !assignmentsLoaded) {
+                        loadAssignments();
+                    }
+                }
+            });
+
+            // ── 12. Learners Grid ──────────────────────────────────────
+            let learnersLoaded = false;
+            const learnersGrid = initDxGrid("#grid-learners", {
+                dataSource: [],
+                showBorders: false,
+                showRowLines: true,
+                hoverStateEnabled: true,
+                rowAlternationEnabled: true,
+                height: 520,
+                scrolling: { mode: "standard" },
+                paging:  { enabled: true, pageSize: 10 },
+                pager:   { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
+                searchPanel: { visible: true, placeholder: "Search by ID or name..." },
+                columns: [
+                    {
+                        dataField: "studentCode", caption: "Employee ID", width: 130,
+                        cellTemplate: (c, o) =>
+                            $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
+                                   .addClass("tag-pill pill-default fw-bold")
+                                   .text(o.value || "—").appendTo(c)
+                    },
+                    {
+                        dataField: "studentName", caption: "Full Name", minWidth: 180,
+                        cellTemplate: (c, o) =>
+                            $("<span>").addClass("fw-medium text-dark")
+                                       .text(o.value || "—").appendTo(c)
+                    },
+                    {
+                        dataField: "division", caption: "Division", width: 130,
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                       .text(o.value || "—").appendTo(c)
+                    },
+                    {
+                        dataField: "department", caption: "Department", width: 130,
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                       .text(o.value || "—").appendTo(c)
+                    },
+                    {
+                        dataField: "progress", caption: "Progress", width: 140, alignment: "center",
+                        cellTemplate: (c, o) => {
+                            const pct   = o.value || 0;
+                            const color = pct === 100 ? "var(--success-color)"
+                                        : pct >= 50  ? "var(--accent-color)"
+                                        :               "var(--warning-color)";
+                            $("<div>").addClass("d-flex align-items-center gap-2")
+                                .append(
+                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
+                                                     borderRadius: "2px", overflow: "hidden" })
+                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
+                                )
+                                .append(
+                                    $("<span>").css({ fontSize: "11px", fontWeight: "600",
+                                                      minWidth: "32px", color: "var(--text-secondary)" })
+                                               .text(pct + "%")
+                                )
+                                .appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "status", caption: "Status", width: 120, alignment: "center",
+                        cellTemplate: (c, o) => {
+                            const map = {
+                                "Completed":  { cls: "pill-success", text: "Completed"   },
+                                "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
+                                "Expired":    { cls: "pill-danger",   text: "Expired"     },
+                                "InProgress": { cls: "pill-info",   text: "In Progress" },
+                                "NotStarted": { cls: "pill-default",  text: "Not Started" }
+                            };
+                            const s = map[o.value] ?? { cls: "pill-default", text: o.value || "—" };
+                            $(`<span class="status-pill ${s.cls}">${s.text}</span>`).appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "startDate", caption: "Start", width: 100, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                       .appendTo(c)
+                    },
+                    {
+                        dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
+                        cellTemplate: (c, o) => {
+                            if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
+                            const isPast = new Date(o.value) < new Date();
+                            $("<span>").css({ fontSize: "11px",
+                                              color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
+                                              fontWeight: isPast ? "600" : "400" })
+                                       .text(new Date(o.value).toLocaleDateString("en-GB")).appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "completedDate", caption: "Completed", width: 110, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "11px", color: o.value ? "var(--success-color)" : "var(--text-secondary)", fontWeight: o.value ? "600" : "400" })
+                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                       .appendTo(c)
+                    }
+                ]
+            });
+
+            function loadLearners() {
+                $.ajax({
+                    url: `${courseApiUrl}/${courseId}/learners`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    const data = res.data || [];
+                    learnersLoaded = true;
+                    learnersGrid.option("dataSource", data);
+                }).fail(function() {
+                    DevExpress.ui.notify("Error loading learners.", "error", 3000);
+                });
+            }
+
+            // ── 13. Assignments Grid ───────────────────────────────────
+            let assignmentsLoaded = false;
+            const assignmentsGrid = initDxGrid("#grid-assignments", {
+                dataSource: [],
+                showBorders: false,
+                showRowLines: true,
+                hoverStateEnabled: true,
+                rowAlternationEnabled: true,
+                height: 520,
+                scrolling: { mode: "standard" },
+                paging:  { enabled: true, pageSize: 10 },
+                pager:   { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
+                searchPanel: { visible: true, placeholder: "Search assignments..." },
+                onRowPrepared: function(e) {
+                    if (e.rowType !== "data") return;
+                    if (e.data.status === "Expired")   $(e.rowElement).css("background-color", "#fff2f0");
+                    if (e.data.status === "Completed") $(e.rowElement).css("background-color", "#f6ffed");
+                },
+                columns: [
+                    {
+                        dataField: "assignmentNo", caption: "Assignment No", width: 150,
+                        sortOrder: "desc", alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", fontWeight: "700", color: "var(--text-primary)" })
+                                       .text(o.value || "—").appendTo(c)
+                    },
+                    {
+                        dataField: "description", caption: "Description", minWidth: 200,
+                        cellTemplate: (c, o) => {
+                            const t = o.value || "—";
+                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
+                                       .text(t.length > 60 ? t.slice(0, 60) + "…" : t)
+                                       .attr("title", t).appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "completionPct", caption: "Progress", width: 140, alignment: "center",
+                        cellTemplate: (c, o) => {
+                            const pct   = o.value || 0;
+                            const color = pct === 100 ? "var(--success-color)"
+                                        : pct >= 50  ? "var(--accent-color)"
+                                        :               "var(--warning-color)";
+                            $("<div>").addClass("d-flex align-items-center gap-2")
+                                .append(
+                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
+                                                     borderRadius: "2px", overflow: "hidden" })
+                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
+                                )
+                                .append(
+                                    $("<span>").css({ fontSize: "11px", fontWeight: "600",
+                                                      minWidth: "32px", color: "var(--text-secondary)" })
+                                               .text(pct + "%")
+                                )
+                                .appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "status", caption: "Status", width: 120, alignment: "center",
+                        cellTemplate: (c, o) => {
+                            const map = {
+                                "Completed":  { cls: "pill-success", text: "Completed"   },
+                                "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
+                                "Expired":    { cls: "pill-danger",   text: "Expired"     },
+                                "InProgress": { cls: "pill-info",   text: "In Progress" }
+                            };
+                            const s = map[o.value] ?? { cls: "pill-default", text: o.value || "—" };
+                            $(`<span class="status-pill ${s.cls}">${s.text}</span>`).appendTo(c);
+                        }
+                    },
+                    {
+                        dataField: "totalEnrollmentCount", caption: "Enrolled", width: 90, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", fontWeight: "600" })
+                                       .text(o.value ?? 0).appendTo(c)
+                    },
+                    {
+                        dataField: "completedEnrollmentCount", caption: "Done", width: 80, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "12px", fontWeight: "600", color: "var(--success-color)" })
+                                       .text(o.value ?? 0).appendTo(c)
+                    },
+                    {
+                        dataField: "startDate", caption: "Start", width: 100, alignment: "center",
+                        cellTemplate: (c, o) =>
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                       .appendTo(c)
+                    },
+                    {
+                        dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
+                        cellTemplate: (c, o) => {
+                            if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
+                            const isPast = new Date(o.value) < new Date();
+                            $("<span>").css({ fontSize: "11px",
+                                              color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
+                                              fontWeight: isPast ? "600" : "400" })
+                                       .text(new Date(o.value).toLocaleDateString("en-GB")).appendTo(c);
+                        }
+                    },
+                    {
+                        type: "buttons", caption: "", width: 70,
+                        alignment: "center", fixed: true, fixedPosition: "right",
+                        buttons: [{
+                            hint: "View Dashboard", icon: "info",
+                            onClick: e => window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`
+                        }]
+                    }
+                ]
+            });
+
+            function loadAssignments() {
+                $.ajax({
+                    url: `${courseApiUrl}/${courseId}/assignments`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    const data = res.data || [];
+                    assignmentsLoaded = true;
+                    assignmentsGrid.option("dataSource", data);
+                }).fail(function() {
+                    DevExpress.ui.notify("Error loading assignments.", "error", 3000);
+                });
+            }
         });
     </script>
 }

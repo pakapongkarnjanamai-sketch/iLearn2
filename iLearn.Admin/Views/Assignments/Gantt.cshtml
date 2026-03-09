@@ -8,278 +8,116 @@
 
 @section PreDxScripts {
     <script src="~/js/devextreme/dx-gantt.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 }
 
-<style>
-    #gantt-container { height: calc(100vh - 220px); }
-
-    /* ── Toolbar strip ── */
-    .gantt-toolbar {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 10px 16px;
-        border-bottom: 1px solid var(--border-color);
-        background: #fff;
-    }
-    .gantt-filter-btn {
-        padding: 4px 12px;
-        font-size: 12px;
-        border-radius: 14px;
-        border: 1px solid var(--border-color);
-        background: #fff;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: all .15s;
-    }
-    .gantt-filter-btn.active,
-    .gantt-filter-btn:hover {
-        background: var(--accent-color);
-        border-color: var(--accent-color);
-        color: #fff;
-    }
-    .gantt-filter-btn.btn-all.active    { background:#595959; border-color:#595959; }
-    .gantt-filter-btn.btn-inprogress.active { background:var(--accent-color);  border-color:var(--accent-color); }
-    .gantt-filter-btn.btn-upcoming.active   { background:var(--warning-color); border-color:var(--warning-color); }
-    .gantt-filter-btn.btn-expired.active    { background:var(--danger-color);  border-color:var(--danger-color); }
-    .gantt-filter-btn.btn-completed.active  { background:var(--success-color); border-color:var(--success-color); }
-
-    /* ── KPI row ── */
-    .gantt-kpi-row {
-        display: flex;
-        gap: 8px;
-        padding: 10px 16px;
-        border-bottom: 1px solid var(--border-color);
-        background: #fafafa;
-        flex-wrap: wrap;
-    }
-    .gantt-kpi {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: var(--text-secondary);
-    }
-    .gantt-kpi .dot {
-        width: 10px; height: 10px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-    .gantt-kpi .val { font-weight: 700; color: var(--text-primary); }
-
-    /* ── Legend ── */
-    .gantt-legend {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        padding: 8px 16px 0;
-        flex-wrap: wrap;
-        font-size: 11px;
-        color: var(--text-secondary);
-    }
-    .legend-item { display: flex; align-items: center; gap: 5px; }
-    .legend-bar  { width: 22px; height: 9px; border-radius: 3px; }
-</style>
-
-<!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <div class="fw-bold text-dark" style="font-size:15px;">Assignment Schedule</div>
-        <div class="text-secondary" style="font-size:12px;">Gantt view – overview and planning</div>
+        <div class="text-secondary" style="font-size:12px;">Read-only Gantt View</div>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
             <i class="fas fa-table text-secondary"></i> List View
         </a>
-        <a href="@Url.Action("Scheduler", "Assignments")" class="action-link">
-            <i class="fas fa-calendar-alt text-secondary"></i> Calendar View
-        </a>
-     
     </div>
 </div>
 
 <div class="container-fluid px-0 py-0">
-
-    <div class="border rounded bg-white mx-4 mt-3 mb-4" style="overflow:hidden;">
-
-        <!-- ── KPI bar ── -->
-        <div class="gantt-kpi-row" id="kpi-row">
-            <div class="gantt-kpi">
-                <span class="dot" style="background:#595959"></span>
-                All: <span class="val" id="kpi-all">—</span>
-            </div>
-            <div class="gantt-kpi">
-                <span class="dot" style="background:var(--accent-color)"></span>
-                In Progress: <span class="val" id="kpi-inprogress">—</span>
-            </div>
-            <div class="gantt-kpi">
-                <span class="dot" style="background:var(--warning-color)"></span>
-                Upcoming: <span class="val" id="kpi-upcoming">—</span>
-            </div>
-            <div class="gantt-kpi">
-                <span class="dot" style="background:var(--danger-color)"></span>
-                Expired: <span class="val" id="kpi-expired">—</span>
-            </div>
-            <div class="gantt-kpi">
-                <span class="dot" style="background:var(--success-color)"></span>
-                Completed: <span class="val" id="kpi-completed">—</span>
-            </div>
-        </div>
-
-        <!-- ── Toolbar: scale + status filter ── -->
-        <div class="gantt-toolbar">
-            <span style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-right:4px;">Scale:</span>
-            <div id="dx-scale-toolbar"></div>
-
-            <div style="width:1px;height:22px;background:var(--border-color);margin:0 6px;"></div>
-
-            <span style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-right:4px;">Status:</span>
-            <button class="gantt-filter-btn btn-all active"        onclick="applyFilter(null,this)">All</button>
-            <button class="gantt-filter-btn btn-inprogress"        onclick="applyFilter('InProgress',this)">In Progress</button>
-            <button class="gantt-filter-btn btn-upcoming"          onclick="applyFilter('Upcoming',this)">Upcoming</button>
-            <button class="gantt-filter-btn btn-expired"           onclick="applyFilter('Expired',this)">Expired</button>
-            <button class="gantt-filter-btn btn-completed"         onclick="applyFilter('Completed',this)">Completed</button>
-        </div>
-
-        <!-- ── Legend ── -->
-        <div class="gantt-legend">
-            <span class="legend-item"><span class="legend-bar" style="background:#1890ff"></span> In Progress</span>
-            <span class="legend-item"><span class="legend-bar" style="background:#faad14"></span> Upcoming</span>
-            <span class="legend-item"><span class="legend-bar" style="background:#ff4d4f"></span> Expired</span>
-            <span class="legend-item"><span class="legend-bar" style="background:#52c41a"></span> Completed</span>
-            <span class="legend-item"><span class="legend-bar" style="background:#aaaaaa"></span> No schedule</span>
-        </div>
-
-        <!-- ── Gantt ── -->
-        <div id="gantt-container"></div>
-
+    <div class="border rounded bg-white mx-4 p-3 mb-4">
+        <div id="gantt-container" style="height: calc(100vh - 180px);"></div>
     </div>
 </div>
 
 @section Scripts {
-<script>
-    let allTasks   = [];
-    let activeStatus = null;
-    let ganttInstance;
+    <script>
+        // 💡 ตั้งค่า jsPDF ให้ DevExtreme รู้จัก
+        window.jsPDF = window.jspdf.jsPDF;
 
-    // ── KPI counts (parent tasks only) ───────────────────────────
-    function updateKpi(tasks) {
-        const parents = tasks.filter(t => t.parentId === 0);
-        $("#kpi-all").text(parents.length);
-        $("#kpi-inprogress").text(parents.filter(t => t.status === "InProgress").length);
-        $("#kpi-upcoming").text(parents.filter(t => t.status === "Upcoming").length);
-        $("#kpi-expired").text(parents.filter(t => t.status === "Expired").length);
-        $("#kpi-completed").text(tasks.filter(t => t.status === "Completed" && t.parentId === 0).length);
-    }
+        $(() => {
+            // 1. ดึงข้อมูลจาก API
+            $.ajax({
+                url: `${serviceUrl}/Assignments/gantt`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            }).done(function (res) {
 
-    // ── Filter: keep matched parents + their children ─────────────
-    function applyFilter(status, el) {
-        activeStatus = status;
-        $(".gantt-filter-btn").removeClass("active");
-        $(el).addClass("active");
-        rebuildGantt();
-    }
+                // 💡 กรองเอาเฉพาะ "ตัวแม่" (กรณีที่ API ยังส่งตัวลูกมาด้วย)
+                const parentTasksOnly = Array.isArray(res) ? res.filter(t => t.parentId === 0) : [];
 
-    function getFilteredTasks() {
-        if (!activeStatus) return allTasks;
+                // 2. แปลงข้อมูลวันที่ให้ถูกต้องตามฟิลด์ที่ API ส่งมา (startDate, dueDate)
+                const tasks = parentTasksOnly.map(t => ({
+                    ...t,
+                    // API ส่ง title ที่มีรหัสงานมาให้แล้ว เราสามารถใช้ตรงๆ ได้ หรือจะจัดรูปแบบใหม่ก็ได้
+                    displayTitle: t.assignmentNo ? `${t.assignmentNo} - ${t.title || ''}` : t.title,
+                    startDate: t.startDate ? new Date(t.startDate) : new Date(),
+                    dueDate: t.dueDate ? new Date(t.dueDate) : new Date()
+                }));
 
-        const matchedParentIds = new Set(
-            allTasks
-                .filter(t => t.parentId === 0 && t.status === activeStatus)
-                .map(t => t.id)
-        );
+                // 3. สร้าง Gantt แบบ Read-only พร้อมปุ่ม Export
+                $("#gantt-container").dxGantt({
+                    tasks: {
+                        dataSource: tasks,
+                        keyExpr: "id",
+                        parentIdExpr: "parentId",
+                        titleExpr: "title",      // ใช้ title ที่ API ส่งมา (รวม AssignmentNo ไว้แล้ว)
+                        startExpr: "startDate",  // ดึงค่า startDate ที่แปลงแล้ว
+                        endExpr: "dueDate",      // ดึงค่า dueDate ที่แปลงแล้ว
+                        progressExpr: "progress",
+                        colorExpr: "color"
+                    },
+                    rootValue: 0,
+                    scaleType: "months", // เริ่มต้นที่รายเดือน
+                    scaleTypeRange: { min: "months", max: "years" }, // ล็อกไม่ให้ซูมลึกกว่ารายเดือน
+                    taskTitlePosition: "outside", // เอาชื่อและรหัสงานไปไว้ข้างนอกแท่ง
+                    showResources: false,
+                    showDependencies: false,
+                    showRowLines: true,
 
-        return allTasks.filter(t =>
-            (t.parentId === 0 && matchedParentIds.has(t.id)) ||
-            (t.parentId !== 0 && matchedParentIds.has(t.parentId))
-        );
-    }
+                    // 💡 ปิดการแก้ไข และไม่อนุญาตให้คลิกเลือก (Read-only 100%)
+                    editing: { enabled: false },
+                    allowSelection: false,
 
-    // ── Build / rebuild the Gantt with current data ───────────────
-    function rebuildGantt() {
-        const filtered = getFilteredTasks();
+                    // 💡 ล็อกความกว้างของแผงตารางด้านซ้ายให้กว้างพอดีกับ 3 คอลัมน์
+                    taskListWidth: 350,
+                    columns: [
+                        { dataField: "assignmentNo", caption: "Assignment No.", width: 130 },
+                        { dataField: "startDate",    caption: "Start",   dataType: "date", format: "dd/MM/yyyy", width: 95 },
+                        { dataField: "dueDate",      caption: "Due",     dataType: "date", format: "dd/MM/yyyy", width: 95 }
+                    ],
 
-        if (ganttInstance) {
-            ganttInstance.option("tasks.dataSource", filtered);
-            return;
-        }
+                    // 💡 เพิ่มปุ่ม Export สีเด่นๆ ลงใน Toolbar
+                    toolbar: {
+                        items: [
+                            "zoomIn", "zoomOut", "separator", "expandAll", "collapseAll", "separator", "fullScreen",
+                            "separator",
+                            {
+                                widget: "dxButton",
+                                options: {
+                                    icon: "exportpdf",
+                                    text: "Export PDF",
+                                    hint: "Export Gantt Chart to PDF",
+                                    type: "default",          // ทำให้ปุ่มเป็นสีน้ำเงิน
+                                    stylingMode: "contained",
+                                    onClick: function () {
+                                        const ganttInstance = $("#gantt-container").dxGantt("instance");
+                                        const doc = new jsPDF("landscape"); // ตั้งกระดาษเป็นแนวนอน
 
-        ganttInstance = $("#gantt-container").dxGantt({
-            tasks: {
-                dataSource: filtered,
-                keyExpr:      "id",
-                parentIdExpr: "parentId",
-                titleExpr:    "title",
-                startExpr:    "start",
-                endExpr:      "end",
-                progressExpr: "progress",
-                colorExpr:    "color"
-            },
-            rootValue: 0,
-            scaleType: "weeks",
-            scaleTypeRange: { min: "days", max: "years" },
-            taskTitlePosition: "outside",
-            showResources: false,
-            showDependencies: false,
-            showRowLines: true,
-            height: "100%",
-            editing: { enabled: false },
-            toolbar: {
-                items: ["zoomIn", "zoomOut", "separator", "expandAll", "collapseAll", "separator", "fullScreen"]
-            },
-            columns: [
-                { dataField: "title",    caption: "Assignment / Course",  width: 280 },
-                { dataField: "start",    caption: "Start",   dataType: "date", format: "dd/MM/yyyy", width: 95 },
-                { dataField: "end",      caption: "Due",     dataType: "date", format: "dd/MM/yyyy", width: 95 },
-                {
-                    caption: "Progress", width: 70, alignment: "center",
-                    calculateCellValue: d => d.progress + "%"
-                }
-            ],
-            onTaskClick: function (e) {
-                if (e.data && e.data.parentId === 0 && e.data.rawId) {
-                    window.location.href = "@Url.Action("Progress", "Assignments")/" + e.data.rawId;
-                }
-            }
-        }).dxGantt("instance");
-    }
+                                        DevExpress.pdfExporter.exportGantt({
+                                            jsPDFDocument: doc,
+                                            component: ganttInstance
+                                        }).then(function() {
+                                            doc.save("Assignment_Schedule.pdf");
+                                        });
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                });
 
-    // ── Scale toolbar (dxSelectBox) ───────────────────────────────
-    function initScaleToolbar() {
-        $("#dx-scale-toolbar").dxSelectBox({
-            items: [
-                { value: "days",    text: "Days"    },
-                { value: "weeks",   text: "Weeks"   },
-                { value: "months",  text: "Months"  },
-                { value: "quarters",text: "Quarters"},
-                { value: "years",   text: "Years"   }
-            ],
-            valueExpr: "value",
-            displayExpr: "text",
-            value: "weeks",
-            width: 110,
-            height: 28,
-            stylingMode: "outlined",
-            onValueChanged: function (e) {
-                if (ganttInstance) ganttInstance.option("scaleType", e.value);
-            }
+            }).fail(() => DevExpress.ui.notify("Error loading Gantt data.", "error", 3000));
         });
-    }
-
-    // ── Bootstrap ─────────────────────────────────────────────────
-    $(() => {
-        initScaleToolbar();
-
-        $.ajax({
-            url: `${serviceUrl}/Assignments/gantt`,
-            method: "GET",
-            xhrFields: { withCredentials: true }
-        }).done(function (res) {
-            allTasks = Array.isArray(res) ? res : [];
-            updateKpi(allTasks);
-            rebuildGantt();
-        }).fail(() => DevExpress.ui.notify("Error loading Gantt data.", "error", 3000));
-    });
-</script>
+    </script>
 }

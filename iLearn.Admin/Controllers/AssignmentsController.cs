@@ -34,10 +34,5 @@ namespace iLearn.Admin.Controllers
         {
             return View();
         }
-
-        public IActionResult Scheduler()
-        {
-            return View();
-        }
     }
 }

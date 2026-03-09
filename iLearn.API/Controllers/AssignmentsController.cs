@@ -50,71 +50,41 @@ namespace iLearn.API.Controllers
                 new PaginationParams { Page = 1, PageSize = 500 });
 
             var tasks = new List<object>();
-            int parentId = 0;
 
             foreach (var item in all.Data)
             {
-                parentId++;
-                var parentTaskId = parentId * 1000;
-
                 var progress = item.TotalEnrollmentCount > 0
                     ? (int)Math.Round((double)item.CompletedEnrollmentCount / item.TotalEnrollmentCount * 100)
                     : 0;
 
                 var color = item.Status switch
                 {
-                    "Completed"  => "#52c41a",
+                    "Completed" => "#52c41a",
                     "InProgress" => "#1890ff",
-                    "Upcoming"   => "#faad14",
-                    "Expired"    => "#ff4d4f",
-                    _            => "#aaaaaa"
+                    "Upcoming" => "#faad14",
+                    "Expired" => "#ff4d4f",
+                    _ => "#aaaaaa"
                 };
 
                 var start = item.StartDate ?? item.CreatedAt;
-                var end   = item.DueDate   ?? start.AddDays(7);
+                var end = item.DueDate ?? start.AddDays(7);
                 if (end <= start) end = start.AddDays(1);
 
                 tasks.Add(new
                 {
-                    id       = parentTaskId,
+                    id = item.Id, // ใช้ ID จริงของงานได้เลย
                     parentId = 0,
-                    rawId    = item.Id,
-                    title    = $"{item.AssignmentNo} – {(item.Description?.Length > 40 ? item.Description[..40] + "…" : item.Description ?? "")}",
-                    start,
-                    end,
+                    title = $"{item.AssignmentNo} - {item.Description ?? "No Description"}", // จัดฟอร์แมตชื่อเรื่องใหม่
+                    startDate = start, // 💡 เปลี่ยนชื่อคีย์ให้เป็น startDate
+                    dueDate = end,   // 💡 เปลี่ยนชื่อคีย์ให้เป็น dueDate
                     progress,
                     color,
-                    status       = item.Status,
-                    assignmentNo = item.AssignmentNo,
-                    studentCount = item.StudentCount,
-                    courseCount  = item.CourseCount
+                    status = item.Status,
+                    assignmentNo = item.AssignmentNo
                 });
-
-                int courseIndex = 0;
-                foreach (var courseName in (item.CourseNames ?? "")
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(c => c.Trim())
-                    .Distinct())
-                {
-                    courseIndex++;
-                    tasks.Add(new
-                    {
-                        id       = parentTaskId + courseIndex,
-                        parentId = parentTaskId,
-                        title    = courseName,
-                        start,
-                        end,
-                        progress,
-                        color,
-                        status       = item.Status,
-                        assignmentNo = item.AssignmentNo,
-                        studentCount = item.StudentCount,
-                        courseCount  = 0
-                    });
-                }
             }
 
-            return Ok(tasks);
+            return Ok(tasks); // ส่งแค่ข้อมูลตัวแม่กลับไป
         }
 
         [HttpGet("course/{courseId}")]

@@ -1,6 +1,10 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Services;
 using iLearn.Domain.Common;
+using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -15,11 +19,25 @@ namespace iLearn.API.Controllers
     {
         private readonly ICourseService _courseService;
         private readonly ICourseVersionService _versionService;
+        private readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        private readonly IGenericRepository<Assignment> _assignmentRepo;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
+        private readonly IStudentApiService _studentApiService;
 
-        public CoursesController(ICourseService courseService, ICourseVersionService versionService)
+        public CoursesController(
+            ICourseService courseService,
+            ICourseVersionService versionService,
+            IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<Assignment> assignmentRepo,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
+            IStudentApiService studentApiService)
         {
             _courseService = courseService;
             _versionService = versionService;
+            _enrollmentRepo = enrollmentRepo;
+            _assignmentRepo = assignmentRepo;
+            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
+            _studentApiService = studentApiService;
         }
 
         [HttpGet]
@@ -228,6 +246,134 @@ namespace iLearn.API.Controllers
             }
         }
 
+        // ── Learners enrolled in a specific course ─────────────────────────
+        [HttpGet("{courseId}/learners")]
+        public async Task<IActionResult> GetCourseLearners(int courseId)
+        {
+            var enrollments = await _enrollmentRepo.GetAsync(
+                e => e.CourseId == courseId,
+                includeProperties: "AssignmentLinks"
+            );
+
+            if (!enrollments.Any())
+                return Ok(new { success = true, data = new List<object>() });
+
+            var codes = enrollments.Select(e => e.StudentCode).Distinct().ToList();
+            Dictionary<string, ExternalStudentDto> studentMap;
+            try
+            {
+                studentMap = await _studentApiService.GetStudentsByCodesAsync(codes);
+            }
+            catch
+            {
+                studentMap = new Dictionary<string, ExternalStudentDto>();
+            }
+
+            var now = DateTime.UtcNow.AddHours(7);
+
+            var result = enrollments.Select(e =>
+            {
+                var student = studentMap.GetValueOrDefault(e.StudentCode);
+                var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
+                var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
+
+                string status;
+                if (e.IsCompleted)
+                    status = "Completed";
+                else if (effectiveStart.HasValue && effectiveStart > now)
+                    status = "Upcoming";
+                else if (effectiveDue.HasValue && effectiveDue < now)
+                    status = "Expired";
+                else if (e.Progress > 0)
+                    status = "InProgress";
+                else
+                    status = "NotStarted";
+
+                return new
+                {
+                    id            = e.Id,
+                    studentCode   = e.StudentCode,
+                    studentName   = student?.Name ?? e.StudentCode,
+                    division      = student?.Division,
+                    department    = student?.Department,
+                    position      = student?.Position,
+                    progress      = Math.Round(e.Progress),
+                    isCompleted   = e.IsCompleted,
+                    completedDate = e.CompletedDate,
+                    startDate     = effectiveStart,
+                    dueDate       = effectiveDue,
+                    status
+                };
+            })
+            .OrderBy(x => x.isCompleted)
+            .ThenByDescending(x => x.progress)
+            .ToList();
+
+            return Ok(new { success = true, data = result });
+        }
+
+        // ── Assignment history for a specific course ─────────────────────────
+        [HttpGet("{courseId}/assignments")]
+        public async Task<IActionResult> GetCourseAssignments(int courseId)
+        {
+            var assignments = await _assignmentRepo.GetAsync(
+                r => r.CourseId == courseId,
+                includeProperties: "Course"
+            );
+
+            if (!assignments.Any())
+                return Ok(new { success = true, data = new List<object>() });
+
+            var allIds = assignments.Select(a => a.Id).ToList();
+            var links = await _enrollmentAssignmentRepo.GetAsync(
+                ea => allIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment"
+            );
+
+            var now = DateTime.UtcNow.AddHours(7);
+
+            var history = assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Select(g =>
+                {
+                    var first   = g.First();
+                    var ruleIds = g.Select(a => a.Id).ToList();
+
+                    var relatedLinks = links
+                        .Where(ea => ruleIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
+                        .ToList();
+
+                    bool allDone = relatedLinks.Any()
+                        && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
+
+                    string status = AssignmentDashboardService.CalculateStatus(
+                        relatedLinks.Any(), allDone, first.StartDate, first.DueDate, now);
+
+                    var done  = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
+                    var total = relatedLinks.Count;
+                    var pct   = total > 0 ? Math.Round((double)done / total * 100) : 0;
+
+                    return new
+                    {
+                        id            = first.Id,
+                        assignmentNo  = g.Key,
+                        description   = first.Description,
+                        startDate     = first.StartDate,
+                        dueDate       = first.DueDate,
+                        status,
+                        completedEnrollmentCount = done,
+                        totalEnrollmentCount     = total,
+                        completionPct            = pct,
+                        studentGroupId           = first.StudentGroupId
+                    };
+                })
+                .OrderByDescending(x => x.assignmentNo)
+                .ToList();
+
+            return Ok(new { success = true, data = history });
+        }
+
         // คลาสที่เราสร้างไว้รับค่าชั่วคราวจาก JSON body ของคำขอ
         // หมายเหตุ: ถ้าคุณมีคลาสนี้ใน iLearn.Application.DTOs อยู่แล้ว สามารถลบตรงนี้ทิ้งได้เลยนะครับ
         public class CourseStatusUpdateDto
@@ -250,11 +396,10 @@ namespace iLearn.API.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                // 🌟 ส่งข้อความแจ้งเตือนกลับไปหา Frontend
                 return BadRequest(new ApiResponse<bool>
                 {
                     Success = false,
-                    Message = ex.Message // ถ้าต้องการให้ตรงนี้เป็นภาษาอังกฤษด้วย ต้องไปแก้ throw Exception ใน CourseService.cs นะครับ
+                    Message = ex.Message
                 });
             }
             catch (KeyNotFoundException ex)
@@ -265,6 +410,51 @@ namespace iLearn.API.Controllers
                     Message = ex.Message
                 });
             }
+        }
+
+        // ── Consolidated Dashboard endpoint ───────────────────────────────
+        // Returns course info, versions with resources, and KPI counts in one call
+        [HttpGet("{courseId}/dashboard")]
+        public async Task<IActionResult> GetDashboard(int courseId)
+        {
+            var course = await _courseService.GetCourseByIdAsync(courseId);
+            if (course == null)
+                return NotFound(new { success = false, message = "Course not found." });
+
+            // DbContext is not thread-safe — run queries sequentially
+            var versions = await _versionService.GetCourseVersionsAsync(courseId);
+            var enrollments = await _enrollmentRepo.GetAsync(
+                e => e.CourseId == courseId
+            );
+            var assignments = await _assignmentRepo.GetAsync(
+                r => r.CourseId == courseId
+            );
+
+            // KPI counts
+            var learnerCount = enrollments.Count;
+            var completedCount = enrollments.Count(e => e.IsCompleted);
+
+            var assignmentGroups = assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Count();
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    course,
+                    versions,
+                    kpi = new
+                    {
+                        versionCount = versions.Count(),
+                        learnerCount,
+                        completedCount,
+                        assignmentCount = assignmentGroups
+                    }
+                }
+            });
         }
     }
 }
