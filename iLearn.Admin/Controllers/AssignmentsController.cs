@@ -29,5 +29,10 @@ namespace iLearn.Admin.Controllers
             ViewBag.AssignmentId = id;
             return View("Report");
         }
+
+        public IActionResult Gantt()
+        {
+            return View();
+        }
     }
 }

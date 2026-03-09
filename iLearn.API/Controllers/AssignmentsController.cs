@@ -43,6 +43,80 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("gantt")]
+        public async Task<IActionResult> GetGanttTasks()
+        {
+            var all = await _dashboardService.GetAssignmentHistoryPagedAsync(
+                new PaginationParams { Page = 1, PageSize = 500 });
+
+            var tasks = new List<object>();
+            int parentId = 0;
+
+            foreach (var item in all.Data)
+            {
+                parentId++;
+                var parentTaskId = parentId * 1000;
+
+                var progress = item.TotalEnrollmentCount > 0
+                    ? (int)Math.Round((double)item.CompletedEnrollmentCount / item.TotalEnrollmentCount * 100)
+                    : 0;
+
+                var color = item.Status switch
+                {
+                    "Completed"  => "#52c41a",
+                    "InProgress" => "#1890ff",
+                    "Upcoming"   => "#faad14",
+                    "Expired"    => "#ff4d4f",
+                    _            => "#aaaaaa"
+                };
+
+                var start = item.StartDate ?? item.CreatedAt;
+                var end   = item.DueDate   ?? start.AddDays(7);
+                if (end <= start) end = start.AddDays(1);
+
+                tasks.Add(new
+                {
+                    id       = parentTaskId,
+                    parentId = 0,
+                    rawId    = item.Id,
+                    title    = $"{item.AssignmentNo} – {(item.Description?.Length > 40 ? item.Description[..40] + "…" : item.Description ?? "")}",
+                    start,
+                    end,
+                    progress,
+                    color,
+                    status       = item.Status,
+                    assignmentNo = item.AssignmentNo,
+                    studentCount = item.StudentCount,
+                    courseCount  = item.CourseCount
+                });
+
+                int courseIndex = 0;
+                foreach (var courseName in (item.CourseNames ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(c => c.Trim())
+                    .Distinct())
+                {
+                    courseIndex++;
+                    tasks.Add(new
+                    {
+                        id       = parentTaskId + courseIndex,
+                        parentId = parentTaskId,
+                        title    = courseName,
+                        start,
+                        end,
+                        progress,
+                        color,
+                        status       = item.Status,
+                        assignmentNo = item.AssignmentNo,
+                        studentCount = item.StudentCount,
+                        courseCount  = 0
+                    });
+                }
+            }
+
+            return Ok(tasks);
+        }
+
         [HttpGet("course/{courseId}")]
         public async Task<IActionResult> GetByCourse(int courseId)
         {
