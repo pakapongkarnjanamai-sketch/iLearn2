@@ -20,6 +20,9 @@ namespace iLearn.Domain.Entities
         public int TotalScore { get; set; } = 0;
         public int TotalTimeSpent { get; set; } = 0;
 
+        // Log ที่ CreatedAt < ResetAt ถือเป็น "รอบก่อน" ไม่นำมาแสดงใน Player
+        public DateTime? ResetAt { get; set; }
+
         // Navigation: Enrollment 1 รายการ เชื่อมได้หลาย Assignment
         public ICollection<EnrollmentAssignment> AssignmentLinks { get; set; } = new List<EnrollmentAssignment>();
     }

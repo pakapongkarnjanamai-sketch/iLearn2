@@ -14,16 +14,19 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly ICurrentUserService _currentUser;
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<CourseVersion> versionRepo,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             ICurrentUserService currentUserService)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
             _versionRepo = versionRepo;
+            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _currentUser = currentUserService;
         }
 
@@ -141,11 +144,21 @@ namespace iLearn.API.Controllers
                 }
                 else
                 {
-                    // ป้องกันหารด้วย 0 กรณีคอร์สไม่มีเนื้อหา
                     enrollment.Progress = allResourceIds.Count > 0 ? ((double)passedCount / allResourceIds.Count) * 100 : 0;
                 }
 
                 await _enrollmentRepo.UpdateAsync(enrollment);
+
+                // ── Snapshot สถานะปัจจุบันไปที่ EnrollmentAssignment links ──
+                var eaLinks = await _enrollmentAssignmentRepo.GetAsync(
+                    ea => ea.EnrollmentId == enrollment.Id);
+                foreach (var link in eaLinks)
+                {
+                    link.SnapshotCompleted     = enrollment.IsCompleted;
+                    link.SnapshotCompletedDate = enrollment.CompletedDate;
+                    link.SnapshotProgress      = enrollment.Progress;
+                    await _enrollmentAssignmentRepo.UpdateAsync(link);
+                }
             }
 
             return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved." });

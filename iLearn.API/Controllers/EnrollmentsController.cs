@@ -23,33 +23,33 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly ICourseAssignmentService _enrollmentService;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
-        private readonly ICurrentUserService _currentUserService;
         private readonly ICurrentUserService _currentUser;
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
         private readonly IScormService _scormService;
         private readonly IStudentGroupService _studentGroupService;
+        private readonly IAssignmentNoGenerator _assignmentNoGen;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
             ICourseAssignmentService enrollmentService,
             IGenericRepository<Assignment> assignmentRepo,
-            ICurrentUserService currentUserService,
             ICurrentUserService currentUser,
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<CourseVersion> versionRepo,
             IScormService scormService,
-            IStudentGroupService studentGroupService)
+            IStudentGroupService studentGroupService,
+            IAssignmentNoGenerator assignmentNoGen)
         {
-            _enrollmentRepo = enrollmentRepo;
-            _enrollmentService = enrollmentService;
-            _assignmentRepo = assignmentRepo;
-            _currentUserService = currentUserService;
-            _currentUser = currentUser;
-            _logRepo = logRepo;
-            _versionRepo = versionRepo;
-            _scormService = scormService;
+            _enrollmentRepo      = enrollmentRepo;
+            _enrollmentService   = enrollmentService;
+            _assignmentRepo      = assignmentRepo;
+            _currentUser         = currentUser;
+            _logRepo             = logRepo;
+            _versionRepo         = versionRepo;
+            _scormService        = scormService;
             _studentGroupService = studentGroupService;
+            _assignmentNoGen     = assignmentNoGen;
         }
 
         [HttpPost("ResetStatus")]
@@ -59,20 +59,12 @@ namespace iLearn.API.Controllers
             if (enrollment == null)
                 return NotFound(new { success = false, message = "Enrollment not found" });
 
-            // 1. Reset ข้อมูลสรุปใน Enrollment
-            enrollment.IsCompleted = false;
+            // Reset ข้อมูลสรุปใน Enrollment และตั้ง ResetAt (Log เก่ายังอยู่ใน DB เพื่อ history)
+            enrollment.IsCompleted   = false;
             enrollment.CompletedDate = null;
-            enrollment.Progress = 0;
+            enrollment.Progress      = 0;
+            enrollment.ResetAt       = DateTime.Now;
             await _enrollmentRepo.UpdateAsync(enrollment);
-
-            // 2. Reset สถานะใน LearningLogs ชุดเดิม (ทางเลือกที่ 2: เก็บเวลาสะสมไว้)
-            var logs = await _logRepo.GetAsync(l => l.EnrollmentId == key);
-            foreach (var log in logs)
-            {
-                log.Status = "incomplete"; // เปลี่ยนเพื่อให้ Player ยอมบันทึกใหม่
-                log.Progress = 0;
-                await _logRepo.UpdateAsync(log);
-            }
 
             return Ok(new { success = true });
         }
@@ -86,40 +78,57 @@ namespace iLearn.API.Controllers
                 return BadRequest(new ApiResponse<string> { Success = false, Message = "Student code is required." });
             }
 
-            var currentDate = DateTime.UtcNow; // ปรับเป็นเวลามาตรฐาน หรือใช้ Local Time ของเซิร์ฟเวอร์
-            var oneMonthAgo = currentDate.AddMonths(-1);
+            var currentDate = DateTime.UtcNow;
+            var oneMonthAgo  = currentDate.AddMonths(-1);
 
-            // กรองข้อมูลจาก Database
+            // ดึง Enrollment พร้อม AssignmentLinks เพื่อใช้ StartDate/DueDate ที่ถูกต้องจากตารางกลาง
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => e.StudentCode == studentCode &&
-                             e.Course != null && // ต้องมีข้อมูลคอร์สอยู่จริง ไม่เอา null
-                             (
-                                 // กรณีที่ 1: ยังเรียนไม่จบ และอยู่ในระยะเวลาที่กำหนด (หรือไม่มีการกำหนดเวลา)
-                                 (!e.IsCompleted &&
-                                  (!e.StartDate.HasValue || e.StartDate <= currentDate) &&
-                                  (!e.DueDate.HasValue || e.DueDate >= currentDate))
-
-                                 ||
-
-                                 // กรณีที่ 2: เรียนจบแล้ว แต่เพิ่งจบไปไม่เกิน 1 เดือน
-                                 (e.IsCompleted &&
-                                  e.CompletedDate.HasValue &&
-                                  e.CompletedDate >= oneMonthAgo)
-                             ),
-                includeProperties: "Course"
+                filter: e => e.StudentCode == studentCode && e.Course != null,
+                includeProperties: "Course,AssignmentLinks"
             );
 
-            // แปลงข้อมูลเป็น DTO และจัดเรียง
-            var dtos = enrollments
+            // กรอง in-memory: แสดงเฉพาะที่อยู่ในช่วงเวลา หรือจบไปไม่เกิน 1 เดือน
+            var filtered = enrollments.Where(e =>
+            {
+                if (e.IsCompleted)
+                    return e.CompletedDate.HasValue && e.CompletedDate >= oneMonthAgo;
+
+                // ใช้ dates จาก AssignmentLinks ถ้ามี ไม่งั้น fallback ไป Enrollment.StartDate/DueDate
+                DateTime? effectiveStart = e.AssignmentLinks.Any()
+                    ? e.AssignmentLinks.Min(a => a.StartDate)
+                    : e.StartDate;
+                DateTime? effectiveDue = e.AssignmentLinks.Any()
+                    ? e.AssignmentLinks.Max(a => a.DueDate)
+                    : e.DueDate;
+
+                bool startOk = !effectiveStart.HasValue || effectiveStart <= currentDate;
+                bool dueOk   = !effectiveDue.HasValue   || effectiveDue   >= currentDate;
+                return startOk && dueOk;
+            }).ToList();
+
+            // แปลง + จัดเรียงตาม DueDate ที่ใกล้ที่สุด
+            var dtos = filtered
                 .OrderBy(e => e.IsCompleted)
-                .ThenBy(e => e.DueDate) // ใช้ ThenBy เพื่อซ้อนการจัดเรียง
-                .Select(e => e.ToDto())
+                .ThenBy(e => e.AssignmentLinks.Any()
+                    ? e.AssignmentLinks.Min(a => a.DueDate)
+                    : e.DueDate)
+                .Select(e =>
+                {
+                    var dto = e.ToDto();
+                    // override ด้วย dates จาก AssignmentLinks (ใกล้ที่สุดก่อน)
+                    if (e.AssignmentLinks.Any())
+                    {
+                        dto.StartDate = e.AssignmentLinks.Min(a => a.StartDate);
+                        dto.DueDate   = e.AssignmentLinks.Min(a => a.DueDate);
+                    }
+                    return dto;
+                })
                 .ToList();
 
             return Ok(new ApiResponse<IEnumerable<EnrollmentDto>>
             {
                 Success = true,
-                Data = dtos
+                Data    = dtos
             });
         }
 
@@ -151,12 +160,14 @@ namespace iLearn.API.Controllers
                 );
                 targetVersion = versions.FirstOrDefault();
 
-                // ดึง Log การเรียน
+                // ดึง Log การเรียน — กรอง Log ที่สร้างหลัง ResetAt เท่านั้น (Log เก่าถือเป็น history)
                 if (targetVersion != null)
                 {
                     userLogs = (await _logRepo.GetAsync(l =>
-                        l.StudentCode == studentCode &&
-                        l.CourseVersionId == targetVersion.Id
+                        l.StudentCode     == studentCode       &&
+                        l.CourseVersionId == targetVersion.Id  &&
+                        l.EnrollmentId    == enrollment.Id     &&
+                        (enrollment.ResetAt == null || l.CreatedAt >= enrollment.ResetAt)
                     )).ToList();
                 }
             }
@@ -261,39 +272,10 @@ namespace iLearn.API.Controllers
                 return BadRequest(new { message = "Courses and Employees are required." });
             }
 
-            // 1. สร้าง Assignments No (รันเลขแบบดึงจาก DB)
-            string datePrefix = DateTime.Now.ToString("yyyyMMdd");
-            string searchPrefix = $"AS-{datePrefix}";
-            int nextRunningNo = 1;
+            // 1. Generate AssignmentNo via DB sequence (race-condition free)
+            string assignmentNo = await _assignmentNoGen.NextAsync();
 
-            // ดึงข้อมูล Assignments เฉพาะของวันนี้จาก Database
-            var existingAssignments = await _assignmentRepo.GetAsync(
-                filter: a => a.AssignmentNo != null && a.AssignmentNo.StartsWith(searchPrefix)
-            );
-
-            // ถ้าวันนี้มีเอกสารถูกสร้างไปแล้ว
-            if (existingAssignments != null && existingAssignments.Any())
-            {
-                // เรียงลำดับจากมากไปน้อย เพื่อเอาตัวล่าสุด
-                var latestAssignment = existingAssignments.OrderByDescending(a => a.AssignmentNo).First();
-
-                // แตกข้อความด้วยขีด '-' แล้วเอาส่วนสุดท้ายที่เป็นตัวเลขมาแปลงเป็น int
-                var parts = latestAssignment.AssignmentNo.Split('-');
-                if (parts.Length >= 3 && int.TryParse(parts.Last(), out int lastNumber))
-                {
-                    nextRunningNo = lastNumber + 1;
-                }
-                else
-                {
-                    // Fallback เผื่อเจอข้อมูลผิด Format
-                    nextRunningNo = existingAssignments.Count() + 1;
-                }
-            }
-
-            // ประกอบร่าง Assignment No ใหม่ เช่น AS-20260223-001
-            string assignmentNo = $"{searchPrefix}-{nextRunningNo:D3}";
-
-            // แปลง Array พนักงานให้อยู่ในรูป Comma-separated (ถ้า Database ของคุณเก็บเป็น String)
+            // แปลง Array พนักงานให้อยู่ในรูป Comma-separated
             string employeesStr = string.Join(",", dto.EmployeeCodes);
 
             // 2. วนลูปสร้าง Assignments Rule ตามจำนวนวิชาที่เลือก
@@ -318,7 +300,7 @@ namespace iLearn.API.Controllers
                 if (firstAssignmentId == 0) firstAssignmentId = rule.Id;
 
                 // 3. นำ EmployeeCodes ไป Insert ลงตาราง Enrollment และผูกกับ rule.Id ด้วย
-                await _enrollmentService.AssignCourseToEmployees(courseId, dto.EmployeeCodes, dto.StartDate, dto.DueDate, rule.Id);
+                await _enrollmentService.AssignCourseToEmployees(courseId, dto.EmployeeCodes, dto.StartDate, dto.DueDate, rule.Id, forceReset: true);
             }
 
             return Ok(new { message = "Courses assigned successfully!", assignmentNo = assignmentNo, assignmentId = firstAssignmentId });

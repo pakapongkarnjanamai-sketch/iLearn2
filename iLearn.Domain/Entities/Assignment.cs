@@ -6,18 +6,17 @@ namespace iLearn.Domain.Entities
 {
     public class Assignment : BaseEntity
     {
-        // เพิ่มฟิลด์ใหม่
         public string? AssignmentNo { get; set; }
         public string? Description { get; set; }
 
+        // ── Legacy field — kept for backward-compatible migration; new code uses AssignmentCourses ──
         public int? CourseId { get; set; }
         [ForeignKey("CourseId")]
         public Course? Course { get; set; }
 
-        public string? EmployeeCodes { get; set; } // เก็บเป็น Comma-separated หรือ JSON string ได้ครับ
+        public string? EmployeeCodes { get; set; }
 
         public string? Division { get; set; }
-        // ลบ Department, Section, Position ออกไปแล้ว
 
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
@@ -26,5 +25,8 @@ namespace iLearn.Domain.Entities
         public int? StudentGroupId { get; set; }
         [ForeignKey("StudentGroupId")]
         public StudentGroup? StudentGroup { get; set; }
+
+        // ── Normalized detail lines (header → courses) ──
+        public ICollection<AssignmentCourse> AssignmentCourses { get; set; } = new List<AssignmentCourse>();
     }
 }

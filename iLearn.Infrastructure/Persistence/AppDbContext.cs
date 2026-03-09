@@ -51,6 +51,9 @@ namespace iLearn.Infrastructure.Persistence
         // ── ตารางกลาง Enrollment <-> Assignment ──
         public DbSet<EnrollmentAssignment> EnrollmentAssignments { get; set; }
 
+        // ── Normalized Assignment → Course detail ──
+        public DbSet<AssignmentCourse> AssignmentCourses { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -114,6 +117,29 @@ namespace iLearn.Infrastructure.Persistence
                 .WithMany(g => g.Members)
                 .HasForeignKey(m => m.StudentGroupId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Config AssignmentCourse (normalized detail)
+            modelBuilder.Entity<AssignmentCourse>()
+                .HasOne(ac => ac.Assignment)
+                .WithMany(a => a.AssignmentCourses)
+                .HasForeignKey(ac => ac.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AssignmentCourse>()
+                .HasOne(ac => ac.Course)
+                .WithMany(c => c.AssignmentCourses)
+                .HasForeignKey(ac => ac.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique: 1 Assignment + 1 Course (ไม่ซ้ำ)
+            modelBuilder.Entity<AssignmentCourse>()
+                .HasIndex(ac => new { ac.AssignmentId, ac.CourseId })
+                .IsUnique();
+
+            // ── DB Sequence for AssignmentNo running number ──
+            modelBuilder.HasSequence<int>("AssignmentNoSeq")
+                .StartsAt(1)
+                .IncrementsBy(1);
 
             // Config Assignment <-> StudentGroup
             modelBuilder.Entity<Assignment>()

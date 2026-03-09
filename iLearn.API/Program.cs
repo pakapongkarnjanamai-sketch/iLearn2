@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.Interfaces.Repositories; // Add this using directive
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
@@ -58,6 +59,8 @@ builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileS
 builder.Services.AddTransient<IDateTime, DateTimeService>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
+builder.Services.AddScoped<IAssignmentDashboardService, AssignmentDashboardService>();
+builder.Services.AddScoped<IAssignmentNoGenerator, AssignmentNoGenerator>();
 builder.Services.AddScoped<IStudentGroupService, StudentGroupService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();

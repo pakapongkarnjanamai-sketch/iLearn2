@@ -47,7 +47,7 @@ namespace iLearn.Application.Services
         }
 
        
-        public async Task AssignCourseToEmployees(int courseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, int? assignmentRuleId = null)
+        public async Task AssignCourseToEmployees(int courseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, int? assignmentRuleId = null, bool forceReset = false)
         {
             if (employeeCodes == null || !employeeCodes.Any()) return;
 
@@ -57,7 +57,7 @@ namespace iLearn.Application.Services
             // วนลูปรายชื่อพนักงานที่ถูกเลือกมา แล้วสร้าง Enrollment
             foreach (var empCode in employeeCodes)
             {
-                await CreateOrUpdateEnrollment(empCode, course, assignmentRuleId, startDate, dueDate);
+                await CreateOrUpdateEnrollment(empCode, course, assignmentRuleId, startDate, dueDate, forceReset);
             }
         }
 
@@ -74,7 +74,7 @@ namespace iLearn.Application.Services
         }
 
         // --- ฟังก์ชันบันทึกลงฐานข้อมูล ---
-        private async Task CreateOrUpdateEnrollment(string studentCode, Course course, int? assignmentRuleId = null, DateTime? startDate = null, DateTime? dueDate = null)
+        private async Task CreateOrUpdateEnrollment(string studentCode, Course course, int? assignmentRuleId = null, DateTime? startDate = null, DateTime? dueDate = null, bool forceReset = false)
         {
             // 1. หา Active Version
             var activeVersions = await _versionRepo.GetAsync(v => v.CourseId == course.Id && v.IsActive);
@@ -103,12 +103,32 @@ namespace iLearn.Application.Services
                 };
                 await _enrollmentRepo.AddAsync(existing);
             }
-            else if (existing.EnrolledCourseVersion != activeVersion.Id)
+            else if (forceReset || existing.EnrolledCourseVersion != activeVersion.Id)
             {
-                // มี Enrollment แล้ว แต่ Version เปลี่ยน → reset progress
+                // ── Snapshot สถานะปัจจุบันไปที่ EnrollmentAssignment links ก่อน reset ──
+                // เพื่อให้ Assignment เดิมยังคงเห็นว่าเรียนจบแล้ว แม้ Enrollment จะถูก reset
+                if (existing.IsCompleted)
+                {
+                    var existingEaLinks = await _enrollmentAssignmentRepo.GetAsync(
+                        ea => ea.EnrollmentId == existing.Id);
+                    foreach (var eaLink in existingEaLinks)
+                    {
+                        eaLink.SnapshotCompleted     = existing.IsCompleted;
+                        eaLink.SnapshotCompletedDate = existing.CompletedDate;
+                        eaLink.SnapshotProgress      = existing.Progress;
+                        await _enrollmentAssignmentRepo.UpdateAsync(eaLink);
+                    }
+                }
+
+                // ตั้ง ResetAt เพื่อให้ player-info กรอง Log เก่าออก (Log ยังอยู่ใน DB เพื่อเก็บ history)
+                existing.ResetAt               = DateTime.Now;
                 existing.EnrolledCourseVersion = activeVersion.Id;
                 existing.IsCompleted           = false;
                 existing.CompletedDate         = null;
+                existing.Progress              = 0;
+                existing.TotalScore            = 0;
+                existing.StartDate             = startDate ?? existing.StartDate;
+                existing.DueDate               = dueDate   ?? existing.DueDate;
                 await _enrollmentRepo.UpdateAsync(existing);
             }
 
@@ -162,12 +182,12 @@ namespace iLearn.Application.Services
                     var first         = g.First();
                     var assignmentIds = g.Select(a => a.Id).ToList();
 
-                    var relatedEnrollments = links
+                    var relatedLinks = links
                         .Where(ea => assignmentIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
-                        .Select(ea => ea.Enrollment!)
                         .ToList();
 
-                    bool isCompleted = relatedEnrollments.Any() && relatedEnrollments.All(e => e.IsCompleted);
+                    bool isCompleted = relatedLinks.Any()
+                        && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
 
                     string status = "InProgress";
                     if (isCompleted)
@@ -193,8 +213,8 @@ namespace iLearn.Application.Services
                         StudentCount = string.IsNullOrEmpty(first.EmployeeCodes)
                             ? 0
                             : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
-                        CompletedEnrollmentCount = relatedEnrollments.Count(e => e.IsCompleted),
-                        TotalEnrollmentCount     = relatedEnrollments.Count
+                        CompletedEnrollmentCount = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted),
+                        TotalEnrollmentCount     = relatedLinks.Count
                     };
                 })
                 .OrderByDescending(x => x.AssignmentNo)

@@ -67,16 +67,17 @@ namespace iLearn.Application.Mappings
 
             return new EnrollmentDto
             {
-                Id = entity.Id,
-                StudentCode = entity.StudentCode,
-                CourseId = entity.CourseId,
-                CourseCode= entity.Course?.Code ?? string.Empty,
-                CourseTitle = entity.Course?.Title ?? string.Empty,
+                Id                    = entity.Id,
+                StudentCode           = entity.StudentCode,
+                CourseId              = entity.CourseId,
+                CourseCode            = entity.Course?.Code  ?? string.Empty,
+                CourseTitle           = entity.Course?.Title ?? string.Empty,
                 EnrolledCourseVersion = entity.EnrolledCourseVersion,
-                IsCompleted = entity.IsCompleted,
-                DueDate = entity.DueDate,
-                CompletedDate = entity.CompletedDate,
-                Progress = entity.Progress,
+                IsCompleted           = entity.IsCompleted,
+                StartDate             = entity.StartDate,
+                DueDate               = entity.DueDate,
+                CompletedDate         = entity.CompletedDate,
+                Progress              = entity.Progress,
             };
         }
 
