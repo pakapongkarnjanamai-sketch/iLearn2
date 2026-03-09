@@ -1,15 +1,7 @@
-﻿using iLearn.Application.Common;
-using iLearn.Application.Common;
-using iLearn.Application.Interfaces.Repositories; // Add this using directive
-using iLearn.Application.Interfaces.Services;
-using iLearn.Application.Services;
-using iLearn.Infrastructure.Persistence;
-using iLearn.Infrastructure.Repositories;
-using iLearn.Infrastructure.Services;
+﻿using iLearn.Application;
+using iLearn.Application;
+using iLearn.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Negotiate;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.SqlServer;
-using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,23 +43,11 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "iLearn API", Version = "v1" });
 });
 builder.Services.AddHttpContextAccessor();
-// --- 1. Database Connection ---
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
-// --- 2. Register Repositories ---
-builder.Services.AddTransient<IDateTime, DateTimeService>();
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
-builder.Services.AddScoped<IAssignmentDashboardService, AssignmentDashboardService>();
-builder.Services.AddScoped<IAssignmentNoGenerator, AssignmentNoGenerator>();
-builder.Services.AddScoped<IStudentGroupService, StudentGroupService>();
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<ICourseService, CourseService>();
-builder.Services.AddScoped<ICourseVersionService, CourseVersionService>();
-builder.Services.AddScoped<IScormService, ScormService>();
-builder.Services.AddHttpClient<IStudentApiService, StudentApiService>();
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// ── Clean Architecture: Register layers via extension methods ──
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddCors(options =>

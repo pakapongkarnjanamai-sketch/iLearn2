@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Services;
+﻿using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

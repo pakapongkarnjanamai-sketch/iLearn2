@@ -1,4 +1,4 @@
-﻿namespace iLearn.Application.Common
+namespace iLearn.Application.Common
 {
     public class FileSettings
     {
@@ -6,7 +6,7 @@
         public string HostUnc { get; set; } = string.Empty;
         public string CourseFolder { get; set; } = "course";
 
-        // Helper Properties (เหมือนใน PathConst เดิม)
+        // Helper Properties (???????? PathConst ????)
         public string FileUrl => $"{HostUrl}/{CourseFolder}";
         public string FileUnc => Path.Combine(HostUnc, CourseFolder);
     }

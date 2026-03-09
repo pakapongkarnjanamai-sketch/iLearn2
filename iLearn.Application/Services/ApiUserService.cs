@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -11,11 +12,6 @@ using System.Threading.Tasks;
 
 namespace iLearn.Application.Services
 {
-    public interface IApiUserService
-    {
-        Task<ApiResponse<UserDto>> GetOrCreateUserAsync(string windowsIdentity);
-
-    }
     public class ApiUserService : IApiUserService
     {
         private readonly HttpClient _httpClient;

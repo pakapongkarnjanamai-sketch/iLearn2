@@ -1,23 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using iLearn.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Http;
 
-namespace iLearn.Application.Services
+namespace iLearn.Infrastructure.Services
 {
-    public interface ICurrentUserService
-    {
-        // คืนค่า User Id เช่น "N4734" (ตัด Domain ออกแล้ว)
-        string UserId { get; }
-
-        // คืนค่าชื่อเต็มจาก AD เช่น "DOMAIN\N4734" (เผื่อต้องใช้)
-        string FullName { get; }
-
-        // เช็คว่า User Login อยู่จริงไหม
-        bool IsAuthenticated { get; }
-    }
     public class CurrentUserService : ICurrentUserService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
