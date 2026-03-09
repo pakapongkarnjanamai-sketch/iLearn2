@@ -217,6 +217,7 @@
             $.ajax({
                 url: `${serviceUrl}/Assignments/history`,
                 method: "GET",
+                data: { pageSize: 100 },
                 xhrFields: { withCredentials: true }
             }).done(function (res) {
                 allData = Array.isArray(res) ? res : (res.data || []);

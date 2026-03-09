@@ -189,13 +189,8 @@ namespace iLearn.Application.Services
                     bool isCompleted = relatedLinks.Any()
                         && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
 
-                    string status = "InProgress";
-                    if (isCompleted)
-                        status = "Completed";
-                    else if (first.StartDate.HasValue && first.StartDate.Value > currentDate)
-                        status = "Upcoming";
-                    else if (first.DueDate.HasValue && first.DueDate.Value < currentDate)
-                        status = "Expired";
+                    string status = AssignmentDashboardService.CalculateStatus(
+                        relatedLinks.Any(), isCompleted, first.StartDate, first.DueDate, currentDate);
 
                     return new AssignmentHistoryDto
                     {
