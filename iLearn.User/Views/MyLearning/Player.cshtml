@@ -673,8 +673,8 @@
             }
 
             data.resources.forEach((item, index) => {
-                let iconClass = "far fa-file";
-                if (item.type === "Learn ") iconClass = "fas fa-book-open text-primary";
+                let iconClass = "far fa-file text-primary";
+                if (item.type === "Learn") iconClass = "fas fa-book-open text-primary";
                 else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-primary";
 
                 const html = `
