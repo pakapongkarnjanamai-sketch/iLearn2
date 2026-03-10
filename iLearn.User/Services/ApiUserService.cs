@@ -1,3 +1,6 @@
+using iLearn.Application.DTOs;
+using iLearn.Domain.Common;
+using iLearn.User.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 using System.Text.Json;
@@ -48,16 +51,15 @@ namespace iLearn.User.Services
 
                     return result ?? new ApiResponse<UserDto> { Success = false, Message = "Invalid response" };
                 }
-                else
+
+                _logger.LogError("Failed to get/create user. Status: {StatusCode}, Content: {Content}",
+                    response.StatusCode, responseContent);
+
+                return new ApiResponse<UserDto>
                 {
-                    _logger.LogError("Failed to get/create user. Status: {StatusCode}, Content: {Content}",
-                        response.StatusCode, responseContent);
-                    return new ApiResponse<UserDto>
-                    {
-                        Success = false,
-                        Message = $"API call failed: {response.StatusCode}"
-                    };
-                }
+                    Success = false,
+                    Message = $"API call failed: {response.StatusCode}"
+                };
             }
             catch (Exception ex)
             {

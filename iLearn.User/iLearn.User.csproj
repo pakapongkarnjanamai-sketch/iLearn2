@@ -12,4 +12,10 @@
     <PackageReference Include="DevExtreme.AspNet.Data" Version="5.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="9.0.12" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\iLearn.Application\iLearn.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Middleware\" />
+  </ItemGroup>
 </Project>

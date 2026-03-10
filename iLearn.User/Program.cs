@@ -1,14 +1,20 @@
-﻿using iLearn.User.Middleware;
-using iLearn.User.Services;
+﻿using iLearn.User.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages().AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
+// ── MVC / Razor Pages ──
+builder.Services.AddRazorPages()
+    .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-// เพิ่ม Session support
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
+
+// ── Session ──
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -17,56 +23,30 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
-// Windows Authentication Configuration
+// ── Authentication ──
 builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
     .AddNegotiate();
 
-builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options => {
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    });
-
-// IIS Integration for Windows Authentication
 builder.Services.Configure<IISOptions>(options =>
 {
     options.AutomaticAuthentication = true;
     options.AuthenticationDisplayName = "Windows";
 });
-// ในส่วนการลงทะเบียน Services
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        // เมื่อไม่มีสิทธิ์ หรือยังไม่ได้ Login ให้เด้งไปที่ HomeController Action Index (หน้าแรก)
         options.LoginPath = "/Home/Index";
         options.AccessDeniedPath = "/Home/Index";
-
-        // กำหนดระยะเวลาของ Cookie (เช่น 30 นาที)
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
     });
 
-
-// Services
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IApiUserService, ApiUserService>();
-
-
-// HTTP Client for API calls
-builder.Services.AddHttpClient("iLearnAPI", client =>
-{
-    var baseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "https://localhost:7128/api";
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(30);
-}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
-{
-    UseDefaultCredentials = true
-});
-
-// Add memory cache
-builder.Services.AddMemoryCache();
+// ── Application Services ──
+builder.Services.AddUserServices(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ── Middleware Pipeline ──
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -74,23 +54,20 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Static files ก่อน
+app.UseStaticFiles();
 
 app.UseRouting();
-app.UseSession(); // เพิ่ม Session
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Middleware หลัง authentication/authorization
-app.UseMiddleware<ApiUserSyncMiddleware>();
-
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapControllers();
-
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
