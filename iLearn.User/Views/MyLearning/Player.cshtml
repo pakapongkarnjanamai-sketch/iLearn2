@@ -2,9 +2,7 @@
 @{
     ViewData["Title"] = "Learning Player";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
-    // [ปรับปรุง] รับ CourseId แทน EnrollmentId
     var courseId = ViewBag.CourseId ?? 0;
-    // รับ StudentCode
     var studentCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 }
 
@@ -12,9 +10,6 @@
     <style>
         :root {
             --sidebar-width: 400px;
-            --brand-color: #027d83;
-            --brand-dark: #015e63;
-            --brand-light: #e0f2f1;
             --success-color: #28a745;
             --danger-color: #dc3545;
         }

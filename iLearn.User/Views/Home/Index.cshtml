@@ -111,134 +111,110 @@
         <div id="login-button"></div>
     </div>
 </div>
-<script>
-    $(function () {
-        let isProcessing = false; // ✅ ป้องกันการเรียกซ้ำ
 
-        // Employee Code Input
-        const employeeCodeBox = $("#employee-code-box").dxTextBox({
-            placeholder: "กรอกรหัสพนักงาน",
-            label: "รหัสพนักงาน",
-            labelMode: "floating",
-            mode: "text",
-            height: 50,
-            stylingMode: "outlined",
-            // ✅ ใช้ onEnterKey แทน
-            onEnterKey: function(e) {
-                e.event.preventDefault();
-                e.event.stopPropagation();
-                performLogin();
-            }
-        }).dxTextBox("instance");
+@section Scripts {
+    <script>
+        $(function () {
+            let isProcessing = false;
 
-        // Login Button
-        const loginButton = $("#login-button").dxButton({
-            text: "เข้าสู่ระบบ",
-            type: "default",
-            width: "100%",
-            height: 50,
-            elementAttr: { class: "btn-login" },
-            onClick: function(e) {
-                e.event.preventDefault();
-                performLogin();
-            }
-        }).dxButton("instance");
+            const employeeCodeBox = $("#employee-code-box").dxTextBox({
+                placeholder: "กรอกรหัสพนักงาน",
+                label: "รหัสพนักงาน",
+                labelMode: "floating",
+                mode: "text",
+                height: 50,
+                stylingMode: "outlined",
+                onEnterKey: function(e) {
+                    e.event.preventDefault();
+                    e.event.stopPropagation();
+                    performLogin();
+                }
+            }).dxTextBox("instance");
 
-        // ✅ เพิ่ม Enter สำหรับ Mobile (ใช้ once เพื่อป้องกันซ้ำ)
-        $(document).off("keyup.login").on("keyup.login", "#employee-code-box input", function(e) {
-            if ((e.which === 13 || e.keyCode === 13) && !isProcessing) {
-                e.preventDefault();
-                e.stopPropagation();
-                performLogin();
-            }
-        });
+            const loginButton = $("#login-button").dxButton({
+                text: "เข้าสู่ระบบ",
+                type: "default",
+                width: "100%",
+                height: 50,
+                elementAttr: { class: "btn-login" },
+                onClick: function(e) {
+                    e.event.preventDefault();
+                    performLogin();
+                }
+            }).dxButton("instance");
 
-        // ฟังก์ชัน Login หลัก
-        function performLogin() {
-            // ✅ ป้องกันการเรียกซ้ำ
-            if (isProcessing) {
-                console.log("Already processing...");
-                return;
-            }
-
-            const employeeCode = employeeCodeBox.option("value");
-
-            if (!employeeCode || employeeCode.trim() === "") {
-                DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
-                return;
-            }
-
-            // ✅ ตั้งค่า flag
-            isProcessing = true;
-
-            // ปิดการใช้งานปุ่มและแสดงสถานะ
-            loginButton.option("disabled", true);
-            loginButton.option("text", "กำลังตรวจสอบ...");
-
-            // ซ่อน Input และแสดง Preview
-            $("#employee-code-box").hide();
-            $("#employee-preview").show().html(`
-                <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
-                <span class="text-muted">กำลังยืนยันตัวตน: <strong>${employeeCode}</strong></span>
-            `);
-
-            // เรียก API ตรวจสอบพนักงาน
-            $.ajax({
-                url: '/Home/VerifyEmployee',
-                method: 'POST',
-                data: { employeeCode: employeeCode },
-                xhrFields: { withCredentials: true },
-                success: function(response) {
-                    if (response.success) {
-                        // ✅ Login สำเร็จ
-                        $("#employee-preview")
-                            .removeClass("alert-light")
-                            .addClass("text-success")
-                            .html(`
-                                <i class="fas fa-check-circle me-2"></i>
-                                <strong>${response.data.name}</strong>
-                            `);
-
-                        // Redirect ไปหน้า MyLearning
-                        setTimeout(() => {
-                            window.location.href = '/MyLearning/Index';
-                        }, 1000);
-                    } else {
-                        // ❌ Login ไม่สำเร็จ
-                        handleLoginError(response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    // ❌ เกิดข้อผิดพลาดในการเชื่อมต่อ
-                    console.error("Login Error:", error);
-                    handleLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
-                },
-                complete: function() {
-                    // ✅ รีเซ็ต flag เมื่อเสร็จสิ้น
-                    isProcessing = false;
+            $(document).off("keyup.login").on("keyup.login", "#employee-code-box input", function(e) {
+                if ((e.which === 13 || e.keyCode === 13) && !isProcessing) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    performLogin();
                 }
             });
-        }
 
-        // ฟังก์ชันจัดการ Error
-        function handleLoginError(msg) {
-            DevExpress.ui.notify(msg, "error", 3000);
+            function performLogin() {
+                if (isProcessing) return;
 
-            // แสดง Input กลับมา
-            $("#employee-preview").hide();
-            $("#employee-code-box").show();
+                const employeeCode = employeeCodeBox.option("value");
 
-            // เปิดใช้งานปุ่มกลับ
-            loginButton.option("disabled", false);
-            loginButton.option("text", "เข้าสู่ระบบ");
+                if (!employeeCode || employeeCode.trim() === "") {
+                    DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
+                    return;
+                }
 
-            // Focus กลับไปที่ Input
-            employeeCodeBox.focus();
-        }
+                isProcessing = true;
+                loginButton.option("disabled", true);
+                loginButton.option("text", "กำลังตรวจสอบ...");
 
-        // ✅ Auto Focus ที่ Input เมื่อโหลดหน้า
-        setTimeout(function() {
-            employeeCodeBox.focus();
-        }, 300);
-    });
-</script>
+                $("#employee-code-box").hide();
+                $("#employee-preview").show().html(`
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                    <span class="text-muted">กำลังยืนยันตัวตน: <strong>${employeeCode}</strong></span>
+                `);
+
+                $.ajax({
+                    url: '/Home/VerifyEmployee',
+                    method: 'POST',
+                    data: { employeeCode: employeeCode },
+                    xhrFields: { withCredentials: true },
+                    success: function(response) {
+                        console.log("[Login] Response:", response);
+                        if (response.success) {
+                            $("#employee-preview")
+                                .removeClass("alert-light")
+                                .addClass("text-success")
+                                .html(`
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>${response.data.name}</strong>
+                                `);
+                            setTimeout(() => {
+                                window.location.href = '/MyLearning/Index';
+                            }, 1000);
+                        } else {
+                            handleLoginError(response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("[Login] Error:", xhr.status, error);
+                        handleLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+                    },
+                    complete: function() {
+                        isProcessing = false;
+                    }
+                });
+            }
+
+            function handleLoginError(msg) {
+                DevExpress.ui.notify(msg, "error", 3000);
+                $("#employee-preview").hide();
+                $("#employee-code-box").show();
+                loginButton.option("disabled", false);
+                loginButton.option("text", "เข้าสู่ระบบ");
+                employeeCodeBox.focus();
+            }
+
+            setTimeout(function() {
+                employeeCodeBox.focus();
+            }, 300);
+        });
+    </script>
+}

@@ -8,7 +8,6 @@
     var empCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "-";
     var dept = User.FindFirst("Department")?.Value ?? "-";
     var div = User.FindFirst("Division")?.Value ?? "-";
-    var profileImage = "https://ui-avatars.com/api/?name=" + empName + "&background=027d83&color=fff&size=128";
 }
 
 @section Styles {
@@ -90,7 +89,7 @@
             }
 
         .course-thumb {
-            height: 180px;
+            height: 130px;
             background-color: #eee;
             position: relative;
             overflow: hidden;
@@ -128,7 +127,7 @@
         .course-code-text {
             color: white;
             font-weight: 700;
-            font-size: 1.3rem;
+            font-size: 1rem;
             text-align: center;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
             line-height: 1.4;
@@ -146,7 +145,7 @@
 
         /* Card Body */
         .course-body {
-            padding: 1.25rem;
+            padding: 0.75rem 1rem;
             flex-grow: 1;
             display: flex;
             flex-direction: column;
@@ -204,11 +203,11 @@
         }
 
         .btn-continue {
-            margin-top: 0.5rem;
+            margin-top: 0.4rem;
             border-radius: 8px;
             font-weight: 600;
-            font-size: 0.9rem;
-            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            padding: 0.35rem 0.75rem;
             transition: all 0.2s;
         }
 
@@ -248,7 +247,7 @@
             border-radius: 8px;
             padding: 2rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            min-height: 900px;
+            min-height: 400px;
         }
 
         .category-badge {
@@ -396,7 +395,9 @@ else
             <div class="row align-items-center g-4">
                 <div class="col-lg-8">
                     <div class="d-flex align-items-center gap-4">
-                        <img src="@profileImage" width="90" height="90" alt="Profile" class="rounded-circle shadow-sm">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width:90px;height:90px;background-color:var(--brand-color);">
+                            <i class="fas fa-user" style="font-size:2.5rem;color:#fff;"></i>
+                        </div>
                         <div>
                             <h2 class="page-title mb-1">สวัสดี, @empName</h2>
                             <p class="text-muted mb-0">
@@ -405,7 +406,12 @@ else
                                 <i class="fas fa-building text-brand me-1"></i>@div - @dept
                             </p>
                         </div>
-                        <div class="mx-1" id="btnLogout"></div>
+                        <a href="@Url.Action("Logout", "Home")" id="btnLogout"
+                           onclick="return confirm('คุณต้องการออกจากระบบใช่หรือไม่?')"
+                           class="btn btn-sm d-flex align-items-center gap-2"
+                           style="border:1.5px solid var(--brand-color);color:var(--brand-color);border-radius:8px;padding:0.4rem 1rem;font-weight:600;font-size:0.85rem;background:transparent;transition:all 0.2s;">
+                            <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+                        </a>
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -441,13 +447,13 @@ else
 
                 <ul class="nav nav-pills" id="pills-tab" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" onclick="filterMyCourses('all')">
+                        <a class="nav-link" onclick="filterMyCourses('all')">
                             <i class="fas fa-th-large me-1 small"></i> ทั้งหมด
                         </a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link" onclick="filterMyCourses('not-started')">
+                        <a class="nav-link active" onclick="filterMyCourses('not-started')">
                             <i class="fas fa-hourglass-start me-1 small"></i> ยังไม่เริ่ม
                         </a>
                     </li>
@@ -518,7 +524,7 @@ else
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         let allCoursesData = [];
         let myCoursesData = [];
-        let currentFilter = 'all';
+        let currentFilter = 'not-started';
         let selectedCategoryId = 'all';
         let selectedCourseType = 'all';
         let allCourseTypes = []; // dynamic course types loaded from API
@@ -543,19 +549,7 @@ else
             loadMyCourses();
             loadCourseTypes();
         });
-        function initLogout(){
-            $("#btnLogout").dxButton({
-                icon: "remove",
-                text: "ออกจากระบบ",
-                type: "Default",
-                stylingMode: "outlined",
-                onClick: function() {
-                    DevExpress.ui.dialog.confirm("คุณต้องการออกจากระบบใช่หรือไม่?", "ยืนยัน").done(function(result) {
-                        if (result) window.location.href = '@Url.Action("Logout", "Home")';
-                    });
-                }
-            });
-        }
+        function initLogout() { /* replaced by inline HTML button */ }
 
         // ========== Search Box ==========
         function initSearchBox() {
@@ -581,14 +575,18 @@ else
                     if (res.success && res.data && res.data.length > 0) {
                         myCoursesData = res.data;
                         updateStats(res.data);
-                        renderMyCourses(res.data);
+                        const notStarted = res.data.filter(e => !e.isCompleted && (e.progress || 0) === 0);
+                        renderMyCourses(notStarted.length > 0 ? notStarted : res.data);
                     } else {
                         $("#myCoursesContainer").html(`
                             <div class="col-12">
-                                <div class="alert alert-light text-center border">
-                                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                                    <p class="mb-0">คุณยังไม่มีคอร์สที่กำลังเรียน</p>
-                                </div>
+
+                                         <div class="alert alert-light text-center border d-flex align-items-center justify-content-center style="min-height: 200px;"" >
+                 <div>
+                     <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                     <p class="mb-0">คุณยังไม่มีคอร์สที่กำลังเรียน</p>
+                 </div>
+             </div>
                             </div>
                         `);
                         $("#statEnrolled, #statCompleted").text("0");
@@ -695,14 +693,14 @@ else
             if (filteredData.length === 0) {
                 const messages = {
                     'all': 'คุณยังไม่มีคอร์สที่ลงทะเบียน',
-                    'not-started': 'คุณไม่มีคอร์สที่ยังไม่เริ่มเรียน',
+                    'not-started': 'คุณยังไม่มีคอร์สที่ยังไม่เริ่มเรียน',
                     'progress': 'คุณยังไม่มีคอร์สที่กำลังเรียน',
                     'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
                 };
 
                 $container.html(`
                     <div class="col-12">
-                        <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 362px;">
+                        <div class="alert alert-light text-center border d-flex align-items-center justify-content-center style="min-height: 200px;"" >
                             <div>
                                 <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                 <p class="mb-0">${messages[type]}</p>
@@ -841,7 +839,7 @@ else
             renderCatalogContent(selectedCategoryId);
         }
 
-        // ========== Render Catalog Content (dynamic Course Type grouping) ==========
+        // ========== Render Catalog Content (flat grid, no course-type grouping headers) ==========
         function renderCatalogContent(categoryId) {
             const $content = $("#catalogContent");
             $content.empty();
@@ -857,7 +855,7 @@ else
 
             if (coursesToShow.length === 0) {
                 $content.html(`
-                    <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 362px;">
+                    <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 200px;">
                         <div>
                             <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                             <p class="mb-0">ไม่พบหลักสูตรในหมวดหมู่นี้</p>
@@ -867,61 +865,11 @@ else
                 return;
             }
 
-            // Determine which types are present in the current result set
-            const typesToRender = selectedCourseType !== 'all'
-                ? allCourseTypes.filter(t => t.id === selectedCourseType)
-                : allCourseTypes;
-
-            let renderedAny = false;
-            typesToRender.forEach(function(ct, index) {
-                const typeCourses = coursesToShow.filter(c => c.courseTypeId === ct.id);
-                if (typeCourses.length === 0) return;
-
-                renderedAny = true;
-                const color = getTypeColor(index);
-                const gridId = `typeGrid_${ct.id}`;
-
-                const $section = $(`
-                    <div class="course-type-section">
-                        <div class="course-type-header">
-                            <span class="type-badge" style="background: ${color};">
-                                <i class="fas fa-tag"></i>
-                                ${ct.name}
-                            </span>
-                            <span class="text-muted small">(${typeCourses.length} หลักสูตร)</span>
-                        </div>
-                        <div class="row g-4" id="${gridId}"></div>
-                    </div>
-                `);
-                typeCourses.forEach(course => {
-                    $section.find(`#${gridId}`).append(renderCatalogCard(course));
-                });
-                $content.append($section);
+            const $grid = $('<div class="row g-3"></div>');
+            coursesToShow.forEach(course => {
+                $grid.append(renderCatalogCard(course));
             });
-
-            // Courses with no matching type definition (fallback)
-            if (!renderedAny || selectedCourseType === 'all') {
-                const knownTypeIds = allCourseTypes.map(t => t.id);
-                const unknownCourses = coursesToShow.filter(c => !knownTypeIds.includes(c.courseTypeId));
-                if (unknownCourses.length > 0) {
-                    const $fallbackSection = $(`
-                        <div class="course-type-section">
-                            <div class="course-type-header">
-                                <span class="type-badge" style="background: linear-gradient(135deg, #b0bec5 0%, #78909c 100%);">
-                                    <i class="fas fa-question-circle"></i>
-                                    ไม่ระบุประเภท
-                                </span>
-                                <span class="text-muted small">(${unknownCourses.length} หลักสูตร)</span>
-                            </div>
-                            <div class="row g-4" id="unknownTypeGrid"></div>
-                        </div>
-                    `);
-                    unknownCourses.forEach(course => {
-                        $fallbackSection.find('#unknownTypeGrid').append(renderCatalogCard(course));
-                    });
-                    $content.append($fallbackSection);
-                }
-            }
+            $content.append($grid);
         }
 
            
