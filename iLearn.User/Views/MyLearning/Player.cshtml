@@ -742,7 +742,7 @@
             const resource = currentData.resources[selectedResourceIndex];
 
             if (!resource.launchUrl) {
-                DevExpress.ui.notify("Invalid Launch URL", "error", 2000);
+                showToast("Invalid Launch URL", "error");
                 return;
             }
 
@@ -982,7 +982,7 @@
 
             // Check Enrollment ID (สำคัญสำหรับการบันทึก)
             if (!currentData.enrollmentId) {
-                DevExpress.ui.notify("ไม่พบ Enrollment ID (View Only Mode)", "warning", 3000);
+                showToast("ไม่พบ Enrollment ID (View Only Mode)", "warning");
                 return;
             }
 
@@ -1019,18 +1019,18 @@
                     closeSummary();
                     if (res.success) {
                         console.log(`✅ Save successful`);
-                        DevExpress.ui.notify("บันทึกข้อมูลเรียบร้อยแล้ว", "success", 3000);
+                        showToast("บันทึกข้อมูลเรียบร้อยแล้ว", "success");
                         // setTimeout(() => location.reload(), 1500);
                            setTimeout(() => window.location.href = '@Url.Action("Index", "MyLearning")', 1500);
                     } else {
                         console.error(`❌ Save failed:`, res.message);
-                        DevExpress.ui.notify(res.message, "error", 3000);
+                        showToast(res.message, "error");
                     }
                 },
                 error: function(err) {
                     console.error("❌ Save Error:", err);
                     btn.prop("disabled", false).html(oldHtml);
-                    DevExpress.ui.notify("เกิดข้อผิดพลาดในการบันทึก", "error", 3000);
+                    showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
                 }
             });
         }
@@ -1189,7 +1189,7 @@
 
         function showError(msg) {
             console.error(`❌ Error: ${msg}`);
-            DevExpress.ui.notify(msg, "error", 3000);
+            showToast(msg, "error");
         }
 
         // ========================================

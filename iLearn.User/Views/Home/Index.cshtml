@@ -157,7 +157,7 @@
                 const employeeCode = employeeCodeBox.option("value");
 
                 if (!employeeCode || employeeCode.trim() === "") {
-                    DevExpress.ui.notify("กรุณากรอกรหัสพนักงาน", "error", 2000);
+                    showToast("กรุณากรอกรหัสพนักงาน", "error");
                     return;
                 }
 
@@ -204,7 +204,7 @@
             }
 
             function handleLoginError(msg) {
-                DevExpress.ui.notify(msg, "error", 3000);
+                showToast(msg, "error");
                 $("#employee-preview").hide();
                 $("#employee-code-box").show();
                 loginButton.option("disabled", false);

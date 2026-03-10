@@ -314,7 +314,7 @@
                 // ???? function confirm ??? toolbar button ??????
                 confirmAddFn = function () {
                     if (selectedCodes.length === 0) {
-                        DevExpress.ui.notify("Please select at least one student.", "warning", 3000);
+                        showToast("Please select at least one student.", "warning");
                         return;
                     }
                     $.ajax({
@@ -324,14 +324,11 @@
                         data: JSON.stringify({ studentCodes: selectedCodes }),
                         xhrFields: { withCredentials: true }
                     }).done(function () {
-                        DevExpress.ui.notify("Members added successfully.", "success", 3000);
+                        showToast("Members added successfully.", "success");
                         addPopup.hide();
                         loadGroupDetail();
                     }).fail(function (err) {
-                        DevExpress.ui.notify(
-                            "Error: " + (err.responseJSON?.message || "Failed to add"),
-                            "error", 4000
-                        );
+                        showToast("Error: " + (err.responseJSON?.message || "Failed to add"), "error", 4000);
                     });
                 };
             },
@@ -601,7 +598,7 @@
 
         function openAssignDetailsPopup() {
             if (selectedCourseIds.length === 0) {
-                DevExpress.ui.notify("Please select at least one course.", "warning", 3000);
+                showToast("Please select at least one course.", "warning");
                 return;
             }
             $("#ad-course-count").text(selectedCourseIds.length);
@@ -657,17 +654,17 @@
                         data: JSON.stringify(payload),
                         xhrFields: { withCredentials: true }
                     }).done(function (res) {
-                        DevExpress.ui.notify("Courses assigned successfully!", "success", 2000);
+                        showToast("Courses assigned successfully!", "success", 2000);
                         setTimeout(() => {
                             window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`;
                         }, 1500);
                     }).fail(function (err) {
-                        DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
+                        showToast("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
                     });
                 });
             }).fail(function (err) {
                 assignDetailsPopup.hide();
-                DevExpress.ui.notify("Validation error: " + (err.responseJSON?.message || "Failed"), "error", 4000);
+                showToast("Validation error: " + (err.responseJSON?.message || "Failed"), "error", 4000);
             });
         }
 
@@ -683,10 +680,10 @@
                     method: "DELETE",
                     xhrFields: { withCredentials: true }
                 }).done(function () {
-                    DevExpress.ui.notify("Member removed.", "success", 3000);
+                    showToast("Member removed.", "success");
                     loadGroupDetail();
                 }).fail(function () {
-                    DevExpress.ui.notify("Failed to remove member.", "error", 3000);
+                    showToast("Failed to remove member.", "error");
                 });
             });
         };
@@ -715,7 +712,7 @@
             // ✅ เพิ่มบรรทัดนี้ — โหลด Assignment History พร้อมกันเลย
             loadAssignmentHistory();
         }).fail(function () {
-            DevExpress.ui.notify("Error loading group detail.", "error", 3000);
+            showToast("Error loading group detail.", "error");
         });
     }
 
@@ -852,7 +849,7 @@
             $("#tab-badge-assignments").text(data.length);
             assignmentGrid.option("dataSource", data);
         }).fail(function () {
-            DevExpress.ui.notify("Error loading assignment history.", "error", 3000);
+            showToast("Error loading assignment history.", "error");
         });
     }
 </script>

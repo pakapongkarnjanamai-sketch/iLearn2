@@ -594,7 +594,7 @@ else
                 },
                 error: function() {
                     $("#myCoursesLoading").hide();
-                    DevExpress.ui.notify("ไม่สามารถโหลดข้อมูลคอร์สเรียนได้", "error", 3000);
+                    showToast("ไม่สามารถโหลดข้อมูลคอร์สเรียนได้", "error");
                 }
             });
         }
@@ -767,7 +767,7 @@ else
                 },
                 error: function() {
                     $("#allCoursesLoading").hide();
-                    DevExpress.ui.notify("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error", 3000);
+                    showToast("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error");
                 }
             });
         }

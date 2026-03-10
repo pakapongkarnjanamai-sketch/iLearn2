@@ -629,8 +629,8 @@
             // --- Save Action ---
             $('#btn-save').click(function () {
                 if (!form.validate().isValid) return;
-                if (selectedCourseIds.length === 0) { DevExpress.ui.notify("Please select at least one course.", "error", 3000); return; }
-                if (selectedStudentCodes.length === 0) { DevExpress.ui.notify("Please select at least one student.", "error", 3000); return; }
+                if (selectedCourseIds.length === 0) { showToast("Please select at least one course.", "error"); return; }
+                if (selectedStudentCodes.length === 0) { showToast("Please select at least one student.", "error"); return; }
 
                 const formData = form.option('formData');
                 const payload = {
@@ -654,7 +654,7 @@
                     },
                     error: function () {
                         loadPanel.hide();
-                        DevExpress.ui.notify("Error connecting to validation service.", "error", 3000);
+                        showToast("Error connecting to validation service.", "error");
                     }
                 });
             });
@@ -668,11 +668,11 @@
                     method: "POST", contentType: "application/json",
                     data: JSON.stringify(payload), xhrFields: { withCredentials: true },
                     success: function (res) {
-                        DevExpress.ui.notify("Assigned successfully!", "success", 2000);
+                        showToast("Assigned successfully!", "success", 2000);
                         setTimeout(() => window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`, 1500);
                     },
                     error: function (err) {
-                        DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
+                        showToast("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
                         loadPanel.hide();
                     }
                 });

@@ -195,14 +195,11 @@
                 data: JSON.stringify(data),
                 xhrFields: { withCredentials: true }
             }).done(function () {
-                DevExpress.ui.notify(
-                    editingGroupId ? "Group updated successfully." : "Group created successfully.",
-                    "success", 3000
-                );
+                showToast(editingGroupId ? "Group updated successfully." : "Group created successfully.", "success");
                 formPopup.hide();
                 loadGroups();
             }).fail(function (err) {
-                DevExpress.ui.notify("Error: " + (err.responseJSON?.message || "Failed to save"), "error", 4000);
+                showToast("Error: " + (err.responseJSON?.message || "Failed to save"), "error", 4000);
             });
         }
 
@@ -219,10 +216,10 @@
                     method: "DELETE",
                     xhrFields: { withCredentials: true }
                 }).done(function () {
-                    DevExpress.ui.notify("Group deleted.", "success", 3000);
+                    showToast("Group deleted.", "success");
                     loadGroups();
                 }).fail(function () {
-                    DevExpress.ui.notify("Failed to delete group.", "error", 3000);
+                    showToast("Failed to delete group.", "error");
                 });
             });
         };
@@ -240,7 +237,7 @@
                 $("#kpi-members").text(totalMembers);
                 gridInstance.option("dataSource", allGroups);
             }).fail(function () {
-                DevExpress.ui.notify("Error loading student groups.", "error", 3000);
+                showToast("Error loading student groups.", "error");
             });
         }
 

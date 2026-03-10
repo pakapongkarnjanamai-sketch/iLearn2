@@ -117,7 +117,7 @@
                     }
                 });
 
-            }).fail(() => DevExpress.ui.notify("Error loading Gantt data.", "error", 3000));
+            }).fail(() => showToast("Error loading Gantt data.", "error"));
         });
     </script>
 }

@@ -484,11 +484,11 @@
                     type: "DELETE",
                     xhrFields: { withCredentials: true },
                     success: function () {
-                        DevExpress.ui.notify("Deleted successfully.", "success", 2000);
+                        showToast("Deleted successfully.", "success", 2000);
                         setTimeout(() => window.location.href = "@Url.Action("Index", "Assignments")", 1500);
                     },
                     error: function () {
-                        DevExpress.ui.notify("Error deleting.", "error", 3000);
+                        showToast("Error deleting.", "error");
                         loadPanel.hide();
                     }
                 });
@@ -537,9 +537,9 @@
                         text: "Confirm", type: "default", stylingMode: "contained",
                         onClick: function () {
                             const newDate = $("#new-due-date-picker").dxDateBox("instance").option("value");
-                            if (!newDate) { DevExpress.ui.notify("Please select a date.", "warning", 2500); return; }
+                            if (!newDate) { showToast("Please select a date.", "warning", 2500); return; }
                             if (currentStartDate && new Date(newDate) <= currentStartDate) {
-                                DevExpress.ui.notify("Due date must be after start date.", "warning", 2500);
+                                showToast("Due date must be after start date.", "warning", 2500);
                                 return;
                             }
                             loadPanel.option("message", "Updating..."); loadPanel.show();
@@ -556,11 +556,11 @@
                                     const formatted = new Date(newDate).toLocaleDateString("en-GB");
                                     const sDate = $("#lbl-schedule").data("start");
                                     $("#lbl-schedule").text(`${sDate} → ${formatted}`);
-                                    DevExpress.ui.notify("Due date extended.", "success", 3000);
+                                    showToast("Due date extended.", "success");
                                 },
                                 error: function (xhr) {
                                     loadPanel.hide();
-                                    DevExpress.ui.notify(xhr.responseJSON?.message || "Error.", "error", 4000);
+                                    showToast(xhr.responseJSON?.message || "Error.", "error", 4000);
                                 }
                             });
                         }
@@ -570,7 +570,7 @@
             popup.show();
         });
 
-        function showApiError(msg) { loadPanel.hide(); DevExpress.ui.notify(msg, "error", 4000); }
+        function showApiError(msg) { loadPanel.hide(); showToast(msg, "error", 4000); }
     });
 </script>
 }

@@ -37,9 +37,13 @@
 - **Elements**: ขอบมน (`border-radius: 8px`), ใช้เงาฟุ้งแบบนุ่มนวล (`box-shadow: 0 4px 20px rgba(0,0,0,0.08)`)
 - **Interactions**: ปุ่มและการ์ดควรมี Hover effect (เช่น `transform: translateY(-2px)` และเพิ่มเงา)
 
-### 3. Shared Frontend / DevExtreme Rules
+### 3. Notifications & Feedback
+- **Quick Toast (Stack)**: ให้ใช้ฟังก์ชัน Global `showToast(message, type)` หรือถ้าเรียก `DevExpress.ui.notify` โดยตรง **ต้องส่งพารามิเตอร์ที่ 2 เสมอ** เช่น `{ position: 'bottom center', direction: 'up-push' }` เพื่อให้ Toast แสดงผลแบบเรียงซ้อนกันได้ (Stack) และตกแต่งสไตล์ข้อความให้รองรับ Soft UI (มีเงา, ขอบมน, มีไอคอน FontAwesome)
+- **Dialog & Confirm**: ใช้ **SweetAlert2** (`Swal.fire`) โดยต้องปรับ Custom Class ให้ปุ่ม Confirm เป็นปุ่มสีธีม (`.btn-primary`) และขอบกล่องโค้งมน
+- **Empty States**: หากไม่มีข้อมูลให้แสดงไอคอนขนาดใหญ่สีเทาจาง พร้อมข้อความที่เป็นมิตรตรงกลางพื้นที่ว่างเสมอ
+
+### 4. DevExtreme Implementation Rules
 - โค้ด JavaScript เฉพาะหน้าต้องอยู่ใน `@section Scripts { }` เสมอ
-- การแจ้งเตือนและยืนยันใช้ **SweetAlert2** (`Swal.fire(...)`)
-- **DataStore (DevExtreme)**: สร้างผ่านฟังก์ชัน `createDataStore(baseUrl, controllerName, options)`
+- **DataStore**: สร้างผ่านฟังก์ชัน `createDataStore(baseUrl, controllerName, options)`
 - **DataGrid (Admin)**: เริ่มต้นด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้แล้ว (แสดงกรอบและสลับสีแถว)
 - **Exporting**: ใช้ `handleExporting(e, fileName)` สำหรับ Export Excel (ทำงานผ่าน ExcelJS)

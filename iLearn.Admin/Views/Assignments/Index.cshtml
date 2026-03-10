@@ -228,7 +228,7 @@
                 allData = Array.isArray(res) ? res : (res.data || []);
                 updateKpi(allData);
                 gridInstance.option("dataSource", allData);
-            }).fail(() => DevExpress.ui.notify("Error loading assignment history.", "error", 3000));
+            }).fail(() => showToast("Error loading assignment history.", "error"));
         });
     </script>
 }

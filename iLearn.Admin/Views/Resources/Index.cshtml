@@ -79,7 +79,7 @@
                 name: 'file', accept: '.zip', uploadMode: 'useButtons',
                 uploadUrl: getUploadUrl(),
                 onUploaded: () => {
-                    DevExpress.ui.notify("File uploaded successfully", "success", 2000);
+                    showToast("File uploaded successfully", "success", 2000);
                     if(gridInstance) gridInstance.refresh();
                     uploadPopupInstance.hide();
                 }
@@ -165,7 +165,7 @@
             function setResourcePublic(id) {
                 if(confirm("Extract and publish this SCORM package?")) {
                     $.post(`${serviceUrl}/Resources/SetPublic?key=${id}`, () => {
-                        DevExpress.ui.notify("Published successfully!", "success", 2000);
+                        showToast("Published successfully!", "success", 2000);
                         if(gridInstance) gridInstance.refresh();
                     });
                 }

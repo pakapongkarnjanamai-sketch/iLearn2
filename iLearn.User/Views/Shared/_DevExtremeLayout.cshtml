@@ -299,6 +299,40 @@
             });
             e.cancel = true;
         }
+
+        /* --- Notifications & Feedback ---------------------------------------- */
+
+        // showToast: DevExpress.ui.notify Stack (bottom right, up-push)
+        // type: 'success' | 'error' | 'warning' | 'info'
+        function showToast(message, type, duration) {
+            type = type || 'info';
+            duration = duration || 3500;
+            var icons = {
+                success: 'fa-circle-check',
+                error:   'fa-circle-xmark',
+                warning: 'fa-triangle-exclamation',
+                info:    'fa-circle-info'
+            };
+            var icon = icons[type] || icons.info;
+            DevExpress.ui.notify(
+                {
+                    type: type,
+                    height: 45,
+                    width: 'auto',
+                    minWidth: 220,
+                    displayTime: duration,
+                    animation: {
+                        show: { type: 'fade', duration: 400, from: 0, to: 1 },
+                        hide: { type: 'fade', duration: 40, to: 0 }
+                    },
+                    contentTemplate: function(element) {
+                        $(element).addClass('dx-toast-content-custom')
+                            .html('<i class="fas ' + icon + ' me-2"></i><span>' + message + '</span>');
+                    }
+                },
+                { position: 'bottom center', direction: 'up-push' }
+            );
+        }
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

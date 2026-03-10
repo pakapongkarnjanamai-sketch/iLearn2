@@ -308,7 +308,7 @@
                         });
                         e.component.reset();
                         refreshMasterGrid();
-                        DevExpress.ui.notify("File added to queue", "success", 2000);
+                        showToast("File added to queue", "success", 2000);
                     }
                 }
             });
@@ -338,10 +338,10 @@
                                 }
                             });
                             refreshMasterGrid();
-                        }).fail(() => DevExpress.ui.notify("Error loading resource details", "error", 3000));
+                        }).fail(() => showToast("Error loading resource details", "error"));
                     }
                 }).fail(function(xhr) {
-                    DevExpress.ui.notify(xhr.responseJSON?.message || "Error loading version", "error", 3000);
+                    showToast(xhr.responseJSON?.message || "Error loading version", "error");
                 }).always(() => loadPanel.hide());
             }
 
@@ -354,8 +354,8 @@
             });
 
             function submitData() {
-                if (!formWidget.validate().isValid) { DevExpress.ui.notify("Please fill in required fields.", "warning", 3000); return; }
-                if (unifiedResources.length === 0) { DevExpress.ui.notify("Please add at least one resource.", "error", 3000); return; }
+                if (!formWidget.validate().isValid) { showToast("Please fill in required fields.", "warning"); return; }
+                if (unifiedResources.length === 0) { showToast("Please add at least one resource.", "error"); return; }
 
                 loadPanel.option("message", "Saving version & processing files...");
                 loadPanel.show();
@@ -385,10 +385,10 @@
                     url: url, method: method, data: formDataObj,
                     processData: false, contentType: false, xhrFields: { withCredentials: true }
                 }).done(function(response) {
-                    DevExpress.ui.notify("Saved successfully!", "success", 2000);
+                    showToast("Saved successfully!", "success", 2000);
                     setTimeout(() => window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + COURSE_ID, 1200);
                 }).fail(function(xhr) {
-                    DevExpress.ui.notify("Error: " + (xhr.responseJSON?.message || "Failed to save"), "error", 4000);
+                    showToast("Error: " + (xhr.responseJSON?.message || "Failed to save"), "error", 4000);
                 }).always(() => loadPanel.hide());
             }
         });

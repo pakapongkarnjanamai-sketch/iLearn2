@@ -867,6 +867,31 @@ th.sticky-col {
 .dx-datagrid .dx-datagrid-headers { background: var(--bg-light); }
 .dx-datagrid-rowsview .dx-row-alt > td { background-color: var(--bg-light); }
 
+/* =============================================================
+   DX TOAST  (DevExpress.ui.notify — Stack mode)
+   ============================================================= */
+.dx-toast-content-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-family: var(--font-stack, sans-serif);
+}
+.dx-toast-content-custom i {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+/* =============================================================
+   SWEETALERT2  (Admin overrides)
+   ============================================================= */
+.swal-admin-popup {
+    border-radius: 8px !important;
+    font-family: var(--font-stack, sans-serif);
+    font-size: 13px;
+}
+
 /* ?? Footer ??????????????????????????????????????????????????? */
 footer.footer {
     border-top: 1px solid var(--border-color) !important;

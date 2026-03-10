@@ -14,6 +14,7 @@
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
     @* <link href="~/css/admin-site.css" rel="stylesheet" /> *@
     <link href="~/css/admin-minimal.css" rel="stylesheet" />
+    <link href="~/lib/sweetalert2/sweetalert2.min.css" rel="stylesheet" />
     <script src="~/js/devextreme/jquery.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/devextreme/filesaver.min.js"></script>
@@ -25,6 +26,7 @@
     <script src="~/src/devextreme-license.js"></script>
     <script src="~/js/site.js"></script>
 
+    <script src="~/lib/sweetalert2/sweetalert2.all.min.js"></script>
     @await RenderSectionAsync("ExternalDependencies", required: false)
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -172,6 +174,50 @@
             const opts = getDxGridOptions(pageOptions);
             return $(selector).dxDataGrid(opts).dxDataGrid('instance');
         }
+
+        /* --- Notifications & Feedback ---------------------------------------- */
+
+        // showToast: DevExpress.ui.notify Stack (bottom center, up-push)
+        // type: 'success' | 'error' | 'warning' | 'info'
+        function showToast(message, type, duration) {
+            type = type || 'info';
+            duration = duration || 3500;
+            var icons = {
+                success: 'fa-circle-check',
+                error:   'fa-circle-xmark',
+                warning: 'fa-triangle-exclamation',
+                info:    'fa-circle-info'
+            };
+            var icon = icons[type] || icons.info;
+            DevExpress.ui.notify(
+                {
+                    type: type,
+                    height: 45,
+                    width: 'auto',
+                    minWidth: 220,
+                    displayTime: duration,
+                    animation: {
+                        show: { type: 'fade', duration: 400, from: 0, to: 1 },
+                        hide: { type: 'fade', duration: 40, to: 0 }
+                    },
+                    contentTemplate: function(element) {
+                        $(element).addClass('dx-toast-content-custom')
+                            .html('<i class="fas ' + icon + ' me-2"></i><span>' + message + '</span>');
+                    }
+                },
+                { position: 'bottom right', direction: 'up-push' }
+            );
+        }
+
+        // Swal defaults: ปุ่ม Confirm สีธีม, ขอบกล่องโค้งมน (ตาม Design Patterns)
+        var SwalAdmin = (typeof Swal !== 'undefined') ? Swal.mixin({
+            customClass: {
+                popup:         'swal-admin-popup',
+                confirmButton: 'btn btn-primary ms-2',
+                cancelButton:  'btn btn-outline-secondary'
+            },
+            buttonsStyling: false
+        }) : null;
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
