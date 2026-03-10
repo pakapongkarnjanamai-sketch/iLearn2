@@ -1,56 +1,45 @@
 # Copilot Instructions — iLearn2
 
 ## Project Overview
-**iLearn2**: Internal e-Learning Management System (LMS) with SCORM 1.2/2004 support.
-- `iLearn.API` (Port 7128): ASP.NET Core Web API (Backend)
-- `iLearn.Admin` (Port 7270): ASP.NET Core MVC (Admin)
-- `iLearn.User` (Port 7078): ASP.NET Core MVC + Razor Pages (Learners)
+**iLearn2**: ระบบ Internal e-Learning (LMS) รองรับมาตรฐาน SCORM 1.2/2004
+- `iLearn.API`: ASP.NET Core Web API (Backend)
+- `iLearn.Admin`: ASP.NET Core MVC (Admin UI - Brand Blue #0050b3)
+- `iLearn.User`: ASP.NET Core MVC + Razor Pages (Learner UI - Brand Teal #027d83)
 
-## Tech Stack & Architecture
-- **.NET 9.0 / C# 13.0**, **Clean Architecture**, **EF Core 9** (SQL Server, Code-First)
-- **DevExtreme 25.2**, **Bootstrap 5**, **jQuery**
-- **Layers**: `Domain` (zero dependencies) <- `Application` <- `Infrastructure` <- `Presentation` (API/Admin/User)
+## Architecture & Tech Stack
+- **Clean Architecture**: Domain -> Application -> Infrastructure -> Presentation
+- **Stack**: .NET 9, C# 13, EF Core 9 (SQL Server), Windows Auth
+- **Frontend**: DevExtreme 25.2, Bootstrap 5, jQuery, SweetAlert2
 
-## Coding Rules & Patterns
-1. **Soft Delete**: Use `DeleteAsync()` (`IsDeleted = true`). `HardDeleteAsync()` is strictly for `FileStorage`.
-2. **Audit Fields**: Auto-set by `AppDbContext` (`CreatedAt/By`, `UpdatedAt/By`, `DeletedBy`). Do NOT set manually.
-3. **Mapping**: Use manual extension methods in `MappingExtensions.cs` (e.g., `dto.ToEntity()`). No AutoMapper.
-4. **Controllers**:
-   - `GenericController<T>`: Uses `DataSourceLoader.Load()` & `JsonConvert.PopulateObject`.
-   - Business Controllers: Standard REST with injected services.
-5. **DateTime**: Always use injected `IDateTime` (`DateTimeService.Now` returns UTC+7). Never use `DateTime.Now`.
-6. **JSON**: API uses `System.Text.Json` (camelCase). DevExtreme forms use `Newtonsoft.Json`.
-7. **Assignment No**: Use `IAssignmentNoGenerator.NextAsync()` (Format: `AS-yyyyMMdd-NNN`).
-8. **DI Registration**: `AddApplication()` and `AddInfrastructure()` in API. `ApiUserService` is ONLY for Admin/User apps.
+## Coding Rules
+1. **Soft Delete**: ใช้ `DeleteAsync()` (`IsDeleted = true`) เป็นค่าเริ่มต้น (Hard delete เฉพาะ FileStorage)
+2. **Audit Fields**: ปล่อยให้ `AppDbContext` จัดการ `CreatedAt/By`, `UpdatedAt/By` อัตโนมัติ ห้าม set เอง
+3. **Manual Mapping**: ใช้ Extension methods ใน `MappingExtensions.cs` (เช่น `dto.ToEntity()`) ห้ามใช้ AutoMapper
+4. **DateTime**: ใช้ `IDateTime` (DI) เท่านั้น เพื่อให้เป็นเวลาไทย (UTC+7) ห้ามใช้ `DateTime.Now`
+5. **Assignment No**: ใช้ `IAssignmentNoGenerator.NextAsync()` (Format: `AS-yyyyMMdd-NNN`)
+6. **Dependency Injection**: `AddApplication()` และ `AddInfrastructure()` ลงทะเบียน Services หลักทั้งหมด
 
-## Key Relationships
-- `Course` 1:N `CourseVersion` 1:N `CourseResource` N:1 `Resource` 1:1 `FileStorage`
-- `Course` 1:N `Enrollment` N:M `Assignment` (via `EnrollmentAssignment`)
-- `Assignment` N:1 `StudentGroup` 1:N `StudentGroupMember`
+## Front-end Design Patterns
 
-## Auth & External APIs
-- **Auth**: Windows Auth. `ApiUserSyncMiddleware` syncs identity to API user & injects roles.
-- **External API**: `EmployeeServiceV2` for student/employee lookups and dropdown data.
+โปรเจ็กต์นี้มีการออกแบบ UI 2 สไตล์ที่แตกต่างกันอย่างชัดเจน:
 
-## Front-end Design Patterns (Minimal Clean Japanese)
-เน้นความเรียบง่าย สะอาดตา (Zen) อ้างอิงสไตล์ Ant Design โดยใช้เส้นขอบแทนการใช้เงา
+### 1. Admin UI (`iLearn.Admin`) - "Minimal Clean Japanese / Ant Design"
+เน้นความเรียบง่าย แบนราบ (Flat) ข้อมูลหนาแน่น (Data-heavy)
+- **Colors**: Primary `#0050b3`, Background `#fafafa`, Border `#f0f0f0`
+- **Typography**: Base `13px` (System font), Section Headers `11px` (Uppercase + Letter spacing)
+- **Elements**: ขอบเหลี่ยมเล็กน้อย (`border-radius: 4px`), เน้นใช้เส้นขอบบางๆ (`1px solid`) แทนการใช้เงา (No Box-shadow)
+- **Components**: ใช้ `.page-header`, `.panel`, `.status-pill` (โค้งมนสีอ่อน), `.action-link` (ปุ่มแบบ flat)
 
-1. **Design Tokens (Admin)**:
-   - **Colors**: Primary `#0050b3`, Border `#f0f0f0`, Background `#fafafa`
-   - **Typography**: Base `13px`, Section Headers `11px` (Uppercase + Letter spacing)
-   - **Elements**: ใช้ `1px solid` border, `border-radius: 4px`, และห้ามใช้ Box-shadow
+### 2. Learner UI (`iLearn.User`) - "Soft UI / User-Friendly"
+เน้นความนุ่มนวล เป็นมิตร ใช้งานบนมือถือได้ดี
+- **Colors**: Primary `#027d83`, Background `#f4f6f8`, Light/Tint `#e0f2f1`
+- **Typography**: ใช้ฟอนต์ **'Sarabun'** เป็นหลักเพื่อความสบายตาในการอ่านภาษาไทย
+- **Elements**: ขอบมน (`border-radius: 8px`), ใช้เงาฟุ้งแบบนุ่มนวล (`box-shadow: 0 4px 20px rgba(0,0,0,0.08)`)
+- **Interactions**: ปุ่มและการ์ดควรมี Hover effect (เช่น `transform: translateY(-2px)` และเพิ่มเงา)
 
-2. **UI Components**:
-   - **Page Header**: ใช้คลาส `.page-header` เป็นแถบสีขาวเรียบๆ ติดขอบบน
-   - **Panels**: ใช้คลาส `.panel` และ `.panel-body` สำหรับแบ่งส่วนเนื้อหา
-   - **Status/Tags**: ใช้ `.status-pill` (โค้งมน) หรือ `.tag-pill` (เหลี่ยม) พร้อมสีแบบ Tint (พื้นหลังอ่อน ตัวอักษรเข้ม)
-   - **Actions**: ใช้คลาส `.action-link` สำหรับปุ่มหรือลิงก์คำสั่ง
-
-3. **DevExtreme Implementation**:
-   - **DataGrid**: เริ่มต้นด้วย `initDxGrid(selector, options)` พร้อมเปิด `rowAlternationEnabled` และ `showBorders`
-   - **DataStore**: สร้างผ่าน `createDataStore(baseUrl, controllerName, options)`
-   - **Export**: ใช้ `handleExporting(e, fileName)` สำหรับ Excel export (ExcelJS)
-
-4. **Scripts**:
-   - โค้ด JavaScript เฉพาะหน้าต้องอยู่ใน `@section Scripts { }`
-   - ใช้ `Swal.fire(...)` สำหรับการแจ้งเตือนหรือยืนยันคำสั่ง
+### 3. Shared Frontend / DevExtreme Rules
+- โค้ด JavaScript เฉพาะหน้าต้องอยู่ใน `@section Scripts { }` เสมอ
+- การแจ้งเตือนและยืนยันใช้ **SweetAlert2** (`Swal.fire(...)`)
+- **DataStore (DevExtreme)**: สร้างผ่านฟังก์ชัน `createDataStore(baseUrl, controllerName, options)`
+- **DataGrid (Admin)**: เริ่มต้นด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้แล้ว (แสดงกรอบและสลับสีแถว)
+- **Exporting**: ใช้ `handleExporting(e, fileName)` สำหรับ Export Excel (ทำงานผ่าน ExcelJS)
