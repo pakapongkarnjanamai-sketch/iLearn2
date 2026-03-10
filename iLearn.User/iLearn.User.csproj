@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Middleware\" />
+    <Folder Include="wwwroot\fonts\sarabun\" />
   </ItemGroup>
 </Project>
