@@ -17,8 +17,8 @@
     <link href="~/lib/sweetalert2/sweetalert2.min.css" rel="stylesheet" />
     <script src="~/js/devextreme/jquery.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/devextreme/filesaver.min.js"></script>
-    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
+    <script src="~/js/devextreme/filesaver.min.js" defer></script>
+    <script src="~/js/devextreme/dx-exceljs-fork.min.js" defer></script>
     @await RenderSectionAsync("PreDxScripts", required: false)
     <script src="~/js/devextreme/dx.all.js"></script>
     <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
@@ -26,7 +26,7 @@
     <script src="~/src/devextreme-license.js"></script>
     <script src="~/js/site.js"></script>
 
-    <script src="~/lib/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="~/lib/sweetalert2/sweetalert2.all.min.js" defer></script>
     @await RenderSectionAsync("ExternalDependencies", required: false)
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -154,16 +154,26 @@
             e.cancel = true;
         }
 
+        /* --- DataGrid Defaults ----------------------------------------------- */
         const dxGridDefaults = {
             columnAutoWidth: true,
-            showBorders: true, /* ปรับให้แสดงกรอบตาราง (Borders) ชัดเจนขึ้นตามแบบฉบับ Admin UI */
-            rowAlternationEnabled: true, /* เปิดสลับสีแถวเพื่อง่ายต่อการอ่าน Data สลับขาว-เทา */
+            showBorders: true,
+            rowAlternationEnabled: true,
             showRowLines: true,
             hoverStateEnabled: true,
             scrolling: { mode: "virtual" },
             height: "calc(100vh - 250px)",
             headerFilter: { visible: true },
-            searchPanel: { visible: true, width: 300, placeholder: "Search..." }
+            searchPanel: { visible: true, width: 300, placeholder: "Search..." },
+            loadPanel: {
+                enabled: true,
+                text: 'กำลังโหลดข้อมูล...',
+                showPane: true,
+                showIndicator: true,
+                shadingColor: 'rgba(250,250,250,0.7)',
+                shading: true,
+                position: { of: 'window' }
+            }
         };
 
         function getDxGridOptions(pageOptions) {
@@ -173,6 +183,32 @@
         function initDxGrid(selector, pageOptions) {
             const opts = getDxGridOptions(pageOptions);
             return $(selector).dxDataGrid(opts).dxDataGrid('instance');
+        }
+
+        /* --- Button Loading State -------------------------------------------- */
+
+        /**
+         * ตั้งสถานะ Loading ของปุ่ม Bootstrap/HTML เพื่อป้องกันการกดซ้ำ (Double Submit)
+         * @@param {string|jQuery} btn           - jQuery selector หรือ jQuery object ของปุ่ม
+         * @@param {boolean}       loading       - true = เข้าสู่โหมด loading, false = คืนสถานะปกติ
+         * @@param {string}        [loadingText] - ข้อความขณะ loading (default: 'กำลังประมวลผล...')
+         *
+         * ตัวอย่าง:
+         *   setButtonLoading('#btnSave', true);
+         *   // ... หลัง ajax เสร็จ ...
+         *   setButtonLoading('#btnSave', false);
+         */
+        function setButtonLoading(btn, loading, loadingText) {
+            var $btn = $(btn);
+            if (loading) {
+                $btn.data('original-html', $btn.html())
+                    .prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-1"></i>' + (loadingText || 'กำลังประมวลผล...'));
+            } else {
+                var original = $btn.data('original-html');
+                $btn.prop('disabled', false)
+                    .html(original || $btn.html());
+            }
         }
 
         /* --- Notifications & Feedback ---------------------------------------- */
@@ -207,6 +243,56 @@
                 },
                 { position: 'bottom right', direction: 'up-push' }
             );
+        }
+
+        /* --- Skeleton Loader Utilities ---------------------------------------
+         * showStatSkeleton(ids)    — แทน stat card values ด้วย skeleton block
+         * hideStatSkeleton(ids)    — คืนค่าปกติ (ลบ skeleton ออก)
+         * showCardsSkeleton(sel, count) — แสดง version-card skeleton ใน container
+         * hideCardsSkeleton(sel)   — ล้าง skeleton ออกจาก container
+         * --------------------------------------------------------------------- */
+        function showStatSkeleton(ids) {
+            (ids || []).forEach(function(id) {
+                var $el = $('#' + id);
+                $el.data('original-text', $el.text())
+                   .html('<span class="skeleton ds-val-skeleton"></span>');
+            });
+        }
+
+        function hideStatSkeleton(ids) {
+            (ids || []).forEach(function(id) {
+                var $el = $('#' + id);
+                var orig = $el.data('original-text');
+                if (orig !== undefined) $el.text(orig);
+            });
+        }
+
+        function showCardsSkeleton(selector, count) {
+            count = count || 3;
+            var $c = $(selector).empty();
+            for (var i = 0; i < count; i++) {
+                $c.append(
+                    '<div class="col-md-4 mb-2">' +
+                      '<div class="version-card-skeleton">' +
+                        '<div class="d-flex justify-content-between align-items-start mb-3">' +
+                          '<div style="width:55%">' +
+                            '<div class="skeleton skeleton-line w-80 mb-2"></div>' +
+                            '<div class="skeleton skeleton-line w-40"></div>' +
+                          '</div>' +
+                          '<div class="skeleton" style="width:24px;height:24px;border-radius:3px;"></div>' +
+                        '</div>' +
+                        '<div class="skeleton skeleton-line w-100 mb-1"></div>' +
+                        '<div class="skeleton skeleton-line w-60 mb-3"></div>' +
+                        '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;margin-bottom:6px;"></div>' +
+                        '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;"></div>' +
+                      '</div>' +
+                    '</div>'
+                );
+            }
+        }
+
+        function hideCardsSkeleton(selector) {
+            $(selector).empty();
         }
 
         // Swal defaults: ปุ่ม Confirm สีธีม, ขอบกล่องโค้งมน (ตาม Design Patterns)

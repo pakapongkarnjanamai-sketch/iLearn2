@@ -905,3 +905,119 @@ footer.footer {
     .page-header, .bottom-toolbar, nav { display: none !important; }
     body { padding-top: 0; }
 }
+
+/* =============================================================
+   PERFORMANCE & LOADING STATES (UX)
+   ============================================================= */
+
+/* --- Button Loading State ----------------------------------------
+   ?????????? setButtonLoading() ?? _DevExtremeLayout.cshtml
+   ??????? disabled ?????????????????????? cursor ?????????
+   ----------------------------------------------------------------- */
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn .fa-spinner {
+    font-size: 0.85em;
+    vertical-align: middle;
+}
+
+/* --- Lazy Loading Image -------------------------------------------
+   ???????????? loading="lazy" ?? placeholder ??????????????????
+   ??????? Layout Shift (CLS)
+   ----------------------------------------------------------------- */
+img[loading="lazy"] {
+    background-color: var(--bg-light);
+    min-height: 40px;
+}
+
+/* --- DevExtreme DataGrid Loading Panel ---------------------------
+   ??? DevExtreme Loading Panel ??????? (?????? Skeleton)
+   ???? overlay ?????????????? Admin theme
+   ----------------------------------------------------------------- */
+.dx-loadpanel-content {
+    border-radius: 4px !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.dx-loadpanel-message {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    font-family: var(--font-stack, sans-serif) !important;
+}
+
+.dx-loadindicator-segment {
+    background-color: var(--brand-color) !important;
+}
+
+/* --- Skeleton Loader (Page-level / Card / Stat) -------------------
+   ????????? Stat Cards (Dashboard), Version Cards (Course Dashboard)
+   ??????? UI ????? ????????? AJAX ??????????
+   ????????? Copilot Instructions — Admin ??? Skeleton ??? Flat/Minimal
+   ----------------------------------------------------------------- */
+@@keyframes admin-shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position:  600px 0; }
+}
+
+.skeleton {
+    background: #f0f0f0;
+    border-radius: 3px;
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.65) 50%,
+        transparent 100%
+    );
+    background-size: 600px 100%;
+    animation: admin-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Stat card value skeleton (?????? .ds-val ???????) */
+.ds-val-skeleton {
+    width: 56px;
+    height: 28px;
+    border-radius: 3px;
+    margin: 4px 0;
+}
+
+/* Version card skeleton (????? #versionsCardContainer) */
+.version-card-skeleton {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 16px 18px;
+    background: #fff;
+    height: 180px;
+}
+
+.skeleton-line {
+    height: 11px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+.skeleton-line.w-60  { width: 60%; }
+.skeleton-line.w-80  { width: 80%; }
+.skeleton-line.w-40  { width: 40%; }
+.skeleton-line.w-100 { width: 100%; }
+
+/* Panel / generic block skeleton */
+.skeleton-block {
+    border-radius: 3px;
+    width: 100%;
+}
+

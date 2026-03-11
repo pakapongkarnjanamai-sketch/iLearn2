@@ -57,7 +57,14 @@
                     <span style="font-size:11px; color:var(--text-secondary); font-weight:400;">learning sessions per month (last 6 months)</span>
                 </div>
                 <div class="dash-panel-body">
-                    <div id="learningActivityChart" style="height:300px;"></div>
+                    <div id="learningActivityChartSkeleton" style="height:300px; padding:16px 0;">
+                        <div class="skeleton skeleton-block mb-2" style="height:200px; border-radius:4px;"></div>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <div class="skeleton skeleton-line w-40" style="height:10px;"></div>
+                            <div class="skeleton skeleton-line w-40" style="height:10px;"></div>
+                        </div>
+                    </div>
+                    <div id="learningActivityChart" style="height:300px; display:none;"></div>
                 </div>
             </div>
         </div>
@@ -195,6 +202,8 @@
         $(() => {
             loadDashboardStats();
             loadLearningActivityTrends();
+
+            showStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
         });
 
         function loadDashboardStats() {
@@ -203,6 +212,7 @@
                 method: "GET",
                 xhrFields: { withCredentials: true },
                 success: function (res) {
+                    hideStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
                     if (res.success && res.data) {
                         animateCount('count-active-courses',        res.data.activeCourses          || 0);
                         animateCount('count-draft-courses',          res.data.draftCourses            || 0);
@@ -212,6 +222,7 @@
                     }
                 },
                 error: function (err) {
+                    hideStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
                     console.error("Failed to load dashboard stats", err);
                     $('#count-active-courses, #count-draft-courses, #count-inprogress-assignments, #count-resources').text("0");
                 }
@@ -246,7 +257,8 @@
         }
 
         function initLearningActivityChart(chartData) {
-            $("#learningActivityChart").dxChart({
+            $('#learningActivityChartSkeleton').hide();
+            $('#learningActivityChart').show().dxChart({
                 dataSource: chartData,
                 series: {
                     argumentField: "month",

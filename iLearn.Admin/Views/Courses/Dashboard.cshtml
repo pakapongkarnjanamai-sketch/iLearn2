@@ -122,6 +122,9 @@
         let versionsData = [];
         $(async () => {
 
+            showCardsSkeleton('#versionsCardContainer', 3);
+
+
             // ── 1. Build form ──────────────────────────────────────────
             courseForm = $("#courseInfoForm").dxForm({
                 formData: {},

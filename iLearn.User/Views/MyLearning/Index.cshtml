@@ -215,13 +215,6 @@
                 transform: translateY(-2px);
             }
 
-        /* Loading State */
-        .loading-container {
-            text-align: center;
-            padding: 3rem;
-            color: #aaa;
-        }
-
         /* Profile Stats */
         .stat-box {
             background: white;
@@ -470,10 +463,6 @@ else
                 </ul>
             </div>
 
-            <div id="myCoursesLoading" class="loading-container">
-                <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
-                <p>กำลังโหลดบทเรียนของคุณ...</p>
-            </div>
             <div id="myCoursesContainer" class="row g-4"></div>
         </div>
 
@@ -495,11 +484,6 @@ else
                     </ul>
                     <div id="searchBoxContainer"></div>
                 </div>
-            </div>
-
-            <div id="allCoursesLoading" class="loading-container">
-                <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
-                <p>กำลังโหลดหลักสูตร...</p>
             </div>
 
             <div class="catalog-layout" id="catalogLayout" style="display: none;">
@@ -566,34 +550,24 @@ else
 
         // ========== Load My Courses ==========
         function loadMyCourses() {
+            showSkeletonCards('#myCoursesContainer', 4);
             $.ajax({
                 url: `${baseUrl}/enrollments/my-courses?studentCode=${studentCode}`,
                 method: 'GET',
                 xhrFields: { withCredentials: true },
                 success: function(res) {
-                    $("#myCoursesLoading").hide();
                     if (res.success && res.data && res.data.length > 0) {
                         myCoursesData = res.data;
                         updateStats(res.data);
                         const notStarted = res.data.filter(e => !e.isCompleted && (e.progress || 0) === 0);
                         renderMyCourses(notStarted.length > 0 ? notStarted : res.data);
                     } else {
-                        $("#myCoursesContainer").html(`
-                            <div class="col-12">
-
-                                         <div class="alert alert-light text-center border d-flex align-items-center justify-content-center style="min-height: 200px;"" >
-                 <div>
-                     <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                     <p class="mb-0">คุณยังไม่มีคอร์สที่กำลังเรียน</p>
-                 </div>
-             </div>
-                            </div>
-                        `);
+                        renderEmptyState('#myCoursesContainer', 'คุณยังไม่มีคอร์สที่ได้รับมอบหมาย');
                         $("#statEnrolled, #statCompleted").text("0");
                     }
                 },
                 error: function() {
-                    $("#myCoursesLoading").hide();
+                    renderEmptyState('#myCoursesContainer', 'ไม่สามารถโหลดข้อมูลคอร์สเรียนได้');
                     showToast("ไม่สามารถโหลดข้อมูลคอร์สเรียนได้", "error");
                 }
             });
@@ -620,7 +594,7 @@ else
                     .html(`
                         <div class="my-course-card">
                             <div class="course-thumb">
-                                 <img src="${bgImage}" alt="${en.courseTitle}">
+                                 <img src="${bgImage}" alt="${en.courseTitle}" loading="lazy">
 
                                 <div class="course-code-overlay">
                                     <div class="course-code-text">
@@ -697,17 +671,7 @@ else
                     'progress': 'คุณยังไม่มีคอร์สที่กำลังเรียน',
                     'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
                 };
-
-                $container.html(`
-                    <div class="col-12">
-                        <div class="alert alert-light text-center border d-flex align-items-center justify-content-center style="min-height: 200px;"" >
-                            <div>
-                                <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                                <p class="mb-0">${messages[type]}</p>
-                            </div>
-                        </div>
-                    </div>
-                `);
+                renderEmptyState('#myCoursesContainer', messages[type]);
             } else {
                 renderMyCourses(filteredData);
             }
@@ -749,24 +713,26 @@ else
 
         // ========== Load Catalog ==========
         function loadAllCourses() {
+            $("#catalogLayout").show();
+            showSkeletonCards('#catalogContent', 6, 'col-md-6 col-lg-4');
             $.ajax({
                 url: `${baseUrl}/courses`,
                 method: 'GET',
                 data: { isActive: true },
                 xhrFields: { withCredentials: true },
                 success: function(res) {
-                    $("#allCoursesLoading").hide();
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);
 
                     if (allCoursesData.length > 0) {
                         organizeCoursesByCategory(allCoursesData);
                         renderCategorySidebar();
                         renderCatalogContent('all');
-                        $("#catalogLayout").show();
+                    } else {
+                        renderEmptyState('#catalogContent', 'ยังไม่มีหลักสูตรในขณะนี้');
                     }
                 },
                 error: function() {
-                    $("#allCoursesLoading").hide();
+                    renderEmptyState('#catalogContent', 'ไม่สามารถโหลดข้อมูลหลักสูตรได้');
                     showToast("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error");
                 }
             });
@@ -854,14 +820,7 @@ else
             }
 
             if (coursesToShow.length === 0) {
-                $content.html(`
-                    <div class="alert alert-light text-center border d-flex align-items-center justify-content-center" style="min-height: 200px;">
-                        <div>
-                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                            <p class="mb-0">ไม่พบหลักสูตรในหมวดหมู่นี้</p>
-                        </div>
-                    </div>
-                `);
+                renderEmptyState('#catalogContent', 'ไม่พบหลักสูตรในหมวดหมู่นี้');
                 return;
             }
 
@@ -882,7 +841,7 @@ else
                 <div class="col-md-6 col-lg-4 catalog-course-item">
                     <div class="my-course-card">
                         <div class="course-thumb">
-                            <img src="${bgImage}" alt="${course.title}">
+                            <img src="${bgImage}" alt="${course.title}" loading="lazy">
                             <div class="course-code-overlay">
                                 <div class="course-code-text">${courseCode}</div>
                             </div>
@@ -947,6 +906,18 @@ else
 
         function escapeRegex(str) {
             return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // ========== Empty State Helper ==========
+        function renderEmptyState(selector, message) {
+            $(selector).html(
+                '<div class="col-12">' +
+                    '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-center">' +
+                        '<i class="fas fa-inbox fa-3x mb-3" style="color:#d0d0d0;"></i>' +
+                        '<p class="text-muted mb-0">' + message + '</p>' +
+                    '</div>' +
+                '</div>'
+            );
         }
     </script>
 }

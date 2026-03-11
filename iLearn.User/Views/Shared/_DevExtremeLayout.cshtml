@@ -230,6 +230,36 @@
             background-color: var(--brand-color) !important;
             border-color: var(--brand-color) !important;
         }
+
+        /* ==========================================================================
+           SKELETON LOADER (iLearn.User)
+           ========================================================================== */
+        @@keyframes shimmer {
+            0%   { background-position: -600px 0; }
+            100% { background-position:  600px 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #e8eaed 25%, #f4f4f5 50%, #e8eaed 75%);
+            background-size: 600px 100%;
+            animation: shimmer 1.4s infinite linear;
+            border-radius: 4px;
+        }
+
+        .skeleton-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #f0f0f0;
+        }
+
+        .skeleton-thumb  { height: 130px; }
+        .skeleton-body   { padding: 0.75rem 1rem; }
+        .skeleton-title  { height: 14px; margin-bottom: 8px; }
+        .skeleton-title.short { width: 60%; }
+        .skeleton-bar    { height: 10px; margin-bottom: 6px; }
+        .skeleton-btn    { height: 34px; border-radius: 8px; margin-top: 0.75rem; }
     </style>
 
     @await RenderSectionAsync("Styles", required: false)
@@ -305,9 +335,38 @@
             e.cancel = true;
         }
 
+        /* --- Skeleton Loader ------------------------------------------------- */
+
+        /**
+         * แสดง Skeleton Cards ใน container ที่ระบุ
+         * @@param {string} selector  - jQuery selector ของ container
+         * @@param {number} count     - จำนวน skeleton cards (default 8)
+         * @@param {string} colClass  - Bootstrap column class (default 'col-md-6 col-lg-4 col-xl-3')
+         */
+        function showSkeletonCards(selector, count, colClass) {
+            count    = count    || 8;
+            colClass = colClass || 'col-md-6 col-lg-4 col-xl-3';
+            var html = '';
+            for (var i = 0; i < count; i++) {
+                html +=
+                    '<div class="' + colClass + '">' +
+                        '<div class="skeleton-card">' +
+                            '<div class="skeleton skeleton-thumb"></div>' +
+                            '<div class="skeleton-body">' +
+                                '<div class="skeleton skeleton-title"></div>' +
+                                '<div class="skeleton skeleton-title short"></div>' +
+                                '<div class="skeleton skeleton-bar"></div>' +
+                                '<div class="skeleton skeleton-btn"></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+            }
+            $(selector).html(html);
+        }
+
         /* --- Notifications & Feedback ---------------------------------------- */
 
-        // showToast: DevExpress.ui.notify Stack (bottom right, up-push)
+        // showToast: DevExpress.ui.notify Stack (bottom center, up-push)
         // type: 'success' | 'error' | 'warning' | 'info'
         function showToast(message, type, duration) {
             type = type || 'info';

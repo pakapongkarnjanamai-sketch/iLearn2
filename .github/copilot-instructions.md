@@ -42,7 +42,13 @@
 - **Dialog & Confirm**: ใช้ **SweetAlert2** (`Swal.fire`) โดยต้องปรับ Custom Class ให้ปุ่ม Confirm เป็นปุ่มสีธีม (`.btn-primary`) และขอบกล่องโค้งมน
 - **Empty States**: หากไม่มีข้อมูลให้แสดงไอคอนขนาดใหญ่สีเทาจาง พร้อมข้อความที่เป็นมิตรตรงกลางพื้นที่ว่างเสมอ
 
-### 4. DevExtreme Implementation Rules
+### 4. Performance & Loading States (UX)
+- **Skeleton Loaders (iLearn.User)**: ในระหว่างรอข้อมูลจาก API (เช่น โหลดรายการคอร์สเรียน, แดชบอร์ด) ให้แสดงโครงร่างกล่องเทาๆ (Skeleton) ที่มีเอฟเฟกต์ Shimmer กระพริบนุ่มๆ แทนการใช้ Spinner หมุนๆ กลางจอ
+- **Button Loading State**: เมื่อคลิกปุ่มบันทึก/Submit ต้อง Disable ปุ่มเสมอ พร้อมกับเปลี่ยนข้อความและแสดง Spinner (เช่น `<i class="fas fa-spinner fa-spin"></i> กำลังประมวลผล...`) เพื่อป้องกันผู้ใช้กดเบิ้ล
+- **Lazy Loading**: รูปภาพประกอบคอร์สเรียน (Thumbnails) และรูปภาพขนาดใหญ่ ต้องใส่ Attribute `loading="lazy"` ไว้เสมอ
+- **DataGrid Loading**: ใน DevExtreme DataGrid ให้ใช้ฟีเจอร์ Loading Panel มาตรฐาน ไม่ต้องทำ Skeleton
+
+### 5. DevExtreme Implementation Rules
 - โค้ด JavaScript เฉพาะหน้าต้องอยู่ใน `@section Scripts { }` เสมอ
 - **DataStore**: สร้างผ่านฟังก์ชัน `createDataStore(baseUrl, controllerName, options)`
 - **DataGrid (Admin)**: เริ่มต้นด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้แล้ว (แสดงกรอบและสลับสีแถว)

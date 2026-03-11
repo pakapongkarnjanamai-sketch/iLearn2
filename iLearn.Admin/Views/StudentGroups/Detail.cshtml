@@ -31,19 +31,29 @@
             <i class="fas fa-users fa-lg"></i>
         </div>
         <div class="flex-grow-1">
-            <div class="fw-bold text-dark" style="font-size:14px;" id="info-name">—</div>
-            <div class="text-secondary" style="font-size:12px;" id="info-desc">—</div>
+            <div class="fw-bold text-dark" style="font-size:14px;" id="info-name">
+                <span class="skeleton skeleton-line w-60" style="height:14px;"></span>
+            </div>
+            <div class="text-secondary" style="font-size:12px;" id="info-desc">
+                <span class="skeleton skeleton-line w-80" style="height:11px;"></span>
+            </div>
         </div>
         <div class="text-center px-3 border-start">
-            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="info-count">—</div>
+            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="info-count">
+                <span class="skeleton ds-val-skeleton"></span>
+            </div>
             <div class="text-secondary" style="font-size:11px;">Members</div>
         </div>
         <div class="text-center px-3 border-start">
-            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="kpi-assignment-count">—</div>
+            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="kpi-assignment-count">
+                <span class="skeleton ds-val-skeleton"></span>
+            </div>
             <div class="text-secondary" style="font-size:11px;">Assignments</div>
         </div>
         <div class="text-center px-3 border-start">
-            <div class="fw-bold" style="font-size:22px;color:var(--success-color);" id="kpi-completed-count">—</div>
+            <div class="fw-bold" style="font-size:22px;color:var(--success-color);" id="kpi-completed-count">
+                <span class="skeleton ds-val-skeleton"></span>
+            </div>
             <div class="text-secondary" style="font-size:11px;">Completed</div>
         </div>
     </div>
@@ -589,7 +599,7 @@
                     widget: "dxButton", toolbar: "bottom", location: "after",
                     options: {
                         text: "Assign", type: "default", stylingMode: "contained",
-                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                        elementAttr: { id: "btn-do-assign", class: "rounded-3 fw-medium px-4 shadow-sm" },
                         onClick: () => submitGroupAssign()
                     }
                 }
@@ -623,12 +633,18 @@
                 employeeCodes: []
             };
 
+            // Step 1: validate-before-assign — show loading on Assign button
+            const $assignBtn = $("#btn-do-assign");
+            setButtonLoading($assignBtn, true, 'Validating...');
+
             $.ajax({
                 url: `${serviceUrl}/Assignments/validate-before-assign`,
                 method: "POST", contentType: "application/json",
                 data: JSON.stringify(payload),
                 xhrFields: { withCredentials: true }
             }).done(function (res) {
+                setButtonLoading($assignBtn, false);
+
                 const memberCount    = res.resolvedCount || 0;
                 const inProgress     = res.inProgressConflicts || [];
                 const completed      = res.completedConflicts  || [];
@@ -643,26 +659,46 @@
 
                 assignDetailsPopup.hide();
 
+                // Step 2: confirm dialog
                 DevExpress.ui.dialog.confirm(
                     `Assign <b>${selectedCourseIds.length}</b> course(s) to <b>${memberCount}</b> member(s)?${conflictNote}`,
                     "Confirm Assignment"
                 ).then(function (confirmed) {
-                    if (!confirmed) return;
+                    if (!confirmed) {
+                        assignDetailsPopup.show();
+                        return;
+                    }
+
+                    // Step 3: BulkAssign — show full-page load panel
+                    const bulkLoadPanel = $("<div>").appendTo("body").dxLoadPanel({
+                        message: 'กำลัง Assign คอร์ส...',
+                        visible: true,
+                        showIndicator: true,
+                        showPane: true,
+                        shading: true,
+                        shadingColor: 'rgba(0,0,0,0.15)',
+                        position: { of: 'body' }
+                    }).dxLoadPanel("instance");
+
                     $.ajax({
                         url: `${serviceUrl}/Enrollments/BulkAssign`,
                         method: "POST", contentType: "application/json",
                         data: JSON.stringify(payload),
                         xhrFields: { withCredentials: true }
                     }).done(function (res) {
+                        bulkLoadPanel.hide();
                         showToast("Courses assigned successfully!", "success", 2000);
                         setTimeout(() => {
                             window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`;
                         }, 1500);
                     }).fail(function (err) {
+                        bulkLoadPanel.hide();
                         showToast("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
+                        assignDetailsPopup.show();
                     });
                 });
             }).fail(function (err) {
+                setButtonLoading($assignBtn, false);
                 assignDetailsPopup.hide();
                 showToast("Validation error: " + (err.responseJSON?.message || "Failed"), "error", 4000);
             });
@@ -702,6 +738,8 @@
 
             $("#page-title").text(g.name);
             $("#page-subtitle").text(g.description || "No description");
+
+            // ล้าง skeleton แล้ว set ค่าจริง
             $("#info-name").text(g.name);
             $("#info-desc").text(g.description || "No description");
             $("#info-count").text(members.length);
@@ -709,9 +747,11 @@
 
             membersGrid.option("dataSource", members);
 
-            // ✅ เพิ่มบรรทัดนี้ — โหลด Assignment History พร้อมกันเลย
+            // โหลด Assignment History พร้อมกันเลย
             loadAssignmentHistory();
         }).fail(function () {
+            // ล้าง skeleton กรณี error
+            $("#info-name, #info-desc, #info-count, #kpi-assignment-count, #kpi-completed-count").text("—");
             showToast("Error loading group detail.", "error");
         });
     }
@@ -849,6 +889,7 @@
             $("#tab-badge-assignments").text(data.length);
             assignmentGrid.option("dataSource", data);
         }).fail(function () {
+            $("#kpi-assignment-count, #kpi-completed-count").text("—");
             showToast("Error loading assignment history.", "error");
         });
     }
