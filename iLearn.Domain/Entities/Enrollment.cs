@@ -1,9 +1,10 @@
 ﻿using iLearn.Domain.Common;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace iLearn.Domain.Entities
 {
-    public class Enrollment : BaseEntity
+    public class Enrollment : BaseEntity, IValidatableObject
     {
         public string StudentCode { get; set; } = string.Empty;
 
@@ -25,5 +26,13 @@ namespace iLearn.Domain.Entities
 
         // Navigation: Enrollment 1 รายการ เชื่อมได้หลาย Assignment
         public ICollection<EnrollmentAssignment> AssignmentLinks { get; set; } = new List<EnrollmentAssignment>();
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (StartDate.HasValue && DueDate.HasValue && StartDate.Value > DueDate.Value)
+                yield return new ValidationResult(
+                    "StartDate ต้องไม่มากกว่า DueDate",
+                    [nameof(StartDate), nameof(DueDate)]);
+        }
     }
 }

@@ -112,7 +112,7 @@
                 hoverStateEnabled: true,
                 searchPanel: { visible: true, placeholder: "Search assignments..." },
                 headerFilter: { visible: true },
-                export: { enabled: true, allowExportSelectedData: true },
+                export: { enabled: true, allowExportSelectedData: true },   
                 onExporting: (e) => handleExporting(e, 'Assignments_History'),
                 onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.data.status === "Expired")

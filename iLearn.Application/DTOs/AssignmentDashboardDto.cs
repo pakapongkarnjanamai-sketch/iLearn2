@@ -16,6 +16,9 @@ namespace iLearn.Application.DTOs
         public DashboardChartDto ChartData { get; set; }
         public List<CourseSummaryDto> Courses { get; set; }
         public List<StudentProgressDto> Students { get; set; }
+
+        // ✅ แจ้ง Dashboard ว่า assignment นี้มี course ที่ถูกลบไปแล้ว
+        public bool HasDeletedCourse { get; set; }
     }
 
     public class DashboardChartDto
@@ -32,6 +35,9 @@ namespace iLearn.Application.DTOs
         public string CourseTitle { get; set; }
         public int CompletedStudents { get; set; }
         public int TotalStudents { get; set; }
+
+        // ✅ บอกว่า course นี้ถูก soft-delete ไปแล้ว (ข้อมูล progress ยังคงอยู่)
+        public bool IsCourseDeleted { get; set; }
     }
 
     public class StudentProgressDto

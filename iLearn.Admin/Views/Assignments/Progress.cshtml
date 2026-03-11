@@ -9,6 +9,18 @@
     .meta-label { font-size: 11px; color: var(--text-secondary); font-weight: 600;
                   text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
     .meta-value { font-size: 13px; color: var(--text-primary); }
+
+    /* ✅ Deleted course banner */
+    .deleted-course-banner {
+        background: #fff2f0;
+        border: 1px solid #ffa39e;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: var(--danger-color);
+        display: none;
+    }
+    .deleted-course-banner i { margin-right: 6px; }
 </style>
 
 <!-- ── Page Header ────────────────────────────────────────────────── -->
@@ -30,6 +42,15 @@
 
 <div class="container-fluid px-4 py-4" >
     <div id="load-panel"></div>
+
+    <!-- ✅ Deleted Course Banner — แสดงเฉพาะเมื่อ assignment นี้มี course ที่ถูกลบ -->
+    <div class="deleted-course-banner mb-3" id="deleted-course-banner">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Note:</strong>
+        The following course(s) in this assignment have been deleted and are no longer available:
+        <span id="deleted-course-names" class="fw-bold ms-1"></span>.
+        Historical progress data is preserved for record-keeping.
+    </div>
 
     <!-- ── Row 1: Meta / Stats / Chart ──────────────────────────── -->
     <div class="row g-3 mb-4">
@@ -203,6 +224,16 @@
                 .text(`${sDate} → ${dDate}`);
             if (data.createdBy) $("#lbl-created-by").text(data.createdBy);
 
+            // ✅ แสดง banner เตือนถ้ามี course ที่ถูก soft-delete
+            if (data.hasDeletedCourse) {
+                const deletedNames = data.courses
+                    .filter(c => c.isCourseDeleted)
+                    .map(c => c.courseTitle)
+                    .join(", ");
+                $("#deleted-course-names").text(deletedNames);
+                $("#deleted-course-banner").show();
+            }
+
             // ── Stats ────────────────────────────────────────────────────────────
             const totalStudents = data.totalStudents ?? data.totalEmployees;
             const cd = data.chartData;
@@ -248,23 +279,34 @@
 
             const dropdownOptions = data.courses.map(c => ({
                 assignmentRuleId: c.assignmentRuleId,
-                displayText: `${c.courseCode}`
+                // ✅ เพิ่ม [Deleted] ใน dropdown ถ้า course ถูกลบ
+                displayText: c.isCourseDeleted ? `${c.courseCode} [Deleted]` : `${c.courseCode}`
             }));
             const firstRuleId = dropdownOptions.length > 0 ? dropdownOptions[0].assignmentRuleId : null;
 
             const $courseList = $("#course-list");
             data.courses.forEach(c => {
                 const pct       = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
-                const leftColor = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
+                const leftColor = c.isCourseDeleted
+                    ? "#ffa39e"   // ✅ deleted course → สีแดง
+                    : (pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)");
                 const isDone    = pct === 100;
+
+                // ✅ เพิ่ม badge [Deleted] และ tooltip บน course card ที่ถูกลบ
+                const deletedBadge = c.isCourseDeleted
+                    ? `<span class="status-pill ms-1" style="background:#fff1f0;border:1px solid #ffa39e;color:var(--danger-color);font-size:9px;">
+                           <i class="fas fa-trash-alt me-1"></i>Deleted
+                       </span>`
+                    : "";
 
                 $(`<div class="course-item ${isDone ? "done" : ""} ${c.assignmentRuleId === firstRuleId ? "active" : ""}"
                         data-rule="${c.assignmentRuleId}" data-title="${c.courseTitle}"
-                        style="border-left-color:${leftColor};">
+                        style="border-left-color:${leftColor}; ${c.isCourseDeleted ? "opacity:0.75;" : ""}">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="fw-bold" style="font-size:11px;">${c.courseCode}</span>
-                            <span class="text-secondary ms-2" style="font-size:11px;">${c.courseTitle}</span>
+                        <div class="d-flex align-items-center flex-wrap gap-1">
+                            <span class="fw-bold" style="font-size:11px; ${c.isCourseDeleted ? "text-decoration:line-through;color:var(--danger-color);" : ""}">${c.courseCode}</span>
+                            <span class="text-secondary ms-1" style="font-size:11px;">${c.courseTitle}</span>
+                            ${deletedBadge}
                         </div>
                         <span class="fw-bold ms-2" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${pct}%</span>
                     </div>

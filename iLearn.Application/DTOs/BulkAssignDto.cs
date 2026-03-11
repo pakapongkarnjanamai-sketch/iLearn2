@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace iLearn.Application.DTOs
 {
-    public class BulkAssignDto
+    public class BulkAssignDto : IValidatableObject
     {
         public string? Description { get; set; }
 
@@ -20,6 +21,14 @@ namespace iLearn.Application.DTOs
 
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (StartDate.HasValue && DueDate.HasValue && StartDate.Value > DueDate.Value)
+                yield return new ValidationResult(
+                    "StartDate ต้องไม่มากกว่า DueDate",
+                    [nameof(StartDate), nameof(DueDate)]);
+        }
     }
 
     public class ExtendDueDateDto

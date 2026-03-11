@@ -23,5 +23,9 @@ namespace iLearn.Application.DTOs
         public int StudentCount { get; set; }
         public int CompletedEnrollmentCount { get; set; }
         public int TotalEnrollmentCount { get; set; }
+
+        // ✅ Soft-delete awareness — แจ้งให้ Admin รู้ว่า course ใน assignment นี้ถูกลบไปแล้ว
+        public bool HasDeletedCourse { get; set; }
+        public string? DeletedCourseNames { get; set; }
     }
 }

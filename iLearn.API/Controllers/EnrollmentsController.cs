@@ -261,6 +261,9 @@ namespace iLearn.API.Controllers
         [HttpPost("BulkAssign")]
         public async Task<IActionResult> BulkAssign([FromBody] BulkAssignDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new { message = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)) });
+
             // resolve GroupId → EmployeeCodes ถ้า Assign จาก Student Group
             if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
             {

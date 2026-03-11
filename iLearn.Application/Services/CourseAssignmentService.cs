@@ -51,6 +51,9 @@ namespace iLearn.Application.Services
         {
             if (employeeCodes == null || !employeeCodes.Any()) return;
 
+            if (startDate.HasValue && dueDate.HasValue && startDate.Value > dueDate.Value)
+                throw new ArgumentException("StartDate ต้องไม่มากกว่า DueDate");
+
             var course = await _courseRepo.GetByIdAsync(courseId);
             if (course == null || !course.IsActive) return;
 
