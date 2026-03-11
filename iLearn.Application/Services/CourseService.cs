@@ -62,6 +62,21 @@ namespace iLearn.Application.Services
             return courses.Select(c => c.ToDto()).ToList();
         }
 
+        public async Task<IEnumerable<CourseDto>> GetCoursesByDivisionNameAsync(string divisionName, bool isActive = true)
+        {
+            // Course -> Category -> Division (ผ่าน Category.DivisionId)
+            // กรองเฉพาะ Course ที่อยู่ใน Category ของ Division ที่ตรงกับชื่อ
+            var courses = await _courseRepo.GetAsync(
+                filter: c => c.IsActive == isActive
+                          && c.Category != null
+                          && c.Category.Division != null
+                          && c.Category.Division.Name == divisionName,
+                includeProperties: "Category,Category.Division,Versions,CourseType"
+            );
+
+            return courses.Select(c => c.ToDto()).ToList();
+        }
+
         public async Task<CourseDetailDto> GetCourseByIdAsync(int id)
         {
             var course = await _courseRepo.GetByIdAsync(id);

@@ -19,20 +19,38 @@ namespace iLearn.API.Controllers
         private readonly ICourseAssignmentService _assignmentService;
         public readonly IDateTime _dateTime;
         private readonly ILogger<UsersController> _logger;
+        private readonly ICurrentUserService _currentUser;
         public UsersController(
             IGenericRepository<User> userRepo,
-            ICourseAssignmentService assignmentService,IDateTime dateTime, ILogger<UsersController> logger)
+            ICourseAssignmentService assignmentService,IDateTime dateTime, ILogger<UsersController> logger,
+            ICurrentUserService currentUser)
         {
             _dateTime = dateTime;
             _userRepo = userRepo;
             _assignmentService = assignmentService;
             _logger = logger;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var users = await _userRepo.GetAllAsync();
+            IReadOnlyList<User> users;
+
+            // ── Data Isolation: กรอง User ที่มี Role อยู่ใน Division ของผู้ใช้ปัจจุบัน ──
+            if (_currentUser.DivisionId.HasValue)
+            {
+                var myDivId = _currentUser.DivisionId.Value;
+                users = await _userRepo.GetAsync(
+                    filter: u => u.UserRoles.Any(ur => ur.Role != null && ur.Role.DivisionId == myDivId),
+                    includeProperties: "UserRoles"
+                );
+            }
+            else
+            {
+                users = await _userRepo.GetAllAsync();
+            }
+
             var dtos = users.Select(u => u.ToDto());
             return Ok(dtos);
         }
@@ -97,7 +115,7 @@ namespace iLearn.API.Controllers
                     });
                 }
 
-                // 2. Query optimization - เลือกเฉพาะ field ที่ต้องการ
+                // 2. Query optimization - เลือกเฉพาะ field ที่ต้องการ (รวม DivisionId สำหรับ Data Isolation)
                 var user = await _userRepo.GetQuery()
                     .Where(u => u.Nid == nid)
                     .Select(u => new
@@ -109,8 +127,7 @@ namespace iLearn.API.Controllers
                         {
                             Id = ur.Role.Id,
                             Name = ur.Role.Name,
-                            //Description = ur.Role.Description,
-                            //IsActive = ur.Role.IsActive
+                            DivisionId = ur.Role.DivisionId,
                         }).ToList()
                     })
                     .FirstOrDefaultAsync();

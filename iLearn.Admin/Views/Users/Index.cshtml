@@ -55,14 +55,41 @@
                     { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "nid", caption: "National ID / Username", minWidth: 200 },
                     {
-                        dataField: "roleIds",
+                        // ── คอลัมน์ Roles ──────────────────────────────────────────────
+                        // - calculateCellValue: แปลง userRoles[{roleId}] → array of int สำหรับ TagBox
+                        // - cellTemplate: แสดง badge badge สวยงามจาก role.name
+                        // - editCellTemplate: TagBox สำหรับแก้ไข
                         caption: "Roles",
+                        dataField: "roleIds",
                         width: 350,
                         allowSorting: false,
                         calculateCellValue: function(rowData) {
-                            if (rowData.roles) return rowData.roles.map(r => r.id);
-                            if (rowData.userRoles) return rowData.userRoles.map(ur => ur.roleId);
+                            // API คืน userRoles: [{roleId, role: {id, name}}]
+                            if (Array.isArray(rowData.userRoles) && rowData.userRoles.length > 0) {
+                                return rowData.userRoles.map(ur => ur.roleId);
+                            }
                             return [];
+                        },
+                        cellTemplate: function(container, options) {
+                            const userRoles = options.data.userRoles || [];
+                            if (userRoles.length === 0) {
+                                $('<span class="text-muted" style="font-size:.8rem;">ยังไม่มี Role</span>')
+                                    .appendTo(container);
+                                return;
+                            }
+                            userRoles.forEach(ur => {
+                                const name = ur.role?.name || `Role #${ur.roleId}`;
+                                const isSuper = name === 'SuperAdmin';
+                                $('<span>')
+                                    .addClass('badge rounded-pill me-1')
+                                    .css({
+                                        background: isSuper ? '#ffd700' : '#e8f0fe',
+                                        color:      isSuper ? '#000'    : '#0050b3',
+                                        fontSize:   '.75rem'
+                                    })
+                                    .html((isSuper ? '<i class="fas fa-star me-1"></i>' : '') + name)
+                                    .appendTo(container);
+                            });
                         },
                         editCellTemplate: tagBoxEditorTemplate,
                         lookup: {

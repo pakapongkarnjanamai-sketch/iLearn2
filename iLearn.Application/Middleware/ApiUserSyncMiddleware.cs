@@ -40,81 +40,75 @@ namespace iLearn.Application.Middleware
                 if (!string.IsNullOrEmpty(windowsIdentity) &&
                     windowsIdentity.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase))
                 {
-                    var cacheKey = $"user_data_{windowsIdentity}";
+                    var cacheKey     = $"user_claims_{windowsIdentity}";
+                    var forceRefresh = context.Request.Query.ContainsKey("_refresh");
 
-                    // ตรวจสอบว่า User มี Role claims หรือไม่
-                    var hasRoleClaims = context.User.Claims.Any(c => c.Type == ClaimTypes.Role);
-
-                    // ถ้าไม่มี Role claims หรือ cache หมดอายุ ให้ sync ใหม่
-                    if (!hasRoleClaims || !_cache.TryGetValue(cacheKey, out var cachedUserData))
+                    // ── ถ้ามี cache และไม่ได้ force refresh → inject Claims จาก cache ทันที ──
+                    if (!forceRefresh && _cache.TryGetValue(cacheKey, out ClaimsPrincipal? cached) && cached != null)
                     {
-                        _logger.LogInformation("Syncing user data for: {WindowsIdentity}, HasRoles: {HasRoles}",
-                            windowsIdentity, hasRoleClaims);
+                        context.User = cached;
+                        await _next(context);
+                        return;
+                    }
 
-                        try
+                    // ── ไม่มี cache หรือ force refresh → sync จาก API ──
+                    _logger.LogInformation("Syncing user claims from API for: {WindowsIdentity}", windowsIdentity);
+                    try
+                    {
+                        var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, forceRefresh);
+                        if (userResponse.Success && userResponse.Data != null)
                         {
-                            var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity);
-                            if (userResponse.Success && userResponse.Data != null)
+                            var user = userResponse.Data;
+
+                            var claims = new List<Claim>
                             {
-                                var user = userResponse.Data;
+                                new Claim(ClaimTypes.Name, windowsIdentity),
+                                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                                new Claim("UserId", user.Id.ToString()),
+                                new Claim("FullName", user.FullName ?? ""),
+                                new Claim("Email", user.Email ?? "")
+                            };
 
-                                // สร้าง Claims ใหม่ทั้งหมด
-                                var claims = new List<Claim>
-                                {
-                                    new Claim(ClaimTypes.Name, windowsIdentity),
-                                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                                    new Claim("UserId", user.Id.ToString()),
-                                    new Claim("FullName", user.FullName ?? ""),
-                                    new Claim("Email", user.Email ?? "")
-                                };
-
-                                // เพิ่ม Role Claims
-                                foreach (var role in user.Roles)
-                                {
-                                    claims.Add(new Claim(ClaimTypes.Role, role.Name));
-                                    _logger.LogInformation("Added role claim: {RoleName} for user: {WindowsIdentity}",
-                                        role.Name, windowsIdentity);
-                                }
-
-                                // สร้าง ClaimsIdentity และ ClaimsPrincipal ใหม่
-                                var claimsIdentity = new ClaimsIdentity(claims, context.User.Identity.AuthenticationType);
-                                var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
-
-                                // แทนที่ User ใน HttpContext
-                                context.User = claimsPrincipal;
-
-                                // Cache user data for 10 minutes
-                                _cache.Set(cacheKey, user, TimeSpan.FromMinutes(10));
-
-                                _logger.LogInformation("User {WindowsIdentity} synced successfully with {RoleCount} roles: {Roles}",
-                                    windowsIdentity, user.Roles.Count, string.Join(", ", user.Roles.Select(r => r.Name)));
-                            }
-                            else
+                            // เพิ่ม Role Claims จาก DB
+                            foreach (var role in user.Roles ?? [])
                             {
-                                _logger.LogWarning("Failed to sync user data for: {WindowsIdentity}", windowsIdentity);
+                                claims.Add(new Claim(ClaimTypes.Role, role.Name));
                             }
+
+                            // ── Data Isolation: DivisionId จาก Role แรกที่มีค่า ──
+                            var primaryDivisionId = user.Roles?
+                                .Where(r => r.DivisionId.HasValue)
+                                .Select(r => r.DivisionId!.Value)
+                                .FirstOrDefault() ?? 0;
+
+                            if (primaryDivisionId > 0)
+                                claims.Add(new Claim("DivisionId", primaryDivisionId.ToString()));
+
+                            var claimsIdentity  = new ClaimsIdentity(claims, context.User.Identity.AuthenticationType);
+                            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+
+                            // Inject กลับเข้า HttpContext
+                            context.User = claimsPrincipal;
+
+                            // Cache ClaimsPrincipal ไว้ 10 นาที
+                            _cache.Set(cacheKey, claimsPrincipal, TimeSpan.FromMinutes(10));
+
+                            _logger.LogInformation(
+                                "User {Identity} synced: {RoleCount} role(s) [{Roles}], DivisionId={DivisionId}",
+                                windowsIdentity,
+                                user.Roles?.Count ?? 0,
+                                string.Join(", ", user.Roles?.Select(r => r.Name) ?? []),
+                                primaryDivisionId > 0 ? primaryDivisionId.ToString() : "—");
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            _logger.LogError(ex, "Error syncing Windows user via API: {WindowsIdentity}", windowsIdentity);
+                            _logger.LogWarning("API sync failed for: {WindowsIdentity} — {Message}",
+                                windowsIdentity, userResponse.Message);
                         }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        // ถ้ามี cache และมี role claims แล้ว ให้ใช้ข้อมูลจาก cache
-                        if (cachedUserData != null)
-                        {
-                            var user = cachedUserData as dynamic;
-
-                            // ตรวจสอบว่า current user มี claims ครบหรือไม่
-                            var currentRoles = context.User.Claims
-                                .Where(c => c.Type == ClaimTypes.Role)
-                                .Select(c => c.Value)
-                                .ToList();
-
-                            _logger.LogInformation("Using cached data for: {WindowsIdentity}, Current roles: {CurrentRoles}",
-                                windowsIdentity, string.Join(", ", currentRoles));
-                        }
+                        _logger.LogError(ex, "Error syncing Windows user via API: {WindowsIdentity}", windowsIdentity);
                     }
                 }
             }

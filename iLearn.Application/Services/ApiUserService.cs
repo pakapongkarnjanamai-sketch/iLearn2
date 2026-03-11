@@ -31,14 +31,14 @@ namespace iLearn.Application.Services
             };
         }
 
-        public async Task<ApiResponse<UserDto>> GetOrCreateUserAsync(string windowsIdentity)
+        public async Task<ApiResponse<UserDto>> GetOrCreateUserAsync(string windowsIdentity, bool forceRefresh = false)
         {
             try
             {
-                var cacheKey = $"user_{windowsIdentity}";
+                var cacheKey = $"api_user_{windowsIdentity}";
 
-                // Check cache first
-                if (_cache.TryGetValue(cacheKey, out ApiResponse<UserDto>? cachedUser))
+                // ใช้ cache เฉพาะเมื่อไม่ได้ force refresh
+                if (!forceRefresh && _cache.TryGetValue(cacheKey, out ApiResponse<UserDto>? cachedUser))
                 {
                     return cachedUser!;
                 }
@@ -54,10 +54,9 @@ namespace iLearn.Application.Services
                 {
                     var result = JsonSerializer.Deserialize<ApiResponse<UserDto>>(responseContent, _jsonOptions);
 
-                    // Cache for 5 minutes
                     if (result?.Success == true)
                     {
-                        _cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
+                        _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
                     }
 
                     return result ?? new ApiResponse<UserDto> { Success = false, Message = "Invalid response" };

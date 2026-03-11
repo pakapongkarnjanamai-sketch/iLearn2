@@ -1,5 +1,7 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -11,18 +13,26 @@ namespace iLearn.API.Controllers
     public class RolesController : ControllerBase
     {
         private readonly IGenericRepository<Role> _repo;
+        private readonly ICurrentUserService _currentUser;
 
-        public RolesController(IGenericRepository<Role> repo)
+        public RolesController(IGenericRepository<Role> repo, ICurrentUserService currentUser)
         {
             _repo = repo;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            // ถ้าอยากได้ DivisionName ด้วย ต้องแก้ GenericRepo ให้รองรับ Include
-            // หรือในระยะสั้นยอมให้ DivisionName ว่างไปก่อนได้
             var items = await _repo.GetAllAsync();
+
+            // ── Data Isolation: กรองตาม DivisionId ของผู้ใช้ปัจจุบัน ──
+            if (_currentUser.DivisionId.HasValue)
+            {
+                var myDivId = _currentUser.DivisionId.Value;
+                items = items.Where(r => r.DivisionId == myDivId || r.DivisionId == null).ToList();
+            }
+
             return Ok(items.Select(x => x.ToDto()));
         }
 
@@ -37,7 +47,14 @@ namespace iLearn.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RoleDto dto)
         {
-            var entity = new Role { Name = dto.Name, DivisionId = dto.DivisionId };
+            // ── Data Isolation: บังคับ DivisionId จากผู้ใช้ปัจจุบัน ──
+            var divisionId = dto.DivisionId;
+            if (_currentUser.DivisionId.HasValue)
+            {
+                divisionId = _currentUser.DivisionId.Value;
+            }
+
+            var entity = new Role { Name = dto.Name, DivisionId = divisionId };
             var result = await _repo.AddAsync(entity);
             return Ok(result.ToDto());
         }

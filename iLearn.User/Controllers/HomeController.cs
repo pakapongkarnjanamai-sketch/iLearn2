@@ -47,13 +47,37 @@ namespace iLearn.User.Controllers
 
             if (employee != null)
             {
+                var divisionName = employee.Division ?? "-";
+
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, employee.Code),
                     new Claim(ClaimTypes.Name, employee.Name),
                     new Claim("Department", employee.Department ?? "-"),
-                    new Claim("Division", employee.Division ?? "-"),
+                    new Claim("Division", divisionName),
                 };
+
+                // ── Resolve DivisionId จาก Division Name เพื่อใช้ใน Data Isolation ──
+                if (divisionName != "-")
+                {
+                    try
+                    {
+                        var client = _httpClientFactory.CreateClient("iLearnAPI");
+                        var divResponse = await client.GetAsync($"Divisions/resolve-id?name={Uri.EscapeDataString(divisionName)}");
+                        if (divResponse.IsSuccessStatusCode)
+                        {
+                            var divResult = await divResponse.Content.ReadFromJsonAsync<DivisionResolveResult>();
+                            if (divResult?.DivisionId > 0)
+                            {
+                                claims.Add(new Claim("DivisionId", divResult.DivisionId.ToString()));
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ถ้า resolve ไม่ได้ ให้ข้ามไป ระบบจะ fallback ใช้ Division Name แทน
+                    }
+                }
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
@@ -78,6 +102,7 @@ namespace iLearn.User.Controllers
                 email = User.FindFirst(ClaimTypes.Email)?.Value,
                 department = User.FindFirst("Department")?.Value,
                 division = User.FindFirst("Division")?.Value,
+                divisionId = User.FindFirst("DivisionId")?.Value,
                 profileImage = User.FindFirst("ProfileImage")?.Value
             });
         }
@@ -86,6 +111,12 @@ namespace iLearn.User.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Index");
+        }
+
+        /// <summary>DTO ภายในสำหรับรับผลจาก API Divisions/resolve-id</summary>
+        private class DivisionResolveResult
+        {
+            public int DivisionId { get; set; }
         }
     }
 }

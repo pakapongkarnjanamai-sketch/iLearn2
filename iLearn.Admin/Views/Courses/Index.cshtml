@@ -1,11 +1,11 @@
 ﻿@{
-    ViewBag.Title = "Course Dashboard";
+    ViewBag.Title = "Course Management";
 }
 
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title">Course Management</div>
+        <div class="page-title">@ViewBag.Title</div>
         <div class="page-subtitle">Manage all training courses and versions</div>
     </div>
     <a href="@Url.Action("Form", "Courses")" class="action-link primary">

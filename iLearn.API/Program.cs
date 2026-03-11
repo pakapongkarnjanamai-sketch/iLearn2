@@ -1,5 +1,6 @@
 ﻿using iLearn.Application;
 using iLearn.Application;
+using iLearn.API.Middleware;
 using iLearn.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
@@ -38,6 +39,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddOpenApi();
+builder.Services.AddMemoryCache();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "iLearn API", Version = "v1" });
@@ -86,6 +88,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowSpecificOrigin");
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseMiddleware<ApiClaimsEnrichMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

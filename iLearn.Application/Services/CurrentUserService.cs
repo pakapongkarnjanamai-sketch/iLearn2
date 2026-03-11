@@ -1,5 +1,6 @@
 ﻿using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace iLearn.Application.Services
 {
@@ -35,5 +36,26 @@ namespace iLearn.Application.Services
         public string FullName => _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "SYSTEM";
 
         public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+
+        public int? DivisionId
+        {
+            get
+            {
+                // SuperAdmin เห็นทุก Division → return null เพื่อข้ามการกรอง
+                if (IsSuperAdmin)
+                    return null;
+
+                var claimValue = _httpContextAccessor.HttpContext?.User?.FindFirst("DivisionId")?.Value;
+                if (int.TryParse(claimValue, out var id))
+                    return id;
+                return null;
+            }
+        }
+
+        public string? DivisionName =>
+            _httpContextAccessor.HttpContext?.User?.FindFirst("Division")?.Value;
+
+        public bool IsSuperAdmin =>
+            _httpContextAccessor.HttpContext?.User?.IsInRole("SuperAdmin") ?? false;
     }
 }

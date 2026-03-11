@@ -8,6 +8,7 @@ namespace iLearn.Application.Interfaces.Services
     {
         // Read Operations
         Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool isActive = true);
+        Task<IEnumerable<CourseDto>> GetCoursesByDivisionNameAsync(string divisionName, bool isActive = true);
         Task<CourseDetailDto> GetCourseByIdAsync(int id);
         
         // Create Operations

@@ -2,6 +2,7 @@
 using DevExtreme.AspNet.Mvc;
 
 using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,14 +13,15 @@ namespace iLearn.API.Controllers.Base
     [ApiController]
     [Route("api/admin/[controller]")]
     [Authorize]
-    // แก้ไขบรรทัดนี้: เพิ่ม ", new()" ต่อท้าย
     public class GenericController<T> : ControllerBase where T : BaseEntity, new()
     {
         protected readonly IGenericRepository<T> _repository;
+        protected readonly ICurrentUserService _currentUser;
 
-        public GenericController(IGenericRepository<T> repository)
+        public GenericController(IGenericRepository<T> repository, ICurrentUserService currentUser)
         {
-            _repository = repository;
+            _repository  = repository;
+            _currentUser = currentUser;
         }
 
         [HttpGet("Get")]

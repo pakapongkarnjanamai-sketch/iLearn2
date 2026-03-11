@@ -23,6 +23,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IStudentApiService _studentApiService;
+        private readonly ICurrentUserService _currentUser;
 
         public CoursesController(
             ICourseService courseService,
@@ -30,7 +31,8 @@ namespace iLearn.API.Controllers
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
-            IStudentApiService studentApiService)
+            IStudentApiService studentApiService,
+            ICurrentUserService currentUser)
         {
             _courseService = courseService;
             _versionService = versionService;
@@ -38,12 +40,20 @@ namespace iLearn.API.Controllers
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _studentApiService = studentApiService;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] bool isActive = true)
+        public async Task<IActionResult> GetAll([FromQuery] bool isActive = true, [FromQuery] string? divisionName = null)
         {
             var courses = await _courseService.GetAllCoursesAsync(isActive);
+
+            // ── Data Isolation: กรองตาม divisionName (ชื่อ Division จาก Claim ของ Student) ──
+            if (!string.IsNullOrWhiteSpace(divisionName))
+            {
+                courses = await _courseService.GetCoursesByDivisionNameAsync(divisionName, isActive);
+            }
+
             return Ok(new { success = true, data = courses });
         }
 

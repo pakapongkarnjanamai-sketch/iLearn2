@@ -505,6 +505,7 @@ else
 @section Scripts {
     <script>
         const studentCode = '@empCode';
+        const divisionName = '@div';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         let allCoursesData = [];
         let myCoursesData = [];
@@ -718,7 +719,7 @@ else
             $.ajax({
                 url: `${baseUrl}/courses`,
                 method: 'GET',
-                data: { isActive: true },
+                data: { isActive: true, divisionName: divisionName !== '-' ? divisionName : '' },
                 xhrFields: { withCredentials: true },
                 success: function(res) {
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);

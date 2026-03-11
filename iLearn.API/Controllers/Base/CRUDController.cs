@@ -1,4 +1,5 @@
 ﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -11,16 +12,18 @@ namespace iLearn.API.Controllers.Base
 {
     public class CategoriesCRUDController : GenericController<Category>
     {
-        public CategoriesCRUDController(IGenericRepository<Category> repository) : base(repository)
-        {
-        }
+        public CategoriesCRUDController(
+            IGenericRepository<Category> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
 
-        // 🚀 เพิ่ม Override เมธอด Get เพื่อ Include(Join) ตาราง Division
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            var query = _repository.GetQuery()
-                .Include(c => c.Division); // ดึงข้อมูล Division ที่ผูกกับ Category นี้มาด้วย
+            IQueryable<Category> query = _repository.GetQuery().Include(c => c.Division);
+
+            // ── Data Isolation ──
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
@@ -28,48 +31,55 @@ namespace iLearn.API.Controllers.Base
 
     public class AssignmentsCRUDController : GenericController<Assignment>
     {
-        public AssignmentsCRUDController(IGenericRepository<Assignment> repository) : base(repository)
-        {
-        }
+        public AssignmentsCRUDController(
+            IGenericRepository<Assignment> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class CoursesCRUDController : GenericController<Course>
     {
-        public CoursesCRUDController(IGenericRepository<Course> repository) : base(repository)
-        {
-        }
+        public CoursesCRUDController(
+            IGenericRepository<Course> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
 
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            var query = _repository.GetQuery()
-                .Include(c => c.Category)
-                    .ThenInclude(cat => cat.Division)
+            IQueryable<Course> query = _repository.GetQuery()
+                .Include(c => c.Category).ThenInclude(cat => cat.Division)
                 .Include(c => c.CourseType);
+
+            // ── Data Isolation ──
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
 
-        // ✅ Endpoint เบาๆ สำหรับ Lookup ใน Grid — ดึงแค่ id + code
         [HttpGet("GetForLookup")]
         public async Task<IActionResult> GetForLookup(DataSourceLoadOptions loadOptions)
         {
-            var query = _repository.GetQuery()
-                .Select(c => new { c.Id, c.Code });
+            var query = _repository.GetQuery().AsQueryable();
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            // ── Data Isolation ──
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
+
+            return Ok(DataSourceLoader.Load(query.Select(c => new { c.Id, c.Code }), loadOptions));
         }
 
         [HttpGet("GetActive")]
         public async Task<IActionResult> GetActive(DataSourceLoadOptions loadOptions)
         {
-            var query = _repository.GetQuery()
-                .Include(c => c.Category)
-                    .ThenInclude(cat => cat.Division)
+            IQueryable<Course> query = _repository.GetQuery()
+                .Include(c => c.Category).ThenInclude(cat => cat.Division)
                 .Include(c => c.CourseType)
                 .Include(c => c.Versions)
-                // ตรวจสอบว่า Course ใช้งานอยู่ และมี Version ที่ใช้งานอยู่อย่างน้อย 1
                 .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive));
+
+            // ── Data Isolation ──
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
@@ -77,64 +87,75 @@ namespace iLearn.API.Controllers.Base
 
     public class CourseTypesCRUDController : GenericController<CourseType>
     {
-        public CourseTypesCRUDController(IGenericRepository<CourseType> repository) : base(repository)
-        {
-        }
+        public CourseTypesCRUDController(
+            IGenericRepository<CourseType> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class DivisionsCRUDController : GenericController<Division>
     {
-        public DivisionsCRUDController(IGenericRepository<Division> repository) : base(repository)
+        public DivisionsCRUDController(
+            IGenericRepository<Division> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
+
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            var query = _repository.GetQuery().AsQueryable();
+
+            // ── Data Isolation ──
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(d => d.Id == _currentUser.DivisionId.Value);
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
         }
     }
 
     public class EnrollmentsCRUDController : GenericController<Enrollment>
     {
-        public EnrollmentsCRUDController(IGenericRepository<Enrollment> repository) : base(repository)
-        {
-        }
+        public EnrollmentsCRUDController(
+            IGenericRepository<Enrollment> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class FileStoragesCRUDController : GenericController<FileStorage>
     {
-        public FileStoragesCRUDController(IGenericRepository<FileStorage> repository) : base(repository)
-        {
-        }
+        public FileStoragesCRUDController(
+            IGenericRepository<FileStorage> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class LearningLogsCRUDController : GenericController<LearningLog>
     {
-        public LearningLogsCRUDController(IGenericRepository<LearningLog> repository) : base(repository)
-        {
-        }
+        public LearningLogsCRUDController(
+            IGenericRepository<LearningLog> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class ResourcesCRUDController : GenericController<Resource>
     {
         private readonly IGenericRepository<CourseResource> _courseResourceRepo;
-        private readonly IGenericRepository<Course> _courseRepo; // [New] เพิ่มเพื่อดึง Version ของ Course
+        private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<FileStorage> _fileRepo;
         private readonly IScormService _scormService;
 
         public ResourcesCRUDController(
             IGenericRepository<Resource> repository,
+            ICurrentUserService currentUser,
             IGenericRepository<CourseResource> courseResourceRepo,
             IGenericRepository<Course> courseRepo,
             IGenericRepository<FileStorage> fileRepo,
-            IScormService scormService) : base(repository)
+            IScormService scormService) : base(repository, currentUser)
         {
             _courseResourceRepo = courseResourceRepo;
-            _courseRepo = courseRepo;
-            _fileRepo = fileRepo;
-            _scormService = scormService;
+            _courseRepo         = courseRepo;
+            _fileRepo           = fileRepo;
+            _scormService       = scormService;
         }
 
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            // เปลี่ยนจาก Include เป็น Select เพื่อเลือกเฉพาะข้อมูลที่ต้องใช้ 
-            // ช่วยลดขนาด JSON ลงได้มากกว่า 80% และเร็วขึ้นมาก
             var query = _repository.GetQuery()
                 .Select(r => new
                 {
@@ -149,7 +170,6 @@ namespace iLearn.API.Controllers.Base
                     {
                         courseId = cr.CourseVersion.CourseId
                     }).ToList(),
-                    // ✅ เพิ่ม field จริงที่ Server รู้จัก เพื่อให้ filter ได้
                     courseIdsCount = r.CourseResources.Select(cr => cr.CourseVersion.CourseId).Distinct().Count()
                 });
 
@@ -159,7 +179,6 @@ namespace iLearn.API.Controllers.Base
         [HttpPut("Put")]
         public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
         {
-            // [Modified] Include CourseVersion เพื่อเช็ค ID
             var resource = await _repository.GetQuery()
                                 .Include(r => r.CourseResources)
                                     .ThenInclude(cr => cr.CourseVersion)
@@ -167,55 +186,39 @@ namespace iLearn.API.Controllers.Base
 
             if (resource == null) return NotFound();
 
-            // 1. อัปเดตข้อมูลพื้นฐาน
             JsonConvert.PopulateObject(values, resource);
 
-            // 2. จัดการ Course Mappings
             var valuesDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(values);
             if (valuesDict.ContainsKey("CourseIds"))
             {
-                var courseIdsJson = valuesDict["CourseIds"].ToString();
-                var selectedCourseIds = JsonConvert.DeserializeObject<List<int>>(courseIdsJson) ?? new List<int>();
+                var courseIdsJson      = valuesDict["CourseIds"].ToString();
+                var selectedCourseIds  = JsonConvert.DeserializeObject<List<int>>(courseIdsJson) ?? new List<int>();
+                var currentLinks       = resource.CourseResources.ToList();
 
-                // 2.1 ดึงลิงก์เดิมที่มีอยู่
-                var currentLinks = resource.CourseResources.ToList();
-
-                // 2.2 ลบ Resource ออกจาก Course ที่ไม่ได้เลือกแล้ว (ลบทุก Version ของ Course นั้น)
                 foreach (var link in currentLinks)
                 {
-                    // เช็คว่า CourseId ของ Version ที่ผูกอยู่ ยังอยู่ในรายการที่เลือกไหม
                     if (link.CourseVersion != null && !selectedCourseIds.Contains(link.CourseVersion.CourseId))
-                    {
                         await _courseResourceRepo.DeleteAsync(link);
-                    }
                 }
 
-                // 2.3 เพิ่ม Resource ให้กับ Course ใหม่ (ผูกกับ Version ล่าสุด)
                 foreach (var courseId in selectedCourseIds)
                 {
-                    // ตรวจสอบว่าผูกกับ Version ใดๆ ของ Course นี้ไปแล้วหรือยัง
                     bool alreadyLinked = currentLinks.Any(cr => cr.CourseVersion != null && cr.CourseVersion.CourseId == courseId);
-
                     if (!alreadyLinked)
                     {
-                        // ดึง Course และ Version ทั้งหมดเพื่อหาตัวล่าสุด
                         var course = await _courseRepo.GetQuery()
                             .Include(c => c.Versions)
                             .FirstOrDefaultAsync(c => c.Id == courseId);
 
                         if (course != null && course.Versions.Any())
                         {
-                            // หา Version ล่าสุด (เรียงจากเลขมากสุด หรือจะใช้ IsActive ก็ได้)
-                            var latestVersion = course.Versions
-                                .OrderByDescending(v => v.VersionNumber)
-                                .FirstOrDefault();
-
+                            var latestVersion = course.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
                             if (latestVersion != null)
                             {
                                 await _courseResourceRepo.AddAsync(new CourseResource
                                 {
-                                    ResourceId = key,
-                                    CourseVersionId = latestVersion.Id // [Key Change] ผูกกับ Version แทน CourseId
+                                    ResourceId      = key,
+                                    CourseVersionId = latestVersion.Id
                                 });
                             }
                         }
@@ -233,137 +236,119 @@ namespace iLearn.API.Controllers.Base
             var resource = await _repository.GetByIdAsync(key);
             if (resource == null) return NotFound();
 
-            // 1. ลบไฟล์จริง/Folder (Cleanup)
             try
             {
                 if (resource.IsActive && !string.IsNullOrEmpty(resource.URL) && resource.URL.StartsWith("scorm/"))
                 {
                     var parts = resource.URL.Split('/');
                     if (parts.Length >= 2)
-                    {
                         _scormService.DeleteScormFolder(parts[1]);
-                    }
                 }
 
                 if (resource.FileStorageId.HasValue)
                 {
                     var file = await _fileRepo.GetByIdAsync(resource.FileStorageId.Value);
                     if (file != null)
-                    {
-                        // Hard Delete FileStorage — ลบ binary data จริง ไม่มี FK อ้างอิงมา
                         await _fileRepo.HardDeleteAsync(file);
-                    }
                 }
             }
-            catch (Exception)
-            {
-                // Log error but continue
-            }
+            catch (Exception) { }
 
-            // 2. Soft Delete Resource record
             await _repository.DeleteAsync(resource);
             return Ok();
         }
     }
+
     public class RolesCRUDController : GenericController<Role>
     {
-        public RolesCRUDController(IGenericRepository<Role> repository) : base(repository)
-        {
-        }
+        public RolesCRUDController(
+            IGenericRepository<Role> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class UsersCRUDController : GenericController<User>
     {
-        // 1. ประกาศตัวแปรสำหรับ Repository ของ UserRole เพิ่มเติม
         private readonly IGenericRepository<UserRole> _userRoleRepo;
 
-        // 2. รับ UserRole Repository ผ่าน Constructor
         public UsersCRUDController(
             IGenericRepository<User> repository,
-            IGenericRepository<UserRole> userRoleRepo) : base(repository)
+            ICurrentUserService currentUser,
+            IGenericRepository<UserRole> userRoleRepo) : base(repository, currentUser)
         {
             _userRoleRepo = userRoleRepo;
         }
+
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            // ใช้ GetQuery() แล้วสั่ง Include UserRoles
-            var query = _repository.GetQuery().Include(u => u.UserRoles);
+            IQueryable<User> query = _repository.GetQuery()
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role);
 
-            // ส่ง Query ให้ DevExtreme จัดการ (มันจะตัดหน้า/ค้นหา ให้เองผ่าน SQL)
+            // ── Data Isolation: Admin เห็นเฉพาะ User ใน Division ตัวเอง ──
+            if (_currentUser.DivisionId.HasValue)
+            {
+                var myDivId = _currentUser.DivisionId.Value;
+                query = query.Where(u => u.UserRoles.Any(ur => ur.Role != null && ur.Role.DivisionId == myDivId));
+            }
+
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
-        // 3. ย้ายเมธอด Override ออกมาไว้นอก Constructor
-        [HttpPut("Put")] // คง Route ให้เหมือน Base Class ("api/admin/UsersCRUD/Put")
+
+        [HttpPut("Put")]
         public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
         {
-            // ใช้ _repository (จาก Base Class) แทน _userRepo
             var user = await _repository.GetByIdAsync(key);
             if (user == null) return NotFound();
 
-            // 1. Populate ข้อมูลพื้นฐาน (Nid, etc.)
             JsonConvert.PopulateObject(values, user);
 
-            // 2. จัดการ RoleIds
             var valuesDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(values);
+            var roleKey    = valuesDict.Keys.FirstOrDefault(k => k.Equals("roleIds", StringComparison.OrdinalIgnoreCase));
 
-            if (valuesDict.ContainsKey("RoleIds"))
+            if (roleKey != null)
             {
-                // ดึง RoleIds ใหม่จาก JSON
-                // ระวัง: valuesDict["RoleIds"] อาจเป็น JArray หรือ string ขึ้นอยู่กับ Serializer
-                // การใช้ JsonConvert.DeserializeObject อีกรอบแบบนี้ปลอดภัยที่สุดสำหรับ JSON string ซ้อน
-                var roleIdsJson = valuesDict["RoleIds"].ToString();
-                var newRoleIds = JsonConvert.DeserializeObject<List<int>>(roleIdsJson) ?? new List<int>();
-
-                // ดึง UserRoles เดิมที่มีอยู่
-                // (สมมติว่า Get รับ Expression ได้)
+                var newRoleIds        = JsonConvert.DeserializeObject<List<int>>(valuesDict[roleKey].ToString()) ?? new List<int>();
                 var existingUserRoles = (await _userRoleRepo.GetAsync(ur => ur.UserId == key)).ToList();
 
-                // ลบ Roles ที่ไม่ได้เลือกแล้ว
                 foreach (var ur in existingUserRoles)
                 {
                     if (!newRoleIds.Contains(ur.RoleId))
-                    {
                         await _userRoleRepo.DeleteAsync(ur);
-                    }
                 }
 
-                // เพิ่ม Roles ใหม่ที่ยังไม่มี
                 foreach (var roleId in newRoleIds)
                 {
                     if (!existingUserRoles.Any(ur => ur.RoleId == roleId))
-                    {
                         await _userRoleRepo.AddAsync(new UserRole { UserId = key, RoleId = roleId });
-                    }
                 }
             }
 
-            // ใช้ _repository.UpdateAsync หรือ SaveAsync ตามโครงสร้างของคุณ
             await _repository.UpdateAsync(user);
-
             return Ok(user);
         }
     }
 
     public class UserRolesCRUDController : GenericController<UserRole>
     {
-        public UserRolesCRUDController(IGenericRepository<UserRole> repository) : base(repository)
-        {
-        }
+        public UserRolesCRUDController(
+            IGenericRepository<UserRole> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
     public class CourseVersionsCRUDController : GenericController<CourseVersion>
     {
-        public CourseVersionsCRUDController(IGenericRepository<CourseVersion> repository) : base(repository) { }
+        public CourseVersionsCRUDController(
+            IGenericRepository<CourseVersion> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
+
         [HttpGet("Get/{id}")]
         public override async Task<IActionResult> Get(int id)
         {
             var entity = await _repository.GetQuery()
-                .Include(c => c.Course)
-                .ThenInclude(ca => ca.Category)
-                .Include(cr => cr.CourseResources)
-                .ThenInclude(c => c.Resource)
+                .Include(c => c.Course).ThenInclude(ca => ca.Category)
+                .Include(cr => cr.CourseResources).ThenInclude(c => c.Resource)
                 .Where(i => i.Id == id).ToListAsync();
+
             if (entity == null) return NotFound();
             return Ok(entity);
         }
@@ -371,17 +356,16 @@ namespace iLearn.API.Controllers.Base
 
     public class CourseResourcesCRUDController : GenericController<CourseResource>
     {
-    
-        public CourseResourcesCRUDController(IGenericRepository<CourseResource> repository) : base(repository) { }
+        public CourseResourcesCRUDController(
+            IGenericRepository<CourseResource> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
 
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            var query = _repository.GetQuery()
-                .Include(c => c.Resource); 
-
+            var query = _repository.GetQuery().Include(c => c.Resource);
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }
     }
-
 }
+
