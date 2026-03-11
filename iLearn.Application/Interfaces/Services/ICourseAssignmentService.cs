@@ -13,5 +13,10 @@ namespace iLearn.Application.Interfaces.Services
 
         /// <summary>Returns all assignment history (unpaginated). Prefer IAssignmentDashboardService.GetAssignmentHistoryPagedAsync for pagination.</summary>
         Task<List<AssignmentHistoryDto>> GetAssignmentHistoryAsync();
+
+        /// <summary>
+        /// ตรวจสอบความขัดแย้งก่อนมอบหมายคอร์ส โดยรองรับการอัปเดตเวอร์ชัน (Version-Aware Conflict Validation)
+        /// </summary>
+        Task<AssignmentConflictDto> CheckAssignmentConflictsAsync(int courseId, List<string> employeeCodes, DateTime startDate, DateTime dueDate);
     }
 }

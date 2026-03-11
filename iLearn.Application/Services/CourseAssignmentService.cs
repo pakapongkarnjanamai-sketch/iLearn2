@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -219,6 +220,68 @@ namespace iLearn.Application.Services
                 .ToList();
 
             return groupedHistory;
+        }
+
+        public async Task<AssignmentConflictDto> CheckAssignmentConflictsAsync(int courseId, List<string> employeeCodes, DateTime startDate, DateTime dueDate)
+        {
+            var result = new AssignmentConflictDto();
+
+            // Step 1: ตรวจสอบว่าคอร์สนี้มี Active Version หรือไม่
+            var activeVersions = await _versionRepo.GetAsync(v => v.CourseId == courseId && v.IsActive);
+            var activeVersion = activeVersions.FirstOrDefault();
+
+            if (activeVersion == null)
+            {
+                result.HasConflict = true;
+                result.ConflictMessages.Add("ไม่พบเวอร์ชันที่เปิดใช้งาน (Active Version) สำหรับคอร์สนี้ ไม่สามารถมอบหมายงานได้");
+                return result;
+            }
+
+            // Step 2: ดึง Enrollment ของพนักงานทั้งหมดในคอร์สนี้
+            var enrollments = await _enrollmentRepo.GetAsync(e =>
+                e.CourseId == courseId &&
+                employeeCodes.Contains(e.StudentCode));
+
+            // Step 3: วนตรวจสอบแต่ละพนักงาน
+            foreach (var empCode in employeeCodes)
+            {
+                var enrollment = enrollments.FirstOrDefault(e => e.StudentCode == empCode);
+
+                if (enrollment != null)
+                {
+                    // Rule A: ตรวจสอบว่าเรียนจบแล้วหรือยัง
+                    if (enrollment.IsCompleted)
+                    {
+                        if (enrollment.EnrolledCourseVersion == activeVersion.Id)
+                        {
+                            // เรียนจบเวอร์ชันล่าสุดแล้ว → Conflict
+                            result.HasConflict = true;
+                            result.ConflictMessages.Add($"พนักงานรหัส {empCode} ได้เรียนจบคอร์สนี้ (เวอร์ชันล่าสุด) ไปแล้ว");
+                            continue;
+                        }
+                        // เรียนจบเวอร์ชันเก่า → ไม่ติด Conflict อนุญาตให้ Assign เวอร์ชันใหม่ได้
+                    }
+                    else
+                    {
+                        // Rule B: ตรวจสอบช่วงเวลาทับซ้อน (เฉพาะที่ยังไม่จบ)
+                        if (enrollment.StartDate.HasValue && enrollment.DueDate.HasValue &&
+                            startDate <= enrollment.DueDate.Value && dueDate >= enrollment.StartDate.Value)
+                        {
+                            result.HasConflict = true;
+                            result.ConflictMessages.Add(
+                                $"พนักงานรหัส {empCode} อยู่ในระหว่างการเรียนคอร์สนี้อยู่แล้ว " +
+                                $"(มีกำหนดส่ง {enrollment.DueDate.Value:dd/MM/yyyy}) " +
+                                $"ระบบไม่สามารถมอบหมายงานช่วงเวลาที่ทับซ้อนกันได้");
+                            continue;
+                        }
+                    }
+                }
+
+                // ผ่านทุกเงื่อนไข → เพิ่มเข้า ValidEmployeeCodes
+                result.ValidEmployeeCodes.Add(empCode);
+            }
+
+            return result;
         }
     }
 }
