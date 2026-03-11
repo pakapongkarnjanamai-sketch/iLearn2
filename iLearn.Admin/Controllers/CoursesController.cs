@@ -54,7 +54,7 @@ namespace iLearn.Admin.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult Dashboard(int id)
+        public IActionResult Detail(int id)
         {
             ViewBag.CourseId = id;
             // ทริค: คุณอาจจะดึงข้อมูล Title ของคอร์สมาแสดงบน Title Bar ด้วยก็ได้

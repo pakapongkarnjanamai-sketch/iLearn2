@@ -689,7 +689,7 @@
                         bulkLoadPanel.hide();
                         showToast("Courses assigned successfully!", "success", 2000);
                         setTimeout(() => {
-                            window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`;
+            window.location.href = `@Url.Action("Detail", "Assignments")/${res.assignmentId}`;
                         }, 1500);
                     }).fail(function (err) {
                         bulkLoadPanel.hide();
@@ -881,7 +881,7 @@
                 buttons: [{
                     hint: "View Dashboard", icon: "info",
                     onClick: e => window.location.href =
-                        `@Url.Action("Progress", "Assignments")/${e.row.data.id}`
+        `@Url.Action("Detail", "Assignments")/${e.row.data.id}`
                 }]
             }
         ]

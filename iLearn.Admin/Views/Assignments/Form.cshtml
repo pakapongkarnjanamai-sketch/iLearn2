@@ -669,7 +669,7 @@
                     data: JSON.stringify(payload), xhrFields: { withCredentials: true },
                     success: function (res) {
                         showToast("Assigned successfully!", "success", 2000);
-                        setTimeout(() => window.location.href = `@Url.Action("Progress", "Assignments")/${res.assignmentId}`, 1500);
+                        setTimeout(() => window.location.href = `@Url.Action("Detail", "Assignments")/${res.assignmentId}`, 1500);
                     },
                     error: function (err) {
                         showToast("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);

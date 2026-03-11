@@ -386,7 +386,7 @@
                     processData: false, contentType: false, xhrFields: { withCredentials: true }
                 }).done(function(response) {
                     showToast("Saved successfully!", "success", 2000);
-                    setTimeout(() => window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + COURSE_ID, 1200);
+                    setTimeout(() => window.location.href = '@Url.Action("Detail", "Courses")?id=' + COURSE_ID, 1200);
                 }).fail(function(xhr) {
                     showToast("Error: " + (xhr.responseJSON?.message || "Failed to save"), "error", 4000);
                 }).always(() => loadPanel.hide());

@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Course Management";
+    ViewBag.Title = "Course Dashboard";
 }
 
 <!-- ── Page Header ── -->
@@ -70,7 +70,7 @@
 
                 onRowDblClick: function(e) {
                     if (e.data && e.data.id) {
-                        window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + e.data.id;
+                        window.location.href = '@Url.Action("Detail", "Courses")?id=' + e.data.id;
                     }
                 },
 
@@ -142,8 +142,8 @@
                             {
                                 hint: "View Course Dashboard",
                                 icon: "info",
-                                onClick: function(e) {
-                                    window.location.href = '@Url.Action("Dashboard", "Courses")?id=' + e.row.data.id;
+                            onClick: function(e) {
+                                    window.location.href = '@Url.Action("Detail", "Courses")?id=' + e.row.data.id;
                                 }
                             }
                         ]

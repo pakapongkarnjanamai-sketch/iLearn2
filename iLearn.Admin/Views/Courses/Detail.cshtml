@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Course Dashboard";
+    ViewBag.Title = "Course Detail";
     int courseId = ViewBag.CourseId;
 }
 
@@ -856,7 +856,7 @@
                         alignment: "center", fixed: true, fixedPosition: "right",
                         buttons: [{
                             hint: "View Dashboard", icon: "info",
-                            onClick: e => window.location.href = `@Url.Action("Progress", "Assignments")/${e.row.data.id}`
+            onClick: e => window.location.href = `@Url.Action("Detail", "Assignments")/${e.row.data.id}`
                         }]
                     }
                 ]
