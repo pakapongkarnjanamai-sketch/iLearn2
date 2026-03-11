@@ -2,7 +2,7 @@
 {
     public enum RoleType
     {
-        Developer,
-        Administrator
+        Admin,
+        SuperAdmin
     }
 }

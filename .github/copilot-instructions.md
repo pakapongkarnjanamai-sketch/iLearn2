@@ -18,6 +18,10 @@
 4. **DateTime**: ใช้ `IDateTime` (DI) เท่านั้น เพื่อให้เป็นเวลาไทย (UTC+7) ห้ามใช้ `DateTime.Now`
 5. **Assignment No**: ใช้ `IAssignmentNoGenerator.NextAsync()` (Format: `AS-yyyyMMdd-NNN`)
 6. **Dependency Injection**: `AddApplication()` และ `AddInfrastructure()` ลงทะเบียน Services หลักทั้งหมด
+7. **Data Isolation (Important)**: 
+   - ใน API Controllers (`[HttpGet] Get`) ต้องกรองข้อมูลตาม `_currentUser.DivisionId` เสมอ เพื่อให้ Admin แต่ละแผนกเห็นเฉพาะข้อมูลของตัวเอง
+   - ใช้เงื่อนไข `if (_currentUser.DivisionId.HasValue)` ในการกรอง Query
+   - ระบบจัดการ **Bypass** ให้สิทธิ์ระดับสูง (เช่น `SuperAdmin`, `Admin`) อัตโนมัติจาก `CurrentUserService` ซึ่งจะคืนค่า `DivisionId` เป็น `null` ทำให้มองเห็นข้อมูลทั้งหมดทั่วระบบ
 
 ## Front-end Design Patterns
 
