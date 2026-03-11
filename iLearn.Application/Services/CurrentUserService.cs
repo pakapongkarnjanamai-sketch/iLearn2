@@ -56,6 +56,10 @@ namespace iLearn.Application.Services
             _httpContextAccessor.HttpContext?.User?.FindFirst("Division")?.Value;
 
         public bool IsSuperAdmin =>
-            _httpContextAccessor.HttpContext?.User?.IsInRole("SuperAdmin") ?? false;
+            // เพิ่มชื่อ Role ที่ถือว่าเป็นสิทธิ์สูงสุดของระบบคุณเข้าไป (ให้ตรงกับชื่อ Role ในฐานข้อมูล)
+            (_httpContextAccessor.HttpContext?.User?.IsInRole("SuperAdmin") ?? false) ||
+            (_httpContextAccessor.HttpContext?.User?.IsInRole("Develop") ?? false) ||
+            (_httpContextAccessor.HttpContext?.User?.IsInRole("Developer") ?? false) ||
+            (_httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") ?? false);
     }
 }
