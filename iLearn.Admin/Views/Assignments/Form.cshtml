@@ -130,7 +130,7 @@
 
                     const courseGrid = $("#grid-courses").dxDataGrid({
                         dataSource: new DevExpress.data.DataSource({ store: coursesLocalStore }),
-                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                        showBorders: true, showRowLines: true, rowAlternationEnabled: true,
                         hoverStateEnabled: true,
                         filterRow: { visible: true },
                         searchPanel: { visible: true, placeholder: "Search code or title...", width: 250 },
@@ -310,7 +310,7 @@
                             }
                         }),
                         remoteOperations: true,
-                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                        showBorders: true, showRowLines: true, rowAlternationEnabled: true,
                         hoverStateEnabled: true,
                         filterRow: { visible: true },
                         searchPanel: { visible: true, placeholder: "Search ID or name...", width: 240 },

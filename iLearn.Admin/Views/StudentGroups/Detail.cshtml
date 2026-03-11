@@ -100,7 +100,7 @@
         // ?? Members Grid ??
         membersGrid = initDxGrid("#grid-members", {
             dataSource: [],
-            showBorders: false,
+            showBorders: true,
             showRowLines: true,
             hoverStateEnabled: true,
             searchPanel: { visible: true, placeholder: "Search by ID or name..." },
@@ -204,7 +204,7 @@
                         onBeforeSend: (m, opts) => opts.xhrFields = { withCredentials: true }
                     }),
                     remoteOperations: true,
-                    showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                    showBorders: true, showRowLines: true, rowAlternationEnabled: true,
                     hoverStateEnabled: true,
                     filterRow: { visible: true },
                     searchPanel: { visible: true, placeholder: "Search ID or name...", width: 240 },
@@ -412,7 +412,7 @@
 
                 const courseGrid = $("#ac-grid-courses").dxDataGrid({
                     dataSource: [],
-                    showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                    showBorders: true, showRowLines: true, rowAlternationEnabled: true,
                     hoverStateEnabled: true,
                     filterRow: { visible: true },
                     searchPanel: { visible: true, placeholder: "Search code or title...", width: 250 },
@@ -756,23 +756,34 @@
         });
     }
 
-    // ?? Tab Switch ??
-    function switchTab(tab, btn) {
-        ["members", "assignments"].forEach(t => {
-            const b = document.getElementById(`tab-btn-${t}`);
-            b.style.color        = "var(--text-secondary)";
-            b.style.borderBottom = "2px solid transparent";
-        });
-        btn.style.color        = "var(--accent-color)";
-        btn.style.borderBottom = "2px solid var(--accent-color)";
-        document.getElementById("panel-members").style.display     = tab === "members"     ? "" : "none";
-        document.getElementById("panel-assignments").style.display = tab === "assignments" ? "" : "none";
-    }
+        // ?? Tab Switch ??
+           function switchTab(tab, btn) {
+               ["members", "assignments"].forEach(t => {
+                   const b = document.getElementById(`tab-btn-${t}`);
+                   b.style.color        = "var(--text-secondary)";
+                   b.style.borderBottom = "2px solid transparent";
+               });
+
+               btn.style.color        = "var(--accent-color)";
+               btn.style.borderBottom = "2px solid var(--accent-color)";
+
+               document.getElementById("panel-members").style.display     = tab === "members"     ? "" : "none";
+               document.getElementById("panel-assignments").style.display = tab === "assignments" ? "" : "none";
+
+               // ✅ บังคับให้ Grid คำนวณขนาดตัวเองใหม่เมื่อ Tab Assignments ถูกกดแสดงผล
+               if (tab === "assignments") {
+                   const gridInstance = $("#grid-assignments").dxDataGrid("instance");
+                   if (gridInstance) {
+                       gridInstance.updateDimensions();
+                   }
+               }
+           }
 
     // ?? Assignment History Grid ??
     const assignmentGrid = initDxGrid("#grid-assignments", {
         dataSource: [],
-        showBorders: false,
+
+        showBorders: true,
         showRowLines: true,
         hoverStateEnabled: true,
         searchPanel: { visible: true, placeholder: "Search assignments..." },

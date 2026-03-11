@@ -148,6 +148,12 @@ namespace iLearn.API.Controllers
                     enrollment.Progress = allResourceIds.Count > 0 ? ((double)passedCount / allResourceIds.Count) * 100 : 0;
                 }
 
+                // Sync TotalTimeSpent และ TotalScore จาก LearningLog กลับไปที่ Enrollment
+                enrollment.TotalTimeSpent = updatedLogs.Sum(l => l.TotalSecondsPlayed);
+                enrollment.TotalScore = updatedLogs
+                    .Where(l => allResourceIds.Contains(l.ResourceId ?? 0))
+                    .Max(l => (int?)l.Score ?? 0);
+
                 await _enrollmentRepo.UpdateAsync(enrollment);
 
                 // ── Snapshot สถานะปัจจุบันไปที่ EnrollmentAssignment links ──

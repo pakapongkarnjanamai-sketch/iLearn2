@@ -92,7 +92,7 @@
 
         <!-- Stat Cards -->
         <div class="col-lg-3">
-            <div class="border rounded bg-white h-100 p-3">
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
                 <div class="section-title">Summary</div>
                 <div class="row g-2 text-center mb-3">
                     <div class="col-6">
@@ -120,9 +120,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="border rounded p-3 text-center bg-white">
+
+                <div class="border rounded p-3 text-center bg-white mt-auto flex-grow-1 d-flex flex-column justify-content-center">
                     <div class="stat-label mb-1">Overall Completion</div>
-                    <div class="stat-value" id="stat-progress-text" style="color:var(--success-color);">0%</div>
+                    <div class="stat-value" id="stat-progress-text" style="color:var(--success-color); font-size: 28px;">0%</div>
                 </div>
             </div>
         </div>
@@ -350,7 +351,7 @@
             // ── Student DataGrid ─────────────────────────────────────────────────
             $("#student-grid").dxDataGrid({
                 dataSource: data.students,
-                showBorders: false,
+                    showBorders: true,
                 showRowLines: true,
                 rowAlternationEnabled: false,
                 hoverStateEnabled: true,

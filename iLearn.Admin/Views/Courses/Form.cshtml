@@ -250,7 +250,7 @@
             masterGrid = $("#master-resources-grid").dxDataGrid({
                 dataSource: unifiedResources,
                 keyExpr: "uid",
-                showBorders: false,
+                showBorders: true,
                 rowAlternationEnabled: false,
                 hoverStateEnabled: true,
                 showRowLines: true,
@@ -361,7 +361,7 @@
                     gridExisting = gridContainer.dxDataGrid({
                         dataSource: resourcesStore,
                         remoteOperations: true,
-                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
+                        showBorders: true, showRowLines: true, rowAlternationEnabled: true,
                         hoverStateEnabled: true,
                         height: "100%",
                         scrolling: { mode: "virtual" },
