@@ -5,9 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace iLearn.Application.Middleware
@@ -27,7 +25,6 @@ namespace iLearn.Application.Middleware
 
         public async Task InvokeAsync(HttpContext context, IApiUserService apiUserService)
         {
-            // Skip สำหรับ static files เท่านั้น
             if (ShouldSkipMiddleware(context))
             {
                 await _next(context);
@@ -40,22 +37,25 @@ namespace iLearn.Application.Middleware
                 if (!string.IsNullOrEmpty(windowsIdentity) &&
                     windowsIdentity.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase))
                 {
-                    var cacheKey     = $"user_claims_{windowsIdentity}";
-                    var forceRefresh = context.Request.Query.ContainsKey("_refresh");
+                    var cacheKey = $"user_claims_{windowsIdentity}";
 
-                    // ── ถ้ามี cache และไม่ได้ force refresh → inject Claims จาก cache ทันที ──
-                    if (!forceRefresh && _cache.TryGetValue(cacheKey, out ClaimsPrincipal? cached) && cached != null)
+                    // ── 1. ดึงแค่ข้อมูล Claims (List<Claim>) จาก Cache แทนการดึงทั้ง Principal ──
+                    if (_cache.TryGetValue(cacheKey, out List<Claim>? cachedClaims) && cachedClaims != null)
                     {
-                        context.User = cached;
+                        // สร้าง Identity ใหม่จาก Claims ที่ Cache ไว้ แล้วผูกกับ User เดิม
+                        var identity = new ClaimsIdentity(cachedClaims, "iLearnAuth");
+                        context.User.AddIdentity(identity);
+
                         await _next(context);
                         return;
                     }
 
-                    // ── ไม่มี cache หรือ force refresh → sync จาก API ──
+                    // ── 2. ไม่มี cache → sync จาก API ──
                     _logger.LogInformation("Syncing user claims from API for: {WindowsIdentity}", windowsIdentity);
                     try
                     {
-                        var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, forceRefresh);
+                        // (เอา forceRefresh ออก เพื่อป้องกันการยิงดรอปดาต้าเบสจากหน้าเว็บ)
+                        var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, false);
                         if (userResponse.Success && userResponse.Data != null)
                         {
                             var user = userResponse.Data;
@@ -69,13 +69,11 @@ namespace iLearn.Application.Middleware
                                 new Claim("Email", user.Email ?? "")
                             };
 
-                            // เพิ่ม Role Claims จาก DB
                             foreach (var role in user.Roles ?? [])
                             {
                                 claims.Add(new Claim(ClaimTypes.Role, role.Name));
                             }
 
-                            // ── Data Isolation: DivisionId จาก Role แรกที่มีค่า ──
                             var primaryDivisionId = user.Roles?
                                 .Where(r => r.DivisionId.HasValue)
                                 .Select(r => r.DivisionId!.Value)
@@ -84,14 +82,12 @@ namespace iLearn.Application.Middleware
                             if (primaryDivisionId > 0)
                                 claims.Add(new Claim("DivisionId", primaryDivisionId.ToString()));
 
-                            var claimsIdentity  = new ClaimsIdentity(claims, context.User.Identity.AuthenticationType);
-                            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+                            // ── 3. เก็บเฉพาะ List<Claim> ลง Cache (ปลอดภัยเชิง Thread-safety) ──
+                            _cache.Set(cacheKey, claims, TimeSpan.FromMinutes(10));
 
-                            // Inject กลับเข้า HttpContext
-                            context.User = claimsPrincipal;
-
-                            // Cache ClaimsPrincipal ไว้ 10 นาที
-                            _cache.Set(cacheKey, claimsPrincipal, TimeSpan.FromMinutes(10));
+                            // นำไปผูกกับ context.User ปัจจุบัน
+                            var newIdentity = new ClaimsIdentity(claims, "iLearnAuth");
+                            context.User.AddIdentity(newIdentity);
 
                             _logger.LogInformation(
                                 "User {Identity} synced: {RoleCount} role(s) [{Roles}], DivisionId={DivisionId}",
@@ -119,32 +115,14 @@ namespace iLearn.Application.Middleware
         private static bool ShouldSkipMiddleware(HttpContext context)
         {
             var path = context.Request.Path.Value?.ToLowerInvariant();
+            if (path == null) return false;
 
-            // Skip เฉพาะ static files
-            if (path != null && (
-                path.StartsWith("/_framework/") ||
-                path.StartsWith("/css/") ||
-                path.StartsWith("/js/") ||
-                path.StartsWith("/lib/") ||
-                path.StartsWith("/images/") ||
-                path.StartsWith("/favicon.ico") ||
-                path.EndsWith(".css") ||
-                path.EndsWith(".js") ||
-                path.EndsWith(".png") ||
-                path.EndsWith(".jpg") ||
-                path.EndsWith(".jpeg") ||
-                path.EndsWith(".gif") ||
-                path.EndsWith(".svg") ||
-                path.EndsWith(".ico") ||
-                path.EndsWith(".woff") ||
-                path.EndsWith(".woff2") ||
-                path.EndsWith(".ttf") ||
-                path.EndsWith(".eot")))
-            {
-                return true;
-            }
+            // วิธีเขียนตรวจสอบ Static files ที่สั้นลง
+            var staticFilePaths = new[] { "/_framework/", "/css/", "/js/", "/lib/", "/images/", "/favicon.ico" };
+            var staticExtensions = new[] { ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot" };
 
-            return false;
+            return staticFilePaths.Any(p => path.StartsWith(p)) ||
+                   staticExtensions.Any(e => path.EndsWith(e));
         }
     }
 }

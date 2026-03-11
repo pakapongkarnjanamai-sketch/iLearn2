@@ -1,6 +1,23 @@
 ﻿@using Microsoft.Extensions.Configuration
 @using System.Security.Claims
+
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Hosting
+@using Microsoft.AspNetCore.Authorization
+
 @inject IConfiguration Configuration
+@inject IWebHostEnvironment Env
+@inject IAuthorizationService AuthorizationService
+@{
+    // เช็คว่าผ่าน Policy "SuperAdminOnly" หรือไม่
+    var isSuperAdmin = (await AuthorizationService.AuthorizeAsync(User, "SuperAdminOnly")).Succeeded;
+    
+    // เช็คว่าเป็น Development Env หรือไม่
+    var isDev = Env.IsDevelopment();
+
+    // เงื่อนไข: ให้แสดงถ้าเป็น Dev หรือ เป็น SuperAdmin
+    var showSuperAdminMenu = isDev || isSuperAdmin;
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,7 +80,8 @@
                        
                         </ul>
                     </li>
-                  
+                  @if (showSuperAdminMenu)
+    {
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-users me-1"></i> Admin
@@ -89,7 +107,7 @@
                             <i class="fas fa-cog me-1"></i> System Config
                         </a>
                     </li>
-                    
+                    }
                 </ul>
                 <ul class="navbar-nav">
                     @{
@@ -458,8 +476,17 @@
         }) : null;
 
         /* --- Refresh User Cache (force re-sync roles/division from API) ------- */
-        function refreshUserCache() {
-            if (!SwalAdmin) { location.reload(); return; }
+               function refreshUserCache() {
+            // สร้าง URL object จากหน้าปัจจุบัน เพื่อจัดการ Query String ให้ปลอดภัย
+            var currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('_refresh', '1');
+
+            if (!SwalAdmin) {
+                // ถ้า SweetAlert ไม่ทำงาน ให้ redirect พร้อมแนบ _refresh=1 ไปเลย
+                window.location.href = currentUrl.toString();
+                return;
+            }
+
             SwalAdmin.fire({
                 title: 'รีเฟรชข้อมูลผู้ใช้?',
                 text: 'ระบบจะโหลดข้อมูล Role และ Division ใหม่จาก API',
@@ -469,8 +496,8 @@
                 cancelButtonText: 'ยกเลิก'
             }).then(function(result) {
                 if (result.isConfirmed) {
-                    // ล้าง session cache โดยการ navigate ไปหน้าเดิม พร้อม query เพื่อบังคับ middleware sync
-                    location.href = location.pathname + '?_refresh=1';
+                    // ไปยังหน้าเดิมพร้อม Query บังคับ middleware sync
+                    window.location.href = currentUrl.toString();
                 }
             });
         }
