@@ -154,6 +154,20 @@
             e.cancel = true;
         }
 
+        function handlePivotExporting(e, fileName) {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
+            DevExpress.excelExporter.exportPivotGrid({
+                component: e.component,
+                worksheet: worksheet
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), (fileName || 'PivotData') + '.xlsx');
+                });
+            });
+            e.cancel = true;
+        }
+
         /* --- DataGrid Defaults ----------------------------------------------- */
         const dxGridDefaults = {
             columnAutoWidth: true,
@@ -173,6 +187,15 @@
                 shadingColor: 'rgba(250,250,250,0.7)',
                 shading: true,
                 position: { of: 'window' }
+            },
+            export: {
+                enabled: true,
+                allowExportSelectedData: true
+            },
+            onExporting: function(e) {
+                var segments = window.location.pathname.replace(/^\//, '').split('/');
+                var fileName = segments.filter(Boolean).join('_') || 'Export';
+                handleExporting(e, fileName);
             }
         };
 

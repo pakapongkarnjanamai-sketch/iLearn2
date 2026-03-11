@@ -138,7 +138,12 @@
                         <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
                               style="font-size:11px; text-transform:none; letter-spacing:0;">— All</span>
                     </div>
-                    <div id="course-selector" style="width:220px;"></div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div id="course-selector" style="width:220px;"></div>
+                        <a href="javascript:void(0);" id="btn-export-students" class="action-link" title="Export to Excel">
+                            <i class="fas fa-file-excel text-secondary"></i> Export
+                        </a>
+                    </div>
                 </div>
                 <div id="student-grid"></div>
             </div>
@@ -147,7 +152,12 @@
 
     <!-- ── Row 3: Pivot Table ────────────────────────────────────── -->
     <div class="border rounded bg-white p-3 mb-4">
-        <div class="section-title">Student × Course Matrix</div>
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
+            <div class="section-title mb-0" style="border:none; padding:0;">Student × Course Matrix</div>
+            <a href="javascript:void(0);" id="btn-export-pivot" class="action-link" title="Export Pivot to Excel">
+                <i class="fas fa-file-excel text-secondary"></i> Export
+            </a>
+        </div>
         <div id="pivot-container"></div>
     </div>
 </div>
@@ -306,6 +316,10 @@
                 searchPanel: { visible: true, placeholder: "Search student...", width: 160 },
                 height: 420,
                 scrolling: { mode: "virtual" },
+                export: { enabled: false },
+                onExporting: function (e) {
+                    handleExporting(e, `Student_Tracking_${ASSIGNMENT_ID}`);
+                },
                 onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.data.isCompleted)
                         $(e.rowElement).css("background-color", "#f6ffed");
@@ -388,82 +402,68 @@
                 $("#student-grid-subtitle").text(`— ${dropdownOptions[0]?.displayText || ""}`);
             }
 
-            // ── Pivot Table (HTML — same as Report) ──────────────────────────────
-            $("#pivot-container").html(buildPivotTable(data.courses, data.students));
+            // ── Pivot Grid (dxPivotGrid) ─────────────────────────────────────────
+            $("#pivot-container").dxPivotGrid({
+                allowSortingBySummary: true,
+                allowFiltering: true,
+                showBorders: true,
+                showColumnTotals: false,
+                showRowTotals: false,
+                showRowGrandTotals: false,
+                showColumnGrandTotals: false,
+                height: 560,
+                export: { enabled: false },
+                onExporting: function (e) {
+                    handlePivotExporting(e, `Pivot_Matrix_${ASSIGNMENT_ID}`);
+                },
+                fieldChooser: { enabled: false },
+                onCellPrepared: function (e) {
+                    if (e.area === "data" && e.cell.text) {
+                        const v = e.cell.text;
+                        if (v === "Completed") {
+                            e.cellElement.css({ color: "var(--success-color)", fontWeight: 600, fontSize: "11px" });
+                            e.cellElement.html('<i class="fas fa-check"></i>');
+                        } else if (v === "In Progress") {
+                            e.cellElement.css({ color: "var(--warning-color)", fontWeight: 600, fontSize: "11px" });
+                        } else if (v === "Pending") {
+                            e.cellElement.css({ color: "var(--text-secondary)", fontSize: "11px" });
+                        }
+                    }
+                },
+                dataSource: {
+                    fields: [
+                        { dataField: "studentCode", area: "row",    caption: "Student ID",  width: 120, sortOrder: "asc" },
+                        { dataField: "studentName", area: "row",    caption: "Name",         width: 180 },
+                        { dataField: "courseCode",  area: "column", caption: "Course" },
+                        { dataField: "status",      area: "data",   caption: "Status",
+                          summaryType: "custom",
+                          calculateCustomSummary: function (options) {
+                              if (options.summaryProcess === "start")     { options.totalValue = "-"; }
+                              if (options.summaryProcess === "calculate") { options.totalValue = options.value; }
+                          }
+                        }
+                    ],
+                    store: data.students.map(s => ({
+                        studentCode: s.studentCode,
+                        studentName: s.studentName || s.studentCode,
+                        courseCode:  s.courseCode  || "-",
+                        status:      s.status
+                    }))
+                }
+            });
+
+            $("#btn-export-students").off("click").on("click", function () {
+                const grid = $("#student-grid").dxDataGrid("instance");
+                handleExporting({ component: grid, cancel: false }, `Student_Tracking_${ASSIGNMENT_ID}`);
+            });
+
+            $("#btn-export-pivot").off("click").on("click", function () {
+                const pivot = $("#pivot-container").dxPivotGrid("instance");
+                handlePivotExporting({ component: pivot, cancel: false }, `Pivot_Matrix_${ASSIGNMENT_ID}`);
+            });
 
             loadPanel.hide();
         }).fail(() => showApiError("Error loading dashboard data."));
-
-        // ── buildPivotTable — identical logic to Report.cshtml ──────────────────
-        function buildPivotTable(courses, students) {
-            // สร้าง map: studentCode → { assignmentRuleId → studentRecord }
-            const studentMap = {};
-            students.forEach(s => {
-                if (!studentMap[s.studentCode]) studentMap[s.studentCode] = {};
-                studentMap[s.studentCode][s.assignmentRuleId] = s;
-            });
-            const uniqueStudents = Object.keys(studentMap).sort();
-
-            // Column headers
-            const colHeaders = courses.map(c =>
-                `<th class="text-center align-middle" style="min-width:160px;">
-                    <div class="fw-bold text-dark" style="font-size:11px;">${c.courseCode}</div>
-                    <div class="text-muted mt-1" style="font-size:10px; font-weight:normal; white-space:normal; line-height:1.2;">${c.courseTitle}</div>
-                </th>`
-            ).join("");
-
-            // Data rows
-            const dataRows = uniqueStudents.map(code => {
-                const enrollments = studentMap[code];
-                const name        = Object.values(enrollments)[0]?.studentName || code;
-                let completedCount = 0;
-
-                const cells = courses.map(c => {
-                    const e = enrollments[c.assignmentRuleId];
-                    if (!e) return `<td class="text-center"><span class="status-pending">—</span></td>`;
-
-                    if (e.isCompleted) {
-                        completedCount++;
-                        const d = e.completedDate
-                            ? new Date(e.completedDate).toLocaleDateString("en-GB")
-                            : "";
-                        return `<td class="text-center status-done">
-                                    <i class="fas fa-check"></i>
-                                    <div style="font-size:10px; color:#8c8c8c;">${d}</div>
-                                </td>`;
-                    } else if (e.progress > 0) {
-                        return `<td class="text-center status-active" style="font-size:11px;">${e.progress}%</td>`;
-                    } else {
-                        return `<td class="text-center status-pending" style="font-size:11px;">Pending</td>`;
-                    }
-                }).join("");
-
-                return `<tr>
-                    <td class="sticky-col align-middle">
-                        <a href="@Url.Action("Profile", "Students")?code=${code}"
-                           class="fw-bold text-dark" style="font-size:12px; text-decoration:none;">${code}</a>
-                        <div class="text-muted" style="font-size:11px;">${name !== code ? name : ""}</div>
-                    </td>
-                    ${cells}
-                    <td class="text-center align-middle fw-bold" style="background:var(--bg-light); font-size:12px;">
-                        ${completedCount} / ${courses.length}
-                    </td>
-                </tr>`;
-            }).join("");
-
-            return `<div class="table-responsive border rounded" style="max-height:560px;">
-                        <table class="table table-bordered table-hover pivot-table m-0">
-                            <thead style="position:sticky; top:0; z-index:4;">
-                                <tr>
-                                    <th class="sticky-col align-middle" style="min-width:180px;">Student \\ Course</th>
-                                    ${colHeaders}
-                                    <th class="text-center align-middle" style="min-width:80px; background:var(--bg-light);">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>${dataRows}</tbody>
-                        </table>
-                    </div>`;
-        }
 
         // ── Delete ────────────────────────────────────────────────────────────────
         $("#btn-delete-assignment").click(function (e) {

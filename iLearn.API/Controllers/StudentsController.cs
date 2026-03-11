@@ -158,14 +158,19 @@ namespace iLearn.API.Controllers
             var studentInfo = await _studentService.GetStudentByCodeAsync(code);
 
             // 2. Enrollment ทั้งหมดของ student พร้อม Course
+            //    ใช้ ignoreQueryFilters เพื่อให้โหลด Course ที่ถูก Soft Delete ได้ด้วย
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.StudentCode == code,
-                includeProperties: "Course,AssignmentLinks"
+                includeProperties: "Course,AssignmentLinks",
+                ignoreQueryFilters: true
             );
+
+            // กรอง Enrollment ที่ถูก Soft Delete ออก (เพราะ ignoreQueryFilters ปิด filter ทุก entity)
+            var activeEnrollments = enrollments.Where(e => !e.IsDeleted).ToList();
 
             // 3. สร้าง history — 1 Enrollment = 1 row ใน grid
             //    isAssignmentCancelled = เคยถูก Assign แต่ link ถูกลบทั้งหมดแล้ว
-            var history = enrollments
+            var history = activeEnrollments
                 .OrderByDescending(e => e.StartDate ?? e.CompletedDate)
                 .Select(e => new
                 {
@@ -173,6 +178,7 @@ namespace iLearn.API.Controllers
                     courseId              = e.CourseId,
                     courseCode            = e.Course != null ? e.Course.Code  : "-",
                     courseTitle           = e.Course != null ? e.Course.Title : "Unknown Course",
+                    isCourseDeleted       = e.Course != null && e.Course.IsDeleted,
                     progress              = e.Progress,
                     isCompleted           = e.IsCompleted,
                     startDate             = e.StartDate,
@@ -188,11 +194,12 @@ namespace iLearn.API.Controllers
                                            && (e.StartDate.HasValue || e.DueDate.HasValue)
                 }).ToList();
 
-            // 4. KPI
-            var totalCourses      = history.Count;
-            var completedCourses  = history.Count(e => e.isCompleted);
-            var inProgressCourses = history.Count(e => !e.isCompleted && e.progress > 0);
-            var totalTimeSpent    = history.Sum(e => e.totalTimeSpent);
+            // 4. KPI — คิดเฉพาะ Course ที่ยังใช้งานอยู่ (ไม่ถูก Soft Delete)
+            var activeCourseHistory = history.Where(e => !e.isCourseDeleted).ToList();
+            var totalCourses      = activeCourseHistory.Count;
+            var completedCourses  = activeCourseHistory.Count(e => e.isCompleted);
+            var inProgressCourses = activeCourseHistory.Count(e => !e.isCompleted && e.progress > 0);
+            var totalTimeSpent    = activeCourseHistory.Sum(e => e.totalTimeSpent);
 
             return Ok(new
             {

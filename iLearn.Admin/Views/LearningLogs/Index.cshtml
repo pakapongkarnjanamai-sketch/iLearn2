@@ -8,9 +8,6 @@
         <div class="page-title">Learning Logs</div>
         <div class="page-subtitle">Monitor detailed SCORM learning history, progress, and scores.</div>
     </div>
-    <a href="javascript:void(0);" class="action-link" onclick="exportGrid()">
-        <i class="fas fa-file-excel" style="color:var(--success-color);"></i> Export to Excel
-    </a>
 </div>
 
 <div class="container-fluid px-4 py-3">
@@ -32,7 +29,7 @@
 
                 showBorders: false,
 
-                export: { enabled: false }, // ซ่อนปุ่มเดิมและใช้ปุ่ม Custom ด้านบนแทน
+                export: { enabled: true, allowExportSelectedData: true },
                 onExporting: (e) => handleExporting(e, 'LearningLogs_Data'),
 
                 columns: [
@@ -102,11 +99,5 @@
             });
         });
 
-        // ฟังก์ชันสำหรับปุ่ม Export ด้านบน
-        function exportGrid() {
-            if (gridInstance) {
-                gridInstance.exportToExcel(false);
-            }
-        }
     </script>
 }

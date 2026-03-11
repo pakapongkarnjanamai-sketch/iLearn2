@@ -17,7 +17,8 @@ namespace iLearn.Application.Interfaces.Repositories
         // เพิ่มฟังก์ชันค้นหาแบบ Custom
         Task<IReadOnlyList<T>> GetAsync(
             Expression<Func<T, bool>>? filter = null,
-            string? includeProperties = null
+            string? includeProperties = null,
+            bool ignoreQueryFilters = false
         );
 
         Task<int> CountAsync(Expression<Func<T, bool>>? filter = null);

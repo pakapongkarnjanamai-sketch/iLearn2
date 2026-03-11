@@ -172,10 +172,20 @@
                 },
                 {
                     dataField: "courseTitle", caption: "Course Title", minWidth: 220,
-                    cellTemplate: (c, o) =>
-                        $("<span>").css({ fontSize: "13px", fontWeight: "600",
+                    cellTemplate: (c, o) => {
+                        const title = o.value || "—";
+                        const wrap = $("<span>").css({ fontSize: "13px", fontWeight: "600",
                                           color: "var(--text-primary)" })
-                                   .text(o.value || "—").appendTo(c)
+                                   .text(title);
+                        if (o.data.isCourseDeleted) {
+                            wrap.css({ color: "var(--text-secondary)", textDecoration: "line-through" });
+                            $("<i>").addClass("fas fa-archive ms-2")
+                                    .css({ fontSize: "10px", color: "var(--text-secondary)", opacity: "0.6" })
+                                    .attr("title", "Course has been deleted")
+                                    .appendTo(wrap);
+                        }
+                        wrap.appendTo(c);
+                    }
                 },
                 {
                     dataField: "progress", caption: "Progress", width: 170, alignment: "center",

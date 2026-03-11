@@ -112,6 +112,8 @@
                 hoverStateEnabled: true,
                 searchPanel: { visible: true, placeholder: "Search assignments..." },
                 headerFilter: { visible: true },
+                export: { enabled: true, allowExportSelectedData: true },
+                onExporting: (e) => handleExporting(e, 'Assignments_History'),
                 onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.data.status === "Expired")
                         $(e.rowElement).css("background-color", "#fff2f0");

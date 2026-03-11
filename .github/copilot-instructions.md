@@ -51,5 +51,6 @@
 ### 5. DevExtreme Implementation Rules
 - โค้ด JavaScript เฉพาะหน้าต้องอยู่ใน `@section Scripts { }` เสมอ
 - **DataStore**: สร้างผ่านฟังก์ชัน `createDataStore(baseUrl, controllerName, options)`
-- **DataGrid (Admin)**: เริ่มต้นด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้แล้ว (แสดงกรอบและสลับสีแถว)
-- **Exporting**: ใช้ `handleExporting(e, fileName)` สำหรับ Export Excel (ทำงานผ่าน ExcelJS)
+- **DataGrid Defaults**: เริ่มต้น DataGrid ด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้ให้รองรับกรอบ, สลับสีแถว, และ **เปิดฟีเจอร์ Export อัตโนมัติ**
+- **DataGrid Exporting**: ใช้ `handleExporting(e, fileName)` ร่วมกับ `ExcelJS` (ถูกฝังอยู่ใน Default แล้ว หากต้องการแก้ชื่อไฟล์ให้ Override `onExporting` ในหน้านั้นๆ)
+- **PivotGrid Exporting**: ใช้ `handlePivotExporting(e, fileName)` สำหรับหน้า Report หรือตารางสรุปผลแบบ Pivot

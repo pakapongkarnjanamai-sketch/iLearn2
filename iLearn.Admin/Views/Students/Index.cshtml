@@ -29,6 +29,8 @@
                 selection: { mode: 'single' },
                 searchPanel: { visible: true, placeholder: "Search students by Name, ID, or Division..." },
                 showBorders: false,
+                export: { enabled: true, allowExportSelectedData: true },
+                onExporting: (e) => handleExporting(e, 'Students_Employees'),
                 editing: { allowUpdating: false, allowDeleting: false, allowAdding: false },
                 columns: [
                     { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,

@@ -62,9 +62,16 @@ namespace iLearn.Infrastructure.Repositories
 
         public async Task<IReadOnlyList<T>> GetAsync(
             Expression<Func<T, bool>>? filter = null,
-            string? includeProperties = null)
+            string? includeProperties = null,
+            bool ignoreQueryFilters = false)
         {
             IQueryable<T> query = _dbSet;
+
+            // 0. Ignore global query filters (e.g., soft-delete) สำหรับ navigation properties ที่ถูกลบ
+            if (ignoreQueryFilters)
+            {
+                query = query.IgnoreQueryFilters();
+            }
 
             // 1. Apply Filter (ถ้ามี)
             if (filter != null)

@@ -8,9 +8,6 @@
         <div class="page-title">Enrollments</div>
         <div class="page-subtitle">Track employee enrollments, learning progress, and completion status.</div>
     </div>
-    <a href="javascript:void(0);" class="action-link" onclick="exportGrid()">
-        <i class="fas fa-file-excel" style="color:var(--success-color);"></i> Export Report
-    </a>
 </div>
 
 <div class="container-fluid px-4 py-3">
@@ -47,7 +44,7 @@
 
                 showBorders: false,
 
-                export: { enabled: false },
+                export: { enabled: true, allowExportSelectedData: true },
                 onExporting: (e) => handleExporting(e, 'Enrollment_Report'),
 
                 editing: {
@@ -124,10 +121,5 @@
             });
         });
 
-        function exportGrid() {
-            if (gridInstance) {
-                gridInstance.exportToExcel(false);
-            }
-        }
     </script>
 }

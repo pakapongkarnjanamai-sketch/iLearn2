@@ -92,6 +92,7 @@ namespace iLearn.Application.Services
             var studentsProgress = enrollments.Select(e =>
             {
                 var course = e.Course ?? (ruleCourseMap.TryGetValue(e.AssignmentId, out var c) ? c : null);
+                var status = e.IsCompleted ? "Completed" : e.Progress > 0 ? "In Progress" : "Pending";
                 return new StudentProgressDto
                 {
                     StudentCode      = e.StudentCode,
@@ -101,6 +102,7 @@ namespace iLearn.Application.Services
                     CourseTitle      = course?.Title ?? "Unknown Course",
                     Progress         = e.Progress,
                     IsCompleted      = e.IsCompleted,
+                    Status           = status,
                     CompletedDate    = e.CompletedDate,
                     StartDate        = e.StartDate,
                     DueDate          = e.DueDate

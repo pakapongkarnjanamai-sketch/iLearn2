@@ -23,8 +23,8 @@ namespace iLearn.Application.DTOs
         public int CategoryId { get; set; }
 
         [Display(Name = "เอกสารประกอบ (Resource IDs)")]
-        public List<int> ResourceIds { get; set; } = new List<int>();
+        public List<int>? ResourceIds { get; set; }
 
-        public List<IFormFile> Files { get; set; } = new List<IFormFile>();
+        public List<IFormFile>? Files { get; set; }
     }
 }

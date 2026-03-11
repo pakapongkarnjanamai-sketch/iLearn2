@@ -200,7 +200,7 @@ namespace iLearn.Application.Services
             var versions = await _courseVersionRepository.GetAllAsync();
             var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
 
-            if (activeVersion != null)
+            if (activeVersion != null && dto.ResourceIds?.Count > 0)
             {
                 await ReplaceVersionResourcesAsync(activeVersion.Id, dto.ResourceIds);
             }

@@ -43,6 +43,7 @@ namespace iLearn.Application.DTOs
         public string? CourseTitle { get; set; }
         public double Progress { get; set; }
         public bool IsCompleted { get; set; }
+        public string Status { get; set; } = "Pending";
         public DateTime? CompletedDate { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
