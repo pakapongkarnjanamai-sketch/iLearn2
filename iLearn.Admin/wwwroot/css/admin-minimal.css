@@ -886,6 +886,9 @@ th.sticky-col {
 /* =============================================================
    SWEETALERT2  (Admin overrides)
    ============================================================= */
+.swal2-container {
+    z-index: 99999 !important;
+}
 .swal-admin-popup {
     border-radius: 8px !important;
     font-family: var(--font-stack, sans-serif);

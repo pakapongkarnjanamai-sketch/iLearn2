@@ -230,6 +230,197 @@ namespace iLearn.API.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Analyze resources for optimization — find unused published and unpublished-but-needed resources.
+        /// </summary>
+        [HttpGet("Admin/OptimizeAnalysis")]
+        public async Task<IActionResult> OptimizeAnalysis()
+        {
+            // 1) Published resources NOT linked to any active CourseVersion
+            var unusedPublished = await _resourceRepo.GetQuery()
+                .Where(r => r.IsActive)
+                .Where(r => !r.CourseResources.Any(cr => cr.CourseVersion != null && cr.CourseVersion.IsActive))
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Name,
+                    r.TypeId,
+                    r.URL,
+                    fileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
+                    totalCourseCount = r.CourseResources.Count()
+                })
+                .ToListAsync();
+
+            var unusedList = unusedPublished.Select(r =>
+            {
+                (int FileCount, long TotalSize) info = !string.IsNullOrEmpty(r.URL)
+                    ? _scormService.GetFolderInfo(r.URL)
+                    : (0, 0L);
+                return new
+                {
+                    r.Id,
+                    r.Name,
+                    r.TypeId,
+                    r.fileLength,
+                    r.totalCourseCount,
+                    serverFileCount = info.FileCount,
+                    serverSize = info.TotalSize
+                };
+            }).ToList();
+
+            // 2) Draft resources linked to active CourseVersions (should be published)
+            var shouldPublishRaw = await _resourceRepo.GetQuery()
+                .Where(r => !r.IsActive && r.FileStorageId != null)
+                .Where(r => r.CourseResources.Any(cr => cr.CourseVersion != null && cr.CourseVersion.IsActive))
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Name,
+                    r.TypeId,
+                    fileLength = r.FileStorage != null ? r.FileStorage.Length : 0
+                })
+                .ToListAsync();
+
+            // Load active course version details for the matched resources
+            var shouldPublishIds = shouldPublishRaw.Select(r => r.Id).ToList();
+            var courseDetails = shouldPublishIds.Count > 0
+                ? await _resourceRepo.GetQuery()
+                    .Where(r => shouldPublishIds.Contains(r.Id))
+                    .SelectMany(r => r.CourseResources
+                        .Where(cr => cr.CourseVersion != null && cr.CourseVersion.IsActive)
+                        .Select(cr => new
+                        {
+                            resourceId = r.Id,
+                            courseId = cr.CourseVersion!.CourseId,
+                            courseCode = cr.CourseVersion.Course != null ? cr.CourseVersion.Course.Code : "",
+                            versionNumber = cr.CourseVersion.VersionNumber
+                        }))
+                    .ToListAsync()
+                : [];
+
+            var courseDetailsGrouped = courseDetails
+                .GroupBy(x => x.resourceId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => new { x.courseId, x.courseCode, x.versionNumber })
+                          .DistinctBy(x => new { x.courseId, x.versionNumber })
+                          .ToList()
+                );
+
+            var shouldPublish = shouldPublishRaw.Select(r => new
+            {
+                r.Id,
+                r.Name,
+                r.TypeId,
+                r.fileLength,
+                activeCourseVersions = courseDetailsGrouped.TryGetValue(r.Id, out var cvs) ? cvs : []
+            }).ToList();
+
+            long totalReclaimable = unusedList.Sum(r => r.serverSize);
+
+            return Ok(new
+            {
+                unusedPublished = unusedList,
+                shouldPublish,
+                summary = new
+                {
+                    unusedCount = unusedList.Count,
+                    shouldPublishCount = shouldPublish.Count,
+                    totalReclaimableSize = totalReclaimable
+                }
+            });
+        }
+
+        /// <summary>
+        /// Batch unpublish resources by IDs — removes extracted files from server.
+        /// </summary>
+        [HttpPost("Admin/BatchUnpublish")]
+        public async Task<IActionResult> BatchUnpublish([FromBody] List<int> ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return BadRequest(new { message = "No resource IDs provided." });
+
+            int success = 0;
+            int failed = 0;
+            var errors = new List<object>();
+
+            foreach (var id in ids)
+            {
+                try
+                {
+                    var resource = await _resourceRepo.GetByIdAsync(id);
+                    if (resource == null || !resource.IsActive) { failed++; continue; }
+
+                    if (!string.IsNullOrEmpty(resource.URL))
+                        _scormService.DeleteScormFolder(resource.URL);
+
+                    resource.IsActive = false;
+                    resource.URL = null;
+                    resource.ResourceHref = null;
+                    resource.SchemaVersion = null;
+
+                    await _resourceRepo.UpdateAsync(resource);
+                    success++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
+                    _logger.LogError(ex, "BatchUnpublish failed for resource {Id}", id);
+                }
+            }
+
+            return Ok(new { success, failed, errors, message = $"Unpublished {success} resource(s). {failed} failed." });
+        }
+
+        /// <summary>
+        /// Batch publish resources by IDs — extracts SCORM packages to server.
+        /// </summary>
+        [HttpPost("Admin/BatchPublish")]
+        public async Task<IActionResult> BatchPublish([FromBody] List<int> ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return BadRequest(new { message = "No resource IDs provided." });
+
+            int success = 0;
+            int failed = 0;
+            var errors = new List<object>();
+
+            foreach (var id in ids)
+            {
+                try
+                {
+                    var resource = await _resourceRepo.GetByIdAsync(id);
+                    if (resource == null || resource.IsActive) { failed++; continue; }
+
+                    var fileStorage = await _fileRepo.GetByIdAsync(resource.FileStorageId ?? 0);
+                    if (fileStorage?.Data == null) { failed++; errors.Add(new { id, error = "No file data" }); continue; }
+
+                    string extension = Path.GetExtension(resource.Name).ToLower();
+                    if (extension == ".zip")
+                    {
+                        string folderName = Guid.NewGuid().ToString();
+                        var scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
+                        resource.ResourceHref = scormInfo.ResourceHref;
+                        resource.SchemaVersion = scormInfo.SchemaVersion;
+                        resource.URL = scormInfo.FolderName;
+                    }
+
+                    resource.IsActive = true;
+                    await _resourceRepo.UpdateAsync(resource);
+                    success++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
+                    _logger.LogError(ex, "BatchPublish failed for resource {Id}", id);
+                }
+            }
+
+            return Ok(new { success, failed, errors, message = $"Published {success} resource(s). {failed} failed." });
+        }
+
 
         /// <summary>
         /// 🔓 [ADMIN] SetPublic ทีละไฟล์แบบ Streaming (ไม่ต้องรอให้เสร็จทั้งหมด)

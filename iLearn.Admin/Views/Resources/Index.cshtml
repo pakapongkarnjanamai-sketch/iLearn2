@@ -1,5 +1,8 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+@{
     ViewBag.Title = "Resource Library";
+    var isSuperAdmin = (await AuthorizationService.AuthorizeAsync(User, "SuperAdminOnly")).Succeeded;
 }
 
 <!-- ── Page Header ── -->
@@ -8,9 +11,16 @@
         <div class="page-title">Resource Library</div>
         <div class="page-subtitle">Manage learning materials, SCORM packages, and assign them to courses.</div>
     </div>
-    <a href="javascript:void(0);" class="action-link primary" onclick="openUploadPopup()">
-        <i class="fas fa-cloud-upload-alt"></i> Upload Resource
-    </a>
+    <div class="d-flex gap-2">
+   
+            <a href="javascript:void(0);" class="action-link" onclick="openOptimizePopup()">
+                <i class="fas fa-magic text-secondary"></i> Optimize
+            </a>
+    
+        <a href="javascript:void(0);" class="action-link primary" onclick="openUploadPopup()">
+            <i class="fas fa-cloud-upload-alt"></i> Upload Resource
+        </a>
+    </div>
 </div>
 
 <div class="container-fluid px-4 py-3">
@@ -84,6 +94,7 @@
 </div>
 
 <div id="uploadPopup"></div>
+<div id="optimizePopup"></div>
 <div id="popupContent" style="display:none;">
     <div class="p-3">
         <div class="mb-3">
@@ -310,7 +321,48 @@
                 showRowLines: true,
                 hoverStateEnabled: true,
                 editing: {
-                    mode: "popup", allowUpdating: true, allowDeleting: true, allowAdding: false, useIcons: true
+                    mode: "popup", allowUpdating: true, allowDeleting: true, allowAdding: false, useIcons: true,
+                    texts: { confirmDeleteMessage: "Are you sure you want to delete this resource?" },
+                    popup: {
+                        title: "Edit Resource",
+                        showTitle: true,
+                        width: 480,
+                        height: "auto",
+                        position: { my: "center", at: "center", of: window },
+                        dragEnabled: true,
+                        hideOnOutsideClick: true
+                    },
+                    form: {
+                        labelLocation: "top",
+                        colCount: 1,
+                        items: [
+                            {
+                                itemType: "group",
+                                caption: "Resource Details",
+                                colCount: 1,
+                                items: [
+                                    {
+                                        dataField: "name",
+                                        label: { text: "Resource File Name" },
+                                        editorOptions: { placeholder: "Enter resource name..." },
+                                        validationRules: [{ type: "required", message: "Name is required" }]
+                                    },
+                                    {
+                                        dataField: "typeId",
+                                        label: { text: "Resource Type" },
+                                        editorType: "dxSelectBox",
+                                        editorOptions: {
+                                            dataSource: resourceTypes,
+                                            displayExpr: "name",
+                                            valueExpr: "id",
+                                            placeholder: "Select type..."
+                                        },
+                                        validationRules: [{ type: "required", message: "Type is required" }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 },
                 columns: [
                     { dataField: "name", caption: "Resource File Name", dataType: "string", minWidth: 200 },
@@ -464,5 +516,235 @@
         window.openUploadPopup = function() {
             uploadPopupInstance.show();
         };
+
+        // ── Optimize Popup (SuperAdmin) ──
+        let optimizePopupInstance;
+        let unusedGridInstance;
+        let shouldPublishGridInstance;
+
+        window.openOptimizePopup = function() {
+            if (!optimizePopupInstance) {
+                optimizePopupInstance = $("#optimizePopup").dxPopup({
+                    title: "Resource Optimization",
+                    showTitle: true,
+                    width: "90%",
+                    maxWidth: 1100,
+                    height: "85vh",
+                    position: { my: "center", at: "center", of: window },
+                    dragEnabled: true,
+                    hideOnOutsideClick: true,
+                    showCloseButton: true,
+                    onShown: loadOptimizeData,
+                    contentTemplate: function(contentElement) {
+                        contentElement.append($(`
+                            <div class="p-3">
+                                <div class="d-flex align-items-center gap-2 mb-3 p-3 border rounded" style="background:#fffbe6;">
+                                    <i class="fas fa-magic" style="color:#d48806; font-size:18px;"></i>
+                                    <div style="font-size:12px; color:#666;">
+                                        Analyze resource usage and optimize server storage. Unpublish unused resources to free disk space, or publish draft resources that are needed by active courses.
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 mb-3" id="opt-summary">
+                                    <div class="border rounded p-2 px-3 flex-fill text-center" style="background:#fff2f0;">
+                                        <div style="font-size:11px; color:var(--danger-color); text-transform:uppercase; font-weight:600;">Unused Published</div>
+                                        <div style="font-size:1.3rem; font-weight:700; color:var(--danger-color);" id="opt-unused-count">—</div>
+                                    </div>
+                                    <div class="border rounded p-2 px-3 flex-fill text-center" style="background:#f6ffed;">
+                                        <div style="font-size:11px; color:var(--success-color); text-transform:uppercase; font-weight:600;">Should Publish</div>
+                                        <div style="font-size:1.3rem; font-weight:700; color:var(--success-color);" id="opt-publish-count">—</div>
+                                    </div>
+                                    <div class="border rounded p-2 px-3 flex-fill text-center" style="background:#f0f5ff;">
+                                        <div style="font-size:11px; color:var(--accent-color); text-transform:uppercase; font-weight:600;">Reclaimable Space</div>
+                                        <div style="font-size:1.3rem; font-weight:700; color:var(--accent-color);" id="opt-reclaim-size">—</div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2 d-flex justify-content-between align-items-center">
+                                    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--danger-color);">
+                                        <i class="fas fa-box-archive me-1"></i> Unused Published Resources
+                                    </div>
+                                    <a href="javascript:void(0);" class="action-link" style="font-size:11px;" id="btnBulkUnpublish">
+                                        <i class="fas fa-box-archive"></i> Unpublish Selected
+                                    </a>
+                                </div>
+                                <div id="unusedGrid" class="mb-4"></div>
+
+                                <div class="mb-2 d-flex justify-content-between align-items-center">
+                                    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--success-color);">
+                                        <i class="fas fa-upload me-1"></i> Draft Resources Needed by Active Courses
+                                    </div>
+                                    <a href="javascript:void(0);" class="action-link primary" style="font-size:11px;" id="btnBulkPublish">
+                                        <i class="fas fa-upload"></i> Publish Selected
+                                    </a>
+                                </div>
+                                <div id="shouldPublishGrid"></div>
+                            </div>
+                        `));
+                    }
+                }).dxPopup("instance");
+            }
+            optimizePopupInstance.show();
+        };
+
+        function loadOptimizeData() {
+            $("#opt-unused-count, #opt-publish-count, #opt-reclaim-size").html('<span class="skeleton skeleton-line" style="width:30px;height:20px;display:inline-block;"></span>');
+
+            $.ajax({
+                url: `${serviceUrl}/Resources/Admin/OptimizeAnalysis`,
+                type: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(d) {
+                $("#opt-unused-count").text(d.summary.unusedCount);
+                $("#opt-publish-count").text(d.summary.shouldPublishCount);
+                $("#opt-reclaim-size").text(formatFileSize(d.summary.totalReclaimableSize));
+
+                // Unused Published Grid
+                if (unusedGridInstance) {
+                    unusedGridInstance.option("dataSource", d.unusedPublished);
+                } else {
+                    unusedGridInstance = $("#unusedGrid").dxDataGrid({
+                        dataSource: d.unusedPublished,
+                        keyExpr: "id",
+                        showBorders: true,
+                        rowAlternationEnabled: true,
+                        showRowLines: true,
+                        hoverStateEnabled: true,
+                        height: 260,
+                        scrolling: { mode: "virtual" },
+                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                        columns: [
+                            { dataField: "name", caption: "Resource Name", minWidth: 180 },
+                            { dataField: "typeId", caption: "Type", width: 80, alignment: "center",
+                                calculateCellValue: r => r.typeId === 1 ? "Learn" : "Exam" },
+                            { dataField: "fileLength", caption: "DB Size", width: 90, alignment: "center",
+                                calculateCellValue: r => formatFileSize(r.fileLength) },
+                            { dataField: "serverFileCount", caption: "Files", width: 70, alignment: "center" },
+                            { dataField: "serverSize", caption: "Server Size", width: 100, alignment: "center",
+                                cellTemplate: function(c, o) {
+                                    $("<span>").css({ fontWeight: "600", color: "var(--danger-color)" })
+                                        .text(formatFileSize(o.value)).appendTo(c);
+                                }
+                            },
+                            { dataField: "totalCourseCount", caption: "Courses", width: 80, alignment: "center",
+                                cellTemplate: function(c, o) {
+                                    const v = o.value || 0;
+                                    const cls = v > 0 ? "status-pill pill-default" : "status-pill pill-default";
+                                    $("<span>").addClass(cls).text(v === 0 ? "None" : v + " (inactive)").appendTo(c);
+                                }
+                            }
+                        ],
+                        noDataText: "No unused published resources found.",
+                        summary: {
+                            totalItems: [
+                                { column: "serverSize", summaryType: "sum", customizeText: e => formatFileSize(e.value) }
+                            ]
+                        }
+                    }).dxDataGrid("instance");
+                }
+
+                // Should Publish Grid
+                if (shouldPublishGridInstance) {
+                    shouldPublishGridInstance.option("dataSource", d.shouldPublish);
+                } else {
+                    shouldPublishGridInstance = $("#shouldPublishGrid").dxDataGrid({
+                        dataSource: d.shouldPublish,
+                        keyExpr: "id",
+                        showBorders: true,
+                        rowAlternationEnabled: true,
+                        showRowLines: true,
+                        hoverStateEnabled: true,
+                        height: 260,
+                        scrolling: { mode: "virtual" },
+                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                        columns: [
+                            { dataField: "name", caption: "Resource Name", minWidth: 180 },
+                            { dataField: "typeId", caption: "Type", width: 80, alignment: "center",
+                                calculateCellValue: r => r.typeId === 1 ? "Learn" : "Exam" },
+                            { dataField: "fileLength", caption: "DB Size", width: 90, alignment: "center",
+                                calculateCellValue: r => formatFileSize(r.fileLength) },
+                            { caption: "Active Courses", minWidth: 200,
+                                cellTemplate: function(c, o) {
+                                    const courses = o.data.activeCourseVersions || [];
+                                    courses.forEach(cv => {
+                                        $("<span>").addClass("status-pill pill-success").css({ marginRight: "4px", fontSize: "10px" })
+                                            .text(`${cv.courseCode} v${cv.versionNumber}`).appendTo(c);
+                                    });
+                                }
+                            }
+                        ],
+                        noDataText: "No draft resources needed by active courses."
+                    }).dxDataGrid("instance");
+                }
+
+                // Wire bulk actions
+                $("#btnBulkUnpublish").off("click").on("click", function() {
+                    const keys = unusedGridInstance.getSelectedRowKeys();
+                    if (keys.length === 0) { showToast("Select resources to unpublish.", "warning"); return; }
+                    Swal.fire({
+                        title: `Unpublish ${keys.length} Resource(s)?`,
+                        html: `<div style="font-size:13px;color:#666;">This will delete extracted files from the server for <strong>${keys.length}</strong> resource(s).<br>Original .zip files in the database will be kept.</div>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: `<i class="fas fa-box-archive"></i> Unpublish ${keys.length}`,
+                        cancelButtonText: 'Cancel',
+                        customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
+                        buttonsStyling: false
+                    }).then(r => {
+                        if (r.isConfirmed) {
+                            setButtonLoading("#btnBulkUnpublish", true, "Processing...");
+                            $.ajax({
+                                url: `${serviceUrl}/Resources/Admin/BatchUnpublish`,
+                                type: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify(keys),
+                                xhrFields: { withCredentials: true }
+                            }).done(res => {
+                                showToast(res.message, "success");
+                                loadOptimizeData();
+                                refreshAll();
+                            }).fail(xhr => {
+                                showToast(xhr.responseJSON?.message || "Batch unpublish failed.", "error");
+                            }).always(() => setButtonLoading("#btnBulkUnpublish", false));
+                        }
+                    });
+                });
+
+                $("#btnBulkPublish").off("click").on("click", function() {
+                    const keys = shouldPublishGridInstance.getSelectedRowKeys();
+                    if (keys.length === 0) { showToast("Select resources to publish.", "warning"); return; }
+                    Swal.fire({
+                        title: `Publish ${keys.length} Resource(s)?`,
+                        html: `<div style="font-size:13px;color:#666;">This will extract and publish <strong>${keys.length}</strong> SCORM package(s) to the server.</div>`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: `<i class="fas fa-upload"></i> Publish ${keys.length}`,
+                        cancelButtonText: 'Cancel',
+                        customClass: { confirmButton: 'btn btn-primary me-2', cancelButton: 'btn btn-secondary' },
+                        buttonsStyling: false
+                    }).then(r => {
+                        if (r.isConfirmed) {
+                            setButtonLoading("#btnBulkPublish", true, "Processing...");
+                            $.ajax({
+                                url: `${serviceUrl}/Resources/Admin/BatchPublish`,
+                                type: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify(keys),
+                                xhrFields: { withCredentials: true }
+                            }).done(res => {
+                                showToast(res.message, "success");
+                                loadOptimizeData();
+                                refreshAll();
+                            }).fail(xhr => {
+                                showToast(xhr.responseJSON?.message || "Batch publish failed.", "error");
+                            }).always(() => setButtonLoading("#btnBulkPublish", false));
+                        }
+                    });
+                });
+
+            }).fail(function() {
+                showToast("Failed to load optimization data.", "error");
+            });
+        }
     </script>
 }
