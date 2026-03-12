@@ -35,15 +35,17 @@ namespace iLearn.API.Controllers.Base
             IGenericRepository<Assignment> repository,
             ICurrentUserService currentUser) : base(repository, currentUser) { }
 
-        // ── เพิ่มเมธอด Get นี้เข้าไป ──
+        // ── เพิ่มโค้ดส่วนนี้เข้าไป ──
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
             var query = _repository.GetQuery().AsQueryable();
 
-            // ── Data Isolation ──
+            // กรองข้อมูลให้เห็นเฉพาะ Division ของตัวเอง (ถ้ามี DivisionId)
             if (_currentUser.DivisionId.HasValue)
+            {
                 query = query.Where(a => a.DivisionId == _currentUser.DivisionId.Value);
+            }
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }

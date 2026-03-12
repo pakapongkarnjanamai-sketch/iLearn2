@@ -21,19 +21,22 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IAssignmentDashboardService _dashboardService;
+        private readonly ICurrentUserService _currentUser; // 💡 1. ประกาศตัวแปร
 
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
             ICourseAssignmentService assignmentService,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
-            IAssignmentDashboardService dashboardService)
+            IAssignmentDashboardService dashboardService,
+            ICurrentUserService currentUser) // 💡 2. รับค่าเข้ามา
         {
             _repo = repo;
             _assignmentService = assignmentService;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
             _dashboardService = dashboardService;
+            _currentUser = currentUser; // 💡 3. กำหนดค่า
         }
 
         [HttpGet("history")]
@@ -90,7 +93,11 @@ namespace iLearn.API.Controllers
         [HttpGet("course/{courseId}")]
         public async Task<IActionResult> GetByCourse(int courseId)
         {
-            var assignments = await _repo.GetAsync(r => r.CourseId == courseId);
+            var assignments = await _repo.GetAsync(r =>
+                r.CourseId == courseId &&
+                // 💡 เพิ่มการกรอง Division ตัวเอง
+                (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value)
+            );
             return Ok(assignments.Select(r => new { r.Id, r.CourseId }));
         }
 
@@ -194,7 +201,9 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> GetGroupHistory(int groupId)
         {
             var assignments = await _repo.GetAsync(
-                r => r.StudentGroupId == groupId,
+                r => r.StudentGroupId == groupId &&
+                // 💡 เพิ่มการกรอง Division ตัวเอง
+                (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
                 includeProperties: "Course"
             );
 

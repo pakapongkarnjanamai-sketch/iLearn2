@@ -12,19 +12,21 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IStudentApiService _studentApiService;
         private readonly IStudentGroupService _studentGroupService;
-
+        private readonly ICurrentUserService _currentUser;
         public AssignmentDashboardService(
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
             IStudentApiService studentApiService,
-            IStudentGroupService studentGroupService)
+            IStudentGroupService studentGroupService,
+            ICurrentUserService currentUser)
         {
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
             _studentApiService = studentApiService;
             _studentGroupService = studentGroupService;
+            _currentUser = currentUser;
         }
 
         // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -32,6 +34,12 @@ namespace iLearn.Application.Services
         {
             var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId);
             if (mainRule == null) return null;
+
+            // 💡 เพิ่มการตรวจสอบ Data Isolation: ถ้าไม่ใช่ Division ตัวเอง ให้คืนค่า null (ไม่ให้ดู)
+            if (_currentUser.DivisionId.HasValue && mainRule.DivisionId != _currentUser.DivisionId.Value)
+            {
+                return null;
+            }
 
             // ✅ ignoreQueryFilters: true — ดึง Assignment ที่มี Course ถูก soft-delete ได้ด้วย
             var allRules = await _assignmentRepo.GetAsync(
@@ -193,10 +201,11 @@ namespace iLearn.Application.Services
             // Global filter ของ Assignment entity เองยังทำงานปกติ (IsDeleted=false)
             // แต่ navigation property "Course" จะไม่ถูก filter ออกอีกต่อไป
             var assignments = await _assignmentRepo.GetAsync(
-                filter: null,
-                includeProperties: "Course",
-                ignoreQueryFilters: false   // Assignment ที่ถูก soft-delete ไม่ควรโผล่
-            );
+                  // 💡 เพิ่ม Filter ตรงนี้เพื่อดึงเฉพาะงานของ Division ตัวเอง
+                  filter: a => !_currentUser.DivisionId.HasValue || a.DivisionId == _currentUser.DivisionId.Value,
+                  includeProperties: "Course",
+                  ignoreQueryFilters: false   // Assignment ที่ถูก soft-delete ไม่ควรโผล่
+              );
 
             // ✅ ดึง Course ที่ถูก soft-delete แยกต่างหากเพื่อ lookup ชื่อ
             var allCourseIds = assignments
