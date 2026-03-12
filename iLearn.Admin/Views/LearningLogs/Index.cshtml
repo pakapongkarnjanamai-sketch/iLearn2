@@ -11,6 +11,70 @@
 </div>
 
 <div class="container-fluid px-4 py-3">
+
+    <!-- ── Summary KPI Bar ── -->
+    <div class="row g-2 mb-4" id="summary-bar">
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+                <div class="kpi-label">Total Logs</div>
+                <div class="kpi-number" id="kpi-total">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--success-color);">
+                <div class="kpi-label" style="color:var(--success-color);">Completed / Passed</div>
+                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
+                <div class="kpi-label" style="color:var(--warning-color);">In Progress</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-inprogress">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--danger-color);">
+                <div class="kpi-label" style="color:var(--danger-color);">Failed</div>
+                <div class="kpi-number" style="color:var(--danger-color);" id="kpi-failed">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
+                <div class="kpi-label" style="color:#722ed1;">Avg. Score</div>
+                <div class="kpi-number" style="color:#722ed1;" id="kpi-avgscore">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
+                <div class="kpi-label" style="color:var(--accent-color);">Total Time</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-totaltime">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Filter Bar ── -->
+    <div class="border rounded bg-white p-3 mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-auto" style="min-width:200px;">
+                <label class="filter-label">Student Code</label>
+                <div id="filterStudent"></div>
+            </div>
+            <div class="col-auto" style="min-width:240px;">
+                <label class="filter-label">Course</label>
+                <div id="filterCourse"></div>
+            </div>
+            <div class="col-auto">
+                <label class="filter-label">Status</label>
+                <div id="filterStatus"></div>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="javascript:void(0);" class="action-link" id="btnClearFilters" style="font-size:12px;">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="border rounded bg-white">
         <div id="grid"></div>
     </div>
@@ -19,31 +83,150 @@
 @section Scripts {
     <script>
         let gridInstance;
+        const statusOptions = [
+            { id: 'all', name: 'All' },
+            { id: 'completed', name: 'Completed / Passed' },
+            { id: 'failed', name: 'Failed' },
+            { id: 'inprogress', name: 'In Progress / Incomplete' }
+        ];
+
+        let filterStudentCode = null;
+        let filterCourseCode = null;
+        let filterStatus = 'all';
+
+        const logsStore = createDataStore(serviceUrl, 'admin/LearningLogsCRUD');
+        const coursesLookupStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` });
+
+        function formatTimeSpent(seconds) {
+            if (!seconds || seconds === 0) return '—';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) return h + 'h ' + m + 'm';
+            if (m > 0) return m + 'm ' + s + 's';
+            return s + 's';
+        }
+
+        function formatTimeFull(seconds) {
+            if (!seconds || seconds === 0) return '—';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            if (h > 0) return h.toLocaleString() + 'h ' + m + 'm';
+            return m + 'm';
+        }
+
+        function loadSummaryStats() {
+            showStatSkeleton(['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-failed', 'kpi-avgscore', 'kpi-totaltime']);
+            $.ajax({
+                url: `${serviceUrl}/admin/LearningLogsCRUD/GetSummaryStats`,
+                type: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(d) {
+                $("#kpi-total").text(d.totalLogs.toLocaleString());
+                $("#kpi-completed").text(d.completedCount.toLocaleString());
+                $("#kpi-inprogress").text(d.inProgressCount.toLocaleString());
+                $("#kpi-failed").text(d.failedCount.toLocaleString());
+                $("#kpi-avgscore").text(d.avgScore > 0 ? d.avgScore : '—');
+                $("#kpi-totaltime").text(formatTimeFull(d.totalTimeSpent));
+            }).fail(function() {
+                hideStatSkeleton(['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-failed', 'kpi-avgscore', 'kpi-totaltime']);
+            });
+        }
+
+        function applyFilters() {
+            const filters = [];
+            if (filterStudentCode) filters.push(["studentCode", "contains", filterStudentCode]);
+            if (filterCourseCode) filters.push(["courseCode", "contains", filterCourseCode]);
+
+            if (filterStatus === 'completed') {
+                filters.push([["status", "=", "completed"], "or", ["status", "=", "passed"]]);
+            } else if (filterStatus === 'failed') {
+                filters.push(["status", "=", "failed"]);
+            } else if (filterStatus === 'inprogress') {
+                filters.push([["status", "=", "incomplete"], "or", ["status", "=", "in_progress"]]);
+            }
+
+            if (filters.length > 1) {
+                const combined = [filters[0]];
+                for (let i = 1; i < filters.length; i++) {
+                    combined.push("and", filters[i]);
+                }
+                gridInstance.filter(combined);
+            } else if (filters.length === 1) {
+                gridInstance.filter(filters[0]);
+            } else {
+                gridInstance.clearFilter();
+            }
+            gridInstance.refresh();
+        }
 
         $(() => {
-            // ใช้ initDxGrid ตามมาตรฐานระบบ
-            gridInstance = initDxGrid("#grid", {
-                dataSource: createDataStore(serviceUrl, 'admin/LearningLogsCRUD'),
-                remoteOperations: true,
-                searchPanel: { placeholder: "Search logs..." },
+            loadSummaryStats();
 
+            // ── Filter Bar Controls ──
+            $("#filterStudent").dxTextBox({
+                placeholder: 'Search...',
+                showClearButton: true,
+                width: '100%',
+                valueChangeEvent: 'keyup',
+                onValueChanged: (e) => { filterStudentCode = e.value || null; applyFilters(); }
+            });
+
+            $("#filterCourse").dxSelectBox({
+                dataSource: { store: coursesLookupStore, paginate: true, pageSize: 20 },
+                valueExpr: 'code',
+                displayExpr: 'code',
+                value: null,
+                placeholder: 'All Courses',
+                showClearButton: true,
+                searchEnabled: true,
+                searchExpr: 'code',
+                searchMode: 'contains',
+                width: '100%',
+                onValueChanged: (e) => { filterCourseCode = e.value || null; applyFilters(); }
+            });
+
+            $("#filterStatus").dxSelectBox({
+                dataSource: statusOptions,
+                valueExpr: 'id',
+                displayExpr: 'name',
+                value: 'all',
+                width: 200,
+                onValueChanged: (e) => { filterStatus = e.value; applyFilters(); }
+            });
+
+            $("#btnClearFilters").on('click', function() {
+                filterStudentCode = null;
+                filterCourseCode = null;
+                filterStatus = 'all';
+                $("#filterStudent").dxTextBox("instance").option('value', null);
+                $("#filterCourse").dxSelectBox("instance").option('value', null);
+                $("#filterStatus").dxSelectBox("instance").option('value', 'all');
+                applyFilters();
+            });
+
+            // ── DataGrid ──
+            gridInstance = initDxGrid("#grid", {
+                dataSource: logsStore,
+                remoteOperations: true,
+                searchPanel: { visible: true, placeholder: "Search logs..." },
                 showBorders: false,
+                rowAlternationEnabled: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
 
                 export: { enabled: true, allowExportSelectedData: true },
-                onExporting: (e) => handleExporting(e, 'LearningLogs_Data'),
+                onExporting: (e) => handleExporting(e, 'LearningLogs_Report'),
 
                 columns: [
-                    { dataField: "id", caption: "ID", dataType: "number", width: 80, visible: false },
-                    { dataField: "studentCode", caption: "Employee ID", dataType: "string", minWidth: 120 },
-                    { dataField: "enrollmentId", caption: "Enrollment ID", dataType: "number", minWidth: 120, alignment: "center" },
+                    { dataField: "studentCode", caption: "Student Code", width: 130 },
+                    { dataField: "courseCode", caption: "Course", minWidth: 120 },
+                    { dataField: "courseTitle", caption: "Course Title", minWidth: 180, visible: false },
+                    { dataField: "enrollmentId", caption: "Enroll ID", width: 100, alignment: "center" },
                     {
-                        dataField: "status",
-                        caption: "Status",
-                        dataType: "string",
-                        minWidth: 150,
-                        alignment: "center",
+                        dataField: "status", caption: "Status", width: 120, alignment: "center",
                         cellTemplate: function(container, options) {
-                            const val = options.value || "";
+                            const val = (options.value || "").toLowerCase();
                             const map = {
                                 "completed":   "status-pill pill-success",
                                 "passed":      "status-pill pill-success",
@@ -52,52 +235,43 @@
                                 "in_progress": "status-pill pill-info",
                                 "not_started": "status-pill pill-default"
                             };
-                            const cls = map[val.toLowerCase()] || "status-pill pill-default";
-                            $("<span>").addClass(cls).text(val || "—").appendTo(container);
+                            $("<span>").addClass(map[val] || "status-pill pill-default")
+                                .text(options.value || "—").appendTo(container);
                         }
                     },
                     {
-                        dataField: "progress", // เพิ่มคอลัมน์ progress เข้ามาใหม่
-                        caption: "Progress",
-                        dataType: "number",
-                        minWidth: 100,
-                        alignment: "center",
-                     
-                    },
-                    {
-                        dataField: "score", // เปลี่ยนจาก scoreRaw เป็น score
-                        caption: "Score",
-                        dataType: "number",
-                        minWidth: 80,
-                        alignment: "center",
-                       
-                    },
-                    {
-                        dataField: "totalSecondsPlayed",
-                        caption: "Time Spent",
-                        dataType: "number",
-                        minWidth: 120,
-                        alignment: "center",
-                        calculateCellValue: function(data) {
-                            // แปลงวินาทีเป็น HH:mm:ss แบบรองรับเวลาเกิน 24 ชม. ได้
-                            const sec = parseInt(data.totalSecondsPlayed) || 0;
-                            const h = Math.floor(sec / 3600).toString().padStart(2, '0');
-                            const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
-                            const s = Math.floor(sec % 60).toString().padStart(2, '0');
-                            return `${h}:${m}:${s}`;
+                        dataField: "progress", caption: "Progress", width: 150, alignment: "center",
+                        cellTemplate: function(container, options) {
+                            $("<div/>").dxProgressBar({
+                                min: 0, max: 100, value: options.value || 0,
+                                statusFormat: function(ratio, value) { return Math.round(value) + "%"; }
+                            }).appendTo(container);
                         }
                     },
-                    { dataField: "attemptCount", caption: "Attempts", dataType: "number", minWidth: 90, alignment: "center" },
                     {
-                        dataField: "updatedAt", // เปลี่ยนจาก lastAccessDate เป็น updatedAt
-                        caption: "Last Access",
-                        dataType: "datetime",
-                        format: "dd MMM yyyy HH:mm",
-                        minWidth: 160
-                    }
+                        dataField: "score", caption: "Score", width: 80, alignment: "center",
+                        cellTemplate: function(container, options) {
+                            const v = options.value;
+                            if (v !== null && v !== undefined) {
+                                $("<span>").css({ fontWeight: "600", color: v >= 50 ? "var(--success-color)" : "var(--danger-color)" })
+                                    .text(v).appendTo(container);
+                            } else {
+                                $("<span>").css({ color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
+                            }
+                        }
+                    },
+                    {
+                        dataField: "totalSecondsPlayed", caption: "Time Spent", width: 100, alignment: "center",
+                        cellTemplate: function(container, options) {
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                .text(formatTimeSpent(options.value)).appendTo(container);
+                        }
+                    },
+                    { dataField: "attemptCount", caption: "Attempts", width: 80, alignment: "center" },
+                    { dataField: "updatedAt", caption: "Last Activity", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 155 },
+                    { dataField: "createdAt", caption: "First Access", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 155, visible: false }
                 ]
             });
         });
-
     </script>
 }

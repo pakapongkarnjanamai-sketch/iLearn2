@@ -14,6 +14,35 @@
 </div>
 
 <div class="container-fluid px-4 py-3">
+
+    <!-- ?? Summary KPI Bar ?? -->
+    <div class="row g-2 mb-4" id="summary-bar">
+        <div class="col-6 col-md-3">
+            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+                <div class="kpi-label">Total Types</div>
+                <div class="kpi-number" id="kpi-total">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
+                <div class="kpi-label" style="color:var(--accent-color);">Total Courses</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-courses">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
+                <div class="kpi-label" style="color:#722ed1;">Avg. Courses / Type</div>
+                <div class="kpi-number" style="color:#722ed1;" id="kpi-avg">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
+                <div class="kpi-label" style="color:var(--warning-color);">Unused Types</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-unused">—</div>
+            </div>
+        </div>
+    </div>
+
     <div class="border rounded bg-white">
         <div id="grid"></div>
     </div>
@@ -22,14 +51,36 @@
 @section Scripts {
     <script>
         let gridInstance;
+        const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD');
+
+        function loadSummaryStats() {
+            showStatSkeleton(['kpi-total', 'kpi-courses', 'kpi-avg', 'kpi-unused']);
+            $.ajax({
+                url: `${serviceUrl}/admin/CourseTypesCRUD/GetSummaryStats`,
+                type: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(d) {
+                $("#kpi-total").text(d.totalTypes);
+                $("#kpi-courses").text(d.totalCourses);
+                $("#kpi-avg").text(d.avgCoursesPerType);
+                $("#kpi-unused").text(d.unusedTypes);
+            }).fail(function() {
+                hideStatSkeleton(['kpi-total', 'kpi-courses', 'kpi-avg', 'kpi-unused']);
+            });
+        }
 
         $(() => {
+            loadSummaryStats();
+
             gridInstance = initDxGrid("#grid", {
-                dataSource: createDataStore(serviceUrl, 'admin/CourseTypesCRUD'),
+                dataSource: courseTypesStore,
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { visible: true, placeholder: "Search course types..." },
                 showBorders: false,
+                rowAlternationEnabled: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
@@ -42,12 +93,11 @@
                     popup: {
                         title: "Course Type Details",
                         showTitle: true,
-                        width: 500,
+                        width: 480,
                         height: "auto",
                         position: { my: "center", at: "center", of: window },
                         dragEnabled: true,
-                        hideOnOutsideClick: true,
-                        wrapperAttr: { class: "rounded-4 shadow-lg" }
+                        hideOnOutsideClick: true
                     },
                     form: {
                         labelLocation: "top",
@@ -81,7 +131,7 @@
                     {
                         dataField: "id",
                         caption: "ID",
-                        width: 80,
+                        width: 70,
                         allowEditing: false,
                         alignment: "center",
                         sortOrder: "asc",
@@ -93,7 +143,7 @@
                         minWidth: 200,
                         cellTemplate: function(container, options) {
                             $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<i>").addClass("fas fa-tag text-primary opacity-75"))
+                                .append($("<i>").addClass("fas fa-tag").css({ color: "var(--accent-color)", opacity: ".75" }))
                                 .append($("<span>").addClass("fw-bold text-dark").text(options.value))
                                 .appendTo(container);
                         }
@@ -101,20 +151,46 @@
                     {
                         dataField: "description",
                         caption: "Description",
+                        minWidth: 200,
                         cellTemplate: function(container, options) {
-                            $("<span>").addClass("text-muted").text(options.value || "—").appendTo(container);
+                            $("<span>").css({ color: "var(--text-secondary)", fontSize: "12px" })
+                                .text(options.value || "—").appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "courseCount",
+                        caption: "Courses",
+                        width: 110,
+                        alignment: "center",
+                        allowEditing: false,
+                        sortOrder: undefined,
+                        cellTemplate: function(container, options) {
+                            const count = options.value || 0;
+                            if (count === 0) {
+                                $("<span>").addClass("status-pill pill-default").text("None").appendTo(container);
+                            } else {
+                                $("<span>").addClass("status-pill pill-success")
+                                    .text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
+                            }
                         }
                     },
                     {
                         type: "buttons",
-                        caption: "Actions",
+                        caption: "Manage",
                         width: 100,
                         alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
-                        buttons: ["edit", "delete"]
+                        buttons: [
+                            "edit",
+                            {
+                                name: "delete",
+                                visible: function(e) { return (e.row.data.courseCount || 0) === 0; }
+                            }
+                        ]
                     }
-                ]
+                ],
+                onRowInserted: () => loadSummaryStats(),
+                onRowUpdated: () => loadSummaryStats(),
+                onRowRemoved: () => loadSummaryStats()
             });
         });
 

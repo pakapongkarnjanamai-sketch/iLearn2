@@ -104,13 +104,64 @@ namespace iLearn.API.Controllers.Base
         public CourseTypesCRUDController(
             IGenericRepository<CourseType> repository,
             ICurrentUserService currentUser) : base(repository, currentUser) { }
+
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Select(ct => new
+                {
+                    ct.Id,
+                    ct.Name,
+                    ct.Description,
+                    ct.IsActive,
+                    courseCount = ct.Courses.Count(),
+                    ct.CreatedAt
+                });
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
+        [HttpGet("GetSummaryStats")]
+        public async Task<IActionResult> GetSummaryStats()
+        {
+            var all = await _repository.GetQuery()
+                .Select(ct => new
+                {
+                    ct.Id,
+                    courseCount = ct.Courses.Count()
+                })
+                .ToListAsync();
+
+            var totalTypes = all.Count;
+            var totalCourses = all.Sum(ct => ct.courseCount);
+
+            return Ok(new
+            {
+                totalTypes,
+                totalCourses,
+                avgCoursesPerType = totalTypes > 0
+                    ? Math.Round((double)totalCourses / totalTypes, 1)
+                    : 0,
+                unusedTypes = all.Count(ct => ct.courseCount == 0)
+            });
+        }
     }
 
     public class DivisionsCRUDController : GenericController<Division>
     {
+        private readonly IGenericRepository<Category> _categoryRepo;
+        private readonly IGenericRepository<Role> _roleRepo;
+
         public DivisionsCRUDController(
             IGenericRepository<Division> repository,
-            ICurrentUserService currentUser) : base(repository, currentUser) { }
+            ICurrentUserService currentUser,
+            IGenericRepository<Category> categoryRepo,
+            IGenericRepository<Role> roleRepo) : base(repository, currentUser)
+        {
+            _categoryRepo = categoryRepo;
+            _roleRepo = roleRepo;
+        }
 
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
@@ -121,7 +172,82 @@ namespace iLearn.API.Controllers.Base
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(d => d.Id == _currentUser.DivisionId.Value);
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            // Load counts per division in two small queries
+            var categoryCounts = await _categoryRepo.GetQuery()
+                .Where(c => c.DivisionId != null)
+                .GroupBy(c => c.DivisionId!.Value)
+                .Select(g => new { DivisionId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.DivisionId, x => x.Count);
+
+            var roleCounts = await _roleRepo.GetQuery()
+                .Where(r => r.DivisionId != null)
+                .GroupBy(r => r.DivisionId!.Value)
+                .Select(g => new { DivisionId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.DivisionId, x => x.Count);
+
+            // Project flat fields for DataSourceLoader (server-side paging/sorting)
+            var projected = query.Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.IsActive,
+                d.CreatedAt
+            });
+
+            var loadResult = DataSourceLoader.Load(projected, loadOptions);
+
+            // Enrich with counts in memory
+            if (loadResult.data is IEnumerable<object> items)
+            {
+                var enriched = items.Cast<dynamic>().Select(d => new
+                {
+                    d.Id,
+                    d.Name,
+                    d.IsActive,
+                    d.CreatedAt,
+                    categoryCount = categoryCounts.GetValueOrDefault((int)d.Id, 0),
+                    roleCount = roleCounts.GetValueOrDefault((int)d.Id, 0)
+                }).ToList();
+
+                return Ok(new
+                {
+                    loadResult.totalCount,
+                    loadResult.groupCount,
+                    loadResult.summary,
+                    data = enriched
+                });
+            }
+
+            return Ok(loadResult);
+        }
+
+        [HttpGet("GetSummaryStats")]
+        public async Task<IActionResult> GetSummaryStats()
+        {
+            var totalDivisions = await _repository.CountAsync();
+            var totalCategories = await _categoryRepo.CountAsync();
+            var totalRoles = await _roleRepo.CountAsync();
+
+            var usedByCategoryIds = await _categoryRepo.GetQuery()
+                .Where(c => c.DivisionId != null)
+                .Select(c => c.DivisionId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var usedByRoleIds = await _roleRepo.GetQuery()
+                .Where(r => r.DivisionId != null)
+                .Select(r => r.DivisionId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var usedIds = usedByCategoryIds.Union(usedByRoleIds).ToHashSet();
+            var unusedDivisions = await _repository.CountAsync(d => !usedIds.Contains(d.Id));
+
+            return Ok(new
+            {
+                totalDivisions,
+                totalCategories,
+                totalRoles,
+                unusedDivisions
+            });
         }
     }
 
@@ -130,6 +256,49 @@ namespace iLearn.API.Controllers.Base
         public EnrollmentsCRUDController(
             IGenericRepository<Enrollment> repository,
             ICurrentUserService currentUser) : base(repository, currentUser) { }
+
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Include(e => e.Course)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.StudentCode,
+                    e.CourseId,
+                    courseCode = e.Course != null ? e.Course.Code : "",
+                    courseTitle = e.Course != null ? e.Course.Title : "",
+                    e.IsCompleted,
+                    e.Progress,
+                    e.TotalScore,
+                    e.TotalTimeSpent,
+                    e.StartDate,
+                    e.DueDate,
+                    e.CompletedDate,
+                    e.ResetAt,
+                    e.CreatedAt
+                });
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
+        [HttpGet("GetSummaryStats")]
+        public async Task<IActionResult> GetSummaryStats()
+        {
+            var all = await _repository.GetQuery()
+                .Select(e => new { e.IsCompleted, e.Progress })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                totalCount = all.Count,
+                completedCount = all.Count(e => e.IsCompleted),
+                inProgressCount = all.Count(e => !e.IsCompleted && e.Progress > 0),
+                enrolledCount = all.Count(e => !e.IsCompleted && e.Progress == 0),
+                avgProgress = all.Count > 0 ? Math.Round(all.Average(e => e.Progress), 1) : 0
+            });
+        }
     }
 
     public class FileStoragesCRUDController : GenericController<FileStorage>
@@ -141,9 +310,65 @@ namespace iLearn.API.Controllers.Base
 
     public class LearningLogsCRUDController : GenericController<LearningLog>
     {
+        private readonly IGenericRepository<Resource> _resourceRepo;
+
         public LearningLogsCRUDController(
             IGenericRepository<LearningLog> repository,
-            ICurrentUserService currentUser) : base(repository, currentUser) { }
+            ICurrentUserService currentUser,
+            IGenericRepository<Resource> resourceRepo) : base(repository, currentUser)
+        {
+            _resourceRepo = resourceRepo;
+        }
+
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .Include(l => l.Enrollment)
+                    .ThenInclude(e => e!.Course)
+                .Select(l => new
+                {
+                    l.Id,
+                    l.StudentCode,
+                    l.EnrollmentId,
+                    l.ResourceId,
+                    l.CourseVersionId,
+                    courseCode = l.Enrollment != null && l.Enrollment.Course != null ? l.Enrollment.Course.Code : "",
+                    courseTitle = l.Enrollment != null && l.Enrollment.Course != null ? l.Enrollment.Course.Title : "",
+                    l.Status,
+                    l.Progress,
+                    l.Score,
+                    l.TotalSecondsPlayed,
+                    l.AttemptCount,
+                    l.SessionTime,
+                    l.CreatedAt,
+                    l.UpdatedAt
+                });
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
+        [HttpGet("GetSummaryStats")]
+        public async Task<IActionResult> GetSummaryStats()
+        {
+            var all = await _repository.GetQuery()
+                .Select(l => new { l.Status, l.Score, l.TotalSecondsPlayed })
+                .ToListAsync();
+
+            var statusLower = all.Select(l => l.Status?.ToLower() ?? "").ToList();
+
+            return Ok(new
+            {
+                totalLogs = all.Count,
+                completedCount = statusLower.Count(s => s == "completed" || s == "passed"),
+                failedCount = statusLower.Count(s => s == "failed"),
+                inProgressCount = statusLower.Count(s => s == "incomplete" || s == "in_progress"),
+                avgScore = all.Where(l => l.Score.HasValue).Any()
+                    ? Math.Round(all.Where(l => l.Score.HasValue).Average(l => l.Score!.Value), 1)
+                    : 0,
+                totalTimeSpent = all.Sum(l => l.TotalSecondsPlayed)
+            });
+        }
     }
 
     public class ResourcesCRUDController : GenericController<Resource>
