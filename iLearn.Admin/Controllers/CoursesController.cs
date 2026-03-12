@@ -1,5 +1,4 @@
-﻿using iLearn.Domain.Entities;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace iLearn.Admin.Controllers

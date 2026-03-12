@@ -170,24 +170,96 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            var query = _repository.GetQuery()
+            return await GetFiltered(loadOptions, courseId: null);
+        }
+
+        [HttpGet("GetByCourse")]
+        public async Task<IActionResult> GetByCourse(DataSourceLoadOptions loadOptions, [FromQuery] int courseId)
+        {
+            return await GetFiltered(loadOptions, courseId);
+        }
+
+        private async Task<IActionResult> GetFiltered(DataSourceLoadOptions loadOptions, int? courseId)
+        {
+            var baseQuery = _repository.GetQuery().AsQueryable();
+
+            if (courseId.HasValue)
+                baseQuery = baseQuery.Where(r => r.CourseResources.Any(cr => cr.CourseVersion.CourseId == courseId.Value));
+
+            var query = baseQuery.Select(r => new
+            {
+                r.Id,
+                r.Name,
+                r.TypeId,
+                r.IsActive,
+                r.URL,
+                r.FileStorageId,
+                r.CreatedAt,
+                fileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
+                courseResources = r.CourseResources.Select(cr => new
+                {
+                    courseId = cr.CourseVersion.CourseId
+                }).ToList(),
+                courseIdsCount = r.CourseResources.Select(cr => cr.CourseVersion.CourseId).Distinct().Count()
+            });
+
+            return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
+        [HttpGet("GetServerStats")]
+        public async Task<IActionResult> GetServerStats()
+        {
+            var publishedResources = await _repository.GetQuery()
+                .Where(r => r.IsActive && r.URL != null)
+                .Select(r => new { r.Id, r.URL })
+                .ToListAsync();
+
+            var stats = publishedResources.Select(r =>
+            {
+                var info = _scormService.GetFolderInfo(r.URL!);
+                return new { r.Id, info.FileCount, info.TotalSize };
+            }).ToDictionary(x => x.Id, x => new { x.FileCount, x.TotalSize });
+
+            return Ok(stats);
+        }
+
+        [HttpGet("GetSummaryStats")]
+        public async Task<IActionResult> GetSummaryStats()
+        {
+            var allResources = await _repository.GetQuery()
+                .Include(r => r.FileStorage)
                 .Select(r => new
                 {
                     r.Id,
-                    r.Name,
-                    r.TypeId,
                     r.IsActive,
                     r.URL,
-                    r.FileStorageId,
-                    r.CreatedAt,
-                    courseResources = r.CourseResources.Select(cr => new
-                    {
-                        courseId = cr.CourseVersion.CourseId
-                    }).ToList(),
-                    courseIdsCount = r.CourseResources.Select(cr => cr.CourseVersion.CourseId).Distinct().Count()
-                });
+                    dbSize = r.FileStorage != null ? r.FileStorage.Length : 0
+                })
+                .ToListAsync();
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            int totalCount = allResources.Count;
+            int publishedCount = allResources.Count(r => r.IsActive);
+            int draftCount = totalCount - publishedCount;
+            long totalDbSize = allResources.Sum(r => r.dbSize);
+
+            long totalServerSize = 0;
+            int totalServerFiles = 0;
+            foreach (var r in allResources.Where(r => r.IsActive && !string.IsNullOrEmpty(r.URL)))
+            {
+                var info = _scormService.GetFolderInfo(r.URL!);
+                totalServerFiles += info.FileCount;
+                totalServerSize += info.TotalSize;
+            }
+
+            return Ok(new
+            {
+                totalCount,
+                publishedCount,
+                draftCount,
+                totalDbSize,
+                totalServerFiles,
+                totalServerSize
+            });
         }
 
         [HttpPut("Put")]

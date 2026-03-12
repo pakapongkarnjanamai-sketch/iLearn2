@@ -163,6 +163,45 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [HttpPost("Unpublish")]
+        public async Task<IActionResult> Unpublish([FromQuery] int key)
+        {
+            try
+            {
+                var resource = await _resourceRepo.GetQuery()
+                    .Include(r => r.CourseResources)
+                    .FirstOrDefaultAsync(r => r.Id == key);
+
+                if (resource == null)
+                    return NotFound(new { message = "Resource not found." });
+
+                if (!resource.IsActive)
+                    return BadRequest(new { message = "Resource is not published." });
+
+                if (resource.CourseResources.Any())
+                    return BadRequest(new { message = "Cannot unpublish a resource that is assigned to courses. Remove all course assignments first." });
+
+                if (!string.IsNullOrEmpty(resource.URL))
+                {
+                    _scormService.DeleteScormFolder(resource.URL);
+                    _logger.LogInformation("SCORM folder deleted for unpublish: {Folder}", resource.URL);
+                }
+
+                resource.IsActive = false;
+                resource.URL = null;
+                resource.ResourceHref = null;
+                resource.SchemaVersion = null;
+
+                await _resourceRepo.UpdateAsync(resource);
+                return Ok(new { message = "Resource unpublished. Extracted files removed from server." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unpublishing resource {Key}", key);
+                return StatusCode(500, new { message = $"Error unpublishing resource: {ex.Message}" });
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

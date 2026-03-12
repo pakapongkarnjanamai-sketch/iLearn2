@@ -1,8 +1,6 @@
-﻿using iLearn.Application.Interfaces.Services;
-
-using iLearn.Infrastructure.Middleware;
-using iLearn.Infrastructure.Services;
-using iLearn.Domain.Enums;
+﻿using iLearn.Admin.Middleware;
+using iLearn.Admin.Services;
+using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,10 +46,10 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = options.DefaultPolicy;
 
     options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole(nameof(RoleType.Admin), nameof(RoleType.SuperAdmin)));
+        policy.RequireRole("Admin", "SuperAdmin"));
 
     options.AddPolicy("SuperAdminOnly", policy =>
-        policy.RequireRole(nameof(RoleType.SuperAdmin)));
+        policy.RequireRole("SuperAdmin"));
 
     options.AddPolicy("DomainUser", policy =>
         policy.RequireAssertion(context =>

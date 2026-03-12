@@ -40,6 +40,25 @@ namespace iLearn.Infrastructure.Services
             }
         }
 
+        public (int FileCount, long TotalSize) GetFolderInfo(string folderName)
+        {
+            if (string.IsNullOrEmpty(folderName)) return (0, 0);
+
+            var directoryPath = Path.Combine(_settings.FileUnc, folderName);
+            if (!Directory.Exists(directoryPath)) return (0, 0);
+
+            try
+            {
+                var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+                long totalSize = files.Sum(f => new FileInfo(f).Length);
+                return (files.Length, totalSize);
+            }
+            catch
+            {
+                return (0, 0);
+            }
+        }
+
         public async Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName)
         {
             if (fileContent == null || fileContent.Length == 0)

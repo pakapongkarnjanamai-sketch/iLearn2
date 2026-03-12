@@ -14,6 +14,70 @@
 </div>
 
 <div class="container-fluid px-4 py-3">
+
+    <!-- ── Summary KPI Bar ── -->
+    <div class="row g-2 mb-4" id="summary-bar">
+        <div class="col-6 col-md">
+            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+                <div class="kpi-label">Total Resources</div>
+                <div class="kpi-number" id="kpi-total">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--success-color);">
+                <div class="kpi-label" style="color:var(--success-color);">Published</div>
+                <div class="kpi-number" style="color:var(--success-color);" id="kpi-published">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
+                <div class="kpi-label" style="color:var(--warning-color);">Draft</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-draft">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
+                <div class="kpi-label" style="color:var(--accent-color);">DB Storage</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-dbsize">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
+                <div class="kpi-label" style="color:#722ed1;">Server Files</div>
+                <div class="kpi-number" style="color:#722ed1;" id="kpi-serverfiles">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="kpi-card h-100" style="border-left-color:var(--danger-color);">
+                <div class="kpi-label" style="color:var(--danger-color);">Server Storage</div>
+                <div class="kpi-number" style="color:var(--danger-color);" id="kpi-serversize">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Filter Bar ── -->
+    <div class="border rounded bg-white p-3 mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-auto">
+                <label class="filter-label">Resource Type</label>
+                <div id="filterType"></div>
+            </div>
+            <div class="col-auto" style="min-width:280px;">
+                <label class="filter-label">Assigned Course</label>
+                <div id="filterCourse"></div>
+            </div>
+            <div class="col-auto">
+                <label class="filter-label">Assignment</label>
+                <div id="filterAssignment"></div>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="javascript:void(0);" class="action-link" id="btnClearFilters" style="font-size:12px;">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="border rounded bg-white">
         <div id="grid"></div>
     </div>
@@ -36,19 +100,172 @@
 @section Scripts {
     <script>
         const resourceTypes = [{ id: 1, name: 'Learn' }, { id: 2, name: 'Exam' }];
+        const assignmentOptions = [{ id: 'all', name: 'All' }, { id: 'unassigned', name: 'Unassigned' }, { id: 'assigned', name: 'Assigned' }];
         let selectedUploadTypeId = 1;
         let uploadPopupInstance;
         let gridInstance;
+        let serverStatsMap = {};
 
-        // lookup column — raw+cached ดึงครั้งเดียว resolve courseId → code
+        // Current filter state
+        let filterCourseId = null;
+        let filterTypeId = null;
+        let filterAssignment = 'all';
+
+        // lookup column — raw+cached
+        const coursesLookupStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` });
         const dsCoursesLookup = {
-            store: createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` }),
+            store: coursesLookupStore,
             loadMode: 'raw',
             cacheRawData: true
         };
 
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '—';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let i = 0;
+            let size = bytes;
+            while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+            return size.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+        }
+
+        function loadServerStats() {
+            $.ajax({
+                url: `${serviceUrl}/admin/ResourcesCRUD/GetServerStats`,
+                type: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(data) {
+                serverStatsMap = data || {};
+                if (gridInstance) gridInstance.repaint();
+            });
+        }
+
+        function loadSummaryStats() {
+            showStatSkeleton(['kpi-total', 'kpi-published', 'kpi-draft', 'kpi-dbsize', 'kpi-serverfiles', 'kpi-serversize']);
+            $.ajax({
+                url: `${serviceUrl}/admin/ResourcesCRUD/GetSummaryStats`,
+                type: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(d) {
+                $("#kpi-total").text(d.totalCount);
+                $("#kpi-published").text(d.publishedCount);
+                $("#kpi-draft").text(d.draftCount);
+                $("#kpi-dbsize").text(formatFileSize(d.totalDbSize));
+                $("#kpi-serverfiles").text(d.totalServerFiles.toLocaleString());
+                $("#kpi-serversize").text(formatFileSize(d.totalServerSize));
+            }).fail(function() {
+                hideStatSkeleton(['kpi-total', 'kpi-published', 'kpi-draft', 'kpi-dbsize', 'kpi-serverfiles', 'kpi-serversize']);
+            });
+        }
+
+        function refreshAll() {
+            loadServerStats();
+            loadSummaryStats();
+            if (gridInstance) gridInstance.refresh();
+        }
+
+        function viewContent(resourceId, resourceName) {
+            const apiUrl = `${serviceUrl}/Resources/${resourceId}/content`;
+            if (resourceName.toLowerCase().endsWith('.zip')) {
+                const win = window.open('about:blank', '_blank');
+                if (win) {
+                    win.document.title = "Loading...";
+                    win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content...</div>";
+                }
+                $.ajax({ url: apiUrl, method: "GET", xhrFields: { withCredentials: true } })
+                    .done(res => { if (res?.url && win) win.location.href = res.url; else { if (win) win.close(); showToast("Content URL not found.", "error"); } })
+                    .fail(() => { if (win) win.close(); showToast("Failed to get content link.", "error"); });
+            } else {
+                window.open(apiUrl, '_blank');
+            }
+        }
+
+        function buildLoadUrl() {
+            if (filterCourseId) {
+                return `${serviceUrl}/admin/ResourcesCRUD/GetByCourse?courseId=${filterCourseId}`;
+            }
+            return `${serviceUrl}/admin/ResourcesCRUD/Get`;
+        }
+
+        function applyFilters() {
+            // Update the loadUrl based on course filter
+            gridInstance.getDataSource().store().option('loadUrl', buildLoadUrl());
+
+            // Build combined filter for type + assignment
+            const filters = [];
+            if (filterTypeId) filters.push(["typeId", "=", filterTypeId]);
+            if (filterAssignment === 'unassigned') filters.push(["courseIdsCount", "=", 0]);
+            if (filterAssignment === 'assigned') filters.push(["courseIdsCount", ">", 0]);
+
+            if (filters.length > 1) {
+                const combined = [filters[0]];
+                for (let i = 1; i < filters.length; i++) {
+                    combined.push("and", filters[i]);
+                }
+                gridInstance.filter(combined);
+            } else if (filters.length === 1) {
+                gridInstance.filter(filters[0]);
+            } else {
+                gridInstance.clearFilter();
+            }
+
+            gridInstance.refresh();
+        }
+
         $(() => {
-            // 1. Popup Upload
+            // Load stats on page init
+            loadServerStats();
+            loadSummaryStats();
+
+            // ── Filter Bar Controls ──
+            $("#filterType").dxSelectBox({
+                dataSource: resourceTypes,
+                valueExpr: 'id',
+                displayExpr: 'name',
+                value: null,
+                placeholder: 'All Types',
+                showClearButton: true,
+                width: 150,
+                onValueChanged: (e) => { filterTypeId = e.value; applyFilters(); }
+            });
+
+            $("#filterCourse").dxSelectBox({
+                dataSource: {
+                    store: coursesLookupStore,
+                    paginate: true,
+                    pageSize: 20
+                },
+                valueExpr: 'id',
+                displayExpr: 'code',
+                value: null,
+                placeholder: 'All Courses',
+                showClearButton: true,
+                searchEnabled: true,
+                searchExpr: 'code',
+                searchMode: 'contains',
+                width: '100%',
+                onValueChanged: (e) => { filterCourseId = e.value; applyFilters(); }
+            });
+
+            $("#filterAssignment").dxSelectBox({
+                dataSource: assignmentOptions,
+                valueExpr: 'id',
+                displayExpr: 'name',
+                value: 'all',
+                width: 160,
+                onValueChanged: (e) => { filterAssignment = e.value; applyFilters(); }
+            });
+
+            $("#btnClearFilters").on('click', function() {
+                filterTypeId = null;
+                filterCourseId = null;
+                filterAssignment = 'all';
+                $("#filterType").dxSelectBox("instance").option('value', null);
+                $("#filterCourse").dxSelectBox("instance").option('value', null);
+                $("#filterAssignment").dxSelectBox("instance").option('value', 'all');
+                applyFilters();
+            });
+
+            // ── Popup Upload ──
             uploadPopupInstance = $("#uploadPopup").dxPopup({
                 title: "Upload New Resource",
                 width: 500, height: 'auto',
@@ -67,30 +284,26 @@
                 ]
             }).dxPopup("instance");
 
-            // 2. SelectBox
             $("#uploadTypeSelect").dxSelectBox({
                 dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name', value: selectedUploadTypeId,
                 onValueChanged: (e) => { selectedUploadTypeId = e.value; $("#fileUploader").dxFileUploader("instance").option("uploadUrl", getUploadUrl()); }
             });
             function getUploadUrl() { return `${serviceUrl}/Resources/upload?typeId=${selectedUploadTypeId}`; }
 
-            // 3. File Uploader
             $("#fileUploader").dxFileUploader({
                 name: 'file', accept: '.zip', uploadMode: 'useButtons',
                 uploadUrl: getUploadUrl(),
                 onUploaded: () => {
                     showToast("File uploaded successfully", "success", 2000);
-                    if(gridInstance) gridInstance.refresh();
+                    refreshAll();
                     uploadPopupInstance.hide();
                 }
             });
 
-            // 4. DataGrid
-            let isShowingUnassigned = true;
+            // ── DataGrid ──
             gridInstance = initDxGrid("#grid", {
                 dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' }),
                 remoteOperations: true,
-                filterValue: ["courseIdsCount", "=", 0],
                 searchPanel: { visible: true, placeholder: "Search resources..." },
                 showBorders: false,
                 rowAlternationEnabled: true,
@@ -99,43 +312,61 @@
                 editing: {
                     mode: "popup", allowUpdating: true, allowDeleting: true, allowAdding: false, useIcons: true
                 },
-                onToolbarPreparing: function(e) {
-                    // ปล่อยปุ่ม Show All/Show Unassigned ไว้ใน Toolbar เหมือนเดิม เพราะเป็นการ Filter
-                    e.toolbarOptions.items.unshift({
-                        location: "before",
-                        widget: "dxButton",
-                        options: {
-                            text: "Show All Resources",
-                            onClick: function(args) {
-                                if (isShowingUnassigned) {
-                                    gridInstance.clearFilter();
-                                    args.component.option("text", "Show Unassigned Only");
-                                    isShowingUnassigned = false;
-                                } else {
-                                    gridInstance.filter(["courseIdsCount", "=", 0]);
-                                    args.component.option("text", "Show All Resources");
-                                    isShowingUnassigned = true;
-                                }
-                            }
-                        }
-                    });
-                },
                 columns: [
-                    { dataField: "name", caption: "Resource File Name", dataType: "string", minWidth: 250 },
+                    { dataField: "name", caption: "Resource File Name", dataType: "string", minWidth: 200 },
                     { dataField: "typeId", caption: "Resource Type", dataType: "number",
                         lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
-                        alignment: "center", width: 140,
+                        alignment: "center", width: 120,
                         cellTemplate: function(container, options) {
                             const cls = options.value === 1 ? "tag-pill pill-learn" : "tag-pill pill-exam";
                             $("<span>").addClass(cls).text(options.displayValue || "—").appendTo(container);
                         }
                     },
-                    {
-                        dataField: "courseIdsCount", dataType: "number", visible: false,
-                        calculateCellValue: rowData => rowData.courseResources ? rowData.courseResources.length : 0
+                    { dataField: "fileLength", caption: "DB Size", dataType: "number", alignment: "center", width: 100,
+                        allowEditing: false,
+                        cellTemplate: function(container, options) {
+                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
+                                .text(formatFileSize(options.value)).appendTo(container);
+                        }
+                    },
+                    { caption: "Server Files", dataType: "number", alignment: "center", width: 100,
+                        allowEditing: false, allowSorting: false, allowFiltering: false,
+                        cellTemplate: function(container, options) {
+                            const stats = serverStatsMap[options.data.id];
+                            if (!options.data.isActive || !stats) {
+                                $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
+                            } else {
+                                $("<span>").css({ fontSize: "11px", fontWeight: "600", color: "var(--text-primary)" })
+                                    .text(stats.fileCount.toLocaleString()).appendTo(container);
+                            }
+                        }
+                    },
+                    { caption: "Server Size", dataType: "number", alignment: "center", width: 110,
+                        allowEditing: false, allowSorting: false, allowFiltering: false,
+                        cellTemplate: function(container, options) {
+                            const stats = serverStatsMap[options.data.id];
+                            if (!options.data.isActive || !stats) {
+                                $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
+                            } else {
+                                $("<span>").css({ fontSize: "11px", fontWeight: "600", color: "var(--accent-color)" })
+                                    .text(formatFileSize(stats.totalSize)).appendTo(container);
+                            }
+                        }
+                    },
+                    { dataField: "courseIdsCount", caption: "Courses", dataType: "number", alignment: "center", width: 90,
+                        allowEditing: false,
+                        cellTemplate: function(container, options) {
+                            const count = options.value || 0;
+                            if (count === 0) {
+                                $("<span>").addClass("status-pill pill-default").text("None").appendTo(container);
+                            } else {
+                                $("<span>").addClass("status-pill pill-success").text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
+                            }
+                        }
                     },
                     {
                         dataField: "courseIds", caption: "Assigned Courses", dataType: "object", allowSorting: false,
+                        allowFiltering: false, allowEditing: false, minWidth: 200,
                         calculateCellValue: rowData => rowData.courseResources ? rowData.courseResources.map(cr => cr.courseId) : [],
                         lookup: {
                             dataSource: dsCoursesLookup,
@@ -143,7 +374,8 @@
                             valueExpr: 'id'
                         }
                     },
-                    { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center",
+                    { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center", width: 100,
+                        allowEditing: false,
                         cellTemplate: function(container, options) {
                             const cls = options.value ? "status-pill pill-success" : "status-pill pill-default";
                             const label = options.value ? "Active" : "Draft";
@@ -151,10 +383,13 @@
                         }
                     },
                     {
-                        type: "buttons", caption: "Manage", width: 140, alignment: "center",
+                        type: "buttons", caption: "Manage", width: 160, alignment: "center",
                         buttons: [
                             { hint: "Publish", icon: "upload", visible: e => !e.row.data.isActive, onClick: e => setResourcePublic(e.row.data.id) },
-                            { hint: "Preview", icon: "video", visible: e => e.row.data.isActive, onClick: e => window.open(`${serviceUrl}/Resources/${e.row.data.id}/content`, '_blank') },
+                            { hint: "Preview", icon: "video", visible: e => e.row.data.isActive, onClick: e => viewContent(e.row.data.id, e.row.data.name) },
+                            { hint: "Unpublish", icon: "download", cssClass: "dx-btn-unpublish",
+                              visible: e => e.row.data.isActive && (e.row.data.courseIdsCount || 0) === 0,
+                              onClick: e => unpublishResource(e.row.data.id, e.row.data.name) },
                             "edit",
                             { name: "delete", visible: e => !e.row.data.isActive }
                         ]
@@ -163,16 +398,69 @@
             });
 
             function setResourcePublic(id) {
-                if(confirm("Extract and publish this SCORM package?")) {
-                    $.post(`${serviceUrl}/Resources/SetPublic?key=${id}`, () => {
-                        showToast("Published successfully!", "success", 2000);
-                        if(gridInstance) gridInstance.refresh();
-                    });
-                }
+                Swal.fire({
+                    title: 'Publish Resource?',
+                    text: 'Extract and publish this SCORM package?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-upload"></i> Publish',
+                    cancelButtonText: 'Cancel',
+                    customClass: { confirmButton: 'btn btn-primary me-2', cancelButton: 'btn btn-secondary' },
+                    buttonsStyling: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `${serviceUrl}/Resources/SetPublic?key=${id}`,
+                            type: 'POST',
+                            xhrFields: { withCredentials: true }
+                        }).done(() => {
+                                showToast("Published successfully!", "success", 2000);
+                                refreshAll();
+                            })
+                            .fail((xhr) => {
+                                showToast(xhr.responseJSON?.message || "Failed to publish resource", "error", 3000);
+                            });
+                    }
+                });
+            }
+
+            function unpublishResource(id, name) {
+                const stats = serverStatsMap[id];
+                const sizeText = stats ? formatFileSize(stats.totalSize) : '';
+                const filesText = stats ? `${stats.fileCount.toLocaleString()} files` : '';
+                const detail = sizeText ? `This will delete ${filesText} (${sizeText}) from the server.` : 'This will delete extracted files from the server.';
+
+                Swal.fire({
+                    title: 'Unpublish Resource?',
+                    html: `<div style="font-size:13px;color:#666;text-align:left;">
+                               <p><strong>${name}</strong></p>
+                               <p>${detail}</p>
+                               <p style="color:var(--text-secondary);font-size:12px;">The original .zip file in the database will be kept so you can re-publish later.</p>
+                           </div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-box-archive"></i> Unpublish',
+                    cancelButtonText: 'Cancel',
+                    customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
+                    buttonsStyling: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `${serviceUrl}/Resources/Unpublish?key=${id}`,
+                            type: 'POST',
+                            xhrFields: { withCredentials: true }
+                        }).done((res) => {
+                                showToast(res.message || "Resource unpublished.", "success", 2000);
+                                refreshAll();
+                            })
+                            .fail((xhr) => {
+                                showToast(xhr.responseJSON?.message || "Failed to unpublish resource.", "error", 3000);
+                            });
+                    }
+                });
             }
         });
 
-        // เรียกจากปุ่มบน Page Header
         window.openUploadPopup = function() {
             uploadPopupInstance.show();
         };
