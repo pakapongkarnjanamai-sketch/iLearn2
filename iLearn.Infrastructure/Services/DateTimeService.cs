@@ -1,7 +1,7 @@
-﻿using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Interfaces.Services;
 using System.Globalization;
 
-namespace iLearn.Application.Services
+namespace iLearn.Infrastructure.Services
 {
     public class DateTimeService : IDateTime
     {

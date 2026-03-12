@@ -13,13 +13,16 @@ namespace iLearn.Application.Services
         private readonly IStudentApiService _studentApiService;
         private readonly IStudentGroupService _studentGroupService;
         private readonly ICurrentUserService _currentUser;
+        private readonly IDateTime _dateTime;
+
         public AssignmentDashboardService(
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
             IStudentApiService studentApiService,
             IStudentGroupService studentGroupService,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            IDateTime dateTime)
         {
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
@@ -27,6 +30,7 @@ namespace iLearn.Application.Services
             _studentApiService = studentApiService;
             _studentGroupService = studentGroupService;
             _currentUser = currentUser;
+            _dateTime = dateTime;
         }
 
         // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -226,7 +230,7 @@ namespace iLearn.Application.Services
                 includeProperties: "Enrollment"
             );
 
-            var currentDate = DateTime.UtcNow.AddHours(7);
+            var currentDate = _dateTime.Now;
 
             var grouped = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
@@ -388,6 +392,115 @@ namespace iLearn.Application.Services
             public DateTime? StartDate { get; set; }
             public DateTime? DueDate { get; set; }
             public Course? Course { get; set; }
+        }
+
+        // ── GetGroupHistoryAsync ────────────────────────────────────────────────
+        public async Task<List<AssignmentGroupHistoryDto>> GetGroupHistoryAsync(int groupId)
+        {
+            var assignments = await _assignmentRepo.GetAsync(
+                r => r.StudentGroupId == groupId &&
+                (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
+                includeProperties: "Course"
+            );
+
+            if (!assignments.Any())
+                return [];
+
+            var allIds = assignments.Select(a => a.Id).ToList();
+
+            var links = await _enrollmentAssignmentRepo.GetAsync(
+                ea => allIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment"
+            );
+
+            var now = _dateTime.Now;
+
+            return assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Select(g =>
+                {
+                    var first   = g.First();
+                    var ruleIds = g.Select(a => a.Id).ToList();
+
+                    var relatedLinks = links
+                        .Where(ea => ruleIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
+                        .ToList();
+
+                    bool allDone = relatedLinks.Any()
+                        && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
+
+                    string status = CalculateStatus(
+                        relatedLinks.Any(), allDone, first.StartDate, first.DueDate, now);
+
+                    var done  = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
+                    var total = relatedLinks.Count;
+                    var pct   = total > 0 ? Math.Round((double)done / total * 100) : 0;
+
+                    return new AssignmentGroupHistoryDto
+                    {
+                        Id                       = first.Id,
+                        AssignmentNo             = g.Key,
+                        Description              = first.Description,
+                        CourseNames              = string.Join(", ", g
+                            .Select(c => c.Course != null ? c.Course.Title : "Unknown").Distinct()),
+                        CourseCount              = g.Select(a => a.CourseId).Distinct().Count(),
+                        StartDate                = first.StartDate,
+                        DueDate                  = first.DueDate,
+                        Status                   = status,
+                        CompletedEnrollmentCount = done,
+                        TotalEnrollmentCount     = total,
+                        CompletionPct            = pct
+                    };
+                })
+                .OrderByDescending(x => x.AssignmentNo)
+                .ToList();
+        }
+
+        // ── ExtendDueDateAsync ──────────────────────────────────────────────────
+        public async Task ExtendDueDateAsync(int assignmentId, DateTime newDueDate)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId);
+            if (mainRule == null)
+                throw new KeyNotFoundException("Assignment not found");
+
+            if (mainRule.StartDate.HasValue && newDueDate <= mainRule.StartDate.Value)
+                throw new ArgumentException("Due date must be after the start date.");
+
+            var allRules = await _assignmentRepo.GetAsync(r => r.AssignmentNo == mainRule.AssignmentNo);
+            foreach (var rule in allRules)
+            {
+                rule.DueDate = newDueDate;
+                await _assignmentRepo.UpdateAsync(rule);
+            }
+
+            var ruleIds = allRules.Select(r => r.Id).ToList();
+            var activeLinks = await _enrollmentAssignmentRepo.GetAsync(
+                ea => ruleIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment"
+            );
+            foreach (var link in activeLinks.Where(ea => ea.Enrollment != null && !(ea.SnapshotCompleted || ea.Enrollment.IsCompleted)))
+            {
+                link.DueDate = newDueDate;
+                await _enrollmentAssignmentRepo.UpdateAsync(link);
+            }
+        }
+
+        // ── GetLookupCoursesAsync ───────────────────────────────────────────────
+        public async Task<List<LookupCourseDto>> GetLookupCoursesAsync()
+        {
+            var courses = await _courseRepo.GetAsync(c => c.IsActive, includeProperties: "Category,CourseType");
+
+            return courses.Select(c => new LookupCourseDto
+            {
+                Id            = c.Id,
+                Code          = c.Code,
+                Title         = c.Title,
+                CategoryId    = c.CategoryId,
+                DivisionId    = c.Category?.DivisionId,
+                CourseTypeId  = c.CourseTypeId,
+                CourseTypeName = c.CourseType?.Name
+            }).ToList();
         }
     }
 }

@@ -1,10 +1,7 @@
 ﻿using iLearn.Application.Interfaces.Services;
-using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Linq.Expressions;
 
 namespace iLearn.Infrastructure.Persistence
@@ -12,17 +9,15 @@ namespace iLearn.Infrastructure.Persistence
     public class AppDbContext : DbContext
     {
         private readonly IDateTime _dateTime;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICurrentUserService _currentUserService;
+
         public AppDbContext(
           DbContextOptions<AppDbContext> options,
           IDateTime dateTime,
-          IHttpContextAccessor httpContextAccessor,
           ICurrentUserService currentUserService)
           : base(options)
         {
             _dateTime = dateTime;
-            _httpContextAccessor = httpContextAccessor;
             _currentUserService = currentUserService;
         }
 

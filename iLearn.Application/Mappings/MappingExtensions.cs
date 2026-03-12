@@ -31,7 +31,10 @@ namespace iLearn.Application.Mappings
                 CategoryId = entity.CategoryId,
                 CategoryName = entity.Category?.Name ?? "General", // ป้องกัน Null
 
-                Version = currentVersion?.VersionNumber ?? 0
+                Version = currentVersion?.VersionNumber ?? 0,
+
+                // 🆕 Data Isolation: ดึง DivisionId จาก Category
+                DivisionId = entity.Category?.DivisionId
             };
         }
 

@@ -1,5 +1,4 @@
 ﻿using iLearn.Application.DTOs;
-using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -18,6 +17,7 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IStudentApiService _studentApiService;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
+        private readonly IDateTime _dateTime;
 
         public CourseAssignmentService(
             ICourseRepository courseRepo,
@@ -25,7 +25,8 @@ namespace iLearn.Application.Services
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Assignment> assignmentRepo,
             IStudentApiService studentApiService,
-            IGenericRepository<CourseVersion> versionRepo)
+            IGenericRepository<CourseVersion> versionRepo,
+            IDateTime dateTime)
         {
             _courseRepo = courseRepo;
             _enrollmentRepo = enrollmentRepo;
@@ -33,6 +34,7 @@ namespace iLearn.Application.Services
             _assignmentRepo = assignmentRepo;
             _studentApiService = studentApiService;
             _versionRepo = versionRepo;
+            _dateTime = dateTime;
         }
 
      
@@ -101,7 +103,6 @@ namespace iLearn.Application.Services
                     CourseId              = course.Id,
                     EnrolledCourseVersion = activeVersion.Id,
                     IsCompleted           = false,
-                    CreatedAt             = DateTime.UtcNow,
                     StartDate             = startDate,
                     DueDate               = dueDate
                 };
@@ -125,7 +126,7 @@ namespace iLearn.Application.Services
                 }
 
                 // ตั้ง ResetAt เพื่อให้ player-info กรอง Log เก่าออก (Log ยังอยู่ใน DB เพื่อเก็บ history)
-                existing.ResetAt               = DateTime.Now;
+                existing.ResetAt               = _dateTime.Now;
                 existing.EnrolledCourseVersion = activeVersion.Id;
                 existing.IsCompleted           = false;
                 existing.CompletedDate         = null;
@@ -151,8 +152,7 @@ namespace iLearn.Application.Services
                         EnrollmentId = existing.Id,
                         AssignmentId = assignmentRuleId.Value,
                         StartDate    = startDate,
-                        DueDate      = dueDate,
-                        CreatedAt    = DateTime.UtcNow
+                        DueDate      = dueDate
                     });
                 }
                 else
@@ -176,7 +176,7 @@ namespace iLearn.Application.Services
                 includeProperties: "Enrollment"
             );
 
-            var currentDate = DateTime.UtcNow.AddHours(7);
+            var currentDate = _dateTime.Now;
 
             var groupedHistory = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))

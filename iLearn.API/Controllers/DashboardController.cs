@@ -1,5 +1,6 @@
 ﻿// File: iLearn.API/Controllers/DashboardController.cs
 using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -18,6 +19,8 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<LearningLog> _learningLogRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
+        private readonly ICurrentUserService _currentUser;
+        private readonly IDateTime _dateTime;
 
         public DashboardController(
             IGenericRepository<Course> courseRepo,
@@ -25,7 +28,9 @@ namespace iLearn.API.Controllers
             IGenericRepository<Resource> resourceRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<LearningLog> learningLogRepo,
-            IGenericRepository<Assignment> assignmentRepo)
+            IGenericRepository<Assignment> assignmentRepo,
+            ICurrentUserService currentUser,
+            IDateTime dateTime)
         {
             _courseRepo = courseRepo;
             _userRepo = userRepo;
@@ -33,20 +38,22 @@ namespace iLearn.API.Controllers
             _enrollmentRepo = enrollmentRepo;
             _learningLogRepo = learningLogRepo;
             _assignmentRepo = assignmentRepo;
+            _currentUser = currentUser;
+            _dateTime = dateTime;
         }
 
         [HttpGet("Stats")]
         public async Task<IActionResult> GetStats()
         {
-            // ใช้ CountAsync ซึ่งจะไป Gen SQL "SELECT COUNT(*)..." ที่เร็วมาก และไม่ดึง Data ออกมา
             var activeCourses = await _courseRepo.CountAsync(c => c.IsActive);
             var draftCourses = await _courseRepo.CountAsync(c => !c.IsActive);
             var totalResources = await _resourceRepo.CountAsync();
 
-            var now = DateTime.UtcNow;
+            var now = _dateTime.Now;
             var inProgressAssignments = await _assignmentRepo.CountAsync(
                 a => (!a.StartDate.HasValue || a.StartDate.Value <= now)
-                  && (!a.DueDate.HasValue  || a.DueDate.Value  >= now));
+                  && (!a.DueDate.HasValue  || a.DueDate.Value  >= now)
+                  && (!_currentUser.DivisionId.HasValue || a.DivisionId == _currentUser.DivisionId.Value));
 
             return Ok(new
             {
@@ -64,7 +71,7 @@ namespace iLearn.API.Controllers
         [HttpGet("EnrollmentTrends")]
         public IActionResult GetEnrollmentTrends()
         {
-            var today = DateTime.Today;
+            var today = _dateTime.Now.Date;
 
             var months = Enumerable.Range(0, 6)
                 .Select(i => today.AddMonths(-5 + i))
@@ -90,7 +97,7 @@ namespace iLearn.API.Controllers
         [HttpGet("LearningActivityTrends")]
         public IActionResult GetLearningActivityTrends()
         {
-            var today = DateTime.Today;
+            var today = _dateTime.Now.Date;
 
             // 6 เดือนย้อนหลัง
             var months = Enumerable.Range(0, 6)

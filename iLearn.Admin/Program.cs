@@ -1,7 +1,7 @@
 ﻿using iLearn.Application.Interfaces.Services;
 
-using iLearn.Application.Middleware;
-using iLearn.Application.Services;
+using iLearn.Infrastructure.Middleware;
+using iLearn.Infrastructure.Services;
 using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 

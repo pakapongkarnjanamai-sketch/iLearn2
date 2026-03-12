@@ -22,6 +22,8 @@
    - ใน API Controllers (`[HttpGet] Get`) ต้องกรองข้อมูลตาม `_currentUser.DivisionId` เสมอ เพื่อให้ Admin แต่ละแผนกเห็นเฉพาะข้อมูลของตัวเอง
    - ใช้เงื่อนไข `if (_currentUser.DivisionId.HasValue)` ในการกรอง Query
    - ระบบจัดการ **Bypass** ให้สิทธิ์ระดับสูง (เช่น `SuperAdmin`, `Admin`) อัตโนมัติจาก `CurrentUserService` ซึ่งจะคืนค่า `DivisionId` เป็น `null` ทำให้มองเห็นข้อมูลทั้งหมดทั่วระบบ
+8. **Backend Language (English Only)**: การเขียนคอมเมนต์ (Comments), การเก็บ Logs, ข้อความ Exceptions และ Response Messages ภายในฝั่ง Backend (`iLearn.API`, `Application`, `Infrastructure`) **ต้องเขียนเป็นภาษาอังกฤษทั้งหมด** เพื่อความเป็นมาตรฐานสากลและหลีกเลี่ยงปัญหา Encoding (ส่วน Frontend UI ยังคงแสดงผลภาษาไทยให้ผู้ใช้งานตามปกติ)
+
 
 ## Front-end Design Patterns
 

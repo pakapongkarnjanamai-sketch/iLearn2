@@ -1,8 +1,8 @@
-﻿using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
-namespace iLearn.Application.Services
+namespace iLearn.Infrastructure.Services
 {
     public class CurrentUserService : ICurrentUserService
     {
@@ -19,7 +19,7 @@ namespace iLearn.Application.Services
             {
                 var user = _httpContextAccessor.HttpContext?.User;
 
-                // กรณีไม่มี User Login หรือเป็น System ให้ return "SYSTEM" หรือค่าว่างตาม Business Rule
+                // ????????? User Login ???????? System ??? return "SYSTEM" ?????????????? Business Rule
                 if (user?.Identity?.IsAuthenticated != true)
                     return "SYSTEM";
 
@@ -27,7 +27,7 @@ namespace iLearn.Application.Services
                 if (string.IsNullOrEmpty(fullName))
                     return "SYSTEM";
 
-                // Logic ตัด Domain: ถ้ามี Backslash ให้เอาข้างหลัง, ถ้าไม่มีให้เอาทั้งหมด
+                // Logic ??? Domain: ????? Backslash ??????????????, ?????????????????????
                 var parts = fullName.Split('\\');
                 return parts.Length > 1 ? parts[1] : parts[0];
             }
@@ -41,7 +41,7 @@ namespace iLearn.Application.Services
         {
             get
             {
-                // SuperAdmin เห็นทุก Division → return null เพื่อข้ามการกรอง
+                // SuperAdmin ??????? Division ? return null ????????????????
                 if (IsSuperAdmin)
                     return null;
 
@@ -56,7 +56,7 @@ namespace iLearn.Application.Services
             _httpContextAccessor.HttpContext?.User?.FindFirst("Division")?.Value;
 
         public bool IsSuperAdmin =>
-            // เพิ่มชื่อ Role ที่ถือว่าเป็นสิทธิ์สูงสุดของระบบคุณเข้าไป (ให้ตรงกับชื่อ Role ในฐานข้อมูล)
+            // ????????? Role ????????????????????????????????????????? (????????????? Role ???????????)
             (_httpContextAccessor.HttpContext?.User?.IsInRole("SuperAdmin") ?? false) ||
             (_httpContextAccessor.HttpContext?.User?.IsInRole("Develop") ?? false) ||
             (_httpContextAccessor.HttpContext?.User?.IsInRole("Developer") ?? false) ||

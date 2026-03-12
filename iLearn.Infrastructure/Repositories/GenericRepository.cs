@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +12,13 @@ namespace iLearn.Infrastructure.Repositories
     {
         protected readonly AppDbContext _context;
         protected readonly DbSet<T> _dbSet;
+        private readonly IDateTime _dateTime;
 
-        public GenericRepository(AppDbContext context)
+        public GenericRepository(AppDbContext context, IDateTime dateTime)
         {
             _context = context;
             _dbSet = context.Set<T>();
+            _dateTime = dateTime;
         }
         public IQueryable<T> GetQuery()
         {
@@ -47,7 +50,7 @@ namespace iLearn.Infrastructure.Repositories
         public async Task DeleteAsync(T entity)
         {
             entity.IsDeleted  = true;
-            entity.DeletedAt  = DateTime.UtcNow;
+            entity.DeletedAt  = _dateTime.Now;
             _context.Entry(entity).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }

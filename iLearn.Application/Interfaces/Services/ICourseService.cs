@@ -21,8 +21,10 @@ namespace iLearn.Application.Interfaces.Services
 
         // Delete Operations
         Task DeleteCourseAsync(int id);
-        
-      
 
+        // Dashboard / Aggregation Operations
+        Task<List<CourseLearnerDto>> GetCourseLearnersAsync(int courseId);
+        Task<List<CourseAssignmentHistoryDto>> GetCourseAssignmentsAsync(int courseId);
+        Task<CourseDashboardDto> GetCourseDashboardAsync(int courseId);
     }
 }

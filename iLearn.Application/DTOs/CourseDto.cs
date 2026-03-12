@@ -21,6 +21,9 @@ namespace iLearn.Application.DTOs
 
         public int Version { get; set; }
 
+        // Data Isolation: DivisionId จาก Category เพื่อใช้กรองฝั่ง Admin
+        public int? DivisionId { get; set; }
+
         // [เพิ่มใหม่] ถ้าต้องการส่ง URL รูปภาพปก (ถ้ามีในอนาคต)
         public string? CoverImageUrl { get; set; }
     }

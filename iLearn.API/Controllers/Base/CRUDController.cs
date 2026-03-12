@@ -1,5 +1,4 @@
 ﻿using DevExtreme.AspNet.Data;
-using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;

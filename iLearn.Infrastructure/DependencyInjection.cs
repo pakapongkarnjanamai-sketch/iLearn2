@@ -1,9 +1,7 @@
 ﻿using iLearn.Application.Common;
-using iLearn.Application.Common;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
-using iLearn.Application.Services;
 using iLearn.Infrastructure.Persistence;
 using iLearn.Infrastructure.Repositories;
 using iLearn.Infrastructure.Services;

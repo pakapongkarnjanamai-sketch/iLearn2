@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace iLearn.Application.Middleware
+namespace iLearn.Infrastructure.Middleware
 {
     public class ApiUserSyncMiddleware
     {
@@ -39,10 +39,10 @@ namespace iLearn.Application.Middleware
                 {
                     var cacheKey = $"user_claims_{windowsIdentity}";
 
-                    // ── 1. ดึงแค่ข้อมูล Claims (List<Claim>) จาก Cache แทนการดึงทั้ง Principal ──
+                    // ?? 1. ???????????? Claims (List<Claim>) ??? Cache ????????????? Principal ??
                     if (_cache.TryGetValue(cacheKey, out List<Claim>? cachedClaims) && cachedClaims != null)
                     {
-                        // สร้าง Identity ใหม่จาก Claims ที่ Cache ไว้ แล้วผูกกับ User เดิม
+                        // ????? Identity ??????? Claims ??? Cache ??? ?????????? User ????
                         var identity = new ClaimsIdentity(cachedClaims, "iLearnAuth");
                         context.User.AddIdentity(identity);
 
@@ -50,11 +50,11 @@ namespace iLearn.Application.Middleware
                         return;
                     }
 
-                    // ── 2. ไม่มี cache → sync จาก API ──
+                    // ?? 2. ????? cache ? sync ??? API ??
                     _logger.LogInformation("Syncing user claims from API for: {WindowsIdentity}", windowsIdentity);
                     try
                     {
-                        // (เอา forceRefresh ออก เพื่อป้องกันการยิงดรอปดาต้าเบสจากหน้าเว็บ)
+                        // (??? forceRefresh ??? ?????????????????????????????????????????)
                         var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, false);
                         if (userResponse.Success && userResponse.Data != null)
                         {
@@ -82,10 +82,10 @@ namespace iLearn.Application.Middleware
                             if (primaryDivisionId > 0)
                                 claims.Add(new Claim("DivisionId", primaryDivisionId.ToString()));
 
-                            // ── 3. เก็บเฉพาะ List<Claim> ลง Cache (ปลอดภัยเชิง Thread-safety) ──
+                            // ?? 3. ????????? List<Claim> ?? Cache (??????????? Thread-safety) ??
                             _cache.Set(cacheKey, claims, TimeSpan.FromMinutes(10));
 
-                            // นำไปผูกกับ context.User ปัจจุบัน
+                            // ?????????? context.User ????????
                             var newIdentity = new ClaimsIdentity(claims, "iLearnAuth");
                             context.User.AddIdentity(newIdentity);
 
@@ -94,11 +94,11 @@ namespace iLearn.Application.Middleware
                                 windowsIdentity,
                                 user.Roles?.Count ?? 0,
                                 string.Join(", ", user.Roles?.Select(r => r.Name) ?? []),
-                                primaryDivisionId > 0 ? primaryDivisionId.ToString() : "—");
+                                primaryDivisionId > 0 ? primaryDivisionId.ToString() : "�");
                         }
                         else
                         {
-                            _logger.LogWarning("API sync failed for: {WindowsIdentity} — {Message}",
+                            _logger.LogWarning("API sync failed for: {WindowsIdentity} � {Message}",
                                 windowsIdentity, userResponse.Message);
                         }
                     }
@@ -117,7 +117,7 @@ namespace iLearn.Application.Middleware
             var path = context.Request.Path.Value?.ToLowerInvariant();
             if (path == null) return false;
 
-            // วิธีเขียนตรวจสอบ Static files ที่สั้นลง
+            // ???????????????? Static files ?????????
             var staticFilePaths = new[] { "/_framework/", "/css/", "/js/", "/lib/", "/images/", "/favicon.ico" };
             var staticExtensions = new[] { ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot" };
 

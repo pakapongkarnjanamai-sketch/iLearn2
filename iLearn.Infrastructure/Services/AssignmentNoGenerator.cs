@@ -1,5 +1,4 @@
 using iLearn.Application.Interfaces.Services;
-using iLearn.Application.Interfaces.Services;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,10 +11,12 @@ namespace iLearn.Infrastructure.Services
     public class AssignmentNoGenerator : IAssignmentNoGenerator
     {
         private readonly AppDbContext _context;
+        private readonly IDateTime _dateTime;
 
-        public AssignmentNoGenerator(AppDbContext context)
+        public AssignmentNoGenerator(AppDbContext context, IDateTime dateTime)
         {
             _context = context;
+            _dateTime = dateTime;
         }
 
         public async Task<string> NextAsync()
@@ -30,7 +31,7 @@ namespace iLearn.Infrastructure.Services
                 var result = await cmd.ExecuteScalarAsync();
                 int seqValue = Convert.ToInt32(result);
 
-                string datePrefix = DateTime.Now.ToString("yyyyMMdd");
+                string datePrefix = _dateTime.Now.ToString("yyyyMMdd");
                 return $"AS-{datePrefix}-{seqValue:D3}";
             }
             finally

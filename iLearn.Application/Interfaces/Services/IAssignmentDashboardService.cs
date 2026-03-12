@@ -1,7 +1,5 @@
 using iLearn.Application.DTOs;
 
-using iLearn.Application.DTOs;
-
 namespace iLearn.Application.Interfaces.Services
 {
     /// <summary>
@@ -18,6 +16,15 @@ namespace iLearn.Application.Interfaces.Services
 
         /// <summary>Paginated + filterable assignment history.</summary>
         Task<PagedResult<AssignmentHistoryDto>> GetAssignmentHistoryPagedAsync(PaginationParams p);
+
+        /// <summary>Get assignment history for a specific Student Group.</summary>
+        Task<List<AssignmentGroupHistoryDto>> GetGroupHistoryAsync(int groupId);
+
+        /// <summary>Extend due date for all assignments in the same AssignmentNo group.</summary>
+        Task ExtendDueDateAsync(int assignmentId, DateTime newDueDate);
+
+        /// <summary>Get active courses for lookup (assignment creation).</summary>
+        Task<List<LookupCourseDto>> GetLookupCoursesAsync();
     }
 
     public class ValidateBeforeAssignResult

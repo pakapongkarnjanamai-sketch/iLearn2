@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace iLearn.Application.DTOs
@@ -9,6 +9,7 @@ namespace iLearn.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int MemberCount { get; set; }
+        public int? DivisionId { get; set; }          // 🆕 เพิ่ม
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
     }

@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using Microsoft.Extensions.Options;
@@ -10,7 +10,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace iLearn.Application.Services
+namespace iLearn.Infrastructure.Services
 {
     public class StudentApiService : IStudentApiService
     {
@@ -66,9 +66,9 @@ namespace iLearn.Application.Services
         }
 
         /// <summary>
-        /// Bulk lookup: ยิง HTTP 1 ครั้งผ่าน /api/Student/all (Server cache 24h)
-        /// แล้ว filter เฉพาะ codes ที่ต้องการใน memory
-        /// แทนการยิง GetStudentByCodeAsync ทีละคน (N+1 problem)
+        /// Bulk lookup: ??? HTTP 1 ????????? /api/Student/all (Server cache 24h)
+        /// ???? filter ????? codes ???????????? memory
+        /// ????????? GetStudentByCodeAsync ?????? (N+1 problem)
         /// </summary>
         public async Task<Dictionary<string, ExternalStudentDto>> GetStudentsByCodesAsync(
             IEnumerable<string> codes)
@@ -76,7 +76,7 @@ namespace iLearn.Application.Services
             try
             {
                 var codeSet  = codes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var response = await GetStudentAsync(); // reuse — server มี MemoryCache 24h
+                var response = await GetStudentAsync(); // reuse � server ?? MemoryCache 24h
 
                 if (response?.data == null)
                     return new Dictionary<string, ExternalStudentDto>(StringComparer.OrdinalIgnoreCase);
@@ -126,7 +126,7 @@ namespace iLearn.Application.Services
         {
             try
             {
-                // อัปเดต URL เป็น GetDistinctSections
+                // ?????? URL ???? GetDistinctSections
                 var url = $"{_baseStudentLookupUrl}/GetDistinctSections{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;
@@ -142,7 +142,7 @@ namespace iLearn.Application.Services
         {
             try
             {
-                // อัปเดต URL เป็น GetDistinctDivisions
+                // ?????? URL ???? GetDistinctDivisions
                 var url = $"{_baseStudentLookupUrl}/GetDistinctDivisions{queryString}";
                 var response = await _httpClient.GetFromJsonAsync<object>(url);
                 return response;

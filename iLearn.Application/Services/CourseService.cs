@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
@@ -25,6 +26,12 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Enrollment> _enrollmentRepository;
         private readonly IGenericRepository<LearningLog> _learningLogRepository;
         private readonly IGenericRepository<Assignment> _assignmentRepository;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IStudentApiService _studentApiService;
+        private readonly ICurrentUserService _currentUser;
+        private readonly IDateTime _dateTime;
+        private readonly ICourseVersionService _versionService;
 
         public CourseService(
             ICourseRepository courseRepository,
@@ -36,7 +43,13 @@ namespace iLearn.Application.Services
             IGenericRepository<Enrollment> enrollmentRepository,
             IGenericRepository<LearningLog> learningLogRepository,
             IGenericRepository<Assignment> assignmentRepository,
-            IScormService scormService)
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepository,
+            IScormService scormService,
+            IUnitOfWork unitOfWork,
+            IStudentApiService studentApiService,
+            ICurrentUserService currentUser,
+            IDateTime dateTime,
+            ICourseVersionService versionService)
         {
             _courseRepo = courseRepository;
             _courseResourceRepository = courseResourceRepository;
@@ -46,10 +59,16 @@ namespace iLearn.Application.Services
             _enrollmentRepository = enrollmentRepository;
             _learningLogRepository = learningLogRepository;
             _assignmentRepository = assignmentRepository;
+            _enrollmentAssignmentRepository = enrollmentAssignmentRepository;
 
             _resourceRepository = resourceRepository;
             _fileStorageRepository = fileStorageRepository;
             _scormService = scormService;
+            _unitOfWork = unitOfWork;
+            _studentApiService = studentApiService;
+            _currentUser = currentUser;
+            _dateTime = dateTime;
+            _versionService = versionService;
         }
 
         public async Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool isActive = true)
@@ -126,7 +145,7 @@ namespace iLearn.Application.Services
         {
             if (!await _courseRepo.IsCourseCodeUniqueAsync(model.CourseCode))
             {
-                throw new InvalidOperationException($"รหัสวิชา '{model.CourseCode}' ถูกใช้งานไปแล้ว");
+                throw new InvalidOperationException($"Course code '{model.CourseCode}' is already in use.");
             }
 
             var course = new Course
@@ -136,8 +155,7 @@ namespace iLearn.Application.Services
                 CategoryId = model.CategoryId,
                 Description = model.Description,
                 CourseTypeId = model.CourseType,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                IsActive = true
             };
 
             await _courseRepo.AddAsync(course);
@@ -147,8 +165,7 @@ namespace iLearn.Application.Services
                 CourseId = course.Id,
                 VersionNumber = 1,
                 Note = "Initial Create",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                IsActive = true
             };
             await _courseVersionRepository.AddAsync(courseVersion);
 
@@ -164,7 +181,7 @@ namespace iLearn.Application.Services
         {
             if (!await _courseRepo.IsCourseCodeUniqueAsync(model.CourseCode))
             {
-                throw new InvalidOperationException($"รหัสวิชา '{model.CourseCode}' ถูกใช้งานไปแล้ว");
+                throw new InvalidOperationException($"Course code '{model.CourseCode}' is already in use.");
             }
 
             var course = new Course
@@ -174,8 +191,7 @@ namespace iLearn.Application.Services
                 Description = model.Description,
                 CategoryId = model.CategoryId,
                 CourseTypeId = model.CourseType,
-                IsActive = false, // Draft status
-                CreatedAt = DateTime.UtcNow
+                IsActive = false // Draft status
             };
 
             await _courseRepo.AddAsync(course);
@@ -185,8 +201,7 @@ namespace iLearn.Application.Services
                 CourseId = course.Id,
                 VersionNumber = 1,
                 Note = "Draft (Initial Upload)",
-                IsActive = false,
-                CreatedAt = DateTime.UtcNow
+                IsActive = false
             };
             await _courseVersionRepository.AddAsync(version);
 
@@ -202,7 +217,7 @@ namespace iLearn.Application.Services
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
-                throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
+                throw new KeyNotFoundException($"Course with ID {id} was not found.");
 
             course.Title = dto.CourseName;
             course.Description = dto.Description;
@@ -227,9 +242,9 @@ namespace iLearn.Application.Services
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
-                throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
+                throw new KeyNotFoundException($"Course with ID {id} was not found.");
 
-            // ── Guard: ห้ามลบถ้ายังมีผู้เรียนที่เรียนจริงอยู่ ──────────────
+            // ── Guard: prevent deletion if active learners exist ──────────────
             // นับเฉพาะ Enrollment ที่: ยังไม่จบ + เคยเปิดเรียน + มี Progress จริง (> 0)
             // กรอง "zombie enrollment" (StartDate ค้างแต่ไม่มี Progress) ออก
             var inProgressCount = await _enrollmentRepository.CountAsync(
@@ -237,7 +252,7 @@ namespace iLearn.Application.Services
             );
             if (inProgressCount > 0)
                 throw new InvalidOperationException(
-                    $"ไม่สามารถลบคอร์สได้ เนื่องจากมีผู้เรียนที่กำลังเรียนอยู่ {inProgressCount} คน"
+                    $"Cannot delete this course because {inProgressCount} learner(s) are currently in progress."
                 );
 
             // ── รวบรวม Resource + FileStorage ที่ต้องจัดการ ────────────
@@ -286,34 +301,28 @@ namespace iLearn.Application.Services
 
             // ── Soft Delete: Course, Version, CourseResource, Resource, Assignment ──
             // ── Hard Delete: FileStorage (bytes) + SCORM folders ────────────────────
-            using (var transaction = new System.Transactions.TransactionScope(
-                System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
-            {
-                // Soft-delete Assignments
-                foreach (var a in assignments)
-                    await _assignmentRepository.DeleteAsync(a);
+            // Soft-delete Assignments
+            foreach (var a in assignments)
+                await _assignmentRepository.DeleteAsync(a);
 
-                // Soft-delete CourseResources (linking table)
-                foreach (var cr in courseResources)
-                    await _courseResourceRepository.DeleteAsync(cr);
+            // Soft-delete CourseResources (linking table)
+            foreach (var cr in courseResources)
+                await _courseResourceRepository.DeleteAsync(cr);
 
-                // Soft-delete CourseVersions
-                foreach (var v in versions)
-                    await _courseVersionRepository.DeleteAsync(v);
+            // Soft-delete CourseVersions
+            foreach (var v in versions)
+                await _courseVersionRepository.DeleteAsync(v);
 
-                // Soft-delete Resources (LearningLog.ResourceId ยังอ้างอิงได้)
-                foreach (var r in resourcesToSoftDel)
-                    await _resourceRepository.DeleteAsync(r);
+            // Soft-delete Resources (LearningLog.ResourceId ยังอ้างอิงได้)
+            foreach (var r in resourcesToSoftDel)
+                await _resourceRepository.DeleteAsync(r);
 
-                // Hard-delete FileStorage — ลบ binary data จริง ไม่มี FK จากที่ไหนอ้างอิงมา
-                foreach (var f in fileStoragesToHardDel)
-                    await _fileStorageRepository.HardDeleteAsync(f);
+            // Hard-delete FileStorage — ลบ binary data จริง ไม่มี FK จากที่ไหนอ้างอิงมา
+            foreach (var f in fileStoragesToHardDel)
+                await _fileStorageRepository.HardDeleteAsync(f);
 
-                // Soft-delete Course หลัก (Enrollment + LearningLog ยังอยู่ครบ)
-                await _courseRepo.DeleteAsync(course);
-
-                transaction.Complete();
-            }
+            // Soft-delete Course หลัก (Enrollment + LearningLog ยังอยู่ครบ)
+            await _courseRepo.DeleteAsync(course);
 
             // ── ลบ SCORM folder จาก disk หลัง transaction สำเร็จ ──────
             foreach (var folder in scormFoldersToDelete)
@@ -334,8 +343,7 @@ namespace iLearn.Application.Services
                     {
                         CourseVersionId = versionId,
                         ResourceId = resourceId,
-                        Order = orderIndex++, // 🌟 เก็บค่า Order
-                        CreatedAt = DateTime.UtcNow
+                        Order = orderIndex++ // 🌟 เก็บค่า Order
                     };
                     await _courseResourceRepository.AddAsync(courseResource);
                 }
@@ -361,7 +369,7 @@ namespace iLearn.Application.Services
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
-                throw new KeyNotFoundException($"Course ID: {id} ไม่พบในระบบ");
+                throw new KeyNotFoundException($"Course with ID {id} was not found.");
 
             if (isActive)
             {
@@ -370,7 +378,7 @@ namespace iLearn.Application.Services
                 var activeVersion = activeVersions.FirstOrDefault();
 
                 if (activeVersion == null)
-                    throw new InvalidOperationException("ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากยังไม่มีเวอร์ชัน (Version) ที่เปิดใช้งานอยู่");
+                    throw new InvalidOperationException("Cannot activate the course because no active version exists.");
 
                 // 2. ตรวจสอบว่าเวอร์ชันที่ใช้งานอยู่ มีเนื้อหาบทเรียน (CourseResource) หรือไม่
                 var courseResources = await _courseResourceRepository.GetAsync(
@@ -379,16 +387,16 @@ namespace iLearn.Application.Services
                 );
 
                 if (!courseResources.Any())
-                    throw new InvalidOperationException("ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากเวอร์ชันปัจจุบันยังไม่มีการเพิ่มเนื้อหาบทเรียน");
+                    throw new InvalidOperationException("Cannot activate the course because the current version has no learning resources.");
 
                 // 3. ตรวจสอบความสมบูรณ์ของไฟล์/ข้อมูลใน Resource
                 foreach (var cr in courseResources)
                 {
                     if (cr.Resource == null)
-                        throw new InvalidOperationException("ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากพบเนื้อหาบทเรียนที่สูญหายหรืออ้างอิงไม่ถูกต้อง");
+                        throw new InvalidOperationException("Cannot activate the course because a referenced resource is missing or invalid.");
 
                     if (!cr.Resource.FileStorageId.HasValue && string.IsNullOrWhiteSpace(cr.Resource.URL))
-                        throw new InvalidOperationException($"ไม่สามารถเปิดใช้งานคอร์สได้ เนื่องจากเนื้อหา '{cr.Resource.Name}' ไม่สมบูรณ์ (ไม่มีไฟล์หรือ URL แนบมาด้วย)");
+                        throw new InvalidOperationException($"Cannot activate the course because resource '{cr.Resource.Name}' is incomplete (no file or URL attached).");
                 }
             }
             else
@@ -406,18 +414,174 @@ namespace iLearn.Application.Services
                 {
                     var count = activeEnrollments.Count();
                     throw new InvalidOperationException(
-                        $"ไม่สามารถปิดคอร์สได้ เนื่องจากมีผู้เรียนที่กำลังเรียนอยู่ {count} คน " +
-                        $"กรุณารอให้ผู้เรียนทุกคนเรียนจบก่อน หรือยกเลิก Enrollment ที่เกี่ยวข้องก่อนดำเนินการ"
+                        $"Cannot deactivate the course because {count} learner(s) are currently in progress. " +
+                        $"Please wait until all learners complete or cancel the related enrollments first."
                     );
                 }
             }
 
             course.IsActive = isActive;
-            course.UpdatedAt = DateTime.UtcNow;
 
             await _courseRepo.UpdateAsync(course);
 
             return course.IsActive;
+        }
+
+        // ── Dashboard / Aggregation Operations ─────────────────────────────
+
+        public async Task<List<CourseLearnerDto>> GetCourseLearnersAsync(int courseId)
+        {
+            var enrollments = await _enrollmentRepository.GetAsync(
+                e => e.CourseId == courseId,
+                includeProperties: "AssignmentLinks"
+            );
+
+            if (!enrollments.Any())
+                return [];
+
+            var codes = enrollments.Select(e => e.StudentCode).Distinct().ToList();
+            Dictionary<string, ExternalStudentDto> studentMap;
+            try
+            {
+                studentMap = await _studentApiService.GetStudentsByCodesAsync(codes);
+            }
+            catch
+            {
+                studentMap = new Dictionary<string, ExternalStudentDto>();
+            }
+
+            var now = _dateTime.Now;
+
+            return enrollments.Select(e =>
+            {
+                var student = studentMap.GetValueOrDefault(e.StudentCode);
+                var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
+                var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
+
+                string status;
+                if (e.IsCompleted)
+                    status = "Completed";
+                else if (effectiveStart.HasValue && effectiveStart > now)
+                    status = "Upcoming";
+                else if (effectiveDue.HasValue && effectiveDue < now)
+                    status = "Expired";
+                else if (e.Progress > 0)
+                    status = "InProgress";
+                else
+                    status = "NotStarted";
+
+                return new CourseLearnerDto
+                {
+                    Id            = e.Id,
+                    StudentCode   = e.StudentCode,
+                    StudentName   = student?.Name ?? e.StudentCode,
+                    Division      = student?.Division,
+                    Department    = student?.Department,
+                    Position      = student?.Position,
+                    Progress      = Math.Round(e.Progress),
+                    IsCompleted   = e.IsCompleted,
+                    CompletedDate = e.CompletedDate,
+                    StartDate     = effectiveStart,
+                    DueDate       = effectiveDue,
+                    Status        = status
+                };
+            })
+            .OrderBy(x => x.IsCompleted)
+            .ThenByDescending(x => x.Progress)
+            .ToList();
+        }
+
+        public async Task<List<CourseAssignmentHistoryDto>> GetCourseAssignmentsAsync(int courseId)
+        {
+            var assignments = await _assignmentRepository.GetAsync(
+                r => r.CourseId == courseId
+                  && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
+                includeProperties: "Course"
+            );
+
+            if (!assignments.Any())
+                return [];
+
+            var allIds = assignments.Select(a => a.Id).ToList();
+            var links = await _enrollmentAssignmentRepository.GetAsync(
+                ea => allIds.Contains(ea.AssignmentId),
+                includeProperties: "Enrollment"
+            );
+
+            var now = _dateTime.Now;
+
+            return assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Select(g =>
+                {
+                    var first   = g.First();
+                    var ruleIds = g.Select(a => a.Id).ToList();
+
+                    var relatedLinks = links
+                        .Where(ea => ruleIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
+                        .ToList();
+
+                    bool allDone = relatedLinks.Any()
+                        && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
+
+                    string status = AssignmentDashboardService.CalculateStatus(
+                        relatedLinks.Any(), allDone, first.StartDate, first.DueDate, now);
+
+                    var done  = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
+                    var total = relatedLinks.Count;
+                    var pct   = total > 0 ? Math.Round((double)done / total * 100) : 0;
+
+                    return new CourseAssignmentHistoryDto
+                    {
+                        Id                      = first.Id,
+                        AssignmentNo            = g.Key,
+                        Description             = first.Description,
+                        StartDate               = first.StartDate,
+                        DueDate                 = first.DueDate,
+                        Status                  = status,
+                        CompletedEnrollmentCount = done,
+                        TotalEnrollmentCount     = total,
+                        CompletionPct            = pct,
+                        StudentGroupId           = first.StudentGroupId
+                    };
+                })
+                .OrderByDescending(x => x.AssignmentNo)
+                .ToList();
+        }
+
+        public async Task<CourseDashboardDto> GetCourseDashboardAsync(int courseId)
+        {
+            var course = await GetCourseByIdAsync(courseId);
+            if (course == null)
+                return null;
+
+            var versions = await _versionService.GetCourseVersionsAsync(courseId);
+            var enrollments = await _enrollmentRepository.GetAsync(
+                e => e.CourseId == courseId
+            );
+            var assignments = await _assignmentRepository.GetAsync(
+                r => r.CourseId == courseId
+                  && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value)
+            );
+
+            var assignmentGroups = assignments
+                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
+                .GroupBy(r => r.AssignmentNo)
+                .Count();
+
+            return new CourseDashboardDto
+            {
+                Course = course,
+                Versions = versions,
+                Kpi = new CourseDashboardKpiDto
+                {
+                    VersionCount    = versions.Count(),
+                    LearnerCount    = enrollments.Count,
+                    CompletedCount  = enrollments.Count(e => e.IsCompleted),
+                    AssignmentCount = assignmentGroups
+                }
+            };
         }
     }
 }

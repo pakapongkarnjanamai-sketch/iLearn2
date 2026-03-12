@@ -1,4 +1,4 @@
-﻿using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,7 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace iLearn.Application.Services
+namespace iLearn.Infrastructure.Services
 {
     public class ApiUserService : IApiUserService
     {
@@ -37,7 +37,7 @@ namespace iLearn.Application.Services
             {
                 var cacheKey = $"api_user_{windowsIdentity}";
 
-                // ใช้ cache เฉพาะเมื่อไม่ได้ force refresh
+                // ??? cache ???????????????? force refresh
                 if (!forceRefresh && _cache.TryGetValue(cacheKey, out ApiResponse<UserDto>? cachedUser))
                 {
                     return cachedUser!;

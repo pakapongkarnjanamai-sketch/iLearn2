@@ -1,5 +1,5 @@
 using iLearn.Application.Common;
-using iLearn.Application.Common;
+using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -13,17 +13,20 @@ namespace iLearn.API.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly FileSettings _fileSettings;
         private readonly EmployeeServiceSettings _employeeSettings;
+        private readonly IDateTime _dateTime;
 
         public SystemConfigController(
             IConfiguration config,
             IWebHostEnvironment env,
             IOptions<FileSettings> fileSettings,
-            IOptions<EmployeeServiceSettings> employeeSettings)
+            IOptions<EmployeeServiceSettings> employeeSettings,
+            IDateTime dateTime)
         {
             _config           = config;
             _env              = env;
             _fileSettings     = fileSettings.Value;
             _employeeSettings = employeeSettings.Value;
+            _dateTime         = dateTime;
         }
 
         [HttpGet]
@@ -67,7 +70,7 @@ namespace iLearn.API.Controllers
                     machineName    = System.Environment.MachineName,
                     osDescription  = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
                     osArchitecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString(),
-                    serverTime     = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    serverTime     = _dateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     appVersion     = typeof(SystemConfigController).Assembly.GetName().Version?.ToString() ?? "1.0.0",
                 }
             });

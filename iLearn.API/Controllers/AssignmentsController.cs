@@ -1,14 +1,9 @@
 ﻿using iLearn.Application.DTOs;
-using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
@@ -21,7 +16,8 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IAssignmentDashboardService _dashboardService;
-        private readonly ICurrentUserService _currentUser; // 💡 1. ประกาศตัวแปร
+        private readonly ICurrentUserService _currentUser;
+        private readonly IDateTime _dateTime;
 
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
@@ -29,14 +25,16 @@ namespace iLearn.API.Controllers
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
             IAssignmentDashboardService dashboardService,
-            ICurrentUserService currentUser) // 💡 2. รับค่าเข้ามา
+            ICurrentUserService currentUser,
+            IDateTime dateTime)
         {
             _repo = repo;
             _assignmentService = assignmentService;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
             _dashboardService = dashboardService;
-            _currentUser = currentUser; // 💡 3. กำหนดค่า
+            _currentUser = currentUser;
+            _dateTime = dateTime;
         }
 
         [HttpGet("history")]
@@ -217,7 +215,7 @@ namespace iLearn.API.Controllers
                 includeProperties: "Enrollment"
             );
 
-            var now = DateTime.UtcNow.AddHours(7);
+            var now = _dateTime.Now;
 
             var history = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))

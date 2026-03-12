@@ -1,4 +1,4 @@
-﻿namespace iLearn.Application.Models
+namespace iLearn.Admin.Models
 {
     public class ErrorViewModel
     {

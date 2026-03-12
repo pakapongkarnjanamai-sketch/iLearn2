@@ -1,4 +1,4 @@
-using iLearn.Application.DTOs;
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -14,26 +14,36 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<StudentGroup> _groupRepo;
         private readonly IGenericRepository<StudentGroupMember> _memberRepo;
         private readonly IStudentApiService _studentApiService;
+        private readonly ICurrentUserService _currentUser;
 
         public StudentGroupService(
             IGenericRepository<StudentGroup> groupRepo,
             IGenericRepository<StudentGroupMember> memberRepo,
-            IStudentApiService studentApiService)
+            IStudentApiService studentApiService,
+            ICurrentUserService currentUser)
         {
             _groupRepo = groupRepo;
             _memberRepo = memberRepo;
             _studentApiService = studentApiService;
+            _currentUser = currentUser;
         }
 
         public async Task<List<StudentGroupDto>> GetAllAsync()
         {
-            var groups = await _groupRepo.GetAsync(includeProperties: "Members");
+            // 💡 Data Isolation: กรอง DivisionId ตั้งแต่ระดับ Query
+            var groups = _currentUser.DivisionId.HasValue
+                ? await _groupRepo.GetAsync(
+                    filter: g => g.DivisionId == _currentUser.DivisionId.Value,
+                    includeProperties: "Members")
+                : await _groupRepo.GetAsync(includeProperties: "Members");
+
             return groups.Select(g => new StudentGroupDto
             {
                 Id          = g.Id,
                 Name        = g.Name,
                 Description = g.Description,
                 MemberCount = g.Members.Count,
+                DivisionId  = g.DivisionId,    // 🆕 ส่ง DivisionId ออกไปด้วย
                 CreatedAt   = g.CreatedAt,
                 CreatedBy   = g.CreatedBy
             }).ToList();
@@ -48,7 +58,11 @@ namespace iLearn.Application.Services
             var group = groups.FirstOrDefault();
             if (group == null) return null;
 
-            // ?? Bulk lookup: 1 HTTP call ??? N calls ??
+            // 💡 Data Isolation: ตรวจสอบว่า group เป็นของ Division ตัวเอง
+            if (_currentUser.DivisionId.HasValue && group.DivisionId != _currentUser.DivisionId.Value)
+                return null;
+
+            // ⚡ Bulk lookup: 1 HTTP call แทน N calls
             var codes      = group.Members.Select(m => m.StudentCode);
             var profileMap = await _studentApiService.GetStudentsByCodesAsync(codes);
 
@@ -80,8 +94,9 @@ namespace iLearn.Application.Services
         {
             var group = new StudentGroup
             {
-                Name        = dto.Name,
-                Description = dto.Description
+                Name = dto.Name,
+                Description = dto.Description,
+                DivisionId = _currentUser.DivisionId
             };
             var created = await _groupRepo.AddAsync(group);
 
@@ -100,6 +115,7 @@ namespace iLearn.Application.Services
                 Name        = created.Name,
                 Description = created.Description,
                 MemberCount = dto.StudentCodes.Distinct().Count(),
+                DivisionId  = created.DivisionId,    // 🆕
                 CreatedAt   = created.CreatedAt,
                 CreatedBy   = created.CreatedBy
             };
@@ -109,6 +125,10 @@ namespace iLearn.Application.Services
         {
             var group = await _groupRepo.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"StudentGroup id={id} not found");
+
+            // 💡 Data Isolation: ป้องกันแก้ไขข้ามแผนก
+            if (_currentUser.DivisionId.HasValue && group.DivisionId != _currentUser.DivisionId.Value)
+                throw new UnauthorizedAccessException("Cannot update a group from another division.");
 
             group.Name        = dto.Name;
             group.Description = dto.Description;
@@ -120,7 +140,11 @@ namespace iLearn.Application.Services
             var group = await _groupRepo.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"StudentGroup id={id} not found");
 
-            // Soft-delete ????????????????? ???????? Soft-delete ?????
+            // 💡 Data Isolation: ป้องกันลบข้ามแผนก
+            if (_currentUser.DivisionId.HasValue && group.DivisionId != _currentUser.DivisionId.Value)
+                throw new UnauthorizedAccessException("Cannot delete a group from another division.");
+
+            // Soft-delete members ก่อน
             var members = await _memberRepo.GetAsync(m => m.StudentGroupId == id);
             foreach (var member in members)
                 await _memberRepo.DeleteAsync(member);
@@ -133,7 +157,10 @@ namespace iLearn.Application.Services
             var group = await _groupRepo.GetByIdAsync(groupId)
                 ?? throw new KeyNotFoundException($"StudentGroup id={groupId} not found");
 
-            // ?????????????????????????????????? duplicate
+            // 💡 Data Isolation: ป้องกันเพิ่มสมาชิกข้ามแผนก
+            if (_currentUser.DivisionId.HasValue && group.DivisionId != _currentUser.DivisionId.Value)
+                throw new UnauthorizedAccessException("Cannot modify a group from another division.");
+
             var existing = await _memberRepo.GetAsync(m => m.StudentGroupId == groupId);
             var existingCodes = existing.Select(m => m.StudentCode).ToHashSet();
 
@@ -152,6 +179,11 @@ namespace iLearn.Application.Services
             var members = await _memberRepo.GetAsync(m => m.Id == memberId && m.StudentGroupId == groupId);
             var member = members.FirstOrDefault()
                 ?? throw new KeyNotFoundException($"Member id={memberId} not found in group id={groupId}");
+
+            // 💡 Data Isolation: ตรวจสอบ ownership ของ group
+            var group = await _groupRepo.GetByIdAsync(groupId);
+            if (group != null && _currentUser.DivisionId.HasValue && group.DivisionId != _currentUser.DivisionId.Value)
+                throw new UnauthorizedAccessException("Cannot modify a group from another division.");
 
             await _memberRepo.DeleteAsync(member);
         }

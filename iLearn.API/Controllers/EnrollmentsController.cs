@@ -287,14 +287,15 @@ namespace iLearn.API.Controllers
             {
                 var rule = new Assignment
                 {
-                    AssignmentNo  = assignmentNo,
-                    Description   = dto.Description,
-                    CourseId      = courseId,
-                    EmployeeCodes = employeesStr,
-                    StartDate     = dto.StartDate,
-                    DueDate       = dto.DueDate,
-                    Division      = dto.Division,
-                    StudentGroupId = dto.GroupId
+                    AssignmentNo   = assignmentNo,
+                    Description    = dto.Description,
+                    CourseId       = courseId,
+                    EmployeeCodes  = employeesStr,
+                    StartDate      = dto.StartDate,
+                    DueDate        = dto.DueDate,
+                    Division       = dto.Division,
+                    StudentGroupId = dto.GroupId,
+                    DivisionId     = _currentUser.DivisionId  // 🆕 Data Isolation: ยัด DivisionId อัตโนมัติ
                 };
 
                 // บันทึก Rule ลง Database

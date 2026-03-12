@@ -1,15 +1,10 @@
 ﻿using iLearn.Application.DTOs;
-using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
@@ -24,6 +19,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IStudentApiService _studentApiService;
         private readonly ICurrentUserService _currentUser;
+        private readonly IDateTime _dateTime;
 
         public CoursesController(
             ICourseService courseService,
@@ -32,7 +28,8 @@ namespace iLearn.API.Controllers
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IStudentApiService studentApiService,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            IDateTime dateTime)
         {
             _courseService = courseService;
             _versionService = versionService;
@@ -41,17 +38,28 @@ namespace iLearn.API.Controllers
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _studentApiService = studentApiService;
             _currentUser = currentUser;
+            _dateTime = dateTime;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] bool isActive = true, [FromQuery] string? divisionName = null)
         {
-            var courses = await _courseService.GetAllCoursesAsync(isActive);
+            IEnumerable<CourseDto> courses;
 
-            // ── Data Isolation: กรองตาม divisionName (ชื่อ Division จาก Claim ของ Student) ──
+            // ── Data Isolation สำหรับ Learner: กรองตาม divisionName จาก Query ──
             if (!string.IsNullOrWhiteSpace(divisionName))
             {
                 courses = await _courseService.GetCoursesByDivisionNameAsync(divisionName, isActive);
+            }
+            else
+            {
+                courses = await _courseService.GetAllCoursesAsync(isActive);
+
+                // ── Data Isolation สำหรับ Admin: กรอง Category.DivisionId ──
+                if (_currentUser.DivisionId.HasValue)
+                {
+                    courses = courses.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
+                }
             }
 
             return Ok(new { success = true, data = courses });
@@ -231,6 +239,8 @@ namespace iLearn.API.Controllers
         [HttpDelete("versions/{versionId}")]
         public async Task<IActionResult> DeleteVersion(int versionId)
         {
+            // 🔧 แก้ไข: ลบโค้ด _repo / id ที่ถูกวางผิดที่ออก
+            // Version ไม่มี DivisionId โดยตรง — ให้ Service layer จัดการ ownership ผ่าน Course -> Category -> Division
             try
             {
                 await _versionService.DeleteVersionAsync(versionId);
@@ -279,7 +289,7 @@ namespace iLearn.API.Controllers
                 studentMap = new Dictionary<string, ExternalStudentDto>();
             }
 
-            var now = DateTime.UtcNow.AddHours(7);
+            var now = _dateTime.Now;
 
             var result = enrollments.Select(e =>
             {
@@ -327,7 +337,8 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> GetCourseAssignments(int courseId)
         {
             var assignments = await _assignmentRepo.GetAsync(
-                r => r.CourseId == courseId,
+                r => r.CourseId == courseId
+                  && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
                 includeProperties: "Course"
             );
 
@@ -340,7 +351,7 @@ namespace iLearn.API.Controllers
                 includeProperties: "Enrollment"
             );
 
-            var now = DateTime.UtcNow.AddHours(7);
+            var now = _dateTime.Now;
 
             var history = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
@@ -384,15 +395,8 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = history });
         }
 
-        // คลาสที่เราสร้างไว้รับค่าชั่วคราวจาก JSON body ของคำขอ
-        // หมายเหตุ: ถ้าคุณมีคลาสนี้ใน iLearn.Application.DTOs อยู่แล้ว สามารถลบตรงนี้ทิ้งได้เลยนะครับ
-        public class CourseStatusUpdateDto
-        {
-            public bool IsActive { get; set; }
-        }
-
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] CourseStatusUpdateDto dto)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] Application.DTOs.CourseStatusUpdateDto dto)
         {
             try
             {
@@ -438,6 +442,7 @@ namespace iLearn.API.Controllers
             );
             var assignments = await _assignmentRepo.GetAsync(
                 r => r.CourseId == courseId
+                  && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value)
             );
 
             // KPI counts

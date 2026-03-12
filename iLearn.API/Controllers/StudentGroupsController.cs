@@ -1,4 +1,4 @@
-using iLearn.Application.DTOs;
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -14,22 +14,15 @@ namespace iLearn.API.Controllers
         public StudentGroupsController(IStudentGroupService service, ICurrentUserService currentUser)
         {
             _service = service;
-            _currentUser = currentUser; // ????????????????
+            _currentUser = currentUser;
         }
 
         // GET: api/studentgroups
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
+            // ✅ Data Isolation จัดการใน Service layer แล้ว
             var result = await _service.GetAllAsync();
-            // ?? Data Isolation: ??????????? (????? DTO ?? DivisionId) ??
-            // ????????????????????? _currentUser.DivisionId ???? GetAllAsync() ????????????????????? Database
-            // ??????????????????? Controller ????????? ?????????????????????
-            //if (_currentUser.DivisionId.HasValue)
-            //{
-            //    result = result.Where(x => x.DivisionId == _currentUser.DivisionId.Value).ToList();
-            //}
-
             return Ok(new { success = true, data = result, totalCount = result.Count });
         }
 
@@ -38,7 +31,7 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
-            if (result == null) return NotFound(new { message = $"?????????????????? id={id}" });
+            if (result == null) return NotFound(new { message = $"Student group with ID {id} was not found." });
             return Ok(new { success = true, data = result });
         }
 
@@ -47,7 +40,7 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> Create([FromBody] CreateStudentGroupDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest(new { message = "??????????????????" });
+                return BadRequest(new { message = "Group name is required." });
 
             var result = await _service.CreateAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = result.Id },
@@ -59,16 +52,16 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] UpdateStudentGroupDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest(new { message = "??????????????????" });
+                return BadRequest(new { message = "Group name is required." });
 
             try
             {
                 await _service.UpdateAsync(id, dto);
-                return Ok(new { success = true, message = "?????????????????????????" });
+                return Ok(new { success = true, message = "Student group updated successfully." });
             }
             catch (KeyNotFoundException)
             {
-                return NotFound(new { message = $"?????????????????? id={id}" });
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
             }
         }
 
@@ -83,7 +76,7 @@ namespace iLearn.API.Controllers
             }
             catch (KeyNotFoundException)
             {
-                return NotFound(new { message = $"?????????????????? id={id}" });
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
             }
         }
 
@@ -92,16 +85,16 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> AddMembers(int id, [FromBody] AddGroupMembersDto dto)
         {
             if (dto.StudentCodes == null || dto.StudentCodes.Count == 0)
-                return BadRequest(new { message = "?????????????????????????????? 1 ??????" });
+                return BadRequest(new { message = "At least one employee code is required." });
 
             try
             {
                 await _service.AddMembersAsync(id, dto);
-                return Ok(new { success = true, message = "??????????????????????????" });
+                return Ok(new { success = true, message = "Members added successfully." });
             }
             catch (KeyNotFoundException)
             {
-                return NotFound(new { message = $"?????????????????? id={id}" });
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
             }
         }
 
@@ -116,23 +109,7 @@ namespace iLearn.API.Controllers
             }
             catch (KeyNotFoundException)
             {
-                return NotFound(new { message = "???????????????????????" });
-            }
-        }
-
-        // GET: api/studentgroups/5/student-codes
-        // ?????????? BulkAssign � ??? StudentCodes ??????????? AssignmentsController
-        [HttpGet("{id}/student-codes")]
-        public async Task<IActionResult> GetStudentCodes(int id)
-        {
-            try
-            {
-                var codes = await _service.GetStudentCodesAsync(id);
-                return Ok(new { success = true, data = codes });
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound(new { message = $"?????????????????? id={id}" });
+                return NotFound(new { message = "Member not found in the group." });
             }
         }
     }
