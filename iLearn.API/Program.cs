@@ -58,7 +58,9 @@ if (builder.Environment.IsDevelopment())
         {
             builder.WithOrigins(
                     "https://localhost:7270",
-                    "https://localhost:7078"
+                    "https://localhost:7078",
+                    "http://localhost:5126",
+                    "http://localhost:5182"
 
                 )
                 .AllowAnyMethod()

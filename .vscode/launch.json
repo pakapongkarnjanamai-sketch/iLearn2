@@ -1,0 +1,67 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "iLearn.API",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build iLearn.API",
+            "program": "${workspaceFolder}/iLearn.API/bin/Debug/net9.0/iLearn.API.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/iLearn.API",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "iLearn.Admin",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build iLearn.Admin",
+            "program": "${workspaceFolder}/iLearn.Admin/bin/Debug/net9.0/iLearn.Admin.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/iLearn.Admin",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "iLearn.User",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build iLearn.User",
+            "program": "${workspaceFolder}/iLearn.User/bin/Debug/net9.0/iLearn.User.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/iLearn.User",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Run All Projects",
+            "configurations": [
+                "iLearn.API",
+                "iLearn.Admin",
+                "iLearn.User"
+            ]
+        }
+    ]
+}
