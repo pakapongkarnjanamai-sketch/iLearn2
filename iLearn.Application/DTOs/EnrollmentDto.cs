@@ -13,5 +13,6 @@
         public DateTime? DueDate { get; set; }
         public DateTime? CompletedDate { get; set; }
         public double Progress { get; set; }
+        public string CourseTypeName { get; set; } = string.Empty;
     }
 }

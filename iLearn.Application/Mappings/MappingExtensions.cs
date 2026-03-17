@@ -81,6 +81,7 @@ namespace iLearn.Application.Mappings
                 DueDate               = entity.DueDate,
                 CompletedDate         = entity.CompletedDate,
                 Progress              = entity.Progress,
+                CourseTypeName        = entity.Course?.CourseType?.Name ?? string.Empty,
             };
         }
 

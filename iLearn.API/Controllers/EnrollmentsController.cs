@@ -29,6 +29,7 @@ namespace iLearn.API.Controllers
         private readonly IScormService _scormService;
         private readonly IStudentGroupService _studentGroupService;
         private readonly IAssignmentNoGenerator _assignmentNoGen;
+        private readonly IDateTime _dateTime;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -39,7 +40,8 @@ namespace iLearn.API.Controllers
             IGenericRepository<CourseVersion> versionRepo,
             IScormService scormService,
             IStudentGroupService studentGroupService,
-            IAssignmentNoGenerator assignmentNoGen)
+            IAssignmentNoGenerator assignmentNoGen,
+            IDateTime dateTime)
         {
             _enrollmentRepo      = enrollmentRepo;
             _enrollmentService   = enrollmentService;
@@ -50,6 +52,7 @@ namespace iLearn.API.Controllers
             _scormService        = scormService;
             _studentGroupService = studentGroupService;
             _assignmentNoGen     = assignmentNoGen;
+            _dateTime            = dateTime;
         }
 
         [HttpPost("ResetStatus")]
@@ -78,49 +81,70 @@ namespace iLearn.API.Controllers
                 return BadRequest(new ApiResponse<string> { Success = false, Message = "Student code is required." });
             }
 
-            var currentDate = DateTime.UtcNow;
-            var oneMonthAgo  = currentDate.AddMonths(-1);
+            var currentDate = _dateTime.Now;
+            var oneMonthAgo = currentDate.AddMonths(-1);
 
-            // ดึง Enrollment พร้อม AssignmentLinks เพื่อใช้ StartDate/DueDate ที่ถูกต้องจากตารางกลาง
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => e.StudentCode == studentCode && e.Course != null,
-                includeProperties: "Course,AssignmentLinks"
+                filter: e => !e.IsDeleted && e.StudentCode == studentCode && e.Course != null,
+                includeProperties: "Course.CourseType,AssignmentLinks.Assignment",
+                ignoreQueryFilters: true
             );
 
-            // กรอง in-memory: แสดงเฉพาะที่อยู่ในช่วงเวลา หรือจบไปไม่เกิน 1 เดือน
+            static List<EnrollmentAssignment> GetActiveLinks(Enrollment enrollment)
+            {
+                return enrollment.AssignmentLinks
+                    .Where(ea => !ea.IsDeleted && ea.Assignment != null && !ea.Assignment.IsDeleted)
+                    .ToList();
+            }
+
             var filtered = enrollments.Where(e =>
             {
-                if (e.IsCompleted)
-                    return e.CompletedDate.HasValue && e.CompletedDate >= oneMonthAgo;
+                var activeLinks = GetActiveLinks(e);
+                var hadDeletedAssignmentOnly = e.AssignmentLinks.Any() && !activeLinks.Any();
 
-                // ใช้ dates จาก AssignmentLinks ถ้ามี ไม่งั้น fallback ไป Enrollment.StartDate/DueDate
-                DateTime? effectiveStart = e.AssignmentLinks.Any()
-                    ? e.AssignmentLinks.Min(a => a.StartDate)
+                if (hadDeletedAssignmentOnly)
+                {
+                    return false;
+                }
+
+                if (e.IsCompleted)
+                {
+                    return e.CompletedDate.HasValue && e.CompletedDate >= oneMonthAgo;
+                }
+
+                DateTime? effectiveStart = activeLinks.Any()
+                    ? activeLinks.Min(a => a.StartDate)
                     : e.StartDate;
-                DateTime? effectiveDue = e.AssignmentLinks.Any()
-                    ? e.AssignmentLinks.Max(a => a.DueDate)
+
+                DateTime? effectiveDue = activeLinks.Any()
+                    ? activeLinks.Max(a => a.DueDate)
                     : e.DueDate;
 
                 bool startOk = !effectiveStart.HasValue || effectiveStart <= currentDate;
-                bool dueOk   = !effectiveDue.HasValue   || effectiveDue   >= currentDate;
+                bool dueOk   = !effectiveDue.HasValue || effectiveDue >= currentDate;
                 return startOk && dueOk;
             }).ToList();
 
-            // แปลง + จัดเรียงตาม DueDate ที่ใกล้ที่สุด
             var dtos = filtered
                 .OrderBy(e => e.IsCompleted)
-                .ThenBy(e => e.AssignmentLinks.Any()
-                    ? e.AssignmentLinks.Min(a => a.DueDate)
-                    : e.DueDate)
+                .ThenBy(e =>
+                {
+                    var activeLinks = GetActiveLinks(e);
+                    return activeLinks.Any()
+                        ? activeLinks.Min(a => a.DueDate)
+                        : e.DueDate;
+                })
                 .Select(e =>
                 {
                     var dto = e.ToDto();
-                    // override ด้วย dates จาก AssignmentLinks (ใกล้ที่สุดก่อน)
-                    if (e.AssignmentLinks.Any())
+                    var activeLinks = GetActiveLinks(e);
+
+                    if (activeLinks.Any())
                     {
-                        dto.StartDate = e.AssignmentLinks.Min(a => a.StartDate);
-                        dto.DueDate   = e.AssignmentLinks.Min(a => a.DueDate);
+                        dto.StartDate = activeLinks.Min(a => a.StartDate);
+                        dto.DueDate   = activeLinks.Min(a => a.DueDate);
                     }
+
                     return dto;
                 })
                 .ToList();
