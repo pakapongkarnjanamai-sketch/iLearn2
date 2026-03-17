@@ -12,6 +12,7 @@ namespace iLearn.Application
             services.AddScoped<ICourseService, CourseService>();
             services.AddScoped<ICourseVersionService, CourseVersionService>();
             services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
+            services.AddScoped<IAssignmentBatchService, AssignmentBatchService>();
             services.AddScoped<IAssignmentDashboardService, AssignmentDashboardService>();
             services.AddScoped<IStudentGroupService, StudentGroupService>();
 

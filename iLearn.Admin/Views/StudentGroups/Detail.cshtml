@@ -630,7 +630,9 @@
                 description: fd.description,
                 startDate: fd.startDate,
                 dueDate: fd.dueDate,
-                employeeCodes: []
+                employeeCodes: [],
+                confirmReassignInProgress: false,
+                confirmReassignCompleted: false
             };
 
             // Step 1: validate-before-assign — show loading on Assign button
@@ -668,6 +670,9 @@
                         assignDetailsPopup.show();
                         return;
                     }
+
+                    payload.confirmReassignInProgress = inProgress.length > 0;
+                    payload.confirmReassignCompleted = completed.length > 0;
 
                     // Step 3: BulkAssign — show full-page load panel
                     const bulkLoadPanel = $("<div>").appendTo("body").dxLoadPanel({

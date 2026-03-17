@@ -514,6 +514,8 @@
                             text: "Confirm & Assign", type: "default", stylingMode: "contained",
                             elementAttr: { class: "btn-primary shadow-sm rounded-3 px-3 fw-medium" },
                             onClick: () => {
+                                currentPayload.confirmReassignInProgress = (currentPayload.inProgressConflicts || []).length > 0;
+                                currentPayload.confirmReassignCompleted = (currentPayload.completedConflicts || []).length > 0;
                                 summaryPopup.hide();
                                 executeBulkAssign(currentPayload);
                             }
@@ -527,6 +529,8 @@
                 currentPayload = payload;
                 const inProgress = res.inProgressConflicts || [];
                 const completed  = res.completedConflicts  || [];
+                currentPayload.inProgressConflicts = inProgress;
+                currentPayload.completedConflicts = completed;
 
                 // ── กำลังเรียนอยู่ ─────────────────────────────────
                 let inProgressHtml = "";
@@ -638,7 +642,9 @@
                     employeeCodes: selectedStudentCodes,
                     startDate: formData.startDate,
                     dueDate: formData.dueDate,
-                    description: formData.description
+                    description: formData.description,
+                    confirmReassignInProgress: false,
+                    confirmReassignCompleted: false
                 };
 
                 loadPanel.option("message", "Validating data...");

@@ -11,11 +11,13 @@ namespace iLearn.Application.Interfaces.Services
 
         Task AssignCourseToEmployees(int courseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, int? assignmentRuleId = null, bool forceReset = false);
 
+        Task AssignCoursesToEmployees(IReadOnlyDictionary<int, int> assignmentRuleIdsByCourseId, List<string> employeeCodes, DateTime? startDate, DateTime? dueDate, bool forceReset = false);
+
         /// <summary>Returns all assignment history (unpaginated). Prefer IAssignmentDashboardService.GetAssignmentHistoryPagedAsync for pagination.</summary>
         Task<List<AssignmentHistoryDto>> GetAssignmentHistoryAsync();
 
         /// <summary>
-        /// ตรวจสอบความขัดแย้งก่อนมอบหมายคอร์ส โดยรองรับการอัปเดตเวอร์ชัน (Version-Aware Conflict Validation)
+        /// Checks assignment conflicts before assigning a course, including version-aware reassignment rules.
         /// </summary>
         Task<AssignmentConflictDto> CheckAssignmentConflictsAsync(int courseId, List<string> employeeCodes, DateTime startDate, DateTime dueDate);
     }

@@ -1,6 +1,8 @@
 using iLearn.Application.Interfaces.Services;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace iLearn.Infrastructure.Services
 {
@@ -21,13 +23,25 @@ namespace iLearn.Infrastructure.Services
 
         public async Task<string> NextAsync()
         {
-            // Atomically get next value from the database sequence
             var connection = _context.Database.GetDbConnection();
-            await _context.Database.OpenConnectionAsync();
+            var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+            if (shouldCloseConnection)
+            {
+                await _context.Database.OpenConnectionAsync();
+            }
+
             try
             {
                 using var cmd = connection.CreateCommand();
                 cmd.CommandText = "SELECT NEXT VALUE FOR AssignmentNoSeq";
+
+                var currentTransaction = _context.Database.CurrentTransaction;
+                if (currentTransaction is not null)
+                {
+                    cmd.Transaction = currentTransaction.GetDbTransaction();
+                }
+
                 var result = await cmd.ExecuteScalarAsync();
                 int seqValue = Convert.ToInt32(result);
 
@@ -36,7 +50,10 @@ namespace iLearn.Infrastructure.Services
             }
             finally
             {
-                await _context.Database.CloseConnectionAsync();
+                if (shouldCloseConnection)
+                {
+                    await _context.Database.CloseConnectionAsync();
+                }
             }
         }
     }

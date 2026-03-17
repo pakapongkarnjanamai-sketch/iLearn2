@@ -8,13 +8,13 @@ namespace iLearn.Application.DTOs
     {
         public string? Description { get; set; }
 
-        // รับค่าเป็น Array ของ Course ID
+        // Selected course identifiers.
         public List<int> CourseIds { get; set; } = new List<int>();
 
-        // รับค่าพนักงานเป็น Array (ใช้เมื่อเลือกรายคน)
+        // Selected employee codes when assigning individual learners.
         public List<string> EmployeeCodes { get; set; } = new List<string>();
 
-        // ใช้เมื่อ Assign จาก Student Group (แทน EmployeeCodes)
+        // Optional student group identifier used instead of individual employee codes.
         public int? GroupId { get; set; }
 
         public string? Division { get; set; }
@@ -22,11 +22,14 @@ namespace iLearn.Application.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
 
+        public bool ConfirmReassignInProgress { get; set; }
+        public bool ConfirmReassignCompleted { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (StartDate.HasValue && DueDate.HasValue && StartDate.Value > DueDate.Value)
                 yield return new ValidationResult(
-                    "StartDate ต้องไม่มากกว่า DueDate",
+                    "StartDate must be on or before DueDate.",
                     [nameof(StartDate), nameof(DueDate)]);
         }
     }

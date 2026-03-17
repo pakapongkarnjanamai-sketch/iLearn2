@@ -8,13 +8,16 @@ namespace iLearn.Application.Interfaces.Repositories
         Task<IReadOnlyList<T>> GetAllAsync();
         Task<T?> GetByIdAsync(int id);
         Task<T> AddAsync(T entity);
+        Task<T> AddWithoutSaveAsync(T entity);
         Task UpdateAsync(T entity);
-        /// <summary>Soft Delete — ตั้ง IsDeleted = true ข้อมูลยังอยู่ใน DB</summary>
+        void UpdateWithoutSave(T entity);
+        /// <summary>Soft delete by setting IsDeleted = true while keeping the row in the database.</summary>
         Task DeleteAsync(T entity);
-        /// <summary>Hard Delete — ลบ record ออกจาก DB จริง สำหรับ entity ที่ไม่ต้องการ audit trail เช่น FileStorage</summary>
+        void DeleteWithoutSave(T entity);
+        /// <summary>Hard delete for entities that should not keep an audit trail, such as file storage records.</summary>
         Task HardDeleteAsync(T entity);
         IQueryable<T> GetQuery();
-        // เพิ่มฟังก์ชันค้นหาแบบ Custom
+        // Custom query helper.
         Task<IReadOnlyList<T>> GetAsync(
             Expression<Func<T, bool>>? filter = null,
             string? includeProperties = null,

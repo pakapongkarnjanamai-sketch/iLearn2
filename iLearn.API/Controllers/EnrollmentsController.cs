@@ -3,9 +3,9 @@ using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
-using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -22,37 +22,43 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly ICourseAssignmentService _enrollmentService;
-        private readonly IGenericRepository<Assignment> _assignmentRepo;
+        private readonly IAssignmentDashboardService _assignmentDashboardService;
         private readonly ICurrentUserService _currentUser;
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
+        private readonly IGenericRepository<Course> _courseRepo;
         private readonly IScormService _scormService;
         private readonly IStudentGroupService _studentGroupService;
         private readonly IAssignmentNoGenerator _assignmentNoGen;
         private readonly IDateTime _dateTime;
+        private readonly AppDbContext _dbContext;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
             ICourseAssignmentService enrollmentService,
-            IGenericRepository<Assignment> assignmentRepo,
+            IAssignmentDashboardService assignmentDashboardService,
             ICurrentUserService currentUser,
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<CourseVersion> versionRepo,
+            IGenericRepository<Course> courseRepo,
             IScormService scormService,
             IStudentGroupService studentGroupService,
             IAssignmentNoGenerator assignmentNoGen,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            AppDbContext dbContext)
         {
             _enrollmentRepo      = enrollmentRepo;
             _enrollmentService   = enrollmentService;
-            _assignmentRepo      = assignmentRepo;
+            _assignmentDashboardService = assignmentDashboardService;
             _currentUser         = currentUser;
             _logRepo             = logRepo;
             _versionRepo         = versionRepo;
+            _courseRepo          = courseRepo;
             _scormService        = scormService;
             _studentGroupService = studentGroupService;
             _assignmentNoGen     = assignmentNoGen;
             _dateTime            = dateTime;
+            _dbContext           = dbContext;
         }
 
         [HttpPost("ResetStatus")]
@@ -62,17 +68,16 @@ namespace iLearn.API.Controllers
             if (enrollment == null)
                 return NotFound(new { success = false, message = "Enrollment not found" });
 
-            // Reset ข้อมูลสรุปใน Enrollment และตั้ง ResetAt (Log เก่ายังอยู่ใน DB เพื่อ history)
+            // Reset enrollment summary and set ResetAt while preserving history logs.
             enrollment.IsCompleted   = false;
             enrollment.CompletedDate = null;
             enrollment.Progress      = 0;
-            enrollment.ResetAt       = DateTime.Now;
+            enrollment.ResetAt       = _dateTime.Now;
             await _enrollmentRepo.UpdateAsync(enrollment);
 
             return Ok(new { success = true });
         }
 
-        // --- ปรับปรุงฟังก์ชัน GetMyCourses ---
         [HttpGet("my-courses")]
         public async Task<IActionResult> GetMyCourses([FromQuery] string studentCode)
         {
@@ -90,19 +95,10 @@ namespace iLearn.API.Controllers
                 ignoreQueryFilters: true
             );
 
-            static List<EnrollmentAssignment> GetActiveLinks(Enrollment enrollment)
-            {
-                return enrollment.AssignmentLinks
-                    .Where(ea => !ea.IsDeleted && ea.Assignment != null && !ea.Assignment.IsDeleted)
-                    .ToList();
-            }
-
             var filtered = enrollments.Where(e =>
             {
-                var activeLinks = GetActiveLinks(e);
-                var hadDeletedAssignmentOnly = e.AssignmentLinks.Any() && !activeLinks.Any();
-
-                if (hadDeletedAssignmentOnly)
+                var schedule = GetEffectiveSchedule(e);
+                if (!schedule.ShouldBeVisible)
                 {
                     return false;
                 }
@@ -112,38 +108,20 @@ namespace iLearn.API.Controllers
                     return e.CompletedDate.HasValue && e.CompletedDate >= oneMonthAgo;
                 }
 
-                DateTime? effectiveStart = activeLinks.Any()
-                    ? activeLinks.Min(a => a.StartDate)
-                    : e.StartDate;
-
-                DateTime? effectiveDue = activeLinks.Any()
-                    ? activeLinks.Max(a => a.DueDate)
-                    : e.DueDate;
-
-                bool startOk = !effectiveStart.HasValue || effectiveStart <= currentDate;
-                bool dueOk   = !effectiveDue.HasValue || effectiveDue >= currentDate;
+                bool startOk = !schedule.StartDate.HasValue || schedule.StartDate <= currentDate;
+                bool dueOk   = !schedule.DueDate.HasValue || schedule.DueDate >= currentDate;
                 return startOk && dueOk;
             }).ToList();
 
             var dtos = filtered
                 .OrderBy(e => e.IsCompleted)
-                .ThenBy(e =>
-                {
-                    var activeLinks = GetActiveLinks(e);
-                    return activeLinks.Any()
-                        ? activeLinks.Min(a => a.DueDate)
-                        : e.DueDate;
-                })
+                .ThenBy(e => GetEffectiveSchedule(e).DueDate)
                 .Select(e =>
                 {
                     var dto = e.ToDto();
-                    var activeLinks = GetActiveLinks(e);
-
-                    if (activeLinks.Any())
-                    {
-                        dto.StartDate = activeLinks.Min(a => a.StartDate);
-                        dto.DueDate   = activeLinks.Min(a => a.DueDate);
-                    }
+                    var schedule = GetEffectiveSchedule(e);
+                    dto.StartDate = schedule.StartDate;
+                    dto.DueDate = schedule.DisplayDueDate;
 
                     return dto;
                 })
@@ -159,7 +137,6 @@ namespace iLearn.API.Controllers
         [HttpGet("player-info/{courseId}")]
         public async Task<IActionResult> GetPlayerInfoByCourse(int courseId, [FromQuery] string studentCode)
         {
-            // 1. ค้นหา Enrollment
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.CourseId == courseId && e.StudentCode == studentCode,
                 includeProperties: "Course"
@@ -173,18 +150,15 @@ namespace iLearn.API.Controllers
 
             if (enrollment != null)
             {
-                // --- กรณีมี Enrollment (Scoring Mode) ---
                 var targetVersionId = enrollment.EnrolledCourseVersion;
                 isCompleted = enrollment.IsCompleted;
 
-                // ดึง Version ที่ลงทะเบียนไว้ (ค้นหาจาก Id)
                 var versions = await _versionRepo.GetAsync(
                     filter: v => v.CourseId == courseId && v.Id == targetVersionId,
                     includeProperties: "CourseResources.Resource,Course"
                 );
                 targetVersion = versions.FirstOrDefault();
 
-                // ดึง Log การเรียน — กรอง Log ที่สร้างหลัง ResetAt เท่านั้น (Log เก่าถือเป็น history)
                 if (targetVersion != null)
                 {
                     userLogs = (await _logRepo.GetAsync(l =>
@@ -197,15 +171,12 @@ namespace iLearn.API.Controllers
             }
             else
             {
-                // --- กรณีไม่มี Enrollment (View Only Mode) ---
                 isReadOnly = true;
 
-                // ดึง Version ล่าสุดที่ Active มาแสดง
                 var activeVersions = await _versionRepo.GetAsync(
                   filter: v => v.CourseId == courseId && v.IsActive,
                   includeProperties: "CourseResources.Resource,Course"
                 );
-                // เรียงตาม VersionNumber แล้วเอาตัวล่าสุด
                 targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
 
@@ -214,7 +185,6 @@ namespace iLearn.API.Controllers
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found or Course is not active" });
             }
 
-            // 2. Map ข้อมูลลง DTO
             var resources = targetVersion.CourseResources
                 .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Learn first
                 .ThenBy(cr => cr.Resource.Name)
@@ -271,7 +241,7 @@ namespace iLearn.API.Controllers
             enrollment.IsCompleted = isComplete;
             if (isComplete)
             {
-                enrollment.CompletedDate = DateTime.UtcNow;
+                enrollment.CompletedDate = _dateTime.Now;
                 enrollment.Progress = 100;
             }
             else
@@ -288,28 +258,46 @@ namespace iLearn.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(new { message = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)) });
 
-            // resolve GroupId → EmployeeCodes ถ้า Assign จาก Student Group
-            if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
-            {
-                dto.EmployeeCodes = await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
-            }
+            dto.EmployeeCodes = await ResolveEmployeeCodesAsync(dto);
 
             if (dto.CourseIds == null || !dto.CourseIds.Any() || dto.EmployeeCodes == null || !dto.EmployeeCodes.Any())
             {
                 return BadRequest(new { message = "Courses and Employees are required." });
             }
 
-            // 1. Generate AssignmentNo via DB sequence (race-condition free)
-            string assignmentNo = await _assignmentNoGen.NextAsync();
-
-            // แปลง Array พนักงานให้อยู่ในรูป Comma-separated
-            string employeesStr = string.Join(",", dto.EmployeeCodes);
-
-            // 2. วนลูปสร้าง Assignments Rule ตามจำนวนวิชาที่เลือก
-            int firstAssignmentId = 0;
-            foreach (var courseId in dto.CourseIds)
+            var accessibleCourses = await GetAccessibleCoursesAsync(dto.CourseIds);
+            if (HasUnauthorizedCourses(dto.CourseIds, accessibleCourses))
             {
-                var rule = new Assignment
+                return Forbid();
+            }
+
+            var validation = await _assignmentDashboardService.ValidateBeforeAssignAsync(dto);
+            if (!validation.Success)
+            {
+                return BadRequest(new { message = validation.Message });
+            }
+
+            if (validation.InProgressConflicts.Count > 0 && !dto.ConfirmReassignInProgress)
+            {
+                return Conflict(CreateConflictResponse(
+                    "Confirmation is required before resetting learners with in-progress assignments.",
+                    validation));
+            }
+
+            if (validation.CompletedConflicts.Count > 0 && !dto.ConfirmReassignCompleted)
+            {
+                return Conflict(CreateConflictResponse(
+                    "Confirmation is required before reassigning learners who already completed the course.",
+                    validation));
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                string assignmentNo = await _assignmentNoGen.NextAsync();
+                string employeesStr = string.Join(",", dto.EmployeeCodes);
+
+                var rules = dto.CourseIds.Select(courseId => new Assignment
                 {
                     AssignmentNo   = assignmentNo,
                     Description    = dto.Description,
@@ -319,19 +307,126 @@ namespace iLearn.API.Controllers
                     DueDate        = dto.DueDate,
                     Division       = dto.Division,
                     StudentGroupId = dto.GroupId,
-                    DivisionId     = _currentUser.DivisionId  // 🆕 Data Isolation: ยัด DivisionId อัตโนมัติ
+                    DivisionId     = _currentUser.DivisionId
+                }).ToList();
+
+                await _dbContext.Set<Assignment>().AddRangeAsync(rules);
+                await _dbContext.SaveChangesAsync();
+
+                var assignmentRuleIdsByCourseId = rules
+                    .Where(rule => rule.CourseId.HasValue)
+                    .ToDictionary(rule => rule.CourseId!.Value, rule => rule.Id);
+
+                await _enrollmentService.AssignCoursesToEmployees(
+                    assignmentRuleIdsByCourseId,
+                    dto.EmployeeCodes,
+                    dto.StartDate,
+                    dto.DueDate,
+                    forceReset: true);
+
+                await transaction.CommitAsync();
+                return Ok(new
+                {
+                    message = "Courses assigned successfully!",
+                    assignmentNo,
+                    assignmentId = rules.FirstOrDefault()?.Id ?? 0
+                });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        private static List<EnrollmentAssignment> GetActiveLinks(Enrollment enrollment)
+        {
+            return enrollment.AssignmentLinks
+                .Where(ea => !ea.IsDeleted && ea.Assignment != null && !ea.Assignment.IsDeleted)
+                .ToList();
+        }
+
+        private static EnrollmentSchedule GetEffectiveSchedule(Enrollment enrollment)
+        {
+            var activeLinks = GetActiveLinks(enrollment);
+            var hadDeletedAssignmentOnly = enrollment.AssignmentLinks.Any() && activeLinks.Count == 0;
+
+            if (hadDeletedAssignmentOnly)
+            {
+                return new EnrollmentSchedule
+                {
+                    ShouldBeVisible = false,
+                    StartDate = enrollment.StartDate,
+                    DueDate = enrollment.DueDate,
+                    DisplayDueDate = enrollment.DueDate
                 };
-
-                // บันทึก Rule ลง Database
-                await _assignmentRepo.AddAsync(rule);
-
-                if (firstAssignmentId == 0) firstAssignmentId = rule.Id;
-
-                // 3. นำ EmployeeCodes ไป Insert ลงตาราง Enrollment และผูกกับ rule.Id ด้วย
-                await _enrollmentService.AssignCourseToEmployees(courseId, dto.EmployeeCodes, dto.StartDate, dto.DueDate, rule.Id, forceReset: true);
             }
 
-            return Ok(new { message = "Courses assigned successfully!", assignmentNo = assignmentNo, assignmentId = firstAssignmentId });
+            if (activeLinks.Count == 0)
+            {
+                return new EnrollmentSchedule
+                {
+                    ShouldBeVisible = true,
+                    StartDate = enrollment.StartDate,
+                    DueDate = enrollment.DueDate,
+                    DisplayDueDate = enrollment.DueDate
+                };
+            }
+
+            return new EnrollmentSchedule
+            {
+                ShouldBeVisible = true,
+                StartDate = activeLinks.Min(a => a.StartDate),
+                DueDate = activeLinks.Max(a => a.DueDate),
+                DisplayDueDate = activeLinks.Min(a => a.DueDate)
+            };
+        }
+
+        private async Task<List<string>> ResolveEmployeeCodesAsync(BulkAssignDto dto)
+        {
+            if (!dto.GroupId.HasValue || dto.EmployeeCodes.Count > 0)
+                return dto.EmployeeCodes;
+
+            return await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
+        }
+
+        private async Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(IEnumerable<int> courseIds)
+        {
+            var targetCourseIds = courseIds.Distinct().ToList();
+            return await _courseRepo.GetAsync(
+                c => targetCourseIds.Contains(c.Id)
+                    && c.IsActive
+                    && (!_currentUser.DivisionId.HasValue || c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value),
+                includeProperties: "Category"
+            );
+        }
+
+        private static bool HasUnauthorizedCourses(IEnumerable<int> requestedCourseIds, IEnumerable<Course> accessibleCourses)
+        {
+            var accessibleCourseIds = accessibleCourses
+                .Select(c => c.Id)
+                .Distinct()
+                .ToHashSet();
+
+            return requestedCourseIds.Any(courseId => !accessibleCourseIds.Contains(courseId));
+        }
+
+        private static object CreateConflictResponse(string message, ValidateBeforeAssignResult validation)
+        {
+            return new
+            {
+                message,
+                inProgressConflicts = validation.InProgressConflicts,
+                completedConflicts = validation.CompletedConflicts
+            };
+        }
+
+        private sealed class EnrollmentSchedule
+        {
+            public bool ShouldBeVisible { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? DueDate { get; set; }
+            public DateTime? DisplayDueDate { get; set; }
         }
     }
 }

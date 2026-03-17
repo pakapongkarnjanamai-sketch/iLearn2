@@ -41,10 +41,21 @@ namespace iLearn.Infrastructure.Repositories
             return entity;
         }
 
+        public async Task<T> AddWithoutSaveAsync(T entity)
+        {
+            await _dbSet.AddAsync(entity);
+            return entity;
+        }
+
         public async Task UpdateAsync(T entity)
         {
             _context.Entry(entity).State = EntityState.Modified;
             await _context.SaveChangesAsync();
+        }
+
+        public void UpdateWithoutSave(T entity)
+        {
+            _context.Entry(entity).State = EntityState.Modified;
         }
 
         public async Task DeleteAsync(T entity)
@@ -53,6 +64,13 @@ namespace iLearn.Infrastructure.Repositories
             entity.DeletedAt  = _dateTime.Now;
             _context.Entry(entity).State = EntityState.Modified;
             await _context.SaveChangesAsync();
+        }
+
+        public void DeleteWithoutSave(T entity)
+        {
+            entity.IsDeleted  = true;
+            entity.DeletedAt  = _dateTime.Now;
+            _context.Entry(entity).State = EntityState.Modified;
         }
 
         public async Task HardDeleteAsync(T entity)

@@ -1,4 +1,5 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -10,47 +11,46 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
+        private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly IStudentApiService _studentApiService;
         private readonly IStudentGroupService _studentGroupService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
+        private readonly IUnitOfWork _unitOfWork;
 
         public AssignmentDashboardService(
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
+            IAssignmentBatchService assignmentBatchService,
             IStudentApiService studentApiService,
             IStudentGroupService studentGroupService,
             ICurrentUserService currentUser,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            IUnitOfWork unitOfWork)
         {
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
+            _assignmentBatchService = assignmentBatchService;
             _studentApiService = studentApiService;
             _studentGroupService = studentGroupService;
             _currentUser = currentUser;
             _dateTime = dateTime;
+            _unitOfWork = unitOfWork;
         }
 
-        // ── Dashboard ─────────────────────────────────────────────────────────────
         public async Task<AssignmentDashboardDto?> GetDashboardAsync(int assignmentId)
         {
             var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId);
             if (mainRule == null) return null;
 
-            // 💡 เพิ่มการตรวจสอบ Data Isolation: ถ้าไม่ใช่ Division ตัวเอง ให้คืนค่า null (ไม่ให้ดู)
-            if (_currentUser.DivisionId.HasValue && mainRule.DivisionId != _currentUser.DivisionId.Value)
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
             {
                 return null;
             }
 
-            // ✅ ignoreQueryFilters: true — ดึง Assignment ที่มี Course ถูก soft-delete ได้ด้วย
-            var allRules = await _assignmentRepo.GetAsync(
-                r => r.AssignmentNo == mainRule.AssignmentNo,
-                includeProperties: "Course",
-                ignoreQueryFilters: true
-            );
+            var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule, includeProperties: "Course", ignoreQueryFilters: true);
             var ruleIds = allRules.Select(r => r.Id).ToList();
 
             var links = await _enrollmentAssignmentRepo.GetAsync(
@@ -90,7 +90,6 @@ namespace iLearn.Application.Services
             double completionRate    = totalEnrollments == 0
                 ? 0 : Math.Round((double)completedEnrollments / totalEnrollments * 100);
 
-            // ✅ ตรวจสอบ course ที่ถูก soft-delete
             var courseSummaries = allRules.Select(r => new CourseSummaryDto
             {
                 AssignmentRuleId  = r.Id,
@@ -98,10 +97,9 @@ namespace iLearn.Application.Services
                 CourseTitle       = r.Course?.Title ?? "Unknown Course",
                 CompletedStudents = enrollments.Count(e => e.AssignmentId == r.Id && e.IsCompleted),
                 TotalStudents     = enrollments.Count(e => e.AssignmentId == r.Id),
-                IsCourseDeleted   = r.Course?.IsDeleted ?? false   // ✅ บอก UI ว่า course นี้ถูกลบแล้ว
+                IsCourseDeleted   = r.Course?.IsDeleted ?? false
             }).ToList();
 
-            // Bulk-lookup student names
             var uniqueCodes  = enrollments.Select(e => e.StudentCode).Distinct().ToList();
             var studentNames = await LookupStudentNamesAsync(uniqueCodes);
 
@@ -139,7 +137,7 @@ namespace iLearn.Application.Services
                 TotalEmployees   = uniqueStudentsCount,
                 TotalCourses     = allRules.Count,
                 CompletionRate   = completionRate,
-                HasDeletedCourse = hasDeletedCourse,   // ✅
+                HasDeletedCourse = hasDeletedCourse,
                 ChartData        = new DashboardChartDto
                 {
                     Completed  = completedCount,
@@ -151,7 +149,6 @@ namespace iLearn.Application.Services
             };
         }
 
-        // ── Validate before assign ───────────────────────────────────────────────
         public async Task<ValidateBeforeAssignResult> ValidateBeforeAssignAsync(BulkAssignDto dto)
         {
             if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
@@ -198,31 +195,16 @@ namespace iLearn.Application.Services
             };
         }
 
-        // ── Paginated assignment history ─────────────────────────────────────────
         public async Task<PagedResult<AssignmentHistoryDto>> GetAssignmentHistoryPagedAsync(PaginationParams p)
         {
-            // ✅ ignoreQueryFilters: true — ดึง Assignment ที่ Course ถูก soft-delete ได้ด้วย
-            // Global filter ของ Assignment entity เองยังทำงานปกติ (IsDeleted=false)
-            // แต่ navigation property "Course" จะไม่ถูก filter ออกอีกต่อไป
+            var divisionId = _currentUser.DivisionId;
             var assignments = await _assignmentRepo.GetAsync(
-                  // 💡 เพิ่ม Filter ตรงนี้เพื่อดึงเฉพาะงานของ Division ตัวเอง
-                  filter: a => !_currentUser.DivisionId.HasValue || a.DivisionId == _currentUser.DivisionId.Value,
+                  filter: a => !divisionId.HasValue || a.DivisionId == divisionId.Value,
                   includeProperties: "Course",
-                  ignoreQueryFilters: false   // Assignment ที่ถูก soft-delete ไม่ควรโผล่
+                  ignoreQueryFilters: false
               );
 
-            // ✅ ดึง Course ที่ถูก soft-delete แยกต่างหากเพื่อ lookup ชื่อ
-            var allCourseIds = assignments
-                .Select(a => a.CourseId)
-                .Where(id => id.HasValue)
-                .Select(id => id!.Value)
-                .Distinct()
-                .ToList();
-
-            var allCoursesIncludeDeleted = await _courseRepo.GetAsync(
-                filter: c => allCourseIds.Contains(c.Id),
-                ignoreQueryFilters: true    // ✅ ดึงแม้ course จะถูกลบ
-            );
+            var allCoursesIncludeDeleted = await GetCoursesIncludingDeletedAsync(assignments);
             var courseMap = allCoursesIncludeDeleted.ToDictionary(c => c.Id);
 
             var links = await _enrollmentAssignmentRepo.GetAsync(
@@ -233,12 +215,10 @@ namespace iLearn.Application.Services
             var currentDate = _dateTime.Now;
 
             var grouped = assignments
-                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
-                .GroupBy(r => r.AssignmentNo)
+                .GroupBy(r => _assignmentBatchService.GetBatchKey(r))
                 .Select(g => MapToHistoryDto(g, links, currentDate, courseMap))
                 .AsQueryable();
 
-            // Apply filters
             if (!string.IsNullOrWhiteSpace(p.Search))
             {
                 string search = p.Search.Trim();
@@ -271,7 +251,6 @@ namespace iLearn.Application.Services
             };
         }
 
-        // ── Status calculation helper (extracted for testability) ────────────────
         public static string CalculateStatus(
             bool hasEnrollments,
             bool allCompleted,
@@ -285,13 +264,11 @@ namespace iLearn.Application.Services
             return "InProgress";
         }
 
-        // ── Private helpers ──────────────────────────────────────────────────────
-
         private static AssignmentHistoryDto MapToHistoryDto(
             IGrouping<string?, Assignment> g,
             IReadOnlyList<EnrollmentAssignment> allLinks,
             DateTime currentDate,
-            Dictionary<int, Course> courseMap)   // ✅ รับ courseMap ที่รวม deleted courses
+            Dictionary<int, Course> courseMap)
         {
             var first         = g.First();
             var assignmentIds = g.Select(a => a.Id).ToList();
@@ -310,7 +287,6 @@ namespace iLearn.Application.Services
                 first.DueDate,
                 currentDate);
 
-            // ✅ Resolve course names รวม deleted course โดยใช้ courseMap
             var courseEntries = g
                 .Select(a => a.CourseId.HasValue && courseMap.TryGetValue(a.CourseId.Value, out var c)
                     ? c
@@ -322,7 +298,6 @@ namespace iLearn.Application.Services
             var deletedCourses  = courseEntries.Where(c => c!.IsDeleted).ToList();
             var activeCourses   = courseEntries.Where(c => !c!.IsDeleted).ToList();
 
-            // แสดงชื่อ course ที่ active ก่อน ตามด้วย deleted (ใส่ suffix เพื่อแยกแยะ)
             var allCourseNameParts = activeCourses
                 .Select(c => c!.Title ?? "Unknown Course")
                 .Concat(deletedCourses.Select(c => $"{c!.Title ?? "Unknown Course"} [Deleted]"));
@@ -345,7 +320,6 @@ namespace iLearn.Application.Services
                     : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
                 CompletedEnrollmentCount = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted),
                 TotalEnrollmentCount     = relatedLinks.Count,
-                // ✅ Soft-delete awareness fields
                 HasDeletedCourse   = deletedCourses.Count > 0,
                 DeletedCourseNames = deletedCourses.Count > 0
                     ? string.Join(", ", deletedCourses.Select(c => c!.Title ?? "Unknown"))
@@ -364,7 +338,6 @@ namespace iLearn.Application.Services
             }
             catch
             {
-                // Fallback: try one by one
                 var dict = new Dictionary<string, string>();
                 foreach (var code in codes)
                 {
@@ -394,12 +367,12 @@ namespace iLearn.Application.Services
             public Course? Course { get; set; }
         }
 
-        // ── GetGroupHistoryAsync ────────────────────────────────────────────────
         public async Task<List<AssignmentGroupHistoryDto>> GetGroupHistoryAsync(int groupId)
         {
+            var divisionId = _currentUser.DivisionId;
             var assignments = await _assignmentRepo.GetAsync(
                 r => r.StudentGroupId == groupId &&
-                (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
+                (!divisionId.HasValue || r.DivisionId == divisionId.Value),
                 includeProperties: "Course"
             );
 
@@ -416,8 +389,7 @@ namespace iLearn.Application.Services
             var now = _dateTime.Now;
 
             return assignments
-                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
-                .GroupBy(r => r.AssignmentNo)
+                .GroupBy(r => _assignmentBatchService.GetBatchKey(r))
                 .Select(g =>
                 {
                     var first   = g.First();
@@ -457,21 +429,23 @@ namespace iLearn.Application.Services
                 .ToList();
         }
 
-        // ── ExtendDueDateAsync ──────────────────────────────────────────────────
         public async Task ExtendDueDateAsync(int assignmentId, DateTime newDueDate)
         {
             var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId);
             if (mainRule == null)
                 throw new KeyNotFoundException("Assignment not found");
 
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
+                throw new UnauthorizedAccessException("Assignment is not accessible in the current division.");
+
             if (mainRule.StartDate.HasValue && newDueDate <= mainRule.StartDate.Value)
                 throw new ArgumentException("Due date must be after the start date.");
 
-            var allRules = await _assignmentRepo.GetAsync(r => r.AssignmentNo == mainRule.AssignmentNo);
+            var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+
             foreach (var rule in allRules)
             {
                 rule.DueDate = newDueDate;
-                await _assignmentRepo.UpdateAsync(rule);
             }
 
             var ruleIds = allRules.Select(r => r.Id).ToList();
@@ -482,14 +456,17 @@ namespace iLearn.Application.Services
             foreach (var link in activeLinks.Where(ea => ea.Enrollment != null && !(ea.SnapshotCompleted || ea.Enrollment.IsCompleted)))
             {
                 link.DueDate = newDueDate;
-                await _enrollmentAssignmentRepo.UpdateAsync(link);
             }
+
+            await _unitOfWork.SaveChangesAsync();
         }
 
-        // ── GetLookupCoursesAsync ───────────────────────────────────────────────
         public async Task<List<LookupCourseDto>> GetLookupCoursesAsync()
         {
-            var courses = await _courseRepo.GetAsync(c => c.IsActive, includeProperties: "Category,CourseType");
+            var divisionId = _currentUser.DivisionId;
+            var courses = await _courseRepo.GetAsync(
+                c => c.IsActive && (!divisionId.HasValue || c.Category != null && c.Category.DivisionId == divisionId.Value),
+                includeProperties: "Category,CourseType");
 
             return courses.Select(c => new LookupCourseDto
             {
@@ -501,6 +478,28 @@ namespace iLearn.Application.Services
                 CourseTypeId  = c.CourseTypeId,
                 CourseTypeName = c.CourseType?.Name
             }).ToList();
+        }
+
+        private bool IsAccessibleToCurrentDivision(int? divisionId)
+        {
+            return !_currentUser.DivisionId.HasValue || divisionId == _currentUser.DivisionId.Value;
+        }
+
+        private async Task<IReadOnlyList<Course>> GetCoursesIncludingDeletedAsync(IEnumerable<Assignment> assignments)
+        {
+            var allCourseIds = assignments
+                .Select(a => a.CourseId)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            if (allCourseIds.Count == 0)
+                return [];
+
+            return await _courseRepo.GetAsync(
+                filter: c => allCourseIds.Contains(c.Id),
+                ignoreQueryFilters: true);
         }
     }
 }

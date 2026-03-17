@@ -3,8 +3,8 @@ using iLearn.Application.DTOs;
 namespace iLearn.Application.Interfaces.Services
 {
     /// <summary>
-    /// Encapsulates all dashboard / reporting logic for Assignments.
-    /// Keeps the controller thin and enables unit testing.
+    /// Encapsulates assignment dashboard and reporting logic.
+    /// Keeps controllers thin and easier to test.
     /// </summary>
     public interface IAssignmentDashboardService
     {

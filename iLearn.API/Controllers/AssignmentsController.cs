@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
+using iLearn.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 
 namespace iLearn.API.Controllers
@@ -12,29 +13,32 @@ namespace iLearn.API.Controllers
     public class AssignmentsController : ControllerBase
     {
         private readonly IGenericRepository<Assignment> _repo;
-        private readonly ICourseAssignmentService _assignmentService;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
+        private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly IAssignmentDashboardService _dashboardService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
+        private readonly AppDbContext _dbContext;
 
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
-            ICourseAssignmentService assignmentService,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
+            IAssignmentBatchService assignmentBatchService,
             IAssignmentDashboardService dashboardService,
             ICurrentUserService currentUser,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            AppDbContext dbContext)
         {
             _repo = repo;
-            _assignmentService = assignmentService;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
+            _assignmentBatchService = assignmentBatchService;
             _dashboardService = dashboardService;
             _currentUser = currentUser;
             _dateTime = dateTime;
+            _dbContext = dbContext;
         }
 
         [HttpGet("history")]
@@ -73,11 +77,11 @@ namespace iLearn.API.Controllers
 
                 tasks.Add(new
                 {
-                    id = item.Id, // ใช้ ID จริงของงานได้เลย
+                    id = item.Id,
                     parentId = 0,
-                    title = $"{item.AssignmentNo} - {item.Description ?? "No Description"}", // จัดฟอร์แมตชื่อเรื่องใหม่
-                    startDate = start, // 💡 เปลี่ยนชื่อคีย์ให้เป็น startDate
-                    dueDate = end,   // 💡 เปลี่ยนชื่อคีย์ให้เป็น dueDate
+                    title = $"{item.AssignmentNo} - {item.Description ?? "No Description"}",
+                    startDate = start,
+                    dueDate = end,
                     progress,
                     color,
                     status = item.Status,
@@ -85,7 +89,7 @@ namespace iLearn.API.Controllers
                 });
             }
 
-            return Ok(tasks); // ส่งแค่ข้อมูลตัวแม่กลับไป
+            return Ok(tasks);
         }
 
         [HttpGet("course/{courseId}")]
@@ -93,7 +97,6 @@ namespace iLearn.API.Controllers
         {
             var assignments = await _repo.GetAsync(r =>
                 r.CourseId == courseId &&
-                // 💡 เพิ่มการกรอง Division ตัวเอง
                 (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value)
             );
             return Ok(assignments.Select(r => new { r.Id, r.CourseId }));
@@ -105,18 +108,40 @@ namespace iLearn.API.Controllers
             var rule = await _repo.GetByIdAsync(id);
             if (rule == null) return NotFound();
 
-            var relatedRules   = await _repo.GetAsync(r => r.AssignmentNo == rule.AssignmentNo);
+            if (!IsAccessibleToCurrentDivision(rule.DivisionId))
+            {
+                return Forbid();
+            }
+
+            var relatedRules = await _assignmentBatchService.LoadBatchAsync(rule);
             var relatedIds = relatedRules.Select(r => r.Id).ToList();
 
-            // ลบ EnrollmentAssignment links
-            var links = await _enrollmentAssignmentRepo.GetAsync(
-                ea => relatedIds.Contains(ea.AssignmentId));
-            foreach (var link in links)
-                await _enrollmentAssignmentRepo.DeleteAsync(link);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    ea => relatedIds.Contains(ea.AssignmentId));
 
-            // Soft Delete Assignments
-            foreach (var r in relatedRules)
-                await _repo.DeleteAsync(r);
+                foreach (var link in links)
+                {
+                    link.IsDeleted = true;
+                    link.DeletedAt = _dateTime.Now;
+                }
+
+                foreach (var relatedRule in relatedRules)
+                {
+                    relatedRule.IsDeleted = true;
+                    relatedRule.DeletedAt = _dateTime.Now;
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             return NoContent();
         }
@@ -132,6 +157,12 @@ namespace iLearn.API.Controllers
         [HttpPost("validate-before-assign")]
         public async Task<IActionResult> ValidateBeforeAssign([FromBody] BulkAssignDto dto)
         {
+            var accessibleCourses = await GetAccessibleCoursesAsync(dto.CourseIds);
+            if (HasUnauthorizedCourses(dto.CourseIds, accessibleCourses))
+            {
+                return Forbid();
+            }
+
             var result = await _dashboardService.ValidateBeforeAssignAsync(dto);
             if (!result.Success)
                 return BadRequest(new { message = result.Message });
@@ -154,22 +185,34 @@ namespace iLearn.API.Controllers
             if (mainRule.StartDate.HasValue && dto.NewDueDate <= mainRule.StartDate.Value)
                 return BadRequest(new { message = "Due date must be after the start date." });
 
-            var allRules = await _repo.GetAsync(r => r.AssignmentNo == mainRule.AssignmentNo);
-            foreach (var rule in allRules)
-            {
-                rule.DueDate = dto.NewDueDate;
-                await _repo.UpdateAsync(rule);
-            }
+            var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
 
-            var ruleIds = allRules.Select(r => r.Id).ToList();
-            var activeLinks = await _enrollmentAssignmentRepo.GetAsync(
-                ea => ruleIds.Contains(ea.AssignmentId),
-                includeProperties: "Enrollment"
-            );
-            foreach (var link in activeLinks.Where(ea => ea.Enrollment != null && !(ea.SnapshotCompleted || ea.Enrollment.IsCompleted)))
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
             {
-                link.DueDate = dto.NewDueDate;
-                await _enrollmentAssignmentRepo.UpdateAsync(link);
+                foreach (var rule in allRules)
+                {
+                    rule.DueDate = dto.NewDueDate;
+                }
+
+                var ruleIds = allRules.Select(r => r.Id).ToList();
+                var activeLinks = await _enrollmentAssignmentRepo.GetAsync(
+                    ea => ruleIds.Contains(ea.AssignmentId),
+                    includeProperties: "Enrollment"
+                );
+
+                foreach (var link in activeLinks.Where(ea => ea.Enrollment != null && !(ea.SnapshotCompleted || ea.Enrollment.IsCompleted)))
+                {
+                    link.DueDate = dto.NewDueDate;
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
             }
 
             return Ok(new { success = true, message = "Due date extended successfully.", newDueDate = dto.NewDueDate });
@@ -178,7 +221,7 @@ namespace iLearn.API.Controllers
         [HttpGet("lookup-courses")]
         public async Task<IActionResult> GetLookupCourses()
         {
-            var courses = await _courseRepo.GetAsync(c => c.IsActive, includeProperties: "Category,CourseType");
+            var courses = await GetAccessibleCoursesAsync([], includeCourseType: true);
 
             var result = courses.Select(c => new LookupCourseDto
             {
@@ -194,71 +237,39 @@ namespace iLearn.API.Controllers
             return Ok(new { data = result });
         }
 
-        // ── Assignment History for a specific Student Group ──────────────────────
         [HttpGet("group/{groupId}/history")]
         public async Task<IActionResult> GetGroupHistory(int groupId)
         {
-            var assignments = await _repo.GetAsync(
-                r => r.StudentGroupId == groupId &&
-                // 💡 เพิ่มการกรอง Division ตัวเอง
-                (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
-                includeProperties: "Course"
-            );
-
-            if (!assignments.Any())
-                return Ok(new { success = true, data = new List<object>() });
-
-            var allIds = assignments.Select(a => a.Id).ToList();
-
-            var links = await _enrollmentAssignmentRepo.GetAsync(
-                ea => allIds.Contains(ea.AssignmentId),
-                includeProperties: "Enrollment"
-            );
-
-            var now = _dateTime.Now;
-
-            var history = assignments
-                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
-                .GroupBy(r => r.AssignmentNo)
-                .Select(g =>
-                {
-                    var first   = g.First();
-                    var ruleIds = g.Select(a => a.Id).ToList();
-
-                    var relatedLinks = links
-                        .Where(ea => ruleIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
-                        .ToList();
-
-                    bool allDone = relatedLinks.Any()
-                        && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
-
-                    string status = AssignmentDashboardService.CalculateStatus(
-                        relatedLinks.Any(), allDone, first.StartDate, first.DueDate, now);
-
-                    var done  = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
-                    var total = relatedLinks.Count;
-                    var pct   = total > 0 ? Math.Round((double)done / total * 100) : 0;
-
-                    return new
-                    {
-                        id                       = first.Id,
-                        assignmentNo             = g.Key,
-                        description              = first.Description,
-                        courseNames              = string.Join(", ", g
-                            .Select(c => c.Course != null ? c.Course.Title : "Unknown").Distinct()),
-                        courseCount              = g.Select(a => a.CourseId).Distinct().Count(),
-                        startDate                = first.StartDate,
-                        dueDate                  = first.DueDate,
-                        status,
-                        completedEnrollmentCount = done,
-                        totalEnrollmentCount     = total,
-                        completionPct            = pct
-                    };
-                })
-                .OrderByDescending(x => x.assignmentNo)
-                .ToList();
-
+            var history = await _dashboardService.GetGroupHistoryAsync(groupId);
             return Ok(new { success = true, data = history });
+        }
+
+        private bool IsAccessibleToCurrentDivision(int? divisionId)
+        {
+            return !_currentUser.DivisionId.HasValue || divisionId == _currentUser.DivisionId.Value;
+        }
+
+        private async Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(IEnumerable<int> courseIds, bool includeCourseType = false)
+        {
+            var targetCourseIds = courseIds.Distinct().ToList();
+            var includeProperties = includeCourseType ? "Category,CourseType" : "Category";
+
+            return await _courseRepo.GetAsync(
+                c => c.IsActive
+                    && (!targetCourseIds.Any() || targetCourseIds.Contains(c.Id))
+                    && (!_currentUser.DivisionId.HasValue || c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value),
+                includeProperties: includeProperties
+            );
+        }
+
+        private static bool HasUnauthorizedCourses(IEnumerable<int> requestedCourseIds, IEnumerable<Course> accessibleCourses)
+        {
+            var accessibleCourseIds = accessibleCourses
+                .Select(c => c.Id)
+                .Distinct()
+                .ToHashSet();
+
+            return requestedCourseIds.Any(courseId => !accessibleCourseIds.Contains(courseId));
         }
     }
 }
