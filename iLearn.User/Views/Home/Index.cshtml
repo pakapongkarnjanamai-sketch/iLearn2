@@ -172,7 +172,7 @@
                 `);
 
                 $.ajax({
-                    url: '/Home/VerifyEmployee',
+                    url: '@Url.Action("VerifyEmployee", "Home")',
                     method: 'POST',
                     data: { employeeCode: employeeCode },
                     xhrFields: { withCredentials: true },
