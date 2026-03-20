@@ -1,6 +1,8 @@
 ﻿using iLearn.Application;
 using iLearn.API.Middleware;
+using iLearn.API.Hubs;
 using iLearn.API.Services;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
@@ -40,7 +42,9 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
+builder.Services.AddSignalR();
 builder.Services.AddSingleton<IMaintenanceStatusService, MaintenanceStatusService>();
+builder.Services.AddSingleton<IAdminActivityRealtimeNotifier, SignalRAdminActivityNotifier>();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "iLearn API", Version = "v1" });
@@ -95,5 +99,6 @@ app.UseMiddleware<ApiClaimsEnrichMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<AdminActivityHub>("/hubs/admin-activity");
 
 app.Run();

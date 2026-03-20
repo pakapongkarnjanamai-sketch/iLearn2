@@ -222,18 +222,115 @@
 
 </div>
 
+@section ExternalDependencies {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+}
+
 @section Scripts {
     <script>
+        let adminActivityConnection;
+
         $(() => {
             loadDashboardStats();
             loadLearningActivityTrends();
             loadMaintenanceStatus();
             loadRecentAdminActivities();
+            initializeAdminActivitySignalR();
             setInterval(loadMaintenanceStatus, 5000);
-            setInterval(loadRecentAdminActivities, 10000);
+            setInterval(loadRecentAdminActivities, 60000);
 
             showStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
         });
+
+        function initializeAdminActivitySignalR() {
+            if (typeof signalR === 'undefined') {
+                return;
+            }
+
+            adminActivityConnection = new signalR.HubConnectionBuilder()
+                .withUrl(`${serviceUrl.replace(/\/api$/, '')}/hubs/admin-activity`, {
+                    withCredentials: true
+                })
+                .withAutomaticReconnect()
+                .build();
+
+            adminActivityConnection.on('AdminActivityCreated', function(activity) {
+                prependRecentAdminActivity(activity);
+            });
+
+            adminActivityConnection.start().catch(function(err) {
+                console.error('Failed to connect AdminActivity hub', err);
+            });
+        }
+
+        function normalizeAdminActivity(item) {
+            if (!item) return null;
+
+            return {
+                id: item.id ?? item.Id,
+                title: item.title ?? item.Title ?? '',
+                description: item.description ?? item.Description ?? '',
+                createdBy: item.createdBy ?? item.CreatedBy ?? 'SYSTEM',
+                createdAt: item.createdAt ?? item.CreatedAt,
+                actionType: item.actionType ?? item.ActionType ?? '',
+                entityType: item.entityType ?? item.EntityType ?? ''
+            };
+        }
+
+        function renderRecentAdminActivityItem(item, index, totalCount) {
+            const normalized = normalizeAdminActivity(item);
+            if (!normalized) return '';
+
+            const isLast = index === totalCount - 1;
+            const borderClass = !isLast ? 'pb-3 mb-3' : '';
+            const borderStyle = !isLast ? 'border-bottom:1px solid var(--border-color);' : '';
+
+            return `
+                <div class="d-flex align-items-start gap-3 ${borderClass}" style="${borderStyle}" data-activity-id="${normalized.id || ''}">
+                    <div class="qa-icon flex-shrink-0" style="background:#e6f4ff; color:var(--accent-color); margin-top:2px;">
+                        <i class="fas fa-user-pen"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div style="font-size:12px; font-weight:600;">${escapeHtml(normalized.title)}</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">${escapeHtml(normalized.description || '')}</div>
+                    </div>
+                    <div class="text-end" style="min-width:120px;">
+                        <div style="font-size:11px; font-weight:600; color:var(--text-primary);">${escapeHtml(normalized.createdBy || 'SYSTEM')}</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">${formatRelativeTime(normalized.createdAt)}</div>
+                    </div>
+                </div>`;
+        }
+
+        function prependRecentAdminActivity(activity) {
+            const normalized = normalizeAdminActivity(activity);
+            if (!normalized) return;
+
+            const wrapper = $('#recent-admin-activities');
+            const existing = normalized.id ? wrapper.find(`[data-activity-id="${normalized.id}"]`) : $();
+            if (existing.length) {
+                existing.remove();
+            }
+
+            if (wrapper.find('.text-muted.small').length) {
+                wrapper.empty();
+            }
+
+            const html = renderRecentAdminActivityItem(normalized, 0, 1);
+            wrapper.prepend(html);
+
+            const items = wrapper.children('[data-activity-id]');
+            items.each(function(index) {
+                const $item = $(this);
+                const isLast = index === items.length - 1;
+                $item.toggleClass('pb-3', !isLast)
+                    .toggleClass('mb-3', !isLast)
+                    .attr('style', !isLast ? 'border-bottom:1px solid var(--border-color);' : '');
+            });
+
+            if (items.length > 10) {
+                items.slice(10).remove();
+            }
+        }
 
         function loadRecentAdminActivities() {
             $.ajax({
@@ -250,22 +347,7 @@
                 }
 
                 wrapper.html(items.map(function(item, index) {
-                    const borderClass = index < items.length - 1 ? 'pb-3 mb-3' : '';
-                    const borderStyle = index < items.length - 1 ? 'border-bottom:1px solid var(--border-color);' : '';
-                    return `
-                        <div class="d-flex align-items-start gap-3 ${borderClass}" style="${borderStyle}">
-                            <div class="qa-icon flex-shrink-0" style="background:#e6f4ff; color:var(--accent-color); margin-top:2px;">
-                                <i class="fas fa-user-pen"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div style="font-size:12px; font-weight:600;">${escapeHtml(item.title)}</div>
-                                <div style="font-size:11px; color:var(--text-secondary);">${escapeHtml(item.description || '')}</div>
-                            </div>
-                            <div class="text-end" style="min-width:120px;">
-                                <div style="font-size:11px; font-weight:600; color:var(--text-primary);">${escapeHtml(item.createdBy || 'SYSTEM')}</div>
-                                <div style="font-size:11px; color:var(--text-secondary);">${formatRelativeTime(item.createdAt)}</div>
-                            </div>
-                        </div>`;
+                    return renderRecentAdminActivityItem(item, index, items.length);
                 }).join(''));
             }).fail(function() {
                 $('#recent-admin-activities').html('<div class="text-muted small text-center py-3"><i class="fas fa-triangle-exclamation me-1"></i>Failed to load activity</div>');

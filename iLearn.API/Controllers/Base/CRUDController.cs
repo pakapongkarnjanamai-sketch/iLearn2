@@ -1,11 +1,13 @@
 ﻿using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
+using iLearn.API.Services;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 
 namespace iLearn.API.Controllers.Base
@@ -470,6 +472,7 @@ namespace iLearn.API.Controllers.Base
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<FileStorage> _fileRepo;
         private readonly IScormService _scormService;
+        private readonly IMemoryCache _cache;
 
         public ResourcesCRUDController(
             IGenericRepository<Resource> repository,
@@ -477,12 +480,14 @@ namespace iLearn.API.Controllers.Base
             IGenericRepository<CourseResource> courseResourceRepo,
             IGenericRepository<Course> courseRepo,
             IGenericRepository<FileStorage> fileRepo,
-            IScormService scormService) : base(repository, currentUser)
+            IScormService scormService,
+            IMemoryCache cache) : base(repository, currentUser)
         {
             _courseResourceRepo = courseResourceRepo;
             _courseRepo         = courseRepo;
             _fileRepo           = fileRepo;
             _scormService       = scormService;
+            _cache              = cache;
         }
 
         [HttpGet("Get")]
@@ -527,6 +532,9 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("GetServerStats")]
         public async Task<IActionResult> GetServerStats()
         {
+            if (_cache.TryGetValue(ResourceStatsCache.ServerStatsKey, out object? cachedStats) && cachedStats != null)
+                return Ok(cachedStats);
+
             var publishedResources = await _repository.GetQuery()
                 .Where(r => r.IsActive && r.URL != null)
                 .Select(r => new { r.Id, r.URL })
@@ -538,12 +546,17 @@ namespace iLearn.API.Controllers.Base
                 return new { r.Id, info.FileCount, info.TotalSize };
             }).ToDictionary(x => x.Id, x => new { x.FileCount, x.TotalSize });
 
+            _cache.Set(ResourceStatsCache.ServerStatsKey, stats, ResourceStatsCache.DefaultOptions);
+
             return Ok(stats);
         }
 
         [HttpGet("GetSummaryStats")]
         public async Task<IActionResult> GetSummaryStats()
         {
+            if (_cache.TryGetValue(ResourceStatsCache.SummaryStatsKey, out object? cachedSummary) && cachedSummary != null)
+                return Ok(cachedSummary);
+
             var allResources = await _repository.GetQuery()
                 .Include(r => r.FileStorage)
                 .Select(r => new
@@ -569,7 +582,7 @@ namespace iLearn.API.Controllers.Base
                 totalServerSize += info.TotalSize;
             }
 
-            return Ok(new
+            var summary = new
             {
                 totalCount,
                 publishedCount,
@@ -577,7 +590,11 @@ namespace iLearn.API.Controllers.Base
                 totalDbSize,
                 totalServerFiles,
                 totalServerSize
-            });
+            };
+
+            _cache.Set(ResourceStatsCache.SummaryStatsKey, summary, ResourceStatsCache.DefaultOptions);
+
+            return Ok(summary);
         }
 
         [HttpPut("Put")]
@@ -631,6 +648,7 @@ namespace iLearn.API.Controllers.Base
             }
 
             await _repository.UpdateAsync(resource);
+            ResourceStatsCache.Invalidate(_cache);
             return Ok(resource);
         }
 

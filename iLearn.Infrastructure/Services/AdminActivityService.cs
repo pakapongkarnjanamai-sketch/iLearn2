@@ -13,13 +13,16 @@ namespace iLearn.Infrastructure.Services
     public class AdminActivityService : IAdminActivityService
     {
         private readonly IGenericRepository<AdminActivity> _adminActivityRepository;
+        private readonly IAdminActivityRealtimeNotifier _realtimeNotifier;
         private readonly ILogger<AdminActivityService> _logger;
 
         public AdminActivityService(
             IGenericRepository<AdminActivity> adminActivityRepository,
+            IAdminActivityRealtimeNotifier realtimeNotifier,
             ILogger<AdminActivityService> logger)
         {
             _adminActivityRepository = adminActivityRepository;
+            _realtimeNotifier = realtimeNotifier;
             _logger = logger;
         }
 
@@ -47,6 +50,7 @@ namespace iLearn.Infrastructure.Services
             try
             {
                 await _adminActivityRepository.AddAsync(activity);
+                await _realtimeNotifier.NotifyCreatedAsync(activity.ToDto());
             }
             catch (SqlException ex) when (ex.Number == 208)
             {

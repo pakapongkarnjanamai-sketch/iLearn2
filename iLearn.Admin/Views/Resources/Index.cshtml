@@ -203,7 +203,33 @@
             });
         }
 
+        function normalizeBatchPublishProgress(progress) {
+            if (!progress) return null;
+
+            const latestResult = progress.latestResult || progress.LatestResult || null;
+
+            return {
+                currentItem: progress.currentItem ?? progress.CurrentItem ?? 0,
+                totalItems: progress.totalItems ?? progress.TotalItems ?? 0,
+                successCount: progress.successCount ?? progress.SuccessCount ?? 0,
+                failureCount: progress.failureCount ?? progress.FailureCount ?? 0,
+                currentResourceName: progress.currentResourceName ?? progress.CurrentResourceName ?? null,
+                currentStep: progress.currentStep ?? progress.CurrentStep ?? null,
+                isComplete: progress.isComplete ?? progress.IsComplete ?? false,
+                elapsedTime: progress.elapsedTime ?? progress.ElapsedTime ?? null,
+                latestResult: latestResult ? {
+                    success: latestResult.success ?? latestResult.Success ?? false,
+                    resourceName: latestResult.resourceName ?? latestResult.ResourceName ?? '',
+                    errorMessage: latestResult.errorMessage ?? latestResult.ErrorMessage ?? '',
+                    details: latestResult.details ?? latestResult.Details ?? ''
+                } : null
+            };
+        }
+
         function updateBatchPublishProgress(progress) {
+            progress = normalizeBatchPublishProgress(progress);
+            if (!progress) return;
+
             const total = progress.totalItems || 0;
             const current = progress.currentItem || 0;
             const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
@@ -266,8 +292,9 @@
                         if (!line) return;
 
                         const payload = JSON.parse(line.substring(6));
-                        lastProgress = payload;
-                        updateBatchPublishProgress(payload);
+                        const normalized = normalizeBatchPublishProgress(payload);
+                        lastProgress = normalized;
+                        updateBatchPublishProgress(normalized);
                     });
                 }
 

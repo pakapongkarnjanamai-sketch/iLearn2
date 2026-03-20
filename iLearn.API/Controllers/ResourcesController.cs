@@ -4,10 +4,12 @@ using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
+using iLearn.API.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 
 namespace iLearn.API.Controllers
@@ -22,6 +24,7 @@ namespace iLearn.API.Controllers
         private readonly ILogger<ResourcesController> _logger; // ✅ เพิ่ม Logger
         private readonly IMaintenanceStatusService _maintenanceStatusService;
         private readonly IAdminActivityService _adminActivityService;
+        private readonly IMemoryCache _cache;
 
         public ResourcesController(
             IGenericRepository<Resource> resourceRepo,
@@ -29,7 +32,8 @@ namespace iLearn.API.Controllers
             IScormService scormService,
             ILogger<ResourcesController> logger,
             IMaintenanceStatusService maintenanceStatusService,
-            IAdminActivityService adminActivityService) // ✅ เพิ่ม Logger ใน DI
+            IAdminActivityService adminActivityService,
+            IMemoryCache cache) // ✅ เพิ่ม Logger ใน DI
         {
             _resourceRepo = resourceRepo;
             _fileRepo = fileRepo;
@@ -37,6 +41,7 @@ namespace iLearn.API.Controllers
             _logger = logger; // ✅ กำหนดค่า Logger
             _maintenanceStatusService = maintenanceStatusService;
             _adminActivityService = adminActivityService;
+            _cache = cache;
         }
 
         [HttpGet]
@@ -109,6 +114,7 @@ namespace iLearn.API.Controllers
             };
 
             var savedResource = await _resourceRepo.AddAsync(resource);
+            ResourceStatsCache.Invalidate(_cache);
 
             return Ok(savedResource.ToDto());
         }
@@ -161,6 +167,7 @@ namespace iLearn.API.Controllers
                 }
 
                 await _resourceRepo.UpdateAsync(resource);
+                ResourceStatsCache.Invalidate(_cache);
                 await _adminActivityService.LogAsync(
                     actionType: "PublishResource",
                     entityType: nameof(Resource),
@@ -206,6 +213,7 @@ namespace iLearn.API.Controllers
                 resource.SchemaVersion = null;
 
                 await _resourceRepo.UpdateAsync(resource);
+                ResourceStatsCache.Invalidate(_cache);
                 return Ok(new { message = "Resource unpublished. Extracted files removed from server." });
             }
             catch (Exception ex)
@@ -232,6 +240,7 @@ namespace iLearn.API.Controllers
 
             // Soft Delete Resource — LearningLog.ResourceId ยังอ้างอิงได้
             await _resourceRepo.DeleteAsync(resource);
+            ResourceStatsCache.Invalidate(_cache);
 
             if (resource.FileStorageId.HasValue)
             {
@@ -373,6 +382,7 @@ namespace iLearn.API.Controllers
                     resource.SchemaVersion = null;
 
                     await _resourceRepo.UpdateAsync(resource);
+                    ResourceStatsCache.Invalidate(_cache);
                     success++;
                 }
                 catch (Exception ex)
@@ -421,6 +431,7 @@ namespace iLearn.API.Controllers
 
                     resource.IsActive = true;
                     await _resourceRepo.UpdateAsync(resource);
+                    ResourceStatsCache.Invalidate(_cache);
                     success++;
                 }
                 catch (Exception ex)
@@ -612,6 +623,7 @@ namespace iLearn.API.Controllers
                     await _resourceRepo.UpdateAsync(resource);
 
                     success++;
+                    ResourceStatsCache.Invalidate(_cache);
                     progress.SuccessCount = success;
                     progress.CurrentStep = "Completed";
                     progress.LatestResult = new BulkOperationItemDto
@@ -990,6 +1002,7 @@ namespace iLearn.API.Controllers
 
                         itemResult.Success = true;
                         result.SuccessCount++;
+                        ResourceStatsCache.Invalidate(_cache);
                         result.Results.Add(itemResult);
                         _maintenanceStatusService.UpdateOperation(operationId, "Updating resource to draft", resource.Name, currentItem, result.SuccessCount, result.FailureCount);
 

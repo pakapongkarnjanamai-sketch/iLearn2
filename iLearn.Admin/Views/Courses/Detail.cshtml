@@ -113,14 +113,24 @@
         const courseId = @courseId;
         const courseApiUrl = serviceUrl + '/courses';
 
-        const divisionsStore  = createDataStore(serviceUrl, 'admin/DivisionsCRUD',  { key: 'id' });
+        const divisionsStore  = createDataStore(serviceUrl, 'Divisions', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Divisions`
+        });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-        const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' });
+        const courseTypesStore = createDataStore(serviceUrl, 'Courses', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Courses/course-types-lookup`
+        });
 
         let isCourseActive = false;
         let courseForm;
         let versionsData = [];
         $(async () => {
+            const [divisionOptions, courseTypeOptions] = await Promise.all([
+                loadDivisionOptions(),
+                loadCourseTypeOptions()
+            ]);
 
             showCardsSkeleton('#versionsCardContainer', 3);
 
@@ -140,7 +150,7 @@
                                 label: { text: "Division" },
                                 editorType: "dxSelectBox",
                                 editorOptions: {
-                                    dataSource: divisionsStore,
+                                    dataSource: divisionOptions,
                                     displayExpr: "name",
                                     valueExpr: "id",
                                     searchEnabled: true,
@@ -153,7 +163,15 @@
                                         if (e.value) {
                                             catEditor.option("disabled", false);
                                             catDS.filter(["divisionId", "=", e.value]);
-                                            catDS.load();
+                                            catDS.load().done(function() {
+                                                const currentValue = catEditor.option("value");
+                                                if (currentValue) {
+                                                    const exists = catDS.items().some(x => x.id === currentValue);
+                                                    if (!exists) {
+                                                        catEditor.option("value", null);
+                                                    }
+                                                }
+                                            });
                                         } else {
                                             catEditor.option("disabled", true);
                                             catEditor.option("value", null);
@@ -192,7 +210,7 @@
                                 label: { text: "Course Type" },
                                 editorType: "dxSelectBox",
                                 editorOptions: {
-                                    dataSource: courseTypesStore,
+                                    dataSource: courseTypeOptions,
                                     displayExpr: "name",
                                     valueExpr: "id",
                                     placeholder: "Select Type"
@@ -247,7 +265,7 @@
                     const catEditor = courseForm.getEditor("categoryId");
                     catEditor.option("disabled", false);
                     catEditor.getDataSource().filter(["divisionId", "=", divisionId]);
-                    catEditor.getDataSource().load();
+                    await catEditor.getDataSource().load();
                 }
 
                 courseForm.option("formData", {
@@ -268,6 +286,24 @@
             } catch(xhr) {
                 showToast("Error loading course: " + (xhr.responseJSON?.message || "Unknown error"), "error");
                 console.log(xhr);
+            }
+
+            async function loadDivisionOptions() {
+                try {
+                    const result = await divisionsStore.load();
+                    return Array.isArray(result) ? result : [];
+                } catch {
+                    return [];
+                }
+            }
+
+            async function loadCourseTypeOptions() {
+                try {
+                    const result = await courseTypesStore.load();
+                    return Array.isArray(result) ? result : [];
+                } catch {
+                    return [];
+                }
             }
 
             // ── 3. Save ────────────────────────────────────────────────
