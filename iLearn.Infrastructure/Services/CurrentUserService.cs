@@ -1,6 +1,5 @@
 using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
 
 namespace iLearn.Infrastructure.Services
 {

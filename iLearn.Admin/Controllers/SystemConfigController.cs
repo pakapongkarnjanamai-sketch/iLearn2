@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using System.Reflection;
 using System.Text.Json;
 
@@ -240,56 +238,56 @@ namespace iLearn.Admin.Controllers
     // ?? Sub-models (deserialized from API response) ??
     public class DbConfigInfo
     {
-        public string DataSource   { get; set; } = string.Empty;
+        public string DataSource { get; set; } = string.Empty;
         public string DatabaseName { get; set; } = string.Empty;
-        public string UserId       { get; set; } = string.Empty;
-        public string TrustCert    { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
+        public string TrustCert { get; set; } = string.Empty;
     }
 
     public class FileSettingsInfo
     {
-        public string HostUrl      { get; set; } = string.Empty;
-        public string HostUnc      { get; set; } = string.Empty;
+        public string HostUrl { get; set; } = string.Empty;
+        public string HostUnc { get; set; } = string.Empty;
         public string CourseFolder { get; set; } = string.Empty;
-        public string FileUrl      { get; set; } = string.Empty;
-        public string FileUnc      { get; set; } = string.Empty;
+        public string FileUrl { get; set; } = string.Empty;
+        public string FileUnc { get; set; } = string.Empty;
     }
 
     public class ApiRuntimeInfo
     {
-        public string DotNetVersion  { get; set; } = string.Empty;
-        public string MachineName    { get; set; } = string.Empty;
-        public string OsDescription  { get; set; } = string.Empty;
+        public string DotNetVersion { get; set; } = string.Empty;
+        public string MachineName { get; set; } = string.Empty;
+        public string OsDescription { get; set; } = string.Empty;
         public string OsArchitecture { get; set; } = string.Empty;
-        public string ServerTime     { get; set; } = string.Empty;
-        public string AppVersion     { get; set; } = string.Empty;
+        public string ServerTime { get; set; } = string.Empty;
+        public string AppVersion { get; set; } = string.Empty;
     }
 
     public class EmployeeServiceInfo
     {
         public string BaseStudentLookupUrl { get; set; } = string.Empty;
-        public string BaseStudentUrl       { get; set; } = string.Empty;
+        public string BaseStudentUrl { get; set; } = string.Empty;
     }
 
     public class SystemConfigViewModel
     {
         // Admin-side
-        public string AdminEnvironment  { get; set; } = string.Empty;
-        public string AdminApiBaseUrl   { get; set; } = string.Empty;
+        public string AdminEnvironment { get; set; } = string.Empty;
+        public string AdminApiBaseUrl { get; set; } = string.Empty;
         public string AdminAllowedHosts { get; set; } = string.Empty;
         public Dictionary<string, string> AdminLogLevels { get; set; } = new();
 
         // API-side (fetched from API)
-        public bool   ApiReachable   { get; set; }
-        public bool   ApiConfigFallbackUsed { get; set; }
+        public bool ApiReachable { get; set; }
+        public bool ApiConfigFallbackUsed { get; set; }
         public string ApiSource { get; set; } = string.Empty;
         public string ApiEnvironment { get; set; } = string.Empty;
-        public string ApiAllowedHosts{ get; set; } = string.Empty;
-        public Dictionary<string, string> ApiLogLevels  { get; set; } = new();
-        public DbConfigInfo       Database        { get; set; } = new();
-        public FileSettingsInfo   FileSettings    { get; set; } = new();
+        public string ApiAllowedHosts { get; set; } = string.Empty;
+        public Dictionary<string, string> ApiLogLevels { get; set; } = new();
+        public DbConfigInfo Database { get; set; } = new();
+        public FileSettingsInfo FileSettings { get; set; } = new();
         public EmployeeServiceInfo EmployeeService { get; set; } = new();
-        public ApiRuntimeInfo     ApiRuntime      { get; set; } = new();
+        public ApiRuntimeInfo ApiRuntime { get; set; } = new();
         public bool HasApiData => ApiReachable || ApiConfigFallbackUsed;
     }
 

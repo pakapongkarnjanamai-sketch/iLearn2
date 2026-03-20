@@ -29,6 +29,7 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IStudentApiService _studentApiService;
+        private readonly IAdminActivityService _adminActivityService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
         private readonly ICourseVersionService _versionService;
@@ -47,6 +48,7 @@ namespace iLearn.Application.Services
             IScormService scormService,
             IUnitOfWork unitOfWork,
             IStudentApiService studentApiService,
+            IAdminActivityService adminActivityService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
             ICourseVersionService versionService)
@@ -66,6 +68,7 @@ namespace iLearn.Application.Services
             _scormService = scormService;
             _unitOfWork = unitOfWork;
             _studentApiService = studentApiService;
+            _adminActivityService = adminActivityService;
             _currentUser = currentUser;
             _dateTime = dateTime;
             _versionService = versionService;
@@ -174,6 +177,14 @@ namespace iLearn.Application.Services
                 await AddResourcesToCourseVersionAsync(courseVersion.Id, model.ResourceIds);
             }
 
+            await _adminActivityService.LogAsync(
+                actionType: "CreateCourse",
+                entityType: nameof(Course),
+                entityId: course.Id,
+                title: $"Created course {course.Code}",
+                description: $"Created course '{course.Title}' with version 1.",
+                divisionId: _currentUser.DivisionId);
+
             return course.ToDto();
         }
 
@@ -234,6 +245,14 @@ namespace iLearn.Application.Services
             {
                 await ReplaceVersionResourcesAsync(activeVersion.Id, dto.ResourceIds);
             }
+
+            await _adminActivityService.LogAsync(
+                actionType: "UpdateCourse",
+                entityType: nameof(Course),
+                entityId: course.Id,
+                title: $"Updated course {course.Code}",
+                description: $"Updated course '{course.Title}'.",
+                divisionId: _currentUser.DivisionId);
 
             return course.ToDto();
         }

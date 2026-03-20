@@ -86,7 +86,7 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "iLearn API V1");
     });
 
-   
+
 }
 app.UseCors("AllowSpecificOrigin");
 app.UseHttpsRedirection();

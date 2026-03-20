@@ -1,9 +1,7 @@
-﻿using iLearn.API.Controllers.Base;
-using iLearn.Application.DTOs;
+﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
-using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +20,7 @@ namespace iLearn.API.Controllers
         private readonly ICurrentUserService _currentUser;
         public UsersController(
             IGenericRepository<User> userRepo,
-            ICourseAssignmentService assignmentService,IDateTime dateTime, ILogger<UsersController> logger,
+            ICourseAssignmentService assignmentService, IDateTime dateTime, ILogger<UsersController> logger,
             ICurrentUserService currentUser)
         {
             _dateTime = dateTime;
@@ -121,7 +119,7 @@ namespace iLearn.API.Controllers
                     .Select(u => new
                     {
                         u.Id,
-                     
+
                         u.LastLogin,
                         Roles = u.UserRoles.Select(ur => new RoleDto
                         {

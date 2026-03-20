@@ -1,11 +1,10 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.API.Services;
+using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
-using iLearn.API.Services;
 using iLearn.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,19 +21,22 @@ namespace iLearn.API.Controllers
         private readonly IScormService _scormService;
         private readonly ILogger<ResourcesController> _logger; // ✅ เพิ่ม Logger
         private readonly IMaintenanceStatusService _maintenanceStatusService;
+        private readonly IAdminActivityService _adminActivityService;
 
         public ResourcesController(
             IGenericRepository<Resource> resourceRepo,
             IGenericRepository<FileStorage> fileRepo,
             IScormService scormService,
             ILogger<ResourcesController> logger,
-            IMaintenanceStatusService maintenanceStatusService) // ✅ เพิ่ม Logger ใน DI
+            IMaintenanceStatusService maintenanceStatusService,
+            IAdminActivityService adminActivityService) // ✅ เพิ่ม Logger ใน DI
         {
             _resourceRepo = resourceRepo;
             _fileRepo = fileRepo;
             _scormService = scormService;
             _logger = logger; // ✅ กำหนดค่า Logger
             _maintenanceStatusService = maintenanceStatusService;
+            _adminActivityService = adminActivityService;
         }
 
         [HttpGet]
@@ -62,7 +64,7 @@ namespace iLearn.API.Controllers
 
             if (resource.IsActive && !string.IsNullOrEmpty(resource.URL) && !string.IsNullOrEmpty(resource.ResourceHref))
             {
-                string URL = _scormService.GetScormUrl(resource.URL,resource.ResourceHref);
+                string URL = _scormService.GetScormUrl(resource.URL, resource.ResourceHref);
                 return Ok(new { url = URL });
             }
 
@@ -70,7 +72,7 @@ namespace iLearn.API.Controllers
             if (fileStorage == null || fileStorage.Data == null)
                 return NotFound("File content missing");
 
-           
+
 
             return File(fileStorage.Data, fileStorage.ContentType, fileStorage.Name);
         }
@@ -159,6 +161,12 @@ namespace iLearn.API.Controllers
                 }
 
                 await _resourceRepo.UpdateAsync(resource);
+                await _adminActivityService.LogAsync(
+                    actionType: "PublishResource",
+                    entityType: nameof(Resource),
+                    entityId: resource.Id,
+                    title: $"Published resource {resource.Name}",
+                    description: $"Published resource '{resource.Name}'.");
                 return Ok(resource.ToDto());
             }
             catch (Exception ex)
@@ -643,6 +651,12 @@ namespace iLearn.API.Controllers
             }
 
             _maintenanceStatusService.CompleteOperation(operationId, failed == 0, "Batch publish completed", success, failed);
+            await _adminActivityService.LogAsync(
+                actionType: "BatchPublishResources",
+                entityType: nameof(Resource),
+                entityId: null,
+                title: "Completed batch publish",
+                description: $"Batch published {success} resource(s) with {failed} failure(s).");
             await WriteProgressAsync(new BulkOperationProgressDto
             {
                 CurrentItem = ids.Count,
@@ -999,6 +1013,12 @@ namespace iLearn.API.Controllers
                                 $"(❌ ล้มเหลว {result.FailureCount}) ⏱️ ใช้เวลา {result.Duration.TotalSeconds:F2} วินาที";
                 if (operationId != Guid.Empty)
                     _maintenanceStatusService.CompleteOperation(operationId, result.FailureCount == 0, "Unpublish all completed", result.SuccessCount, result.FailureCount);
+                await _adminActivityService.LogAsync(
+                    actionType: "UnpublishAllResources",
+                    entityType: nameof(Resource),
+                    entityId: null,
+                    title: "Completed unpublish all published resources",
+                    description: $"Unpublished {result.SuccessCount} resource(s) with {result.FailureCount} failure(s).");
 
                 _logger.LogInformation($"🎉 Bulk Delete Completed: {result.Summary}");
 

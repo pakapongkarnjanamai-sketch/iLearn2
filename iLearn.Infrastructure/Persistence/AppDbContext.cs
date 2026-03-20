@@ -32,6 +32,7 @@ namespace iLearn.Infrastructure.Persistence
         public DbSet<FileStorage> FileStorages { get; set; }
         public DbSet<LearningLog> LearningLogs { get; set; }
         public DbSet<CourseType> CourseTypes { get; set; }
+        public DbSet<AdminActivity> AdminActivities { get; set; }
 
         // DbSet เดิมที่มีอยู่แล้ว (ตรวจสอบว่ามีครบไหม)
         public DbSet<Division> Divisions { get; set; }

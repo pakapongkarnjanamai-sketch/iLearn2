@@ -1,12 +1,11 @@
 ﻿// File: iLearn.API/Controllers/DashboardController.cs
+using iLearn.API.Services;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
-using iLearn.API.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
@@ -20,6 +19,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<LearningLog> _learningLogRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
+        private readonly IAdminActivityService _adminActivityService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
         private readonly IMaintenanceStatusService _maintenanceStatusService;
@@ -31,6 +31,7 @@ namespace iLearn.API.Controllers
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<LearningLog> learningLogRepo,
             IGenericRepository<Assignment> assignmentRepo,
+            IAdminActivityService adminActivityService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
             IMaintenanceStatusService maintenanceStatusService)
@@ -41,6 +42,7 @@ namespace iLearn.API.Controllers
             _enrollmentRepo = enrollmentRepo;
             _learningLogRepo = learningLogRepo;
             _assignmentRepo = assignmentRepo;
+            _adminActivityService = adminActivityService;
             _currentUser = currentUser;
             _dateTime = dateTime;
             _maintenanceStatusService = maintenanceStatusService;
@@ -56,7 +58,7 @@ namespace iLearn.API.Controllers
             var now = _dateTime.Now;
             var inProgressAssignments = await _assignmentRepo.CountAsync(
                 a => (!a.StartDate.HasValue || a.StartDate.Value <= now)
-                  && (!a.DueDate.HasValue  || a.DueDate.Value  >= now)
+                  && (!a.DueDate.HasValue || a.DueDate.Value >= now)
                   && (!_currentUser.DivisionId.HasValue || a.DivisionId == _currentUser.DivisionId.Value));
 
             return Ok(new
@@ -156,5 +158,17 @@ namespace iLearn.API.Controllers
                 }
             });
         }
+
+        [HttpGet("RecentAdminActivities")]
+        public async Task<IActionResult> GetRecentAdminActivities([FromQuery] int take = 10)
+        {
+            var activities = await _adminActivityService.GetRecentActivitiesAsync(take, _currentUser.DivisionId);
+
+            return Ok(new
+            {
+                success = true,
+                data = activities
+            });
+        }
     }
-}   
+}

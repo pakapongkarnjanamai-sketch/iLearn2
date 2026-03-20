@@ -206,6 +206,20 @@
         </div>
     </div>
 
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="dash-panel">
+                <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                    <span>Recent Admin Activity</span>
+                    <span style="font-size:11px; color:var(--text-secondary); font-weight:400;">latest create / update actions</span>
+                </div>
+                <div class="dash-panel-body" id="recent-admin-activities">
+                    <div class="text-muted small">Loading recent activity...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @section Scripts {
@@ -214,10 +228,49 @@
             loadDashboardStats();
             loadLearningActivityTrends();
             loadMaintenanceStatus();
+            loadRecentAdminActivities();
             setInterval(loadMaintenanceStatus, 5000);
+            setInterval(loadRecentAdminActivities, 10000);
 
             showStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
         });
+
+        function loadRecentAdminActivities() {
+            $.ajax({
+                url: `${serviceUrl}/admin/Dashboard/RecentAdminActivities?take=10`,
+                method: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(res) {
+                const wrapper = $('#recent-admin-activities');
+                const items = res && res.success ? (res.data || []) : [];
+
+                if (!items.length) {
+                    wrapper.html('<div class="text-muted small text-center py-3"><i class="fas fa-clock-rotate-left me-1"></i>No recent admin activity</div>');
+                    return;
+                }
+
+                wrapper.html(items.map(function(item, index) {
+                    const borderClass = index < items.length - 1 ? 'pb-3 mb-3' : '';
+                    const borderStyle = index < items.length - 1 ? 'border-bottom:1px solid var(--border-color);' : '';
+                    return `
+                        <div class="d-flex align-items-start gap-3 ${borderClass}" style="${borderStyle}">
+                            <div class="qa-icon flex-shrink-0" style="background:#e6f4ff; color:var(--accent-color); margin-top:2px;">
+                                <i class="fas fa-user-pen"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div style="font-size:12px; font-weight:600;">${escapeHtml(item.title)}</div>
+                                <div style="font-size:11px; color:var(--text-secondary);">${escapeHtml(item.description || '')}</div>
+                            </div>
+                            <div class="text-end" style="min-width:120px;">
+                                <div style="font-size:11px; font-weight:600; color:var(--text-primary);">${escapeHtml(item.createdBy || 'SYSTEM')}</div>
+                                <div style="font-size:11px; color:var(--text-secondary);">${formatRelativeTime(item.createdAt)}</div>
+                            </div>
+                        </div>`;
+                }).join(''));
+            }).fail(function() {
+                $('#recent-admin-activities').html('<div class="text-muted small text-center py-3"><i class="fas fa-triangle-exclamation me-1"></i>Failed to load activity</div>');
+            });
+        }
 
         function loadMaintenanceStatus() {
             $.ajax({
@@ -274,6 +327,33 @@
 
         function escapeHtml(value) {
             return $('<div>').text(value || '').html();
+        }
+
+        function formatRelativeTime(value) {
+            if (!value) return '—';
+
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '—';
+
+            const diffMs = Date.now() - date.getTime();
+            const diffMinutes = Math.floor(diffMs / 60000);
+
+            if (diffMinutes < 1) return 'just now';
+            if (diffMinutes < 60) return `${diffMinutes} min ago`;
+
+            const diffHours = Math.floor(diffMinutes / 60);
+            if (diffHours < 24) return `${diffHours} hr ago`;
+
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+            return date.toLocaleString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         function loadDashboardStats() {

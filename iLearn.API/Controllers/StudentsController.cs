@@ -1,10 +1,8 @@
-﻿using iLearn.Application.DTOs;
-using iLearn.Application.Interfaces.Repositories;
+﻿using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
@@ -174,19 +172,19 @@ namespace iLearn.API.Controllers
                 .OrderByDescending(e => e.StartDate ?? e.CompletedDate)
                 .Select(e => new
                 {
-                    enrollmentId          = e.Id,
-                    courseId              = e.CourseId,
-                    courseCode            = e.Course != null ? e.Course.Code  : "-",
-                    courseTitle           = e.Course != null ? e.Course.Title : "Unknown Course",
-                    isCourseDeleted       = e.Course != null && e.Course.IsDeleted,
-                    progress              = e.Progress,
-                    isCompleted           = e.IsCompleted,
-                    startDate             = e.StartDate,
-                    dueDate               = e.DueDate,
-                    completedDate         = e.CompletedDate,
-                    totalScore            = e.TotalScore,
-                    totalTimeSpent        = e.TotalTimeSpent,
-                    hasActiveAssignment   = e.AssignmentLinks.Any(),
+                    enrollmentId = e.Id,
+                    courseId = e.CourseId,
+                    courseCode = e.Course != null ? e.Course.Code : "-",
+                    courseTitle = e.Course != null ? e.Course.Title : "Unknown Course",
+                    isCourseDeleted = e.Course != null && e.Course.IsDeleted,
+                    progress = e.Progress,
+                    isCompleted = e.IsCompleted,
+                    startDate = e.StartDate,
+                    dueDate = e.DueDate,
+                    completedDate = e.CompletedDate,
+                    totalScore = e.TotalScore,
+                    totalTimeSpent = e.TotalTimeSpent,
+                    hasActiveAssignment = e.AssignmentLinks.Any(),
                     // Enrollment ที่ไม่มี link เหลือ, ยังไม่จบ และเคยมี StartDate/DueDate
                     // = เคยถูก Assign แต่ Assignment ถูกลบไปแล้ว
                     isAssignmentCancelled = !e.AssignmentLinks.Any()
@@ -196,22 +194,22 @@ namespace iLearn.API.Controllers
 
             // 4. KPI — คิดเฉพาะ Course ที่ยังใช้งานอยู่ (ไม่ถูก Soft Delete)
             var activeCourseHistory = history.Where(e => !e.isCourseDeleted).ToList();
-            var totalCourses      = activeCourseHistory.Count;
-            var completedCourses  = activeCourseHistory.Count(e => e.isCompleted);
+            var totalCourses = activeCourseHistory.Count;
+            var completedCourses = activeCourseHistory.Count(e => e.isCompleted);
             var inProgressCourses = activeCourseHistory.Count(e => !e.isCompleted && e.progress > 0);
-            var totalTimeSpent    = activeCourseHistory.Sum(e => e.totalTimeSpent);
+            var totalTimeSpent = activeCourseHistory.Sum(e => e.totalTimeSpent);
 
             return Ok(new
             {
                 success = true,
                 data = new
                 {
-                    code       = studentInfo != null ? studentInfo.Code       : code,
-                    name       = studentInfo != null ? studentInfo.Name       : code,
-                    division   = studentInfo != null ? studentInfo.Division   : null,
+                    code = studentInfo != null ? studentInfo.Code : code,
+                    name = studentInfo != null ? studentInfo.Name : code,
+                    division = studentInfo != null ? studentInfo.Division : null,
                     department = studentInfo != null ? studentInfo.Department : null,
-                    section    = studentInfo != null ? studentInfo.Section    : null,
-                    position   = studentInfo != null ? studentInfo.Position   : null,
+                    section = studentInfo != null ? studentInfo.Section : null,
+                    position = studentInfo != null ? studentInfo.Position : null,
                     kpi = new
                     {
                         totalCourses,

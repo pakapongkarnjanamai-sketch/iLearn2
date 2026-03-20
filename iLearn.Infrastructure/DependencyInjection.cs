@@ -39,6 +39,7 @@ namespace iLearn.Infrastructure
             // ── Infrastructure Services ──
             services.AddTransient<IDateTime, DateTimeService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IAdminActivityService, AdminActivityService>();
             services.AddScoped<IAssignmentNoGenerator, AssignmentNoGenerator>();
             services.AddScoped<IScormService, ScormService>();
 

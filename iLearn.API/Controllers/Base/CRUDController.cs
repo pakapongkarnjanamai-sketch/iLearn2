@@ -12,9 +12,15 @@ namespace iLearn.API.Controllers.Base
 {
     public class CategoriesCRUDController : GenericController<Category>
     {
+        private readonly IAdminActivityService _adminActivityService;
+
         public CategoriesCRUDController(
             IGenericRepository<Category> repository,
-            ICurrentUserService currentUser) : base(repository, currentUser) { }
+            ICurrentUserService currentUser,
+            IAdminActivityService adminActivityService) : base(repository, currentUser)
+        {
+            _adminActivityService = adminActivityService;
+        }
 
         [HttpGet("Get/{id}")]
         public override async Task<IActionResult> Get(int id)
@@ -54,6 +60,13 @@ namespace iLearn.API.Controllers.Base
                 return BadRequest(ModelState);
 
             await _repository.AddAsync(newEntity);
+            await _adminActivityService.LogAsync(
+                actionType: "CreateCategory",
+                entityType: nameof(Category),
+                entityId: newEntity.Id,
+                title: $"Created category {newEntity.Name}",
+                description: $"Created category '{newEntity.Name}'.",
+                divisionId: newEntity.DivisionId);
             return Ok(newEntity);
         }
 
@@ -67,6 +80,7 @@ namespace iLearn.API.Controllers.Base
             if (_currentUser.DivisionId.HasValue && entity.DivisionId != _currentUser.DivisionId.Value)
                 return NotFound();
 
+            var originalName = entity.Name;
             JsonConvert.PopulateObject(values, entity);
 
             if (_currentUser.DivisionId.HasValue)
@@ -76,6 +90,15 @@ namespace iLearn.API.Controllers.Base
                 return BadRequest(ModelState);
 
             await _repository.UpdateAsync(entity);
+            await _adminActivityService.LogAsync(
+                actionType: "UpdateCategory",
+                entityType: nameof(Category),
+                entityId: entity.Id,
+                title: $"Updated category {entity.Name}",
+                description: originalName == entity.Name
+                    ? $"Updated category '{entity.Name}'."
+                    : $"Renamed category from '{originalName}' to '{entity.Name}'.",
+                divisionId: entity.DivisionId);
             return Ok(entity);
         }
 

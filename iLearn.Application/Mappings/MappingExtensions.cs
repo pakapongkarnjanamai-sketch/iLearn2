@@ -139,6 +139,23 @@ namespace iLearn.Application.Mappings
             };
         }
 
+        public static AdminActivityDto ToDto(this AdminActivity entity)
+        {
+            if (entity == null) return null;
+            return new AdminActivityDto
+            {
+                Id = entity.Id,
+                ActionType = entity.ActionType,
+                EntityType = entity.EntityType,
+                EntityId = entity.EntityId,
+                Title = entity.Title,
+                Description = entity.Description,
+                DivisionId = entity.DivisionId,
+                CreatedAt = entity.CreatedAt,
+                CreatedBy = entity.CreatedBy
+            };
+        }
+
         public static RoleDto ToDto(this Role entity)
         {
             if (entity == null) return null;

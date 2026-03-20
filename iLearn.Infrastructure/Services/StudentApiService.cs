@@ -4,12 +4,9 @@ using iLearn.Application.Interfaces.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace iLearn.Infrastructure.Services
 {
@@ -27,11 +24,11 @@ namespace iLearn.Infrastructure.Services
             IOptions<EmployeeServiceSettings> settings,
             IMemoryCache cache)
         {
-            _httpClient           = httpClient;
-            _cache                = cache;
+            _httpClient = httpClient;
+            _cache = cache;
             _baseStudentLookupUrl = settings.Value.BaseStudentLookupUrl;
-            _baseStudentUrl       = settings.Value.BaseStudentUrl;
-            _baseEmployeeCsvUrl   = settings.Value.BaseEmployeeCsvUrl;
+            _baseStudentUrl = settings.Value.BaseStudentUrl;
+            _baseEmployeeCsvUrl = settings.Value.BaseEmployeeCsvUrl;
         }
 
         public async Task<string> GetStudentsDxGridAsync(string queryString)
@@ -84,7 +81,7 @@ namespace iLearn.Infrastructure.Services
         {
             try
             {
-                var codeSet  = codes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var codeSet = codes.ToHashSet(StringComparer.OrdinalIgnoreCase);
                 var response = await GetStudentAsync(); // reuse — server ?? MemoryCache 24h
 
                 if (response?.data == null)
@@ -96,12 +93,12 @@ namespace iLearn.Infrastructure.Services
                         s => s.EId,
                         s => new ExternalStudentDto
                         {
-                            Code       = s.EId,
-                            Name       = $"{s.EnglishFirstName} {s.EnglishLastName}".Trim(),
-                            Division   = s.Division,
+                            Code = s.EId,
+                            Name = $"{s.EnglishFirstName} {s.EnglishLastName}".Trim(),
+                            Division = s.Division,
                             Department = s.Department,
-                            Section    = s.Section,
-                            Position   = s.Position
+                            Section = s.Section,
+                            Position = s.Position
                         },
                         StringComparer.OrdinalIgnoreCase
                     );
@@ -162,8 +159,8 @@ namespace iLearn.Infrastructure.Services
         {
             try
             {
-                var keyObj         = new { divisions };
-                var encodedKey     = Uri.EscapeDataString(JsonSerializer.Serialize(keyObj));
+                var keyObj = new { divisions };
+                var encodedKey = Uri.EscapeDataString(JsonSerializer.Serialize(keyObj));
                 var encodedSummary = Uri.EscapeDataString("[{\"selector\":\"EId\",\"summaryType\":\"count\"}]");
                 var url = $"{_baseStudentUrl}/divisions?key={encodedKey}&skip={skip}&take={take}" +
                           $"&requireTotalCount=true&totalSummary={encodedSummary}";

@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace iLearn.Application.DTOs
+﻿namespace iLearn.Application.DTOs
 {
     public class AllStudentsApiResponse
     {

@@ -20,6 +20,8 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<FileStorage> _fileStorageRepository;
         private readonly ICourseRepository _courseRepository;
         private readonly IScormService _scormService;
+        private readonly IAdminActivityService _adminActivityService;
+        private readonly ICurrentUserService _currentUser;
 
         public CourseVersionService(
             IGenericRepository<CourseVersion> versionRepository,
@@ -27,7 +29,9 @@ namespace iLearn.Application.Services
             IGenericRepository<Resource> resourceRepository,
             IGenericRepository<FileStorage> fileStorageRepository,
             ICourseRepository courseRepository,
-            IScormService scormService)
+            IScormService scormService,
+            IAdminActivityService adminActivityService,
+            ICurrentUserService currentUser)
         {
             _versionRepository = versionRepository;
             _courseResourceRepository = courseResourceRepository;
@@ -35,6 +39,8 @@ namespace iLearn.Application.Services
             _fileStorageRepository = fileStorageRepository;
             _courseRepository = courseRepository;
             _scormService = scormService;
+            _adminActivityService = adminActivityService;
+            _currentUser = currentUser;
         }
 
         public async Task<CreateCourseVersionDto> GetVersionByIdAsync(int versionId)
@@ -191,6 +197,14 @@ namespace iLearn.Application.Services
             );
 
             var sortedResources = courseResourcesForNew.OrderBy(cr => cr.Order).ToList();
+
+            await _adminActivityService.LogAsync(
+                actionType: "CreateCourseVersion",
+                entityType: nameof(CourseVersion),
+                entityId: newVersion.Id,
+                title: $"Created course version v{newVersion.VersionNumber}",
+                description: $"Created version v{newVersion.VersionNumber} for course '{course.Code}'.",
+                divisionId: _currentUser.DivisionId);
 
             return new CourseVersionDto
             {
