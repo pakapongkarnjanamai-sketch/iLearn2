@@ -1,6 +1,7 @@
 using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -15,14 +16,22 @@ namespace iLearn.Infrastructure.Services
     public class StudentApiService : IStudentApiService
     {
         private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
         private readonly string _baseStudentLookupUrl;
         private readonly string _baseStudentUrl;
+        private readonly string _baseEmployeeCsvUrl;
+        private const string EmployeeCsvCacheKey = "employee_csv_directory";
 
-        public StudentApiService(HttpClient httpClient, IOptions<EmployeeServiceSettings> settings)
+        public StudentApiService(
+            HttpClient httpClient,
+            IOptions<EmployeeServiceSettings> settings,
+            IMemoryCache cache)
         {
             _httpClient           = httpClient;
+            _cache                = cache;
             _baseStudentLookupUrl = settings.Value.BaseStudentLookupUrl;
             _baseStudentUrl       = settings.Value.BaseStudentUrl;
+            _baseEmployeeCsvUrl   = settings.Value.BaseEmployeeCsvUrl;
         }
 
         public async Task<string> GetStudentsDxGridAsync(string queryString)
@@ -102,6 +111,51 @@ namespace iLearn.Infrastructure.Services
                 Console.WriteLine($"Error in GetStudentsByCodesAsync: {ex.Message}");
                 return new Dictionary<string, ExternalStudentDto>(StringComparer.OrdinalIgnoreCase);
             }
+        }
+
+        public async Task<Dictionary<string, EmployeeCsvDto>> GetEmployeesByNidsAsync(IEnumerable<string> nids)
+        {
+            try
+            {
+                var nidSet = nids
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Select(n => n.Trim())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                if (nidSet.Count == 0)
+                    return new Dictionary<string, EmployeeCsvDto>(StringComparer.OrdinalIgnoreCase);
+
+                var employees = await GetEmployeeDirectoryAsync();
+
+                return employees
+                    .Where(e => !string.IsNullOrWhiteSpace(e.NID) && nidSet.Contains(e.NID))
+                    .GroupBy(e => e.NID, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.First(),
+                        StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetEmployeesByNidsAsync: {ex.Message}");
+                return new Dictionary<string, EmployeeCsvDto>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private async Task<List<EmployeeCsvDto>> GetEmployeeDirectoryAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_baseEmployeeCsvUrl))
+                return new List<EmployeeCsvDto>();
+
+            if (_cache.TryGetValue(EmployeeCsvCacheKey, out List<EmployeeCsvDto>? cachedEmployees) && cachedEmployees != null)
+                return cachedEmployees;
+
+            var response = await _httpClient.GetFromJsonAsync<EmployeeCsvApiResponse>(_baseEmployeeCsvUrl);
+            var employees = response?.data ?? new List<EmployeeCsvDto>();
+
+            _cache.Set(EmployeeCsvCacheKey, employees, TimeSpan.FromMinutes(30));
+
+            return employees;
         }
 
         public async Task<DivisionApiResponse> GetStudentsByDivisionsAsync(string[] divisions, int skip = 0, int take = 20)

@@ -77,10 +77,16 @@
         const IS_EDIT = COURSE_ID != null;
 
         // Initialize DataStores
-        const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD', { key: 'id' });
+        const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Divisions`
+        });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
-        const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' });
+        const courseTypesStore = createDataStore(serviceUrl, 'Courses', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Courses/course-types-lookup`
+        });
 
         let formWidget;
         let masterGrid;

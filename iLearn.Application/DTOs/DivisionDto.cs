@@ -1,10 +1,13 @@
-﻿namespace iLearn.Application.DTOs
+﻿using iLearn.Domain.Enums;
+
+namespace iLearn.Application.DTOs
 {
     // --- Division ---
     public class DivisionDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
     }
 
     // --- Role ---
@@ -12,6 +15,7 @@
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public RoleType? RoleType { get; set; }
         public int? DivisionId { get; set; }
         public string? DivisionName { get; set; } = string.Empty;
     }

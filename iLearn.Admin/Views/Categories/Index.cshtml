@@ -37,8 +37,12 @@
 @section Scripts {
     <script>
         let gridInstance;
+        let availableDivisions = [];
         // DataStores
-        const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD');
+        const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Divisions`
+        });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
 
         // lookup column — raw+cached ดึงครั้งเดียว resolve label ในฝั่ง client
@@ -63,6 +67,11 @@
                 showRowLines: true, // โชว์แค่เส้นใต้แถว
                 hoverStateEnabled: true,
                 scrolling: { mode: "virtual" },
+                onInitNewRow: function(e) {
+                    if (availableDivisions.length === 1) {
+                        e.data.divisionId = availableDivisions[0].id;
+                    }
+                },
 
                // Editing Configuration (Popup)
                 editing: {
@@ -203,6 +212,7 @@
             // ==========================================
             try {
                 const divisionsData = await divisionsStore.load();
+                availableDivisions = Array.isArray(divisionsData) ? divisionsData : [];
                 divisionsData.sort((a, b) => (a.name > b.name) ? 1 : -1);
 
                 const treeData = [{

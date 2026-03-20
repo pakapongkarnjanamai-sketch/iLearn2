@@ -6,17 +6,13 @@
 @using Microsoft.AspNetCore.Authorization
 
 @inject IConfiguration Configuration
-@inject IWebHostEnvironment Env
 @inject IAuthorizationService AuthorizationService
 @{
     // เช็คว่าผ่าน Policy "SuperAdminOnly" หรือไม่
-    var isSuperAdmin = (await AuthorizationService.AuthorizeAsync(User, "SuperAdminOnly")).Succeeded;
-    
-    // เช็คว่าเป็น Development Env หรือไม่
-    var isDev = Env.IsDevelopment();
+    var isSuperAdminAuthorized = (await AuthorizationService.AuthorizeAsync(User, "SuperAdminOnly")).Succeeded;
 
-    // เงื่อนไข: ให้แสดงถ้าเป็น Dev หรือ เป็น SuperAdmin
-    var showSuperAdminMenu = isDev || isSuperAdmin;
+    // แสดงเฉพาะ SuperAdmin เท่านั้น
+    var showSuperAdminMenu = isSuperAdminAuthorized;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -122,9 +118,9 @@
                                                 .Select(c => c.Value)
                                                 .ToList();
 
-                        var isSuperAdmin    = roles.Contains("SuperAdmin");
+                        var hasSuperAdminRole = roles.Contains("SuperAdmin");
                         var divisionId      = User.FindFirst("DivisionId")?.Value;
-                        var primaryRole     = isSuperAdmin
+                        var primaryRole     = hasSuperAdminRole
                                                 ? "SuperAdmin"
                                                 : (roles.FirstOrDefault() ?? "—");
                     }
@@ -144,7 +140,7 @@
                                     @displayName
                                 </span>
                                 <span style="font-size:.7rem;opacity:.78;">
-                                    @if (isSuperAdmin)
+                                    @if (hasSuperAdminRole)
                                     {
                                         <span class="badge rounded-pill"
                                               style="background:#ffd700;color:#000;font-size:.62rem;padding:1px 6px;vertical-align:middle;">
@@ -222,7 +218,7 @@
                                     </span>
                                 </li>
                             }
-                            else if (isSuperAdmin)
+                            else if (hasSuperAdminRole)
                             {
                                 <li class="px-3 pb-2">
                                     <div class="text-uppercase text-muted mb-1" style="font-size:.62rem;letter-spacing:.8px;">

@@ -187,7 +187,7 @@
                                     <strong>${response.data.name}</strong>
                                 `);
                             setTimeout(() => {
-                                window.location.href = '/MyLearning/Index';
+                                window.location.href = '@Url.Action("Index", "MyLearning")';
                             }, 1000);
                         } else {
                             handleLoginError(response.message);

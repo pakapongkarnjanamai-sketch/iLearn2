@@ -20,5 +20,7 @@ namespace iLearn.Application.Interfaces.Services
         /// แล้ว filter + map ใน memory แทน GetStudentByCodeAsync ทีละคน (N+1 problem)
         /// </summary>
         Task<Dictionary<string, ExternalStudentDto>> GetStudentsByCodesAsync(IEnumerable<string> codes);
+
+        Task<Dictionary<string, EmployeeCsvDto>> GetEmployeesByNidsAsync(IEnumerable<string> nids);
     }
 }

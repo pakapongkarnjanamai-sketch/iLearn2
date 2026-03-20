@@ -3,6 +3,7 @@ using DevExtreme.AspNet.Mvc;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -15,6 +16,19 @@ namespace iLearn.API.Controllers.Base
             IGenericRepository<Category> repository,
             ICurrentUserService currentUser) : base(repository, currentUser) { }
 
+        [HttpGet("Get/{id}")]
+        public override async Task<IActionResult> Get(int id)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null)
+                return NotFound();
+
+            if (_currentUser.DivisionId.HasValue && entity.DivisionId != _currentUser.DivisionId.Value)
+                return NotFound();
+
+            return Ok(entity);
+        }
+
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
@@ -25,6 +39,58 @@ namespace iLearn.API.Controllers.Base
                 query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
 
             return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+
+        [HttpPost("Post")]
+        public override async Task<IActionResult> Post([FromForm] string values)
+        {
+            var newEntity = new Category();
+            JsonConvert.PopulateObject(values, newEntity);
+
+            if (_currentUser.DivisionId.HasValue)
+                newEntity.DivisionId = _currentUser.DivisionId.Value;
+
+            if (!TryValidateModel(newEntity))
+                return BadRequest(ModelState);
+
+            await _repository.AddAsync(newEntity);
+            return Ok(newEntity);
+        }
+
+        [HttpPut("Put")]
+        public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
+        {
+            var entity = await _repository.GetByIdAsync(key);
+            if (entity == null)
+                return NotFound();
+
+            if (_currentUser.DivisionId.HasValue && entity.DivisionId != _currentUser.DivisionId.Value)
+                return NotFound();
+
+            JsonConvert.PopulateObject(values, entity);
+
+            if (_currentUser.DivisionId.HasValue)
+                entity.DivisionId = _currentUser.DivisionId.Value;
+
+            if (!TryValidateModel(entity))
+                return BadRequest(ModelState);
+
+            await _repository.UpdateAsync(entity);
+            return Ok(entity);
+        }
+
+        [HttpDelete("Delete")]
+        public override async Task<IActionResult> Delete([FromForm] int key)
+        {
+            var entity = await _repository.GetByIdAsync(key);
+            if (entity == null)
+                return NotFound();
+
+            if (_currentUser.DivisionId.HasValue && entity.DivisionId != _currentUser.DivisionId.Value)
+                return NotFound();
+
+            await _repository.DeleteAsync(entity);
+            return Ok();
         }
     }
 
@@ -99,6 +165,7 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class CourseTypesCRUDController : GenericController<CourseType>
     {
         public CourseTypesCRUDController(
@@ -148,6 +215,7 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class DivisionsCRUDController : GenericController<Division>
     {
         private readonly IGenericRepository<Category> _categoryRepo;
@@ -251,6 +319,7 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class EnrollmentsCRUDController : GenericController<Enrollment>
     {
         public EnrollmentsCRUDController(
@@ -308,6 +377,7 @@ namespace iLearn.API.Controllers.Base
             ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class LearningLogsCRUDController : GenericController<LearningLog>
     {
         private readonly IGenericRepository<Resource> _resourceRepo;
@@ -371,6 +441,7 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class ResourcesCRUDController : GenericController<Resource>
     {
         private readonly IGenericRepository<CourseResource> _courseResourceRepo;
@@ -570,6 +641,7 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class RolesCRUDController : GenericController<Role>
     {
         public RolesCRUDController(
@@ -577,16 +649,20 @@ namespace iLearn.API.Controllers.Base
             ICurrentUserService currentUser) : base(repository, currentUser) { }
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     public class UsersCRUDController : GenericController<User>
     {
         private readonly IGenericRepository<UserRole> _userRoleRepo;
+        private readonly IStudentApiService _studentApiService;
 
         public UsersCRUDController(
             IGenericRepository<User> repository,
             ICurrentUserService currentUser,
-            IGenericRepository<UserRole> userRoleRepo) : base(repository, currentUser)
+            IGenericRepository<UserRole> userRoleRepo,
+            IStudentApiService studentApiService) : base(repository, currentUser)
         {
             _userRoleRepo = userRoleRepo;
+            _studentApiService = studentApiService;
         }
 
         [HttpGet("Get")]
@@ -602,7 +678,74 @@ namespace iLearn.API.Controllers.Base
                 query = query.Where(u => u.UserRoles.Any(ur => ur.Role != null && ur.Role.DivisionId == myDivId));
             }
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            var projected = query.Select(u => new
+            {
+                u.Id,
+                u.Nid,
+                u.LastLogin,
+                u.CreatedAt,
+                u.IsActive,
+                UserRoles = u.UserRoles.Select(ur => new
+                {
+                    ur.UserId,
+                    ur.RoleId,
+                    Role = ur.Role == null ? null : new
+                    {
+                        ur.Role.Id,
+                        ur.Role.Name,
+                        ur.Role.RoleType,
+                        ur.Role.DivisionId
+                    },
+                    ur.Id,
+                    ur.IsActive,
+                    ur.CreatedAt,
+                    ur.UpdatedAt,
+                    ur.CreatedBy,
+                    ur.UpdatedBy,
+                    ur.IsDeleted,
+                    ur.DeletedAt,
+                    ur.DeletedBy
+                }).ToList()
+            });
+
+            var loadResult = DataSourceLoader.Load(projected, loadOptions);
+
+            if (loadResult.data is not IEnumerable<object> items)
+                return Ok(loadResult);
+
+            var rows = items.Cast<dynamic>().ToList();
+            var employeeLookup = await _studentApiService.GetEmployeesByNidsAsync(
+                rows.Select(r => (string?)r.Nid ?? string.Empty));
+
+            var enriched = rows.Select(r =>
+            {
+                employeeLookup.TryGetValue((string?)r.Nid ?? string.Empty, out var employee);
+
+                return new
+                {
+                    r.Id,
+                    r.Nid,
+                    r.LastLogin,
+                    r.CreatedAt,
+                    r.IsActive,
+                    r.UserRoles,
+                    EmployeeId = employee?.EId ?? string.Empty,
+                    FullName = employee?.FullName ?? string.Empty,
+                    Email = employee?.Email ?? string.Empty,
+                    Division = employee?.Division ?? string.Empty,
+                    Department = employee?.Department ?? string.Empty,
+                    Section = employee?.Section ?? string.Empty,
+                    Position = employee?.Position ?? string.Empty
+                };
+            }).ToList();
+
+            return Ok(new
+            {
+                loadResult.totalCount,
+                loadResult.groupCount,
+                loadResult.summary,
+                data = enriched
+            });
         }
 
         [HttpPut("Put")]

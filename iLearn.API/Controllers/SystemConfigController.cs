@@ -1,10 +1,12 @@
 using iLearn.Application.Common;
 using iLearn.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace iLearn.API.Controllers
 {
+    [Authorize(Policy = "SuperAdminOnly")]
     [Route("api/admin/[controller]")]
     [ApiController]
     public class SystemConfigController : ControllerBase

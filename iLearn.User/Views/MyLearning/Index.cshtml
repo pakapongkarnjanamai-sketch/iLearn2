@@ -397,7 +397,7 @@
         <div class="text-center">
             <i class="fas fa-lock fa-3x text-muted mb-3"></i>
             <h4 class="text-muted">กรุณาเข้าสู่ระบบ</h4>
-            <a href="/Home/Index" class="btn btn-primary mt-3">เข้าสู่ระบบ</a>
+            <a href="@Url.Action("Index", "Home")" class="btn btn-primary mt-3">เข้าสู่ระบบ</a>
         </div>
     </div>
 }
@@ -649,7 +649,7 @@ else
                                         <span class="text-primary fw-bold ms-2">${Math.round(progress)}%</span>
                                     </div>
 
-                                    <a href="/MyLearning/Player?courseId=${en.courseId}" class="btn btn-outline-primary w-100 btn-continue">
+                                    <a href="@Url.Action("Player", "MyLearning")?courseId=${en.courseId}" class="btn btn-outline-primary w-100 btn-continue">
                                         ${isCompleted ? 'ทบทวน' : (progress > 0 ? 'เรียนต่อ' : 'เริ่มเรียน')} <i class="fas fa-arrow-right ms-1 small"></i>
                                     </a>
                                 </div>
@@ -879,7 +879,7 @@ else
                             <h6 class="course-title" title="${course.title}">${course.title}</h6>
 
                             <div class="progress-section">
-                                <a href="/MyLearning/Player?courseId=${course.id}" class="btn btn-outline-primary w-100 btn-continue">
+                                <a href="@Url.Action("Player", "MyLearning")?courseId=${course.id}" class="btn btn-outline-primary w-100 btn-continue">
                                     <i class="fas fa-eye me-1"></i> ดูเนื้อหา
                                 </a>
                             </div>

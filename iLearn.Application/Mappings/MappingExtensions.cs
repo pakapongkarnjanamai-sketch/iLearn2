@@ -131,7 +131,12 @@ namespace iLearn.Application.Mappings
         public static DivisionDto ToDto(this Division entity)
         {
             if (entity == null) return null;
-            return new DivisionDto { Id = entity.Id, Name = entity.Name };
+            return new DivisionDto
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                IsActive = entity.IsActive
+            };
         }
 
         public static RoleDto ToDto(this Role entity)
@@ -141,6 +146,7 @@ namespace iLearn.Application.Mappings
             {
                 Id = entity.Id,
                 Name = entity.Name,
+                RoleType = entity.RoleType,
                 DivisionId = entity.DivisionId,
                 DivisionName = entity.Division?.Name ?? string.Empty
             };

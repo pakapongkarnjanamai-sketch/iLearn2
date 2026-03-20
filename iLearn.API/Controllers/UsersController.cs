@@ -127,6 +127,7 @@ namespace iLearn.API.Controllers
                         {
                             Id = ur.Role.Id,
                             Name = ur.Role.Name,
+                            RoleType = ur.Role.RoleType,
                             DivisionId = ur.Role.DivisionId,
                         }).ToList()
                     })

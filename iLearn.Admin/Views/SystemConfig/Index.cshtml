@@ -32,9 +32,17 @@
         {
             <span class="tag-pill green"><i class="fas fa-circle me-1" style="font-size:8px;"></i> API Online</span>
         }
+        else if (Model.ApiConfigFallbackUsed)
+        {
+            <span class="tag-pill yellow"><i class="fas fa-triangle-exclamation me-1" style="font-size:10px;"></i> API Config Fallback</span>
+        }
         else
         {
             <span class="tag-pill red"><i class="fas fa-circle me-1" style="font-size:8px;"></i> API Unreachable</span>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.ApiSource))
+        {
+            <span class="tag-pill blue"><i class="fas fa-database me-1" style="font-size:10px;"></i> @Model.ApiSource</span>
         }
         <span class="@EnvBadge(Model.AdminEnvironment)">
             <i class="fas fa-circle me-1" style="font-size:8px;"></i> @Model.AdminEnvironment
@@ -54,7 +62,7 @@
                     <i class="fas fa-database me-2 text-primary"></i>Database (API)
                 </div>
                 <div class="panel-body">
-                    @if (Model.ApiReachable)
+                    @if (Model.HasApiData)
                     {
                         <table class="config-table">
                             <tbody>
@@ -101,7 +109,7 @@
                     <i class="fas fa-folder-open me-2 text-primary"></i>File Settings (API)
                 </div>
                 <div class="panel-body">
-                    @if (Model.ApiReachable)
+                    @if (Model.HasApiData)
                     {
                         <table class="config-table">
                             <tbody>
@@ -143,7 +151,7 @@
                     <i class="fas fa-users me-2 text-primary"></i>Employee Service (API)
                 </div>
                 <div class="panel-body">
-                    @if (Model.ApiReachable)
+                    @if (Model.HasApiData)
                     {
                         <table class="config-table">
                             <tbody>
@@ -194,7 +202,7 @@
                             </tr>
                         </tbody>
                     </table>
-                    @if (Model.ApiReachable)
+                    @if (Model.HasApiData)
                     {
                         <div class="config-section-label">API App</div>
                         <table class="config-table">
@@ -220,7 +228,7 @@
                     <i class="fas fa-server me-2 text-primary"></i>Runtime &amp; Server (API)
                 </div>
                 <div class="panel-body">
-                    @if (Model.ApiReachable)
+                    @if (Model.HasApiData)
                     {
                         <table class="config-table">
                             <tbody>
@@ -286,7 +294,7 @@
             </div>
         </div>
 
-        @if (Model.ApiReachable && Model.ApiLogLevels.Count > 0)
+        @if (Model.HasApiData && Model.ApiLogLevels.Count > 0)
         {
             <div class="col-lg-6">
                 <div class="panel">
@@ -324,9 +332,10 @@
     }
     .config-table th,
     .config-table td {
-        padding: 7px 10px;
-        border-bottom: 1px solid var(--border-color);
+        padding: 10px 12px;
+        border-bottom: 1px solid #f0f0f0;
         vertical-align: top;
+        line-height: 1.5;
     }
     .config-table tr:last-child td {
         border-bottom: none;
@@ -334,50 +343,71 @@
     .config-table th {
         font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: .5px;
-        color: var(--text-secondary);
+        letter-spacing: 0.5px;
+        color: #8c8c8c;
         font-weight: 600;
-        background: var(--bg-light);
+        background: #fafafa;
+        border-bottom: 1px solid #f0f0f0;
     }
     .config-key {
-        color: var(--text-secondary);
+        color: #595959;
         width: 170px;
         white-space: nowrap;
         font-weight: 500;
+        background: #fafafa; /* Minimal sidebar feel */
+        border-right: 1px solid #f0f0f0;
     }
     .config-computed {
         font-size: 10px;
-        color: var(--text-secondary);
+        color: #bfbfbf;
         font-style: italic;
+        margin-left: 4px;
+        font-weight: normal;
     }
     .config-section-label {
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: .5px;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-        padding: 0 2px;
+        letter-spacing: 0.5px;
+        color: #8c8c8c;
+        margin-bottom: 8px;
+        padding-left: 4px;
+        border-left: 3px solid #0050b3; /* Brand Primary */
     }
     .config-table code {
+        font-family: 'Consolas', 'Courier New', monospace;
         font-size: 12px;
-        color: var(--text-primary);
-        background: var(--bg-light);
-        padding: 2px 6px;
-        border-radius: 3px;
-        border: 1px solid var(--border-color);
+        color: #262626;
+        background: #fafafa;
+        padding: 3px 6px;
+        border-radius: 4px;
+        border: 1px solid #d9d9d9;
         word-break: break-all;
     }
-    .config-table code.text-primary { color: var(--brand-color) !important; }
+    .config-table code.text-primary { 
+        color: #0050b3 !important; 
+        background: #e6f4ff;
+        border-color: #91caff;
+    }
 
-    /* tag-pill colour variants */
-    .tag-pill.purple { background: #f9f0ff; color: #531dab; border-color: #d3adf7; }
-    .tag-pill.blue   { background: #e6f4ff; color: #0050b3; border-color: #91caff; }
-    .tag-pill.green  { background: #f6ffed; color: #389e0d; border-color: #b7eb8f; }
-    .tag-pill.yellow { background: #fffbe6; color: #d48806; border-color: #ffe58f; }
-    .tag-pill.red    { background: #fff2f0; color: #cf1322; border-color: #ffadd2; }
+    /* Tag/Status Pill Ant Design Standard */
+    .tag-pill, .status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        font-size: 12px;
+        line-height: 20px;
+        border-radius: 4px;
+        white-space: nowrap;
+        font-weight: 400;
+    }
 
-    /* status-pill colour variants */
+    .tag-pill.purple { background: #f9f0ff; color: #531dab; border: 1px solid #d3adf7; }
+    .tag-pill.blue   { background: #e6f4ff; color: #0050b3; border: 1px solid #91caff; }
+    .tag-pill.green  { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+    .tag-pill.yellow { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+    .tag-pill.red    { background: #fff2f0; color: #cf1322; border: 1px solid #ffa39e; }
+
     .status-pill.green  { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
     .status-pill.yellow { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
     .status-pill.blue   { background: #e6f4ff; color: #0050b3; border: 1px solid #91caff; }

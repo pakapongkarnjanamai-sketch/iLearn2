@@ -43,7 +43,10 @@
         // DataStores [cite: 50-51]
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
         const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
-        const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD', { key: 'id' });
+        const courseTypesStore = createDataStore(serviceUrl, 'Courses', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Courses/course-types-lookup`
+        });
 
         // Lookup DataSources — raw+cached เพื่อดึงครั้งเดียว resolve label ในฝั่ง client
         const dsCategoriesLookup = { store: categoriesStore, loadMode: 'raw', cacheRawData: true };

@@ -112,6 +112,15 @@
                                         label: { text: "Division Name" },
                                         editorOptions: { placeholder: "Enter division name..." },
                                         validationRules: [{ type: "required", message: "Division name is required" }]
+                                    },
+                                    {
+                                        dataField: "isActive",
+                                        editorType: "dxSwitch",
+                                        label: { text: "Status (Active)" },
+                                        editorOptions: {
+                                            switchedOnText: "Yes",
+                                            switchedOffText: "No"
+                                        }
                                     }
                                 ]
                             }
@@ -137,6 +146,30 @@
                                 .append($("<i>").addClass("fas fa-building").css({ color: "var(--accent-color)", opacity: ".75" }))
                                 .append($("<span>").addClass("fw-bold text-dark").text(options.value))
                                 .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "isActive",
+                        caption: "Status",
+                        width: 130,
+                        alignment: "center",
+                        allowEditing: true,
+                        lookup: {
+                            dataSource: [{ id: true, name: 'Active' }, { id: false, name: 'Inactive' }],
+                            displayExpr: 'name',
+                            valueExpr: 'id'
+                        },
+                        cellTemplate: function(container, options) {
+                            const isActive = options.value;
+                            if (isActive) {
+                                $("<span>").addClass("status-pill pill-success")
+                                    .html('<i class="fas fa-check me-1"></i> Active')
+                                    .appendTo(container);
+                            } else {
+                                $("<span>").addClass("status-pill pill-default")
+                                    .html('<i class="fas fa-times me-1"></i> Inactive')
+                                    .appendTo(container);
+                            }
                         }
                     },
                     {

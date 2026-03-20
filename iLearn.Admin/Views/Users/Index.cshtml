@@ -54,6 +54,13 @@
                 columns: [
                     { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "nid", caption: "National ID / Username", minWidth: 200 },
+                    { dataField: "employeeId", caption: "Employee ID", minWidth: 120, allowEditing: false },
+                    { dataField: "fullName", caption: "Full Name", minWidth: 180, allowEditing: false },
+                    { dataField: "email", caption: "Email", minWidth: 180, allowEditing: false },
+                    { dataField: "division", caption: "Division", minWidth: 120, allowEditing: false },
+                    { dataField: "department", caption: "Department", minWidth: 160, allowEditing: false },
+                    { dataField: "section", caption: "Section", minWidth: 220, allowEditing: false },
+                    { dataField: "position", caption: "Position", minWidth: 120, allowEditing: false },
                     {
                         // ── คอลัมน์ Roles ──────────────────────────────────────────────
                         // - calculateCellValue: แปลง userRoles[{roleId}] → array of int สำหรับ TagBox

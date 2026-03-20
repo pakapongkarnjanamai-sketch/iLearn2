@@ -76,6 +76,7 @@ namespace iLearn.API.Middleware
                         {
                             Id         = ur.Role.Id,
                             Name       = ur.Role.Name,
+                            RoleType   = ur.Role.RoleType,
                             DivisionId = ur.Role.DivisionId
                         }).ToList()
                     })
@@ -97,7 +98,11 @@ namespace iLearn.API.Middleware
 
                 // Role claims
                 foreach (var role in userRecord.Roles)
-                    claims.Add(new SC.Claim(SC.ClaimTypes.Role, role.Name));
+                {
+                    var roleValue = role.RoleType?.ToString();
+                    if (!string.IsNullOrWhiteSpace(roleValue))
+                        claims.Add(new SC.Claim(SC.ClaimTypes.Role, roleValue));
+                }
 
                 // DivisionId claim ??? Role ???????????
                 var primaryDivisionId = userRecord.Roles

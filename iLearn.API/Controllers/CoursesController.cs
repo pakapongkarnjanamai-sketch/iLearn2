@@ -14,6 +14,7 @@ namespace iLearn.API.Controllers
     {
         private readonly ICourseService _courseService;
         private readonly ICourseVersionService _versionService;
+        private readonly IGenericRepository<CourseType> _courseTypeRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
@@ -24,6 +25,7 @@ namespace iLearn.API.Controllers
         public CoursesController(
             ICourseService courseService,
             ICourseVersionService versionService,
+            IGenericRepository<CourseType> courseTypeRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
@@ -33,12 +35,30 @@ namespace iLearn.API.Controllers
         {
             _courseService = courseService;
             _versionService = versionService;
+            _courseTypeRepo = courseTypeRepo;
             _enrollmentRepo = enrollmentRepo;
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _studentApiService = studentApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
+        }
+
+        [HttpGet("course-types-lookup")]
+        public IActionResult GetCourseTypesLookup()
+        {
+            var courseTypes = _courseTypeRepo.GetQuery()
+                .Select(ct => new
+                {
+                    ct.Id,
+                    ct.Name,
+                    ct.IsActive,
+                    ct.CreatedAt
+                })
+                .OrderBy(ct => ct.Name)
+                .ToList();
+
+            return Ok(courseTypes);
         }
 
         [HttpGet]

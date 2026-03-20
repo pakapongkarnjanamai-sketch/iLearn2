@@ -90,10 +90,9 @@ app.UseRouting();
 app.UseSession(); // เพิ่ม Session
 
 app.UseAuthentication();
-app.UseAuthorization();
-
-// Middleware หลัง authentication/authorization
+// Middleware must run before authorization so role claims are available to policies
 app.UseMiddleware<ApiUserSyncMiddleware>();
+app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();

@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace iLearn.Admin.Controllers
 {
+    [Authorize(Policy = "SuperAdminOnly")]
     public class CourseTypesController : Controller
     {
         public IActionResult Index()

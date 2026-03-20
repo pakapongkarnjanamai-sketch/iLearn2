@@ -32,8 +32,16 @@ namespace iLearn.Admin.Middleware
                     windowsIdentity.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase))
                 {
                     var cacheKey = $"user_claims_{windowsIdentity}";
+                    var forceRefresh = context.Request.Query.ContainsKey("_refresh");
 
-                    if (_cache.TryGetValue(cacheKey, out List<Claim>? cachedClaims) && cachedClaims != null)
+                    if (forceRefresh)
+                    {
+                        _cache.Remove(cacheKey);
+                    }
+
+                    if (!forceRefresh &&
+                        _cache.TryGetValue(cacheKey, out List<Claim>? cachedClaims) &&
+                        cachedClaims != null)
                     {
                         var identity = new ClaimsIdentity(cachedClaims, "iLearnAuth");
                         context.User.AddIdentity(identity);
@@ -43,9 +51,10 @@ namespace iLearn.Admin.Middleware
                     }
 
                     _logger.LogInformation("Syncing user claims from API for: {WindowsIdentity}", windowsIdentity);
+
                     try
                     {
-                        var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, false);
+                        var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, forceRefresh);
                         if (userResponse.Success && userResponse.Data != null)
                         {
                             var user = userResponse.Data;
@@ -61,7 +70,11 @@ namespace iLearn.Admin.Middleware
 
                             foreach (var role in user.Roles ?? [])
                             {
-                                claims.Add(new Claim(ClaimTypes.Role, role.Name));
+                                var roleValue = role.RoleType?.ToString();
+                                if (!string.IsNullOrWhiteSpace(roleValue))
+                                {
+                                    claims.Add(new Claim(ClaimTypes.Role, roleValue));
+                                }
                             }
 
                             var primaryDivisionId = user.Roles?
@@ -70,7 +83,9 @@ namespace iLearn.Admin.Middleware
                                 .FirstOrDefault() ?? 0;
 
                             if (primaryDivisionId > 0)
+                            {
                                 claims.Add(new Claim("DivisionId", primaryDivisionId.ToString()));
+                            }
 
                             _cache.Set(cacheKey, claims, TimeSpan.FromMinutes(10));
 
@@ -86,8 +101,10 @@ namespace iLearn.Admin.Middleware
                         }
                         else
                         {
-                            _logger.LogWarning("API sync failed for: {WindowsIdentity} - {Message}",
-                                windowsIdentity, userResponse.Message);
+                            _logger.LogWarning(
+                                "API sync failed for: {WindowsIdentity} - {Message}",
+                                windowsIdentity,
+                                userResponse.Message);
                         }
                     }
                     catch (Exception ex)
