@@ -1,6 +1,7 @@
 ﻿using iLearn.Admin.Middleware;
 using iLearn.Admin.Services;
 using iLearn.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,7 +44,13 @@ builder.Services.Configure<IISOptions>(options =>
 // Authorization with Role-based policies
 builder.Services.AddAuthorization(options =>
 {
-    options.FallbackPolicy = options.DefaultPolicy;
+    var adminOnlyPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireRole("Admin", "SuperAdmin")
+        .Build();
+
+    options.DefaultPolicy = adminOnlyPolicy;
+    options.FallbackPolicy = adminOnlyPolicy;
 
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole("Admin", "SuperAdmin"));

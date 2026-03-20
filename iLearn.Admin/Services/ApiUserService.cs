@@ -38,8 +38,11 @@ namespace iLearn.Admin.Services
                 var request = new CreateUserRequest { WindowsIdentity = windowsIdentity };
                 var json = JsonSerializer.Serialize(request, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var requestUri = forceRefresh
+                    ? "users/windows-auth?_refresh=1"
+                    : "users/windows-auth";
 
-                var response = await _httpClient.PostAsync("users/windows-auth", content);
+                var response = await _httpClient.PostAsync(requestUri, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)

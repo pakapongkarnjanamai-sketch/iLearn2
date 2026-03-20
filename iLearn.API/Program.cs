@@ -1,5 +1,6 @@
 ﻿using iLearn.Application;
 using iLearn.API.Middleware;
+using iLearn.API.Services;
 using iLearn.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
@@ -39,6 +40,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IMaintenanceStatusService, MaintenanceStatusService>();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "iLearn API", Version = "v1" });

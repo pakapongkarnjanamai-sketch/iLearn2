@@ -3,8 +3,10 @@ using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
+using iLearn.API.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -19,17 +21,20 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<FileStorage> _fileRepo;
         private readonly IScormService _scormService;
         private readonly ILogger<ResourcesController> _logger; // ✅ เพิ่ม Logger
+        private readonly IMaintenanceStatusService _maintenanceStatusService;
 
         public ResourcesController(
             IGenericRepository<Resource> resourceRepo,
             IGenericRepository<FileStorage> fileRepo,
             IScormService scormService,
-            ILogger<ResourcesController> logger) // ✅ เพิ่ม Logger ใน DI
+            ILogger<ResourcesController> logger,
+            IMaintenanceStatusService maintenanceStatusService) // ✅ เพิ่ม Logger ใน DI
         {
             _resourceRepo = resourceRepo;
             _fileRepo = fileRepo;
             _scormService = scormService;
             _logger = logger; // ✅ กำหนดค่า Logger
+            _maintenanceStatusService = maintenanceStatusService;
         }
 
         [HttpGet]
@@ -421,6 +426,235 @@ namespace iLearn.API.Controllers
             return Ok(new { success, failed, errors, message = $"Published {success} resource(s). {failed} failed." });
         }
 
+        [HttpPost("Admin/BatchPublishStream")]
+        public async Task BatchPublishStream([FromBody] List<int> ids)
+        {
+            HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
+
+            Response.Headers.Append("Content-Type", "text/event-stream; charset=utf-8");
+            Response.Headers.Append("Cache-Control", "no-cache");
+            Response.Headers.Append("Connection", "keep-alive");
+            await Response.StartAsync();
+
+            var stopwatch = Stopwatch.StartNew();
+            var success = 0;
+            var failed = 0;
+            var operationId = _maintenanceStatusService.BeginOperation(
+                "Batch Publish Resources",
+                ids?.Count ?? 0,
+                User.Identity?.Name ?? "SYSTEM");
+
+            await WriteProgressAsync(new BulkOperationProgressDto
+            {
+                CurrentItem = 0,
+                TotalItems = ids?.Count ?? 0,
+                SuccessCount = 0,
+                FailureCount = 0,
+                CurrentStep = "Starting batch publish",
+                ElapsedTime = stopwatch.Elapsed
+            });
+            _maintenanceStatusService.UpdateOperation(operationId, "Starting batch publish", currentItem: 0, successCount: 0, failureCount: 0);
+
+            if (ids == null || ids.Count == 0)
+            {
+                _maintenanceStatusService.CompleteOperation(operationId, false, "No resource IDs provided", success, failed);
+                await WriteProgressAsync(new BulkOperationProgressDto
+                {
+                    IsComplete = true,
+                    CurrentStep = "No resource IDs provided.",
+                    LatestResult = new BulkOperationItemDto
+                    {
+                        Success = false,
+                        ErrorMessage = "No resource IDs provided."
+                    },
+                    ElapsedTime = stopwatch.Elapsed
+                });
+                return;
+            }
+
+            for (var index = 0; index < ids.Count; index++)
+            {
+                var resourceId = ids[index];
+                var progress = new BulkOperationProgressDto
+                {
+                    CurrentItem = index + 1,
+                    TotalItems = ids.Count,
+                    SuccessCount = success,
+                    FailureCount = failed,
+                    ElapsedTime = stopwatch.Elapsed
+                };
+
+                try
+                {
+                    var resource = await _resourceRepo.GetByIdAsync(resourceId);
+                    if (resource == null)
+                    {
+                        failed++;
+                        progress.FailureCount = failed;
+                        progress.CurrentStep = "Resource not found";
+                        progress.LatestResult = new BulkOperationItemDto
+                        {
+                            ResourceId = resourceId,
+                            Success = false,
+                            ErrorMessage = "Resource not found."
+                        };
+                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                        await WriteProgressAsync(progress);
+                        continue;
+                    }
+
+                    progress.CurrentResourceName = resource.Name;
+                    progress.CurrentStep = "Loading resource";
+                    _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                    await WriteProgressAsync(progress);
+
+                    if (resource.IsActive)
+                    {
+                        failed++;
+                        progress.FailureCount = failed;
+                        progress.CurrentStep = "Skipped because the resource is already published";
+                        progress.LatestResult = new BulkOperationItemDto
+                        {
+                            ResourceId = resource.Id,
+                            ResourceName = resource.Name,
+                            Success = false,
+                            ErrorMessage = "Resource is already published."
+                        };
+                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                        await WriteProgressAsync(progress);
+                        continue;
+                    }
+
+                    progress.CurrentStep = "Loading file from database";
+                    _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                    await WriteProgressAsync(progress);
+
+                    var fileStorage = await _fileRepo.GetByIdAsync(resource.FileStorageId ?? 0);
+                    if (fileStorage?.Data == null)
+                    {
+                        failed++;
+                        progress.FailureCount = failed;
+                        progress.CurrentStep = "File data was not found";
+                        progress.LatestResult = new BulkOperationItemDto
+                        {
+                            ResourceId = resource.Id,
+                            ResourceName = resource.Name,
+                            Success = false,
+                            ErrorMessage = "No file data."
+                        };
+                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                        await WriteProgressAsync(progress);
+                        continue;
+                    }
+
+                    var extension = Path.GetExtension(resource.Name).ToLowerInvariant();
+                    var itemResult = new BulkOperationItemDto
+                    {
+                        ResourceId = resource.Id,
+                        ResourceName = resource.Name
+                    };
+
+                    if (extension == ".zip")
+                    {
+                        progress.CurrentStep = "Extracting and validating SCORM package";
+                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                        await WriteProgressAsync(progress);
+
+                        var folderName = Guid.NewGuid().ToString();
+
+                        try
+                        {
+                            var scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
+                            resource.ResourceHref = scormInfo.ResourceHref;
+                            resource.SchemaVersion = scormInfo.SchemaVersion;
+                            resource.URL = scormInfo.FolderName;
+                            itemResult.Details = $"SCORM {scormInfo.SchemaVersion} - {scormInfo.ResourceHref}";
+                        }
+                        catch (InvalidScormPackageException ex)
+                        {
+                            _scormService.DeleteScormFolder(folderName);
+                            failed++;
+                            progress.FailureCount = failed;
+                            progress.CurrentStep = "SCORM validation failed";
+                            progress.LatestResult = new BulkOperationItemDto
+                            {
+                                ResourceId = resource.Id,
+                                ResourceName = resource.Name,
+                                Success = false,
+                                ErrorMessage = $"Invalid SCORM package: {ex.Message}"
+                            };
+                            _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                            await WriteProgressAsync(progress);
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        progress.CurrentStep = "Preparing non-SCORM resource";
+                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                        await WriteProgressAsync(progress);
+                        itemResult.Details = $"File type {extension}";
+                    }
+
+                    progress.CurrentStep = "Saving publish status";
+                    _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                    await WriteProgressAsync(progress);
+
+                    resource.IsActive = true;
+                    await _resourceRepo.UpdateAsync(resource);
+
+                    success++;
+                    progress.SuccessCount = success;
+                    progress.CurrentStep = "Completed";
+                    progress.LatestResult = new BulkOperationItemDto
+                    {
+                        ResourceId = itemResult.ResourceId,
+                        ResourceName = itemResult.ResourceName,
+                        Success = true,
+                        Details = itemResult.Details
+                    };
+                    progress.ElapsedTime = stopwatch.Elapsed;
+                    _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
+                    await WriteProgressAsync(progress);
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    var errorProgress = new BulkOperationProgressDto
+                    {
+                        CurrentItem = index + 1,
+                        TotalItems = ids.Count,
+                        SuccessCount = success,
+                        FailureCount = failed,
+                        CurrentStep = "Unexpected error",
+                        ElapsedTime = stopwatch.Elapsed,
+                        LatestResult = new BulkOperationItemDto
+                        {
+                            ResourceId = resourceId,
+                            Success = false,
+                            ErrorMessage = ex.Message
+                        }
+                    };
+                    _maintenanceStatusService.UpdateOperation(operationId, errorProgress.CurrentStep, errorProgress.CurrentResourceName, errorProgress.CurrentItem, errorProgress.SuccessCount, errorProgress.FailureCount);
+                    await WriteProgressAsync(errorProgress);
+
+                    _logger.LogError(ex, "BatchPublishStream failed for resource {Id}", resourceId);
+                }
+            }
+
+            _maintenanceStatusService.CompleteOperation(operationId, failed == 0, "Batch publish completed", success, failed);
+            await WriteProgressAsync(new BulkOperationProgressDto
+            {
+                CurrentItem = ids.Count,
+                TotalItems = ids.Count,
+                SuccessCount = success,
+                FailureCount = failed,
+                IsComplete = true,
+                CurrentStep = "Batch publish completed",
+                ElapsedTime = stopwatch.Elapsed
+            });
+        }
+
 
         /// <summary>
         /// 🔓 [ADMIN] SetPublic ทีละไฟล์แบบ Streaming (ไม่ต้องรอให้เสร็จทั้งหมด)
@@ -637,6 +871,7 @@ namespace iLearn.API.Controllers
         {
             var json = System.Text.Json.JsonSerializer.Serialize(progress);
             await Response.WriteAsync($"data: {json}\n\n");
+            await Response.BodyWriter.FlushAsync();
             await Response.Body.FlushAsync();
         }
 
@@ -649,6 +884,7 @@ namespace iLearn.API.Controllers
         {
             var stopwatch = Stopwatch.StartNew();
             var result = new BulkOperationResultDto();
+            var operationId = Guid.Empty;
 
             try
             {
@@ -694,9 +930,16 @@ namespace iLearn.API.Controllers
                 }
 
                 _logger.LogWarning($"🚨 Starting Bulk Delete for {result.TotalProcessed} published resources");
+                operationId = _maintenanceStatusService.BeginOperation(
+                    "Unpublish All Published Resources",
+                    result.TotalProcessed,
+                    User.Identity?.Name ?? "SYSTEM");
+                _maintenanceStatusService.UpdateOperation(operationId, "Starting unpublish all", currentItem: 0, successCount: 0, failureCount: 0);
 
+                var currentItem = 0;
                 foreach (var resource in resourcesList)
                 {
+                    currentItem++;
                     var itemResult = new BulkOperationItemDto
                     {
                         ResourceId = resource.Id, // ✅ แก้
@@ -705,6 +948,7 @@ namespace iLearn.API.Controllers
 
                     try
                     {
+                        _maintenanceStatusService.UpdateOperation(operationId, "Removing published files", resource.Name, currentItem, result.SuccessCount, result.FailureCount);
                         if (!string.IsNullOrEmpty(resource.URL) && !string.IsNullOrEmpty(resource.ResourceHref))
                         {
                             try
@@ -733,6 +977,7 @@ namespace iLearn.API.Controllers
                         itemResult.Success = true;
                         result.SuccessCount++;
                         result.Results.Add(itemResult);
+                        _maintenanceStatusService.UpdateOperation(operationId, "Updating resource to draft", resource.Name, currentItem, result.SuccessCount, result.FailureCount);
 
                         _logger.LogInformation($"✅ [{result.SuccessCount}/{result.TotalProcessed}] {resource.Name} - {itemResult.Details}");
                     }
@@ -742,6 +987,7 @@ namespace iLearn.API.Controllers
                         itemResult.ErrorMessage = ex.Message;
                         result.FailureCount++;
                         result.Results.Add(itemResult);
+                        _maintenanceStatusService.UpdateOperation(operationId, "Unexpected error", resource.Name, currentItem, result.SuccessCount, result.FailureCount);
 
                         _logger.LogError(ex, $"❌ [{result.SuccessCount + result.FailureCount}/{result.TotalProcessed}] Error deleting {resource.Name}");
                     }
@@ -751,6 +997,8 @@ namespace iLearn.API.Controllers
                 result.Duration = stopwatch.Elapsed;
                 result.Summary = $"✅ ลบสำเร็จ {result.SuccessCount}/{result.TotalProcessed} รายการ " +
                                 $"(❌ ล้มเหลว {result.FailureCount}) ⏱️ ใช้เวลา {result.Duration.TotalSeconds:F2} วินาที";
+                if (operationId != Guid.Empty)
+                    _maintenanceStatusService.CompleteOperation(operationId, result.FailureCount == 0, "Unpublish all completed", result.SuccessCount, result.FailureCount);
 
                 _logger.LogInformation($"🎉 Bulk Delete Completed: {result.Summary}");
 
@@ -761,6 +1009,8 @@ namespace iLearn.API.Controllers
                 stopwatch.Stop();
                 result.Duration = stopwatch.Elapsed;
                 _logger.LogError(ex, "💥 Bulk Delete operation failed");
+                if (operationId != Guid.Empty)
+                    _maintenanceStatusService.CompleteOperation(operationId, false, "Unpublish all failed", result.SuccessCount, result.FailureCount + 1);
 
                 return StatusCode(500, new
                 {

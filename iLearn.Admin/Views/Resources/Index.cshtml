@@ -130,6 +130,165 @@
             cacheRawData: true
         };
 
+        function createResourcesDataSource() {
+            return createDataStore(serviceUrl, 'admin/ResourcesCRUD', {
+                key: 'id',
+                loadUrl: buildLoadUrl()
+            });
+        }
+
+        function showProcessingDialog(title, text) {
+            if (typeof Swal === 'undefined') {
+                return;
+            }
+
+            Swal.fire({
+                title: title,
+                text: text,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: function() {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        function closeProcessingDialog() {
+            if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+                Swal.close();
+            }
+        }
+
+        function formatElapsedTime(elapsed) {
+            if (!elapsed) return '00:00';
+
+            if (typeof elapsed === 'string') {
+                const parts = elapsed.split(':');
+                if (parts.length >= 3) {
+                    return `${parts[1].padStart(2, '0')}:${parts[2].split('.')[0].padStart(2, '0')}`;
+                }
+                return elapsed;
+            }
+
+            return '00:00';
+        }
+
+        function showBatchPublishProgressDialog() {
+            if (typeof Swal === 'undefined') {
+                return;
+            }
+
+            Swal.fire({
+                title: 'กำลัง Publish Resource',
+                html: `
+                    <div class="text-start" style="font-size:12px;">
+                        <div class="mb-2 text-muted" id="batchPublishStatusText">กำลังเตรียมข้อมูล...</div>
+                        <div class="progress mb-2" style="height:10px; background:#f0f0f0; border-radius:999px; overflow:hidden;">
+                            <div id="batchPublishProgressBar" style="height:100%; width:0%; background:#0050b3; transition:width .2s ease;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span id="batchPublishCounter">0 / 0</span>
+                            <span id="batchPublishElapsed">00:00</span>
+                        </div>
+                        <div class="small text-muted mb-2">รายการล่าสุด</div>
+                        <div id="batchPublishLatestLog" style="max-height:180px; overflow:auto; background:#fafafa; border:1px solid #f0f0f0; border-radius:6px; padding:8px; line-height:1.5;">
+                            <div class="text-muted">Waiting for progress...</div>
+                        </div>
+                    </div>`,
+                width: 560,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false
+            });
+        }
+
+        function updateBatchPublishProgress(progress) {
+            const total = progress.totalItems || 0;
+            const current = progress.currentItem || 0;
+            const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            const statusText = progress.currentResourceName
+                ? `${progress.currentStep || 'Processing'}: ${progress.currentResourceName}`
+                : (progress.currentStep || 'Processing...');
+
+            $('#batchPublishStatusText').text(statusText);
+            $('#batchPublishProgressBar').css('width', `${percent}%`);
+            $('#batchPublishCounter').text(`${current} / ${total}`);
+            $('#batchPublishElapsed').text(formatElapsedTime(progress.elapsedTime));
+
+            if (progress.latestResult) {
+                const latest = progress.latestResult;
+                const icon = latest.success ? 'fa-circle-check' : 'fa-circle-xmark';
+                const color = latest.success ? '#389e0d' : '#cf1322';
+                const detail = latest.errorMessage || latest.details || progress.currentStep || '';
+                $('#batchPublishLatestLog').prepend(
+                    `<div style="margin-bottom:6px; color:${color};">
+                        <i class="fas ${icon} me-1"></i>
+                        <strong>${latest.resourceName || progress.currentResourceName || 'Resource'}</strong>
+                        <div style="padding-left:18px; color:#666;">${detail}</div>
+                    </div>`
+                );
+            }
+        }
+
+        async function runBatchPublishWithProgress(keys) {
+            showBatchPublishProgressDialog();
+
+            try {
+                const response = await fetch(`${serviceUrl}/Resources/Admin/BatchPublishStream`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(keys)
+                });
+
+                if (!response.ok || !response.body) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let lastProgress = null;
+
+                while (true) {
+                    const result = await reader.read();
+                    if (result.done) break;
+
+                    buffer += decoder.decode(result.value, { stream: true });
+                    const messages = buffer.split('\n\n');
+                    buffer = messages.pop() || '';
+
+                    messages.forEach(function(message) {
+                        const line = message.split('\n').find(x => x.startsWith('data: '));
+                        if (!line) return;
+
+                        const payload = JSON.parse(line.substring(6));
+                        lastProgress = payload;
+                        updateBatchPublishProgress(payload);
+                    });
+                }
+
+                closeProcessingDialog();
+
+                if (lastProgress) {
+                    const type = lastProgress.failureCount > 0 ? 'warning' : 'success';
+                    const message = `Published ${lastProgress.successCount || 0} resource(s). ${lastProgress.failureCount || 0} failed.`;
+                    showToast(message, type, 3500);
+                } else {
+                    showToast('Batch publish completed.', 'success', 3000);
+                }
+
+                loadOptimizeData();
+                refreshAll();
+            } catch (error) {
+                closeProcessingDialog();
+                showToast(error.message || 'Batch publish failed.', 'error', 4000);
+            }
+        }
+
         function formatFileSize(bytes) {
             if (!bytes || bytes === 0) return '—';
             const units = ['B', 'KB', 'MB', 'GB'];
@@ -198,14 +357,13 @@
         }
 
         function applyFilters() {
-            // Update the loadUrl based on course filter
-            gridInstance.getDataSource().store().option('loadUrl', buildLoadUrl());
-
             // Build combined filter for type + assignment
             const filters = [];
             if (filterTypeId) filters.push(["typeId", "=", filterTypeId]);
             if (filterAssignment === 'unassigned') filters.push(["courseIdsCount", "=", 0]);
             if (filterAssignment === 'assigned') filters.push(["courseIdsCount", ">", 0]);
+
+            gridInstance.option('dataSource', createResourcesDataSource());
 
             if (filters.length > 1) {
                 const combined = [filters[0]];
@@ -218,8 +376,6 @@
             } else {
                 gridInstance.clearFilter();
             }
-
-            gridInstance.refresh();
         }
 
         $(() => {
@@ -313,7 +469,7 @@
 
             // ── DataGrid ──
             gridInstance = initDxGrid("#grid", {
-                dataSource: createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' }),
+                dataSource: createResourcesDataSource(),
                 remoteOperations: true,
                 searchPanel: { visible: true, placeholder: "Search resources..." },
                 showBorders: false,
@@ -461,17 +617,7 @@
                     buttonsStyling: false
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $.ajax({
-                            url: `${serviceUrl}/Resources/SetPublic?key=${id}`,
-                            type: 'POST',
-                            xhrFields: { withCredentials: true }
-                        }).done(() => {
-                                showToast("Published successfully!", "success", 2000);
-                                refreshAll();
-                            })
-                            .fail((xhr) => {
-                                showToast(xhr.responseJSON?.message || "Failed to publish resource", "error", 3000);
-                            });
+                    runBatchPublishWithProgress([id]);
                     }
                 });
             }
@@ -543,6 +689,12 @@
                                     <div style="font-size:12px; color:#666;">
                                         Analyze resource usage and optimize server storage. Unpublish unused resources to free disk space, or publish draft resources that are needed by active courses.
                                     </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end mb-3">
+                                    <a href="javascript:void(0);" class="action-link" id="btnUnpublishAllPublished">
+                                        <i class="fas fa-box-archive text-secondary"></i> Unpublish All Published
+                                    </a>
                                 </div>
 
                                 <div class="d-flex gap-2 mb-3" id="opt-summary">
@@ -693,6 +845,7 @@
                     }).then(r => {
                         if (r.isConfirmed) {
                             setButtonLoading("#btnBulkUnpublish", true, "Processing...");
+                            showProcessingDialog('กำลังยกเลิกเผยแพร่', 'ระบบกำลังลบไฟล์ที่เผยแพร่ออกจากเซิร์ฟเวอร์ กรุณารอสักครู่');
                             $.ajax({
                                 url: `${serviceUrl}/Resources/Admin/BatchUnpublish`,
                                 type: 'POST',
@@ -705,7 +858,10 @@
                                 refreshAll();
                             }).fail(xhr => {
                                 showToast(xhr.responseJSON?.message || "Batch unpublish failed.", "error");
-                            }).always(() => setButtonLoading("#btnBulkUnpublish", false));
+                            }).always(() => {
+                                closeProcessingDialog();
+                                setButtonLoading("#btnBulkUnpublish", false);
+                            });
                         }
                     });
                 });
@@ -725,20 +881,46 @@
                     }).then(r => {
                         if (r.isConfirmed) {
                             setButtonLoading("#btnBulkPublish", true, "Processing...");
-                            $.ajax({
-                                url: `${serviceUrl}/Resources/Admin/BatchPublish`,
-                                type: 'POST',
-                                contentType: 'application/json',
-                                data: JSON.stringify(keys),
-                                xhrFields: { withCredentials: true }
-                            }).done(res => {
-                                showToast(res.message, "success");
-                                loadOptimizeData();
-                                refreshAll();
-                            }).fail(xhr => {
-                                showToast(xhr.responseJSON?.message || "Batch publish failed.", "error");
-                            }).always(() => setButtonLoading("#btnBulkPublish", false));
+                            runBatchPublishWithProgress(keys)
+                                .finally(() => setButtonLoading("#btnBulkPublish", false));
                         }
+                    });
+                });
+
+                $("#btnUnpublishAllPublished").off("click").on("click", function() {
+                    Swal.fire({
+                        title: 'Unpublish all published resources?',
+                        html: `<div style="font-size:13px;color:#666;text-align:left;">
+                                   <p>This will remove all published SCORM folders/files from the server.</p>
+                                   <p>All affected records in <strong>Resources</strong> will be reverted to draft status.</p>
+                                   <p style="color:var(--danger-color);font-size:12px;">This action impacts every published resource.</p>
+                               </div>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-box-archive"></i> Unpublish All',
+                        cancelButtonText: 'Cancel',
+                        customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
+                        buttonsStyling: false
+                    }).then(function(result) {
+                        if (!result.isConfirmed) return;
+
+                        setButtonLoading("#btnUnpublishAllPublished", true, "Processing...");
+                        showProcessingDialog('กำลังยกเลิกการเผยแพร่ทั้งหมด', 'ระบบกำลังลบไฟล์ที่ถูก publish ทั้งหมด และปรับ Resource กลับเป็น Draft');
+
+                        $.ajax({
+                            url: `${serviceUrl}/Resources/Admin/BulkDeletePublished?confirmDelete=true`,
+                            type: 'DELETE',
+                            xhrFields: { withCredentials: true }
+                        }).done(function(res) {
+                            showToast(res.summary || 'All published resources were unpublished.', 'success', 3500);
+                            loadOptimizeData();
+                            refreshAll();
+                        }).fail(function(xhr) {
+                            showToast(xhr.responseJSON?.message || 'Failed to unpublish all published resources.', 'error', 4000);
+                        }).always(function() {
+                            closeProcessingDialog();
+                            setButtonLoading("#btnUnpublishAllPublished", false);
+                        });
                     });
                 });
 

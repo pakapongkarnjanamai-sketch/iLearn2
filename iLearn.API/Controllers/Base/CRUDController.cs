@@ -441,7 +441,6 @@ namespace iLearn.API.Controllers.Base
         }
     }
 
-    [Authorize(Policy = "SuperAdminOnly")]
     public class ResourcesCRUDController : GenericController<Resource>
     {
         private readonly IGenericRepository<CourseResource> _courseResourceRepo;

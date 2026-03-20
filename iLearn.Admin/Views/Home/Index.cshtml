@@ -16,6 +16,17 @@
 
 <div class="container-fluid px-4 py-4" style="max-width:1400px;">
 
+    <div class="row g-3 mb-4" id="maintenance-banner-row" style="display:none;">
+        <div class="col-12">
+            <div class="dash-panel" style="border:1px solid #ffe58f; background:#fffbe6;">
+                <div class="dash-panel-header" style="color:#d48806;">Maintenance In Progress</div>
+                <div class="dash-panel-body">
+                    <div id="maintenance-status-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ── Stat Cards ── -->
     <div class="row g-3 mb-4">
         <div class="col-lg-3 col-md-6">
@@ -202,9 +213,68 @@
         $(() => {
             loadDashboardStats();
             loadLearningActivityTrends();
+            loadMaintenanceStatus();
+            setInterval(loadMaintenanceStatus, 5000);
 
             showStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
         });
+
+        function loadMaintenanceStatus() {
+            $.ajax({
+                url: `${serviceUrl}/admin/Dashboard/MaintenanceStatus`,
+                method: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(res) {
+                const wrapper = $('#maintenance-status-list');
+                const operations = res && res.success && res.data ? (res.data.operations || []) : [];
+
+                if (!operations.length) {
+                    $('#maintenance-banner-row').hide();
+                    wrapper.empty();
+                    return;
+                }
+
+                const cards = operations.map(function(op) {
+                    const percent = op.totalItems > 0
+                        ? Math.min(100, Math.round(((op.currentItem || 0) / op.totalItems) * 100))
+                        : 0;
+                    const currentItemName = op.currentItemName
+                        ? `<div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">Current: ${escapeHtml(op.currentItemName)}</div>`
+                        : '';
+
+                    return `
+                        <div class="border rounded p-3 mb-2" style="background:#fff; border-color:#ffe58f !important;">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div>
+                                    <div style="font-size:12px; font-weight:700; color:#ad6800;">${escapeHtml(op.operationName)}</div>
+                                    <div style="font-size:11px; color:var(--text-secondary);">Step: ${escapeHtml(op.currentStep || 'Processing')}</div>
+                                    ${currentItemName}
+                                </div>
+                                <span class="status-pill" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">
+                                    <i class="fas fa-gears me-1"></i>${op.currentItem || 0} / ${op.totalItems || 0}
+                                </span>
+                            </div>
+                            <div class="progress" style="height:8px; background:#fff1b8; border-radius:999px; overflow:hidden;">
+                                <div style="height:100%; width:${percent}%; background:#faad14; transition:width .2s ease;"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2" style="font-size:11px; color:var(--text-secondary);">
+                                <span>Success: ${op.successCount || 0} | Failed: ${op.failureCount || 0}</span>
+                                <span>By ${escapeHtml(op.initiatedBy || 'SYSTEM')}</span>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                wrapper.html(cards);
+                $('#maintenance-banner-row').show();
+            }).fail(function() {
+                $('#maintenance-banner-row').hide();
+                $('#maintenance-status-list').empty();
+            });
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '').html();
+        }
 
         function loadDashboardStats() {
             $.ajax({

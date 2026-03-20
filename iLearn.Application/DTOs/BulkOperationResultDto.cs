@@ -29,6 +29,7 @@ namespace iLearn.Application.DTOs
         public int SuccessCount { get; set; }
         public int FailureCount { get; set; }
         public string? CurrentResourceName { get; set; }
+        public string? CurrentStep { get; set; }
         public bool IsComplete { get; set; }
         public BulkOperationItemDto? LatestResult { get; set; }
         public TimeSpan ElapsedTime { get; set; }

@@ -1,6 +1,7 @@
 ﻿// File: iLearn.API/Controllers/DashboardController.cs
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.API.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -21,6 +22,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
+        private readonly IMaintenanceStatusService _maintenanceStatusService;
 
         public DashboardController(
             IGenericRepository<Course> courseRepo,
@@ -30,7 +32,8 @@ namespace iLearn.API.Controllers
             IGenericRepository<LearningLog> learningLogRepo,
             IGenericRepository<Assignment> assignmentRepo,
             ICurrentUserService currentUser,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            IMaintenanceStatusService maintenanceStatusService)
         {
             _courseRepo = courseRepo;
             _userRepo = userRepo;
@@ -40,6 +43,7 @@ namespace iLearn.API.Controllers
             _assignmentRepo = assignmentRepo;
             _currentUser = currentUser;
             _dateTime = dateTime;
+            _maintenanceStatusService = maintenanceStatusService;
         }
 
         [HttpGet("Stats")]
@@ -120,6 +124,37 @@ namespace iLearn.API.Controllers
             });
 
             return Ok(new { success = true, data = trends });
+        }
+
+        [HttpGet("MaintenanceStatus")]
+        public IActionResult GetMaintenanceStatus()
+        {
+            var operations = _maintenanceStatusService.GetActiveOperations()
+                .Select(x => new
+                {
+                    x.OperationId,
+                    x.OperationName,
+                    x.CurrentStep,
+                    x.CurrentItemName,
+                    x.CurrentItem,
+                    x.TotalItems,
+                    x.SuccessCount,
+                    x.FailureCount,
+                    x.InitiatedBy,
+                    startedAt = x.StartedAt,
+                    lastUpdatedAt = x.LastUpdatedAt
+                })
+                .ToList();
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    hasActiveMaintenance = operations.Any(),
+                    operations
+                }
+            });
         }
     }
 }   
