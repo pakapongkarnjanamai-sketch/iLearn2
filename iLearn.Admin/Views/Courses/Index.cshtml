@@ -40,27 +40,25 @@
 
 @section Scripts {
     <script>
-        // DataStores [cite: 50-51]
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
-        const courseTypesStore = createDataStore(serviceUrl, 'Courses', {
-            key: 'id',
-            loadUrl: `${serviceUrl}/Courses/course-types-lookup`
-        });
+        const courseDetailUrl = '@Url.Action("Detail", "Courses")';
+        const divisionsTreeUrl = `${serviceUrl}/Divisions/GetTree`;
 
-        // Lookup DataSources — raw+cached เพื่อดึงครั้งเดียว resolve label ในฝั่ง client
-        const dsCategoriesLookup = { store: categoriesStore, loadMode: 'raw', cacheRawData: true };
-        const dsCourseTypesLookup = { store: courseTypesStore, loadMode: 'raw', cacheRawData: true };
+        const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
         $(async () => {
-            // ==========================================
-            // 1. สร้าง DataGrid หลัก
-            // ==========================================
-            initDxGrid("#grid", {
+            const grid = initDxGrid("#grid", {
                 dataSource: coursesStore,
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { placeholder: "Search courses..." },
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: false,
+                    showInfo: false,
+                    showNavigationButtons: false,
+                    showPageSizeSelector: false,
+                    allowedPageSizes: [20, 50, 100]
+                },
 
                 showBorders: false,
                 scrolling: { mode: "virtual" },
@@ -72,9 +70,7 @@
                 },
 
                 onRowDblClick: function(e) {
-                    if (e.data && e.data.id) {
-                        window.location.href = '@Url.Action("Detail", "Courses")?id=' + e.data.id;
-                    }
+                    navigateToCourseDetail(e.data?.id);
                 },
 
                 columns: [
@@ -83,9 +79,9 @@
                         caption: "Code",
                         width: 150,
                         alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" })
-                                       .text(o.value || "—").appendTo(c)
+                        cellTemplate: function(container, options) {
+                            appendText(container, options.value || "—", { fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" });
+                        }
                     },
                     {
                         dataField: "title",
@@ -99,39 +95,27 @@
                                            .text("Draft").appendTo(wrapper);
                             }
 
-                            $("<span>").css({ fontSize: "13px", fontWeight: "600",
-                                              color: "var(--text-primary)" })
+                            $("<span>").css({ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" })
                                        .text(options.value).appendTo(wrapper);
                             wrapper.appendTo(container);
                         }
                     },
                     {
-                        dataField: "categoryId",
+                        dataField: "categoryName",
                         caption: "Category",
                         width: 200,
-                        lookup: {
-                            dataSource: dsCategoriesLookup,
-                            displayExpr: 'name',
-                            valueExpr: 'id'
-                        },
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                       .text(o.displayValue || "—").appendTo(c)
+                        cellTemplate: function(container, options) {
+                            appendText(container, options.value || "—", { fontSize: "12px", color: "var(--text-secondary)" });
+                        }
                     },
                     {
-                        dataField: "courseTypeId",
+                        dataField: "courseTypeName",
                         caption: "Type",
                         width: 140,
-                        lookup: {
-                            dataSource: dsCourseTypesLookup,
-                            displayExpr: 'name',
-                            valueExpr: 'id'
-                        },
                         cellTemplate: function(container, options) {
-                            const text = options.displayValue || "—";
+                            const text = options.value || "—";
                             const color = options.data.courseTypeId === 2 ? "var(--accent-color)" : "var(--text-secondary)";
-                            $("<span>").css({ fontSize: "12px", color, fontWeight: "500" })
-                                       .text(text).appendTo(container);
+                            appendText(container, text, { fontSize: "12px", color, fontWeight: "500" });
                         }
                     },
                     {
@@ -145,8 +129,8 @@
                             {
                                 hint: "View Course Dashboard",
                                 icon: "info",
-                            onClick: function(e) {
-                                    window.location.href = '@Url.Action("Detail", "Courses")?id=' + e.row.data.id;
+                                onClick: function(e) {
+                                    navigateToCourseDetail(e.row.data.id);
                                 }
                             }
                         ]
@@ -154,16 +138,11 @@
                 ]
             });
 
-            // ==========================================
-            // 2. โหลดข้อมูลและสร้าง TreeView ด้านซ้ายจาก API
-            // ==========================================
             try {
                 const treeData = await $.ajax({
-                    url: serviceUrl + '/Divisions/GetTree', // อ้างอิงตามโค้ดเดิมของคุณ [cite: 76-77]
+                    url: divisionsTreeUrl,
                     type: 'GET',
-                    xhrFields: {
-                        withCredentials: true
-                    }
+                    xhrFields: { withCredentials: true }
                 });
 
                 $("#categoryTreeView").dxTreeView({
@@ -176,20 +155,7 @@
                     selectByClick: true,
                     selectNodesRecursive: false,
                     onItemSelectionChanged: function(e) {
-                        const node = e.itemData;
-                        const gridElement = $("#grid");
-                        if (!gridElement.length || !gridElement.data("dxDataGrid")) return;
-
-                        const grid = gridElement.dxDataGrid("instance");
-
-                        // ระบบกรองตารางตามโหนดที่คลิก [cite: 81-83]
-                        if (node.isRoot) {
-                            grid.clearFilter();
-                        } else if (node.categoryId) {
-                            grid.filter(["categoryId", "=", node.categoryId]);
-                        } else if (node.isDivision) {
-                            grid.filter(["category.divisionId", "=", node.divisionId]);
-                        }
+                        applyTreeFilter(grid, e.itemData);
                     },
                     onContentReady: function(e) {
                         e.component.selectItem('root');
@@ -197,6 +163,34 @@
                 });
             } catch (err) {
                 console.error("Error loading treeview data", err);
+            }
+
+            function navigateToCourseDetail(courseId) {
+                if (!courseId) {
+                    return;
+                }
+
+                window.location.href = `${courseDetailUrl}?id=${courseId}`;
+            }
+
+            function appendText(container, text, styles) {
+                return $("<span>").css(styles || {}).text(text).appendTo(container);
+            }
+
+            function applyTreeFilter(gridInstance, node) {
+                if (node.isRoot) {
+                    gridInstance.clearFilter();
+                    return;
+                }
+
+                if (node.categoryId) {
+                    gridInstance.filter(["categoryId", "=", node.categoryId]);
+                    return;
+                }
+
+                if (node.isDivision) {
+                    gridInstance.filter(["divisionId", "=", node.divisionId]);
+                }
             }
         });
     </script>

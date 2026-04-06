@@ -59,9 +59,14 @@
 
 @section Scripts {
     <script>
-        // 🌟 1. รับค่า courseId จาก Query String และนำไปใส่เป็นค่า Default
         const initialCourseId = '@preselectedCourseId';
-        let selectedCourseIds = initialCourseId ? [parseInt(initialCourseId)] : [];
+        const ASSIGNMENT_VALIDATE_URL = `${serviceUrl}/Assignments/validate-before-assign`;
+        const ASSIGNMENT_LOOKUP_COURSES_URL = `${serviceUrl}/Assignments/lookup-courses`;
+        const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
+        const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
+        const EMPTY_TEXT = "—";
+
+        let selectedCourseIds = initialCourseId ? [parseInt(initialCourseId, 10)] : [];
         let selectedStudentCodes = [];
         let currentPayload = null;
 
@@ -141,16 +146,19 @@
                         columns: [
                             {
                                 dataField: "code", caption: "Code", width: 110,
-                                cellTemplate: function(c, o) {
-                                    $('<span>').addClass('tag-pill pill-default fw-bold').text(o.value).appendTo(c);
+                                cellTemplate: function(container, options) {
+                                    $('<span>').addClass('tag-pill pill-default fw-bold').text(options.value).appendTo(container);
                                 }
                             },
                             { dataField: "title", caption: "Course Title", minWidth: 180 },
                             {
                                 dataField: "courseTypeName", caption: "Type", width: 130, alignment: "center",
-                                cellTemplate: function(c, o) {
-                                    if (!o.value) return;
-                                    $('<span>').addClass('tag-pill pill-info').text(o.value).appendTo(c);
+                                cellTemplate: function(container, options) {
+                                    if (!options.value) {
+                                        return;
+                                    }
+
+                                    $('<span>').addClass('tag-pill pill-info').text(options.value).appendTo(container);
                                 }
                             }
                         ],
@@ -158,17 +166,12 @@
                         onSelectionChanged: function(e) {
                             selectedCourseIds = e.selectedRowKeys;
                             updateCardUI("#btn-select-courses", "#selected-courses-text", selectedCourseIds.length, "course");
-                            $("#course-selection-hint").html(
-                                selectedCourseIds.length > 0
-                                    ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedCourseIds.length}</b> course(s) selected.`
-                                    : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
-                            );
+                            updateSelectionHint("#course-selection-hint", selectedCourseIds.length, "course(s) selected.", "Check the rows you want to assign.");
                         }
                     }).dxDataGrid("instance");
 
-                    // โหลดข้อมูล courses
                     $.ajax({
-                        url: `${serviceUrl}/Assignments/lookup-courses`,
+                        url: ASSIGNMENT_LOOKUP_COURSES_URL,
                         method: "GET", xhrFields: { withCredentials: true }
                     }).done(function(res) {
                         allCoursesData = res.data || [];
@@ -178,7 +181,6 @@
                         courseGrid.option("selectedRowKeys", selectedCourseIds);
                     });
 
-                    // ── Helper: รวม filter ทุกตัว ──
                     function applyFilters() {
                         const typeVal = $("#filter-course-type").dxSelectBox("instance").option("value");
                         const divVal  = $("#filter-course-div").dxSelectBox("instance").option("value");
@@ -189,10 +191,7 @@
                         if (divVal)  conditions.push(["divisionId",   "=", divVal]);
                         if (catVal)  conditions.push(["categoryId",   "=", catVal]);
 
-                        if (conditions.length === 0) { courseGrid.clearFilter(); return; }
-                        let combined = conditions[0];
-                        for (let i = 1; i < conditions.length; i++) combined = [combined, "and", conditions[i]];
-                        courseGrid.filter(combined);
+                        applyCombinedFilter(courseGrid, conditions);
                     }
 
                     // ── Filter: Course Type ──
@@ -321,28 +320,31 @@
                         columns: [
                             {
                                 dataField: "EId", caption: "ID", width: 95,
-                                cellTemplate: function(c, o) {
-                                    $('<span>').addClass('tag-pill pill-default fw-bold').text(o.value).appendTo(c);
+                                cellTemplate: function(container, options) {
+                                    $('<span>').addClass('tag-pill pill-default fw-bold').text(options.value).appendTo(container);
                                 }
                             },
                             {
                                 caption: "Name", minWidth: 160,
                                 calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
-                                cellTemplate: function(c, o) {
-                                    $("<span>").addClass("fw-medium text-dark").text(o.value).appendTo(c);
+                                cellTemplate: function(container, options) {
+                                    $("<span>").addClass("fw-medium text-dark").text(options.value).appendTo(container);
                                 }
                             },
                             {
                                 dataField: "Position", caption: "Position", width: 90, alignment: "center",
-                                cellTemplate: function(c, o) {
-                                    if (!o.value) return;
-                                    $('<span>').addClass('tag-pill pill-default').text(o.value).appendTo(c);
+                                cellTemplate: function(container, options) {
+                                    if (!options.value) {
+                                        return;
+                                    }
+
+                                    $('<span>').addClass('tag-pill pill-default').text(options.value).appendTo(container);
                                 }
                             },
                             { dataField: "Department", caption: "Dept.", width: 90 },
                             { dataField: "Section", caption: "Section", minWidth: 120,
-                                cellTemplate: function(c, o) {
-                                    $("<span>").addClass("text-muted small").text(o.value || "—").appendTo(c);
+                                cellTemplate: function(container, options) {
+                                    $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
                                 }
                             }
                         ],
@@ -350,15 +352,10 @@
                         onSelectionChanged: function(e) {
                             selectedStudentCodes = e.selectedRowKeys;
                             updateCardUI("#btn-select-employees", "#selected-employees-text", selectedStudentCodes.length, "student");
-                            $("#emp-selection-hint").html(
-                                selectedStudentCodes.length > 0
-                                    ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedStudentCodes.length}</b> student(s) selected.`
-                                    : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
-                            );
+                            updateSelectionHint("#emp-selection-hint", selectedStudentCodes.length, "student(s) selected.", "Check the rows you want to assign.");
                         }
                     }).dxDataGrid("instance");
 
-                    // ── Helper: สร้าง filter query string ──
                     function buildEmpFilterQuery() {
                         const filters = [];
                         const divVal  = $("#filter-emp-div").dxSelectBox("instance").option("value");
@@ -377,13 +374,9 @@
                             filters.push(posFilter);
                         }
 
-                        if (filters.length === 0) { empGrid.clearFilter(); return; }
-                        let combined = filters[0];
-                        for (let i = 1; i < filters.length; i++) combined = [combined, "and", filters[i]];
-                        empGrid.filter(combined);
+                        applyCombinedFilter(empGrid, filters);
                     }
 
-                    // ── Helper: สร้าง CustomStore สำหรับ dependent dropdowns ──
                     function makeEmpLookupStore(endpoint, extraQuery) {
                         return new DevExpress.data.CustomStore({
                             key: "Name",
@@ -476,7 +469,6 @@
                 ]
             }).dxPopup("instance");
 
-            // Event binding for Cards
             $("#btn-select-courses").click(() => coursesPopup.show());
             $("#btn-select-employees").click(() => employeesPopup.show());
 
@@ -490,7 +482,59 @@
                 }
             }
 
-            // 🌟 2. Summary Popup 🌟
+            function updateSelectionHint(selector, count, successText, defaultText) {
+                $(selector).html(
+                    count > 0
+                        ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${count}</b> ${successText}`
+                        : `<i class="fas fa-info-circle text-primary me-1"></i> ${defaultText}`
+                );
+            }
+
+            function applyCombinedFilter(grid, conditions) {
+                if (conditions.length === 0) {
+                    grid.clearFilter();
+                    return;
+                }
+
+                let combined = conditions[0];
+                for (let i = 1; i < conditions.length; i += 1) {
+                    combined = [combined, "and", conditions[i]];
+                }
+
+                grid.filter(combined);
+            }
+
+            function getApiErrorMessage(error, fallbackMessage) {
+                return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+            }
+
+            function createConflictListHtml(conflicts, alertClass, iconClass, title, itemRenderer, footer) {
+                if (conflicts.length === 0) {
+                    return "";
+                }
+
+                const items = conflicts.map(itemRenderer).join("");
+                return `
+                    <div class="alert border-${alertClass} bg-${alertClass} bg-opacity-10 mt-3 rounded-4 p-3">
+                        <h6 class="text-${alertClass}-emphasis fw-bold mb-3">
+                            <i class="fas ${iconClass} me-2"></i>
+                            ${title} (${conflicts.length} รายการ)
+                        </h6>
+                        <ul class="mb-0 small list-unstyled" style="max-height:150px;overflow-y:auto;">${items}</ul>
+                        <div class="mt-2 pt-2 border-top border-${alertClass} border-opacity-25 small text-muted">${footer}</div>
+                    </div>`;
+            }
+
+            function createSummaryMetric(title, value, textClass) {
+                return `
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-4 border text-center">
+                            <div class="text-muted small text-uppercase fw-bold mb-1">${title}</div>
+                            <div class="fs-3 fw-bold ${textClass}">${value}</div>
+                        </div>
+                    </div>`;
+            }
+
             const summaryPopup = $("#summary-popup").dxPopup({
                 title: "Assignment Summary",
                 width: 750,
@@ -524,7 +568,6 @@
                 ]
             }).dxPopup("instance");
 
-            // ฟังก์ชันวาดหน้าจอสรุปผล
             function showSummaryDialog(res, payload) {
                 currentPayload = payload;
                 const inProgress = res.inProgressConflicts || [];
@@ -532,10 +575,12 @@
                 currentPayload.inProgressConflicts = inProgress;
                 currentPayload.completedConflicts = completed;
 
-                // ── กำลังเรียนอยู่ ─────────────────────────────────
-                let inProgressHtml = "";
-                if (inProgress.length > 0) {
-                    const items = inProgress.map(c => `
+                const inProgressHtml = createConflictListHtml(
+                    inProgress,
+                    "warning",
+                    "fa-exclamation-triangle",
+                    "กำลังเรียนอยู่",
+                    c => `
                         <li class="mb-2 pb-2 border-bottom border-warning border-opacity-25">
                             <span class="fw-bold text-dark">${c.studentCode}</span>
                             <span class="text-muted mx-1">in</span>
@@ -543,26 +588,16 @@
                             <div class="small text-warning mt-1">
                                 <i class="fas fa-exclamation-circle me-1"></i> กำลังเรียนอยู่ — progress จะถูก reset
                             </div>
-                        </li>`).join('');
+                        </li>`,
+                    '<i class="fas fa-info-circle text-primary me-1"></i>ถ้า Confirm — progress ปัจจุบันจะถูก <b>reset ให้เริ่มใหม่</b>'
+                );
 
-                    inProgressHtml = `
-                        <div class="alert border-warning bg-warning bg-opacity-10 mt-3 rounded-4 p-3">
-                            <h6 class="text-warning-emphasis fw-bold mb-3">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                กำลังเรียนอยู่ (${inProgress.length} รายการ)
-                            </h6>
-                            <ul class="mb-0 small list-unstyled" style="max-height:150px;overflow-y:auto;">${items}</ul>
-                            <div class="mt-2 pt-2 border-top border-warning border-opacity-25 small text-muted">
-                                <i class="fas fa-info-circle text-primary me-1"></i>
-                                ถ้า Confirm — progress ปัจจุบันจะถูก <b>reset ให้เริ่มใหม่</b>
-                            </div>
-                        </div>`;
-                }
-
-                // ── เรียนจบแล้ว ────────────────────────────────────
-                let completedHtml = "";
-                if (completed.length > 0) {
-                    const items = completed.map(c => {
+                const completedHtml = createConflictListHtml(
+                    completed,
+                    "info",
+                    "fa-redo",
+                    "เรียนจบแล้ว — กำลังจะให้เรียนใหม่",
+                    c => {
                         const dateStr = c.completedDate
                             ? new Date(c.completedDate).toLocaleDateString('th-TH')
                             : '-';
@@ -576,23 +611,10 @@
                                 เรียนจบแล้วเมื่อ ${dateStr}
                             </div>
                         </li>`;
-                    }).join('');
+                    },
+                    '<i class="fas fa-info-circle text-primary me-1"></i>ถ้า Confirm — ประวัติการเรียนเดิมยังอยู่ใน Log แต่จะ <b>เปิดให้เรียนใหม่ได้อีกครั้ง</b>'
+                );
 
-                    completedHtml = `
-                        <div class="alert border-info bg-info bg-opacity-10 mt-3 rounded-4 p-3">
-                            <h6 class="text-info-emphasis fw-bold mb-3">
-                                <i class="fas fa-redo me-2"></i>
-                                เรียนจบแล้ว — กำลังจะให้เรียนใหม่ (${completed.length} รายการ)
-                            </h6>
-                            <ul class="mb-0 small list-unstyled" style="max-height:150px;overflow-y:auto;">${items}</ul>
-                            <div class="mt-2 pt-2 border-top border-info border-opacity-25 small text-muted">
-                                <i class="fas fa-info-circle text-primary me-1"></i>
-                                ถ้า Confirm — ประวัติการเรียนเดิมยังอยู่ใน Log แต่จะ <b>เปิดให้เรียนใหม่ได้อีกครั้ง</b>
-                            </div>
-                        </div>`;
-                }
-
-                // ── All Clear ──────────────────────────────────────
                 let allClearHtml = "";
                 if (inProgress.length === 0 && completed.length === 0) {
                     allClearHtml = `
@@ -607,18 +629,8 @@
                     <div class="px-2">
                         <p class="text-muted mb-4 fw-medium">Please review the details below before confirming the assignment.</p>
                         <div class="row g-3">
-                            <div class="col-6">
-                                <div class="p-3 bg-light rounded-4 border text-center">
-                                    <div class="text-muted small text-uppercase fw-bold mb-1">Target Courses</div>
-                                    <div class="fs-3 fw-bold text-primary">${payload.courseIds.length}</div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-3 bg-light rounded-4 border text-center">
-                                    <div class="text-muted small text-uppercase fw-bold mb-1">Target Students</div>
-                                    <div class="fs-3 fw-bold text-info">${payload.employeeCodes.length}</div>
-                                </div>
-                            </div>
+                            ${createSummaryMetric("Target Courses", payload.courseIds.length, "text-primary")}
+                            ${createSummaryMetric("Target Students", payload.employeeCodes.length, "text-info")}
                         </div>
                         ${inProgressHtml}
                         ${completedHtml}
@@ -630,11 +642,20 @@
                 summaryPopup.show();
             }
 
-            // --- Save Action ---
-            $('#btn-save').click(function () {
-                if (!form.validate().isValid) return;
-                if (selectedCourseIds.length === 0) { showToast("Please select at least one course.", "error"); return; }
-                if (selectedStudentCodes.length === 0) { showToast("Please select at least one student.", "error"); return; }
+            $('#btn-save').click(async function () {
+                if (!form.validate().isValid) {
+                    return;
+                }
+
+                if (selectedCourseIds.length === 0) {
+                    showToast("Please select at least one course.", "error");
+                    return;
+                }
+
+                if (selectedStudentCodes.length === 0) {
+                    showToast("Please select at least one student.", "error");
+                    return;
+                }
 
                 const formData = form.option('formData');
                 const payload = {
@@ -650,38 +671,42 @@
                 loadPanel.option("message", "Validating data...");
                 loadPanel.show();
 
-                $.ajax({
-                    url: `${serviceUrl}/Assignments/validate-before-assign`,
-                    method: 'POST', contentType: 'application/json',
-                    data: JSON.stringify(payload), xhrFields: { withCredentials: true },
-                    success: function (res) {
-                        loadPanel.hide();
-                        showSummaryDialog(res, payload);
-                    },
-                    error: function () {
-                        loadPanel.hide();
-                        showToast("Error connecting to validation service.", "error");
-                    }
-                });
+                try {
+                    const response = await $.ajax({
+                        url: ASSIGNMENT_VALIDATE_URL,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(payload),
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    loadPanel.hide();
+                    showSummaryDialog(response, payload);
+                } catch {
+                    loadPanel.hide();
+                    showToast("Error connecting to validation service.", "error");
+                }
             });
 
-            // ฟังก์ชันบันทึกข้อมูลจริง
-            function executeBulkAssign(payload) {
+            async function executeBulkAssign(payload) {
                 loadPanel.option("message", "Assigning courses...");
                 loadPanel.show();
-                $.ajax({
-                    url: `${serviceUrl}/Enrollments/BulkAssign`,
-                    method: "POST", contentType: "application/json",
-                    data: JSON.stringify(payload), xhrFields: { withCredentials: true },
-                    success: function (res) {
+
+                try {
+                    const response = await $.ajax({
+                        url: BULK_ASSIGN_URL,
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        xhrFields: { withCredentials: true }
+                    });
+
                         showToast("Assigned successfully!", "success", 2000);
-                        setTimeout(() => window.location.href = `@Url.Action("Detail", "Assignments")/${res.assignmentId}`, 1500);
-                    },
-                    error: function (err) {
-                        showToast("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
-                        loadPanel.hide();
-                    }
-                });
+                        setTimeout(() => window.location.href = `${ASSIGNMENT_DETAIL_URL}/${response.assignmentId}`, 1500);
+                } catch (err) {
+                    showToast(`Error: ${getApiErrorMessage(err, "Failed to assign")}`, "error", 4000);
+                    loadPanel.hide();
+                }
             }
         });
     </script>

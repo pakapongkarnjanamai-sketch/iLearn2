@@ -1,4 +1,6 @@
 using iLearn.Application.Interfaces.Services;
+using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces.Services;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 
@@ -6,6 +8,13 @@ namespace iLearn.Admin.Middleware
 {
     public class ApiUserSyncMiddleware
     {
+        private const string DomainPrefix = "NIKONOA\\";
+        private const string ClaimsCachePrefix = "user_claims_";
+        private const string IdentityAuthenticationType = "iLearnAuth";
+        private static readonly TimeSpan ClaimsCacheDuration = TimeSpan.FromMinutes(10);
+        private static readonly string[] StaticFilePaths = ["/_framework/", "/css/", "/js/", "/lib/", "/images/", "/favicon.ico"];
+        private static readonly string[] StaticExtensions = [".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot"];
+
         private readonly RequestDelegate _next;
         private readonly ILogger<ApiUserSyncMiddleware> _logger;
         private readonly IMemoryCache _cache;
@@ -25,108 +34,143 @@ namespace iLearn.Admin.Middleware
                 return;
             }
 
-            if (context.User.Identity?.IsAuthenticated == true)
+            var windowsIdentity = GetWindowsIdentity(context.User);
+            if (windowsIdentity == null)
             {
-                var windowsIdentity = context.User.Identity.Name;
-                if (!string.IsNullOrEmpty(windowsIdentity) &&
-                    windowsIdentity.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase))
+                await _next(context);
+                return;
+            }
+
+            var forceRefresh = context.Request.Query.ContainsKey("_refresh");
+            var cacheKey = GetCacheKey(windowsIdentity);
+
+            if (forceRefresh)
+            {
+                _cache.Remove(cacheKey);
+            }
+
+            if (TryApplyCachedClaims(context, cacheKey, forceRefresh))
+            {
+                await _next(context);
+                return;
+            }
+
+            await SyncClaimsAsync(context, apiUserService, windowsIdentity, cacheKey, forceRefresh);
+            await _next(context);
+        }
+
+        private async Task SyncClaimsAsync(
+            HttpContext context,
+            IApiUserService apiUserService,
+            string windowsIdentity,
+            string cacheKey,
+            bool forceRefresh)
+        {
+            _logger.LogInformation("Syncing user claims from API for: {WindowsIdentity}", windowsIdentity);
+
+            try
+            {
+                var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, forceRefresh);
+                if (!userResponse.Success || userResponse.Data == null)
                 {
-                    var cacheKey = $"user_claims_{windowsIdentity}";
-                    var forceRefresh = context.Request.Query.ContainsKey("_refresh");
+                    _logger.LogWarning(
+                        "API sync failed for: {WindowsIdentity} - {Message}",
+                        windowsIdentity,
+                        userResponse.Message);
+                    return;
+                }
 
-                    if (forceRefresh)
-                    {
-                        _cache.Remove(cacheKey);
-                    }
+                var user = userResponse.Data;
+                var claims = BuildClaims(windowsIdentity, user);
+                var primaryDivisionId = GetPrimaryDivisionId(user);
 
-                    if (!forceRefresh &&
-                        _cache.TryGetValue(cacheKey, out List<Claim>? cachedClaims) &&
-                        cachedClaims != null)
-                    {
-                        var identity = new ClaimsIdentity(cachedClaims, "iLearnAuth");
-                        context.User.AddIdentity(identity);
+                _cache.Set(cacheKey, claims, ClaimsCacheDuration);
+                context.User.AddIdentity(new ClaimsIdentity(claims, IdentityAuthenticationType));
 
-                        await _next(context);
-                        return;
-                    }
+                _logger.LogInformation(
+                    "User {Identity} synced: {RoleCount} role(s) [{Roles}], DivisionId={DivisionId}",
+                    windowsIdentity,
+                    user.Roles?.Count ?? 0,
+                    string.Join(", ", user.Roles?.Select(r => r.Name) ?? []),
+                    primaryDivisionId?.ToString() ?? "N/A");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error syncing Windows user via API: {WindowsIdentity}", windowsIdentity);
+            }
+        }
 
-                    _logger.LogInformation("Syncing user claims from API for: {WindowsIdentity}", windowsIdentity);
+        private bool TryApplyCachedClaims(HttpContext context, string cacheKey, bool forceRefresh)
+        {
+            if (forceRefresh || !_cache.TryGetValue(cacheKey, out List<Claim>? cachedClaims) || cachedClaims == null)
+            {
+                return false;
+            }
 
-                    try
-                    {
-                        var userResponse = await apiUserService.GetOrCreateUserAsync(windowsIdentity, forceRefresh);
-                        if (userResponse.Success && userResponse.Data != null)
-                        {
-                            var user = userResponse.Data;
+            context.User.AddIdentity(new ClaimsIdentity(cachedClaims, IdentityAuthenticationType));
+            return true;
+        }
 
-                            var claims = new List<Claim>
-                            {
-                                new Claim(ClaimTypes.Name, windowsIdentity),
-                                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                                new Claim("UserId", user.Id.ToString()),
-                                new Claim("FullName", user.FullName ?? ""),
-                                new Claim("Email", user.Email ?? "")
-                            };
+        private static string? GetWindowsIdentity(ClaimsPrincipal user)
+        {
+            var windowsIdentity = user.Identity?.IsAuthenticated == true ? user.Identity.Name : null;
+            if (string.IsNullOrWhiteSpace(windowsIdentity) ||
+                !windowsIdentity.StartsWith(DomainPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
 
-                            foreach (var role in user.Roles ?? [])
-                            {
-                                var roleValue = role.RoleType?.ToString();
-                                if (!string.IsNullOrWhiteSpace(roleValue))
-                                {
-                                    claims.Add(new Claim(ClaimTypes.Role, roleValue));
-                                }
-                            }
+            return windowsIdentity;
+        }
 
-                            var primaryDivisionId = user.Roles?
-                                .Where(r => r.DivisionId.HasValue)
-                                .Select(r => r.DivisionId!.Value)
-                                .FirstOrDefault() ?? 0;
+        private static List<Claim> BuildClaims(string windowsIdentity, UserDto user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, windowsIdentity),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim("UserId", user.Id.ToString()),
+                new Claim("FullName", user.FullName ?? string.Empty),
+                new Claim("Email", user.Email ?? string.Empty)
+            };
 
-                            if (primaryDivisionId > 0)
-                            {
-                                claims.Add(new Claim("DivisionId", primaryDivisionId.ToString()));
-                            }
-
-                            _cache.Set(cacheKey, claims, TimeSpan.FromMinutes(10));
-
-                            var newIdentity = new ClaimsIdentity(claims, "iLearnAuth");
-                            context.User.AddIdentity(newIdentity);
-
-                            _logger.LogInformation(
-                                "User {Identity} synced: {RoleCount} role(s) [{Roles}], DivisionId={DivisionId}",
-                                windowsIdentity,
-                                user.Roles?.Count ?? 0,
-                                string.Join(", ", user.Roles?.Select(r => r.Name) ?? []),
-                                primaryDivisionId > 0 ? primaryDivisionId.ToString() : "N/A");
-                        }
-                        else
-                        {
-                            _logger.LogWarning(
-                                "API sync failed for: {WindowsIdentity} - {Message}",
-                                windowsIdentity,
-                                userResponse.Message);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error syncing Windows user via API: {WindowsIdentity}", windowsIdentity);
-                    }
+            foreach (var role in user.Roles ?? [])
+            {
+                var roleValue = role.RoleType?.ToString();
+                if (!string.IsNullOrWhiteSpace(roleValue))
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, roleValue));
                 }
             }
 
-            await _next(context);
+            var primaryDivisionId = GetPrimaryDivisionId(user);
+            if (primaryDivisionId.HasValue)
+            {
+                claims.Add(new Claim("DivisionId", primaryDivisionId.Value.ToString()));
+            }
+
+            return claims;
         }
+
+        private static int? GetPrimaryDivisionId(UserDto user)
+        {
+            var primaryDivisionId = user.Roles?
+                .Where(r => r.DivisionId.HasValue)
+                .Select(r => (int?)r.DivisionId!.Value)
+                .FirstOrDefault();
+
+            return primaryDivisionId > 0 ? primaryDivisionId : null;
+        }
+
+        private static string GetCacheKey(string windowsIdentity) => $"{ClaimsCachePrefix}{windowsIdentity}";
 
         private static bool ShouldSkipMiddleware(HttpContext context)
         {
             var path = context.Request.Path.Value?.ToLowerInvariant();
             if (path == null) return false;
 
-            var staticFilePaths = new[] { "/_framework/", "/css/", "/js/", "/lib/", "/images/", "/favicon.ico" };
-            var staticExtensions = new[] { ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot" };
-
-            return staticFilePaths.Any(p => path.StartsWith(p)) ||
-                   staticExtensions.Any(e => path.EndsWith(e));
+            return StaticFilePaths.Any(p => path.StartsWith(p)) ||
+                   StaticExtensions.Any(e => path.EndsWith(e));
         }
     }
 }

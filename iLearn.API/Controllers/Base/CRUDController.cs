@@ -150,15 +150,27 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            IQueryable<Course> query = _repository.GetQuery()
-                .Include(c => c.Category).ThenInclude(cat => cat.Division)
-                .Include(c => c.CourseType);
+            var query = _repository.GetQuery()
+                .AsNoTracking()
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Code,
+                    c.Title,
+                    c.IsActive,
+                    c.CategoryId,
+                    CategoryName = c.Category != null ? c.Category.Name : null,
+                    DivisionId = c.Category != null ? c.Category.DivisionId : null,
+                    c.CourseTypeId,
+                    CourseTypeName = c.CourseType != null ? c.CourseType.Name : null
+                })
+                .AsQueryable();
 
             // ── Data Isolation ──
             if (_currentUser.DivisionId.HasValue)
-                query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
+                query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            return Ok(await DataSourceLoader.LoadAsync(query, loadOptions));
         }
 
         [HttpGet("GetForLookup")]

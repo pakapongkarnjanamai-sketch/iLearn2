@@ -5,6 +5,7 @@ using iLearn.Application.Services;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace iLearn.API.Controllers
 {
@@ -17,6 +18,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly IAssignmentDashboardService _dashboardService;
+        private readonly IStudentApiService _studentApiService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
         private readonly AppDbContext _dbContext;
@@ -27,6 +29,7 @@ namespace iLearn.API.Controllers
             IGenericRepository<Course> courseRepo,
             IAssignmentBatchService assignmentBatchService,
             IAssignmentDashboardService dashboardService,
+            IStudentApiService studentApiService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
             AppDbContext dbContext)
@@ -36,6 +39,7 @@ namespace iLearn.API.Controllers
             _courseRepo = courseRepo;
             _assignmentBatchService = assignmentBatchService;
             _dashboardService = dashboardService;
+            _studentApiService = studentApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
             _dbContext = dbContext;
@@ -44,51 +48,34 @@ namespace iLearn.API.Controllers
         [HttpGet("history")]
         public async Task<IActionResult> GetHistory([FromQuery] PaginationParams p)
         {
-            var result = await _dashboardService.GetAssignmentHistoryPagedAsync(p);
-            return Ok(result);
+            var history = await BuildAssignmentHistoryAsync();
+            var summary = BuildHistorySummary(history);
+
+            var filtered = ApplyHistoryFilters(history, p.Search, p.Status);
+            var ordered = ApplyHistorySorting(filtered, p.SortBy, p.SortDescending).ToList();
+
+            var page = p.Page < 1 ? 1 : p.Page;
+            var pageSize = p.PageSize < 1 ? 20 : p.PageSize;
+            var totalCount = ordered.Count;
+            var paged = ordered
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Ok(new
+            {
+                data = paged,
+                totalCount,
+                page,
+                pageSize,
+                summary
+            });
         }
 
         [HttpGet("gantt")]
         public async Task<IActionResult> GetGanttTasks()
         {
-            var all = await _dashboardService.GetAssignmentHistoryPagedAsync(
-                new PaginationParams { Page = 1, PageSize = 500 });
-
-            var tasks = new List<object>();
-
-            foreach (var item in all.Data)
-            {
-                var progress = item.TotalEnrollmentCount > 0
-                    ? (int)Math.Round((double)item.CompletedEnrollmentCount / item.TotalEnrollmentCount * 100)
-                    : 0;
-
-                var color = item.Status switch
-                {
-                    "Completed" => "#52c41a",
-                    "InProgress" => "#1890ff",
-                    "Upcoming" => "#faad14",
-                    "Expired" => "#ff4d4f",
-                    _ => "#aaaaaa"
-                };
-
-                var start = item.StartDate ?? item.CreatedAt;
-                var end = item.DueDate ?? start.AddDays(7);
-                if (end <= start) end = start.AddDays(1);
-
-                tasks.Add(new
-                {
-                    id = item.Id,
-                    parentId = 0,
-                    title = $"{item.AssignmentNo} - {item.Description ?? "No Description"}",
-                    startDate = start,
-                    dueDate = end,
-                    progress,
-                    color,
-                    status = item.Status,
-                    assignmentNo = item.AssignmentNo
-                });
-            }
-
+            var tasks = await BuildGanttTasksAsync();
             return Ok(tasks);
         }
 
@@ -149,7 +136,7 @@ namespace iLearn.API.Controllers
         [HttpGet("dashboard/{id}")]
         public async Task<IActionResult> GetDashboardData(int id)
         {
-            var result = await _dashboardService.GetDashboardAsync(id);
+            var result = await BuildAssignmentDashboardAsync(id);
             if (result == null) return NotFound(new { message = "Assignment not found" });
             return Ok(new { success = true, data = result });
         }
@@ -270,6 +257,575 @@ namespace iLearn.API.Controllers
                 .ToHashSet();
 
             return requestedCourseIds.Any(courseId => !accessibleCourseIds.Contains(courseId));
+        }
+
+        private async Task<List<AssignmentHistoryDto>> BuildAssignmentHistoryAsync()
+        {
+            var divisionId = _currentUser.DivisionId;
+            var currentDate = _dateTime.Now;
+
+            var assignmentQuery = _dbContext.Assignments
+                .AsNoTracking()
+                .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value);
+
+            var assignmentRows = await assignmentQuery
+                .Select(a => new AssignmentHistoryAssignmentRow
+                {
+                    Id = a.Id,
+                    AssignmentNo = a.AssignmentNo,
+                    Description = a.Description,
+                    EmployeeCodes = a.EmployeeCodes,
+                    CourseId = a.CourseId,
+                    StartDate = a.StartDate,
+                    DueDate = a.DueDate,
+                    CreatedBy = a.CreatedBy,
+                    CreatedAt = a.CreatedAt
+                })
+                .ToListAsync();
+
+            if (assignmentRows.Count == 0)
+            {
+                return [];
+            }
+
+            var courseIds = assignmentRows
+                .Where(a => a.CourseId.HasValue)
+                .Select(a => a.CourseId!.Value)
+                .Distinct()
+                .ToList();
+
+            var courseMap = courseIds.Count == 0
+                ? new Dictionary<int, AssignmentHistoryCourseRow>()
+                : await _dbContext.Courses
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(c => courseIds.Contains(c.Id))
+                    .Select(c => new AssignmentHistoryCourseRow
+                    {
+                        Id = c.Id,
+                        Title = c.Title,
+                        IsDeleted = c.IsDeleted
+                    })
+                    .ToDictionaryAsync(c => c.Id);
+
+            var assignmentIdsQuery = assignmentQuery.Select(a => a.Id);
+
+            var linkRows = await _dbContext.EnrollmentAssignments
+                .AsNoTracking()
+                .Where(ea => assignmentIdsQuery.Contains(ea.AssignmentId))
+                .Select(ea => new AssignmentHistoryLinkRow
+                {
+                    AssignmentId = ea.AssignmentId,
+                    StudentCode = ea.Enrollment != null ? ea.Enrollment.StudentCode : null,
+                    IsCompleted = ea.SnapshotCompleted || (ea.Enrollment != null && ea.Enrollment.IsCompleted)
+                })
+                .Where(ea => ea.StudentCode != null)
+                .ToListAsync();
+
+            var linksByAssignmentId = linkRows.ToLookup(link => link.AssignmentId);
+
+            return assignmentRows
+                .GroupBy(row => string.IsNullOrWhiteSpace(row.AssignmentNo) ? $"assignment:{row.Id}" : row.AssignmentNo!)
+                .Select(group => MapHistoryDto(group, linksByAssignmentId, currentDate, courseMap))
+                .ToList();
+        }
+
+        private async Task<AssignmentDashboardDto?> BuildAssignmentDashboardAsync(int assignmentId)
+        {
+            var divisionId = _currentUser.DivisionId;
+
+            var mainAssignment = await _dbContext.Assignments
+                .AsNoTracking()
+                .Where(a => a.Id == assignmentId && (!divisionId.HasValue || a.DivisionId == divisionId.Value))
+                .Select(a => new DashboardAssignmentRow
+                {
+                    Id = a.Id,
+                    AssignmentNo = a.AssignmentNo,
+                    Description = a.Description,
+                    CourseId = a.CourseId,
+                    DivisionId = a.DivisionId,
+                    StartDate = a.StartDate,
+                    DueDate = a.DueDate,
+                    CreatedBy = a.CreatedBy,
+                    CreatedAt = a.CreatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (mainAssignment == null)
+            {
+                return null;
+            }
+
+            var assignmentRows = await _dbContext.Assignments
+                .AsNoTracking()
+                .Where(a => (!divisionId.HasValue || a.DivisionId == divisionId.Value)
+                    && (string.IsNullOrWhiteSpace(mainAssignment.AssignmentNo)
+                        ? a.Id == mainAssignment.Id
+                        : a.AssignmentNo == mainAssignment.AssignmentNo))
+                .Select(a => new DashboardAssignmentRow
+                {
+                    Id = a.Id,
+                    AssignmentNo = a.AssignmentNo,
+                    Description = a.Description,
+                    CourseId = a.CourseId,
+                    DivisionId = a.DivisionId,
+                    StartDate = a.StartDate,
+                    DueDate = a.DueDate,
+                    CreatedBy = a.CreatedBy,
+                    CreatedAt = a.CreatedAt
+                })
+                .ToListAsync();
+
+            if (assignmentRows.Count == 0)
+            {
+                return null;
+            }
+
+            var courseIds = assignmentRows
+                .Where(row => row.CourseId.HasValue)
+                .Select(row => row.CourseId!.Value)
+                .Distinct()
+                .ToList();
+
+            var courseMap = courseIds.Count == 0
+                ? new Dictionary<int, AssignmentHistoryCourseRow>()
+                : await _dbContext.Courses
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(course => courseIds.Contains(course.Id))
+                    .Select(course => new AssignmentHistoryCourseRow
+                    {
+                        Id = course.Id,
+                        Title = course.Title,
+                        IsDeleted = course.IsDeleted,
+                        Code = course.Code
+                    })
+                    .ToDictionaryAsync(course => course.Id);
+
+            var ruleIds = assignmentRows.Select(row => row.Id).ToList();
+
+            var studentRows = await _dbContext.EnrollmentAssignments
+                .AsNoTracking()
+                .Where(link => ruleIds.Contains(link.AssignmentId) && link.Enrollment != null)
+                .Select(link => new DashboardStudentRow
+                {
+                    AssignmentId = link.AssignmentId,
+                    StudentCode = link.Enrollment!.StudentCode,
+                    Progress = link.SnapshotCompleted ? link.SnapshotProgress : link.Enrollment.Progress,
+                    IsCompleted = link.SnapshotCompleted || link.Enrollment.IsCompleted,
+                    CompletedDate = link.SnapshotCompleted ? link.SnapshotCompletedDate : link.Enrollment.CompletedDate,
+                    StartDate = link.StartDate,
+                    DueDate = link.DueDate
+                })
+                .ToListAsync();
+
+            var uniqueStudentCodes = studentRows
+                .Select(row => row.StudentCode)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var studentNames = uniqueStudentCodes.Count == 0
+                ? new Dictionary<string, ExternalStudentDto>(StringComparer.OrdinalIgnoreCase)
+                : await _studentApiService.GetStudentsByCodesAsync(uniqueStudentCodes);
+
+            var studentsByCode = studentRows
+                .GroupBy(row => row.StudentCode)
+                .Select(group => new
+                {
+                    StudentCode = group.Key,
+                    AllCompleted = group.All(row => row.IsCompleted),
+                    AnyStarted = group.Any(row => row.IsCompleted || row.Progress > 0)
+                })
+                .ToList();
+
+            var completedCount = studentsByCode.Count(item => item.AllCompleted);
+            var inProgressCount = studentsByCode.Count(item => !item.AllCompleted && item.AnyStarted);
+            var notStartedCount = studentsByCode.Count(item => !item.AllCompleted && !item.AnyStarted);
+            var totalEnrollments = studentRows.Count;
+            var completedEnrollments = studentRows.Count(row => row.IsCompleted);
+            var completionRate = totalEnrollments == 0
+                ? 0
+                : Math.Round((double)completedEnrollments / totalEnrollments * 100);
+
+            var studentCountByRule = studentRows
+                .GroupBy(row => row.AssignmentId)
+                .ToDictionary(group => group.Key, group => group.Count());
+
+            var completedCountByRule = studentRows
+                .Where(row => row.IsCompleted)
+                .GroupBy(row => row.AssignmentId)
+                .ToDictionary(group => group.Key, group => group.Count());
+
+            var courseSummaries = assignmentRows
+                .Select(row =>
+                {
+                    AssignmentHistoryCourseRow? course = null;
+                    if (row.CourseId.HasValue)
+                    {
+                        courseMap.TryGetValue(row.CourseId.Value, out course);
+                    }
+
+                    return new CourseSummaryDto
+                    {
+                        AssignmentRuleId = row.Id,
+                        CourseCode = course?.Code ?? "-",
+                        CourseTitle = course?.Title ?? "Unknown Course",
+                        CompletedStudents = completedCountByRule.GetValueOrDefault(row.Id),
+                        TotalStudents = studentCountByRule.GetValueOrDefault(row.Id),
+                        IsCourseDeleted = course?.IsDeleted ?? false
+                    };
+                })
+                .ToList();
+
+            var students = studentRows
+                .Select(row =>
+                {
+                    var assignment = assignmentRows.FirstOrDefault(item => item.Id == row.AssignmentId);
+                    AssignmentHistoryCourseRow? course = null;
+                    if (assignment?.CourseId.HasValue == true)
+                    {
+                        courseMap.TryGetValue(assignment.CourseId.Value, out course);
+                    }
+
+                    var status = row.IsCompleted ? "Completed" : row.Progress > 0 ? "In Progress" : "Pending";
+                    return new StudentProgressDto
+                    {
+                        StudentCode = row.StudentCode,
+                        StudentName = studentNames.GetValueOrDefault(row.StudentCode)?.Name ?? row.StudentCode,
+                        AssignmentRuleId = row.AssignmentId,
+                        CourseCode = course?.Code ?? "-",
+                        CourseTitle = course?.Title ?? "Unknown Course",
+                        Progress = row.Progress,
+                        IsCompleted = row.IsCompleted,
+                        Status = status,
+                        CompletedDate = row.CompletedDate,
+                        StartDate = row.StartDate,
+                        DueDate = row.DueDate
+                    };
+                })
+                .ToList();
+
+            return new AssignmentDashboardDto
+            {
+                AssignmentNo = mainAssignment.AssignmentNo ?? string.Empty,
+                Description = mainAssignment.Description ?? string.Empty,
+                CreatedBy = mainAssignment.CreatedBy,
+                StartDate = mainAssignment.StartDate,
+                DueDate = mainAssignment.DueDate,
+                TotalEmployees = studentsByCode.Count,
+                TotalCourses = courseSummaries.Count,
+                CompletionRate = completionRate,
+                HasDeletedCourse = courseSummaries.Any(course => course.IsCourseDeleted),
+                ChartData = new DashboardChartDto
+                {
+                    Completed = completedCount,
+                    InProgress = inProgressCount,
+                    NotStarted = notStartedCount
+                },
+                Courses = courseSummaries,
+                Students = students
+            };
+        }
+
+        private async Task<List<GanttTaskRow>> BuildGanttTasksAsync()
+        {
+            var divisionId = _currentUser.DivisionId;
+            var currentDate = _dateTime.Now;
+
+            var assignmentRows = await _dbContext.Assignments
+                .AsNoTracking()
+                .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value)
+                .Select(a => new AssignmentHistoryAssignmentRow
+                {
+                    Id = a.Id,
+                    AssignmentNo = a.AssignmentNo,
+                    Description = a.Description,
+                    StartDate = a.StartDate,
+                    DueDate = a.DueDate,
+                    CreatedAt = a.CreatedAt
+                })
+                .ToListAsync();
+
+            if (assignmentRows.Count == 0)
+            {
+                return [];
+            }
+
+            var assignmentIds = assignmentRows.Select(item => item.Id).ToList();
+
+            var linkRows = await _dbContext.EnrollmentAssignments
+                .AsNoTracking()
+                .Where(ea => assignmentIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
+                .Select(ea => new GanttLinkRow
+                {
+                    AssignmentId = ea.AssignmentId,
+                    IsCompleted = ea.SnapshotCompleted || ea.Enrollment!.IsCompleted
+                })
+                .ToListAsync();
+
+            var linksByAssignmentId = linkRows.ToLookup(link => link.AssignmentId);
+
+            return assignmentRows
+                .GroupBy(row => string.IsNullOrWhiteSpace(row.AssignmentNo) ? $"assignment:{row.Id}" : row.AssignmentNo!)
+                .Select(group => MapGanttTask(group, linksByAssignmentId, currentDate))
+                .OrderByDescending(task => task.AssignmentNo)
+                .ThenByDescending(task => task.StartDate)
+                .ToList();
+        }
+
+        private static IEnumerable<AssignmentHistoryDto> ApplyHistoryFilters(
+            IEnumerable<AssignmentHistoryDto> history,
+            string? search,
+            string? status)
+        {
+            var filtered = history;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                filtered = filtered.Where(item =>
+                    (!string.IsNullOrWhiteSpace(item.AssignmentNo) && item.AssignmentNo.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(item.Description) && item.Description.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(item.CourseNames) && item.CourseNames.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(item.CreatedBy) && item.CreatedBy.Contains(term, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                filtered = filtered.Where(item => string.Equals(item.Status, status, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return filtered;
+        }
+
+        private static IOrderedEnumerable<AssignmentHistoryDto> ApplyHistorySorting(
+            IEnumerable<AssignmentHistoryDto> history,
+            string? sortBy,
+            bool sortDescending)
+        {
+            var normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? "assignmentNo" : sortBy;
+
+            Func<AssignmentHistoryDto, object?> keySelector = normalizedSortBy switch
+            {
+                "createdBy" => item => item.CreatedBy,
+                "courseNames" => item => item.CourseNames,
+                "description" => item => item.Description,
+                "studentCount" => item => item.StudentCount,
+                "progress" or "completedEnrollmentCount" => item => item.TotalEnrollmentCount > 0
+                    ? Math.Round((double)item.CompletedEnrollmentCount / item.TotalEnrollmentCount * 100)
+                    : 0,
+                "startDate" => item => item.StartDate,
+                "dueDate" => item => item.DueDate,
+                "status" => item => item.Status,
+                _ => item => item.AssignmentNo
+            };
+
+            return sortDescending
+                ? history.OrderByDescending(keySelector).ThenByDescending(item => item.CreatedAt)
+                : history.OrderBy(keySelector).ThenByDescending(item => item.CreatedAt);
+        }
+
+        private static object BuildHistorySummary(IEnumerable<AssignmentHistoryDto> history)
+        {
+            var rows = history.ToList();
+            return new
+            {
+                all = rows.Count,
+                inProgress = rows.Count(item => item.Status == "InProgress"),
+                upcoming = rows.Count(item => item.Status == "Upcoming"),
+                expired = rows.Count(item => item.Status == "Expired"),
+                completed = rows.Count(item => item.Status == "Completed")
+            };
+        }
+
+        private static AssignmentHistoryDto MapHistoryDto(
+            IGrouping<string, AssignmentHistoryAssignmentRow> group,
+            ILookup<int, AssignmentHistoryLinkRow> linksByAssignmentId,
+            DateTime currentDate,
+            IReadOnlyDictionary<int, AssignmentHistoryCourseRow> courseMap)
+        {
+            var first = group.First();
+            var relatedLinks = group
+                .SelectMany(item => linksByAssignmentId[item.Id])
+                .Where(link => !string.IsNullOrWhiteSpace(link.StudentCode))
+                .ToList();
+
+            var allCompleted = relatedLinks.Count > 0 && relatedLinks.All(link => link.IsCompleted);
+            var status = AssignmentDashboardService.CalculateStatus(
+                relatedLinks.Count > 0,
+                allCompleted,
+                first.StartDate,
+                first.DueDate,
+                currentDate);
+
+            var courseEntries = group
+                .Where(item => item.CourseId.HasValue && courseMap.ContainsKey(item.CourseId.Value))
+                .Select(item => courseMap[item.CourseId!.Value])
+                .DistinctBy(course => course.Id)
+                .ToList();
+
+            var deletedCourses = courseEntries.Where(course => course.IsDeleted).ToList();
+            var activeCourses = courseEntries.Where(course => !course.IsDeleted).ToList();
+            var allCourseNameParts = activeCourses
+                .Select(course => course.Title ?? "Unknown Course")
+                .Concat(deletedCourses.Select(course => $"{course.Title ?? "Unknown Course"} [Deleted]"));
+
+            return new AssignmentHistoryDto
+            {
+                Id = first.Id,
+                AssignmentNo = group.Key,
+                Description = first.Description ?? string.Empty,
+                EmployeeCodes = first.EmployeeCodes ?? string.Empty,
+                StartDate = first.StartDate,
+                DueDate = first.DueDate,
+                CourseNames = string.Join(", ", allCourseNameParts),
+                Status = status,
+                CreatedBy = first.CreatedBy,
+                CreatedAt = first.CreatedAt,
+                CourseCount = courseEntries.Count,
+                StudentCount = string.IsNullOrWhiteSpace(first.EmployeeCodes)
+                    ? 0
+                    : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
+                CompletedEnrollmentCount = relatedLinks.Count(link => link.IsCompleted),
+                TotalEnrollmentCount = relatedLinks.Count,
+                HasDeletedCourse = deletedCourses.Count > 0,
+                DeletedCourseNames = deletedCourses.Count > 0
+                    ? string.Join(", ", deletedCourses.Select(course => course.Title ?? "Unknown"))
+                    : null
+            };
+        }
+
+        private static GanttTaskRow MapGanttTask(
+            IGrouping<string, AssignmentHistoryAssignmentRow> group,
+            ILookup<int, GanttLinkRow> linksByAssignmentId,
+            DateTime currentDate)
+        {
+            var first = group.First();
+            var relatedLinks = group
+                .SelectMany(item => linksByAssignmentId[item.Id])
+                .ToList();
+
+            var totalEnrollments = relatedLinks.Count;
+            var completedEnrollments = relatedLinks.Count(link => link.IsCompleted);
+            var allCompleted = totalEnrollments > 0 && completedEnrollments == totalEnrollments;
+            var status = AssignmentDashboardService.CalculateStatus(
+                totalEnrollments > 0,
+                allCompleted,
+                first.StartDate,
+                first.DueDate,
+                currentDate);
+
+            var progress = totalEnrollments > 0
+                ? (int)Math.Round((double)completedEnrollments / totalEnrollments * 100)
+                : 0;
+
+            var startDate = first.StartDate ?? first.CreatedAt;
+            var dueDate = first.DueDate ?? startDate.AddDays(7);
+            if (dueDate <= startDate)
+            {
+                dueDate = startDate.AddDays(1);
+            }
+
+            var assignmentNo = string.IsNullOrWhiteSpace(first.AssignmentNo)
+                ? $"Assignment {first.Id}"
+                : first.AssignmentNo!;
+
+            return new GanttTaskRow
+            {
+                Id = first.Id,
+                ParentId = 0,
+                AssignmentNo = assignmentNo,
+                Title = $"{assignmentNo} - {first.Description ?? "No Description"}",
+                StartDate = startDate,
+                DueDate = dueDate,
+                Progress = progress,
+                Color = GetStatusColor(status),
+                Status = status
+            };
+        }
+
+        private static string GetStatusColor(string status)
+        {
+            return status switch
+            {
+                "Completed" => "#52c41a",
+                "InProgress" => "#1890ff",
+                "Upcoming" => "#faad14",
+                "Expired" => "#ff4d4f",
+                _ => "#aaaaaa"
+            };
+        }
+
+        private sealed class AssignmentHistoryAssignmentRow
+        {
+            public int Id { get; set; }
+            public string? AssignmentNo { get; set; }
+            public string? Description { get; set; }
+            public string? EmployeeCodes { get; set; }
+            public int? CourseId { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? DueDate { get; set; }
+            public string? CreatedBy { get; set; }
+            public DateTime CreatedAt { get; set; }
+        }
+
+        private sealed class AssignmentHistoryCourseRow
+        {
+            public int Id { get; set; }
+            public string? Title { get; set; }
+            public bool IsDeleted { get; set; }
+            public string? Code { get; set; }
+        }
+
+        private sealed class AssignmentHistoryLinkRow
+        {
+            public int AssignmentId { get; set; }
+            public string? StudentCode { get; set; }
+            public bool IsCompleted { get; set; }
+        }
+
+        private sealed class GanttLinkRow
+        {
+            public int AssignmentId { get; set; }
+            public bool IsCompleted { get; set; }
+        }
+
+        private sealed class GanttTaskRow
+        {
+            public int Id { get; set; }
+            public int ParentId { get; set; }
+            public string AssignmentNo { get; set; } = string.Empty;
+            public string Title { get; set; } = string.Empty;
+            public DateTime StartDate { get; set; }
+            public DateTime DueDate { get; set; }
+            public int Progress { get; set; }
+            public string Color { get; set; } = string.Empty;
+            public string Status { get; set; } = string.Empty;
+        }
+
+        private sealed class DashboardAssignmentRow
+        {
+            public int Id { get; set; }
+            public string? AssignmentNo { get; set; }
+            public string? Description { get; set; }
+            public int? CourseId { get; set; }
+            public int? DivisionId { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? DueDate { get; set; }
+            public string? CreatedBy { get; set; }
+            public DateTime CreatedAt { get; set; }
+        }
+
+        private sealed class DashboardStudentRow
+        {
+            public int AssignmentId { get; set; }
+            public string StudentCode { get; set; } = string.Empty;
+            public double Progress { get; set; }
+            public bool IsCompleted { get; set; }
+            public DateTime? CompletedDate { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? DueDate { get; set; }
         }
     }
 }

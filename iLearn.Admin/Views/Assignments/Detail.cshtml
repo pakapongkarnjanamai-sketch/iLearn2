@@ -189,9 +189,20 @@
 @section Scripts {
 <script>
     const ASSIGNMENT_ID = @ViewBag.AssignmentId;
+    const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
+    const ASSIGNMENT_DASHBOARD_URL = `${ASSIGNMENTS_API_URL}/dashboard/${ASSIGNMENT_ID}`;
+    const ASSIGNMENT_INDEX_URL = `@Url.Action("Index", "Assignments")`;
+    const STUDENT_PROFILE_URL = `@Url.Action("Profile", "Students")`;
+    const EMPTY_TEXT = "—";
+
+    let loadPanel;
+    let currentDueDate = null;
+    let currentStartDate = null;
+    let studentsByRuleId = new Map();
+    let pivotRows = [];
 
     $(() => {
-        const loadPanel = $("#load-panel").dxLoadPanel({
+        loadPanel = $("#load-panel").dxLoadPanel({
             shadingColor: "rgba(255,255,255,0.8)",
             position: { of: "body" },
             visible: true,
@@ -201,348 +212,493 @@
             message: "Loading..."
         }).dxLoadPanel("instance");
 
-        $.ajax({
-            url: `${serviceUrl}/Assignments/dashboard/${ASSIGNMENT_ID}`,
-            method: "GET",
-            xhrFields: { withCredentials: true }
-        }).done(function (res) {
-            if (!res.success || !res.data) { showApiError("Invalid data format."); return; }
-            const data = res.data;
+        initializeDashboard();
 
-            // ── Header ──────────────────────────────────────────────────────────
-            const refNo = data.assignmentNo || "-";
-            $("#lbl-assignment-no").text(`Ref: ${refNo}`);
-            $("#lbl-assignment-no-detail").text(refNo);
-            $("#lbl-description").text(data.description || "-");
+        $("#btn-delete-assignment").click(handleDeleteAssignment);
+        $("#btn-extend-due-date").click(openExtendDueDatePopup);
+    });
 
-            currentDueDate   = data.dueDate   ? new Date(data.dueDate)   : null;
-            currentStartDate = data.startDate ? new Date(data.startDate) : null;
+    async function initializeDashboard() {
+        try {
+            const response = await $.ajax({
+                url: ASSIGNMENT_DASHBOARD_URL,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
 
-            const sDate = data.startDate ? new Date(data.startDate).toLocaleDateString("en-GB") : "-";
-            const dDate = data.dueDate   ? new Date(data.dueDate).toLocaleDateString("en-GB")   : "No Limit";
-            $("#lbl-schedule")
-                .attr("data-start", sDate)
-                .text(`${sDate} → ${dDate}`);
-            if (data.createdBy) $("#lbl-created-by").text(data.createdBy);
-
-            // ✅ แสดง banner เตือนถ้ามี course ที่ถูก soft-delete
-            if (data.hasDeletedCourse) {
-                const deletedNames = data.courses
-                    .filter(c => c.isCourseDeleted)
-                    .map(c => c.courseTitle)
-                    .join(", ");
-                $("#deleted-course-names").text(deletedNames);
-                $("#deleted-course-banner").show();
+            if (!response.success || !response.data) {
+                showApiError("Invalid data format.");
+                return;
             }
 
-            // ── Stats ────────────────────────────────────────────────────────────
-            const totalStudents = data.totalStudents ?? data.totalEmployees;
-            const cd = data.chartData;
-            $("#stat-total-emp").text(totalStudents);
-            $("#stat-total-courses").text(data.totalCourses);
-            $("#stat-completed").text(cd.completed);
-            $("#stat-inprogress").text(cd.inProgress);
-            $("#stat-progress-text").text(`${data.completionRate}%`);
-
-            // ── Pie Chart ────────────────────────────────────────────────────────
-            $("#status-pie-chart").dxPieChart({
-                type: "doughnut",
-                innerRadius: 0.7,
-                palette: ["#52c41a", "#faad14", "#d9d9d9"],
-                dataSource: [
-                    { status: "Completed",   count: cd.completed  },
-                    { status: "In Progress", count: cd.inProgress },
-                    { status: "Not Started", count: cd.notStarted }
-                ],
-                series: [{
-                    argumentField: "status",
-                    valueField: "count",
-                    label: {
-                        visible: true,
-                        position: "outside",
-                        customizeText: p => `${p.valueText} (${p.percentText})`,
-                        font: { size: 11, color: "#595959" },
-                        connector: { visible: true, width: 1 }
-                    }
-                }],
-                legend: {
-                    horizontalAlignment: "right",
-                    verticalAlignment: "center",
-                    margin: 0,
-                    font: { size: 12, color: "#595959" }
-                },
-                tooltip: { enabled: true }
-            });
-
-            // ── Course List ──────────────────────────────────────────────────────
-            const courseMap = {};
-            data.courses.forEach(c => { courseMap[c.assignmentRuleId] = c; });
-
-            const dropdownOptions = data.courses.map(c => ({
-                assignmentRuleId: c.assignmentRuleId,
-                // ✅ เพิ่ม [Deleted] ใน dropdown ถ้า course ถูกลบ
-                displayText: c.isCourseDeleted ? `${c.courseCode} [Deleted]` : `${c.courseCode}`
+            const data = response.data;
+            const firstRuleId = data.courses.length > 0 ? data.courses[0].assignmentRuleId : null;
+            const dropdownOptions = data.courses.map(course => ({
+                assignmentRuleId: course.assignmentRuleId,
+                displayText: course.isCourseDeleted ? `${course.courseCode} [Deleted]` : `${course.courseCode}`
             }));
-            const firstRuleId = dropdownOptions.length > 0 ? dropdownOptions[0].assignmentRuleId : null;
 
-            const $courseList = $("#course-list");
-            data.courses.forEach(c => {
-                const pct       = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
-                const leftColor = c.isCourseDeleted
-                    ? "#ffa39e"   // ✅ deleted course → สีแดง
-                    : (pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)");
-                const isDone    = pct === 100;
+            initializeHeader(data);
+            initializeStats(data);
+            initializeStatusChart(data.chartData);
+            initializeCourseList(data.courses, firstRuleId);
+            initializeCourseSelector(dropdownOptions, firstRuleId);
+            studentsByRuleId = groupStudentsByRuleId(data.students || []);
+            pivotRows = buildPivotRows(data.students || []);
+            initializeStudentGrid(getStudentsForRule(firstRuleId));
 
-                // ✅ เพิ่ม badge [Deleted] และ tooltip บน course card ที่ถูกลบ
-                const deletedBadge = c.isCourseDeleted
-                    ? `<span class="status-pill ms-1" style="background:#fff1f0;border:1px solid #ffa39e;color:var(--danger-color);font-size:9px;">
-                           <i class="fas fa-trash-alt me-1"></i>Deleted
-                       </span>`
-                    : "";
-
-                $(`<div class="course-item ${isDone ? "done" : ""} ${c.assignmentRuleId === firstRuleId ? "active" : ""}"
-                        data-rule="${c.assignmentRuleId}" data-title="${c.courseTitle}"
-                        style="border-left-color:${leftColor}; ${c.isCourseDeleted ? "opacity:0.75;" : ""}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center flex-wrap gap-1">
-                            <span class="fw-bold" style="font-size:11px; ${c.isCourseDeleted ? "text-decoration:line-through;color:var(--danger-color);" : ""}">${c.courseCode}</span>
-                            <span class="text-secondary ms-1" style="font-size:11px;">${c.courseTitle}</span>
-                            ${deletedBadge}
-                        </div>
-                        <span class="fw-bold ms-2" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${pct}%</span>
-                    </div>
-                    <div class="progress-slim">
-                        <div style="height:100%; width:${pct}%; background:${leftColor};"></div>
-                    </div>
-                    <div class="d-flex gap-3 mt-2" style="font-size:11px; color:var(--text-secondary);">
-                        <span style="color:var(--success-color);">✓ ${c.completedStudents}</span>
-                        <span style="color:var(--text-secondary);">◐ ${c.totalStudents - c.completedStudents}</span>
-                        <span class="ms-auto">${c.totalStudents} students</span>
-                    </div>
-                </div>`).appendTo($courseList);
-            });
-
-            $courseList.find(".course-item").on("click", function () {
-                const ruleId = $(this).data("rule");
-                const title  = $(this).data("title");
-                $courseList.find(".course-item").removeClass("active");
-                $(this).addClass("active");
-                $("#course-selector").dxSelectBox("instance").option("value", ruleId);
-                $("#student-grid-subtitle").text(`— ${title}`);
-                $("#student-grid").dxDataGrid("instance").filter(["assignmentRuleId", "=", ruleId]);
-            });
-
-            // ── Course Selector Dropdown ─────────────────────────────────────────
-            $("#course-selector").dxSelectBox({
-                dataSource: dropdownOptions,
-                valueExpr: "assignmentRuleId",
-                displayExpr: "displayText",
-                value: firstRuleId,
-                stylingMode: "underlined",
-                placeholder: "Select course...",
-                onValueChanged: function (e) {
-                    $("#student-grid").dxDataGrid("instance").filter(["assignmentRuleId", "=", e.value]);
-                    $courseList.find(".course-item").removeClass("active");
-                    const $card = $courseList.find(`.course-item[data-rule="${e.value}"]`).addClass("active");
-                    $("#student-grid-subtitle").text(`— ${$card.data("title")}`);
-                }
-            });
-
-            // ── Student DataGrid ─────────────────────────────────────────────────
-            $("#student-grid").dxDataGrid({
-                dataSource: data.students,
-                    showBorders: true,
-                showRowLines: true,
-                rowAlternationEnabled: false,
-                hoverStateEnabled: true,
-                filterRow: { visible: false },
-                searchPanel: { visible: true, placeholder: "Search student...", width: 160 },
-                height: 420,
-                scrolling: { mode: "virtual" },
-                export: { enabled: false },
-                onExporting: function (e) {
-                    handleExporting(e, `Student_Tracking_${ASSIGNMENT_ID}`);
-                },
-                onRowPrepared: function (e) {
-                    if (e.rowType === "data" && e.data.isCompleted)
-                        $(e.rowElement).css("background-color", "#f6ffed");
-                },
-                columns: [
-                    {
-                        dataField: "studentCode",
-                        caption: "ID",
-                        width: 100,
-                        cellTemplate: (c, o) =>
-                            $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
-                                   .css({ fontSize: "11px", fontWeight: "600" })
-                                   .addClass("tag-pill pill-default")
-                                   .text(o.value).appendTo(c)
-                    },
-                    {
-                        dataField: "studentName",
-                        caption: "Name",
-                        minWidth: 120,
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                       .text(o.value || "-").appendTo(c)
-                    },
-                    {
-                        dataField: "progress",
-                        caption: "Progress",
-                        width: 140,
-                        alignment: "center",
-                        cellTemplate: (c, o) => {
-                            const pct   = o.value || 0;
-                            const color = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
-                            $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append(
-                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)", borderRadius: "2px", overflow: "hidden" })
-                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
-                                )
-                                .append(
-                                    $("<span>").css({ fontSize: "11px", fontWeight: "600", minWidth: "32px", color: "var(--text-secondary)" })
-                                               .text(pct + "%")
-                                )
-                                .appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "isCompleted",
-                        caption: "Status",
-                        width: 110,
-                        cellTemplate: (c, o) => {
-                            let dotCls, label;
-                            if (o.value) {
-                                dotCls = "dot-success"; label = "Completed";
-                            } else if (o.data.progress > 0) {
-                                dotCls = "dot-warning"; label = "In Progress";
-                            } else {
-                                dotCls = "dot-default"; label = "Pending";
-                            }
-                            $("<span>").css({ fontSize: "12px" })
-                                .append($("<span>").addClass(`status-dot ${dotCls}`))
-                                .append(label)
-                                .appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "completedDate",
-                        caption: "Completed On",
-                        dataType: "date",
-                        format: "dd/MM/yyyy",
-                        alignment: "center",
-                        width: 110,
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
-                                       .appendTo(c)
-                    }
-                ]
-            });
+            initializeExportButtons();
 
             if (firstRuleId) {
-                $("#student-grid").dxDataGrid("instance").filter(["assignmentRuleId", "=", firstRuleId]);
-                $("#student-grid-subtitle").text(`— ${dropdownOptions[0]?.displayText || ""}`);
+                setActiveCourseFilter(firstRuleId, dropdownOptions[0]?.displayText || EMPTY_TEXT);
             }
 
-            // ── Pivot Grid (dxPivotGrid) ─────────────────────────────────────────
-            $("#pivot-container").dxPivotGrid({
-                allowSortingBySummary: true,
-                allowFiltering: true,
-                showBorders: true,
-                showColumnTotals: false,
-                showRowTotals: false,
-                showRowGrandTotals: false,
-                showColumnGrandTotals: false,
-                height: 560,
-                export: { enabled: false },
-                onExporting: function (e) {
-                    handlePivotExporting(e, `Pivot_Matrix_${ASSIGNMENT_ID}`);
-                },
-                fieldChooser: { enabled: false },
-                onCellPrepared: function (e) {
-                    if (e.area === "data" && e.cell.text) {
-                        const v = e.cell.text;
-                        if (v === "Completed") {
-                            e.cellElement.css({ color: "var(--success-color)", fontWeight: 600, fontSize: "11px" });
-                            e.cellElement.html('<i class="fas fa-check"></i>');
-                        } else if (v === "In Progress") {
-                            e.cellElement.css({ color: "var(--warning-color)", fontWeight: 600, fontSize: "11px" });
-                        } else if (v === "Pending") {
-                            e.cellElement.css({ color: "var(--text-secondary)", fontSize: "11px" });
-                        }
-                    }
-                },
-                dataSource: {
-                    fields: [
-                        { dataField: "studentCode", area: "row",    caption: "Student ID",  width: 120, sortOrder: "asc" },
-                        { dataField: "studentName", area: "row",    caption: "Name",         width: 180 },
-                        { dataField: "courseCode",  area: "column", caption: "Course" },
-                        { dataField: "status",      area: "data",   caption: "Status",
-                          summaryType: "custom",
-                          calculateCustomSummary: function (options) {
-                              if (options.summaryProcess === "start")     { options.totalValue = "-"; }
-                              if (options.summaryProcess === "calculate") { options.totalValue = options.value; }
-                          }
-                        }
-                    ],
-                    store: data.students.map(s => ({
-                        studentCode: s.studentCode,
-                        studentName: s.studentName || s.studentCode,
-                        courseCode:  s.courseCode  || "-",
-                        status:      s.status
-                    }))
-                }
-            });
-
-            $("#btn-export-students").off("click").on("click", function () {
-                const grid = $("#student-grid").dxDataGrid("instance");
-                handleExporting({ component: grid, cancel: false }, `Student_Tracking_${ASSIGNMENT_ID}`);
-            });
-
-            $("#btn-export-pivot").off("click").on("click", function () {
-                const pivot = $("#pivot-container").dxPivotGrid("instance");
-                handlePivotExporting({ component: pivot, cancel: false }, `Pivot_Matrix_${ASSIGNMENT_ID}`);
-            });
-
             loadPanel.hide();
-        }).fail(() => showApiError("Error loading dashboard data."));
 
-        // ── Delete ────────────────────────────────────────────────────────────────
-        $("#btn-delete-assignment").click(function (e) {
-            e.preventDefault();
-            DevExpress.ui.dialog.confirm(
-                `<div class="py-2">
-                    <div class="fw-bold mb-1">Delete this assignment?</div>
-                    <div class="text-muted" style="font-size:12px;">
-                        All related enrollments will be permanently removed.
-                    </div>
-                </div>`,
-                "Confirm Deletion"
-            ).done(function (ok) {
-                if (!ok) return;
-                loadPanel.option("message", "Deleting..."); loadPanel.show();
-                $.ajax({
-                    url: `${serviceUrl}/Assignments/${ASSIGNMENT_ID}`,
-                    type: "DELETE",
-                    xhrFields: { withCredentials: true },
-                    success: function () {
-                        showToast("Deleted successfully.", "success", 2000);
-                        setTimeout(() => window.location.href = "@Url.Action("Index", "Assignments")", 1500);
-                    },
-                    error: function () {
-                        showToast("Error deleting.", "error");
-                        loadPanel.hide();
-                    }
-                });
-            });
+            deferPivotInitialization();
+        } catch {
+            showApiError("Error loading dashboard data.");
+        }
+    }
+
+    function initializeHeader(data) {
+        const refNo = data.assignmentNo || "-";
+        const startText = formatDate(data.startDate, "-");
+        const dueText = data.dueDate ? formatDate(data.dueDate, "No Limit") : "No Limit";
+
+        currentDueDate = data.dueDate ? new Date(data.dueDate) : null;
+        currentStartDate = data.startDate ? new Date(data.startDate) : null;
+
+        $("#lbl-assignment-no").text(`Ref: ${refNo}`);
+        $("#lbl-assignment-no-detail").text(refNo);
+        $("#lbl-description").text(data.description || "-");
+        $("#lbl-schedule").attr("data-start", startText).text(`${startText} → ${dueText}`);
+        $("#lbl-created-by").text(data.createdBy || "-");
+
+        if (!data.hasDeletedCourse) {
+            return;
+        }
+
+        const deletedNames = data.courses
+            .filter(course => course.isCourseDeleted)
+            .map(course => course.courseTitle)
+            .join(", ");
+        $("#deleted-course-names").text(deletedNames);
+        $("#deleted-course-banner").show();
+    }
+
+    function initializeStats(data) {
+        const totalStudents = data.totalStudents ?? data.totalEmployees;
+        const chartData = data.chartData || {};
+
+        $("#stat-total-emp").text(totalStudents ?? 0);
+        $("#stat-total-courses").text(data.totalCourses ?? 0);
+        $("#stat-completed").text(chartData.completed ?? 0);
+        $("#stat-inprogress").text(chartData.inProgress ?? 0);
+        $("#stat-progress-text").text(`${data.completionRate ?? 0}%`);
+    }
+
+    function initializeStatusChart(chartData) {
+        $("#status-pie-chart").dxPieChart({
+            type: "doughnut",
+            innerRadius: 0.7,
+            palette: ["#52c41a", "#faad14", "#d9d9d9"],
+            dataSource: [
+                { status: "Completed", count: chartData.completed ?? 0 },
+                { status: "In Progress", count: chartData.inProgress ?? 0 },
+                { status: "Not Started", count: chartData.notStarted ?? 0 }
+            ],
+            series: [{
+                argumentField: "status",
+                valueField: "count",
+                label: {
+                    visible: true,
+                    position: "outside",
+                    customizeText: point => `${point.valueText} (${point.percentText})`,
+                    font: { size: 11, color: "#595959" },
+                    connector: { visible: true, width: 1 }
+                }
+            }],
+            legend: {
+                horizontalAlignment: "right",
+                verticalAlignment: "center",
+                margin: 0,
+                font: { size: 12, color: "#595959" }
+            },
+            tooltip: { enabled: true }
+        });
+    }
+
+    function initializeCourseList(courses, firstRuleId) {
+        const $courseList = $("#course-list").empty();
+        courses.forEach(course => {
+            $(buildCourseCardHtml(course, course.assignmentRuleId === firstRuleId)).appendTo($courseList);
         });
 
-        // ── Extend Due Date ───────────────────────────────────────────────────────
-        let currentDueDate = null, currentStartDate = null;
+        $courseList.find(".course-item").on("click", function() {
+            const ruleId = $(this).data("rule");
+            const title = $(this).data("title");
+            $("#course-selector").dxSelectBox("instance").option("value", ruleId);
+            setActiveCourseFilter(ruleId, title);
+        });
+    }
 
-        $("#btn-extend-due-date").click(function () {
-            const popup = $("#extend-due-date-popup").dxPopup({
+    function buildCourseCardHtml(course, isActive) {
+        const percent = course.totalStudents > 0 ? Math.round((course.completedStudents / course.totalStudents) * 100) : 0;
+        const leftColor = course.isCourseDeleted
+            ? "#ffa39e"
+            : getProgressColor(percent, true);
+        const deletedBadge = course.isCourseDeleted
+            ? `<span class="status-pill ms-1" style="background:#fff1f0;border:1px solid #ffa39e;color:var(--danger-color);font-size:9px;"><i class="fas fa-trash-alt me-1"></i>Deleted</span>`
+            : "";
+
+        return `
+            <div class="course-item ${percent === 100 ? "done" : ""} ${isActive ? "active" : ""}"
+                 data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}"
+                 style="border-left-color:${leftColor}; ${course.isCourseDeleted ? "opacity:0.75;" : ""}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center flex-wrap gap-1">
+                        <span class="fw-bold" style="font-size:11px; ${course.isCourseDeleted ? "text-decoration:line-through;color:var(--danger-color);" : ""}">${course.courseCode}</span>
+                        <span class="text-secondary ms-1" style="font-size:11px;">${course.courseTitle}</span>
+                        ${deletedBadge}
+                    </div>
+                    <span class="fw-bold ms-2" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${percent}%</span>
+                </div>
+                <div class="progress-slim">
+                    <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
+                </div>
+                <div class="d-flex gap-3 mt-2" style="font-size:11px; color:var(--text-secondary);">
+                    <span style="color:var(--success-color);">✓ ${course.completedStudents}</span>
+                    <span style="color:var(--text-secondary);">◐ ${course.totalStudents - course.completedStudents}</span>
+                    <span class="ms-auto">${course.totalStudents} students</span>
+                </div>
+            </div>`;
+    }
+
+    function initializeCourseSelector(options, firstRuleId) {
+        $("#course-selector").dxSelectBox({
+            dataSource: options,
+            valueExpr: "assignmentRuleId",
+            displayExpr: "displayText",
+            value: firstRuleId,
+            stylingMode: "underlined",
+            placeholder: "Select course...",
+            onValueChanged: function(e) {
+                const $card = $("#course-list").find(`.course-item[data-rule="${e.value}"]`);
+                setActiveCourseFilter(e.value, $card.data("title") || EMPTY_TEXT);
+            }
+        });
+    }
+
+    function initializeStudentGrid(students) {
+        $("#student-grid").dxDataGrid({
+            dataSource: students,
+            showBorders: true,
+            showRowLines: true,
+            rowAlternationEnabled: false,
+            hoverStateEnabled: true,
+            filterRow: { visible: false },
+            searchPanel: { visible: true, placeholder: "Search student...", width: 160 },
+            height: 420,
+            scrolling: { mode: "virtual" },
+            export: { enabled: false },
+            onExporting: function(e) {
+                handleExporting(e, `Student_Tracking_${ASSIGNMENT_ID}`);
+            },
+            onRowPrepared: function(e) {
+                if (e.rowType === "data" && e.data.isCompleted) {
+                    $(e.rowElement).css("background-color", "#f6ffed");
+                }
+            },
+            columns: [
+                {
+                    dataField: "studentCode",
+                    caption: "ID",
+                    width: 100,
+                    cellTemplate: function(container, options) {
+                        $("<a>")
+                            .attr("href", `${STUDENT_PROFILE_URL}?code=${options.value}`)
+                            .css({ fontSize: "11px", fontWeight: "600" })
+                            .addClass("tag-pill pill-default")
+                            .text(options.value)
+                            .appendTo(container);
+                    }
+                },
+                {
+                    dataField: "studentName",
+                    caption: "Name",
+                    minWidth: 120,
+                    cellTemplate: function(container, options) {
+                        appendText(container, options.value || "-", { fontSize: "12px", color: "var(--text-secondary)" });
+                    }
+                },
+                {
+                    dataField: "progress",
+                    caption: "Progress",
+                    width: 140,
+                    alignment: "center",
+                    cellTemplate: function(container, options) {
+                        renderProgressCell(container, options.value || 0, false);
+                    }
+                },
+                {
+                    dataField: "isCompleted",
+                    caption: "Status",
+                    width: 110,
+                    cellTemplate: function(container, options) {
+                        renderStudentStatusCell(container, options.value, options.data.progress);
+                    }
+                },
+                {
+                    dataField: "completedDate",
+                    caption: "Completed On",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center",
+                    width: 110,
+                    cellTemplate: function(container, options) {
+                        appendText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
+                    }
+                }
+            ]
+        });
+    }
+
+    function deferPivotInitialization() {
+        const initialize = function() {
+            initializePivotGrid(pivotRows);
+        };
+
+        if (typeof window.requestIdleCallback === "function") {
+            window.requestIdleCallback(initialize, { timeout: 500 });
+            return;
+        }
+
+        window.setTimeout(initialize, 0);
+    }
+
+    function initializePivotGrid(students) {
+        $("#pivot-container").dxPivotGrid({
+            allowSortingBySummary: true,
+            allowFiltering: true,
+            showBorders: true,
+            showColumnTotals: false,
+            showRowTotals: false,
+            showRowGrandTotals: false,
+            showColumnGrandTotals: false,
+            height: 560,
+            export: { enabled: false },
+            onExporting: function(e) {
+                handlePivotExporting(e, `Pivot_Matrix_${ASSIGNMENT_ID}`);
+            },
+            fieldChooser: { enabled: false },
+            onCellPrepared: function(e) {
+                if (e.area !== "data" || !e.cell.text) {
+                    return;
+                }
+
+                const value = e.cell.text;
+                if (value === "Completed") {
+                    e.cellElement.css({ color: "var(--success-color)", fontWeight: 600, fontSize: "11px" });
+                    e.cellElement.html('<i class="fas fa-check"></i>');
+                    return;
+                }
+
+                if (value === "In Progress") {
+                    e.cellElement.css({ color: "var(--warning-color)", fontWeight: 600, fontSize: "11px" });
+                    return;
+                }
+
+                if (value === "Pending") {
+                    e.cellElement.css({ color: "var(--text-secondary)", fontSize: "11px" });
+                }
+            },
+            dataSource: {
+                fields: [
+                    { dataField: "studentCode", area: "row", caption: "Student ID", width: 120, sortOrder: "asc" },
+                    { dataField: "studentName", area: "row", caption: "Name", width: 180 },
+                    { dataField: "courseCode", area: "column", caption: "Course" },
+                    {
+                        dataField: "status",
+                        area: "data",
+                        caption: "Status",
+                        summaryType: "custom",
+                        calculateCustomSummary: function(options) {
+                            if (options.summaryProcess === "start") {
+                                options.totalValue = "-";
+                            }
+                            if (options.summaryProcess === "calculate") {
+                                options.totalValue = options.value;
+                            }
+                        }
+                    }
+                ],
+                store: students
+            }
+        });
+    }
+
+    function initializeExportButtons() {
+        $("#btn-export-students").off("click").on("click", function() {
+            const grid = $("#student-grid").dxDataGrid("instance");
+            handleExporting({ component: grid, cancel: false }, `Student_Tracking_${ASSIGNMENT_ID}`);
+        });
+
+        $("#btn-export-pivot").off("click").on("click", function() {
+            const pivot = $("#pivot-container").dxPivotGrid("instance");
+            handlePivotExporting({ component: pivot, cancel: false }, `Pivot_Matrix_${ASSIGNMENT_ID}`);
+        });
+    }
+
+    function setActiveCourseFilter(ruleId, title) {
+        $("#course-list").find(".course-item").removeClass("active");
+        $("#course-list").find(`.course-item[data-rule="${ruleId}"]`).addClass("active");
+        $("#student-grid-subtitle").text(`— ${title}`);
+        const grid = $("#student-grid").dxDataGrid("instance");
+        if (!grid) {
+            return;
+        }
+
+        grid.option("dataSource", getStudentsForRule(ruleId));
+        grid.searchByText("");
+    }
+
+    function groupStudentsByRuleId(students) {
+        const grouped = new Map();
+
+        students.forEach(student => {
+            const key = student.assignmentRuleId ?? 0;
+            if (!grouped.has(key)) {
+                grouped.set(key, []);
+            }
+
+            grouped.get(key).push(student);
+        });
+
+        return grouped;
+    }
+
+    function getStudentsForRule(ruleId) {
+        return studentsByRuleId.get(ruleId ?? 0) || [];
+    }
+
+    function buildPivotRows(students) {
+        return students.map(student => ({
+            studentCode: student.studentCode,
+            studentName: student.studentName || student.studentCode,
+            courseCode: student.courseCode || "-",
+            status: student.status
+        }));
+    }
+
+    function appendText(container, text, styles) {
+        return $("<span>").css(styles || {}).text(text).appendTo(container);
+    }
+
+    function formatDate(value, fallback = EMPTY_TEXT) {
+        return value ? new Date(value).toLocaleDateString("en-GB") : fallback;
+    }
+
+    function getProgressColor(progress, includeZeroBorder) {
+        if (progress === 100) {
+            return "var(--success-color)";
+        }
+
+        if (progress > 0) {
+            return "var(--accent-color)";
+        }
+
+        return includeZeroBorder ? "var(--border-color)" : "var(--border-color)";
+    }
+
+    function renderProgressCell(container, progress, useWarningForPartial) {
+        const color = progress === 100
+            ? "var(--success-color)"
+            : progress > 0
+                ? (useWarningForPartial ? "var(--warning-color)" : "var(--accent-color)")
+                : "var(--border-color)";
+
+        $("<div>").addClass("d-flex align-items-center gap-2")
+            .append(
+                $("<div>").css({
+                    flex: "1",
+                    height: "3px",
+                    background: "var(--border-color)",
+                    borderRadius: "2px",
+                    overflow: "hidden"
+                }).append(
+                    $("<div>").css({
+                        height: "100%",
+                        width: `${progress}%`,
+                        background: color
+                    })
+                )
+            )
+            .append(
+                $("<span>").css({
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    minWidth: "32px",
+                    color: "var(--text-secondary)"
+                }).text(`${progress}%`)
+            )
+            .appendTo(container);
+    }
+
+    function renderStudentStatusCell(container, isCompleted, progress) {
+        let dotClass = "dot-default";
+        let label = "Pending";
+
+        if (isCompleted) {
+            dotClass = "dot-success";
+            label = "Completed";
+        } else if (progress > 0) {
+            dotClass = "dot-warning";
+            label = "In Progress";
+        }
+
+        $("<span>").css({ fontSize: "12px" })
+            .append($("<span>").addClass(`status-dot ${dotClass}`))
+            .append(label)
+            .appendTo(container);
+    }
+
+    function handleDeleteAssignment(e) {
+        e.preventDefault();
+        DevExpress.ui.dialog.confirm(
+            `<div class="py-2">
+                <div class="fw-bold mb-1">Delete this assignment?</div>
+                <div class="text-muted" style="font-size:12px;">
+                    All related enrollments will be permanently removed.
+                </div>
+            </div>`,
+            "Confirm Deletion"
+        ).done(async function(ok) {
+            if (!ok) {
+                return;
+            }
+
+            loadPanel.option("message", "Deleting...");
+            loadPanel.show();
+
+            try {
+                await $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}`,
+                    type: "DELETE",
+                    xhrFields: { withCredentials: true }
+                });
+
+                showToast("Deleted successfully.", "success", 2000);
+                setTimeout(() => window.location.href = ASSIGNMENT_INDEX_URL, 1500);
+            } catch {
+                showToast("Error deleting.", "error");
+                loadPanel.hide();
+            }
+        });
+    }
+
+    function openExtendDueDatePopup() {
+        const popup = $("#extend-due-date-popup").dxPopup({
                 title: "Extend Due Date",
                 width: 340,
                 height: "auto",
@@ -587,7 +743,7 @@
                             }
                             loadPanel.option("message", "Updating..."); loadPanel.show();
                             $.ajax({
-                                url: `${serviceUrl}/Assignments/${ASSIGNMENT_ID}/extend-due-date`,
+                                url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/extend-due-date`,
                                 type: "PATCH",
                                 contentType: "application/json",
                                 xhrFields: { withCredentials: true },
@@ -610,10 +766,12 @@
                     });
                 }
             }).dxPopup("instance");
-            popup.show();
-        });
+        popup.show();
+    }
 
-        function showApiError(msg) { loadPanel.hide(); showToast(msg, "error", 4000); }
-    });
+    function showApiError(msg) {
+        loadPanel.hide();
+        showToast(msg, "error", 4000);
+    }
 </script>
 }

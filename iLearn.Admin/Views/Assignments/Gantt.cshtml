@@ -32,62 +32,56 @@
 
 @section Scripts {
     <script>
-        // 💡 ตั้งค่า jsPDF ให้ DevExtreme รู้จัก
+        const ASSIGNMENTS_GANTT_URL = `${serviceUrl}/Assignments/gantt`;
+
         window.jsPDF = window.jspdf.jsPDF;
 
+        function normalizeGanttTasks(items) {
+            if (!Array.isArray(items)) {
+                return [];
+            }
+
+            return items.map(item => ({
+                ...item,
+                startDate: item.startDate ? new Date(item.startDate) : new Date(),
+                dueDate: item.dueDate ? new Date(item.dueDate) : new Date()
+            }));
+        }
+
         $(() => {
-            // 1. ดึงข้อมูลจาก API
             $.ajax({
-                url: `${serviceUrl}/Assignments/gantt`,
+                url: ASSIGNMENTS_GANTT_URL,
                 method: "GET",
                 xhrFields: { withCredentials: true }
             }).done(function (res) {
+                const tasks = normalizeGanttTasks(res);
 
-                // 💡 กรองเอาเฉพาะ "ตัวแม่" (กรณีที่ API ยังส่งตัวลูกมาด้วย)
-                const parentTasksOnly = Array.isArray(res) ? res.filter(t => t.parentId === 0) : [];
-
-                // 2. แปลงข้อมูลวันที่ให้ถูกต้องตามฟิลด์ที่ API ส่งมา (startDate, dueDate)
-                const tasks = parentTasksOnly.map(t => ({
-                    ...t,
-                    // API ส่ง title ที่มีรหัสงานมาให้แล้ว เราสามารถใช้ตรงๆ ได้ หรือจะจัดรูปแบบใหม่ก็ได้
-                    displayTitle: t.assignmentNo ? `${t.assignmentNo} - ${t.title || ''}` : t.title,
-                    startDate: t.startDate ? new Date(t.startDate) : new Date(),
-                    dueDate: t.dueDate ? new Date(t.dueDate) : new Date()
-                }));
-
-                // 3. สร้าง Gantt แบบ Read-only พร้อมปุ่ม Export
                 $("#gantt-container").dxGantt({
                     tasks: {
                         dataSource: tasks,
                         keyExpr: "id",
                         parentIdExpr: "parentId",
-                        titleExpr: "title",      // ใช้ title ที่ API ส่งมา (รวม AssignmentNo ไว้แล้ว)
-                        startExpr: "startDate",  // ดึงค่า startDate ที่แปลงแล้ว
-                        endExpr: "dueDate",      // ดึงค่า dueDate ที่แปลงแล้ว
+                        titleExpr: "title",
+                        startExpr: "startDate",
+                        endExpr: "dueDate",
                         progressExpr: "progress",
                         colorExpr: "color"
                     },
                     rootValue: 0,
-                    scaleType: "months", // เริ่มต้นที่รายเดือน
-                    scaleTypeRange: { min: "months", max: "years" }, // ล็อกไม่ให้ซูมลึกกว่ารายเดือน
-                    taskTitlePosition: "outside", // เอาชื่อและรหัสงานไปไว้ข้างนอกแท่ง
+                    scaleType: "months",
+                    scaleTypeRange: { min: "months", max: "years" },
+                    taskTitlePosition: "outside",
                     showResources: false,
                     showDependencies: false,
                     showRowLines: true,
-
-                    // 💡 ปิดการแก้ไข และไม่อนุญาตให้คลิกเลือก (Read-only 100%)
                     editing: { enabled: false },
                     allowSelection: false,
-
-                    // 💡 ล็อกความกว้างของแผงตารางด้านซ้ายให้กว้างพอดีกับ 3 คอลัมน์
                     taskListWidth: 350,
                     columns: [
                         { dataField: "assignmentNo", caption: "Assignment No.", width: 130 },
                         { dataField: "startDate",    caption: "Start",   dataType: "date", format: "dd/MM/yyyy", width: 95 },
                         { dataField: "dueDate",      caption: "Due",     dataType: "date", format: "dd/MM/yyyy", width: 95 }
                     ],
-
-                    // 💡 เพิ่มปุ่ม Export สีเด่นๆ ลงใน Toolbar
                     toolbar: {
                         items: [
                             "zoomIn", "zoomOut", "separator", "expandAll", "collapseAll", "separator", "fullScreen",
@@ -98,11 +92,11 @@
                                     icon: "exportpdf",
                                     text: "Export PDF",
                                     hint: "Export Gantt Chart to PDF",
-                                    type: "default",          // ทำให้ปุ่มเป็นสีน้ำเงิน
+                                    type: "default",
                                     stylingMode: "contained",
                                     onClick: function () {
                                         const ganttInstance = $("#gantt-container").dxGantt("instance");
-                                        const doc = new jsPDF("landscape"); // ตั้งกระดาษเป็นแนวนอน
+                                        const doc = new jsPDF("landscape");
 
                                         DevExpress.pdfExporter.exportGantt({
                                             jsPDFDocument: doc,

@@ -111,9 +111,13 @@
 @section Scripts {
     <script>
         const courseId = @courseId;
-        const courseApiUrl = serviceUrl + '/courses';
+        const courseApiUrl = `${serviceUrl}/courses`;
+        const courseIndexUrl = '@Url.Action("Index", "Courses")';
+        const newVersionUrl = '@Url.Action("VersionForm", "Courses")';
+        const assignmentFormUrl = '@Url.Action("Form", "Assignments")';
+        const assignmentDetailUrl = '@Url.Action("Detail", "Assignments")';
 
-        const divisionsStore  = createDataStore(serviceUrl, 'Divisions', {
+        const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
             loadUrl: `${serviceUrl}/Divisions`
         });
@@ -126,16 +130,19 @@
         let isCourseActive = false;
         let courseForm;
         let versionsData = [];
+        let learnersLoaded = false;
+        let assignmentsLoaded = false;
+        let learnersGrid;
+        let assignmentsGrid;
+
         $(async () => {
             const [divisionOptions, courseTypeOptions] = await Promise.all([
-                loadDivisionOptions(),
-                loadCourseTypeOptions()
+                loadLookupOptions(divisionsStore),
+                loadLookupOptions(courseTypesStore)
             ]);
 
             showCardsSkeleton('#versionsCardContainer', 3);
 
-
-            // ── 1. Build form ──────────────────────────────────────────
             courseForm = $("#courseInfoForm").dxForm({
                 formData: {},
                 labelLocation: "top",
@@ -156,26 +163,12 @@
                                     searchEnabled: true,
                                     showClearButton: true,
                                     placeholder: "Select Division",
-                                    onValueChanged: function(e) {
-                                        const catEditor = courseForm.getEditor("categoryId");
-                                        const catDS = catEditor.getDataSource();
-                                        if (e.event) catEditor.option("value", null);
-                                        if (e.value) {
-                                            catEditor.option("disabled", false);
-                                            catDS.filter(["divisionId", "=", e.value]);
-                                            catDS.load().done(function() {
-                                                const currentValue = catEditor.option("value");
-                                                if (currentValue) {
-                                                    const exists = catDS.items().some(x => x.id === currentValue);
-                                                    if (!exists) {
-                                                        catEditor.option("value", null);
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            catEditor.option("disabled", true);
-                                            catEditor.option("value", null);
+                                    onValueChanged: async function(e) {
+                                        if (e.event) {
+                                            getCategoryEditor().option("value", null);
                                         }
+
+                                        await syncCategoryEditor(e.value);
                                     }
                                 }
                             },
@@ -233,121 +226,52 @@
                 ]
             }).dxForm("instance");
 
-            // ── 2. Load dashboard data (single consolidated call) ──────
-            try {
-                const response = await $.ajax({
-                    url: `${courseApiUrl}/${courseId}/dashboard`,
-                    type: 'GET',
-                    xhrFields: { withCredentials: true }
-                });
+            await loadDashboardData();
 
-                const { course: data, versions, kpi } = response.data;
-
-                // Update page header
-                $("#pageTitle").text(data.courseName || "Course Dashboard");
-                $("#pageSubtitle").text(data.courseCode ? `Code: ${data.courseCode}` : "Manage course information and versions");
-
-                // Resolve divisionId from category if needed
-                let divisionId = data.divisionId || null;
-                if (!divisionId && data.categoryId) {
-                    try {
-                        const catData = await $.ajax({
-                            url: `${serviceUrl}/admin/CategoriesCRUD/Get/${data.categoryId}`,
-                            type: 'GET',
-                            xhrFields: { withCredentials: true }
-                        });
-                        divisionId = catData.divisionId || null;
-                    } catch(e) { /* ignore */ }
-                }
-
-                // Pre-enable category editor if we have a division
-                if (divisionId) {
-                    const catEditor = courseForm.getEditor("categoryId");
-                    catEditor.option("disabled", false);
-                    catEditor.getDataSource().filter(["divisionId", "=", divisionId]);
-                    await catEditor.getDataSource().load();
-                }
-
-                courseForm.option("formData", {
-                    divisionId:   divisionId,
-                    courseCode:   data.courseCode,
-                    courseName:   data.courseName,
-                    description:  data.description,
-                    categoryId:   data.categoryId,
-                    courseType:   data.courseType
-                });
-
-                isCourseActive = data.isActive;
-                updateStatusUI(isCourseActive);
-
-                // Render versions from dashboard response
-                renderVersionCards(versions);
-
-            } catch(xhr) {
-                showToast("Error loading course: " + (xhr.responseJSON?.message || "Unknown error"), "error");
-                console.log(xhr);
-            }
-
-            async function loadDivisionOptions() {
-                try {
-                    const result = await divisionsStore.load();
-                    return Array.isArray(result) ? result : [];
-                } catch {
-                    return [];
-                }
-            }
-
-            async function loadCourseTypeOptions() {
-                try {
-                    const result = await courseTypesStore.load();
-                    return Array.isArray(result) ? result : [];
-                } catch {
-                    return [];
-                }
-            }
-
-            // ── 3. Save ────────────────────────────────────────────────
-            $("#btnSaveCourse").on("click", function() {
+            $("#btnSaveCourse").on("click", async function() {
                 if (!courseForm.validate().isValid) {
                     showToast("Please fill in all required fields.", "warning", 2000);
                     return;
                 }
-                const fd = courseForm.option("formData");
-                const $btn = $(this).css("opacity", 0.6).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
-                $.ajax({
-                    url: `${courseApiUrl}/${courseId}`,
-                    type: 'PUT',
-                    contentType: 'application/json',
-                    xhrFields: { withCredentials: true },
-                    data: JSON.stringify({
-                        courseCode:  fd.courseCode,
-                        courseName:  fd.courseName,
-                        description: fd.description,
-                        categoryId:  fd.categoryId,
-                        courseType:  fd.courseType
-                    })
-                }).done(() => {
+                const formData = courseForm.option("formData");
+                const $button = $(this);
+
+                setSaveButtonLoading($button, true);
+
+                try {
+                    await $.ajax({
+                        url: `${courseApiUrl}/${courseId}`,
+                        type: 'PUT',
+                        contentType: 'application/json',
+                        xhrFields: { withCredentials: true },
+                        data: JSON.stringify({
+                            courseCode: formData.courseCode,
+                            courseName: formData.courseName,
+                            description: formData.description,
+                            categoryId: formData.categoryId,
+                            courseType: formData.courseType
+                        })
+                    });
+
+                    updateCourseHeader(formData.courseName, formData.courseCode);
                     showToast("Course updated successfully.", "success", 2000);
-                    $("#pageTitle").text(fd.courseName || "Course Dashboard");
-                    $("#pageSubtitle").text(fd.courseCode ? `Code: ${fd.courseCode}` : "Manage course information and versions");
-                }).fail((xhr) => {
-                    showToast(xhr.responseJSON?.message || "Error updating course.", "error");
-                }).always(() => {
-                    $btn.css("opacity", 1).html('<i class="fas fa-save"></i> Save Changes');
-                });
+                } catch (xhr) {
+                    showToast(getApiErrorMessage(xhr, "Error updating course."), "error");
+                } finally {
+                    setSaveButtonLoading($button, false);
+                }
             });
 
-            // ── 4. Status UI helpers ───────────────────────────────────
             function updateStatusUI(isActive) {
-                const $publishIcon    = $("#publishIcon");
+                const $publishIcon = $("#publishIcon");
                 const $publishIconBox = $("#publishIconBox");
                 const $publishBtnText = $("#publishBtnText");
                 const $publishBtnDesc = $("#publishBtnDesc");
-                const $btnDelete      = $("#btnDeleteCourse");
-                const $btnAssignment  = $("#btnAssignment");
-                const $statusBadge    = $("#courseStatusBadge");
-                const $warnMsg        = $("#warningMsg");
+                const $btnDelete = $("#btnDeleteCourse");
+                const $btnAssignment = $("#btnAssignment");
+                const $statusBadge = $("#courseStatusBadge");
+                const $warnMsg = $("#warningMsg");
 
                 if (isActive) {
                     $publishIcon.removeClass("fa-globe").addClass("fa-lock");
@@ -357,8 +281,8 @@
                     $statusBadge.removeClass("pill-default pill-warning pill-danger pill-info")
                                 .addClass("pill-success")
                                 .html('<i class="fas fa-check-circle me-1"></i> Active');
-                    $btnDelete.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
-                    $btnAssignment.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
+                    setActionLinkState($btnDelete, true);
+                    setActionLinkState($btnAssignment, false);
                     $warnMsg.removeClass("d-none");
                 } else {
                     $publishIcon.removeClass("fa-lock").addClass("fa-globe");
@@ -368,98 +292,102 @@
                     $statusBadge.removeClass("pill-success pill-warning pill-danger pill-info")
                                 .addClass("pill-default")
                                 .html('<i class="fas fa-lock me-1"></i> Closed');
-                    $btnDelete.removeClass("disabled").css({ opacity: 1, pointerEvents: "" });
-                    $btnAssignment.addClass("disabled").css("opacity", 0.4).css("pointer-events", "none");
+                    setActionLinkState($btnDelete, false);
+                    setActionLinkState($btnAssignment, true);
                     $warnMsg.addClass("d-none");
                 }
             }
 
-           // ── 5. Toggle Publish ──────────────────────────────────────
-            $("#btnTogglePublish").click(function(e) {
+            $("#btnTogglePublish").on("click", function(e) {
                 e.preventDefault();
                 const $btn = $(this);
 
-                if ($btn.hasClass("disabled")) return;
-                $btn.addClass("disabled opacity-50 pe-none");
+                if ($btn.hasClass("disabled")) {
+                    return;
+                }
 
-                const newState  = !isCourseActive;
-                const confirmMsg = newState
-                    ? "Publish this course?"
-                    : "Close this course?";
+                setActionLinkState($btn, true, "opacity-50 pe-none");
 
-                DevExpress.ui.dialog.confirm(confirmMsg, "Confirm Status Change").done(function(ok) {
-                    if (!ok) { $btn.removeClass("disabled opacity-50 pe-none"); return; }
+                const newState = !isCourseActive;
+                const confirmMsg = newState ? "Publish this course?" : "Close this course?";
 
-                    $.ajax({
-                        url: `${courseApiUrl}/${courseId}/status`,
-                        type: 'PUT',
-                        contentType: 'application/json',
-                        xhrFields: { withCredentials: true },
-                        data: JSON.stringify({ isActive: newState })
-                    }).done((response) => {
+                DevExpress.ui.dialog.confirm(confirmMsg, "Confirm Status Change").done(async function(ok) {
+                    if (!ok) {
+                        setActionLinkState($btn, false, "opacity-50 pe-none");
+                        return;
+                    }
+
+                    try {
+                        const response = await $.ajax({
+                            url: `${courseApiUrl}/${courseId}/status`,
+                            type: 'PUT',
+                            contentType: 'application/json',
+                            xhrFields: { withCredentials: true },
+                            data: JSON.stringify({ isActive: newState })
+                        });
+
                         isCourseActive = newState;
                         updateStatusUI(isCourseActive);
 
-                        const successMsg = response.message || (newState ? "Course published!" : "Course closed.");
-                        showToast(successMsg, "success", 2000);
-
-                        $btn.removeClass("disabled opacity-50 pe-none");
-                    }).fail((xhr) => {
-                        let errorMsg = "Error updating status.";
-                        if (xhr.responseJSON) {
-                            errorMsg = xhr.responseJSON.message || errorMsg;
-                        } else if (xhr.responseText) {
-                            errorMsg = xhr.responseText;
-                        }
-
-                        showToast(errorMsg, "error", 4000);
-                        $btn.removeClass("disabled opacity-50 pe-none");
-                    });
+                        const successMessage = response.message || (newState ? "Course published!" : "Course closed.");
+                        showToast(successMessage, "success", 2000);
+                    } catch (xhr) {
+                        showToast(getApiErrorMessage(xhr, "Error updating status."), "error", 4000);
+                    } finally {
+                        setActionLinkState($btn, false, "opacity-50 pe-none");
+                    }
                 });
             });
 
-            // ── 6. Delete Course ───────────────────────────────────────
-            $("#btnDeleteCourse").click(function(e) {
+            $("#btnDeleteCourse").on("click", function(e) {
                 e.preventDefault();
-                if ($(this).hasClass("disabled")) return;
+                if ($(this).hasClass("disabled")) {
+                    return;
+                }
 
-                DevExpress.ui.dialog.confirm("Delete this course permanently? This cannot be undone.", "Confirm Delete").done(function(ok) {
-                    if (!ok) return;
-                    $.ajax({
-                        url: `${courseApiUrl}/${courseId}`,
-                        type: 'DELETE',
-                        xhrFields: { withCredentials: true }
-                    }).done(() => {
+                DevExpress.ui.dialog.confirm("Delete this course permanently? This cannot be undone.", "Confirm Delete").done(async function(ok) {
+                    if (!ok) {
+                        return;
+                    }
+
+                    try {
+                        await $.ajax({
+                            url: `${courseApiUrl}/${courseId}`,
+                            type: 'DELETE',
+                            xhrFields: { withCredentials: true }
+                        });
+
                         showToast("Course deleted.", "success", 2000);
-                        setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1500);
-                    }).fail((xhr) => {
-                        showToast(xhr.responseJSON?.message || "Error deleting course.", "error");
-                    });
+                        setTimeout(() => {
+                            window.location.href = courseIndexUrl;
+                        }, 1500);
+                    } catch (xhr) {
+                        showToast(getApiErrorMessage(xhr, "Error deleting course."), "error");
+                    }
                 });
             });
 
-            // ── 7. Navigation buttons ──────────────────────────────────
-                   function goNewVersion() {
-            window.location.href = '@Url.Action("VersionForm", "Courses")?courseId=' + courseId;
-        }
-            $("#btnNewVersion").on("click", (e) => { e.preventDefault(); goNewVersion(); });
+            function goNewVersion() {
+                window.location.href = `${newVersionUrl}?courseId=${courseId}`;
+            }
 
-            $("#btnAssignment").click(function(e) {
+            $("#btnNewVersion").on("click", function(e) {
+                e.preventDefault();
+                goNewVersion();
+            });
+
+            $("#btnAssignment").on("click", function(e) {
                 e.preventDefault();
                 if ($(this).hasClass("disabled")) {
                     showToast("Please publish the course before managing assignments.", "warning", 2500);
                     return;
                 }
-                window.location.href = '@Url.Action("Form", "Assignments")?courseId=' + courseId;
+                window.location.href = `${assignmentFormUrl}?courseId=${courseId}`;
             });
-
-            // ── 8. Versions CardView ──────────────────────────────────
-        
 
             function renderVersionCards(versions) {
                 versionsData = versions || [];
 
-                // 1. สร้าง Toolbar สำหรับช่องค้นหา และปุ่มเพิ่มเวอร์ชัน (ทำแค่ครั้งแรก)
                 if (!$("#versionsToolbar").hasClass("dx-toolbar")) {
                     $("#versionsToolbar").dxToolbar({
                         items: [
@@ -491,7 +419,6 @@
                     });
                 }
 
-                // 2. สั่งวาด Cards
                 drawCards("");
             }
 
@@ -499,82 +426,17 @@
                 const $container = $("#versionsCardContainer");
                 $container.empty();
 
-                // กรองข้อมูลตามคำค้นหา
-                const filtered = versionsData.filter(v => {
-                    if (!searchText) return true;
-                    const term = searchText.toLowerCase();
-                    return (v.note && v.note.toLowerCase().includes(term)) ||
-                           (v.versionNumber && v.versionNumber.toString().includes(term));
-                });
+                const filteredVersions = versionsData.filter(version => matchesVersionSearch(version, searchText));
 
-                if (filtered.length === 0) {
+                if (filteredVersions.length === 0) {
                     $container.html('<div class="col-12 text-center text-secondary py-4">No versions found.</div>');
                     return;
                 }
 
-                // วนลูปวาด Card ตามดีไซน์เดิม
-                filtered.forEach(v => {
-                    const ia = v.isActive;
-                    const resources = v.resources || [];
-                    const badge = ia
-                        ? '<span class="tag-pill pill-info" style="font-size:10px;"><i class="fas fa-check-circle me-1"></i>Active</span>'
-                        : '<span class="tag-pill pill-default" style="font-size:10px;">Draft</span>';
-
-                    const editHref = `@Url.Action("VersionForm", "Courses")?id=${v.id}&courseId=${courseId}`;
-                    let actions = `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="${editHref}"><i class="fas fa-edit" style="width:14px;color:var(--warning-color);"></i><span style="font-size:12px;">Edit</span></a>`;
-
-                    if (!ia) {
-                        actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${v.id})"><i class="fas fa-check-circle" style="width:14px;color:var(--accent-color);"></i><span style="font-size:12px;">Set Active</span></a>`;
-                        actions += '<hr class="dropdown-divider my-1">';
-                        actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${v.id})"><i class="fas fa-trash-alt" style="width:14px;"></i><span style="font-size:12px;">Delete</span></a>`;
-                    }
-
-                    // Build resource list HTML directly from embedded data
-                    let resourcesHtml = '';
-                    if (resources.length === 0) {
-                        resourcesHtml = '<span style="font-size:11px;color:var(--text-secondary);opacity:.5;font-style:italic;">No files attached</span>';
-                    } else {
-                        resources.forEach((r, idx) => {
-                            const typeCls  = r.typeId === 1 ? "pill-learn" : "pill-exam";
-                            const typeName = r.typeName || (r.typeId === 1 ? "Learn" : "Exam");
-                            const previewBtn = r.isActive
-                                ? `<a href="javascript:void(0);" onclick="window.viewContent(${r.id},'${(r.name || '').replace(/'/g, "\\'")}')" style="font-size:11px;color:var(--accent-color);flex-shrink:0;" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
-                                : '';
-                            resourcesHtml += `
-                                <div class="d-flex align-items-center gap-2 mb-1" style="padding:4px 8px;border:1px solid var(--border-color);border-radius:3px;font-size:11px;">
-                                    <span style="min-width:16px;font-weight:600;color:var(--text-secondary);text-align:center;">${idx + 1}</span>
-                                    <span class="text-truncate flex-grow-1" style="color:var(--text-primary);font-weight:500;" title="${r.name}">${r.name}</span>
-                                    <span class="tag-pill ${typeCls}" style="flex-shrink:0;font-size:10px;">${typeName}</span>
-                                    ${previewBtn}
-                                </div>`;
-                        });
-                    }
-
-                    const cardHtml = `
-                        <div class="col-md-4 mb-2">
-                            <div style="padding:16px 18px;border:1px solid var(--border-color);border-radius:6px; height:100%;
-                                        background:${ia ? '#fafeff' : '#fff'};${ia ? 'border-left:3px solid var(--accent-color);' : ''}">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Version ${v.versionNumber}</div>
-                                        ${badge}
-                                    </div>
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm p-1 text-secondary" style="background:none;border:none;" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v" style="font-size:11px;"></i></button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1" style="border-radius:4px;min-width:150px;">${actions}</ul>
-                                    </div>
-                                </div>
-                                <div style="font-size:11px;color:var(--text-secondary);min-height:28px;padding:6px 0; border-bottom:1px solid var(--border-color);margin-bottom:8px;">
-                                    ${v.note || '<span style="opacity:.4;font-style:italic;">No description</span>'}
-                                </div>
-                                <div class="cv-res">${resourcesHtml}</div>
-                            </div>
-                        </div>
-                    `;
-                    $container.append(cardHtml);
+                filteredVersions.forEach(version => {
+                    $container.append(buildVersionCardHtml(version));
                 });
 
-                // Init bootstrap dropdowns after DOM insertion
                 setTimeout(() => {
                     $container.find('[data-bs-toggle="dropdown"]').each(function() {
                         new bootstrap.Dropdown(this);
@@ -582,72 +444,261 @@
                 }, 0);
             }
 
-            // Reload versions via dedicated endpoint (used after set-active / delete)
-            function reloadVersions() {
-                $.ajax({
-                    url: `${courseApiUrl}/${courseId}/versions`,
-                    type: 'GET',
-                    xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    const versions = res.data || [];
-                    renderVersionCards(versions);
-                }).fail(function() {
-                    $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
-                });
-            }
-
-            // ── 9. Preview content ─────────────────────────────────────
-            window.viewContent = function(resourceId, resourceName) {
+            window.viewContent = async function(resourceId, resourceName) {
                 const apiUrl = `${serviceUrl}/Resources/${resourceId}/content`;
-                if (resourceName.toLowerCase().endsWith('.zip')) {
-                    const win = window.open('about:blank', '_blank');
-                    if (win) {
-                        win.document.title = "Loading...";
-                        win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content...</div>";
-                    }
-                    $.ajax({ url: apiUrl, method: "GET", xhrFields: { withCredentials: true } })
-                        .done(res => { if (res?.url && win) win.location.href = res.url; else { if (win) win.close(); showToast("Content URL not found.", "error"); } })
-                        .fail(() => { if (win) win.close(); showToast("Failed to get content link.", "error"); });
-                } else {
+                if (!resourceName.toLowerCase().endsWith('.zip')) {
                     window.open(apiUrl, '_blank');
+                    return;
+                }
+
+                const previewWindow = window.open('about:blank', '_blank');
+                if (previewWindow) {
+                    previewWindow.document.title = 'Loading...';
+                    previewWindow.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content...</div>";
+                }
+
+                try {
+                    const response = await $.ajax({
+                        url: apiUrl,
+                        method: 'GET',
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    if (response?.url && previewWindow) {
+                        previewWindow.location.href = response.url;
+                        return;
+                    }
+
+                    if (previewWindow) {
+                        previewWindow.close();
+                    }
+
+                    showToast('Content URL not found.', 'error');
+                } catch {
+                    if (previewWindow) {
+                        previewWindow.close();
+                    }
+
+                    showToast('Failed to get content link.', 'error');
                 }
             };
 
-            // ── 10. Version actions ────────────────────────────────────
-            window.setActiveVersion = function(vId) {
-                $.ajax({
-                    url: `${courseApiUrl}/${courseId}/versions/${vId}/set-active`,
-                    type: 'PATCH',
-                    xhrFields: { withCredentials: true }
-                }).done(() => {
-                    showToast("Active version updated.", "success", 2000);
-                    reloadVersions();
-                }).fail((xhr) => {
-                    showToast(xhr.responseJSON?.message || "Error updating active version.", "error");
-                });
-            };
-
-            window.deleteVersion = function(vId) {
-                DevExpress.ui.dialog.confirm("Delete this version? This cannot be undone.", "Confirm Delete").done(function(ok) {
-                    if (!ok) return;
-                    $.ajax({
-                        url: `${courseApiUrl}/versions/${vId}`,
-                        type: 'DELETE',
+            window.setActiveVersion = async function(versionId) {
+                try {
+                    await $.ajax({
+                        url: `${courseApiUrl}/${courseId}/versions/${versionId}/set-active`,
+                        type: 'PATCH',
                         xhrFields: { withCredentials: true }
-                    }).done(() => {
-                        showToast("Version deleted.", "success", 2000);
-                        reloadVersions();
-                    }).fail((xhr) => {
-                        showToast(xhr.responseJSON?.message || "Error deleting version.", "error");
                     });
+
+                    showToast('Active version updated.', 'success', 2000);
+                    await reloadVersions();
+                } catch (xhr) {
+                    showToast(getApiErrorMessage(xhr, 'Error updating active version.'), 'error');
+                }
+            };
+
+            window.deleteVersion = function(versionId) {
+                DevExpress.ui.dialog.confirm('Delete this version? This cannot be undone.', 'Confirm Delete').done(async function(ok) {
+                    if (!ok) {
+                        return;
+                    }
+
+                    try {
+                        await $.ajax({
+                            url: `${courseApiUrl}/versions/${versionId}`,
+                            type: 'DELETE',
+                            xhrFields: { withCredentials: true }
+                        });
+
+                        showToast('Version deleted.', 'success', 2000);
+                        await reloadVersions();
+                    } catch (xhr) {
+                        showToast(getApiErrorMessage(xhr, 'Error deleting version.'), 'error');
+                    }
                 });
             };
 
-            // ── 11. Dashboard Tabs ─────────────────────────────────────
+            learnersGrid = initDxGrid('#grid-learners', {
+                dataSource: [],
+                showBorders: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
+                rowAlternationEnabled: true,
+                height: 520,
+                scrolling: { mode: 'standard' },
+                paging: { enabled: true, pageSize: 10 },
+                pager: { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
+                searchPanel: { visible: true, placeholder: 'Search by ID or name...' },
+                columns: [
+                    {
+                        dataField: 'studentCode', caption: 'Employee ID', width: 130,
+                        cellTemplate: function(container, options) {
+                            $("<a>").attr('href', `@Url.Action("Profile", "Students")?code=${options.value}`)
+                                .addClass('tag-pill pill-default fw-bold')
+                                .text(options.value || '—')
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: 'studentName', caption: 'Full Name', minWidth: 180,
+                        cellTemplate: function(container, options) {
+                            $("<span>").addClass('fw-medium text-dark').text(options.value || '—').appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: 'division', caption: 'Division', width: 130,
+                        cellTemplate: function(container, options) {
+                            appendText(container, options.value || '—', { fontSize: '12px', color: 'var(--text-secondary)' });
+                        }
+                    },
+                    {
+                        dataField: 'department', caption: 'Department', width: 130,
+                        cellTemplate: function(container, options) {
+                            appendText(container, options.value || '—', { fontSize: '12px', color: 'var(--text-secondary)' });
+                        }
+                    },
+                    {
+                        dataField: 'progress', caption: 'Progress', width: 140, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            renderProgressCell(container, options.value);
+                        }
+                    },
+                    {
+                        dataField: 'status', caption: 'Status', width: 120, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            renderStatusCell(container, options.value, {
+                                Completed: { cls: 'pill-success', text: 'Completed' },
+                                Upcoming: { cls: 'pill-warning', text: 'Upcoming' },
+                                Expired: { cls: 'pill-danger', text: 'Expired' },
+                                InProgress: { cls: 'pill-info', text: 'In Progress' },
+                                NotStarted: { cls: 'pill-default', text: 'Not Started' }
+                            });
+                        }
+                    },
+                    {
+                        dataField: 'startDate', caption: 'Start', width: 100, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            appendText(container, formatDate(options.value), { fontSize: '11px', color: 'var(--text-secondary)' });
+                        }
+                    },
+                    {
+                        dataField: 'dueDate', caption: 'Due', width: 100, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            renderDueDateCell(container, options.value);
+                        }
+                    },
+                    {
+                        dataField: 'completedDate', caption: 'Completed', width: 110, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            appendText(container, formatDate(options.value), {
+                                fontSize: '11px',
+                                color: options.value ? 'var(--success-color)' : 'var(--text-secondary)',
+                                fontWeight: options.value ? '600' : '400'
+                            });
+                        }
+                    }
+                ]
+            });
+
+            assignmentsGrid = initDxGrid('#grid-assignments', {
+                dataSource: [],
+                showBorders: true,
+                showRowLines: true,
+                hoverStateEnabled: true,
+                rowAlternationEnabled: true,
+                height: 520,
+                scrolling: { mode: 'standard' },
+                paging: { enabled: true, pageSize: 10 },
+                pager: { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
+                searchPanel: { visible: true, placeholder: 'Search assignments...' },
+                onRowPrepared: function(e) {
+                    if (e.rowType !== 'data') {
+                        return;
+                    }
+
+                    if (e.data.status === 'Expired') {
+                        $(e.rowElement).css('background-color', '#fff2f0');
+                    }
+
+                    if (e.data.status === 'Completed') {
+                        $(e.rowElement).css('background-color', '#f6ffed');
+                    }
+                },
+                columns: [
+                    {
+                        dataField: 'assignmentNo', caption: 'Assignment No', width: 150,
+                        sortOrder: 'desc', alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            appendText(container, options.value || '—', { fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' });
+                        }
+                    },
+                    {
+                        dataField: 'description', caption: 'Description', minWidth: 200,
+                        cellTemplate: function(container, options) {
+                            const fullText = options.value || '—';
+                            appendText(container, truncateText(fullText, 60), { fontSize: '12px', color: 'var(--text-secondary)' }).attr('title', fullText);
+                        }
+                    },
+                    {
+                        dataField: 'completionPct', caption: 'Progress', width: 140, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            renderProgressCell(container, options.value);
+                        }
+                    },
+                    {
+                        dataField: 'status', caption: 'Status', width: 120, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            renderStatusCell(container, options.value, {
+                                Completed: { cls: 'pill-success', text: 'Completed' },
+                                Upcoming: { cls: 'pill-warning', text: 'Upcoming' },
+                                Expired: { cls: 'pill-danger', text: 'Expired' },
+                                InProgress: { cls: 'pill-info', text: 'In Progress' }
+                            });
+                        }
+                    },
+                    {
+                        dataField: 'totalEnrollmentCount', caption: 'Enrolled', width: 90, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            appendText(container, String(options.value ?? 0), { fontSize: '12px', fontWeight: '600' });
+                        }
+                    },
+                    {
+                        dataField: 'completedEnrollmentCount', caption: 'Done', width: 80, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            appendText(container, String(options.value ?? 0), { fontSize: '12px', fontWeight: '600', color: 'var(--success-color)' });
+                        }
+                    },
+                    {
+                        dataField: 'startDate', caption: 'Start', width: 100, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            appendText(container, formatDate(options.value), { fontSize: '11px', color: 'var(--text-secondary)' });
+                        }
+                    },
+                    {
+                        dataField: 'dueDate', caption: 'Due', width: 100, alignment: 'center',
+                        cellTemplate: function(container, options) {
+                            renderDueDateCell(container, options.value);
+                        }
+                    },
+                    {
+                        type: 'buttons', caption: '', width: 70,
+                        alignment: 'center', fixed: true, fixedPosition: 'right',
+                        buttons: [{
+                            hint: 'View Dashboard',
+                            icon: 'info',
+                            onClick: function(e) {
+                                window.location.href = `${assignmentDetailUrl}/${e.row.data.id}`;
+                            }
+                        }]
+                    }
+                ]
+            });
+
             const tabItems = [
-                { text: "Content Versions", icon: "fas fa-code-branch", panel: "panel-versions" },
-                { text: "Learners",         icon: "fas fa-users",       panel: "panel-learners" },
-                { text: "Assignments",      icon: "fas fa-clipboard-list", panel: "panel-assignments" }
+                { text: 'Content Versions', icon: 'fas fa-code-branch', panel: 'panel-versions' },
+                { text: 'Learners', icon: 'fas fa-users', panel: 'panel-learners' },
+                { text: 'Assignments', icon: 'fas fa-clipboard-list', panel: 'panel-assignments' }
             ];
 
             $("#dashboardTabs").dxTabs({
@@ -655,261 +706,348 @@
                 selectedIndex: 0,
                 itemTemplate: function(itemData) {
                     return $("<span>").append(
-                        $("<i>").addClass(itemData.icon + " me-1"),
+                        $("<i>").addClass(`${itemData.icon} me-1`),
                         $("<span>").text(itemData.text)
                     );
                 },
-                onItemClick: function(e) {
-                    tabItems.forEach(t => $("#" + t.panel).hide());
-                    $("#" + e.itemData.panel).show();
+                onItemClick: async function(e) {
+                    tabItems.forEach(function(tab) {
+                        $(`#${tab.panel}`).hide();
+                    });
 
-                    if (e.itemData.panel === "panel-learners" && !learnersLoaded) {
-                        loadLearners();
+                    $(`#${e.itemData.panel}`).show();
+
+                    if (e.itemData.panel === 'panel-learners' && !learnersLoaded) {
+                        await loadLearners();
                     }
-                    if (e.itemData.panel === "panel-assignments" && !assignmentsLoaded) {
-                        loadAssignments();
+
+                    if (e.itemData.panel === 'panel-assignments' && !assignmentsLoaded) {
+                        await loadAssignments();
                     }
                 }
             });
 
-            // ── 12. Learners Grid ──────────────────────────────────────
-            let learnersLoaded = false;
-            const learnersGrid = initDxGrid("#grid-learners", {
-                dataSource: [],
-                showBorders: true,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                rowAlternationEnabled: true,
-                height: 520,
-                scrolling: { mode: "standard" },
-                paging:  { enabled: true, pageSize: 10 },
-                pager:   { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
-                searchPanel: { visible: true, placeholder: "Search by ID or name..." },
-                columns: [
-                    {
-                        dataField: "studentCode", caption: "Employee ID", width: 130,
-                        cellTemplate: (c, o) =>
-                            $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
-                                   .addClass("tag-pill pill-default fw-bold")
-                                   .text(o.value || "—").appendTo(c)
-                    },
-                    {
-                        dataField: "studentName", caption: "Full Name", minWidth: 180,
-                        cellTemplate: (c, o) =>
-                            $("<span>").addClass("fw-medium text-dark")
-                                       .text(o.value || "—").appendTo(c)
-                    },
-                    {
-                        dataField: "division", caption: "Division", width: 130,
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                       .text(o.value || "—").appendTo(c)
-                    },
-                    {
-                        dataField: "department", caption: "Department", width: 130,
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                       .text(o.value || "—").appendTo(c)
-                    },
-                    {
-                        dataField: "progress", caption: "Progress", width: 140, alignment: "center",
-                        cellTemplate: (c, o) => {
-                            const pct   = o.value || 0;
-                            const color = pct === 100 ? "var(--success-color)"
-                                        : pct >= 50  ? "var(--accent-color)"
-                                        :               "var(--warning-color)";
-                            $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append(
-                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
-                                                     borderRadius: "2px", overflow: "hidden" })
-                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
-                                )
-                                .append(
-                                    $("<span>").css({ fontSize: "11px", fontWeight: "600",
-                                                      minWidth: "32px", color: "var(--text-secondary)" })
-                                               .text(pct + "%")
-                                )
-                                .appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "status", caption: "Status", width: 120, alignment: "center",
-                        cellTemplate: (c, o) => {
-                            const map = {
-                                "Completed":  { cls: "pill-success", text: "Completed"   },
-                                "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
-                                "Expired":    { cls: "pill-danger",   text: "Expired"     },
-                                "InProgress": { cls: "pill-info",   text: "In Progress" },
-                                "NotStarted": { cls: "pill-default",  text: "Not Started" }
-                            };
-                            const s = map[o.value] ?? { cls: "pill-default", text: o.value || "—" };
-                            $(`<span class="status-pill ${s.cls}">${s.text}</span>`).appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "startDate", caption: "Start", width: 100, alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
-                                       .appendTo(c)
-                    },
-                    {
-                        dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
-                        cellTemplate: (c, o) => {
-                            if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
-                            const isPast = new Date(o.value) < new Date();
-                            $("<span>").css({ fontSize: "11px",
-                                              color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
-                                              fontWeight: isPast ? "600" : "400" })
-                                       .text(new Date(o.value).toLocaleDateString("en-GB")).appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "completedDate", caption: "Completed", width: 110, alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "11px", color: o.value ? "var(--success-color)" : "var(--text-secondary)", fontWeight: o.value ? "600" : "400" })
-                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
-                                       .appendTo(c)
-                    }
-                ]
-            });
+            async function loadLookupOptions(store) {
+                try {
+                    const result = await store.load();
+                    return Array.isArray(result) ? result : [];
+                } catch {
+                    return [];
+                }
+            }
 
-            function loadLearners() {
-                $.ajax({
-                    url: `${courseApiUrl}/${courseId}/learners`,
-                    method: "GET",
-                    xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    const data = res.data || [];
-                    learnersLoaded = true;
-                    learnersGrid.option("dataSource", data);
-                }).fail(function() {
-                    showToast("Error loading learners.", "error");
+            function getCategoryEditor() {
+                return courseForm.getEditor('categoryId');
+            }
+
+            async function syncCategoryEditor(divisionId) {
+                const categoryEditor = getCategoryEditor();
+                if (!divisionId) {
+                    categoryEditor.option('disabled', true);
+                    categoryEditor.option('value', null);
+                    return;
+                }
+
+                categoryEditor.option('disabled', false);
+
+                const categoryDataSource = categoryEditor.getDataSource();
+                categoryDataSource.filter(['divisionId', '=', divisionId]);
+                await categoryDataSource.load();
+
+                const currentValue = categoryEditor.option('value');
+                if (!currentValue) {
+                    return;
+                }
+
+                const exists = categoryDataSource.items().some(function(item) {
+                    return item.id === currentValue;
+                });
+
+                if (!exists) {
+                    categoryEditor.option('value', null);
+                }
+            }
+
+            async function resolveDivisionId(courseData) {
+                if (courseData.divisionId || !courseData.categoryId) {
+                    return courseData.divisionId || null;
+                }
+
+                try {
+                    const categoryData = await $.ajax({
+                        url: `${serviceUrl}/admin/CategoriesCRUD/Get/${courseData.categoryId}`,
+                        type: 'GET',
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    return categoryData.divisionId || null;
+                } catch {
+                    return null;
+                }
+            }
+
+            async function loadDashboardData() {
+                try {
+                    const response = await $.ajax({
+                        url: `${courseApiUrl}/${courseId}/dashboard`,
+                        type: 'GET',
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    const dashboardData = response.data || {};
+                    const courseData = dashboardData.course || {};
+                    const versions = dashboardData.versions || [];
+                    const divisionId = await resolveDivisionId(courseData);
+
+                    await syncCategoryEditor(divisionId);
+
+                    courseForm.option('formData', {
+                        divisionId: divisionId,
+                        courseCode: courseData.courseCode,
+                        courseName: courseData.courseName,
+                        description: courseData.description,
+                        categoryId: courseData.categoryId,
+                        courseType: courseData.courseType
+                    });
+
+                    isCourseActive = courseData.isActive;
+                    updateCourseHeader(courseData.courseName, courseData.courseCode);
+                    updateStatusUI(isCourseActive);
+                    renderVersionCards(versions);
+                } catch (xhr) {
+                    $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
+                    showToast(`Error loading course: ${getApiErrorMessage(xhr, 'Unknown error')}`, 'error');
+                    console.log(xhr);
+                }
+            }
+
+            function updateCourseHeader(courseName, courseCode) {
+                $("#pageTitle").text(courseName || 'Course Dashboard');
+                $("#pageSubtitle").text(courseCode ? `Code: ${courseCode}` : 'Manage course information and versions');
+            }
+
+            function getApiErrorMessage(xhr, fallbackMessage) {
+                return xhr?.responseJSON?.message || xhr?.responseText || fallbackMessage;
+            }
+
+            function setActionLinkState($element, disabled, extraClasses) {
+                $element.toggleClass('disabled', disabled)
+                    .css({ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? 'none' : '' });
+
+                if (extraClasses) {
+                    $element.toggleClass(extraClasses, disabled);
+                }
+            }
+
+            function setSaveButtonLoading($button, isLoading) {
+                $button.css('opacity', isLoading ? 0.6 : 1)
+                    .html(isLoading
+                        ? '<i class="fas fa-spinner fa-spin"></i> Saving...'
+                        : '<i class="fas fa-save"></i> Save Changes');
+            }
+
+            function appendText(container, text, styles) {
+                return $("<span>").css(styles || {}).text(text).appendTo(container);
+            }
+
+            function formatDate(value) {
+                return value ? new Date(value).toLocaleDateString('en-GB') : '—';
+            }
+
+            function truncateText(value, maxLength) {
+                if (!value || value.length <= maxLength) {
+                    return value || '—';
+                }
+
+                return `${value.slice(0, maxLength)}…`;
+            }
+
+            function renderProgressCell(container, value) {
+                const progress = value || 0;
+                const color = progress === 100
+                    ? 'var(--success-color)'
+                    : progress >= 50
+                        ? 'var(--accent-color)'
+                        : 'var(--warning-color)';
+
+                $("<div>").addClass('d-flex align-items-center gap-2')
+                    .append(
+                        $("<div>").css({
+                            flex: '1',
+                            height: '3px',
+                            background: 'var(--border-color)',
+                            borderRadius: '2px',
+                            overflow: 'hidden'
+                        }).append(
+                            $("<div>").css({
+                                height: '100%',
+                                width: `${progress}%`,
+                                background: color
+                            })
+                        )
+                    )
+                    .append(
+                        $("<span>").css({
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            minWidth: '32px',
+                            color: 'var(--text-secondary)'
+                        }).text(`${progress}%`)
+                    )
+                    .appendTo(container);
+            }
+
+            function renderStatusCell(container, value, map) {
+                const status = map[value] || { cls: 'pill-default', text: value || '—' };
+                $(`<span class="status-pill ${status.cls}">${status.text}</span>`).appendTo(container);
+            }
+
+            function renderDueDateCell(container, value) {
+                if (!value) {
+                    appendText(container, '—', { fontSize: '11px', color: 'var(--text-secondary)' });
+                    return;
+                }
+
+                const isPast = new Date(value) < new Date();
+                appendText(container, formatDate(value), {
+                    fontSize: '11px',
+                    color: isPast ? 'var(--danger-color)' : 'var(--text-secondary)',
+                    fontWeight: isPast ? '600' : '400'
                 });
             }
 
-            // ── 13. Assignments Grid ───────────────────────────────────
-            let assignmentsLoaded = false;
-            const assignmentsGrid = initDxGrid("#grid-assignments", {
-                dataSource: [],
-                showBorders: true,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                rowAlternationEnabled: true,
-                height: 520,
-                scrolling: { mode: "standard" },
-                paging:  { enabled: true, pageSize: 10 },
-                pager:   { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
-                searchPanel: { visible: true, placeholder: "Search assignments..." },
-                onRowPrepared: function(e) {
-                    if (e.rowType !== "data") return;
-                    if (e.data.status === "Expired")   $(e.rowElement).css("background-color", "#fff2f0");
-                    if (e.data.status === "Completed") $(e.rowElement).css("background-color", "#f6ffed");
-                },
-                columns: [
-                    {
-                        dataField: "assignmentNo", caption: "Assignment No", width: 150,
-                        sortOrder: "desc", alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", fontWeight: "700", color: "var(--text-primary)" })
-                                       .text(o.value || "—").appendTo(c)
-                    },
-                    {
-                        dataField: "description", caption: "Description", minWidth: 200,
-                        cellTemplate: (c, o) => {
-                            const t = o.value || "—";
-                            $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                       .text(t.length > 60 ? t.slice(0, 60) + "…" : t)
-                                       .attr("title", t).appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "completionPct", caption: "Progress", width: 140, alignment: "center",
-                        cellTemplate: (c, o) => {
-                            const pct   = o.value || 0;
-                            const color = pct === 100 ? "var(--success-color)"
-                                        : pct >= 50  ? "var(--accent-color)"
-                                        :               "var(--warning-color)";
-                            $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append(
-                                    $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
-                                                     borderRadius: "2px", overflow: "hidden" })
-                                        .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
-                                )
-                                .append(
-                                    $("<span>").css({ fontSize: "11px", fontWeight: "600",
-                                                      minWidth: "32px", color: "var(--text-secondary)" })
-                                               .text(pct + "%")
-                                )
-                                .appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "status", caption: "Status", width: 120, alignment: "center",
-                        cellTemplate: (c, o) => {
-                            const map = {
-                                "Completed":  { cls: "pill-success", text: "Completed"   },
-                                "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
-                                "Expired":    { cls: "pill-danger",   text: "Expired"     },
-                                "InProgress": { cls: "pill-info",   text: "In Progress" }
-                            };
-                            const s = map[o.value] ?? { cls: "pill-default", text: o.value || "—" };
-                            $(`<span class="status-pill ${s.cls}">${s.text}</span>`).appendTo(c);
-                        }
-                    },
-                    {
-                        dataField: "totalEnrollmentCount", caption: "Enrolled", width: 90, alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", fontWeight: "600" })
-                                       .text(o.value ?? 0).appendTo(c)
-                    },
-                    {
-                        dataField: "completedEnrollmentCount", caption: "Done", width: 80, alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "12px", fontWeight: "600", color: "var(--success-color)" })
-                                       .text(o.value ?? 0).appendTo(c)
-                    },
-                    {
-                        dataField: "startDate", caption: "Start", width: 100, alignment: "center",
-                        cellTemplate: (c, o) =>
-                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                       .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
-                                       .appendTo(c)
-                    },
-                    {
-                        dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
-                        cellTemplate: (c, o) => {
-                            if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
-                            const isPast = new Date(o.value) < new Date();
-                            $("<span>").css({ fontSize: "11px",
-                                              color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
-                                              fontWeight: isPast ? "600" : "400" })
-                                       .text(new Date(o.value).toLocaleDateString("en-GB")).appendTo(c);
-                        }
-                    },
-                    {
-                        type: "buttons", caption: "", width: 70,
-                        alignment: "center", fixed: true, fixedPosition: "right",
-                        buttons: [{
-                            hint: "View Dashboard", icon: "info",
-            onClick: e => window.location.href = `@Url.Action("Detail", "Assignments")/${e.row.data.id}`
-                        }]
-                    }
-                ]
-            });
-
-            function loadAssignments() {
-                $.ajax({
-                    url: `${courseApiUrl}/${courseId}/assignments`,
-                    method: "GET",
-                    xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    const data = res.data || [];
-                    assignmentsLoaded = true;
-                    assignmentsGrid.option("dataSource", data);
-                }).fail(function() {
-                    showToast("Error loading assignments.", "error");
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, function(char) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    }[char];
                 });
+            }
+
+            function escapeJsString(value) {
+                return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            }
+
+            function matchesVersionSearch(version, searchText) {
+                if (!searchText) {
+                    return true;
+                }
+
+                const term = searchText.toLowerCase();
+                return (version.note && version.note.toLowerCase().includes(term))
+                    || (version.versionNumber && version.versionNumber.toString().includes(term));
+            }
+
+            function buildVersionActions(version) {
+                const editHref = `${newVersionUrl}?id=${version.id}&courseId=${courseId}`;
+                let actions = `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="${editHref}"><i class="fas fa-edit" style="width:14px;color:var(--warning-color);"></i><span style="font-size:12px;">Edit</span></a>`;
+
+                if (!version.isActive) {
+                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${version.id})"><i class="fas fa-check-circle" style="width:14px;color:var(--accent-color);"></i><span style="font-size:12px;">Set Active</span></a>`;
+                    actions += '<hr class="dropdown-divider my-1">';
+                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${version.id})"><i class="fas fa-trash-alt" style="width:14px;"></i><span style="font-size:12px;">Delete</span></a>`;
+                }
+
+                return actions;
+            }
+
+            function buildVersionResourcesHtml(resources) {
+                if (!resources.length) {
+                    return '<span style="font-size:11px;color:var(--text-secondary);opacity:.5;font-style:italic;">No files attached</span>';
+                }
+
+                return resources.map(function(resource, index) {
+                    const typeClass = resource.typeId === 1 ? 'pill-learn' : 'pill-exam';
+                    const typeName = escapeHtml(resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam'));
+                    const resourceName = escapeHtml(resource.name || 'Unnamed resource');
+                    const previewButton = resource.isActive
+                        ? `<a href="javascript:void(0);" onclick="window.viewContent(${resource.id},'${escapeJsString(resource.name)}')" style="font-size:11px;color:var(--accent-color);flex-shrink:0;" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
+                        : '';
+
+                    return `
+                        <div class="d-flex align-items-center gap-2 mb-1" style="padding:4px 8px;border:1px solid var(--border-color);border-radius:3px;font-size:11px;">
+                            <span style="min-width:16px;font-weight:600;color:var(--text-secondary);text-align:center;">${index + 1}</span>
+                            <span class="text-truncate flex-grow-1" style="color:var(--text-primary);font-weight:500;" title="${resourceName}">${resourceName}</span>
+                            <span class="tag-pill ${typeClass}" style="flex-shrink:0;font-size:10px;">${typeName}</span>
+                            ${previewButton}
+                        </div>`;
+                }).join('');
+            }
+
+            function buildVersionCardHtml(version) {
+                const isActive = version.isActive;
+                const badge = isActive
+                    ? '<span class="tag-pill pill-info" style="font-size:10px;"><i class="fas fa-check-circle me-1"></i>Active</span>'
+                    : '<span class="tag-pill pill-default" style="font-size:10px;">Draft</span>';
+                const noteHtml = version.note
+                    ? escapeHtml(version.note)
+                    : '<span style="opacity:.4;font-style:italic;">No description</span>';
+
+                return `
+                    <div class="col-md-4 mb-2">
+                        <div style="padding:16px 18px;border:1px solid var(--border-color);border-radius:6px; height:100%; background:${isActive ? '#fafeff' : '#fff'};${isActive ? 'border-left:3px solid var(--accent-color);' : ''}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Version ${version.versionNumber}</div>
+                                    ${badge}
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm p-1 text-secondary" style="background:none;border:none;" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v" style="font-size:11px;"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1" style="border-radius:4px;min-width:150px;">${buildVersionActions(version)}</ul>
+                                </div>
+                            </div>
+                            <div style="font-size:11px;color:var(--text-secondary);min-height:28px;padding:6px 0; border-bottom:1px solid var(--border-color);margin-bottom:8px;">${noteHtml}</div>
+                            <div class="cv-res">${buildVersionResourcesHtml(version.resources || [])}</div>
+                        </div>
+                    </div>`;
+            }
+
+            async function reloadVersions() {
+                try {
+                    const response = await $.ajax({
+                        url: `${courseApiUrl}/${courseId}/versions`,
+                        type: 'GET',
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    renderVersionCards(response.data || []);
+                } catch {
+                    $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
+                }
+            }
+
+            async function loadLearners() {
+                try {
+                    const response = await $.ajax({
+                        url: `${courseApiUrl}/${courseId}/learners`,
+                        method: 'GET',
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    learnersLoaded = true;
+                    learnersGrid.option('dataSource', response.data || []);
+                } catch {
+                    showToast('Error loading learners.', 'error');
+                }
+            }
+
+            async function loadAssignments() {
+                try {
+                    const response = await $.ajax({
+                        url: `${courseApiUrl}/${courseId}/assignments`,
+                        method: 'GET',
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    assignmentsLoaded = true;
+                    assignmentsGrid.option('dataSource', response.data || []);
+                } catch {
+                    showToast('Error loading assignments.', 'error');
+                }
             }
         });
     </script>

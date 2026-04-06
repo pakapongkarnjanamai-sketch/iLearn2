@@ -75,8 +75,9 @@
     <script>
         const COURSE_ID = @(ViewBag.Id ?? "null");
         const IS_EDIT = COURSE_ID != null;
+        const COURSE_INDEX_URL = '@Url.Action("Index", "Courses")';
+        const COURSE_CREATE_URL = `${serviceUrl}/courses/Create`;
 
-        // Initialize DataStores
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
             loadUrl: `${serviceUrl}/Divisions`
@@ -92,11 +93,13 @@
         let masterGrid;
         let gridExisting;
         let unifiedResources = [];
+        let popupExisting;
+        let loadPanel;
 
         $(async () => {
             let formData = { courseType: 1, isActive: true };
 
-            const loadPanel = $("#load-panel").dxLoadPanel({
+            loadPanel = $("#load-panel").dxLoadPanel({
                 shadingColor: "rgba(255,255,255,0.8)",
                 position: { of: "body" },
                 visible: false,
@@ -106,51 +109,10 @@
                 message: "Loading data..."
             }).dxLoadPanel("instance");
 
-            // --- Load Data (Edit Mode) ---
             if (IS_EDIT) {
-                try {
-                    loadPanel.show();
-                    const courseData = await $.ajax({
-                        url: `${serviceUrl}/courses/${COURSE_ID}`,
-                        method: "GET",
-                        xhrFields: { withCredentials: true }
-                    });
-
-                    formData = { ...courseData };
-
-                    let existing = courseData.resources || [];
-                    if (existing.length > 0) {
-                        existing.forEach(r => {
-                            unifiedResources.push({
-                                uid: `EXISTING_${r.id}`,
-                                realId: r.id,
-                                name: r.name,
-                                typeId: r.typeId,
-                                isNew: false
-                            });
-                        });
-                        refreshMasterGrid();
-                    }
-
-                    if (formData.categoryId && !formData.divisionId) {
-                        try {
-                            const catData = await $.ajax({
-                                url: `${serviceUrl}/admin/CategoriesCRUD/Get/${formData.categoryId}`,
-                                method: "GET",
-                                xhrFields: { withCredentials: true }
-                            });
-                            formData.divisionId = catData.divisionId;
-                        } catch (e) { }
-                    }
-                } catch (err) {
-                    console.error(err);
-                    showToast("Error loading course data", "error");
-                } finally {
-                    loadPanel.hide();
-                }
+                formData = await loadCourseFormData(formData);
             }
 
-            // --- 1. Form Widget Config ---
             formWidget = $("#form-container").dxForm({
                 formData: formData,
                 colCount: 1,
@@ -201,22 +163,12 @@
                                     searchEnabled: true,
                                     showClearButton: true,
                                     placeholder: "Select Division",
-                                    onValueChanged: function(e) {
-                                        const catEditor = formWidget.getEditor("categoryId");
-                                        const catDS = catEditor.getDataSource();
-
+                                    onValueChanged: async function(e) {
                                         if (e.event) {
-                                            catEditor.option("value", null);
+                                            getCategoryEditor().option("value", null);
                                         }
 
-                                        if (e.value) {
-                                            catEditor.option("disabled", false);
-                                            catDS.filter(["divisionId", "=", e.value]);
-                                            catDS.load();
-                                        } else {
-                                            catEditor.option("disabled", true);
-                                            catEditor.option("value", null);
-                                        }
+                                        await syncCategoryEditor(e.value);
                                     }
                                 }
                             },
@@ -252,7 +204,8 @@
                 ]
             }).dxForm("instance");
 
-            // --- 2. Master Grid (แก้ไขให้แก้ไข Type ได้สำหรับไฟล์ใหม่) ---
+            await syncCategoryEditor(formData.divisionId);
+
             masterGrid = $("#master-resources-grid").dxDataGrid({
                 dataSource: unifiedResources,
                 keyExpr: "uid",
@@ -263,11 +216,10 @@
                 columnAutoWidth: true,
                 noDataText: "No content added yet. Click buttons above to add.",
                 editing: {
-                    mode: "cell", // เปิดโหมดแก้ไขแบบคลิกที่เซลล์
+                    mode: "cell",
                     allowUpdating: true
                 },
                 onEditorPreparing: function(e) {
-                    // อนุญาตให้แก้ได้เฉพาะคอลัมน์ Type และต้องเป็นไฟล์ใหม่ (isNew) เท่านั้น
                     if (e.parentType === "dataRow") {
                         if (e.dataField !== "typeId" || !e.row.data.isNew) {
                             e.editorOptions.disabled = true;
@@ -305,8 +257,7 @@
                                 .append($("<i>").addClass(`fas ${iconClass} opacity-75`))
                                 .append($("<span>").addClass("fw-medium text-dark text-truncate").text(data.name));
 
-                            // แสดงป้าย New สำหรับไฟล์ใหม่
-                            if(isNew) {
+                            if (isNew) {
                                 wrapper.append($('<span>').addClass('tag-pill pill-info ms-2').css('font-size', '0.7rem').text('New'));
                             }
                             wrapper.appendTo(container);
@@ -343,7 +294,7 @@
                         buttons: [{
                             icon: "trash", hint: "Remove from list",
                             onClick: function(e) {
-                                unifiedResources = unifiedResources.filter(r => r.uid !== e.row.data.uid);
+                                removeResource(e.row.data.uid);
                                 refreshMasterGrid();
                             }
                         }]
@@ -351,13 +302,14 @@
                 ]
             }).dxDataGrid("instance");
 
+            refreshMasterGrid();
+
             function refreshMasterGrid() {
                 masterGrid.option("dataSource", unifiedResources);
                 $("#total-count-badge").text(`${unifiedResources.length} Items`);
             }
 
-            // --- 3. Popup สำหรับเลือกไฟล์เก่า ---
-            const popupExisting = $("#popup-existing").dxPopup({
+            popupExisting = $("#popup-existing").dxPopup({
                 title: "Select Existing Resources",
                 width: "90vw", maxWidth: 1100, height: "85vh",
                 showCloseButton: true, dragEnabled: true,
@@ -405,10 +357,11 @@
                                 dataType: "datetime",
                                 sortOrder: "desc", sortIndex: 0,
                                 cellTemplate: function(container, options) {
-                                    if (!options.value) return;
-                                    const d = new Date(options.value);
-                                    const formatted = d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
-                                        + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                                    if (!options.value) {
+                                        return;
+                                    }
+
+                                    const formatted = formatDateTime(options.value);
                                     $("<span>").addClass("text-muted small").text(formatted).appendTo(container);
                                 }
                             }
@@ -422,18 +375,7 @@
                             text: "Add Selected", type: "default", stylingMode: "contained", icon: "check",
                             elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
                             onClick: function() {
-                                const selectedData = gridExisting.getSelectedRowsData();
-                                selectedData.forEach(item => {
-                                    if(!unifiedResources.some(r => !r.isNew && r.realId === item.id)) {
-                                        unifiedResources.push({
-                                            uid: `EXISTING_${item.id}`,
-                                            realId: item.id,
-                                            name: item.name,
-                                            typeId: item.typeId,
-                                            isNew: false
-                                        });
-                                    }
-                                });
+                                addExistingResources(gridExisting.getSelectedRowsData());
                                 refreshMasterGrid();
                                 gridExisting.clearSelection();
                                 popupExisting.hide();
@@ -443,31 +385,25 @@
                 ]
             }).dxPopup("instance");
 
-            $("#btn-show-existing").click(() => popupExisting.show());
+            $("#btn-show-existing").on("click", function() {
+                popupExisting.show();
+            });
 
-            // --- 4. อัปโหลดไฟล์ใหม่ (กำหนด Type เริ่มต้นให้เป็น Learn) ---
             $("#file-uploader-container").dxFileUploader({
                 dialogTrigger: "#btn-trigger-upload", dropZone: "#btn-trigger-upload",
                 visible: false, accept: ".zip", uploadMode: "useForm", multiple: true,
                 onValueChanged: function(e) {
-                    if(e.value && e.value.length > 0) {
-                        e.value.forEach((file, index) => {
-                            unifiedResources.push({
-                                uid: `NEW_${Date.now()}_${index}`,
-                                name: file.name,
-                                isNew: true,
-                                typeId: 1, // Default ให้เป็น Learn ก่อน (ผู้ใช้คลิกแก้ได้ในตาราง)
-                                fileRef: file
-                            });
-                        });
-                        e.component.reset();
-                        refreshMasterGrid();
-                        showToast("File added to queue", "success", 2000);
+                    if (!e.value || e.value.length === 0) {
+                        return;
                     }
+
+                    addNewFiles(e.value);
+                    e.component.reset();
+                    refreshMasterGrid();
+                    showToast("File added to queue", "success", 2000);
                 }
             });
 
-            // --- 5. Submit Data ---
             $("#btn-save").dxButton({
                 text: IS_EDIT ? "Save Changes" : "Create Course",
                 icon: "save", type: "default", stylingMode: "contained",
@@ -476,91 +412,267 @@
             });
 
             async function submitData() {
-                if (!formWidget.validate().isValid) { showToast("Please fill in all required course details.", "warning", 2000); return; }
-                if (unifiedResources.length === 0) { showToast("Please add at least one resource.", "error", 4000); return; }
+                if (!formWidget.validate().isValid) {
+                    showToast("Please fill in all required course details.", "warning", 2000);
+                    return;
+                }
+
+                if (unifiedResources.length === 0) {
+                    showToast("Please add at least one resource.", "error", 4000);
+                    return;
+                }
 
                 loadPanel.option("message", "Saving course details...");
                 loadPanel.show();
 
                 try {
-                    const data = formWidget.option("formData");
-                    const safeResourceIds = unifiedResources.filter(r => !r.isNew).map(r => r.realId);
-
-                    const coursePayload = {
-                        courseCode: data.courseCode, courseName: data.courseName,
-                        description: data.description, courseType: data.courseType,
-                        categoryId: data.categoryId, resourceIds: safeResourceIds
-                    };
-
-                    let courseId = COURSE_ID;
-
-                    if (IS_EDIT) {
-                        await $.ajax({
-                            url: `${serviceUrl}/courses/${courseId}`,
-                            method: "PUT", contentType: "application/json",
-                            data: JSON.stringify(coursePayload), xhrFields: { withCredentials: true }
-                        });
-                    } else {
-                        const res = await $.ajax({
-                            url: `${serviceUrl}/courses/Create`,
-                            method: "POST", contentType: "application/json",
-                            data: JSON.stringify(coursePayload), xhrFields: { withCredentials: true }
-                        });
-                        courseId = res.data.id;
-                    }
+                    const courseId = await saveCourse();
 
                     loadPanel.option("message", "Preparing resources...");
-                    const versionsRes = await $.ajax({
-                        url: `${serviceUrl}/courses/${courseId}/versions`,
-                        method: "GET", xhrFields: { withCredentials: true }
-                    });
-
-                    let activeVersionId = null;
-                    if (versionsRes.data && versionsRes.data.length > 0) {
-                        const activeVersion = versionsRes.data.find(v => v.isActive) || versionsRes.data[0];
-                        activeVersionId = activeVersion.id;
-                    }
+                    const activeVersionId = await getActiveVersionId(courseId);
 
                     loadPanel.option("message", "Uploading files and processing SCORM...");
-                    let formDataObj = new FormData();
-                    formDataObj.append("Note", IS_EDIT ? "Updated resources via Form" : "Initial Content Upload");
-                    formDataObj.append("IsActive", true);
-
-                    unifiedResources.forEach((item) => {
-                        if (item.isNew) {
-                            formDataObj.append("Files", item.fileRef);
-                            formDataObj.append("ResourceIds", 0);
-                        } else {
-                            formDataObj.append("ResourceIds", item.realId);
-                        }
-
-                        // ส่ง ResourceTypes กลับไปให้ Backend
-                        formDataObj.append("ResourceTypes", item.typeId);
-                    });
-
-                    if (activeVersionId) {
-                        await $.ajax({
-                            url: `${serviceUrl}/courses/versions/${activeVersionId}`,
-                            method: "PUT", data: formDataObj,
-                            processData: false, contentType: false, xhrFields: { withCredentials: true }
-                        });
-                    } else {
-                        await $.ajax({
-                            url: `${serviceUrl}/courses/${courseId}/versions`,
-                            method: "POST", data: formDataObj,
-                            processData: false, contentType: false, xhrFields: { withCredentials: true }
-                        });
-                    }
+                    await saveResourcesToVersion(courseId, activeVersionId);
 
                     showToast("Course and content saved successfully!", "success", 2000);
-                    setTimeout(() => window.location.href = '@Url.Action("Index", "Courses")', 1000);
+                    setTimeout(() => window.location.href = COURSE_INDEX_URL, 1000);
 
                 } catch (err) {
                     console.error(err);
-                    showToast("Error: " + (err.responseJSON?.message || err.statusText), "error", 4000);
+                    showToast(`Error: ${getApiErrorMessage(err, "Request failed")}`, "error", 4000);
                 } finally {
                     loadPanel.hide();
                 }
+            }
+
+            async function loadCourseFormData(defaultFormData) {
+                loadPanel.show();
+
+                try {
+                    const courseData = await $.ajax({
+                        url: `${serviceUrl}/courses/${COURSE_ID}`,
+                        method: "GET",
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    addExistingResources(courseData.resources || []);
+
+                    const resolvedDivisionId = await resolveDivisionId(courseData);
+
+                    return {
+                        ...defaultFormData,
+                        ...courseData,
+                        divisionId: resolvedDivisionId
+                    };
+                } catch (err) {
+                    console.error(err);
+                    showToast("Error loading course data", "error");
+                    return defaultFormData;
+                } finally {
+                    loadPanel.hide();
+                }
+            }
+
+            function getCategoryEditor() {
+                return formWidget.getEditor("categoryId");
+            }
+
+            async function syncCategoryEditor(divisionId) {
+                const categoryEditor = getCategoryEditor();
+                if (!divisionId) {
+                    categoryEditor.option("disabled", true);
+                    categoryEditor.option("value", null);
+                    return;
+                }
+
+                categoryEditor.option("disabled", false);
+
+                const categoryDataSource = categoryEditor.getDataSource();
+                categoryDataSource.filter(["divisionId", "=", divisionId]);
+                await categoryDataSource.load();
+
+                const currentValue = categoryEditor.option("value");
+                if (!currentValue) {
+                    return;
+                }
+
+                const exists = categoryDataSource.items().some(function(item) {
+                    return item.id === currentValue;
+                });
+
+                if (!exists) {
+                    categoryEditor.option("value", null);
+                }
+            }
+
+            async function resolveDivisionId(courseData) {
+                if (courseData.divisionId || !courseData.categoryId) {
+                    return courseData.divisionId || null;
+                }
+
+                try {
+                    const categoryData = await $.ajax({
+                        url: `${serviceUrl}/admin/CategoriesCRUD/Get/${courseData.categoryId}`,
+                        method: "GET",
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    return categoryData.divisionId || null;
+                } catch {
+                    return null;
+                }
+            }
+
+            function createExistingResource(resource) {
+                return {
+                    uid: `EXISTING_${resource.id}`,
+                    realId: resource.id,
+                    name: resource.name,
+                    typeId: resource.typeId,
+                    isNew: false
+                };
+            }
+
+            function createNewResource(file, suffix) {
+                return {
+                    uid: `NEW_${Date.now()}_${suffix}`,
+                    name: file.name,
+                    isNew: true,
+                    typeId: 1,
+                    fileRef: file
+                };
+            }
+
+            function addExistingResources(resources) {
+                resources.forEach(function(resource) {
+                    const resourceId = resource.realId ?? resource.id;
+                    const exists = unifiedResources.some(function(item) {
+                        return !item.isNew && item.realId === resourceId;
+                    });
+
+                    if (!exists) {
+                        unifiedResources.push(createExistingResource({
+                            id: resourceId,
+                            name: resource.name,
+                            typeId: resource.typeId
+                        }));
+                    }
+                });
+            }
+
+            function addNewFiles(files) {
+                files.forEach(function(file, index) {
+                    unifiedResources.push(createNewResource(file, index));
+                });
+            }
+
+            function removeResource(uid) {
+                unifiedResources = unifiedResources.filter(function(resource) {
+                    return resource.uid !== uid;
+                });
+            }
+
+            function getCoursePayload() {
+                const formData = formWidget.option("formData");
+                const resourceIds = unifiedResources
+                    .filter(function(resource) { return !resource.isNew; })
+                    .map(function(resource) { return resource.realId; });
+
+                return {
+                    courseCode: formData.courseCode,
+                    courseName: formData.courseName,
+                    description: formData.description,
+                    courseType: formData.courseType,
+                    categoryId: formData.categoryId,
+                    resourceIds: resourceIds
+                };
+            }
+
+            async function saveCourse() {
+                const payload = getCoursePayload();
+
+                if (IS_EDIT) {
+                    await $.ajax({
+                        url: `${serviceUrl}/courses/${COURSE_ID}`,
+                        method: "PUT",
+                        contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    return COURSE_ID;
+                }
+
+                const response = await $.ajax({
+                    url: COURSE_CREATE_URL,
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(payload),
+                    xhrFields: { withCredentials: true }
+                });
+
+                return response.data.id;
+            }
+
+            async function getActiveVersionId(courseId) {
+                const response = await $.ajax({
+                    url: `${serviceUrl}/courses/${courseId}/versions`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                });
+
+                const versions = response.data || [];
+                if (versions.length === 0) {
+                    return null;
+                }
+
+                const activeVersion = versions.find(function(version) { return version.isActive; }) || versions[0];
+                return activeVersion.id;
+            }
+
+            function buildVersionFormData() {
+                const versionFormData = new FormData();
+                versionFormData.append("Note", IS_EDIT ? "Updated resources via Form" : "Initial Content Upload");
+                versionFormData.append("IsActive", true);
+
+                unifiedResources.forEach(function(resource) {
+                    if (resource.isNew) {
+                        versionFormData.append("Files", resource.fileRef);
+                        versionFormData.append("ResourceIds", 0);
+                    } else {
+                        versionFormData.append("ResourceIds", resource.realId);
+                    }
+
+                    versionFormData.append("ResourceTypes", resource.typeId);
+                });
+
+                return versionFormData;
+            }
+
+            async function saveResourcesToVersion(courseId, activeVersionId) {
+                const versionFormData = buildVersionFormData();
+                const requestUrl = activeVersionId
+                    ? `${serviceUrl}/courses/versions/${activeVersionId}`
+                    : `${serviceUrl}/courses/${courseId}/versions`;
+                const requestMethod = activeVersionId ? "PUT" : "POST";
+
+                await $.ajax({
+                    url: requestUrl,
+                    method: requestMethod,
+                    data: versionFormData,
+                    processData: false,
+                    contentType: false,
+                    xhrFields: { withCredentials: true }
+                });
+            }
+
+            function formatDateTime(value) {
+                const date = new Date(value);
+                return `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })} ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+            }
+
+            function getApiErrorMessage(error, fallbackMessage) {
+                return error?.responseJSON?.message || error?.statusText || fallbackMessage;
             }
         });
     </script>

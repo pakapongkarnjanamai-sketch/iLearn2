@@ -23,6 +23,12 @@ namespace iLearn.Application.DTOs
 
         /// <summary>Optional status filter (e.g. Completed, InProgress, Expired, Upcoming).</summary>
         public string? Status { get; set; }
+
+        /// <summary>Optional sort field name.</summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>Whether the sort should be descending.</summary>
+        public bool SortDescending { get; set; } = true;
     }
 
     /// <summary>

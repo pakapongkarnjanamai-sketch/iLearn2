@@ -1,18 +1,44 @@
 ﻿@using Microsoft.Extensions.Configuration
 @using System.Security.Claims
 
-@using Microsoft.AspNetCore.Hosting
-@using Microsoft.Extensions.Hosting
-@using Microsoft.AspNetCore.Authorization
-
 @inject IConfiguration Configuration
-@inject IAuthorizationService AuthorizationService
 @{
-    // เช็คว่าผ่าน Policy "SuperAdminOnly" หรือไม่
-    var isSuperAdminAuthorized = (await AuthorizationService.AuthorizeAsync(User, "SuperAdminOnly")).Succeeded;
+    var currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
 
-    // แสดงเฉพาะ SuperAdmin เท่านั้น
-    var showSuperAdminMenu = isSuperAdminAuthorized;
+    var courseMenuItems = new (string? Controller, string Text, bool Divider)[]
+    {
+        ("Courses", "Courses", false),
+        ("Assignments", "Assignment", false),
+        ("StudentGroups", "Student Groups", false),
+        (null, string.Empty, true),
+        ("Categories", "Categories", false)
+    };
+
+    var adminMenuItems = new (string? Controller, string Text, bool Divider)[]
+    {
+        ("Users", "Users", false),
+        ("Roles", "Roles", false),
+        ("Divisions", "Divisions", false),
+        ("Students", "Students (Employees)", false),
+        ("CourseTypes", "Course Types", false),
+        (null, string.Empty, true),
+        ("Resources", "Resources Library", false),
+        (null, string.Empty, true),
+        ("Enrollments", "Enrollments", false),
+        ("LearningLogs", "Learning Logs", false)
+    };
+
+    var fullWindowsName = User.Identity?.Name ?? string.Empty;
+    var nameParts = fullWindowsName.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+    var displayName = nameParts.Length > 0 ? nameParts[^1] : fullWindowsName;
+    var roles = User.FindAll(ClaimTypes.Role)
+        .Select(claim => claim.Value)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+    var hasSuperAdminRole = roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase);
+    var showSuperAdminMenu = hasSuperAdminRole;
+    var divisionId = User.FindFirst("DivisionId")?.Value;
+    var primaryRole = hasSuperAdminRole ? "SuperAdmin" : roles.FirstOrDefault() ?? "—";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -57,7 +83,7 @@
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                        <a class="nav-link @(currentController == "Home" ? "active" : "")"
                            asp-controller="Home" asp-action="Index">
                             <i class="fas fa-chart-pie me-1"></i> Dashboard
                         </a>
@@ -67,38 +93,40 @@
                             <i class="fas fa-book me-1"></i> Course Management
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="courseDropdown">
-                            <li><a class="dropdown-item" asp-controller="Courses" asp-action="Index">Courses</a></li>
-                            <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Index">Assignment</a></li>
-                         
-                            <li><a class="dropdown-item" asp-controller="StudentGroups" asp-action="Index">Student Groups</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="Categories" asp-action="Index">Categories</a></li>
-                       
+                            @foreach (var item in courseMenuItems)
+                            {
+                                if (item.Divider)
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    continue;
+                                }
+
+                                <li><a class="dropdown-item" asp-controller="@item.Controller" asp-action="Index">@item.Text</a></li>
+                            }
                         </ul>
                     </li>
-                  @if (showSuperAdminMenu)
-    {
+                    @if (showSuperAdminMenu)
+                    {
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-users me-1"></i> Admin
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                            <li><a class="dropdown-item" asp-controller="Users" asp-action="Index">Users</a></li>
-                            <li><a class="dropdown-item" asp-controller="Roles" asp-action="Index">Roles</a></li>
-                            <li><a class="dropdown-item" asp-controller="Divisions" asp-action="Index">Divisions</a></li>
+                            @foreach (var item in adminMenuItems)
+                            {
+                                if (item.Divider)
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    continue;
+                                }
 
-                            <li><a class="dropdown-item" asp-controller="Students" asp-action="Index">Students (Employees)</a></li>
-                            <li><a class="dropdown-item" asp-controller="CourseTypes" asp-action="Index">Course Types</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="Resources" asp-action="Index">Resources Library</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" asp-controller="Enrollments" asp-action="Index">Enrollments</a></li>
-                            <li><a class="dropdown-item" asp-controller="LearningLogs" asp-action="Index">Learning Logs</a></li>
+                                <li><a class="dropdown-item" asp-controller="@item.Controller" asp-action="Index">@item.Text</a></li>
+                            }
                         </ul>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SystemConfig" ? "active" : "")"
+                        <a class="nav-link @(currentController == "SystemConfig" ? "active" : "")"
                            asp-controller="SystemConfig" asp-action="Index">
                             <i class="fas fa-cog me-1"></i> System Config
                         </a>
@@ -106,71 +134,35 @@
                     }
                 </ul>
                 <ul class="navbar-nav">
-                    @{
-                        // ── ดึงข้อมูลจาก Claims ──
-                        var fullWindowsName = User.Identity?.Name ?? "";
-                        var displayName     = fullWindowsName.Contains('\\')
-                                                ? fullWindowsName.Split('\\')[1]
-                                                : fullWindowsName;
-
-                        var roles           = User.Claims
-                                                .Where(c => c.Type == ClaimTypes.Role)
-                                                .Select(c => c.Value)
-                                                .ToList();
-
-                        var hasSuperAdminRole = roles.Contains("SuperAdmin");
-                        var divisionId      = User.FindFirst("DivisionId")?.Value;
-                        var primaryRole     = hasSuperAdminRole
-                                                ? "SuperAdmin"
-                                                : (roles.FirstOrDefault() ?? "—");
-                    }
                     <li class="nav-item dropdown">
-                        <a class="nav-link d-flex align-items-center gap-2 py-1 px-2"
+                        <a class="nav-link d-flex align-items-center gap-2 py-1 px-2 admin-profile-trigger"
                            href="#" id="profileDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false"
-                           style="border-radius:6px; transition:background .15s;"
-                           onmouseover="this.style.background='rgba(255,255,255,0.12)'"
-                           onmouseout="this.style.background='transparent'">
-                            <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                                 style="width:32px;height:32px;background:rgba(255,255,255,0.2);">
-                                <i class="fas fa-user" style="font-size:.85rem;"></i>
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0 admin-profile-avatar">
+                                <i class="fas fa-user admin-profile-avatar-icon"></i>
                             </div>
-                            <div class="d-none d-md-flex flex-column lh-1" style="gap:2px;">
-                                <span class="fw-semibold" style="font-size:.85rem;letter-spacing:.3px;">
+                            <div class="d-none d-md-flex flex-column lh-1 admin-profile-meta">
+                                <span class="fw-semibold admin-profile-name">
                                     @displayName
                                 </span>
-                                <span style="font-size:.7rem;opacity:.78;">
-                                    @if (hasSuperAdminRole)
-                                    {
-                                        <span class="badge rounded-pill"
-                                              style="background:#ffd700;color:#000;font-size:.62rem;padding:1px 6px;vertical-align:middle;">
-                                            <i class="fas fa-star me-1" style="font-size:.55rem;"></i>SuperAdmin
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        @primaryRole
-                                    }
-                                </span>
+                             
                             </div>
-                            <i class="fas fa-chevron-down ms-1" style="font-size:.65rem;opacity:.7;"></i>
+                            <i class="fas fa-chevron-down ms-1 admin-profile-chevron"></i>
                         </a>
 
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-1"
-                            aria-labelledby="profileDropdown"
-                            style="min-width:220px;border-radius:8px;padding:6px 0;">
+                        <ul class="dropdown-menu dropdown-menu-end admin-profile-menu"
+                            aria-labelledby="profileDropdown">
 
-                            <li class="px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
+                            <li class="px-3 py-2 admin-profile-menu-header">
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                                         style="width:36px;height:36px;background:#e8f0fe;">
-                                        <i class="fas fa-user-circle" style="color:#0050b3;font-size:1.1rem;"></i>
+                                    <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0 admin-profile-avatar admin-profile-avatar-lg">
+                                        <i class="fas fa-user-circle admin-profile-menu-avatar-icon"></i>
                                     </div>
                                     <div class="overflow-hidden">
-                                        <div class="fw-semibold text-truncate" style="font-size:.85rem;color:#1a1a2e;">
+                                        <div class="fw-semibold text-truncate admin-profile-menu-name">
                                             @displayName
                                         </div>
-                                        <div class="text-muted text-truncate" style="font-size:.72rem;">
+                                        <div class="text-muted text-truncate admin-profile-menu-identity">
                                             @fullWindowsName
                                         </div>
                                     </div>
@@ -178,7 +170,7 @@
                             </li>
 
                             <li class="px-3 pt-2 pb-1">
-                                <div class="text-uppercase text-muted mb-1" style="font-size:.62rem;letter-spacing:.8px;">
+                                <div class="text-uppercase text-muted mb-1 admin-profile-section-title">
                                     <i class="fas fa-shield-halved me-1"></i>Roles
                                 </div>
                                 <div class="d-flex flex-wrap gap-1">
@@ -186,22 +178,20 @@
                                     {
                                         if (role == "SuperAdmin")
                                         {
-                                            <span class="badge rounded-pill"
-                                                  style="background:#ffd700;color:#000;font-size:.68rem;">
+                                            <span class="badge rounded-pill admin-role-pill admin-role-pill-highlight">
                                                 <i class="fas fa-star me-1"></i>@role
                                             </span>
                                         }
                                         else
                                         {
-                                            <span class="badge rounded-pill"
-                                                  style="background:#e8f0fe;color:#0050b3;font-size:.68rem;">
+                                            <span class="badge rounded-pill admin-role-pill">
                                                 @role
                                             </span>
                                         }
                                     }
                                     @if (!roles.Any())
                                     {
-                                        <span class="text-muted" style="font-size:.75rem;">ไม่มี Role</span>
+                                        <span class="text-muted admin-profile-empty-text">ไม่มี Role</span>
                                     }
                                 </div>
                             </li>
@@ -209,11 +199,10 @@
                             @if (!string.IsNullOrEmpty(divisionId))
                             {
                                 <li class="px-3 pb-2">
-                                    <div class="text-uppercase text-muted mb-1" style="font-size:.62rem;letter-spacing:.8px;">
+                                    <div class="text-uppercase text-muted mb-1 admin-profile-section-title">
                                         <i class="fas fa-building me-1"></i>Division
                                     </div>
-                                    <span class="badge rounded-pill"
-                                          style="background:#f0f5ff;color:#2f54eb;font-size:.68rem;">
+                                    <span class="badge rounded-pill admin-division-pill">
                                         <i class="fas fa-layer-group me-1"></i>ID: @divisionId
                                     </span>
                                 </li>
@@ -221,11 +210,10 @@
                             else if (hasSuperAdminRole)
                             {
                                 <li class="px-3 pb-2">
-                                    <div class="text-uppercase text-muted mb-1" style="font-size:.62rem;letter-spacing:.8px;">
+                                    <div class="text-uppercase text-muted mb-1 admin-profile-section-title">
                                         <i class="fas fa-building me-1"></i>Division
                                     </div>
-                                    <span class="badge rounded-pill"
-                                          style="background:#fffbe6;color:#d48806;font-size:.68rem;">
+                                    <span class="badge rounded-pill admin-division-pill admin-division-pill-global">
                                         <i class="fas fa-globe me-1"></i>ทุก Division
                                     </span>
                                 </li>
@@ -234,10 +222,9 @@
                             <li><hr class="dropdown-divider my-1"></li>
 
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-                                   href="#" onclick="refreshUserCache(); return false;"
-                                   style="font-size:.82rem;">
-                                    <i class="fas fa-rotate-right text-muted" style="width:14px;"></i>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2 admin-refresh-link"
+                                   href="#" data-admin-refresh-user="true">
+                                    <i class="fas fa-rotate-right text-muted admin-refresh-link-icon"></i>
                                     รีเฟรชข้อมูลผู้ใช้
                                 </a>
                             </li>
@@ -259,245 +246,11 @@
     </footer>
 
     <script>
-        const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
-        const serviceUrl = API_BASE;
-
-        function createDataStore(baseUrl, controllerName, options) {
-            const defaults = {
-                key: 'id',
-                loadUrl: `${baseUrl}/${controllerName}/Get`,
-                insertUrl: `${baseUrl}/${controllerName}/Post`,
-                updateUrl: `${baseUrl}/${controllerName}/Put`,
-                deleteUrl: `${baseUrl}/${controllerName}/Delete`,
-                onBeforeSend: function (method, ajaxOptions) {
-                    ajaxOptions.xhrFields = { withCredentials: true };
-                }
-            };
-            if (options && options.action) {
-                defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
-                if (options.ParamKey) {
-                     defaults.loadUrl += `/${options.ParamKey}`;
-                }
-            }
-            return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
-        }
-
-        function handleExporting(e, fileName) {
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
-            DevExpress.excelExporter.exportDataGrid({
-                component: e.component,
-                worksheet: worksheet,
-                autoFilterEnabled: true
-            }).then(function () {
-                workbook.xlsx.writeBuffer().then(function (buffer) {
-                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), (fileName || 'Data') + '.xlsx');
-                });
-            });
-            e.cancel = true;
-        }
-
-        function handlePivotExporting(e, fileName) {
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
-            DevExpress.excelExporter.exportPivotGrid({
-                component: e.component,
-                worksheet: worksheet
-            }).then(function () {
-                workbook.xlsx.writeBuffer().then(function (buffer) {
-                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), (fileName || 'PivotData') + '.xlsx');
-                });
-            });
-            e.cancel = true;
-        }
-
-        /* --- DataGrid Defaults ----------------------------------------------- */
-        const dxGridDefaults = {
-            columnAutoWidth: true,
-            showBorders: true,
-            rowAlternationEnabled: true,
-            showRowLines: true,
-            hoverStateEnabled: true,
-            scrolling: { mode: "virtual" },
-            height: "calc(100vh - 250px)",
-            headerFilter: { visible: true },
-            searchPanel: { visible: true, width: 300, placeholder: "Search..." },
-            loadPanel: {
-                enabled: true,
-                text: 'กำลังโหลดข้อมูล...',
-                showPane: true,
-                showIndicator: true,
-                shadingColor: 'rgba(250,250,250,0.7)',
-                shading: true,
-                position: { of: 'window' }
-            },
-            export: {
-                enabled: true,
-                allowExportSelectedData: true
-            },
-            onExporting: function(e) {
-                var segments = window.location.pathname.replace(/^\//, '').split('/');
-                var fileName = segments.filter(Boolean).join('_') || 'Export';
-                handleExporting(e, fileName);
-            }
+        window.iLearnAdminConfig = {
+            apiBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseUrl"] ?? string.Empty))
         };
-
-        function getDxGridOptions(pageOptions) {
-            return $.extend(true, {}, dxGridDefaults, pageOptions || {});
-        }
-
-        function initDxGrid(selector, pageOptions) {
-            const opts = getDxGridOptions(pageOptions);
-            return $(selector).dxDataGrid(opts).dxDataGrid('instance');
-        }
-
-        /* --- Button Loading State -------------------------------------------- */
-
-        /**
-         * ตั้งสถานะ Loading ของปุ่ม Bootstrap/HTML เพื่อป้องกันการกดซ้ำ (Double Submit)
-         * @@param {string|jQuery} btn           - jQuery selector หรือ jQuery object ของปุ่ม
-         * @@param {boolean}       loading       - true = เข้าสู่โหมด loading, false = คืนสถานะปกติ
-         * @@param {string}        [loadingText] - ข้อความขณะ loading (default: 'กำลังประมวลผล...')
-         *
-         * ตัวอย่าง:
-         *   setButtonLoading('#btnSave', true);
-         *   // ... หลัง ajax เสร็จ ...
-         *   setButtonLoading('#btnSave', false);
-         */
-        function setButtonLoading(btn, loading, loadingText) {
-            var $btn = $(btn);
-            if (loading) {
-                $btn.data('original-html', $btn.html())
-                    .prop('disabled', true)
-                    .html('<i class="fas fa-spinner fa-spin me-1"></i>' + (loadingText || 'กำลังประมวลผล...'));
-            } else {
-                var original = $btn.data('original-html');
-                $btn.prop('disabled', false)
-                    .html(original || $btn.html());
-            }
-        }
-
-        /* --- Notifications & Feedback ---------------------------------------- */
-
-        // showToast: DevExpress.ui.notify Stack (bottom center, up-push)
-        // type: 'success' | 'error' | 'warning' | 'info'
-        function showToast(message, type, duration) {
-            type = type || 'info';
-            duration = duration || 3500;
-            var icons = {
-                success: 'fa-circle-check',
-                error:   'fa-circle-xmark',
-                warning: 'fa-triangle-exclamation',
-                info:    'fa-circle-info'
-            };
-            var icon = icons[type] || icons.info;
-            DevExpress.ui.notify(
-                {
-                    type: type,
-                    height: 45,
-                    width: 'auto',
-                    minWidth: 220,
-                    displayTime: duration,
-                    animation: {
-                        show: { type: 'fade', duration: 400, from: 0, to: 1 },
-                        hide: { type: 'fade', duration: 40, to: 0 }
-                    },
-                    contentTemplate: function(element) {
-                        $(element).addClass('dx-toast-content-custom')
-                            .html('<i class="fas ' + icon + ' me-2"></i><span>' + message + '</span>');
-                    }
-                },
-                { position: 'bottom right', direction: 'up-push' }
-            );
-        }
-
-        /* --- Skeleton Loader Utilities ---------------------------------------
-         * showStatSkeleton(ids)    — แทน stat card values ด้วย skeleton block
-         * hideStatSkeleton(ids)    — คืนค่าปกติ (ลบ skeleton ออก)
-         * showCardsSkeleton(sel, count) — แสดง version-card skeleton ใน container
-         * hideCardsSkeleton(sel)   — ล้าง skeleton ออกจาก container
-         * --------------------------------------------------------------------- */
-        function showStatSkeleton(ids) {
-            (ids || []).forEach(function(id) {
-                var $el = $('#' + id);
-                $el.data('original-text', $el.text())
-                   .html('<span class="skeleton ds-val-skeleton"></span>');
-            });
-        }
-
-        function hideStatSkeleton(ids) {
-            (ids || []).forEach(function(id) {
-                var $el = $('#' + id);
-                var orig = $el.data('original-text');
-                if (orig !== undefined) $el.text(orig);
-            });
-        }
-
-        function showCardsSkeleton(selector, count) {
-            count = count || 3;
-            var $c = $(selector).empty();
-            for (var i = 0; i < count; i++) {
-                $c.append(
-                    '<div class="col-md-4 mb-2">' +
-                      '<div class="version-card-skeleton">' +
-                        '<div class="d-flex justify-content-between align-items-start mb-3">' +
-                          '<div style="width:55%">' +
-                            '<div class="skeleton skeleton-line w-80 mb-2"></div>' +
-                            '<div class="skeleton skeleton-line w-40"></div>' +
-                          '</div>' +
-                          '<div class="skeleton" style="width:24px;height:24px;border-radius:3px;"></div>' +
-                        '</div>' +
-                        '<div class="skeleton skeleton-line w-100 mb-1"></div>' +
-                        '<div class="skeleton skeleton-line w-60 mb-3"></div>' +
-                        '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;margin-bottom:6px;"></div>' +
-                        '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;"></div>' +
-                      '</div>' +
-                    '</div>'
-                );
-            }
-        }
-
-        function hideCardsSkeleton(selector) {
-            $(selector).empty();
-        }
-
-        // Swal defaults: ปุ่ม Confirm สีธีม, ขอบกล่องโค้งมน (ตาม Design Patterns)
-        var SwalAdmin = (typeof Swal !== 'undefined') ? Swal.mixin({
-            customClass: {
-                popup:         'swal-admin-popup',
-                confirmButton: 'btn btn-primary ms-2',
-                cancelButton:  'btn btn-outline-secondary'
-            },
-            buttonsStyling: false
-        }) : null;
-
-        /* --- Refresh User Cache (force re-sync roles/division from API) ------- */
-               function refreshUserCache() {
-            // สร้าง URL object จากหน้าปัจจุบัน เพื่อจัดการ Query String ให้ปลอดภัย
-            var currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('_refresh', '1');
-
-            if (!SwalAdmin) {
-                // ถ้า SweetAlert ไม่ทำงาน ให้ redirect พร้อมแนบ _refresh=1 ไปเลย
-                window.location.href = currentUrl.toString();
-                return;
-            }
-
-            SwalAdmin.fire({
-                title: 'รีเฟรชข้อมูลผู้ใช้?',
-                text: 'ระบบจะโหลดข้อมูล Role และ Division ใหม่จาก API',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-rotate-right me-1"></i>รีเฟรช',
-                cancelButtonText: 'ยกเลิก'
-            }).then(function(result) {
-                if (result.isConfirmed) {
-                    // ไปยังหน้าเดิมพร้อม Query บังคับ middleware sync
-                    window.location.href = currentUrl.toString();
-                }
-            });
-        }
     </script>
+    <script src="~/js/admin-layout.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

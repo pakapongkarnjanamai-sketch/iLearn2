@@ -1,58 +1,60 @@
 /*
-/*
  * admin-minimal.css
- * Unified design system for iLearn.Admin
- * Ant Design / Japanese minimal — Brand Blue (#0050b3)
- *
- * Replaces admin-site.css — single source of truth for Admin UI
- *
- * iLearn.User brand:  #027d83 (teal-green)
- * iLearn.Admin brand: #0050b3 (deep blue — complementary)
+ * Unified design system for iLearn.Admin.
+ * Brand Blue: #0050b3
  */
 
-/* ?????????????????????????????????????????????????????????????
-   1.  DESIGN TOKENS
-   ????????????????????????????????????????????????????????????? */
+/* -------------------------------------------------------------
+   1. Design Tokens
+   ------------------------------------------------------------- */
 :root {
-    /* Brand */
-    --brand-color:    #0050b3;   /* Ant Blue-8 — primary action */
-    --brand-dark:     #003a8c;   /* Ant Blue-9 — hover / active  */
-    --brand-light:    #e6f4ff;   /* Ant Blue-1 — tint bg         */
-    --brand-mid:      #1677ff;   /* Ant Blue-6 — accent          */
+    --brand-color: #0050b3;
+    --brand-dark: #003a8c;
+    --brand-light: #e6f4ff;
+    --brand-mid: #1677ff;
 
-    /* Semantic */
-    --accent-color:   var(--brand-color);
-    --success-color:  #52c41a;
-    --warning-color:  #faad14;
-    --danger-color:   #ff4d4f;
+    --accent-color: var(--brand-color);
+    --success-color: #52c41a;
+    --warning-color: #faad14;
+    --danger-color: #ff4d4f;
 
-    /* Neutral */
-    --text-primary:   #262626;
+    --text-primary: #262626;
     --text-secondary: #595959;
-    --border-color:   #f0f0f0;
-    --bg-light:       #fafafa;
+    --border-color: #f0f0f0;
+    --bg-light: #fafafa;
 
-    /* Typography */
-    --font-stack: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-stack: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ?????????????????????????????????????????????????????????????
-   2.  BASE
-   ????????????????????????????????????????????????????????????? */
-*, *::before, *::after { box-sizing: border-box; }
+/* -------------------------------------------------------------
+   2. Base
+   ------------------------------------------------------------- */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
 body {
     font-family: var(--font-stack);
     background: #fff;
     color: var(--text-primary);
     font-size: 13px;
-    padding-top: 48px;   /* compensate fixed navbar */
+    padding-top: 48px;
 }
 
-a { color: var(--brand-color); }
-a:hover { color: var(--brand-dark); text-decoration: none; }
+a {
+    color: var(--brand-color);
+}
 
-/* Legacy icon-box (still referenced by some Bootstrap markup) */
+a:hover {
+    color: var(--brand-dark);
+    text-decoration: none;
+}
+
+img[loading="lazy"] {
+    background-color: var(--bg-light);
+    min-height: 40px;
+}
+
 .icon-box {
     display: inline-flex;
     align-items: center;
@@ -61,9 +63,34 @@ a:hover { color: var(--brand-dark); text-decoration: none; }
     flex-shrink: 0;
 }
 
-/* ?????????????????????????????????????????????????????????????
-   3.  NAVBAR
-   ????????????????????????????????????????????????????????????? */
+/* -------------------------------------------------------------
+   3. Typography
+   ------------------------------------------------------------- */
+.page-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.page-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.filter-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* -------------------------------------------------------------
+   4. Navbar
+   ------------------------------------------------------------- */
 .navbar-custom {
     background: var(--brand-dark);
     box-shadow: 0 1px 0 var(--border-color);
@@ -72,68 +99,188 @@ a:hover { color: var(--brand-dark); text-decoration: none; }
 }
 
 .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.3px;
     color: #fff !important;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .navbar-custom .navbar-nav .nav-link {
     font-size: 12px;
     font-weight: 500;
-    color: rgba(255,255,255,0.8) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
     padding: 0.45rem 0.75rem;
     border-radius: 3px;
     transition: background 0.15s;
-    transform: none !important;   /* cancel old translateY */
+    transform: none !important;
 }
+
 .navbar-custom .navbar-nav .nav-link:hover,
 .navbar-custom .navbar-nav .nav-link.active,
 .navbar-custom .navbar-nav .show > .nav-link {
-    background: rgba(255,255,255,0.12) !important;
+    background: rgba(255, 255, 255, 0.12) !important;
     color: #fff !important;
 }
 
-/* Dropdown */
 .navbar-custom .dropdown-menu {
+    min-width: 180px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     padding: 4px 0;
     font-size: 12px;
-    min-width: 180px;
 }
+
 .navbar-custom .dropdown-item {
     padding: 7px 16px;
     color: var(--text-primary);
     font-size: 12px;
     transition: background 0.12s;
 }
-.navbar-custom .dropdown-item:hover  { background: var(--bg-light); }
-.navbar-custom .dropdown-divider     { border-color: var(--border-color); margin: 3px 0; }
 
-/* ?????????????????????????????????????????????????????????????
-   4.  PAGE HEADER  (full-width flat strip)
-   ????????????????????????????????????????????????????????????? */
-.page-header {
-    background: #fff !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
-    margin-bottom: 0 !important;
-    padding: 11px 24px;
-    width: 100%;
+.navbar-custom .dropdown-item:hover {
+    background: var(--bg-light);
 }
 
-/* ?????????????????????????????????????????????????????????????
-   5.  SECTION TITLE  (uppercase label inside panels)
-   ????????????????????????????????????????????????????????????? */
+.navbar-custom .dropdown-divider {
+    border-color: var(--border-color);
+    margin: 3px 0;
+}
+
+.admin-profile-trigger {
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.admin-profile-trigger:hover,
+.admin-profile-trigger:focus-visible,
+.navbar-custom .navbar-nav .show > .admin-profile-trigger {
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.admin-profile-avatar {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.admin-profile-avatar-lg {
+    width: 36px;
+    height: 36px;
+    background: #e8f0fe;
+}
+
+.admin-profile-avatar-icon {
+    font-size: 0.85rem;
+}
+
+.admin-profile-menu-avatar-icon {
+    color: var(--brand-color);
+    font-size: 1.1rem;
+}
+
+.admin-profile-meta {
+    gap: 2px;
+}
+
+.admin-profile-name,
+.admin-profile-menu-name {
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+}
+
+.admin-profile-role-line {
+    font-size: 0.7rem;
+    opacity: 0.78;
+}
+
+.admin-profile-chevron {
+    font-size: 0.65rem;
+    opacity: 0.7;
+}
+
+.admin-profile-menu {
+    min-width: 220px;
+    padding: 6px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.admin-profile-menu-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-profile-menu-name {
+    color: #1a1a2e;
+}
+
+.admin-profile-menu-identity {
+    font-size: 0.72rem;
+}
+
+.admin-profile-section-title {
+    font-size: 0.62rem;
+    letter-spacing: 0.8px;
+}
+
+.admin-profile-empty-text {
+    font-size: 0.75rem;
+}
+
+.admin-role-pill {
+    background: #e8f0fe;
+    color: var(--brand-color);
+    font-size: 0.68rem;
+}
+
+.admin-role-pill-highlight {
+    background: #ffd700;
+    color: #000;
+}
+
+.admin-role-pill-icon {
+    font-size: 0.55rem;
+}
+
+.admin-division-pill {
+    background: #f0f5ff;
+    color: #2f54eb;
+    font-size: 0.68rem;
+}
+
+.admin-division-pill-global {
+    background: #fffbe6;
+    color: #d48806;
+}
+
+.admin-refresh-link {
+    font-size: 0.82rem;
+}
+
+.admin-refresh-link-icon {
+    width: 14px;
+}
+
+/* -------------------------------------------------------------
+   5. Layout Components
+   ------------------------------------------------------------- */
+.page-header {
+    width: 100%;
+    background: #fff !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    border-left: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+    padding: 11px 24px;
+}
+
 .section-title {
     font-size: 11px;
     font-weight: 600;
@@ -145,389 +292,20 @@ a:hover { color: var(--brand-dark); text-decoration: none; }
     margin-bottom: 16px;
 }
 
-/* ?????????????????????????????????????????????????????????????
-   6.  ACTION LINK  (button-like <a> / <button>)
-   ????????????????????????????????????????????????????????????? */
-.action-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 6px 13px;
+.panel {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background: #fff;
-    color: var(--text-primary);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none !important;
-    white-space: nowrap;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    font-family: var(--font-stack);
-    line-height: 1.4;
-}
-.action-link:hover           { background: var(--bg-light); color: var(--text-primary); }
-
-.action-link.primary         { background: var(--brand-color); border-color: var(--brand-color); color: #fff; }
-.action-link.primary:hover   { background: var(--brand-dark);  border-color: var(--brand-dark);  color: #fff; }
-
-.action-link.success         { background: var(--success-color); border-color: var(--success-color); color: #fff; }
-.action-link.success:hover   { background: #389e0d; border-color: #389e0d; color: #fff; }
-
-.action-link.danger:hover    { border-color: var(--danger-color); color: var(--danger-color); background: #fff2f0; }
-
-.action-link:disabled,
-.action-link.disabled        { opacity: 0.45; pointer-events: none; }
-
-/* Bootstrap .btn-primary — use brand blue */
-.btn-primary  { background-color: var(--brand-color) !important; border-color: var(--brand-color) !important; }
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-    background-color: var(--brand-dark) !important; border-color: var(--brand-dark) !important;
-}
-.btn-outline-primary         { color: var(--brand-color) !important; border-color: var(--brand-color) !important; }
-.btn-outline-primary:hover   { background-color: var(--brand-color) !important; color: #fff !important; }
-
-/* =============================================================
-   7.  STATUS PILL  &  TAG PILL  — unified badge system
-   =============================================================
-   .status-pill  ? rounded-pill  (border-radius: 20px)
-                   used for entity / assignment status values
-   .tag-pill     ? square-ish    (border-radius: 3px)
-                   used for small labels: course codes, types, etc.
-
-   Shared colour modifiers (work on both):
-     .pill-success  ? green    (Completed / Active)
-     .pill-info     ? blue     (In Progress / Active version)
-     .pill-warning  ? yellow   (Upcoming / Draft pending)
-     .pill-danger   ? red      (Expired / Error)
-     .pill-default  ? grey     (Pending / Inactive / Draft)
-   ============================================================= */
-
-/* ?? base ?? */
-.status-pill,
-.tag-pill {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    border: 1px solid transparent;
-    white-space: nowrap;
-    line-height: 1.4;
-}
-.status-pill { padding: 2px 10px; border-radius: 20px; }
-.tag-pill    { padding: 2px 8px;  border-radius: 3px; }
-
-/* ?? colour modifiers ?? */
-.pill-success { background: #f6ffed; color: var(--success-color); border-color: #b7eb8f; }
-.pill-info    { background: var(--brand-light); color: var(--brand-color); border-color: #91caff; }
-.pill-warning { background: #fffbe6; color: var(--warning-color); border-color: #ffe58f; }
-.pill-danger  { background: #fff2f0; color: var(--danger-color);  border-color: #ffccc7; }
-.pill-default { background: var(--bg-light); color: var(--text-secondary); border-color: var(--border-color); }
-.pill-learn   { background: #e6f4ff; color: var(--brand-color);   border-color: #91caff; }
-.pill-exam    { background: #fffbe6; color: var(--warning-color);  border-color: #ffe58f; }
-
-/* ?? legacy aliases (backward compat) ?? */
-.status-pill.active   { background: #f6ffed; color: var(--success-color); border-color: #b7eb8f; }
-.status-pill.inactive { background: var(--bg-light); color: var(--text-secondary); border-color: var(--border-color); }
-.status-pill.warning  { background: #fffbe6; color: var(--warning-color); border-color: #ffe58f; }
-.status-pill.danger   { background: #fff2f0; color: var(--danger-color);  border-color: #ffccc7; }
-.status-pill.info     { background: var(--brand-light); color: var(--brand-color); border-color: #91caff; }
-
-/* ?? status-dot colour helpers ?? */
-.status-dot.dot-success { background: var(--success-color); }
-.status-dot.dot-warning { background: var(--warning-color); }
-.status-dot.dot-default { background: #d9d9d9; }
-
-/* Legacy badge classes (kept for backward compat) */
-.badge-active   { background: #f6ffed; color: var(--success-color); }
-.badge-inactive,
-.badge-pending  { background: #fffbe6; color: var(--warning-color); }
-
-/* ?????????????????????????????????????????????????????????????
-   8.  PANEL  (border card — no shadow)
-   ????????????????????????????????????????????????????????????? */
-.panel            { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; }
-.panel + .panel   { margin-top: 12px; }
-.panel-body       { padding: 16px; }
-
-/* ?????????????????????????????????????????????????????????????
-   9.  TARGET CARD  (select / upload area)
-   ????????????????????????????????????????????????????????????? */
-.target-card {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 28px 20px;
-    cursor: pointer;
-    text-align: center;
-    transition: background 0.15s, border-color 0.15s;
-}
-.target-card:hover         { background: var(--bg-light); border-color: var(--brand-color); }
-.target-card.has-selection { border-color: var(--brand-color); background: var(--brand-light); }
-
-/* ?????????????????????????????????????????????????????????????
-   10. QUICK ACTION ROW
-   ????????????????????????????????????????????????????????????? */
-.quick-action {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    cursor: pointer;
-    text-decoration: none !important;
-    color: var(--text-primary);
-    transition: background 0.15s, border-color 0.15s;
-}
-.quick-action:hover        { background: var(--bg-light); color: var(--text-primary); border-color: var(--brand-color); }
-.quick-action.danger:hover { border-color: var(--danger-color); background: #fff2f0; }
-.quick-action .qa-icon {
-    width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; flex-shrink: 0; font-size: 14px;
 }
 
-/* ?????????????????????????????????????????????????????????????
-   11. FIXED BOTTOM TOOLBAR
-   ????????????????????????????????????????????????????????????? */
-.bottom-toolbar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: #fff;
-    border-top: 1px solid var(--border-color);
-    padding: 11px 24px;
-    z-index: 1000;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
+.panel + .panel {
+    margin-top: 12px;
 }
 
-/* ?????????????????????????????????????????????????????????????
-   12. HOME DASHBOARD — stat card
-   ????????????????????????????????????????????????????????????? */
-.dash-stat-card {
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 16px 20px;
-    display: block;
-    text-decoration: none !important;
-    color: var(--text-primary);
-    transition: background 0.15s, border-color 0.15s;
-}
-.dash-stat-card:hover  { background: var(--bg-light); color: var(--text-primary); }
-.dash-stat-card.blue   { border-left-color: var(--brand-color); }
-.dash-stat-card.green  { border-left-color: var(--success-color); }
-.dash-stat-card.yellow { border-left-color: var(--warning-color); }
-.dash-stat-card.purple { border-left-color: #531dab; }
-.dash-stat-card .ds-val  { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
-.dash-stat-card .ds-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase;
-                            letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; }
-.dash-stat-card .ds-link { font-size: 11px; font-weight: 600; margin-top: 10px; }
-
-/* ?????????????????????????????????????????????????????????????
-   13. HOME DASHBOARD — section panel
-   ????????????????????????????????????????????????????????????? */
-.dash-panel        { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; }
-.dash-panel-header {
-    padding: 12px 16px 10px;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 11px; font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase; letter-spacing: 0.6px;
-}
-.dash-panel-body   { padding: 16px; }
-
-/* ?????????????????????????????????????????????????????????????
-   14. KPI CARD  (Assignments Index)
-   ????????????????????????????????????????????????????????????? */
-.kpi-card {
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.kpi-card:hover,
-.kpi-card.active         { background: var(--bg-light); }
-.kpi-card.kpi-all        { border-left-color: var(--text-secondary); }
-.kpi-card.kpi-inprogress { border-left-color: var(--brand-color);    }
-.kpi-card.kpi-upcoming   { border-left-color: var(--warning-color);  }
-.kpi-card.kpi-expired    { border-left-color: var(--danger-color);   }
-.kpi-card.kpi-completed  { border-left-color: var(--success-color);  }
-.kpi-number { font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: var(--text-primary); }
-.kpi-label  { font-size: 11px; font-weight: 600; text-transform: uppercase;
-              letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 4px; }
-
-/* ?????????????????????????????????????????????????????????????
-   15. COURSE LIST ITEM
-   ????????????????????????????????????????????????????????????? */
-.course-item {
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 0 4px 4px 0;
-    cursor: pointer;
-    background: #fff;
-    margin-bottom: 4px;
-    transition: background 0.15s, border-left-color 0.15s;
-}
-.course-item:hover        { background: var(--bg-light); border-left-color: var(--brand-color); }
-.course-item.active       { background: var(--brand-light); border-left-color: var(--brand-color); }
-.course-item.done         { border-left-color: var(--success-color); }
-.course-item.active.done  { border-left-color: var(--success-color); }
-
-/* ?????????????????????????????????????????????????????????????
-   16. VERSION CARD  (Course Dashboard)
-   ????????????????????????????????????????????????????????????? */
-.version-card {
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 16px;
-    transition: background 0.15s;
-}
-.version-card:hover  { background: var(--bg-light); }
-.version-card.active { border-left-color: var(--brand-color); background: var(--brand-light); }
-
-/* ?????????????????????????????????????????????????????????????
-   17. STAT BLOCK / PROGRESS BAR / STATUS DOT
-   ????????????????????????????????????????????????????????????? */
-.stat-block         { line-height: 1; }
-.stat-block .val    { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
-.stat-block .lbl    { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-
-/* legacy stat names */
-.stat-value { font-size: 1.8rem; font-weight: bold; color: var(--text-primary); }
-.stat-label { font-size: 12px; color: var(--text-secondary); }
-
-.progress-slim {
-    height: 3px;
-    background: var(--border-color);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.status-dot {
-    display: inline-block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-/* ?????????????????????????????????????????????????????????????
-   18. PIVOT / REPORT TABLE
-   ????????????????????????????????????????????????????????????? */
-.pivot-table {
-    font-size: 12px;
-    border-color: var(--border-color) !important;
-    margin-bottom: 0;
-}
-.pivot-table th {
-    background: var(--bg-light);
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 11px;
-}
-.pivot-table td { vertical-align: middle; }
-.pivot-table tbody tr:hover { background-color: var(--bg-light); }
-.pivot-table tbody tr:hover .sticky-col { background-color: var(--bg-light); }
-
-.sticky-col {
-    position: sticky;
-    left: 0;
-    background-color: #fff;
-    z-index: 2;
-    border-right: 2px solid var(--border-color) !important;
-}
-th.sticky-col { background-color: var(--bg-light); z-index: 3; }
-
-.status-done    { color: var(--success-color); }
-.status-active  { color: var(--warning-color); }
-.status-pending { color: var(--text-secondary); }
-
-/* ?????????????????????????????????????????????????????????????
-   19. SCORM VIEWER  (legacy — no changes needed)
-   ????????????????????????????????????????????????????????????? */
-.viewer-container {
-    display: flex; flex-wrap: wrap;
-    gap: 15px;
-    height: calc(100vh - 100px);
-}
-.scorm-section {
-    flex: 3; min-width: 60%;
-    border: 1px solid var(--border-color);
-    background: #fff;
-}
-.info-section {
-    flex: 1; min-width: 300px;
-    border: 1px solid var(--border-color);
-    background: #fff;
-}
-.scorm-toolbar {
-    padding: 10px;
-    background: var(--bg-light);
-    border-bottom: 1px solid var(--border-color);
-}
-iframe#scormFrame { width: 100%; height: calc(100% - 45px); border: none; }
-
-/* ?????????????????????????????????????????????????????????????
-   20. DEVEXTREME OVERRIDES
-   ????????????????????????????????????????????????????????????? */
-.dx-datagrid .dx-datagrid-headers    { background: var(--bg-light); }
-.dx-datagrid-rowsview .dx-row-alt > td { background-color: var(--bg-light); }
-
-/* dx primary button */
-.dx-button-mode-contained.dx-button-default {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-.dx-button-mode-contained.dx-button-default.dx-state-hover {
-    background-color: var(--brand-dark) !important;
-    border-color: var(--brand-dark) !important;
-}
-
-/* dx text editor focus */
-.dx-texteditor.dx-state-focused,
-.dx-texteditor.dx-state-active { border-color: var(--brand-color) !important; }
-.dx-texteditor.dx-state-focused .dx-texteditor-label { color: var(--brand-color) !important; }
-
-/* =============================================================
-   23. TYPOGRAPHY UTILITIES  (replaces recurring inline styles)
-   ============================================================= */
-.page-title    { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
-.page-subtitle { font-size: 12px; color: var(--text-secondary); }
-
-/* =============================================================
-   24. FILTER PANEL  (shared across Form / Detail pages)
-   ============================================================= */
-.filter-panel {
-    background: var(--bg-light);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+.panel-body {
     padding: 16px;
 }
-.filter-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 6px;
-    display: block;
-}
 
-/* =============================================================
-   25. PANEL HEADER  (border-bottom label inside .border panels)
-   ============================================================= */
 .panel-header {
     font-size: 11px;
     font-weight: 600;
@@ -538,49 +316,31 @@ iframe#scormFrame { width: 100%; height: calc(100% - 45px); border: none; }
     border-bottom: 1px solid var(--border-color);
 }
 
-/* ?????????????????????????????????????????????????????????????
-   21. FOOTER
-   ????????????????????????????????????????????????????????????? */
-footer.footer {
-    border-top: 1px solid var(--border-color) !important;
-    background: #fff !important;
-    font-size: 11px;
-    color: var(--text-secondary);
+.filter-panel {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 16px;
 }
 
-/* ?????????????????????????????????????????????????????????????
-   22. PRINT
-   ????????????????????????????????????????????????????????????? */
-@media print {
-    .page-header, .bottom-toolbar, nav { display: none !important; }
-    body { padding-top: 0; }
-}
-
-
-/* ?? Page Header ???????????????????????????????????????????????? */
-.page-header {
-    border-bottom: 1px solid var(--border-color);
-    padding: 11px 24px;
+.bottom-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
     background: #fff;
-    /* reset legacy overrides */
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    margin-bottom: 0 !important;
+    border-top: 1px solid var(--border-color);
+    padding: 11px 24px;
 }
 
-/* ?? Section Title ?????????????????????????????????????????????? */
-.section-title {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-}
-
-/* ?? Action Link (button-like anchor) ?????????????????????????? */
+/* -------------------------------------------------------------
+   6. Action Links and Buttons
+   ------------------------------------------------------------- */
 .action-link {
     display: inline-flex;
     align-items: center;
@@ -592,331 +352,77 @@ footer.footer {
     color: var(--text-primary);
     font-size: 12px;
     font-weight: 500;
-    cursor: pointer;
-    text-decoration: none !important;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    white-space: nowrap;
-}
-.action-link:hover          { background: var(--bg-light); color: var(--text-primary); }
-.action-link.primary        { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
-.action-link.primary:hover  { background: #096dd9; border-color: #096dd9; color: #fff; }
-.action-link.success        { background: var(--success-color); border-color: var(--success-color); color: #fff; }
-.action-link.success:hover  { background: #389e0d; border-color: #389e0d; color: #fff; }
-.action-link.danger:hover   { border-color: var(--danger-color); color: var(--danger-color); background: #fff2f0; }
-.action-link:disabled,
-.action-link.disabled       { opacity: 0.45; pointer-events: none; }
-
-/* ?? Status Pill ??????????????????????????????????????????????? */
-.status-pill {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    border-width: 1px;
-    border-style: solid;
-}
-.status-pill.active    { background: #f6ffed; color: var(--success-color); border-color: #b7eb8f; }
-.status-pill.inactive  { background: var(--bg-light); color: var(--text-secondary); border-color: var(--border-color); }
-.status-pill.warning   { background: #fffbe6; color: var(--warning-color); border-color: #ffe58f; }
-.status-pill.danger    { background: #fff2f0; color: var(--danger-color); border-color: #ffccc7; }
-.status-pill.info      { background: #e6f4ff; color: var(--accent-color); border-color: #91d5ff; }
-
-/* ?? Stat Block ???????????????????????????????????????????????? */
-.stat-block            { line-height: 1; }
-.stat-block .val       { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
-.stat-block .lbl       { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-
-/* ?? Slim Progress Bar ????????????????????????????????????????? */
-.progress-slim {
-    height: 3px;
-    background: var(--border-color);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-/* ?? Panel Card (border variant — no shadow) ?????????????????? */
-.panel {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-}
-.panel + .panel { margin-top: 12px; }
-.panel-body     { padding: 16px; }
-
-/* ?? Target Card (for selection areas) ???????????????????????? */
-.target-card {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 28px 20px;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-    text-align: center;
-}
-.target-card:hover           { background: var(--bg-light); border-color: var(--accent-color); }
-.target-card.has-selection   { border-color: var(--accent-color); background: #e6f4ff; }
-
-/* ?? Quick Action Row ?????????????????????????????????????????? */
-.quick-action {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    cursor: pointer;
-    text-decoration: none !important;
-    color: var(--text-primary);
-    transition: background 0.15s, border-color 0.15s;
-}
-.quick-action:hover         { background: var(--bg-light); color: var(--text-primary); border-color: var(--accent-color); }
-.quick-action.danger:hover  { border-color: var(--danger-color); background: #fff2f0; }
-.quick-action .qa-icon {
-    width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; flex-shrink: 0; font-size: 14px;
-}
-
-/* ?? Fixed Bottom Toolbar ?????????????????????????????????????? */
-.bottom-toolbar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: #fff;
-    border-top: 1px solid var(--border-color);
-    padding: 11px 24px;
-    z-index: 1000;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-}
-
-/* ?? Sticky column helper (pivot tables) ?????????????????????? */
-.sticky-col {
-    position: sticky;
-    left: 0;
-    background-color: #fff;
-    z-index: 2;
-    border-right: 2px solid var(--border-color) !important;
-}
-th.sticky-col {
-    background-color: var(--bg-light);
-    z-index: 3;
-}
-
-/* ?? Pivot table ?????????????????????????????????????????????? */
-.pivot-table {
-    font-size: 12px;
-    border-color: var(--border-color) !important;
-    margin-bottom: 0;
-}
-.pivot-table th {
-    background: var(--bg-light);
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 11px;
-}
-.pivot-table td { vertical-align: middle; }
-.pivot-table tbody tr:hover                  { background-color: var(--bg-light); }
-.pivot-table tbody tr:hover .sticky-col      { background-color: var(--bg-light); }
-.status-done    { color: var(--success-color); }
-.status-active  { color: var(--warning-color); }
-.status-pending { color: var(--text-secondary); }
-
-/* ?? Navbar override (minimal accent) ????????????????????????? */
-.navbar-custom {
-    background: #1a1a2e;
-    box-shadow: 0 1px 0 var(--border-color);
-    padding: 0 1rem;
-}
-.navbar-custom .navbar-brand {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    color: #fff !important;
-}
-.navbar-custom .navbar-nav .nav-link {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.8) !important;
-    padding: 0.45rem 0.7rem;
-    border-radius: 3px;
-    transition: background 0.15s;
-}
-.navbar-custom .navbar-nav .nav-link:hover,
-.navbar-custom .navbar-nav .nav-link.active,
-.navbar-custom .navbar-nav .show > .nav-link {
-    background: rgba(255,255,255,0.1) !important;
-    color: #fff !important;
-    transform: none;
-}
-.navbar-custom .dropdown-menu {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    padding: 4px 0;
-    font-size: 12px;
-}
-.navbar-custom .dropdown-item {
-    padding: 7px 16px;
-    color: var(--text-primary);
-    font-size: 12px;
-    transition: background 0.12s;
-}
-.navbar-custom .dropdown-item:hover { background: var(--bg-light); }
-
-/* ?? Home Dashboard: stat card ????????????????????????????????? */
-.dash-stat-card {
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 16px 20px;
-    display: block;
-    text-decoration: none !important;
-    color: var(--text-primary);
-    transition: background 0.15s, border-color 0.15s;
-}
-.dash-stat-card:hover { background: var(--bg-light); }
-.dash-stat-card.blue   { border-left-color: var(--accent-color); }
-.dash-stat-card.green  { border-left-color: var(--success-color); }
-.dash-stat-card.yellow { border-left-color: var(--warning-color); }
-.dash-stat-card.purple { border-left-color: #722ed1; }
-.dash-stat-card .ds-val  { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
-.dash-stat-card .ds-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase;
-                            letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; }
-.dash-stat-card .ds-link { font-size: 11px; font-weight: 600; margin-top: 10px; }
-
-/* ?? Home Dashboard: section panel ???????????????????????????? */
-.dash-panel {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-}
-.dash-panel-header {
-    padding: 12px 16px 10px;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-}
-.dash-panel-body { padding: 16px; }
-
-/* ?? KPI card (Assignments Index) ????????????????????????????? */
-.kpi-card {
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.kpi-card:hover, .kpi-card.active { background: var(--bg-light); }
-.kpi-card.kpi-all        { border-left-color: var(--text-secondary); }
-.kpi-card.kpi-inprogress { border-left-color: var(--accent-color); }
-.kpi-card.kpi-upcoming   { border-left-color: var(--warning-color); }
-.kpi-card.kpi-expired    { border-left-color: var(--danger-color); }
-.kpi-card.kpi-completed  { border-left-color: var(--success-color); }
-.kpi-number { font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: var(--text-primary); }
-.kpi-label  { font-size: 11px; font-weight: 600; text-transform: uppercase;
-               letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 4px; }
-
-/* ?? Course list item ?????????????????????????????????????????? */
-.course-item {
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 0 4px 4px 0;
-    cursor: pointer;
-    transition: background 0.15s, border-left-color 0.15s;
-    background: #fff;
-    margin-bottom: 4px;
-}
-.course-item:hover       { background: var(--bg-light); border-left-color: var(--accent-color); }
-.course-item.active      { background: #e6f4ff; border-left-color: var(--accent-color); }
-.course-item.done        { border-left-color: var(--success-color); }
-.course-item.active.done { border-left-color: var(--success-color); }
-
-/* ?? Version card (Course Dashboard) ?????????????????????????? */
-.version-card {
-    border: 1px solid var(--border-color);
-    border-left: 3px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 16px;
-    transition: background 0.15s;
-}
-.version-card:hover  { background: var(--bg-light); }
-.version-card.active { border-left-color: var(--accent-color); background: #e6f4ff; }
-
-/* ?? Status dot ??????????????????????????????????????????????? */
-.status-dot {
-    display: inline-block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-/* ?? DevExtreme grid override ????????????????????????????????? */
-.dx-datagrid .dx-datagrid-headers { background: var(--bg-light); }
-.dx-datagrid-rowsview .dx-row-alt > td { background-color: var(--bg-light); }
-
-/* =============================================================
-   DX TOAST  (DevExpress.ui.notify — Stack mode)
-   ============================================================= */
-.dx-toast-content-custom {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
     line-height: 1.4;
-    font-family: var(--font-stack, sans-serif);
-}
-.dx-toast-content-custom i {
-    font-size: 15px;
-    flex-shrink: 0;
-}
-
-/* =============================================================
-   SWEETALERT2  (Admin overrides)
-   ============================================================= */
-.swal2-container {
-    z-index: 99999 !important;
-}
-.swal-admin-popup {
-    border-radius: 8px !important;
-    font-family: var(--font-stack, sans-serif);
-    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    font-family: var(--font-stack);
 }
 
-/* ?? Footer ??????????????????????????????????????????????????? */
-footer.footer {
-    border-top: 1px solid var(--border-color) !important;
-    background: #fff !important;
-    font-size: 11px;
-    color: var(--text-secondary);
+.action-link:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
 }
 
-/* ?? Print helper ????????????????????????????????????????????? */
-@@media print {
-    .page-header, .bottom-toolbar, nav { display: none !important; }
-    body { padding-top: 0; }
+.action-link.primary {
+    background: var(--brand-color);
+    border-color: var(--brand-color);
+    color: #fff;
 }
 
-/* =============================================================
-   PERFORMANCE & LOADING STATES (UX)
-   ============================================================= */
+.action-link.primary:hover {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: #fff;
+}
 
-/* --- Button Loading State ----------------------------------------
-   ?????????? setButtonLoading() ?? _DevExtremeLayout.cshtml
-   ??????? disabled ?????????????????????? cursor ?????????
-   ----------------------------------------------------------------- */
+.action-link.success {
+    background: var(--success-color);
+    border-color: var(--success-color);
+    color: #fff;
+}
+
+.action-link.success:hover {
+    background: #389e0d;
+    border-color: #389e0d;
+    color: #fff;
+}
+
+.action-link.danger:hover {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+    background: #fff2f0;
+}
+
+.action-link:disabled,
+.action-link.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.btn-primary {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--brand-dark) !important;
+    border-color: var(--brand-dark) !important;
+}
+
+.btn-outline-primary {
+    color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
 .btn:disabled,
 .btn[disabled] {
     opacity: 0.65;
@@ -929,19 +435,521 @@ footer.footer {
     vertical-align: middle;
 }
 
-/* --- Lazy Loading Image -------------------------------------------
-   ???????????? loading="lazy" ?? placeholder ??????????????????
-   ??????? Layout Shift (CLS)
-   ----------------------------------------------------------------- */
-img[loading="lazy"] {
-    background-color: var(--bg-light);
-    min-height: 40px;
+/* -------------------------------------------------------------
+   7. Badges and Status
+   ------------------------------------------------------------- */
+.status-pill,
+.tag-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    line-height: 1.4;
 }
 
-/* --- DevExtreme DataGrid Loading Panel ---------------------------
-   ??? DevExtreme Loading Panel ??????? (?????? Skeleton)
-   ???? overlay ?????????????? Admin theme
-   ----------------------------------------------------------------- */
+.status-pill {
+    padding: 2px 10px;
+    border-radius: 20px;
+}
+
+.tag-pill {
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.pill-success {
+    background: #f6ffed;
+    color: var(--success-color);
+    border-color: #b7eb8f;
+}
+
+.pill-info {
+    background: var(--brand-light);
+    color: var(--brand-color);
+    border-color: #91caff;
+}
+
+.pill-warning {
+    background: #fffbe6;
+    color: var(--warning-color);
+    border-color: #ffe58f;
+}
+
+.pill-danger {
+    background: #fff2f0;
+    color: var(--danger-color);
+    border-color: #ffccc7;
+}
+
+.pill-default {
+    background: var(--bg-light);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.pill-learn {
+    background: #e6f4ff;
+    color: var(--brand-color);
+    border-color: #91caff;
+}
+
+.pill-exam {
+    background: #fffbe6;
+    color: var(--warning-color);
+    border-color: #ffe58f;
+}
+
+.status-pill.active {
+    background: #f6ffed;
+    color: var(--success-color);
+    border-color: #b7eb8f;
+}
+
+.status-pill.inactive {
+    background: var(--bg-light);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.status-pill.warning {
+    background: #fffbe6;
+    color: var(--warning-color);
+    border-color: #ffe58f;
+}
+
+.status-pill.danger {
+    background: #fff2f0;
+    color: var(--danger-color);
+    border-color: #ffccc7;
+}
+
+.status-pill.info {
+    background: var(--brand-light);
+    color: var(--brand-color);
+    border-color: #91caff;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-dot.dot-success {
+    background: var(--success-color);
+}
+
+.status-dot.dot-warning {
+    background: var(--warning-color);
+}
+
+.status-dot.dot-default {
+    background: #d9d9d9;
+}
+
+.badge-active {
+    background: #f6ffed;
+    color: var(--success-color);
+}
+
+.badge-inactive,
+.badge-pending {
+    background: #fffbe6;
+    color: var(--warning-color);
+}
+
+.status-done {
+    color: var(--success-color);
+}
+
+.status-active {
+    color: var(--warning-color);
+}
+
+.status-pending {
+    color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------
+   8. Shared Cards and Blocks
+   ------------------------------------------------------------- */
+.target-card {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    padding: 28px 20px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.target-card:hover {
+    background: var(--bg-light);
+    border-color: var(--brand-color);
+}
+
+.target-card.has-selection {
+    border-color: var(--brand-color);
+    background: var(--brand-light);
+}
+
+.quick-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    text-decoration: none !important;
+    color: var(--text-primary);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.quick-action:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border-color: var(--brand-color);
+}
+
+.quick-action.danger:hover {
+    border-color: var(--danger-color);
+    background: #fff2f0;
+}
+
+.quick-action .qa-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+.dash-stat-card {
+    display: block;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    padding: 16px 20px;
+    text-decoration: none !important;
+    color: var(--text-primary);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.dash-stat-card:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+}
+
+.dash-stat-card.blue {
+    border-left-color: var(--brand-color);
+}
+
+.dash-stat-card.green {
+    border-left-color: var(--success-color);
+}
+
+.dash-stat-card.yellow {
+    border-left-color: var(--warning-color);
+}
+
+.dash-stat-card.purple {
+    border-left-color: #531dab;
+}
+
+.dash-stat-card .ds-val {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.dash-stat-card .ds-lbl {
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.dash-stat-card .ds-link {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.dash-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+}
+
+.dash-panel-header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.dash-panel-body {
+    padding: 16px;
+}
+
+.kpi-card {
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.kpi-card:hover,
+.kpi-card.active {
+    background: var(--bg-light);
+}
+
+.kpi-card.kpi-all {
+    border-left-color: var(--text-secondary);
+}
+
+.kpi-card.kpi-inprogress {
+    border-left-color: var(--brand-color);
+}
+
+.kpi-card.kpi-upcoming {
+    border-left-color: var(--warning-color);
+}
+
+.kpi-card.kpi-expired {
+    border-left-color: var(--danger-color);
+}
+
+.kpi-card.kpi-completed {
+    border-left-color: var(--success-color);
+}
+
+.kpi-number {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.kpi-label {
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.course-item {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    background: #fff;
+    margin-bottom: 4px;
+    transition: background 0.15s, border-left-color 0.15s;
+}
+
+.course-item:hover {
+    background: var(--bg-light);
+    border-left-color: var(--brand-color);
+}
+
+.course-item.active {
+    background: var(--brand-light);
+    border-left-color: var(--brand-color);
+}
+
+.course-item.done,
+.course-item.active.done {
+    border-left-color: var(--success-color);
+}
+
+.version-card {
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    padding: 16px;
+    transition: background 0.15s;
+}
+
+.version-card:hover {
+    background: var(--bg-light);
+}
+
+.version-card.active {
+    border-left-color: var(--brand-color);
+    background: var(--brand-light);
+}
+
+.version-card-skeleton {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 16px 18px;
+    background: #fff;
+    height: 180px;
+}
+
+.stat-block {
+    line-height: 1;
+}
+
+.stat-block .val {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-block .lbl {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.progress-slim {
+    height: 3px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+/* -------------------------------------------------------------
+   9. Tables and Reports
+   ------------------------------------------------------------- */
+.pivot-table {
+    font-size: 12px;
+    border-color: var(--border-color) !important;
+    margin-bottom: 0;
+}
+
+.pivot-table th {
+    background: var(--bg-light);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.pivot-table td {
+    vertical-align: middle;
+}
+
+.pivot-table tbody tr:hover,
+.pivot-table tbody tr:hover .sticky-col {
+    background-color: var(--bg-light);
+}
+
+.sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: #fff;
+    z-index: 2;
+    border-right: 2px solid var(--border-color) !important;
+}
+
+th.sticky-col {
+    background-color: var(--bg-light);
+    z-index: 3;
+}
+
+/* -------------------------------------------------------------
+   10. SCORM Viewer
+   ------------------------------------------------------------- */
+.viewer-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    height: calc(100vh - 100px);
+}
+
+.scorm-section {
+    flex: 3;
+    min-width: 60%;
+    border: 1px solid var(--border-color);
+    background: #fff;
+}
+
+.info-section {
+    flex: 1;
+    min-width: 300px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+}
+
+.scorm-toolbar {
+    padding: 10px;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+iframe#scormFrame {
+    width: 100%;
+    height: calc(100% - 45px);
+    border: none;
+}
+
+/* -------------------------------------------------------------
+   11. DevExtreme Overrides
+   ------------------------------------------------------------- */
+.dx-datagrid .dx-datagrid-headers {
+    background: var(--bg-light);
+}
+
+.dx-datagrid-rowsview .dx-row-alt > td {
+    background-color: var(--bg-light);
+}
+
+.dx-button-mode-contained.dx-button-default {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-button-mode-contained.dx-button-default.dx-state-hover {
+    background-color: var(--brand-dark) !important;
+    border-color: var(--brand-dark) !important;
+}
+
+.dx-texteditor.dx-state-focused,
+.dx-texteditor.dx-state-active {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-texteditor.dx-state-focused .dx-texteditor-label {
+    color: var(--brand-color) !important;
+}
+
 .dx-loadpanel-content {
     border-radius: 4px !important;
     border: 1px solid var(--border-color) !important;
@@ -951,21 +959,51 @@ img[loading="lazy"] {
 .dx-loadpanel-message {
     font-size: 12px !important;
     color: var(--text-secondary) !important;
-    font-family: var(--font-stack, sans-serif) !important;
+    font-family: var(--font-stack) !important;
 }
 
 .dx-loadindicator-segment {
     background-color: var(--brand-color) !important;
 }
 
-/* --- Skeleton Loader (Page-level / Card / Stat) -------------------
-   ????????? Stat Cards (Dashboard), Version Cards (Course Dashboard)
-   ??????? UI ????? ????????? AJAX ??????????
-   ????????? Copilot Instructions — Admin ??? Skeleton ??? Flat/Minimal
-   ----------------------------------------------------------------- */
-@@keyframes admin-shimmer {
-    0%   { background-position: -600px 0; }
-    100% { background-position:  600px 0; }
+.dx-toast-content-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-family: var(--font-stack);
+}
+
+.dx-toast-content-custom i {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------
+   12. SweetAlert
+   ------------------------------------------------------------- */
+.swal2-container {
+    z-index: 99999 !important;
+}
+
+.swal-admin-popup {
+    border-radius: 8px !important;
+    font-family: var(--font-stack);
+    font-size: 13px;
+}
+
+/* -------------------------------------------------------------
+   13. Loading States
+   ------------------------------------------------------------- */
+@keyframes admin-shimmer {
+    0% {
+        background-position: -600px 0;
+    }
+
+    100% {
+        background-position: 600px 0;
+    }
 }
 
 .skeleton {
@@ -977,34 +1015,19 @@ img[loading="lazy"] {
 }
 
 .skeleton::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.65) 50%,
-        transparent 100%
-    );
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
     background-size: 600px 100%;
     animation: admin-shimmer 1.4s ease-in-out infinite;
 }
 
-/* Stat card value skeleton (?????? .ds-val ???????) */
 .ds-val-skeleton {
     width: 56px;
     height: 28px;
     border-radius: 3px;
     margin: 4px 0;
-}
-
-/* Version card skeleton (????? #versionsCardContainer) */
-.version-card-skeleton {
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 16px 18px;
-    background: #fff;
-    height: 180px;
 }
 
 .skeleton-line {
@@ -1013,14 +1036,45 @@ img[loading="lazy"] {
     margin-bottom: 8px;
 }
 
-.skeleton-line.w-60  { width: 60%; }
-.skeleton-line.w-80  { width: 80%; }
-.skeleton-line.w-40  { width: 40%; }
-.skeleton-line.w-100 { width: 100%; }
+.skeleton-line.w-40 {
+    width: 40%;
+}
 
-/* Panel / generic block skeleton */
-.skeleton-block {
-    border-radius: 3px;
+.skeleton-line.w-60 {
+    width: 60%;
+}
+
+.skeleton-line.w-80 {
+    width: 80%;
+}
+
+.skeleton-line.w-100 {
     width: 100%;
 }
 
+.skeleton-block {
+    width: 100%;
+    border-radius: 3px;
+}
+
+/* -------------------------------------------------------------
+   14. Footer and Print
+   ------------------------------------------------------------- */
+footer.footer {
+    border-top: 1px solid var(--border-color) !important;
+    background: #fff !important;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+@media print {
+    .page-header,
+    .bottom-toolbar,
+    nav {
+        display: none !important;
+    }
+
+    body {
+        padding-top: 0;
+    }
+}

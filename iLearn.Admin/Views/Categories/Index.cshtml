@@ -36,35 +36,31 @@
 
 @section Scripts {
     <script>
+        const ROOT_NODE_ID = 'root';
+        const ALL_CATEGORIES_LABEL = 'All Categories';
+
         let gridInstance;
         let availableDivisions = [];
-        // DataStores
+
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
             loadUrl: `${serviceUrl}/Divisions`
         });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
 
-        // lookup column — raw+cached ดึงครั้งเดียว resolve label ในฝั่ง client
         const dsDivisionsLookup = { store: divisionsStore, loadMode: 'raw', cacheRawData: true };
-        // form selectbox — paginate lazy search
         const dsDivisionsSelect = { store: divisionsStore, paginate: true, pageSize: 20 };
 
         $(async () => {
-
-            // ==========================================
-            // 1. สร้าง DataGrid หลัก (Categories)
-            // ==========================================
             gridInstance = initDxGrid("#grid", {
                 dataSource: categoriesStore,
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { placeholder: "Search categories..." },
 
-                // --- ปรับแต่ง UI ตารางหลักให้คลีน ---
-                showBorders: false, // ปิดขอบตาราง
-                rowAlternationEnabled: true, 
-                showRowLines: true, // โชว์แค่เส้นใต้แถว
+                showBorders: false,
+                rowAlternationEnabled: true,
+                showRowLines: true,
                 hoverStateEnabled: true,
                 scrolling: { mode: "virtual" },
                 onInitNewRow: function(e) {
@@ -73,7 +69,6 @@
                     }
                 },
 
-               // Editing Configuration (Popup)
                 editing: {
                     mode: "popup",
                     allowUpdating: true,
@@ -89,7 +84,7 @@
                         position: { my: "center", at: "center", of: window },
                         dragEnabled: true,
                         hideOnOutsideClick: true,
-                        wrapperAttr: { class: "rounded-4 shadow-lg" } // เพิ่มเงาให้ Popup
+                        wrapperAttr: { class: "rounded-4 shadow-lg" }
                     },
                     form: {
                         labelLocation: "top",
@@ -173,19 +168,9 @@
                             displayExpr: 'name', valueExpr: 'id'
                         },
                         cellTemplate: function(container, options) {
-                            const isActive = options.value;
-                            if (isActive) {
-                                $("<span>").addClass("status-pill pill-success")
-                                    .html('<i class="fas fa-check me-1"></i> Active')
-                                    .appendTo(container);
-                            } else {
-                                $("<span>").addClass("status-pill pill-default")
-                                    .html('<i class="fas fa-times me-1"></i> Inactive')
-                                    .appendTo(container);
-                            }
+                            $(buildStatusPill(options.value)).appendTo(container);
                         }
                     },
-                    // --- คอลัมน์ Action ---
                     {
                         type: "buttons",
                         caption: "Manage",
@@ -197,7 +182,6 @@
                             "edit",
                             {
                                 name: "delete",
-                                // ให้แสดงปุ่มลบ (visible: true) ก็ต่อเมื่อ isActive มีค่าเป็น false เท่านั้น
                                 visible: function(e) {
                                     return e.row.data.isActive === false;
                                 }
@@ -207,63 +191,96 @@
                 ]
             });
 
-            // ==========================================
-            // 2. ดึงข้อมูล Divisions และสร้าง TreeView ด้านซ้าย
-            // ==========================================
             try {
-                const divisionsData = await divisionsStore.load();
-                availableDivisions = Array.isArray(divisionsData) ? divisionsData : [];
-                divisionsData.sort((a, b) => (a.name > b.name) ? 1 : -1);
-
-                const treeData = [{
-                    id: 'root',
-                    text: 'All Categories',
-                    icon: 'home',
-                    expanded: true,
-                    isRoot: true,
-                    items: divisionsData.map(d => ({
-                        id: 'div_' + d.id,
-                        text: d.isActive ? d.name : `🚫 ${d.name} (Draft)`,
-                        icon: 'folder',
-                        divisionId: d.id
-                    }))
-                }];
-
-                $("#divisionTreeView").dxTreeView({
-                    dataSource: treeData,
-                    dataStructure: 'tree',
-                    keyExpr: 'id',
-                    displayExpr: 'text',
-                    itemsExpr: 'items',
-                    selectionMode: 'single',
-                    selectByClick: true,
-                    onItemSelectionChanged: function(e) {
-                        const node = e.itemData;
-                        const gridElement = $("#grid");
-                        if (!gridElement.length || !gridElement.data("dxDataGrid")) return;
-
-                        const grid = gridElement.dxDataGrid("instance");
-
-                        if (node.isRoot) {
-                            grid.clearFilter();
-                        } else if (node.divisionId) {
-                            grid.filter(["divisionId", "=", node.divisionId]);
-                        }
-                    },
-                    onContentReady: function(e) {
-                        e.component.selectItem('root');
-                    }
-                });
+                await loadDivisionsAndTree();
             } catch (err) {
                 console.error("Error loading divisions for treeview", err);
             }
         });
 
-        // ฟังก์ชันสำหรับปุ่ม New Category
+        function buildStatusPill(isActive) {
+            if (isActive) {
+                return '<span class="status-pill pill-success"><i class="fas fa-check me-1"></i> Active</span>';
+            }
+
+            return '<span class="status-pill pill-default"><i class="fas fa-times me-1"></i> Inactive</span>';
+        }
+
+        async function loadDivisionsAndTree() {
+            const divisionsData = await divisionsStore.load();
+            availableDivisions = Array.isArray(divisionsData) ? divisionsData : [];
+            availableDivisions.sort(sortDivisionsByName);
+
+            $("#divisionTreeView").dxTreeView({
+                dataSource: buildDivisionTreeData(availableDivisions),
+                dataStructure: 'tree',
+                keyExpr: 'id',
+                displayExpr: 'text',
+                itemsExpr: 'items',
+                selectionMode: 'single',
+                selectByClick: true,
+                onItemSelectionChanged: function(e) {
+                    applyDivisionFilter(e.itemData);
+                },
+                onContentReady: function(e) {
+                    e.component.selectItem(ROOT_NODE_ID);
+                }
+            });
+        }
+
+        function buildDivisionTreeData(divisions) {
+            return [{
+                id: ROOT_NODE_ID,
+                text: ALL_CATEGORIES_LABEL,
+                icon: 'home',
+                expanded: true,
+                isRoot: true,
+                items: divisions.map(function(division) {
+                    return {
+                        id: `div_${division.id}`,
+                        text: division.isActive ? division.name : `Draft: ${division.name}`,
+                        icon: 'folder',
+                        divisionId: division.id
+                    };
+                })
+            }];
+        }
+
+        function sortDivisionsByName(left, right) {
+            return left.name.localeCompare(right.name);
+        }
+
+        function applyDivisionFilter(node) {
+            const grid = getGridInstance();
+            if (!grid || !node) {
+                return;
+            }
+
+            if (node.isRoot) {
+                grid.clearFilter();
+                return;
+            }
+
+            if (node.divisionId) {
+                grid.filter(["divisionId", "=", node.divisionId]);
+            }
+        }
+
+        function getGridInstance() {
+            const gridElement = $("#grid");
+            if (!gridElement.length || !gridElement.data("dxDataGrid")) {
+                return null;
+            }
+
+            return gridElement.dxDataGrid("instance");
+        }
+
         function addNewCategory() {
             if (gridInstance) {
                 gridInstance.addRow();
             }
         }
+
+        window.addNewCategory = addNewCategory;
     </script>
 }

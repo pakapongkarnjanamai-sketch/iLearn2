@@ -3,25 +3,14 @@ using iLearn.Admin.Services;
 using iLearn.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
+var apiBaseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "https://localhost:7128/api";
 
-// Add services to the container.
-// Configure JSON to use camelCase for client-side JS (AJAX/DevExtreme) and avoid reference loops
-builder.Services.AddRazorPages().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-});
+builder.Services.AddRazorPages().AddJsonOptions(ConfigureJsonOptions);
+builder.Services.AddControllers().AddJsonOptions(ConfigureJsonOptions);
 
-// Add controllers (API endpoints used by admin pages) and configure JSON the same way
-builder.Services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-});
-
-// เพิ่ม Session support
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -30,30 +19,23 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
-// Windows Authentication Configuration
 builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
     .AddNegotiate();
 
-// IIS Integration for Windows Authentication
 builder.Services.Configure<IISOptions>(options =>
 {
     options.AutomaticAuthentication = true;
     options.AuthenticationDisplayName = "Windows";
 });
 
-// Authorization with Role-based policies
 builder.Services.AddAuthorization(options =>
 {
-    var adminOnlyPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .RequireRole("Admin", "SuperAdmin")
-        .Build();
+    var adminOnlyPolicy = CreateAdminOnlyPolicy();
 
     options.DefaultPolicy = adminOnlyPolicy;
     options.FallbackPolicy = adminOnlyPolicy;
 
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("Admin", "SuperAdmin"));
+    options.AddPolicy("AdminOnly", adminOnlyPolicy);
 
     options.AddPolicy("SuperAdminOnly", policy =>
         policy.RequireRole("SuperAdmin"));
@@ -63,27 +45,22 @@ builder.Services.AddAuthorization(options =>
             context.User.Identity?.Name?.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase) == true));
 });
 
-// Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IApiUserService, ApiUserService>();
 
-// HTTP Client for API calls
 builder.Services.AddHttpClient("iLearnAPI", client =>
 {
-    var baseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "https://localhost:7128/api";
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(30);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
 {
     UseDefaultCredentials = true
 });
 
-// Add memory cache
 builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -91,13 +68,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Static files ก่อน
+app.UseStaticFiles();
 
 app.UseRouting();
-app.UseSession(); // เพิ่ม Session
+app.UseSession();
 
 app.UseAuthentication();
-// Middleware must run before authorization so role claims are available to policies
 app.UseMiddleware<ApiUserSyncMiddleware>();
 app.UseAuthorization();
 
@@ -110,3 +86,17 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+static void ConfigureJsonOptions(JsonOptions options)
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+}
+
+static AuthorizationPolicy CreateAdminOnlyPolicy()
+{
+    return new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireRole("Admin", "SuperAdmin")
+        .Build();
+}

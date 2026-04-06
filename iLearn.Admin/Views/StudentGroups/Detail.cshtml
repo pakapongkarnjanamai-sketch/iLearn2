@@ -24,40 +24,6 @@
 
 <div class="container-fluid px-4 py-4">
 
-    <!-- ?? Group Info Card ?? -->
-    <div class="border rounded bg-white p-3 mb-4 d-flex align-items-center gap-3 flex-wrap">
-        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-             style="width:48px;height:48px;background:#e6f4ff;color:var(--accent-color);">
-            <i class="fas fa-users fa-lg"></i>
-        </div>
-        <div class="flex-grow-1">
-            <div class="fw-bold text-dark" style="font-size:14px;" id="info-name">
-                <span class="skeleton skeleton-line w-60" style="height:14px;"></span>
-            </div>
-            <div class="text-secondary" style="font-size:12px;" id="info-desc">
-                <span class="skeleton skeleton-line w-80" style="height:11px;"></span>
-            </div>
-        </div>
-        <div class="text-center px-3 border-start">
-            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="info-count">
-                <span class="skeleton ds-val-skeleton"></span>
-            </div>
-            <div class="text-secondary" style="font-size:11px;">Members</div>
-        </div>
-        <div class="text-center px-3 border-start">
-            <div class="fw-bold" style="font-size:22px;color:var(--accent-color);" id="kpi-assignment-count">
-                <span class="skeleton ds-val-skeleton"></span>
-            </div>
-            <div class="text-secondary" style="font-size:11px;">Assignments</div>
-        </div>
-        <div class="text-center px-3 border-start">
-            <div class="fw-bold" style="font-size:22px;color:var(--success-color);" id="kpi-completed-count">
-                <span class="skeleton ds-val-skeleton"></span>
-            </div>
-            <div class="text-secondary" style="font-size:11px;">Completed</div>
-        </div>
-    </div>
-
     <!-- ?? Tabs ?? -->
     <div class="border rounded bg-white">
         <div class="d-flex border-bottom px-1">
@@ -93,11 +59,18 @@
 @section Scripts {
 <script>
     const GROUP_ID = @groupId;
+    const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
+    const ENROLLMENTS_API_URL = `${serviceUrl}/Enrollments`;
+    const STUDENTS_API_URL = `${serviceUrl}/Students`;
+    const ASSIGNMENT_DETAIL_URL = '@Url.Action("Detail", "Assignments")';
+    const STUDENT_PROFILE_URL = '@Url.Action("Profile", "Students")';
+    const EMPTY_TEXT = "—";
+
     let membersGrid;
+    let assignmentGrid;
 
     $(() => {
-
-        // ?? Members Grid ??
         membersGrid = initDxGrid("#grid-members", {
             dataSource: [],
             showBorders: true,
@@ -107,40 +80,47 @@
             columns: [
                 {
                     dataField: "studentCode", caption: "Employee ID", width: 130,
-                    cellTemplate: (c, o) =>
-                        $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
-                               .addClass("tag-pill pill-default fw-bold")
-                               .text(o.value || "—").appendTo(c)
+                    cellTemplate: function(container, options) {
+                        $("<a>")
+                            .attr("href", `${STUDENT_PROFILE_URL}?code=${options.value}`)
+                            .addClass("tag-pill pill-default fw-bold")
+                            .text(options.value || EMPTY_TEXT)
+                            .appendTo(container);
+                    }
                 },
                 {
                     dataField: "studentName", caption: "Full Name", minWidth: 180,
-                    cellTemplate: (c, o) =>
-                        $("<span>").addClass("fw-medium text-dark")
-                                   .text(o.value || "—").appendTo(c)
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("fw-medium text-dark").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
                 },
                 {
                     dataField: "division", caption: "Division", width: 130,
-                    cellTemplate: (c, o) =>
-                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                   .text(o.value || "—").appendTo(c)
+                    cellTemplate: function(container, options) {
+                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
+                    }
                 },
                 {
                     dataField: "department", caption: "Department", width: 130,
-                    cellTemplate: (c, o) =>
-                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                   .text(o.value || "—").appendTo(c)
+                    cellTemplate: function(container, options) {
+                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
+                    }
                 },
                 {
                     dataField: "section", caption: "Section", minWidth: 130,
-                    cellTemplate: (c, o) =>
-                        $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                                   .text(o.value || "—").appendTo(c)
+                    cellTemplate: function(container, options) {
+                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
+                    }
                 },
                 {
                     dataField: "position", caption: "Position", width: 110, alignment: "center",
-                    cellTemplate: (c, o) => {
-                        if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
-                        $("<span>").addClass("tag-pill pill-default").text(o.value).appendTo(c);
+                    cellTemplate: function(container, options) {
+                        if (!options.value) {
+                            appendText(container, EMPTY_TEXT, { color: "var(--text-secondary)" });
+                            return;
+                        }
+
+                        $("<span>").addClass("tag-pill pill-default").text(options.value).appendTo(container);
                     }
                 },
                 {
@@ -154,9 +134,98 @@
             ]
         });
 
+        assignmentGrid = initDxGrid("#grid-assignments", {
+            dataSource: [],
+            showBorders: true,
+            showRowLines: true,
+            hoverStateEnabled: true,
+            searchPanel: { visible: true, placeholder: "Search assignments..." },
+            onRowPrepared: function(e) {
+                if (e.rowType !== "data") {
+                    return;
+                }
+
+                if (e.data.status === "Expired") {
+                    $(e.rowElement).css("background-color", "#fff2f0");
+                }
+
+                if (e.data.status === "Completed") {
+                    $(e.rowElement).css("background-color", "#f6ffed");
+                }
+            },
+            columns: [
+                {
+                    dataField: "assignmentNo", caption: "Assignment No", width: 150,
+                    sortOrder: "desc", alignment: "center",
+                    cellTemplate: function(container, options) {
+                        appendText(container, options.value || EMPTY_TEXT, {
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            color: "var(--text-primary)"
+                        });
+                    }
+                },
+                {
+                    dataField: "courseNames", caption: "Courses", minWidth: 200,
+                    cellTemplate: function(container, options) {
+                        renderCoursesCell(container, options.value);
+                    }
+                },
+                {
+                    dataField: "description", caption: "Description", minWidth: 160,
+                    cellTemplate: function(container, options) {
+                        const description = options.value || EMPTY_TEXT;
+                        appendText(container, truncateText(description, 50), {
+                            fontSize: "12px",
+                            color: "var(--text-secondary)"
+                        }).attr("title", description);
+                    }
+                },
+                {
+                    dataField: "completionPct", caption: "Progress", width: 140, alignment: "center",
+                    cellTemplate: function(container, options) {
+                        renderProgressCell(container, options.value);
+                    }
+                },
+                {
+                    dataField: "status", caption: "Status", width: 120, alignment: "center",
+                    cellTemplate: function(container, options) {
+                        renderStatusCell(container, options.value, {
+                            Completed: { cls: "pill-success", text: "Completed" },
+                            Upcoming: { cls: "pill-warning", text: "Upcoming" },
+                            Expired: { cls: "pill-danger", text: "Expired" },
+                            InProgress: { cls: "pill-info", text: "In Progress" }
+                        });
+                    }
+                },
+                {
+                    dataField: "startDate", caption: "Start", width: 100, alignment: "center",
+                    cellTemplate: function(container, options) {
+                        appendText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
+                    }
+                },
+                {
+                    dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
+                    cellTemplate: function(container, options) {
+                        renderDueDateCell(container, options.value);
+                    }
+                },
+                {
+                    type: "buttons", caption: "Actions", width: 70,
+                    alignment: "center", fixed: true, fixedPosition: "right",
+                    buttons: [{
+                        hint: "View Dashboard",
+                        icon: "info",
+                        onClick: function(e) {
+                            window.location.href = `${ASSIGNMENT_DETAIL_URL}/${e.row.data.id}`;
+                        }
+                    }]
+                }
+            ]
+        });
+
         loadGroupDetail();
 
-        // ?? Add Members Popup ??
         let confirmAddFn = null;
 
         const addPopup = $("#popup-add-members").dxPopup({
@@ -235,40 +304,29 @@
                     ],
                     onSelectionChanged: function (e) {
                         selectedCodes = e.selectedRowKeys;
-                        $("#add-hint").html(
-                            selectedCodes.length > 0
-                                ? `<i class="fas fa-check-circle text-success me-1"></i>
-                                   <b>${selectedCodes.length}</b> student(s) selected.`
-                                : `<i class="fas fa-info-circle text-primary me-1"></i>
-                                   Check the rows to add.`
-                        );
+                        updateSelectionHint("#add-hint", selectedCodes.length, "student(s) selected.", "Check the rows to add.");
                     }
                 }).dxDataGrid("instance");
 
-                // ?? Lookup store helper ??
                 function makeLookup(endpoint, q) {
                     return new DevExpress.data.CustomStore({
                         key: "Name",
                         load: () => $.ajax({
-                            url: `${serviceUrl}/Students/${endpoint}${q || ""}`,
+                            url: `${STUDENTS_API_URL}/${endpoint}${q || ""}`,
                             method: "GET", xhrFields: { withCredentials: true }
                         }).then(res => res.data || res)
                     });
                 }
 
-                // ?? Filter helpers ??
                 function buildFilter() {
-                    const divVal  = $("#filter-div").dxSelectBox("instance").option("value");
+                    const divVal = $("#filter-div").dxSelectBox("instance").option("value");
                     const deptVal = $("#filter-dept").dxSelectBox("instance").option("value");
-                    const secVal  = $("#filter-section").dxSelectBox("instance").option("value");
-                    const conds = [];
-                    if (divVal)  conds.push(["Division",   "=", divVal]);
-                    if (deptVal) conds.push(["Department", "=", deptVal]);
-                    if (secVal)  conds.push(["Section",    "=", secVal]);
-                    if (!conds.length) { addGrid.clearFilter(); return; }
-                    let f = conds[0];
-                    for (let i = 1; i < conds.length; i++) f = [f, "and", conds[i]];
-                    addGrid.filter(f);
+                    const secVal = $("#filter-section").dxSelectBox("instance").option("value");
+                    const filters = [];
+                    if (divVal) filters.push(["Division", "=", divVal]);
+                    if (deptVal) filters.push(["Department", "=", deptVal]);
+                    if (secVal) filters.push(["Section", "=", secVal]);
+                    applyCombinedFilter(addGrid, filters);
                 }
 
                 const divBox = $("#filter-div").dxSelectBox({
@@ -321,25 +379,27 @@
                     addGrid.clearFilter();
                 });
 
-                // ???? function confirm ??? toolbar button ??????
-                confirmAddFn = function () {
+                confirmAddFn = async function () {
                     if (selectedCodes.length === 0) {
                         showToast("Please select at least one student.", "warning");
                         return;
                     }
-                    $.ajax({
-                        url: `${serviceUrl}/StudentGroups/${GROUP_ID}/members`,
-                        method: "POST",
-                        contentType: "application/json",
-                        data: JSON.stringify({ studentCodes: selectedCodes }),
-                        xhrFields: { withCredentials: true }
-                    }).done(function () {
+
+                    try {
+                        await $.ajax({
+                            url: `${GROUPS_API_URL}/${GROUP_ID}/members`,
+                            method: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify({ studentCodes: selectedCodes }),
+                            xhrFields: { withCredentials: true }
+                        });
+
                         showToast("Members added successfully.", "success");
                         addPopup.hide();
                         loadGroupDetail();
-                    }).fail(function (err) {
-                        showToast("Error: " + (err.responseJSON?.message || "Failed to add"), "error", 4000);
-                    });
+                    } catch (err) {
+                        showToast(`Error: ${getApiErrorMessage(err, "Failed to add")}`, "error", 4000);
+                    }
                 };
             },
             toolbarItems: [
@@ -368,10 +428,8 @@
             ]
         }).dxPopup("instance");
 
-        // ?? Open Add Members Popup ??
         $("#btn-add-members").click(() => addPopup.show());
 
-        // ?? Assign Course Popup ??
         let selectedCourseIds = [];
 
         const assignCoursePopup = $("#popup-assign-course").dxPopup({
@@ -437,16 +495,12 @@
                     ],
                     onSelectionChanged: function (e) {
                         selectedCourseIds = e.selectedRowKeys;
-                        $("#ac-selection-hint").html(
-                            selectedCourseIds.length > 0
-                                ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${selectedCourseIds.length}</b> course(s) selected.`
-                                : `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.`
-                        );
+                        updateSelectionHint("#ac-selection-hint", selectedCourseIds.length, "course(s) selected.", "Check the rows you want to assign.");
                     }
                 }).dxDataGrid("instance");
 
                 $.ajax({
-                    url: `${serviceUrl}/Assignments/lookup-courses`,
+                    url: `${ASSIGNMENTS_API_URL}/lookup-courses`,
                     method: "GET", xhrFields: { withCredentials: true }
                 }).done(function (res) {
                     allCoursesData = res.data || [];
@@ -457,16 +511,13 @@
 
                 function applyFilters() {
                     const typeVal = $("#ac-filter-type").dxSelectBox("instance").option("value");
-                    const divVal  = $("#ac-filter-div").dxSelectBox("instance").option("value");
-                    const catVal  = $("#ac-filter-cat").dxSelectBox("instance").option("value");
-                    const conds = [];
-                    if (typeVal) conds.push(["courseTypeId", "=", typeVal]);
-                    if (divVal)  conds.push(["divisionId",   "=", divVal]);
-                    if (catVal)  conds.push(["categoryId",   "=", catVal]);
-                    if (!conds.length) { courseGrid.clearFilter(); return; }
-                    let f = conds[0];
-                    for (let i = 1; i < conds.length; i++) f = [f, "and", conds[i]];
-                    courseGrid.filter(f);
+                    const divVal = $("#ac-filter-div").dxSelectBox("instance").option("value");
+                    const catVal = $("#ac-filter-cat").dxSelectBox("instance").option("value");
+                    const filters = [];
+                    if (typeVal) filters.push(["courseTypeId", "=", typeVal]);
+                    if (divVal) filters.push(["divisionId", "=", divVal]);
+                    if (catVal) filters.push(["categoryId", "=", catVal]);
+                    applyCombinedFilter(courseGrid, filters);
                 }
 
                 $("#ac-filter-type").dxSelectBox({
@@ -536,7 +587,6 @@
             assignCoursePopup.show();
         });
 
-        // ?? Assign Details Popup (description + dates) ??
         const assignDetailsPopup = $("<div id='popup-assign-details'>").appendTo("body").dxPopup({
             title: "Assignment Details",
             width: 500, height: "auto",
@@ -619,9 +669,12 @@
             assignDetailsPopup.show();
         }
 
-        function submitGroupAssign() {
+        async function submitGroupAssign() {
             const form = $("#form-assign-details").dxForm("instance");
-            if (!form.validate().isValid) return;
+            if (!form.validate().isValid) {
+                return;
+            }
+
             const fd = form.option("formData");
 
             const payload = {
@@ -635,37 +688,32 @@
                 confirmReassignCompleted: false
             };
 
-            // Step 1: validate-before-assign — show loading on Assign button
             const $assignBtn = $("#btn-do-assign");
             setButtonLoading($assignBtn, true, 'Validating...');
 
-            $.ajax({
-                url: `${serviceUrl}/Assignments/validate-before-assign`,
-                method: "POST", contentType: "application/json",
-                data: JSON.stringify(payload),
-                xhrFields: { withCredentials: true }
-            }).done(function (res) {
+            try {
+                const res = await $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/validate-before-assign`,
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(payload),
+                    xhrFields: { withCredentials: true }
+                });
+
                 setButtonLoading($assignBtn, false);
 
-                const memberCount    = res.resolvedCount || 0;
-                const inProgress     = res.inProgressConflicts || [];
-                const completed      = res.completedConflicts  || [];
+                const memberCount = res.resolvedCount || 0;
+                const inProgress = res.inProgressConflicts || [];
+                const completed = res.completedConflicts || [];
                 const totalConflicts = inProgress.length + completed.length;
-                let conflictNote = "";
-                if (inProgress.length > 0)
-                    conflictNote += `<br><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${inProgress.length} กำลังเรียนอยู่ — progress จะถูก reset</small>`;
-                if (completed.length > 0)
-                    conflictNote += `<br><small class="text-info"><i class="fas fa-redo me-1"></i>${completed.length} เรียนจบแล้ว — จะเปิดให้เรียนใหม่</small>`;
-                if (totalConflicts === 0)
-                    conflictNote = `<br><small class="text-success"><i class="fas fa-check-circle me-1"></i>No conflicts found</small>`;
+                const conflictNote = buildConflictNote(inProgress.length, completed.length, totalConflicts);
 
                 assignDetailsPopup.hide();
 
-                // Step 2: confirm dialog
                 DevExpress.ui.dialog.confirm(
                     `Assign <b>${selectedCourseIds.length}</b> course(s) to <b>${memberCount}</b> member(s)?${conflictNote}`,
                     "Confirm Assignment"
-                ).then(function (confirmed) {
+                ).then(async function (confirmed) {
                     if (!confirmed) {
                         assignDetailsPopup.show();
                         return;
@@ -674,9 +722,8 @@
                     payload.confirmReassignInProgress = inProgress.length > 0;
                     payload.confirmReassignCompleted = completed.length > 0;
 
-                    // Step 3: BulkAssign — show full-page load panel
                     const bulkLoadPanel = $("<div>").appendTo("body").dxLoadPanel({
-                        message: 'กำลัง Assign คอร์ส...',
+                        message: 'Assigning courses...',
                         visible: true,
                         showIndicator: true,
                         showPane: true,
@@ -685,229 +732,249 @@
                         position: { of: 'body' }
                     }).dxLoadPanel("instance");
 
-                    $.ajax({
-                        url: `${serviceUrl}/Enrollments/BulkAssign`,
-                        method: "POST", contentType: "application/json",
-                        data: JSON.stringify(payload),
-                        xhrFields: { withCredentials: true }
-                    }).done(function (res) {
+                    try {
+                        const response = await $.ajax({
+                            url: `${ENROLLMENTS_API_URL}/BulkAssign`,
+                            method: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify(payload),
+                            xhrFields: { withCredentials: true }
+                        });
+
                         bulkLoadPanel.hide();
                         showToast("Courses assigned successfully!", "success", 2000);
                         setTimeout(() => {
-            window.location.href = `@Url.Action("Detail", "Assignments")/${res.assignmentId}`;
+                            window.location.href = `${ASSIGNMENT_DETAIL_URL}/${response.assignmentId}`;
                         }, 1500);
-                    }).fail(function (err) {
+                    } catch (err) {
                         bulkLoadPanel.hide();
-                        showToast("Error: " + (err.responseJSON?.message || "Failed to assign"), "error", 4000);
+                        showToast(`Error: ${getApiErrorMessage(err, "Failed to assign")}`, "error", 4000);
                         assignDetailsPopup.show();
-                    });
+                    }
                 });
-            }).fail(function (err) {
+            } catch (err) {
                 setButtonLoading($assignBtn, false);
                 assignDetailsPopup.hide();
-                showToast("Validation error: " + (err.responseJSON?.message || "Failed"), "error", 4000);
-            });
+                showToast(`Validation error: ${getApiErrorMessage(err, "Failed")}`, "error", 4000);
+            }
         }
 
-        // ?? Remove Member ??
         window.confirmRemoveMember = function (data) {
             DevExpress.ui.dialog.confirm(
                 `Remove <b>${data.studentName || data.studentCode}</b> from this group?`,
                 "Confirm Remove"
-            ).then(function (confirmed) {
-                if (!confirmed) return;
-                $.ajax({
-                    url: `${serviceUrl}/StudentGroups/${GROUP_ID}/members/${data.id}`,
-                    method: "DELETE",
-                    xhrFields: { withCredentials: true }
-                }).done(function () {
+            ).then(async function (confirmed) {
+                if (!confirmed) {
+                    return;
+                }
+
+                try {
+                    await $.ajax({
+                        url: `${GROUPS_API_URL}/${GROUP_ID}/members/${data.id}`,
+                        method: "DELETE",
+                        xhrFields: { withCredentials: true }
+                    });
+
                     showToast("Member removed.", "success");
                     loadGroupDetail();
-                }).fail(function () {
+                } catch {
                     showToast("Failed to remove member.", "error");
-                });
+                }
             });
         };
     });
 
-    // ?? Load group + members ??
-    function loadGroupDetail() {
-        $.ajax({
-            url: `${serviceUrl}/StudentGroups/${GROUP_ID}`,
-            method: "GET",
-            xhrFields: { withCredentials: true }
-        }).done(function (res) {
+    async function loadGroupDetail() {
+        try {
+            const res = await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+
             const g = res.data;
-            if (!g) return;
+            if (!g) {
+                return;
+            }
+
             const members = g.members || [];
 
             $("#page-title").text(g.name);
             $("#page-subtitle").text(g.description || "No description");
-
-            // ล้าง skeleton แล้ว set ค่าจริง
-            $("#info-name").text(g.name);
-            $("#info-desc").text(g.description || "No description");
-            $("#info-count").text(members.length);
             $("#tab-badge-members").text(members.length);
 
             membersGrid.option("dataSource", members);
-
-            // โหลด Assignment History พร้อมกันเลย
             loadAssignmentHistory();
-        }).fail(function () {
-            // ล้าง skeleton กรณี error
-            $("#info-name, #info-desc, #info-count, #kpi-assignment-count, #kpi-completed-count").text("—");
+        } catch {
             showToast("Error loading group detail.", "error");
+        }
+    }
+
+    function switchTab(tab, btn) {
+        ["members", "assignments"].forEach(function(tabName) {
+            const tabButton = document.getElementById(`tab-btn-${tabName}`);
+            tabButton.style.color = "var(--text-secondary)";
+            tabButton.style.borderBottom = "2px solid transparent";
+        });
+
+        btn.style.color = "var(--accent-color)";
+        btn.style.borderBottom = "2px solid var(--accent-color)";
+
+        document.getElementById("panel-members").style.display = tab === "members" ? "" : "none";
+        document.getElementById("panel-assignments").style.display = tab === "assignments" ? "" : "none";
+
+        if (tab === "assignments" && assignmentGrid) {
+            assignmentGrid.updateDimensions();
+        }
+    }
+
+    async function loadAssignmentHistory() {
+        try {
+            const res = await $.ajax({
+                url: `${ASSIGNMENTS_API_URL}/group/${GROUP_ID}/history`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+
+            const data = res.data || [];
+            $("#tab-badge-assignments").text(data.length);
+            assignmentGrid.option("dataSource", data);
+        } catch {
+            showToast("Error loading assignment history.", "error");
+        }
+    }
+
+    function appendText(container, text, styles) {
+        return $("<span>").css(styles || {}).text(text).appendTo(container);
+    }
+
+    function formatDate(value) {
+        return value ? new Date(value).toLocaleDateString("en-GB") : EMPTY_TEXT;
+    }
+
+    function truncateText(text, maxLength) {
+        if (!text || text.length <= maxLength) {
+            return text || EMPTY_TEXT;
+        }
+
+        return `${text.slice(0, maxLength)}…`;
+    }
+
+    function renderProgressCell(container, value) {
+        const progress = value || 0;
+        const color = progress === 100
+            ? "var(--success-color)"
+            : progress >= 50
+                ? "var(--accent-color)"
+                : "var(--warning-color)";
+
+        $("<div>").addClass("d-flex align-items-center gap-2")
+            .append(
+                $("<div>").css({
+                    flex: "1",
+                    height: "3px",
+                    background: "var(--border-color)",
+                    borderRadius: "2px",
+                    overflow: "hidden"
+                }).append(
+                    $("<div>").css({
+                        height: "100%",
+                        width: `${progress}%`,
+                        background: color
+                    })
+                )
+            )
+            .append(
+                $("<span>").css({
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    minWidth: "32px",
+                    color: "var(--text-secondary)"
+                }).text(`${progress}%`)
+            )
+            .appendTo(container);
+    }
+
+    function renderStatusCell(container, value, map) {
+        const status = map[value] || { cls: "pill-default", text: value || EMPTY_TEXT };
+        $(`<span class="status-pill ${status.cls}">${status.text}</span>`).appendTo(container);
+    }
+
+    function renderDueDateCell(container, value) {
+        if (!value) {
+            appendText(container, EMPTY_TEXT, { fontSize: "11px", color: "var(--text-secondary)" });
+            return;
+        }
+
+        const isPast = new Date(value) < new Date();
+        appendText(container, formatDate(value), {
+            fontSize: "11px",
+            color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
+            fontWeight: isPast ? "600" : "400"
         });
     }
 
-        // ?? Tab Switch ??
-           function switchTab(tab, btn) {
-               ["members", "assignments"].forEach(t => {
-                   const b = document.getElementById(`tab-btn-${t}`);
-                   b.style.color        = "var(--text-secondary)";
-                   b.style.borderBottom = "2px solid transparent";
-               });
-
-               btn.style.color        = "var(--accent-color)";
-               btn.style.borderBottom = "2px solid var(--accent-color)";
-
-               document.getElementById("panel-members").style.display     = tab === "members"     ? "" : "none";
-               document.getElementById("panel-assignments").style.display = tab === "assignments" ? "" : "none";
-
-               // ✅ บังคับให้ Grid คำนวณขนาดตัวเองใหม่เมื่อ Tab Assignments ถูกกดแสดงผล
-               if (tab === "assignments") {
-                   const gridInstance = $("#grid-assignments").dxDataGrid("instance");
-                   if (gridInstance) {
-                       gridInstance.updateDimensions();
-                   }
-               }
-           }
-
-    // ?? Assignment History Grid ??
-    const assignmentGrid = initDxGrid("#grid-assignments", {
-        dataSource: [],
-
-        showBorders: true,
-        showRowLines: true,
-        hoverStateEnabled: true,
-        searchPanel: { visible: true, placeholder: "Search assignments..." },
-        onRowPrepared: function (e) {
-            if (e.rowType !== "data") return;
-            if (e.data.status === "Expired")   $(e.rowElement).css("background-color", "#fff2f0");
-            if (e.data.status === "Completed") $(e.rowElement).css("background-color", "#f6ffed");
-        },
-        columns: [
-            {
-                dataField: "assignmentNo", caption: "Assignment No", width: 150,
-                sortOrder: "desc", alignment: "center",
-                cellTemplate: (c, o) =>
-                    $("<span>").css({ fontSize: "12px", fontWeight: "700", color: "var(--text-primary)" })
-                               .text(o.value || "—").appendTo(c)
-            },
-            {
-                dataField: "courseNames", caption: "Courses", minWidth: 200,
-                cellTemplate: function (c, o) {
-                    const courses = (o.value || "").split(", ").filter(x => x.trim());
-                    if (!courses.length) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
-                    const wrap = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(c);
-                    courses.slice(0, 2).forEach(n =>
-                        $("<span>").addClass("tag-pill pill-default").css("font-size","10px").text(n).appendTo(wrap)
-                    );
-                    if (courses.length > 2)
-                        $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                   .text(`+${courses.length - 2} more`).appendTo(wrap);
-                }
-            },
-            {
-                dataField: "description", caption: "Description", minWidth: 160,
-                cellTemplate: (c, o) => {
-                    const t = o.value || "—";
-                    $("<span>").css({ fontSize: "12px", color: "var(--text-secondary)" })
-                               .text(t.length > 50 ? t.slice(0, 50) + "…" : t)
-                               .attr("title", t).appendTo(c);
-                }
-            },
-            {
-                dataField: "completionPct", caption: "Progress", width: 140, alignment: "center",
-                cellTemplate: (c, o) => {
-                    const pct   = o.value || 0;
-                    const color = pct === 100 ? "var(--success-color)"
-                                : pct >= 50  ? "var(--accent-color)"
-                                :               "var(--warning-color)";
-                    $("<div>").addClass("d-flex align-items-center gap-2")
-                        .append(
-                            $("<div>").css({ flex: "1", height: "3px", background: "var(--border-color)",
-                                             borderRadius: "2px", overflow: "hidden" })
-                                .append($("<div>").css({ height: "100%", width: pct + "%", background: color }))
-                        )
-                        .append(
-                            $("<span>").css({ fontSize: "11px", fontWeight: "600",
-                                              minWidth: "32px", color: "var(--text-secondary)" })
-                                       .text(pct + "%")
-                        )
-                        .appendTo(c);
-                }
-            },
-            {
-                dataField: "status", caption: "Status", width: 120, alignment: "center",
-                cellTemplate: (c, o) => {
-                    const map = {
-                        "Completed":  { cls: "pill-success", text: "Completed"   },
-                        "Upcoming":   { cls: "pill-warning",  text: "Upcoming"    },
-                        "Expired":    { cls: "pill-danger",   text: "Expired"     },
-                        "InProgress": { cls: "pill-info",     text: "In Progress" }
-                    };
-                    const s = map[o.value] ?? { cls: "pill-default", text: o.value || "—" };
-                    $(`<span class="status-pill ${s.cls}">${s.text}</span>`).appendTo(c);
-                }
-            },
-            {
-                dataField: "startDate", caption: "Start", width: 100, alignment: "center",
-                cellTemplate: (c, o) =>
-                    $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                               .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
-                               .appendTo(c)
-            },
-            {
-                dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
-                cellTemplate: (c, o) => {
-                    if (!o.value) { $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c); return; }
-                    const isPast = new Date(o.value) < new Date();
-                    $("<span>").css({ fontSize: "11px",
-                                      color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
-                                      fontWeight: isPast ? "600" : "400" })
-                               .text(new Date(o.value).toLocaleDateString("en-GB")).appendTo(c);
-                }
-            },
-            {
-                type: "buttons", caption: "Actions", width: 70,
-                alignment: "center", fixed: true, fixedPosition: "right",
-                buttons: [{
-                    hint: "View Dashboard", icon: "info",
-                    onClick: e => window.location.href =
-        `@Url.Action("Detail", "Assignments")/${e.row.data.id}`
-                }]
-            }
-        ]
-    });
-
-    function loadAssignmentHistory() {
-        $.ajax({
-            url: `${serviceUrl}/Assignments/group/${GROUP_ID}/history`,
-            method: "GET",
-            xhrFields: { withCredentials: true }
-        }).done(function (res) {
-            const data = res.data || [];
-            const completedCount = data.filter(d => d.status === "Completed").length;
-            $("#kpi-assignment-count").text(data.length);
-            $("#kpi-completed-count").text(completedCount);
-            $("#tab-badge-assignments").text(data.length);
-            assignmentGrid.option("dataSource", data);
-        }).fail(function () {
-            $("#kpi-assignment-count, #kpi-completed-count").text("—");
-            showToast("Error loading assignment history.", "error");
+    function renderCoursesCell(container, value) {
+        const courses = (value || "").split(", ").filter(function(course) {
+            return course.trim();
         });
+
+        if (!courses.length) {
+            appendText(container, EMPTY_TEXT, { color: "var(--text-secondary)" });
+            return;
+        }
+
+        const wrapper = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(container);
+        courses.slice(0, 2).forEach(function(courseName) {
+            $("<span>").addClass("tag-pill pill-default").css("font-size", "10px").text(courseName).appendTo(wrapper);
+        });
+
+        if (courses.length > 2) {
+            appendText(wrapper, `+${courses.length - 2} more`, { fontSize: "11px", color: "var(--text-secondary)" });
+        }
+    }
+
+    function applyCombinedFilter(gridInstance, conditions) {
+        if (!conditions.length) {
+            gridInstance.clearFilter();
+            return;
+        }
+
+        let filter = conditions[0];
+        for (let index = 1; index < conditions.length; index += 1) {
+            filter = [filter, "and", conditions[index]];
+        }
+
+        gridInstance.filter(filter);
+    }
+
+    function updateSelectionHint(selector, count, successText, defaultText) {
+        $(selector).html(
+            count > 0
+                ? `<i class="fas fa-check-circle text-success me-1"></i><b>${count}</b> ${successText}`
+                : `<i class="fas fa-info-circle text-primary me-1"></i> ${defaultText}`
+        );
+    }
+
+    function buildConflictNote(inProgressCount, completedCount, totalConflicts) {
+        if (totalConflicts === 0) {
+            return '<br><small class="text-success"><i class="fas fa-check-circle me-1"></i>No conflicts found</small>';
+        }
+
+        let note = "";
+        if (inProgressCount > 0) {
+            note += `<br><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${inProgressCount} member(s) are in progress and will be reset</small>`;
+        }
+
+        if (completedCount > 0) {
+            note += `<br><small class="text-info"><i class="fas fa-redo me-1"></i>${completedCount} member(s) completed the course and will be reassigned</small>`;
+        }
+
+        return note;
+    }
+
+    function getApiErrorMessage(error, fallbackMessage) {
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
     }
 </script>
 }

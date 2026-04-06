@@ -1,4 +1,5 @@
 using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
@@ -9,6 +10,10 @@ namespace iLearn.Admin.Services
 {
     public class ApiUserService : IApiUserService
     {
+        private const string ClientName = "iLearnAPI";
+        private const string WindowsAuthEndpoint = "users/windows-auth";
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
+
         private readonly HttpClient _httpClient;
         private readonly ILogger<ApiUserService> _logger;
         private readonly IMemoryCache _cache;
@@ -16,7 +21,7 @@ namespace iLearn.Admin.Services
 
         public ApiUserService(IHttpClientFactory httpClientFactory, ILogger<ApiUserService> logger, IMemoryCache cache)
         {
-            _httpClient = httpClientFactory.CreateClient("iLearnAPI");
+            _httpClient = httpClientFactory.CreateClient(ClientName);
             _logger = logger;
             _cache = cache;
             _jsonOptions = new JsonSerializerOptions
@@ -28,19 +33,18 @@ namespace iLearn.Admin.Services
 
         public async Task<ApiResponse<UserDto>> GetOrCreateUserAsync(string windowsIdentity, bool forceRefresh = false)
         {
+            var cacheKey = GetCacheKey(windowsIdentity);
+
+            if (!forceRefresh && TryGetCachedUser(cacheKey, out var cachedUser))
+            {
+                return cachedUser;
+            }
+
             try
             {
-                var cacheKey = $"api_user_{windowsIdentity}";
-
-                if (!forceRefresh && _cache.TryGetValue(cacheKey, out ApiResponse<UserDto>? cachedUser))
-                    return cachedUser!;
-
                 var request = new CreateUserRequest { WindowsIdentity = windowsIdentity };
-                var json = JsonSerializer.Serialize(request, _jsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var requestUri = forceRefresh
-                    ? "users/windows-auth?_refresh=1"
-                    : "users/windows-auth";
+                using var content = CreateRequestContent(request);
+                var requestUri = GetRequestUri(forceRefresh);
 
                 var response = await _httpClient.PostAsync(requestUri, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -50,29 +54,55 @@ namespace iLearn.Admin.Services
                     var result = JsonSerializer.Deserialize<ApiResponse<UserDto>>(responseContent, _jsonOptions);
 
                     if (result?.Success == true)
-                        _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+                    {
+                        _cache.Set(cacheKey, result, CacheDuration);
+                    }
 
-                    return result ?? new ApiResponse<UserDto> { Success = false, Message = "Invalid response" };
+                    return result ?? CreateFailureResponse("Invalid response");
                 }
 
                 _logger.LogError("Failed to get/create user. Status: {StatusCode}, Content: {Content}",
                     response.StatusCode, responseContent);
 
-                return new ApiResponse<UserDto>
-                {
-                    Success = false,
-                    Message = $"API call failed: {response.StatusCode}"
-                };
+                return CreateFailureResponse($"API call failed: {response.StatusCode}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calling API to get/create user: {WindowsIdentity}", windowsIdentity);
-                return new ApiResponse<UserDto>
-                {
-                    Success = false,
-                    Message = "An error occurred while processing the request"
-                };
+                return CreateFailureResponse("An error occurred while processing the request");
             }
+        }
+
+        private bool TryGetCachedUser(string cacheKey, out ApiResponse<UserDto> cachedUser)
+        {
+            if (_cache.TryGetValue(cacheKey, out ApiResponse<UserDto>? cachedValue) && cachedValue != null)
+            {
+                cachedUser = cachedValue;
+                return true;
+            }
+
+            cachedUser = null!;
+            return false;
+        }
+
+        private StringContent CreateRequestContent(CreateUserRequest request)
+        {
+            var json = JsonSerializer.Serialize(request, _jsonOptions);
+            return new StringContent(json, Encoding.UTF8, "application/json");
+        }
+
+        private static string GetCacheKey(string windowsIdentity) => $"api_user_{windowsIdentity}";
+
+        private static string GetRequestUri(bool forceRefresh)
+            => forceRefresh ? $"{WindowsAuthEndpoint}?_refresh=1" : WindowsAuthEndpoint;
+
+        private static ApiResponse<UserDto> CreateFailureResponse(string message)
+        {
+            return new ApiResponse<UserDto>
+            {
+                Success = false,
+                Message = message
+            };
         }
     }
 }

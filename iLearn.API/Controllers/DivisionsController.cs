@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Linq; // จำเป็นสำหรับการใช้ .Where และ .Select
 using System.Threading.Tasks;
 
@@ -74,39 +75,61 @@ namespace iLearn.API.Controllers
         [HttpGet("GetTree")]
         public async Task<IActionResult> GetTree()
         {
-            var divisions = await _divisionRepo.GetAllAsync();
-            var categories = await _categoryRepo.GetAllAsync();
+            var divisionQuery = _divisionRepo.GetQuery()
+                .AsNoTracking()
+                .Select(d => new
+                {
+                    d.Id,
+                    d.Name,
+                    d.IsActive
+                });
 
-            // ── Data Isolation: ถ้ามี DivisionId ให้กรองเฉพาะ Division ของตัวเอง ──
+            var categoryQuery = _categoryRepo.GetQuery()
+                .AsNoTracking()
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    c.IsActive,
+                    c.DivisionId
+                });
+
             if (_currentUser.DivisionId.HasValue)
             {
                 var myDivId = _currentUser.DivisionId.Value;
-                divisions = divisions.Where(d => d.Id == myDivId).ToList();
-                categories = categories.Where(c => c.DivisionId == myDivId).ToList();
+                divisionQuery = divisionQuery.Where(d => d.Id == myDivId);
+                categoryQuery = categoryQuery.Where(c => c.DivisionId == myDivId);
             }
 
-            // ไม่ต้องกรอง IsActive ออกแล้ว แต่ใช้การเช็คเพื่อแสดงสัญลักษณ์แทน
+            var divisions = await divisionQuery.ToListAsync();
+            var categories = await categoryQuery.ToListAsync();
+
+            var categoryLookup = categories
+                .GroupBy(c => c.DivisionId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .OrderBy(c => c.Name)
+                        .Select(c => new
+                        {
+                            id = $"cat_{c.Id}",
+                            text = c.IsActive ? c.Name : $"🚫 {c.Name} (Draft)",
+                            icon = "file",
+                            categoryId = c.Id
+                        })
+                        .ToList());
+
             var divisionNodes = divisions
                 .OrderBy(d => d.Name)
                 .Select(d => new
                 {
                     id = "div_" + d.Id,
-                    // ถ้า IsActive เป็น false ให้เติม [Draft] หรือสัญลักษณ์ที่คุณต้องการ
                     text = d.IsActive ? d.Name : $"🚫 {d.Name} (Draft)",
                     icon = "folder",
                     expanded = true,
                     isDivision = true,
                     divisionId = d.Id,
-                    items = categories
-                        .Where(c => c.DivisionId == d.Id) // เอาเงื่อนไข IsActive ออกเช่นกัน
-                        .OrderBy(c => c.Name)
-                        .Select(c => new
-                        {
-                            id = "cat_" + c.Id,
-                            text = c.IsActive ? c.Name : $"🚫 {c.Name} (Draft)",
-                            icon = "file",
-                            categoryId = c.Id
-                        }).ToList()
+                    items = categoryLookup.TryGetValue(d.Id, out var items) ? items : []
                 }).ToList();
 
             var rootNode = new[]
