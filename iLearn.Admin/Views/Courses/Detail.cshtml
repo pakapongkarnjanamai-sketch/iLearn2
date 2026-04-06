@@ -89,21 +89,9 @@
 
     </div>
 
-    <div class="border rounded bg-white">
-        <div id="dashboardTabs"></div>
-
-        <div id="panel-versions" class="p-3">
-            <div id="versionsToolbar" class="mb-3"></div>
-            <div id="versionsCardContainer" class="row g-3"></div>
-        </div>
-
-        <div id="panel-learners" class="p-3" style="display:none;">
-            <div id="grid-learners"></div>
-        </div>
-
-        <div id="panel-assignments" class="p-3" style="display:none;">
-            <div id="grid-assignments"></div>
-        </div>
+    <div class="border rounded bg-white p-3">
+        <div id="versionsToolbar" class="mb-3"></div>
+        <div id="versionsCardContainer" class="row g-3"></div>
     </div>
 
 </div>
@@ -115,7 +103,6 @@
         const courseIndexUrl = '@Url.Action("Index", "Courses")';
         const newVersionUrl = '@Url.Action("VersionForm", "Courses")';
         const assignmentFormUrl = '@Url.Action("Form", "Assignments")';
-        const assignmentDetailUrl = '@Url.Action("Detail", "Assignments")';
 
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
@@ -130,10 +117,6 @@
         let isCourseActive = false;
         let courseForm;
         let versionsData = [];
-        let learnersLoaded = false;
-        let assignmentsLoaded = false;
-        let learnersGrid;
-        let assignmentsGrid;
 
         $(async () => {
             const [divisionOptions, courseTypeOptions] = await Promise.all([
@@ -519,200 +502,6 @@
                 });
             };
 
-            learnersGrid = initDxGrid('#grid-learners', {
-                preset: 'compactGrid',
-                dataSource: [],
-                searchPanel: { placeholder: 'Search by ID or name...' },
-                columns: [
-                    {
-                        dataField: 'studentCode', caption: 'Employee ID', width: 130,
-                        cellTemplate: function(container, options) {
-                            $("<a>").attr('href', `@Url.Action("Profile", "Students")?code=${options.value}`)
-                                .addClass('tag-pill pill-default fw-bold')
-                                .text(options.value || '—')
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: 'studentName', caption: 'Full Name', minWidth: 180,
-                        cellTemplate: function(container, options) {
-                            $("<span>").addClass('fw-medium text-dark').text(options.value || '—').appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: 'division', caption: 'Division', width: 130,
-                        cellTemplate: function(container, options) {
-                            appendText(container, options.value || '—', { fontSize: '12px', color: 'var(--text-secondary)' });
-                        }
-                    },
-                    {
-                        dataField: 'department', caption: 'Department', width: 130,
-                        cellTemplate: function(container, options) {
-                            appendText(container, options.value || '—', { fontSize: '12px', color: 'var(--text-secondary)' });
-                        }
-                    },
-                    {
-                        dataField: 'progress', caption: 'Progress', width: 140, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            renderProgressCell(container, options.value);
-                        }
-                    },
-                    {
-                        dataField: 'status', caption: 'Status', width: 120, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            renderStatusCell(container, options.value, {
-                                Completed: { cls: 'pill-success', text: 'Completed' },
-                                Upcoming: { cls: 'pill-warning', text: 'Upcoming' },
-                                Expired: { cls: 'pill-danger', text: 'Expired' },
-                                InProgress: { cls: 'pill-info', text: 'In Progress' },
-                                NotStarted: { cls: 'pill-default', text: 'Not Started' }
-                            });
-                        }
-                    },
-                    {
-                        dataField: 'startDate', caption: 'Start', width: 100, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            appendText(container, formatDate(options.value), { fontSize: '11px', color: 'var(--text-secondary)' });
-                        }
-                    },
-                    {
-                        dataField: 'dueDate', caption: 'Due', width: 100, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            renderDueDateCell(container, options.value);
-                        }
-                    },
-                    {
-                        dataField: 'completedDate', caption: 'Completed', width: 110, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            appendText(container, formatDate(options.value), {
-                                fontSize: '11px',
-                                color: options.value ? 'var(--success-color)' : 'var(--text-secondary)',
-                                fontWeight: options.value ? '600' : '400'
-                            });
-                        }
-                    }
-                ]
-            });
-
-            assignmentsGrid = initDxGrid('#grid-assignments', {
-                preset: 'compactGrid',
-                dataSource: [],
-                searchPanel: { placeholder: 'Search assignments...' },
-                onRowPrepared: function(e) {
-                    if (e.rowType !== 'data') {
-                        return;
-                    }
-
-                    if (e.data.status === 'Expired') {
-                        $(e.rowElement).css('background-color', '#fff2f0');
-                    }
-
-                    if (e.data.status === 'Completed') {
-                        $(e.rowElement).css('background-color', '#f6ffed');
-                    }
-                },
-                columns: [
-                    {
-                        dataField: 'assignmentNo', caption: 'Assignment No', width: 150,
-                        sortOrder: 'desc', alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            appendText(container, options.value || '—', { fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' });
-                        }
-                    },
-                    {
-                        dataField: 'description', caption: 'Description', minWidth: 200,
-                        cellTemplate: function(container, options) {
-                            const fullText = options.value || '—';
-                            appendText(container, truncateText(fullText, 60), { fontSize: '12px', color: 'var(--text-secondary)' }).attr('title', fullText);
-                        }
-                    },
-                    {
-                        dataField: 'completionPct', caption: 'Progress', width: 140, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            renderProgressCell(container, options.value);
-                        }
-                    },
-                    {
-                        dataField: 'status', caption: 'Status', width: 120, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            renderStatusCell(container, options.value, {
-                                Completed: { cls: 'pill-success', text: 'Completed' },
-                                Upcoming: { cls: 'pill-warning', text: 'Upcoming' },
-                                Expired: { cls: 'pill-danger', text: 'Expired' },
-                                InProgress: { cls: 'pill-info', text: 'In Progress' }
-                            });
-                        }
-                    },
-                    {
-                        dataField: 'totalEnrollmentCount', caption: 'Enrolled', width: 90, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            appendText(container, String(options.value ?? 0), { fontSize: '12px', fontWeight: '600' });
-                        }
-                    },
-                    {
-                        dataField: 'completedEnrollmentCount', caption: 'Done', width: 80, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            appendText(container, String(options.value ?? 0), { fontSize: '12px', fontWeight: '600', color: 'var(--success-color)' });
-                        }
-                    },
-                    {
-                        dataField: 'startDate', caption: 'Start', width: 100, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            appendText(container, formatDate(options.value), { fontSize: '11px', color: 'var(--text-secondary)' });
-                        }
-                    },
-                    {
-                        dataField: 'dueDate', caption: 'Due', width: 100, alignment: 'center',
-                        cellTemplate: function(container, options) {
-                            renderDueDateCell(container, options.value);
-                        }
-                    },
-                    {
-                        type: 'buttons', caption: '', width: 70,
-                        alignment: 'center', fixed: true, fixedPosition: 'right',
-                        buttons: [{
-                            hint: 'View Dashboard',
-                            icon: 'info',
-                            onClick: function(e) {
-                                window.location.href = `${assignmentDetailUrl}/${e.row.data.id}`;
-                            }
-                        }]
-                    }
-                ]
-            });
-
-            const tabItems = [
-                { text: 'Content Versions', icon: 'fas fa-code-branch', panel: 'panel-versions' },
-                { text: 'Learners', icon: 'fas fa-users', panel: 'panel-learners' },
-                { text: 'Assignments', icon: 'fas fa-clipboard-list', panel: 'panel-assignments' }
-            ];
-
-            $("#dashboardTabs").dxTabs({
-                dataSource: tabItems,
-                selectedIndex: 0,
-                itemTemplate: function(itemData) {
-                    return $("<span>").append(
-                        $("<i>").addClass(`${itemData.icon} me-1`),
-                        $("<span>").text(itemData.text)
-                    );
-                },
-                onItemClick: async function(e) {
-                    tabItems.forEach(function(tab) {
-                        $(`#${tab.panel}`).hide();
-                    });
-
-                    $(`#${e.itemData.panel}`).show();
-
-                    if (e.itemData.panel === 'panel-learners' && !learnersLoaded) {
-                        await loadLearners();
-                    }
-
-                    if (e.itemData.panel === 'panel-assignments' && !assignmentsLoaded) {
-                        await loadAssignments();
-                    }
-                }
-            });
-
             async function loadLookupOptions(store) {
                 try {
                     const result = await store.load();
@@ -1006,35 +795,6 @@
                 }
             }
 
-            async function loadLearners() {
-                try {
-                    const response = await $.ajax({
-                        url: `${courseApiUrl}/${courseId}/learners`,
-                        method: 'GET',
-                        xhrFields: { withCredentials: true }
-                    });
-
-                    learnersLoaded = true;
-                    learnersGrid.option('dataSource', response.data || []);
-                } catch {
-                    showToast('Error loading learners.', 'error');
-                }
-            }
-
-            async function loadAssignments() {
-                try {
-                    const response = await $.ajax({
-                        url: `${courseApiUrl}/${courseId}/assignments`,
-                        method: 'GET',
-                        xhrFields: { withCredentials: true }
-                    });
-
-                    assignmentsLoaded = true;
-                    assignmentsGrid.option('dataSource', response.data || []);
-                } catch {
-                    showToast('Error loading assignments.', 'error');
-                }
-            }
         });
     </script>
 }
