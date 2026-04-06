@@ -45,15 +45,15 @@
     <!-- ?? Profile Card ??????????????????????????????????????????????????? -->
     <div class="border rounded bg-white p-4 mb-4">
         <div class="d-flex align-items-center gap-4 flex-wrap">
-            <div class="profile-avatar" id="avatar-initials">—</div>
+            <div class="profile-avatar" id="avatar-initials">ï¿½</div>
             <div class="flex-grow-1">
-                <div class="fw-bold text-dark mb-1" style="font-size:20px;" id="info-name">—</div>
-                <div class="mb-2"><span class="tag-pill pill-default" id="info-position">—</span></div>
+                <div class="fw-bold text-dark mb-1" style="font-size:20px;" id="info-name">ï¿½</div>
+                <div class="mb-2"><span class="tag-pill pill-default" id="info-position">ï¿½</span></div>
                 <div class="d-flex flex-wrap gap-4 meta-row">
-                    <span><i class="fas fa-id-badge"></i><span id="info-code">—</span></span>
-                    <span><i class="fas fa-building"></i><span id="info-division">—</span></span>
-                    <span><i class="fas fa-layer-group"></i><span id="info-department">—</span></span>
-                    <span><i class="fas fa-sitemap"></i><span id="info-section">—</span></span>
+                    <span><i class="fas fa-id-badge"></i><span id="info-code">ï¿½</span></span>
+                    <span><i class="fas fa-building"></i><span id="info-division">ï¿½</span></span>
+                    <span><i class="fas fa-layer-group"></i><span id="info-department">ï¿½</span></span>
+                    <span><i class="fas fa-sitemap"></i><span id="info-section">ï¿½</span></span>
                 </div>
             </div>
         </div>
@@ -64,25 +64,25 @@
         <div class="col-6 col-md-3">
             <div class="kpi-card">
                 <div class="kpi-label">Total Courses</div>
-                <div class="kpi-number" id="kpi-total">—</div>
+                <div class="kpi-number" id="kpi-total">ï¿½</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card">
                 <div class="kpi-label" style="color:var(--success-color);">Completed</div>
-                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
+                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">ï¿½</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card">
                 <div class="kpi-label" style="color:var(--accent-color);">In Progress</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">—</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">ï¿½</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card">
                 <div class="kpi-label" style="color:var(--warning-color);">Total Time</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-time">—</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-time">ï¿½</div>
             </div>
         </div>
     </div>
@@ -154,9 +154,9 @@
 
         // ?? History Grid ?????????????????????????????????????????????????
         const historyGrid = initDxGrid("#grid-history", {
+            preset: "compactGrid",
             dataSource: [],
-            showBorders: false, showRowLines: true, hoverStateEnabled: true,
-            searchPanel: { visible: true, placeholder: "Search courses..." },
+            searchPanel: { placeholder: "Search courses..." },
             onRowPrepared: function (e) {
                 if (e.rowType !== "data") return;
                 if (e.data.isCompleted)               $(e.rowElement).css("background-color", "#f6ffed");
@@ -168,12 +168,12 @@
                     dataField: "courseCode", caption: "Code", width: 120,
                     cellTemplate: (c, o) =>
                         $("<span>").addClass("tag-pill pill-default fw-bold")
-                                   .text(o.value || "—").appendTo(c)
+                                   .text(o.value || "ï¿½").appendTo(c)
                 },
                 {
                     dataField: "courseTitle", caption: "Course Title", minWidth: 220,
                     cellTemplate: (c, o) => {
-                        const title = o.value || "—";
+                        const title = o.value || "ï¿½";
                         const wrap = $("<span>").css({ fontSize: "13px", fontWeight: "600",
                                           color: "var(--text-primary)" })
                                    .text(title);
@@ -234,7 +234,7 @@
                         $("<span>").css({ fontSize: "12px", fontWeight: "600",
                                           color: o.value > 0 ? "var(--accent-color)"
                                                              : "var(--text-secondary)" })
-                                   .text(o.value > 0 ? o.value : "—").appendTo(c)
+                                   .text(o.value > 0 ? o.value : "ï¿½").appendTo(c)
                 },
                 {
                     dataField: "totalTimeSpent", caption: "Time Spent", width: 110, alignment: "center",
@@ -246,14 +246,14 @@
                     dataField: "startDate", caption: "Started", width: 105, alignment: "center",
                     cellTemplate: (c, o) =>
                         $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "ï¿½")
                                    .appendTo(c)
                 },
                 {
                     dataField: "dueDate", caption: "Due", width: 105, alignment: "center",
                     cellTemplate: (c, o) => {
                         if (!o.value) {
-                            $("<span>").css("color","var(--text-secondary)").text("—").appendTo(c);
+                            $("<span>").css("color","var(--text-secondary)").text("ï¿½").appendTo(c);
                             return;
                         }
                         const isPast = !o.data.isCompleted && new Date(o.value) < new Date();
@@ -268,7 +268,7 @@
                     dataField: "completedDate", caption: "Completed On", width: 120, alignment: "center",
                     cellTemplate: (c, o) =>
                         $("<span>").css({ fontSize: "11px", color: "var(--success-color)" })
-                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "ï¿½")
                                    .appendTo(c)
                 }
             ]
@@ -292,14 +292,14 @@
             $("#avatar-initials").text(initial);
             $("#page-title").text(d.name || d.code);
             $("#page-subtitle").text(
-                [d.division, d.department, d.section].filter(Boolean).join(" › ")
+                [d.division, d.department, d.section].filter(Boolean).join(" ï¿½ ")
                 || "No department info"
             );
             $("#info-name").text(d.name || d.code);
-            $("#info-code").text(d.code || "—");
-            $("#info-division").text(d.division || "—");
-            $("#info-department").text(d.department || "—");
-            $("#info-section").text(d.section || "—");
+            $("#info-code").text(d.code || "ï¿½");
+            $("#info-division").text(d.division || "ï¿½");
+            $("#info-department").text(d.department || "ï¿½");
+            $("#info-section").text(d.section || "ï¿½");
 
             if (d.position) {
                 $("#info-position").text(d.position);
@@ -331,7 +331,7 @@
 
         // ?? Helper ???????????????????????????????????????????????????????
         function formatDuration(seconds) {
-            if (!seconds || seconds <= 0) return "—";
+            if (!seconds || seconds <= 0) return "ï¿½";
             const h = Math.floor(seconds / 3600);
             const m = Math.floor((seconds % 3600) / 60);
             if (h > 0) return `${h}h ${m}m`;

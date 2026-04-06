@@ -55,10 +55,7 @@
     </div>
 
     <!-- ── DataGrid ── -->
-    <div class="border rounded bg-white">
-        <div class="panel-header">Assignment List</div>
-        <div id="grid"></div>
-    </div>
+    <div id="grid"></div>
 
 </div>
 
@@ -67,7 +64,7 @@
         const ASSIGNMENTS_HISTORY_URL = `${serviceUrl}/Assignments/history`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
-        const DEFAULT_PAGE_SIZE = 20;
+        const DEFAULT_PAGE_SIZE = getDxGridPreset("defaultGrid").paging.pageSize;
 
         let gridInstance;
         let activeStatus = null;
@@ -243,18 +240,9 @@
                     filtering: true
                 },
                 selection: { mode: "single" },
-                showBorders: false,
                 rowAlternationEnabled: false,
                 showRowLines: true,
                 hoverStateEnabled: true,
-                paging: { pageSize: DEFAULT_PAGE_SIZE },
-                pager: {
-                    visible: true,
-                    showPageSizeSelector: true,
-                    allowedPageSizes: [20, 50, 100],
-                    showInfo: true,
-                    showNavigationButtons: true
-                },
                 searchPanel: { visible: true, placeholder: "Search assignments..." },
                 headerFilter: { visible: false },
                 export: { enabled: true, allowExportSelectedData: true },   

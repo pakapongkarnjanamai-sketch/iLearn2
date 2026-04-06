@@ -391,16 +391,12 @@
     }
 
     function initializeStudentGrid(students) {
-        $("#student-grid").dxDataGrid({
+        initDxGrid("#student-grid", {
+            preset: "compactGrid",
             dataSource: students,
-            showBorders: true,
-            showRowLines: true,
             rowAlternationEnabled: false,
-            hoverStateEnabled: true,
             filterRow: { visible: false },
-            searchPanel: { visible: true, placeholder: "Search student...", width: 160 },
-            height: 420,
-            scrolling: { mode: "virtual" },
+            searchPanel: { placeholder: "Search student...", width: 160 },
             export: { enabled: false },
             onExporting: function(e) {
                 handleExporting(e, `Student_Tracking_${ASSIGNMENT_ID}`);

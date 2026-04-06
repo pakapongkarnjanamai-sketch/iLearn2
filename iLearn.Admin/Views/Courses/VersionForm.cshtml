@@ -101,15 +101,14 @@
                 ]
             }).dxForm("instance");
 
-            masterGrid = $("#master-resources-grid").dxDataGrid({
+            masterGrid = initDxGrid("#master-resources-grid", {
                 dataSource: unifiedResources,
                 keyExpr: "uid",
-                showBorders: false,
                 rowAlternationEnabled: false,
                 hoverStateEnabled: true,
                 showRowLines: true,
                 columnAutoWidth: true,
-                noDataText: "No content added yet. Click buttons above to add.",
+                noDataText: getNoDataText("content"),
                 editing: {
                     mode: "cell",
                     allowUpdating: true
@@ -194,7 +193,7 @@
                         }]
                     }
                 ]
-            }).dxDataGrid("instance");
+            });
 
             function refreshMasterGrid() {
                 masterGrid.option("dataSource", unifiedResources);
@@ -208,15 +207,11 @@
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 contentTemplate: function(contentElement) {
                     const gridContainer = $("<div id='grid-existing-pick' style='height:100%;'>").appendTo(contentElement);
-                    gridExisting = gridContainer.dxDataGrid({
+                    gridExisting = initDxGrid(gridContainer, {
+                        preset: "selectionGrid",
                         dataSource: resourcesStore,
                         remoteOperations: true,
-                        showBorders: false, showRowLines: true, rowAlternationEnabled: true,
-                        hoverStateEnabled: true,
-                        height: "100%",
-                        scrolling: { mode: "virtual" },
-                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        searchPanel: { visible: true, placeholder: "Search by name or type...", width: 280 },
+                        searchPanel: { placeholder: "Search by name or type..." },
                         sorting: { mode: "multiple" },
                         columns: [
                             {
@@ -258,7 +253,7 @@
                                 }
                             }
                         ]
-                    }).dxDataGrid("instance");
+                    });
                 },
                 toolbarItems: [
                     {

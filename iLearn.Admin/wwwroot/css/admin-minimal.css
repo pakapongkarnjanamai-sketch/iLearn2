@@ -23,7 +23,36 @@
     --border-color: #f0f0f0;
     --bg-light: #fafafa;
 
-    --font-stack: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-family-base: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-stack: var(--font-family-base);
+    --font-size-caption: 11px;
+    --font-size-sm: 12px;
+    --font-size-md: 13px;
+    --font-size-lg: 15px;
+    --font-size-xl: 20px;
+    --font-size-display: 28px;
+    --font-size-grid-header: 11px;
+    --font-size-grid-cell: 12px;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --grid-radius-default: 8px;
+    --grid-radius-compact: 6px;
+    --grid-header-spacing-x: 14px;
+    --grid-header-spacing-y: 12px;
+    --grid-header-spacing-compact-x: 12px;
+    --grid-header-spacing-compact-y: 10px;
+    --grid-toolbar-spacing-x: 14px;
+    --grid-toolbar-spacing-y: 10px;
+    --grid-toolbar-spacing-compact-x: 12px;
+    --grid-toolbar-spacing-compact-y: 8px;
+    --grid-pager-spacing-x: 14px;
+    --grid-pager-spacing-y: 10px;
+    --grid-pager-spacing-compact-x: 12px;
+    --grid-pager-spacing-compact-y: 8px;
+    --grid-row-height: 34px;
+    --grid-header-row-height: 38px;
 }
 
 /* -------------------------------------------------------------
@@ -37,7 +66,7 @@ body {
     font-family: var(--font-stack);
     background: #fff;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--font-size-md);
     padding-top: 48px;
 }
 
@@ -67,22 +96,22 @@ img[loading="lazy"] {
    3. Typography
    ------------------------------------------------------------- */
 .page-title {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     line-height: 1.3;
 }
 
 .page-subtitle {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
 }
 
 .filter-label {
     display: block;
     margin-bottom: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -102,15 +131,15 @@ img[loading="lazy"] {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
     letter-spacing: 0.3px;
     color: #fff !important;
 }
 
 .navbar-custom .navbar-nav .nav-link {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: rgba(255, 255, 255, 0.8) !important;
     padding: 0.45rem 0.75rem;
     border-radius: 3px;
@@ -282,8 +311,8 @@ img[loading="lazy"] {
 }
 
 .section-title {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -307,8 +336,8 @@ img[loading="lazy"] {
 }
 
 .panel-header {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -350,8 +379,8 @@ img[loading="lazy"] {
     border-radius: 4px;
     background: #fff;
     color: var(--text-primary);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     line-height: 1.4;
     cursor: pointer;
     text-decoration: none !important;
@@ -667,24 +696,24 @@ img[loading="lazy"] {
 }
 
 .dash-stat-card .ds-val {
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-size: var(--font-size-display);
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     line-height: 1;
 }
 
 .dash-stat-card .ds-lbl {
     margin-bottom: 8px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-secondary);
 }
 
 .dash-stat-card .ds-link {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
     margin-top: 10px;
 }
 
@@ -697,8 +726,8 @@ img[loading="lazy"] {
 .dash-panel-header {
     padding: 12px 16px 10px;
     border-bottom: 1px solid var(--border-color);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -922,8 +951,125 @@ iframe#scormFrame {
 /* -------------------------------------------------------------
    11. DevExtreme Overrides
    ------------------------------------------------------------- */
+.dx-widget,
+.dx-overlay-content,
+.dx-overlay-content .dx-widget,
+.dx-popup-wrapper,
+.dx-datagrid,
+.dx-toolbar,
+.dx-texteditor,
+.dx-button,
+.dx-list,
+.dx-treeview,
+.dx-tabpanel,
+.dx-form,
+.dx-menu-base {
+    font-family: var(--font-stack) !important;
+}
+
+.dx-datagrid,
+.dx-toolbar,
+.dx-texteditor-input,
+.dx-button-content,
+.dx-list-item,
+.dx-tab-text,
+.dx-field-item-label-text,
+.dx-empty-message,
+.dx-placeholder,
+.dx-popup-title,
+.dx-overlay-content .dx-item-content {
+    font-size: var(--font-size-md);
+}
+
+.dx-datagrid .dx-header-row > td,
+.dx-datagrid .dx-header-row .dx-datagrid-text-content {
+    font-size: var(--font-size-grid-header) !important;
+    font-weight: var(--font-weight-semibold);
+}
+
+.dx-datagrid-rowsview .dx-row > td,
+.dx-datagrid .dx-link,
+.dx-datagrid .dx-command-edit .dx-link,
+.dx-datagrid-pager,
+.dx-datagrid-pager .dx-info,
+.dx-datagrid-pager .dx-page,
+.dx-datagrid-pager .dx-page-size,
+.dx-empty-message {
+    font-size: var(--font-size-grid-cell) !important;
+}
+
 .dx-datagrid .dx-datagrid-headers {
     background: var(--bg-light);
+}
+
+.admin-grid {
+    --grid-current-radius: var(--grid-radius-default);
+    --grid-current-header-spacing-x: var(--grid-header-spacing-x);
+    --grid-current-header-spacing-y: var(--grid-header-spacing-y);
+    --grid-current-toolbar-spacing-x: var(--grid-toolbar-spacing-x);
+    --grid-current-toolbar-spacing-y: var(--grid-toolbar-spacing-y);
+    --grid-current-pager-spacing-x: var(--grid-pager-spacing-x);
+    --grid-current-pager-spacing-y: var(--grid-pager-spacing-y);
+    border-radius: var(--grid-current-radius);
+    overflow: hidden;
+    background: #fff;
+}
+
+.admin-grid--compact,
+.admin-grid--selection {
+    --grid-current-radius: var(--grid-radius-compact);
+    --grid-current-header-spacing-x: var(--grid-header-spacing-compact-x);
+    --grid-current-header-spacing-y: var(--grid-header-spacing-compact-y);
+    --grid-current-toolbar-spacing-x: var(--grid-toolbar-spacing-compact-x);
+    --grid-current-toolbar-spacing-y: var(--grid-toolbar-spacing-compact-y);
+    --grid-current-pager-spacing-x: var(--grid-pager-spacing-compact-x);
+    --grid-current-pager-spacing-y: var(--grid-pager-spacing-compact-y);
+}
+
+.admin-grid.dx-datagrid,
+.admin-grid.dx-datagrid-borders,
+.admin-grid .dx-datagrid-headers,
+.admin-grid .dx-datagrid-rowsview,
+.admin-grid .dx-datagrid-total-footer,
+.admin-grid .dx-datagrid-pager {
+    border-radius: 0;
+}
+
+.admin-grid .dx-datagrid-headers {
+    border-top-left-radius: var(--grid-current-radius);
+    border-top-right-radius: var(--grid-current-radius);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-grid .dx-header-row > td {
+    height: var(--grid-header-row-height);
+    padding: var(--grid-current-header-spacing-y) var(--grid-current-header-spacing-x);
+    vertical-align: middle;
+}
+
+.admin-grid .dx-datagrid-header-panel {
+    padding: 0;
+    background: #fff;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-grid .dx-toolbar-items-container {
+    min-height: 0;
+    padding: var(--grid-current-toolbar-spacing-y) var(--grid-current-toolbar-spacing-x);
+}
+
+.admin-grid .dx-datagrid-rowsview .dx-data-row > td,
+.admin-grid .dx-datagrid-rowsview .dx-freespace-row > td {
+    height: var(--grid-row-height);
+    padding-top: 0;
+    padding-bottom: 0;
+    vertical-align: middle;
+}
+
+.admin-grid .dx-datagrid-pager {
+    padding: var(--grid-current-pager-spacing-y) var(--grid-current-pager-spacing-x);
+    background: #fff;
+    border-top: 1px solid var(--border-color);
 }
 
 .dx-datagrid-rowsview .dx-row-alt > td {
@@ -957,7 +1103,7 @@ iframe#scormFrame {
 }
 
 .dx-loadpanel-message {
-    font-size: 12px !important;
+    font-size: var(--font-size-sm) !important;
     color: var(--text-secondary) !important;
     font-family: var(--font-stack) !important;
 }
@@ -970,13 +1116,13 @@ iframe#scormFrame {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--font-size-md);
     line-height: 1.4;
     font-family: var(--font-stack);
 }
 
 .dx-toast-content-custom i {
-    font-size: 15px;
+    font-size: var(--font-size-lg);
     flex-shrink: 0;
 }
 
@@ -990,7 +1136,7 @@ iframe#scormFrame {
 .swal-admin-popup {
     border-radius: 8px !important;
     font-family: var(--font-stack);
-    font-size: 13px;
+    font-size: var(--font-size-md);
 }
 
 /* -------------------------------------------------------------

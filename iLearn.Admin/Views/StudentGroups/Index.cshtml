@@ -15,27 +15,8 @@
 
 <div class="container-fluid px-4 py-4">
 
-    <!-- ?? KPI Bar ?? -->
-    <div class="row g-2 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Groups</div>
-                <div class="kpi-number" id="kpi-total">�</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="kpi-card">
-                <div class="kpi-label" style="color:var(--accent-color);">Total Members</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-members">�</div>
-            </div>
-        </div>
-    </div>
-
     <!-- ?? DataGrid ?? -->
-    <div class="border rounded bg-white">
-        <div class="panel-header">Group List</div>
-        <div id="grid-groups"></div>
-    </div>
+    <div id="grid-groups"></div>
 
 </div>
 
@@ -57,7 +38,6 @@
         gridInstance = initDxGrid("#grid-groups", {
             dataSource: [],
             selection: { mode: "single" },
-            showBorders: false,
             searchPanel: { visible: true, placeholder: "Search groups..." },
             columns: [
                 {
@@ -263,9 +243,6 @@
                 });
 
                 allGroups = res.data || [];
-                const totalMembers = allGroups.reduce((sum, g) => sum + (g.memberCount || 0), 0);
-                $("#kpi-total").text(allGroups.length);
-                $("#kpi-members").text(totalMembers);
                 gridInstance.option("dataSource", allGroups);
             } catch {
                 showToast("Error loading student groups.", "error");

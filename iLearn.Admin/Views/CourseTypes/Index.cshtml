@@ -20,32 +20,30 @@
         <div class="col-6 col-md-3">
             <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
                 <div class="kpi-label">Total Types</div>
-                <div class="kpi-number" id="kpi-total">—</div>
+                <div class="kpi-number" id="kpi-total">ï¿½</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
                 <div class="kpi-label" style="color:var(--accent-color);">Total Courses</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-courses">—</div>
+                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-courses">ï¿½</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card h-100" style="border-left-color:#722ed1;">
                 <div class="kpi-label" style="color:#722ed1;">Avg. Courses / Type</div>
-                <div class="kpi-number" style="color:#722ed1;" id="kpi-avg">—</div>
+                <div class="kpi-number" style="color:#722ed1;" id="kpi-avg">ï¿½</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
                 <div class="kpi-label" style="color:var(--warning-color);">Unused Types</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-unused">—</div>
+                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-unused">ï¿½</div>
             </div>
         </div>
     </div>
 
-    <div class="border rounded bg-white">
-        <div id="grid"></div>
-    </div>
+    <div id="grid"></div>
 </div>
 
 @section Scripts {
@@ -77,7 +75,6 @@
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { visible: true, placeholder: "Search course types..." },
-                showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
@@ -154,7 +151,7 @@
                         minWidth: 200,
                         cellTemplate: function(container, options) {
                             $("<span>").css({ color: "var(--text-secondary)", fontSize: "12px" })
-                                .text(options.value || "—").appendTo(container);
+                                .text(options.value || "ï¿½").appendTo(container);
                         }
                     },
                     {

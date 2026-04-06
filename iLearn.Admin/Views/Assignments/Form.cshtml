@@ -133,16 +133,13 @@
                     let allCoursesData = [];
                     const coursesLocalStore = new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData });
 
-                    const courseGrid = $("#grid-courses").dxDataGrid({
+                    const courseGrid = initDxGrid("#grid-courses", {
+                        preset: "selectionGrid",
                         dataSource: new DevExpress.data.DataSource({ store: coursesLocalStore }),
-                        showBorders: true, showRowLines: true, rowAlternationEnabled: true,
-                        hoverStateEnabled: true,
                         filterRow: { visible: true },
-                        searchPanel: { visible: true, placeholder: "Search code or title...", width: 250 },
-                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        scrolling: { mode: "virtual" },
+                        searchPanel: { placeholder: "Search code or title..." },
                         height: "100%",
-                        noDataText: "No courses found.",
+                        noDataText: getNoDataText("courses"),
                         columns: [
                             {
                                 dataField: "code", caption: "Code", width: 110,
@@ -166,9 +163,9 @@
                         onSelectionChanged: function(e) {
                             selectedCourseIds = e.selectedRowKeys;
                             updateCardUI("#btn-select-courses", "#selected-courses-text", selectedCourseIds.length, "course");
-                            updateSelectionHint("#course-selection-hint", selectedCourseIds.length, "course(s) selected.", "Check the rows you want to assign.");
+                            setSelectionHint("#course-selection-hint", selectedCourseIds.length, "course", "you want to assign");
                         }
-                    }).dxDataGrid("instance");
+                    });
 
                     $.ajax({
                         url: ASSIGNMENT_LOOKUP_COURSES_URL,
@@ -245,7 +242,7 @@
                         toolbar: "bottom",
                         location: "before",
                         template: function() {
-                            return $(`<div id="course-selection-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center"><i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.</div>`);
+                            return createSelectionHintElement("course-selection-hint", "course", "you want to assign");
                         }
                     },
                     {
@@ -300,7 +297,8 @@
                         </div>
                     `).appendTo(contentElement);
 
-                    const empGrid = $("#grid-students").dxDataGrid({
+                    const empGrid = initDxGrid("#grid-students", {
+                        preset: "selectionGrid",
                         dataSource: DevExpress.data.AspNet.createStore({
                             key: "EId",
                             loadUrl: `${serviceUrl}/Students/Get`,
@@ -309,14 +307,10 @@
                             }
                         }),
                         remoteOperations: true,
-                        showBorders: true, showRowLines: true, rowAlternationEnabled: true,
-                        hoverStateEnabled: true,
                         filterRow: { visible: true },
-                        searchPanel: { visible: true, placeholder: "Search ID or name...", width: 240 },
-                        selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                        scrolling: { mode: "virtual" },
+                        searchPanel: { placeholder: "Search ID or name..." },
                         height: "100%",
-                        noDataText: "No students found.",
+                        noDataText: getNoDataText("students"),
                         columns: [
                             {
                                 dataField: "EId", caption: "ID", width: 95,
@@ -352,9 +346,9 @@
                         onSelectionChanged: function(e) {
                             selectedStudentCodes = e.selectedRowKeys;
                             updateCardUI("#btn-select-employees", "#selected-employees-text", selectedStudentCodes.length, "student");
-                            updateSelectionHint("#emp-selection-hint", selectedStudentCodes.length, "student(s) selected.", "Check the rows you want to assign.");
+                            setSelectionHint("#emp-selection-hint", selectedStudentCodes.length, "student", "you want to assign");
                         }
-                    }).dxDataGrid("instance");
+                    });
 
                     function buildEmpFilterQuery() {
                         const filters = [];
@@ -453,7 +447,7 @@
                         toolbar: "bottom",
                         location: "before",
                         template: function() {
-                            return $(`<div id="emp-selection-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center"><i class="fas fa-info-circle text-primary me-1"></i> Check the rows you want to assign.</div>`);
+                            return createSelectionHintElement("emp-selection-hint", "student", "you want to assign");
                         }
                     },
                     {
@@ -480,14 +474,6 @@
                     $(textId).text(`No ${itemName} selected`).removeClass("text-success fw-bold").addClass("text-muted fw-medium");
                     $(cardId).css({"border-color": "", "background-color": ""});
                 }
-            }
-
-            function updateSelectionHint(selector, count, successText, defaultText) {
-                $(selector).html(
-                    count > 0
-                        ? `<i class="fas fa-check-circle text-success me-1"></i> <b>${count}</b> ${successText}`
-                        : `<i class="fas fa-info-circle text-primary me-1"></i> ${defaultText}`
-                );
             }
 
             function applyCombinedFilter(grid, conditions) {

@@ -26,9 +26,7 @@
         </div>
 
         <div class="col-md-8 col-lg-9 h-100">
-            <div class="border rounded bg-white h-100 d-flex flex-column overflow-hidden">
-                <div id="grid" class="flex-grow-1"></div>
-            </div>
+            <div id="grid" class="h-100"></div>
         </div>
 
     </div>
@@ -57,12 +55,9 @@
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { placeholder: "Search categories..." },
-
-                showBorders: false,
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
-                scrolling: { mode: "virtual" },
                 onInitNewRow: function(e) {
                     if (availableDivisions.length === 1) {
                         e.data.divisionId = availableDivisions[0].id;

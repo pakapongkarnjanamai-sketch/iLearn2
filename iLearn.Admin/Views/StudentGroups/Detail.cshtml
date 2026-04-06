@@ -72,11 +72,9 @@
 
     $(() => {
         membersGrid = initDxGrid("#grid-members", {
+            preset: "compactGrid",
             dataSource: [],
-            showBorders: true,
-            showRowLines: true,
-            hoverStateEnabled: true,
-            searchPanel: { visible: true, placeholder: "Search by ID or name..." },
+            searchPanel: { placeholder: "Search by ID or name..." },
             columns: [
                 {
                     dataField: "studentCode", caption: "Employee ID", width: 130,
@@ -135,11 +133,9 @@
         });
 
         assignmentGrid = initDxGrid("#grid-assignments", {
+            preset: "compactGrid",
             dataSource: [],
-            showBorders: true,
-            showRowLines: true,
-            hoverStateEnabled: true,
-            searchPanel: { visible: true, placeholder: "Search assignments..." },
+            searchPanel: { placeholder: "Search assignments..." },
             onRowPrepared: function(e) {
                 if (e.rowType !== "data") {
                     return;
@@ -266,21 +262,18 @@
 
                 let selectedCodes = [];
 
-                const addGrid = $("#grid-add-students").dxDataGrid({
+                const addGrid = initDxGrid("#grid-add-students", {
+                    preset: "selectionGrid",
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
                         loadUrl: `${serviceUrl}/Students/Get`,
                         onBeforeSend: (m, opts) => opts.xhrFields = { withCredentials: true }
                     }),
                     remoteOperations: true,
-                    showBorders: true, showRowLines: true, rowAlternationEnabled: true,
-                    hoverStateEnabled: true,
                     filterRow: { visible: true },
-                    searchPanel: { visible: true, placeholder: "Search ID or name...", width: 240 },
-                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                    scrolling: { mode: "virtual" },
+                    searchPanel: { placeholder: "Search ID or name..." },
                     height: "100%",
-                    noDataText: "No students found.",
+                    noDataText: getNoDataText("students"),
                     columns: [
                         {
                             dataField: "EId", caption: "ID", width: 110,
@@ -304,12 +297,12 @@
                     ],
                     onSelectionChanged: function (e) {
                         selectedCodes = e.selectedRowKeys;
-                        updateSelectionHint("#add-hint", selectedCodes.length, "student(s) selected.", "Check the rows to add.");
+                        setSelectionHint("#add-hint", selectedCodes.length, "student", "to add");
                     }
-                }).dxDataGrid("instance");
+                });
 
                 function makeLookup(endpoint, q) {
-                    return new DevExpress.data.CustomStore({
+                    template: () => createSelectionHintElement("add-hint", "student", "to add")
                         key: "Name",
                         load: () => $.ajax({
                             url: `${STUDENTS_API_URL}/${endpoint}${q || ""}`,
@@ -468,16 +461,13 @@
 
                 let allCoursesData = [];
 
-                const courseGrid = $("#ac-grid-courses").dxDataGrid({
+                const courseGrid = initDxGrid("#ac-grid-courses", {
+                    preset: "selectionGrid",
                     dataSource: [],
-                    showBorders: true, showRowLines: true, rowAlternationEnabled: true,
-                    hoverStateEnabled: true,
                     filterRow: { visible: true },
-                    searchPanel: { visible: true, placeholder: "Search code or title...", width: 250 },
-                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
-                    scrolling: { mode: "virtual" },
+                    searchPanel: { placeholder: "Search code or title..." },
                     height: "100%",
-                    noDataText: "No courses found.",
+                    noDataText: getNoDataText("courses"),
                     columns: [
                         {
                             dataField: "code", caption: "Code", width: 110,
@@ -495,12 +485,12 @@
                     ],
                     onSelectionChanged: function (e) {
                         selectedCourseIds = e.selectedRowKeys;
-                        updateSelectionHint("#ac-selection-hint", selectedCourseIds.length, "course(s) selected.", "Check the rows you want to assign.");
+                        setSelectionHint("#ac-selection-hint", selectedCourseIds.length, "course", "you want to assign");
                     }
-                }).dxDataGrid("instance");
+                });
 
                 $.ajax({
-                    url: `${ASSIGNMENTS_API_URL}/lookup-courses`,
+                    template: () => createSelectionHintElement("ac-selection-hint", "course", "you want to assign")
                     method: "GET", xhrFields: { withCredentials: true }
                 }).done(function (res) {
                     allCoursesData = res.data || [];
@@ -946,14 +936,6 @@
         }
 
         gridInstance.filter(filter);
-    }
-
-    function updateSelectionHint(selector, count, successText, defaultText) {
-        $(selector).html(
-            count > 0
-                ? `<i class="fas fa-check-circle text-success me-1"></i><b>${count}</b> ${successText}`
-                : `<i class="fas fa-info-circle text-primary me-1"></i> ${defaultText}`
-        );
     }
 
     function buildConflictNote(inProgressCount, completedCount, totalConflicts) {

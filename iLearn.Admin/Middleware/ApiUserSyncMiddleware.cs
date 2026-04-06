@@ -1,6 +1,5 @@
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.DTOs;
-using iLearn.Application.Interfaces.Services;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 

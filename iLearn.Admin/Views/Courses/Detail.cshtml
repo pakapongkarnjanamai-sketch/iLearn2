@@ -520,16 +520,9 @@
             };
 
             learnersGrid = initDxGrid('#grid-learners', {
+                preset: 'compactGrid',
                 dataSource: [],
-                showBorders: true,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                rowAlternationEnabled: true,
-                height: 520,
-                scrolling: { mode: 'standard' },
-                paging: { enabled: true, pageSize: 10 },
-                pager: { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
-                searchPanel: { visible: true, placeholder: 'Search by ID or name...' },
+                searchPanel: { placeholder: 'Search by ID or name...' },
                 columns: [
                     {
                         dataField: 'studentCode', caption: 'Employee ID', width: 130,
@@ -602,16 +595,9 @@
             });
 
             assignmentsGrid = initDxGrid('#grid-assignments', {
+                preset: 'compactGrid',
                 dataSource: [],
-                showBorders: true,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                rowAlternationEnabled: true,
-                height: 520,
-                scrolling: { mode: 'standard' },
-                paging: { enabled: true, pageSize: 10 },
-                pager: { visible: true, showInfo: true, showNavigationButtons: true, showPageSizeSelector: true, allowedPageSizes: [10, 20, 50] },
-                searchPanel: { visible: true, placeholder: 'Search assignments...' },
+                searchPanel: { placeholder: 'Search assignments...' },
                 onRowPrepared: function(e) {
                     if (e.rowType !== 'data') {
                         return;

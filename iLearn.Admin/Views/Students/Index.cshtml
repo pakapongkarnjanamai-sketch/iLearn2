@@ -14,9 +14,7 @@
 </div>
 
 <div class="container-fluid px-4 py-3">
-    <div class="border rounded bg-white">
-        <div id="grid"></div>
-    </div>
+    <div id="grid"></div>
 </div>
 
 @section Scripts {
@@ -28,7 +26,6 @@
                 remoteOperations: true,
                 selection: { mode: 'single' },
                 searchPanel: { visible: true, placeholder: "Search students by Name, ID, or Division..." },
-                showBorders: false,
                 export: { enabled: true, allowExportSelectedData: true },
                 onExporting: (e) => handleExporting(e, 'Students_Employees'),
                 editing: { allowUpdating: false, allowDeleting: false, allowAdding: false },
