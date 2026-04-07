@@ -18,6 +18,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly IAssignmentDashboardService _dashboardService;
+        private readonly ICourseAssignmentService _courseAssignmentService;
         private readonly IStudentApiService _studentApiService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
@@ -29,6 +30,7 @@ namespace iLearn.API.Controllers
             IGenericRepository<Course> courseRepo,
             IAssignmentBatchService assignmentBatchService,
             IAssignmentDashboardService dashboardService,
+            ICourseAssignmentService courseAssignmentService,
             IStudentApiService studentApiService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
@@ -39,6 +41,7 @@ namespace iLearn.API.Controllers
             _courseRepo = courseRepo;
             _assignmentBatchService = assignmentBatchService;
             _dashboardService = dashboardService;
+            _courseAssignmentService = courseAssignmentService;
             _studentApiService = studentApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
@@ -205,6 +208,270 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, message = "Due date extended successfully.", newDueDate = dto.NewDueDate });
         }
 
+        [HttpPost("{id}/courses")]
+        public async Task<IActionResult> AddCourses(int id, [FromBody] ManageAssignmentCoursesDto dto)
+        {
+            var mainRule = await _repo.GetByIdAsync(id);
+            if (mainRule == null) return NotFound(new { message = "Assignment not found" });
+
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
+            {
+                return Forbid();
+            }
+
+            var requestedCourseIds = dto.CourseIds?
+                .Distinct()
+                .ToList() ?? [];
+
+            if (requestedCourseIds.Count == 0)
+            {
+                return BadRequest(new { message = "At least one course is required." });
+            }
+
+            var accessibleCourses = await GetAccessibleCoursesAsync(requestedCourseIds);
+            if (HasUnauthorizedCourses(requestedCourseIds, accessibleCourses))
+            {
+                return Forbid();
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var existingCourseIds = batchRules
+                .Where(rule => rule.CourseId.HasValue)
+                .Select(rule => rule.CourseId!.Value)
+                .Distinct()
+                .ToHashSet();
+
+            var newCourseIds = requestedCourseIds
+                .Where(courseId => !existingCourseIds.Contains(courseId))
+                .ToList();
+
+            if (newCourseIds.Count == 0)
+            {
+                return Ok(new { success = true, message = "No new courses were added.", addedCount = 0 });
+            }
+
+            var studentCodes = await GetBatchStudentCodesAsync(batchRules.Select(rule => rule.Id).ToList(), batchRules);
+            var employeeCodesText = string.Join(",", studentCodes);
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var newRules = newCourseIds.Select(courseId => new Assignment
+                {
+                    AssignmentNo = mainRule.AssignmentNo,
+                    Description = mainRule.Description,
+                    CourseId = courseId,
+                    EmployeeCodes = employeeCodesText,
+                    StartDate = mainRule.StartDate,
+                    DueDate = mainRule.DueDate,
+                    Division = mainRule.Division,
+                    StudentGroupId = mainRule.StudentGroupId,
+                    DivisionId = mainRule.DivisionId
+                }).ToList();
+
+                await _dbContext.Assignments.AddRangeAsync(newRules);
+                await _dbContext.SaveChangesAsync();
+
+                if (studentCodes.Count > 0)
+                {
+                    var assignmentRuleIdsByCourseId = newRules
+                        .Where(rule => rule.CourseId.HasValue)
+                        .ToDictionary(rule => rule.CourseId!.Value, rule => rule.Id);
+
+                    await _courseAssignmentService.AssignCoursesToEmployees(
+                        assignmentRuleIdsByCourseId,
+                        studentCodes,
+                        mainRule.StartDate,
+                        mainRule.DueDate,
+                        forceReset: false);
+                }
+
+                await transaction.CommitAsync();
+                return Ok(new { success = true, message = "Courses added successfully.", addedCount = newRules.Count });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        [HttpDelete("{id}/courses/{ruleId}")]
+        public async Task<IActionResult> RemoveCourse(int id, int ruleId)
+        {
+            var mainRule = await _repo.GetByIdAsync(id);
+            if (mainRule == null) return NotFound(new { message = "Assignment not found" });
+
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
+            {
+                return Forbid();
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var targetRule = batchRules.FirstOrDefault(rule => rule.Id == ruleId);
+            if (targetRule == null)
+            {
+                return NotFound(new { message = "Assigned course not found." });
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var links = await _enrollmentAssignmentRepo.GetAsync(link => link.AssignmentId == targetRule.Id, includeProperties: "Enrollment");
+                foreach (var link in links)
+                {
+                    link.IsDeleted = true;
+                    link.DeletedAt = _dateTime.Now;
+                }
+
+                targetRule.IsDeleted = true;
+                targetRule.DeletedAt = _dateTime.Now;
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var remainingRules = batchRules.Count(rule => rule.Id != targetRule.Id);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Assigned course removed successfully.",
+                    assignmentDeleted = remainingRules == 0
+                });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        [HttpPost("{id}/students")]
+        public async Task<IActionResult> AddStudents(int id, [FromBody] ManageAssignmentStudentsDto dto)
+        {
+            var mainRule = await _repo.GetByIdAsync(id);
+            if (mainRule == null) return NotFound(new { message = "Assignment not found" });
+
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
+            {
+                return Forbid();
+            }
+
+            var requestedStudentCodes = NormalizeStudentCodes(dto.EmployeeCodes);
+            if (requestedStudentCodes.Count == 0)
+            {
+                return BadRequest(new { message = "At least one student is required." });
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var ruleIds = batchRules.Select(rule => rule.Id).ToList();
+            var currentStudentCodes = await GetBatchStudentCodesAsync(ruleIds, batchRules);
+            var newStudentCodes = requestedStudentCodes
+                .Except(currentStudentCodes, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (newStudentCodes.Count == 0)
+            {
+                return Ok(new { success = true, message = "No new students were added.", addedCount = 0 });
+            }
+
+            var updatedStudentCodes = currentStudentCodes
+                .Union(newStudentCodes, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var rule in batchRules)
+                {
+                    rule.EmployeeCodes = string.Join(",", updatedStudentCodes);
+                }
+
+                var assignmentRuleIdsByCourseId = batchRules
+                    .Where(rule => rule.CourseId.HasValue)
+                    .ToDictionary(rule => rule.CourseId!.Value, rule => rule.Id);
+
+                if (assignmentRuleIdsByCourseId.Count > 0)
+                {
+                    await _courseAssignmentService.AssignCoursesToEmployees(
+                        assignmentRuleIdsByCourseId,
+                        newStudentCodes,
+                        mainRule.StartDate,
+                        mainRule.DueDate,
+                        forceReset: false);
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok(new { success = true, message = "Students added successfully.", addedCount = newStudentCodes.Count });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        [HttpDelete("{id}/students/{studentCode}")]
+        public async Task<IActionResult> RemoveStudent(int id, string studentCode)
+        {
+            var mainRule = await _repo.GetByIdAsync(id);
+            if (mainRule == null) return NotFound(new { message = "Assignment not found" });
+
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
+            {
+                return Forbid();
+            }
+
+            var normalizedStudentCode = studentCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedStudentCode))
+            {
+                return BadRequest(new { message = "Student code is required." });
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var ruleIds = batchRules.Select(rule => rule.Id).ToList();
+            var currentStudentCodes = await GetBatchStudentCodesAsync(ruleIds, batchRules);
+            if (!currentStudentCodes.Contains(normalizedStudentCode, StringComparer.OrdinalIgnoreCase))
+            {
+                return NotFound(new { message = "Student is not assigned to this assignment." });
+            }
+
+            var remainingStudentCodes = currentStudentCodes
+                .Where(code => !string.Equals(code, normalizedStudentCode, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    link => ruleIds.Contains(link.AssignmentId)
+                        && link.Enrollment != null
+                        && link.Enrollment.StudentCode == normalizedStudentCode,
+                    includeProperties: "Enrollment");
+
+                foreach (var link in links)
+                {
+                    link.IsDeleted = true;
+                    link.DeletedAt = _dateTime.Now;
+                }
+
+                var employeeCodesText = string.Join(",", remainingStudentCodes);
+                foreach (var rule in batchRules)
+                {
+                    rule.EmployeeCodes = employeeCodesText;
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok(new { success = true, message = "Student removed successfully." });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         [HttpGet("lookup-courses")]
         public async Task<IActionResult> GetLookupCourses()
         {
@@ -257,6 +524,36 @@ namespace iLearn.API.Controllers
                 .ToHashSet();
 
             return requestedCourseIds.Any(courseId => !accessibleCourseIds.Contains(courseId));
+        }
+
+        private async Task<List<string>> GetBatchStudentCodesAsync(List<int> ruleIds, IEnumerable<Assignment> batchRules)
+        {
+            var studentCodesFromLinks = await _dbContext.EnrollmentAssignments
+                .AsNoTracking()
+                .Where(link => ruleIds.Contains(link.AssignmentId) && !link.IsDeleted && link.Enrollment != null)
+                .Select(link => link.Enrollment!.StudentCode)
+                .Distinct()
+                .ToListAsync();
+
+            var studentCodesFromRules = batchRules
+                .SelectMany(rule => (rule.EmployeeCodes ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .ToList();
+
+            return studentCodesFromLinks
+                .Concat(studentCodesFromRules)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> NormalizeStudentCodes(IEnumerable<string>? studentCodes)
+        {
+            return studentCodes?
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Select(code => code.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? [];
         }
 
         private async Task<List<AssignmentHistoryDto>> BuildAssignmentHistoryAsync()

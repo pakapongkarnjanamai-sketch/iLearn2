@@ -21,6 +21,10 @@
         display: none;
     }
     .deleted-course-banner i { margin-right: 6px; }
+
+    #course-selector {
+        display: none;
+    }
 </style>
 
 <!-- ── Page Header ────────────────────────────────────────────────── -->
@@ -30,10 +34,6 @@
         <div class="text-secondary" id="lbl-assignment-no" style="font-size:12px;">Loading...</div>
     </div>
     <div class="d-flex gap-2">
-        <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
-           target="_blank" class="action-link">
-            <i class="fas fa-file-alt text-secondary"></i> Export Report
-        </a>
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
             <i class="fas fa-arrow-left text-secondary"></i> Back
         </a>
@@ -78,6 +78,11 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mt-3 pt-3" style="border-top:1px solid var(--border-color);">
+                    <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
+                       target="_blank" class="action-link">
+                        <i class="fas fa-file-alt text-secondary"></i>
+                        Export Report
+                    </a>
                     <a href="javascript:void(0);" id="btn-extend-due-date" class="action-link">
                         <i class="fas fa-calendar-plus" style="color:var(--warning-color);"></i>
                         Extend Due Date
@@ -142,10 +147,14 @@
         <!-- Course List -->
         <div class="col-xl-4">
             <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Assigned Courses
-                    <span class="float-end fw-normal text-secondary" style="font-size:11px;">
-                        Click to filter
-                    </span>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="section-title mb-0" style="border:none; padding:0;">Courses</div>
+                    <div class="d-flex align-items-center gap-2">
+             
+                        <a href="javascript:void(0);" id="btn-add-course" class="action-link" title="Add course">
+                            <i class="fas fa-plus text-secondary"></i> Add Course
+                        </a>
+                    </div>
                 </div>
                 <div id="course-list" class="d-flex flex-column" style="max-height:420px; overflow-y:auto;"></div>
             </div>
@@ -156,14 +165,14 @@
             <div class="border rounded bg-white h-100 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="section-title mb-0" style="border:none; padding:0;">
-                        Student Tracking
+                        Student
                         <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
                               style="font-size:11px; text-transform:none; letter-spacing:0;">— All</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div id="course-selector" style="width:220px;"></div>
-                        <a href="javascript:void(0);" id="btn-export-students" class="action-link" title="Export to Excel">
-                            <i class="fas fa-file-excel text-secondary"></i> Export
+                        <a href="javascript:void(0);" id="btn-add-students" class="action-link" title="Add students">
+                            <i class="fas fa-user-plus text-secondary"></i> Add Student
                         </a>
                     </div>
                 </div>
@@ -172,19 +181,11 @@
         </div>
     </div>
 
-    <!-- ── Row 3: Pivot Table ────────────────────────────────────── -->
-    <div class="border rounded bg-white p-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <div class="section-title mb-0" style="border:none; padding:0;">Student × Course Matrix</div>
-            <a href="javascript:void(0);" id="btn-export-pivot" class="action-link" title="Export Pivot to Excel">
-                <i class="fas fa-file-excel text-secondary"></i> Export
-            </a>
-        </div>
-        <div id="pivot-container"></div>
-    </div>
 </div>
 
 <div id="extend-due-date-popup"></div>
+<div id="add-course-popup"></div>
+<div id="add-students-popup"></div>
 
 @section Scripts {
 <script>
@@ -192,14 +193,17 @@
     const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
     const ASSIGNMENT_DASHBOARD_URL = `${ASSIGNMENTS_API_URL}/dashboard/${ASSIGNMENT_ID}`;
     const ASSIGNMENT_INDEX_URL = `@Url.Action("Index", "Assignments")`;
+    const ASSIGNMENT_LOOKUP_COURSES_URL = `${ASSIGNMENTS_API_URL}/lookup-courses`;
     const STUDENT_PROFILE_URL = `@Url.Action("Profile", "Students")`;
     const EMPTY_TEXT = "—";
+    const DATE_FORMAT = "en-GB";
 
     let loadPanel;
     let currentDueDate = null;
     let currentStartDate = null;
     let studentsByRuleId = new Map();
-    let pivotRows = [];
+    let addCoursePopup;
+    let addStudentsPopup;
 
     $(() => {
         loadPanel = $("#load-panel").dxLoadPanel({
@@ -212,11 +216,136 @@
             message: "Loading..."
         }).dxLoadPanel("instance");
 
+        initializeManagementPopups();
         initializeDashboard();
 
         $("#btn-delete-assignment").click(handleDeleteAssignment);
         $("#btn-extend-due-date").click(openExtendDueDatePopup);
+        $("#btn-add-course").click(() => addCoursePopup.show());
+        $("#btn-add-students").click(() => addStudentsPopup.show());
     });
+
+    function initializeManagementPopups() {
+        addCoursePopup = $("#add-course-popup").dxPopup({
+            title: "Add Courses",
+            width: "80vw",
+            maxWidth: 980,
+            height: "80vh",
+            showCloseButton: true,
+            dragEnabled: true,
+            contentTemplate: function(contentElement) {
+                $("<div id='add-course-grid'>").css("height", "100%").appendTo(contentElement);
+
+                initDxGrid("#add-course-grid", {
+                    preset: "selectionGrid",
+                    dataSource: new DevExpress.data.CustomStore({
+                        key: "id",
+                        load: () => $.ajax({
+                            url: ASSIGNMENT_LOOKUP_COURSES_URL,
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
+                        }).then(res => res.data || [])
+                    }),
+                    remoteOperations: false,
+                    filterRow: { visible: true },
+                    searchPanel: { placeholder: "Search code or title...", width: 220 },
+                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                    columns: [
+                        { dataField: "code", caption: "Code", width: 120 },
+                        { dataField: "title", caption: "Course Title", minWidth: 220 },
+                        { dataField: "courseTypeName", caption: "Type", width: 140 },
+                        { dataField: "divisionId", caption: "Division", width: 90, visible: false }
+                    ]
+                });
+            },
+            toolbarItems: [
+                {
+                    widget: "dxButton",
+                    toolbar: "bottom",
+                    location: "after",
+                    options: {
+                        text: "Cancel",
+                        stylingMode: "outlined",
+                        onClick: function() { addCoursePopup.hide(); }
+                    }
+                },
+                {
+                    widget: "dxButton",
+                    toolbar: "bottom",
+                    location: "after",
+                    options: {
+                        text: "Add Selected",
+                        type: "default",
+                        stylingMode: "contained",
+                        onClick: addSelectedCourses
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+
+        addStudentsPopup = $("#add-students-popup").dxPopup({
+            title: "Add Students",
+            width: "88vw",
+            maxWidth: 1220,
+            height: "82vh",
+            showCloseButton: true,
+            dragEnabled: true,
+            contentTemplate: function(contentElement) {
+                $("<div id='add-students-grid'>").css("height", "100%").appendTo(contentElement);
+
+                initDxGrid("#add-students-grid", {
+                    preset: "selectionGrid",
+                    dataSource: DevExpress.data.AspNet.createStore({
+                        key: "EId",
+                        loadUrl: `${serviceUrl}/Students/Get`,
+                        onBeforeSend: function(method, ajaxOptions) {
+                            ajaxOptions.xhrFields = { withCredentials: true };
+                        }
+                    }),
+                    remoteOperations: true,
+                    filterRow: { visible: true },
+                    searchPanel: { placeholder: "Search ID or name...", width: 220 },
+                    selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                    columns: [
+                        { dataField: "EId", caption: "ID", width: 110 },
+                        {
+                            caption: "Name",
+                            minWidth: 180,
+                            calculateCellValue: function(data) {
+                                return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
+                            }
+                        },
+                        { dataField: "Position", caption: "Position", width: 120 },
+                        { dataField: "Department", caption: "Department", width: 120 },
+                        { dataField: "Section", caption: "Section", minWidth: 140 }
+                    ]
+                });
+            },
+            toolbarItems: [
+                {
+                    widget: "dxButton",
+                    toolbar: "bottom",
+                    location: "after",
+                    options: {
+                        text: "Cancel",
+                        stylingMode: "outlined",
+                        onClick: function() { addStudentsPopup.hide(); }
+                    }
+                },
+                {
+                    widget: "dxButton",
+                    toolbar: "bottom",
+                    location: "after",
+                    options: {
+                        text: "Add Selected",
+                        type: "default",
+                        stylingMode: "contained",
+                        onClick: addSelectedStudents
+                    }
+                }
+            ]
+        }).dxPopup("instance");
+    }
 
     async function initializeDashboard() {
         try {
@@ -232,8 +361,10 @@
             }
 
             const data = response.data;
-            const firstRuleId = data.courses.length > 0 ? data.courses[0].assignmentRuleId : null;
-            const dropdownOptions = data.courses.map(course => ({
+            const courses = Array.isArray(data.courses) ? data.courses : [];
+            const students = Array.isArray(data.students) ? data.students : [];
+            const firstRuleId = courses.length > 0 ? courses[0].assignmentRuleId : null;
+            const dropdownOptions = courses.map(course => ({
                 assignmentRuleId: course.assignmentRuleId,
                 displayText: course.isCourseDeleted ? `${course.courseCode} [Deleted]` : `${course.courseCode}`
             }));
@@ -241,30 +372,26 @@
             initializeHeader(data);
             initializeStats(data);
             initializeStatusChart(data.chartData);
-            initializeCourseList(data.courses, firstRuleId);
+            initializeCourseList(courses, firstRuleId);
             initializeCourseSelector(dropdownOptions, firstRuleId);
-            studentsByRuleId = groupStudentsByRuleId(data.students || []);
-            pivotRows = buildPivotRows(data.students || []);
+            studentsByRuleId = groupStudentsByRuleId(students);
             initializeStudentGrid(getStudentsForRule(firstRuleId));
-
-            initializeExportButtons();
 
             if (firstRuleId) {
                 setActiveCourseFilter(firstRuleId, dropdownOptions[0]?.displayText || EMPTY_TEXT);
             }
 
             loadPanel.hide();
-
-            deferPivotInitialization();
         } catch {
             showApiError("Error loading dashboard data.");
         }
     }
 
     function initializeHeader(data) {
-        const refNo = data.assignmentNo || "-";
-        const startText = formatDate(data.startDate, "-");
+        const refNo = data.assignmentNo || EMPTY_TEXT;
+        const startText = formatDate(data.startDate, EMPTY_TEXT);
         const dueText = data.dueDate ? formatDate(data.dueDate, "No Limit") : "No Limit";
+        const courses = Array.isArray(data.courses) ? data.courses : [];
 
         currentDueDate = data.dueDate ? new Date(data.dueDate) : null;
         currentStartDate = data.startDate ? new Date(data.startDate) : null;
@@ -279,7 +406,7 @@
             return;
         }
 
-        const deletedNames = data.courses
+        const deletedNames = courses
             .filter(course => course.isCourseDeleted)
             .map(course => course.courseTitle)
             .join(", ");
@@ -341,13 +468,21 @@
             $("#course-selector").dxSelectBox("instance").option("value", ruleId);
             setActiveCourseFilter(ruleId, title);
         });
+
+        $courseList.find(".btn-remove-course").on("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const ruleId = $(this).data("rule");
+            const title = $(this).data("title");
+            confirmRemoveCourse(ruleId, title);
+        });
     }
 
     function buildCourseCardHtml(course, isActive) {
-        const percent = course.totalStudents > 0 ? Math.round((course.completedStudents / course.totalStudents) * 100) : 0;
+        const percent = getCourseCompletionPercent(course);
         const leftColor = course.isCourseDeleted
             ? "#ffa39e"
-            : getProgressColor(percent, true);
+            : getProgressColor(percent);
         const deletedBadge = course.isCourseDeleted
             ? `<span class="status-pill ms-1" style="background:#fff1f0;border:1px solid #ffa39e;color:var(--danger-color);font-size:9px;"><i class="fas fa-trash-alt me-1"></i>Deleted</span>`
             : "";
@@ -362,7 +497,12 @@
                         <span class="text-secondary ms-1" style="font-size:11px;">${course.courseTitle}</span>
                         ${deletedBadge}
                     </div>
-                    <span class="fw-bold ms-2" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${percent}%</span>
+                    <div class="d-flex align-items-center gap-2 ms-2">
+                        <span class="fw-bold" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${percent}%</span>
+                        <a href="javascript:void(0);" class="action-link btn-remove-course" data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}" style="padding:2px 8px; font-size:11px;">
+                            <i class="fas fa-trash-alt" style="color:var(--danger-color);"></i>
+                        </a>
+                    </div>
                 </div>
                 <div class="progress-slim">
                     <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
@@ -425,7 +565,7 @@
                     caption: "Name",
                     minWidth: 120,
                     cellTemplate: function(container, options) {
-                        appendText(container, options.value || "-", { fontSize: "12px", color: "var(--text-secondary)" });
+                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
                     }
                 },
                 {
@@ -455,95 +595,84 @@
                     cellTemplate: function(container, options) {
                         appendText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
                     }
+                },
+                {
+                    caption: "",
+                    width: 84,
+                    alignment: "center",
+                    allowFiltering: false,
+                    allowSorting: false,
+                    cellTemplate: function(container, options) {
+                        $("<a>")
+                            .attr("href", "javascript:void(0);")
+                            .addClass("action-link")
+                            .css({ padding: "3px 8px", fontSize: "11px" })
+                            .html('<i class="fas fa-user-minus" style="color:var(--danger-color);"></i>')
+                            .on("click", function(e) {
+                                e.preventDefault();
+                                confirmRemoveStudent(options.data.studentCode, options.data.studentName || options.data.studentCode);
+                            })
+                            .appendTo(container);
+                    }
                 }
             ]
         });
     }
 
-    function deferPivotInitialization() {
-        const initialize = function() {
-            initializePivotGrid(pivotRows);
-        };
-
-        if (typeof window.requestIdleCallback === "function") {
-            window.requestIdleCallback(initialize, { timeout: 500 });
+    async function addSelectedCourses() {
+        const grid = $("#add-course-grid").dxDataGrid("instance");
+        const courseIds = grid ? grid.getSelectedRowKeys() : [];
+        if (!courseIds.length) {
+            showToast("Please select at least one course.", "warning");
             return;
         }
 
-        window.setTimeout(initialize, 0);
+        loadPanel.option("message", "Adding courses...");
+        loadPanel.show();
+
+        try {
+            const response = await $.ajax({
+                url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/courses`,
+                method: "POST",
+                contentType: "application/json",
+                xhrFields: { withCredentials: true },
+                data: JSON.stringify({ courseIds: courseIds })
+            });
+
+            addCoursePopup.hide();
+            reloadDetail(response.message || "Courses updated.");
+        } catch (error) {
+            loadPanel.hide();
+            showToast(getApiErrorMessage(error, "Error adding courses."), "error", 4000);
+        }
     }
 
-    function initializePivotGrid(students) {
-        $("#pivot-container").dxPivotGrid({
-            allowSortingBySummary: true,
-            allowFiltering: true,
-            showBorders: true,
-            showColumnTotals: false,
-            showRowTotals: false,
-            showRowGrandTotals: false,
-            showColumnGrandTotals: false,
-            height: 560,
-            export: { enabled: false },
-            onExporting: function(e) {
-                handlePivotExporting(e, `Pivot_Matrix_${ASSIGNMENT_ID}`);
-            },
-            fieldChooser: { enabled: false },
-            onCellPrepared: function(e) {
-                if (e.area !== "data" || !e.cell.text) {
-                    return;
-                }
+    async function addSelectedStudents() {
+        const grid = $("#add-students-grid").dxDataGrid("instance");
+        const studentCodes = grid ? grid.getSelectedRowKeys() : [];
+        if (!studentCodes.length) {
+            showToast("Please select at least one student.", "warning");
+            return;
+        }
 
-                const value = e.cell.text;
-                if (value === "Completed") {
-                    e.cellElement.css({ color: "var(--success-color)", fontWeight: 600, fontSize: "11px" });
-                    e.cellElement.html('<i class="fas fa-check"></i>');
-                    return;
-                }
+        loadPanel.option("message", "Adding students...");
+        loadPanel.show();
 
-                if (value === "In Progress") {
-                    e.cellElement.css({ color: "var(--warning-color)", fontWeight: 600, fontSize: "11px" });
-                    return;
-                }
+        try {
+            const response = await $.ajax({
+                url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/students`,
+                method: "POST",
+                contentType: "application/json",
+                xhrFields: { withCredentials: true },
+                data: JSON.stringify({ employeeCodes: studentCodes })
+            });
 
-                if (value === "Pending") {
-                    e.cellElement.css({ color: "var(--text-secondary)", fontSize: "11px" });
-                }
-            },
-            dataSource: {
-                fields: [
-                    { dataField: "studentCode", area: "row", caption: "Student ID", width: 120, sortOrder: "asc" },
-                    { dataField: "studentName", area: "row", caption: "Name", width: 180 },
-                    { dataField: "courseCode", area: "column", caption: "Course" },
-                    {
-                        dataField: "status",
-                        area: "data",
-                        caption: "Status",
-                        summaryType: "custom",
-                        calculateCustomSummary: function(options) {
-                            if (options.summaryProcess === "start") {
-                                options.totalValue = "-";
-                            }
-                            if (options.summaryProcess === "calculate") {
-                                options.totalValue = options.value;
-                            }
-                        }
-                    }
-                ],
-                store: students
-            }
-        });
-    }
-
-    function initializeExportButtons() {
-        $("#btn-export-students").off("click").on("click", function() {
-            const grid = $("#student-grid").dxDataGrid("instance");
-            handleExporting({ component: grid, cancel: false }, `Student_Tracking_${ASSIGNMENT_ID}`);
-        });
-
-        $("#btn-export-pivot").off("click").on("click", function() {
-            const pivot = $("#pivot-container").dxPivotGrid("instance");
-            handlePivotExporting({ component: pivot, cancel: false }, `Pivot_Matrix_${ASSIGNMENT_ID}`);
-        });
+            addStudentsPopup.hide();
+            reloadDetail(response.message || "Students updated.");
+        } catch (error) {
+            loadPanel.hide();
+            showToast(getApiErrorMessage(error, "Error adding students."), "error", 4000);
+        }
     }
 
     function setActiveCourseFilter(ruleId, title) {
@@ -578,13 +707,10 @@
         return studentsByRuleId.get(ruleId ?? 0) || [];
     }
 
-    function buildPivotRows(students) {
-        return students.map(student => ({
-            studentCode: student.studentCode,
-            studentName: student.studentName || student.studentCode,
-            courseCode: student.courseCode || "-",
-            status: student.status
-        }));
+    function getCourseCompletionPercent(course) {
+        return course.totalStudents > 0
+            ? Math.round((course.completedStudents / course.totalStudents) * 100)
+            : 0;
     }
 
     function appendText(container, text, styles) {
@@ -592,10 +718,37 @@
     }
 
     function formatDate(value, fallback = EMPTY_TEXT) {
-        return value ? new Date(value).toLocaleDateString("en-GB") : fallback;
+        return value ? new Date(value).toLocaleDateString(DATE_FORMAT) : fallback;
     }
 
-    function getProgressColor(progress, includeZeroBorder) {
+    function getApiErrorMessage(error, fallbackMessage) {
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+    }
+
+    function reloadDetail(message) {
+        showToast(message, "success");
+        window.setTimeout(() => window.location.reload(), 600);
+    }
+
+    function showConfirmDialog(options) {
+        if (window.SwalAdmin && typeof window.SwalAdmin.fire === "function") {
+            return window.SwalAdmin.fire(options);
+        }
+
+        if (window.Swal && typeof window.Swal.fire === "function") {
+            return window.Swal.fire(options);
+        }
+
+        const deferred = $.Deferred();
+        DevExpress.ui.dialog.confirm(options.html || options.text || "Please confirm this action.", options.title || "Confirm")
+            .done(function(confirmed) {
+                deferred.resolve({ isConfirmed: confirmed });
+            });
+
+        return deferred.promise();
+    }
+
+    function getProgressColor(progress) {
         if (progress === 100) {
             return "var(--success-color)";
         }
@@ -604,7 +757,7 @@
             return "var(--accent-color)";
         }
 
-        return includeZeroBorder ? "var(--border-color)" : "var(--border-color)";
+        return "var(--border-color)";
     }
 
     function renderProgressCell(container, progress, useWarningForPartial) {
@@ -657,6 +810,78 @@
             .append($("<span>").addClass(`status-dot ${dotClass}`))
             .append(label)
             .appendTo(container);
+    }
+
+    function confirmRemoveCourse(ruleId, title) {
+        showConfirmDialog({
+            title: "Remove assigned course?",
+            html: `Course <b>${escapeHtml(title || EMPTY_TEXT)}</b> will be removed from this assignment.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Remove",
+            cancelButtonText: "Cancel"
+        }).then(async function(result) {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            loadPanel.option("message", "Removing course...");
+            loadPanel.show();
+
+            try {
+                const response = await $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/courses/${ruleId}`,
+                    method: "DELETE",
+                    xhrFields: { withCredentials: true }
+                });
+
+                if (response.assignmentDeleted) {
+                    showToast(response.message || "Assignment removed.", "success");
+                    window.setTimeout(() => window.location.href = ASSIGNMENT_INDEX_URL, 600);
+                    return;
+                }
+
+                reloadDetail(response.message || "Course removed.");
+            } catch (error) {
+                loadPanel.hide();
+                showToast(getApiErrorMessage(error, "Error removing course."), "error", 4000);
+            }
+        });
+    }
+
+    function confirmRemoveStudent(studentCode, studentName) {
+        showConfirmDialog({
+            title: "Remove student from assignment?",
+            html: `<b>${escapeHtml(studentCode || EMPTY_TEXT)}</b> ${escapeHtml(studentName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Remove",
+            cancelButtonText: "Cancel"
+        }).then(async function(result) {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            loadPanel.option("message", "Removing student...");
+            loadPanel.show();
+
+            try {
+                const response = await $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/students/${encodeURIComponent(studentCode)}`,
+                    method: "DELETE",
+                    xhrFields: { withCredentials: true }
+                });
+
+                reloadDetail(response.message || "Student removed.");
+            } catch (error) {
+                loadPanel.hide();
+                showToast(getApiErrorMessage(error, "Error removing student."), "error", 4000);
+            }
+        });
+    }
+
+    function escapeHtml(value) {
+        return $("<div>").text(value || "").html();
     }
 
     function handleDeleteAssignment(e) {
@@ -748,7 +973,7 @@
                                     $("#extend-due-date-popup").dxPopup("instance").hide();
                                     loadPanel.hide();
                                     currentDueDate = newDate;
-                                    const formatted = new Date(newDate).toLocaleDateString("en-GB");
+                                    const formatted = new Date(newDate).toLocaleDateString(DATE_FORMAT);
                                     const sDate = $("#lbl-schedule").data("start");
                                     $("#lbl-schedule").text(`${sDate} → ${formatted}`);
                                     showToast("Due date extended.", "success");

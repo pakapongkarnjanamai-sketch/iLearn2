@@ -38,4 +38,14 @@ namespace iLearn.Application.DTOs
     {
         public DateTime NewDueDate { get; set; }
     }
+
+    public class ManageAssignmentCoursesDto
+    {
+        public List<int> CourseIds { get; set; } = new();
+    }
+
+    public class ManageAssignmentStudentsDto
+    {
+        public List<string> EmployeeCodes { get; set; } = new();
+    }
 }

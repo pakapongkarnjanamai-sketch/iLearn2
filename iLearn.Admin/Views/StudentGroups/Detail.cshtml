@@ -61,6 +61,7 @@
     const GROUP_ID = @groupId;
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
     const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
+    const ASSIGNMENT_LOOKUP_COURSES_URL = `${serviceUrl}/Assignments/lookup-courses`;
     const ENROLLMENTS_API_URL = `${serviceUrl}/Enrollments`;
     const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const ASSIGNMENT_DETAIL_URL = '@Url.Action("Detail", "Assignments")';
@@ -301,11 +302,12 @@
                 });
 
                 function makeLookup(endpoint, q) {
-                    template: () => createSelectionHintElement("add-hint", "student", "to add")
+                    return new DevExpress.data.CustomStore({
                         key: "Name",
                         load: () => $.ajax({
                             url: `${STUDENTS_API_URL}/${endpoint}${q || ""}`,
-                            method: "GET", xhrFields: { withCredentials: true }
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
                         }).then(res => res.data || res)
                     });
                 }
@@ -488,13 +490,15 @@
                 });
 
                 $.ajax({
-                    template: () => createSelectionHintElement("ac-selection-hint", "course", "you want to assign")
-                    method: "GET", xhrFields: { withCredentials: true }
+                    url: ASSIGNMENT_LOOKUP_COURSES_URL,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
                 }).done(function (res) {
                     allCoursesData = res.data || [];
                     courseGrid.option("dataSource", new DevExpress.data.DataSource({
                         store: new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData })
                     }));
+                    courseGrid.option("selectedRowKeys", selectedCourseIds);
                 });
 
                 function applyFilters() {

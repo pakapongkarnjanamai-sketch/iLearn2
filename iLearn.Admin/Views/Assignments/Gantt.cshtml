@@ -1,21 +1,16 @@
 ﻿@{
-    ViewBag.Title = "Assignment Schedule";
-}
-
-@section ExternalDependencies {
-    <link href="~/css/devextreme/dx-gantt.min.css" rel="stylesheet" />
+    ViewBag.Title = "Assignment Timeline";
 }
 
 @section PreDxScripts {
-    <script src="~/js/devextreme/dx-gantt.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
-        <div class="page-title">Assignment Schedule</div>
-        <div class="page-subtitle">Read-only Gantt View</div>
+        <div class="page-title">Assignment Timeline</div>
+        <div class="page-subtitle">Visual schedule of all assignments</div>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
@@ -24,94 +19,355 @@
     </div>
 </div>
 
-<div class="container-fluid px-0 py-0">
-    <div class="border rounded bg-white mx-4 p-3 mb-4">
-        <div id="gantt-container" style="height: calc(100vh - 180px);"></div>
+<!-- KPI Bar -->
+<div class="row g-2 mb-3 mx-3" id="kpi-bar">
+    <div class="col-6 col-md">
+        <div class="kpi-card kpi-all active" data-status="" onclick="filterByStatus(null, this)">
+            <div class="kpi-label">All</div>
+            <div class="kpi-number" id="kpi-all">&mdash;</div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="kpi-card kpi-inprogress" data-status="InProgress" onclick="filterByStatus('InProgress', this)">
+            <div class="kpi-label">In Progress</div>
+            <div class="kpi-number" id="kpi-inprogress">&mdash;</div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="kpi-card kpi-upcoming" data-status="Upcoming" onclick="filterByStatus('Upcoming', this)">
+            <div class="kpi-label">Upcoming</div>
+            <div class="kpi-number" id="kpi-upcoming">&mdash;</div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="kpi-card kpi-expired" data-status="Expired" onclick="filterByStatus('Expired', this)">
+            <div class="kpi-label">Expired</div>
+            <div class="kpi-number" id="kpi-expired">&mdash;</div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="kpi-card kpi-completed" data-status="Completed" onclick="filterByStatus('Completed', this)">
+            <div class="kpi-label">Completed</div>
+            <div class="kpi-number" id="kpi-completed">&mdash;</div>
+        </div>
     </div>
 </div>
 
+<!-- Timeline Controls -->
+<div class="d-flex justify-content-end align-items-center mx-4 mb-2 flex-wrap gap-2">
+    <div class="d-flex gap-2">
+        <button class="action-link" id="btn-today" title="Scroll to today">
+            <i class="fas fa-crosshairs"></i> Today
+        </button>
+        <button class="action-link" id="btn-export-pdf" title="Export PDF">
+            <i class="fas fa-file-pdf"></i> Export PDF
+        </button>
+    </div>
+</div>
+
+<!-- Timeline Container -->
+<div class="mx-4 mb-4">
+    <div class="tl-wrapper" id="tl-wrapper" style="max-height: calc(100vh - 310px);">
+        <div class="tl-container">
+            <!-- Sidebar -->
+            <div class="tl-sidebar" id="tl-sidebar">
+                <div class="tl-sidebar-header">Assignment</div>
+                <div id="tl-sidebar-body"></div>
+            </div>
+            <!-- Timeline area -->
+            <div class="tl-timeline" id="tl-timeline">
+                <div class="tl-header" id="tl-header"></div>
+                <div class="tl-body" id="tl-body" style="position:relative;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="tl-empty" id="tl-empty" style="display:none;">
+        <i class="fas fa-calendar-alt"></i>
+        <div class="tl-empty-text">No assignments to display</div>
+    </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tl-tooltip" id="tl-tooltip"></div>
+
 @section Scripts {
     <script>
-        const ASSIGNMENTS_GANTT_URL = `${serviceUrl}/Assignments/gantt`;
+        const GANTT_URL = `${serviceUrl}/Assignments/gantt`;
+        const DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
 
-        window.jsPDF = window.jspdf.jsPDF;
+        let allTasks = [];
+        let filteredTasks = [];
+        let currentFilter = null;
 
-        function normalizeGanttTasks(items) {
-            if (!Array.isArray(items)) {
-                return [];
-            }
+        /* ── helpers ─────────────────────────────────── */
+        function parseDate(v) { return v ? new Date(v) : null; }
 
-            return items.map(item => ({
-                ...item,
-                startDate: item.startDate ? new Date(item.startDate) : new Date(),
-                dueDate: item.dueDate ? new Date(item.dueDate) : new Date()
+        function fmtDate(d) {
+            if (!d) return "—";
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            return `${dd}/${mm}/${d.getFullYear()}`;
+        }
+
+        function statusClass(s) {
+            const map = { Completed: "completed", InProgress: "inprogress", Upcoming: "upcoming", Expired: "expired" };
+            return map[s] || "inprogress";
+        }
+
+        function getTimeRange(tasks) {
+            let min = Infinity, max = -Infinity;
+            tasks.forEach(t => {
+                const s = t._start.getTime(), e = t._end.getTime();
+                if (s < min) min = s;
+                if (e > max) max = e;
+            });
+            const now = Date.now();
+            if (now < min) min = now;
+            if (now > max) max = now;
+            const pad = 90 * 86400000;
+            const dMin = new Date(min - pad), dMax = new Date(max + pad);
+            dMin.setDate(1);
+            dMax.setDate(1);
+            dMax.setMonth(dMax.getMonth() + 1);
+            return { start: dMin, end: dMax };
+        }
+
+        function normalizeTasks(items) {
+            if (!Array.isArray(items)) return [];
+            return items.filter(t => t.parentId === 0).map(t => ({
+                ...t,
+                _start: parseDate(t.startDate) || new Date(),
+                _end: parseDate(t.dueDate) || new Date()
             }));
         }
 
+        /* ── KPI ──────────────────────────────────────── */
+        function updateKpi(tasks) {
+            const counts = { all: tasks.length, InProgress: 0, Upcoming: 0, Expired: 0, Completed: 0 };
+            tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+            $("#kpi-all").text(counts.all);
+            $("#kpi-inprogress").text(counts.InProgress);
+            $("#kpi-upcoming").text(counts.Upcoming);
+            $("#kpi-expired").text(counts.Expired);
+            $("#kpi-completed").text(counts.Completed);
+        }
+
+        /* ── filter ───────────────────────────────────── */
+        window.filterByStatus = function (status, el) {
+            currentFilter = status;
+            $(".kpi-card").removeClass("active");
+            $(el).addClass("active");
+            filteredTasks = status ? allTasks.filter(t => t.status === status) : [...allTasks];
+            render();
+        };
+
+        /* ── scale config (months only) ────────────── */
+        const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const CELL_WIDTH = 160;
+
+        function generateCells(range) {
+            const cells = [];
+            const cur = new Date(range.start);
+            while (cur < range.end) {
+                cells.push(new Date(cur));
+                cur.setMonth(cur.getMonth() + 1);
+            }
+            return cells;
+        }
+
+        /* ── render timeline ──────────────────────────── */
+        function render() {
+            const $header = $("#tl-header").empty();
+            const $body = $("#tl-body").empty();
+            const $sideBody = $("#tl-sidebar-body").empty();
+            const $empty = $("#tl-empty");
+
+            if (!filteredTasks.length) {
+                $(".tl-wrapper").hide();
+                $empty.show();
+                return;
+            }
+            $empty.hide();
+            $(".tl-wrapper").show();
+
+            const range = getTimeRange(filteredTasks);
+            const cells = generateCells(range);
+            const totalWidth = cells.length * CELL_WIDTH;
+
+            // header cells
+            cells.forEach(c => {
+                $("<div>").addClass("tl-header-cell").css("width", CELL_WIDTH)
+                    .text(`${MONTH_NAMES[c.getMonth()]} ${c.getFullYear()}`)
+                    .appendTo($header);
+            });
+
+            // grid lines + today line
+            const rangeMs = range.end.getTime() - range.start.getTime();
+            cells.forEach((c, i) => {
+                if (i > 0) {
+                    const x = i * CELL_WIDTH;
+                    $("<div>").addClass("tl-grid-line").css("left", x).appendTo($body);
+                }
+            });
+
+            const now = new Date();
+            if (now >= range.start && now <= range.end) {
+                const todayX = ((now.getTime() - range.start.getTime()) / rangeMs) * totalWidth;
+                const $today = $("<div>").addClass("tl-today-line").css("left", todayX);
+                $("<span>").addClass("tl-today-label").text("Today").appendTo($today);
+                $today.appendTo($body);
+            }
+
+            // rows & bars
+            filteredTasks.forEach(task => {
+                // sidebar row
+                const $sr = $("<div>").addClass("tl-sidebar-row");
+                $("<span>").addClass("tl-sidebar-no").text(task.assignmentNo || "—").appendTo($sr);
+                $sr.appendTo($sideBody);
+
+                // timeline row
+                const $row = $("<div>").addClass("tl-row").appendTo($body);
+
+                const sMs = task._start.getTime(), eMs = task._end.getTime();
+                const leftPct = Math.max(0, (sMs - range.start.getTime()) / rangeMs);
+                const widthPct = Math.max(0.005, (eMs - sMs) / rangeMs);
+                const leftPx = leftPct * totalWidth;
+                const widthPx = Math.max(6, widthPct * totalWidth);
+
+                const cls = statusClass(task.status);
+                const $bar = $("<div>").addClass(`tl-bar tl-bar--${cls}`)
+                    .css({ left: leftPx, width: widthPx });
+
+                // progress overlay
+                if (task.progress > 0 && task.progress < 100) {
+                    $("<div>").addClass("tl-bar-progress").css("width", `${100 - task.progress}%`).appendTo($bar);
+                }
+
+                // text
+                if (widthPx > 60) {
+                    $("<span>").addClass("tl-bar-text").text(task.title || task.assignmentNo).appendTo($bar);
+                }
+                if (widthPx > 40) {
+                    $("<span>").addClass("tl-bar-pct").text(`${task.progress}%`).appendTo($bar);
+                }
+
+                // events
+                $bar.on("mouseenter", function (ev) { showTooltip(ev, task); })
+                    .on("mousemove", function (ev) { moveTooltip(ev); })
+                    .on("mouseleave", hideTooltip)
+                    .on("click", function () { window.location.href = `${DETAIL_URL}/${task.id}`; });
+
+                $bar.appendTo($row);
+            });
+
+            // keep header and body the same width
+            const finalWidth = Math.max(totalWidth, $("#tl-timeline").width() || 0);
+            $header.css("min-width", finalWidth);
+            $body.css("min-width", finalWidth);
+
+            // sync sidebar scroll with timeline scroll
+            syncScroll();
+        }
+
+        /* ── scroll sync ──────────────────────────────── */
+        function syncScroll() {
+            const wrapper = document.getElementById("tl-wrapper");
+            const sidebar = document.getElementById("tl-sidebar");
+            const timeline = document.getElementById("tl-timeline");
+
+            // Sidebar and timeline body share vertical scroll via the wrapper
+        }
+
+        /* ── tooltip ──────────────────────────────────── */
+        function showTooltip(ev, task) {
+            const pillMap = { Completed: "pill-success", InProgress: "pill-info", Upcoming: "pill-warning", Expired: "pill-danger" };
+            const pill = pillMap[task.status] || "pill-default";
+
+            const html = `
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Assignment</span><span class="tl-tooltip-value">${task.assignmentNo || "—"}</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Title</span><span class="tl-tooltip-value">${$("<span>").text(task.title || "—").html()}</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Period</span><span class="tl-tooltip-value">${fmtDate(task._start)} — ${fmtDate(task._end)}</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Progress</span><span class="tl-tooltip-value">${task.progress}%</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Status</span><span class="status-pill ${pill}">${task.status}</span></div>
+            `;
+            $("#tl-tooltip").html(html).show();
+            moveTooltip(ev);
+        }
+
+        function moveTooltip(ev) {
+            const $tt = $("#tl-tooltip");
+            let x = ev.clientX + 14, y = ev.clientY + 14;
+            const w = $tt.outerWidth(), h = $tt.outerHeight();
+            if (x + w > window.innerWidth - 8) x = ev.clientX - w - 8;
+            if (y + h > window.innerHeight - 8) y = ev.clientY - h - 8;
+            $tt.css({ left: x, top: y });
+        }
+
+        function hideTooltip() { $("#tl-tooltip").hide(); }
+
+        /* ── PDF export ───────────────────────────────── */
+        function exportPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+            const pageW = doc.internal.pageSize.getWidth();
+            const margin = 14;
+
+            doc.setFontSize(14);
+            doc.text("Assignment Timeline", margin, 16);
+            doc.setFontSize(8);
+            doc.text(`Exported: ${fmtDate(new Date())}`, margin, 22);
+
+            const head = [["#", "Assignment No", "Title", "Start", "Due", "Progress", "Status"]];
+            const body = filteredTasks.map((t, i) => [
+                i + 1,
+                t.assignmentNo || "—",
+                t.title || "—",
+                fmtDate(t._start),
+                fmtDate(t._end),
+                `${t.progress}%`,
+                t.status
+            ]);
+
+            doc.autoTable({
+                startY: 26,
+                head: head,
+                body: body,
+                margin: { left: margin, right: margin },
+                styles: { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [0, 80, 179] }
+            });
+
+            doc.save("Assignment_Timeline.pdf");
+        }
+
+        /* ── scroll to today ──────────────────────────── */
+        function scrollToToday() {
+            const $today = $(".tl-today-line");
+            if (!$today.length) return;
+            const wrapper = document.getElementById("tl-wrapper");
+            const left = parseFloat($today.css("left")) - wrapper.clientWidth / 2 + 220;
+            wrapper.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+        }
+
+        /* ── init ─────────────────────────────────────── */
         $(() => {
+            $("#btn-today").on("click", scrollToToday);
+            $("#btn-export-pdf").on("click", exportPdf);
+
+            // load data
             $.ajax({
-                url: ASSIGNMENTS_GANTT_URL,
+                url: GANTT_URL,
                 method: "GET",
                 xhrFields: { withCredentials: true }
             }).done(function (res) {
-                const tasks = normalizeGanttTasks(res);
-
-                $("#gantt-container").dxGantt({
-                    tasks: {
-                        dataSource: tasks,
-                        keyExpr: "id",
-                        parentIdExpr: "parentId",
-                        titleExpr: "title",
-                        startExpr: "startDate",
-                        endExpr: "dueDate",
-                        progressExpr: "progress",
-                        colorExpr: "color"
-                    },
-                    rootValue: 0,
-                    scaleType: "months",
-                    scaleTypeRange: { min: "months", max: "years" },
-                    taskTitlePosition: "outside",
-                    showResources: false,
-                    showDependencies: false,
-                    showRowLines: true,
-                    editing: { enabled: false },
-                    allowSelection: false,
-                    taskListWidth: 350,
-                    columns: [
-                        { dataField: "assignmentNo", caption: "Assignment No.", width: 130 },
-                        { dataField: "startDate",    caption: "Start",   dataType: "date", format: "dd/MM/yyyy", width: 95 },
-                        { dataField: "dueDate",      caption: "Due",     dataType: "date", format: "dd/MM/yyyy", width: 95 }
-                    ],
-                    toolbar: {
-                        items: [
-                            "zoomIn", "zoomOut", "separator", "expandAll", "collapseAll", "separator", "fullScreen",
-                            "separator",
-                            {
-                                widget: "dxButton",
-                                options: {
-                                    icon: "exportpdf",
-                                    text: "Export PDF",
-                                    hint: "Export Gantt Chart to PDF",
-                                    type: "default",
-                                    stylingMode: "contained",
-                                    onClick: function () {
-                                        const ganttInstance = $("#gantt-container").dxGantt("instance");
-                                        const doc = new jsPDF("landscape");
-
-                                        DevExpress.pdfExporter.exportGantt({
-                                            jsPDFDocument: doc,
-                                            component: ganttInstance
-                                        }).then(function() {
-                                            doc.save("Assignment_Schedule.pdf");
-                                        });
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                });
-
-            }).fail(() => showToast("Error loading Gantt data.", "error"));
+                allTasks = normalizeTasks(res);
+                filteredTasks = [...allTasks];
+                updateKpi(allTasks);
+                render();
+                setTimeout(scrollToToday, 200);
+            }).fail(() => showToast("Error loading timeline data.", "error"));
         });
     </script>
 }
