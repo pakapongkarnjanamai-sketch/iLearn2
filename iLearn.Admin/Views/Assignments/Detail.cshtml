@@ -72,7 +72,7 @@
         <!-- Meta Info -->
         <div class="col-lg-3">
             <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Assignment Info</div>
+                <div class="section-title">Info</div>
 
                 <div class="meta-item">
                     <div class="meta-label">Assignment No.</div>
@@ -165,7 +165,7 @@
                        target="_blank" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-file-alt"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Export Report</div>
+                            <div class="u-fs-12 u-fw-semibold">Report</div>
                             <div class="u-fs-11 text-secondary">Open printable summary</div>
                         </div>
                     </a>
@@ -192,7 +192,7 @@
     </div>
 
     <!-- ── Row 2: Course Cards + Student Grid ───────────────────── -->
-    <div class="row g-3 mb-4">
+    <div class="row g-3">
         <!-- Course List -->
         <div class="col-xl-4">
             <div class="border rounded bg-white h-100 p-3">
@@ -700,7 +700,7 @@
         currentDueDate = data.dueDate ? new Date(data.dueDate) : null;
         currentStartDate = data.startDate ? new Date(data.startDate) : null;
 
-        $("#lbl-assignment-no").text(`Ref: ${refNo}`);
+        $("#lbl-assignment-no").text(`No: ${refNo}`);
         $("#lbl-assignment-no-detail").text(refNo);
         $("#lbl-description").text(data.description || "-");
         $("#lbl-schedule").attr("data-start", startText).text(`${startText} → ${dueText}`);

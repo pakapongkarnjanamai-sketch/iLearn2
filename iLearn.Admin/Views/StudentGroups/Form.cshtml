@@ -1,0 +1,152 @@
+@{
+    ViewBag.Title = (ViewBag.Id == null ? "New Student Group" : "Edit Student Group");
+    var isEdit = ViewBag.Id != null;
+}
+
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="page-title">@ViewBag.Title</div>
+        <div class="page-subtitle">@(isEdit ? "Update group name and description." : "Create a new reusable group of learners.")</div>
+    </div>
+    <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
+        <i class="fas fa-arrow-left text-secondary"></i> Back
+    </a>
+</div>
+
+<div class="container page-shell-sm px-4 py-4">
+    <div id="load-panel"></div>
+
+    <!-- Group Information -->
+    <div class="border rounded bg-white p-3">
+        <div class="section-title">Group Information</div>
+        <div id="form-container"></div>
+
+        <div class="text-end mt-3 pt-3 u-border-top">
+            <a href="javascript:void(0);" id="btn-save" class="action-link primary">
+                <i class="fas fa-save"></i> Save
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const GROUP_ID = @(ViewBag.Id ?? "null");
+    const IS_EDIT = @(isEdit ? "true" : "false");
+    const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
+    const DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
+
+    let formInstance;
+
+    $(() => {
+        const loadPanel = $("#load-panel").dxLoadPanel({
+            shadingColor: "rgba(255,255,255,0.6)",
+            position: { of: ".page-shell-sm" },
+            visible: false
+        }).dxLoadPanel("instance");
+
+        formInstance = $("#form-container").dxForm({
+            labelMode: "floating",
+            colCount: 1,
+            formData: { name: "", description: "" },
+            items: [
+                {
+                    dataField: "name",
+                    label: { text: "Group Name" },
+                    editorOptions: { placeholder: "e.g. New Hires 2026 Q1" },
+                    validationRules: [
+                        { type: "required", message: "Group name is required" },
+                        { type: "stringLength", max: 200, message: "Max 200 characters" }
+                    ]
+                },
+                {
+                    dataField: "description",
+                    label: { text: "Description (optional)" },
+                    editorType: "dxTextArea",
+                    editorOptions: {
+                        height: 120,
+                        placeholder: "Brief description of this group's purpose"
+                    }
+                }
+            ]
+        }).dxForm("instance");
+
+        if (IS_EDIT) {
+            loadGroupData();
+        }
+
+        $("#btn-save").click(saveGroup);
+
+        async function loadGroupData() {
+            loadPanel.show();
+            try {
+                const res = await $.ajax({
+                    url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                });
+
+                const g = res.data;
+                if (!g) {
+                    showToast("Group not found.", "error");
+                    window.location.href = INDEX_URL;
+                    return;
+                }
+
+                formInstance.option("formData", {
+                    name: g.name || "",
+                    description: g.description || ""
+                });
+            } catch {
+                showToast("Error loading group.", "error");
+                window.location.href = INDEX_URL;
+            } finally {
+                loadPanel.hide();
+            }
+        }
+
+        async function saveGroup() {
+            if (!formInstance.validate().isValid) {
+                return;
+            }
+
+            const data = formInstance.option("formData");
+            const url = IS_EDIT ? `${GROUPS_API_URL}/${GROUP_ID}` : GROUPS_API_URL;
+            const method = IS_EDIT ? "PUT" : "POST";
+
+            const $btn = $("#btn-save");
+            setButtonLoading($btn, true, "Saving...");
+
+            try {
+                const res = await $.ajax({
+                    url: url,
+                    method: method,
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    xhrFields: { withCredentials: true }
+                });
+
+                showToast(IS_EDIT ? "Group updated successfully." : "Group created successfully.", "success");
+
+                if (!IS_EDIT && res.data?.id) {
+                    window.location.href = `${DETAIL_URL}?id=${res.data.id}`;
+                } else if (!IS_EDIT && res.id) {
+                    window.location.href = `${DETAIL_URL}?id=${res.id}`;
+                } else {
+                    window.location.href = INDEX_URL;
+                }
+            } catch (err) {
+                showToast(`Error: ${getApiErrorMessage(err, "Failed to save")}`, "error", 4000);
+            } finally {
+                setButtonLoading($btn, false);
+            }
+        }
+
+        function getApiErrorMessage(error, fallbackMessage) {
+            return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+        }
+    });
+</script>
+}

@@ -86,6 +86,7 @@ namespace iLearn.Application.Services
                 Id          = group.Id,
                 Name        = group.Name,
                 Description = group.Description,
+                CreatedBy   = group.CreatedBy,
                 Members     = memberDtos
             };
         }

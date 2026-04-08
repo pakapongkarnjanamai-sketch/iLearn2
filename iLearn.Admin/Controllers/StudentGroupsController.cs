@@ -6,6 +6,13 @@ namespace iLearn.Admin.Controllers
     {
         public IActionResult Index() => View();
 
+        [HttpGet]
+        public IActionResult Form(int? id)
+        {
+            ViewBag.Id = id;
+            return View();
+        }
+
         public IActionResult Detail(int id)
         {
             ViewBag.GroupId = id;

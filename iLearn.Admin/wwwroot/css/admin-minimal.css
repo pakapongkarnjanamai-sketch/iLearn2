@@ -70,6 +70,7 @@ body {
     color: var(--text-primary);
     font-size: var(--font-size-md);
     padding-top: 48px;
+    overflow: hidden;
 }
 
 a {
@@ -654,8 +655,24 @@ img[loading="lazy"] {
 /* -------------------------------------------------------------
    5. Layout Components
    ------------------------------------------------------------- */
+main[role="main"] {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+main > .container-fluid,
+main > .container {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 .page-header {
     width: 100%;
+    flex-shrink: 0;
     background: #fff !important;
     border-top: none !important;
     border-right: none !important;
@@ -2166,5 +2183,16 @@ footer.footer {
 
     body {
         padding-top: 0;
+        height: auto;
+        overflow: visible;
+    }
+
+    main[role="main"] {
+        overflow: visible;
+    }
+
+    main > .container-fluid,
+    main > .container {
+        overflow: visible;
     }
 }

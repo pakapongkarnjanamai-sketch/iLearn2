@@ -9,10 +9,11 @@ namespace iLearn.Admin.Controllers
             return View();
         }
 
-        public IActionResult Form(int? id, int? courseId)
+        public IActionResult Form(int? id, int? courseId, int? groupId)
         {
             ViewBag.Id = id;
             ViewBag.CourseId = courseId;
+            ViewBag.GroupId = groupId;
             return View();
         }
 

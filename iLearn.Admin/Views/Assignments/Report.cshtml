@@ -21,6 +21,8 @@
             color: var(--text-primary);
             font-size: 13px;
             padding-top: 50px;
+            height: auto;
+            overflow: auto;
         }
 
         /* ── Header & Toolbar ── */
@@ -238,7 +240,7 @@
                         </tr>`;
             }).join("");
 
-            return `<div class="table-responsive border rounded bg-white u-maxh-600">
+            return `<div class="table-responsive border rounded bg-white">
                         <table class="table table-bordered table-hover pivot-table m-0">
                             <thead class="sticky-thead">
                                 <tr>

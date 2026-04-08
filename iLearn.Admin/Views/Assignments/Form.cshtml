@@ -1,7 +1,36 @@
 ﻿@{
     ViewBag.Title = "Bulk Course Assignments";
     var preselectedCourseId = Context.Request.Query["courseId"].ToString();
+    var preselectedGroupId = Context.Request.Query["groupId"].ToString();
 }
+
+<style>
+    .target-col-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary, #595959);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .target-mode-btn {
+        background: var(--bg-secondary, #fafafa);
+        border: 1px solid var(--border-color, #f0f0f0);
+        color: var(--text-secondary, #8c8c8c);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 12px;
+        transition: all 0.15s;
+    }
+    .target-mode-btn:hover {
+        border-color: var(--primary-color, #0050b3);
+        color: var(--primary-color, #0050b3);
+    }
+    .target-mode-btn.active {
+        background: var(--primary-color, #0050b3);
+        border-color: var(--primary-color, #0050b3);
+        color: #fff;
+    }
+</style>
 
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -27,18 +56,56 @@
     <div class="border rounded bg-white p-3">
         <div class="section-title">Target Selection</div>
         <div class="row g-3">
-            <div class="col-md-6">
-                <div class="target-card" id="btn-select-courses">
-                    <i class="fas fa-book-open fa-lg mb-3 target-card-icon"></i>
+            <!-- Courses Column -->
+            <div class="col-md-6 d-flex flex-column">
+                <div class="d-flex align-items-center mb-2" style="min-height: 28px;">
+                    <span class="target-col-label">
+                        <i class="fas fa-book-open me-1"></i> Courses
+                    </span>
+                </div>
+                <div class="target-card flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="btn-select-courses">
+                    <i class="fas fa-book-open fa-2x mb-2 target-card-icon"></i>
                     <div class="fw-bold text-dark mb-1 target-card-title">Select Courses</div>
                     <div class="text-secondary target-card-subtitle" id="selected-courses-text">No course selected</div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="target-card" id="btn-select-employees">
-                    <i class="fas fa-users fa-lg mb-3 target-card-icon"></i>
-                    <div class="fw-bold text-dark mb-1 target-card-title">Select Students</div>
-                    <div class="text-secondary target-card-subtitle" id="selected-employees-text">No student selected</div>
+            <!-- Students Column -->
+            <div class="col-md-6 d-flex flex-column">
+                <div class="d-flex align-items-center mb-2" style="min-height: 28px;">
+                    <span class="target-col-label">
+                        <i class="fas fa-users me-1"></i> Students
+                    </span>
+                    <div class="d-flex gap-1 ms-auto">
+                        <button class="btn btn-sm rounded-pill target-mode-btn active" id="mode-individual"
+                                onclick="switchTargetMode('individual')">
+                            <i class="fas fa-user me-1"></i> Individual
+                        </button>
+                        <button class="btn btn-sm rounded-pill target-mode-btn" id="mode-group"
+                                onclick="switchTargetMode('group')">
+                            <i class="fas fa-layer-group me-1"></i> Group
+                        </button>
+                    </div>
+                </div>
+                <!-- Individual card -->
+                <div id="card-individual" class="flex-grow-1 d-flex">
+                    <div class="target-card flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="btn-select-employees">
+                        <i class="fas fa-user fa-2x mb-2 target-card-icon"></i>
+                        <div class="fw-bold text-dark mb-1 target-card-title">Select Students</div>
+                        <div class="text-secondary target-card-subtitle" id="selected-employees-text">No student selected</div>
+                    </div>
+                </div>
+                <!-- Group card -->
+                <div id="card-group" class="d-none flex-grow-1 d-flex flex-column">
+                    <div class="target-card flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="btn-select-group">
+                        <i class="fas fa-layer-group fa-2x mb-2 target-card-icon"></i>
+                        <div class="fw-bold text-dark mb-1 target-card-title">Select Student Group</div>
+                        <div class="text-secondary target-card-subtitle" id="selected-group-text">No group selected</div>
+                        <div id="group-reset-row" class="d-none mt-3">
+                            <a href="javascript:void(0);" class="action-link text-danger small" id="btn-reset-group">
+                                <i class="fas fa-times me-1"></i> Clear selection
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -55,11 +122,13 @@
 
 <div id="courses-popup"></div>
 <div id="employees-popup"></div>
+<div id="groups-popup"></div>
 <div id="summary-popup"></div>
 
 @section Scripts {
     <script>
         const initialCourseId = '@preselectedCourseId';
+        const initialGroupId = '@preselectedGroupId';
         const ASSIGNMENT_VALIDATE_URL = `${serviceUrl}/Assignments/validate-before-assign`;
         const ASSIGNMENT_LOOKUP_COURSES_URL = `${serviceUrl}/Assignments/lookup-courses`;
         const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
@@ -68,6 +137,10 @@
 
         let selectedCourseIds = initialCourseId ? [parseInt(initialCourseId, 10)] : [];
         let selectedStudentCodes = [];
+        let selectedGroupId = null;
+        let selectedGroupName = null;
+        let selectedGroupMemberCount = 0;
+        let currentTargetMode = 'individual'; // 'individual' or 'group'
         let currentPayload = null;
 
         $(() => {
@@ -240,7 +313,7 @@
                         courseGrid.clearFilter();
                     });
                 },
-                // 🌟 ปรับแต่ง Toolbar ซ้าย-ขวา 🌟
+                //  ปรับแต่ง Toolbar ซ้าย-ขวา 
                 toolbarItems: [
                     {
                         toolbar: "bottom",
@@ -474,6 +547,150 @@
             $("#btn-select-courses").click(() => coursesPopup.show());
             $("#btn-select-employees").click(() => employeesPopup.show());
 
+            // --- Groups Popup ---
+            const groupsPopup = $("#groups-popup").dxPopup({
+                title: "Select Student Group", width: "70vw", maxWidth: 900, height: "70vh",
+                showCloseButton: true, dragEnabled: true,
+                deferRendering: false,
+                wrapperAttr: { class: "shadow-lg rounded-4" },
+                onShown: function() {
+                    const g = $("#grid-groups").dxDataGrid("instance");
+                    if (g) g.updateDimensions();
+                },
+                contentTemplate: function(contentElement) {
+                    $('<div id="grid-groups" class="h-100"></div>').appendTo(contentElement);
+
+                    initDxGrid("#grid-groups", {
+                        dataSource: {
+                            store: new DevExpress.data.CustomStore({
+                                key: "id",
+                                load: () => $.ajax({
+                                    url: `${serviceUrl}/StudentGroups`,
+                                    method: "GET",
+                                    xhrFields: { withCredentials: true }
+                                }).then(res => res.data || [])
+                            })
+                        },
+                        filterRow: { visible: true },
+                        searchPanel: { placeholder: "Search group name..." },
+                        noDataText: getNoDataText("student groups"),
+                        selection: { mode: "single" },
+                        columns: [
+                            { dataField: "name", caption: "Group Name", minWidth: 200,
+                                cellTemplate: function(container, options) {
+                                    $('<span>').addClass('fw-medium text-dark').text(options.value).appendTo(container);
+                                }
+                            },
+                            { dataField: "description", caption: "Description", minWidth: 200,
+                                cellTemplate: function(container, options) {
+                                    $('<span>').addClass('text-muted small').text(options.value || EMPTY_TEXT).appendTo(container);
+                                }
+                            },
+                            { dataField: "memberCount", caption: "Members", width: 100, alignment: "center",
+                                cellTemplate: function(container, options) {
+                                    $('<span>').addClass('tag-pill pill-info fw-bold').text(options.value || 0).appendTo(container);
+                                }
+                            }
+                        ],
+                        onRowDblClick: function(e) {
+                            selectGroup(e.data);
+                            groupsPopup.hide();
+                        }
+                    });
+                },
+                toolbarItems: [
+                    {
+                        toolbar: "bottom",
+                        location: "before",
+                        template: function() {
+                            return $('<span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Double-click a row to select</span>');
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "Done", type: "default", stylingMode: "contained",
+                            elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
+                            onClick: function() {
+                                const grid = $("#grid-groups").dxDataGrid("instance");
+                                const rows = grid.getSelectedRowsData();
+                                if (rows.length > 0) {
+                                    selectGroup(rows[0]);
+                                }
+                                groupsPopup.hide();
+                            }
+                        }
+                    }
+                ]
+            }).dxPopup("instance");
+
+            $("#btn-select-group").click(() => groupsPopup.show());
+            $("#btn-reset-group").click(() => clearGroupSelection());
+
+            // --- Target Mode Toggle ---
+            window.switchTargetMode = function(mode) {
+                currentTargetMode = mode;
+                $(".target-mode-btn").removeClass("active");
+                $(`#mode-${mode}`).addClass("active");
+                if (mode === 'individual') {
+                    $("#card-individual").removeClass("d-none");
+                    $("#card-group").addClass("d-none");
+                } else {
+                    $("#card-individual").addClass("d-none");
+                    $("#card-group").removeClass("d-none");
+                }
+            };
+
+            function selectGroup(group) {
+                selectedGroupId = group.id;
+                selectedGroupName = group.name;
+                selectedGroupMemberCount = group.memberCount || 0;
+                updateGroupCardUI();
+            }
+
+            function clearGroupSelection() {
+                selectedGroupId = null;
+                selectedGroupName = null;
+                selectedGroupMemberCount = 0;
+                updateGroupCardUI();
+            }
+
+            function updateGroupCardUI() {
+                if (selectedGroupId) {
+                    $("#selected-group-text")
+                        .text(`${selectedGroupName} (${selectedGroupMemberCount} members)`)
+                        .removeClass("text-muted").addClass("text-success fw-bold");
+                    $("#btn-select-group").css({"border-color": "#2da44e", "background-color": "#f0fdf4"});
+                    $("#group-reset-row").removeClass("d-none");
+                } else {
+                    $("#selected-group-text")
+                        .text("No group selected")
+                        .removeClass("text-success fw-bold").addClass("text-muted fw-medium");
+                    $("#btn-select-group").css({"border-color": "", "background-color": ""});
+                    $("#group-reset-row").addClass("d-none");
+                }
+            }
+
+            // Pre-select group if groupId is passed via query string
+            if (initialGroupId) {
+                switchTargetMode('group');
+                $.ajax({
+                    url: `${serviceUrl}/StudentGroups/${initialGroupId}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    if (res.data) {
+                        selectGroup({
+                            id: res.data.id,
+                            name: res.data.name,
+                            memberCount: (res.data.members || []).length
+                        });
+                    }
+                });
+            }
+
             function updateCardUI(cardId, textId, count, itemName) {
                 if (count > 0) {
                     $(textId).text(`${count} ${itemName}(s) selected`).removeClass("text-muted").addClass("text-success fw-bold");
@@ -519,21 +736,11 @@
                     </div>`;
             }
 
-            function createSummaryMetric(title, value, textClass) {
-                return `
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-4 border text-center">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">${title}</div>
-                            <div class="fs-3 fw-bold ${textClass}">${value}</div>
-                        </div>
-                    </div>`;
-            }
-
             const summaryPopup = $("#summary-popup").dxPopup({
                 title: "Assignment Summary",
-                width: 750,
+                width: 780,
                 height: "auto",
-                maxHeight: window.innerHeight * 0.8,
+                maxHeight: window.innerHeight * 0.85,
                 showCloseButton: true,
                 dragEnabled: true,
                 deferRendering: false,
@@ -566,66 +773,111 @@
                 currentPayload = payload;
                 const inProgress = res.inProgressConflicts || [];
                 const completed  = res.completedConflicts  || [];
+                const resolvedCount = res.resolvedCount || payload.employeeCodes.length || selectedGroupMemberCount || 0;
                 currentPayload.inProgressConflicts = inProgress;
                 currentPayload.completedConflicts = completed;
 
+                // --- Format dates ---
+                const fmtDate = (d) => d ? new Date(d).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const totalEnrollments = payload.courseIds.length * resolvedCount;
+
+                // --- Assignment Details ---
+                const detailsHtml = `
+                    <div class="border rounded p-3 mb-3" style="background: var(--bg-light, #fafafa);">
+                        <div class="row g-2 align-items-start">
+                            <div class="col-md-7">
+                                <div class="text-muted small text-uppercase fw-bold mb-1">Description</div>
+                                <div class="text-dark small">${payload.description || '<span class="text-muted fst-italic">—</span>'}</div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="text-muted small text-uppercase fw-bold mb-1">Period</div>
+                                <div class="text-dark small">
+                                    <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                    ${fmtDate(payload.startDate)} — ${fmtDate(payload.dueDate)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // --- Stat Metrics ---
+                const targetLabel = payload.groupId
+                    ? `<div class="text-dark fw-bold">${resolvedCount}</div>
+                       <div class="text-muted small mt-1" style="font-size: 10px;">${selectedGroupName || 'Group'}</div>`
+                    : `<div class="text-dark fw-bold">${resolvedCount}</div>`;
+
+                const statsHtml = `
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="border rounded p-2 text-center" style="background: #fff;">
+                                <div class="text-muted small text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">Courses</div>
+                                <div class="fs-4 fw-bold text-primary mt-1">${payload.courseIds.length}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2 text-center" style="background: #fff;">
+                                <div class="text-muted small text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">
+                                    ${payload.groupId ? '<i class="fas fa-layer-group me-1"></i>Students' : 'Students'}
+                                </div>
+                                <div class="fs-4 mt-1">${targetLabel}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2 text-center" style="background: #fff;">
+                                <div class="text-muted small text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">Enrollments</div>
+                                <div class="fs-4 fw-bold mt-1" style="color: var(--brand-color, #0050b3);">${totalEnrollments}</div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // --- Conflict sections ---
                 const inProgressHtml = createConflictListHtml(
                     inProgress,
                     "warning",
                     "fa-exclamation-triangle",
-                    "กำลังเรียนอยู่",
+                    "In-Progress — will be reset",
                     c => `
                         <li class="mb-2 pb-2 border-bottom border-warning border-opacity-25">
-                            <span class="fw-bold text-dark">${c.studentCode}</span>
-                            <span class="text-muted mx-1">in</span>
+                            <span class="tag-pill pill-default fw-bold">${c.studentCode}</span>
+                            <span class="text-muted mx-1">→</span>
                             <span class="fw-medium">${c.courseTitle}</span>
-                            <div class="small text-warning mt-1">
-                                <i class="fas fa-exclamation-circle me-1"></i> กำลังเรียนอยู่ — progress จะถูก reset
-                            </div>
                         </li>`,
-                    '<i class="fas fa-info-circle text-primary me-1"></i>ถ้า Confirm — progress ปัจจุบันจะถูก <b>reset ให้เริ่มใหม่</b>'
+                    '<i class="fas fa-info-circle me-1"></i>Progress will be <b>reset</b> and students will start over.'
                 );
 
                 const completedHtml = createConflictListHtml(
                     completed,
                     "info",
                     "fa-redo",
-                    "เรียนจบแล้ว — กำลังจะให้เรียนใหม่",
+                    "Already Completed — will re-assign",
                     c => {
                         const dateStr = c.completedDate
-                            ? new Date(c.completedDate).toLocaleDateString('th-TH')
-                            : '-';
+                            ? new Date(c.completedDate).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : '—';
                         return `
                         <li class="mb-2 pb-2 border-bottom border-info border-opacity-25">
-                            <span class="fw-bold text-dark">${c.studentCode}</span>
-                            <span class="text-muted mx-1">in</span>
+                            <span class="tag-pill pill-default fw-bold">${c.studentCode}</span>
+                            <span class="text-muted mx-1">→</span>
                             <span class="fw-medium">${c.courseTitle}</span>
-                            <div class="small text-info mt-1">
-                                <i class="fas fa-check-circle me-1"></i>
-                                เรียนจบแล้วเมื่อ ${dateStr}
-                            </div>
+                            <span class="text-muted small ms-2"><i class="fas fa-check-circle me-1"></i>${dateStr}</span>
                         </li>`;
                     },
-                    '<i class="fas fa-info-circle text-primary me-1"></i>ถ้า Confirm — ประวัติการเรียนเดิมยังอยู่ใน Log แต่จะ <b>เปิดให้เรียนใหม่ได้อีกครั้ง</b>'
+                    '<i class="fas fa-info-circle me-1"></i>Previous records are kept in history. Students will be <b>re-enrolled</b>.'
                 );
 
                 let allClearHtml = "";
                 if (inProgress.length === 0 && completed.length === 0) {
                     allClearHtml = `
-                        <div class="alert border-success bg-success bg-opacity-10 mt-4 rounded-4 text-center py-4">
-                            <i class="fas fa-check-circle text-success fa-3x mb-2"></i>
-                            <h6 class="text-success fw-bold mb-0">All clear! No assignment conflicts found.</h6>
-                            <small class="text-muted">You are ready to proceed.</small>
+                        <div class="border rounded text-center py-4 mt-1" style="background: #f6ffed; border-color: #b7eb8f !important;">
+                            <i class="fas fa-check-circle fa-2x mb-2" style="color: #52c41a;"></i>
+                            <div class="fw-bold text-dark" style="font-size: 13px;">No conflicts found</div>
+                            <div class="text-muted small">Ready to proceed.</div>
                         </div>`;
                 }
 
                 const html = `
-                    <div class="px-2">
-                        <p class="text-muted mb-4 fw-medium">Please review the details below before confirming the assignment.</p>
-                        <div class="row g-3">
-                            ${createSummaryMetric("Target Courses", payload.courseIds.length, "text-primary")}
-                            ${createSummaryMetric("Target Students", payload.employeeCodes.length, "text-info")}
-                        </div>
+                    <div class="px-1">
+                        ${detailsHtml}
+                        ${statsHtml}
                         ${inProgressHtml}
                         ${completedHtml}
                         ${allClearHtml}
@@ -646,15 +898,22 @@
                     return;
                 }
 
-                if (selectedStudentCodes.length === 0) {
+                if (currentTargetMode === 'individual' && selectedStudentCodes.length === 0) {
                     showToast("Please select at least one student.", "error");
                     return;
                 }
 
+                if (currentTargetMode === 'group' && !selectedGroupId) {
+                    showToast("Please select a student group.", "error");
+                    return;
+                }
+
+                const isGroupMode = currentTargetMode === 'group';
                 const formData = form.option('formData');
                 const payload = {
                     courseIds: selectedCourseIds,
-                    employeeCodes: selectedStudentCodes,
+                    employeeCodes: isGroupMode ? [] : selectedStudentCodes,
+                    groupId: isGroupMode ? selectedGroupId : null,
                     startDate: formData.startDate,
                     dueDate: formData.dueDate,
                     description: formData.description,

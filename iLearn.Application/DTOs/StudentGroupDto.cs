@@ -19,6 +19,7 @@ namespace iLearn.Application.DTOs
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public string? CreatedBy { get; set; }
         public List<StudentGroupMemberDto> Members { get; set; } = new();
     }
 
