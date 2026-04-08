@@ -313,7 +313,11 @@
                 title: "Select Existing Resources",
                 width: "90vw", maxWidth: 1100, height: "85vh",
                 showCloseButton: true, dragEnabled: true,
+                deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
+                onShown: function() {
+                    if (gridExisting) gridExisting.updateDimensions();
+                },
                 contentTemplate: function(contentElement) {
                     const gridContainer = $("<div id='grid-existing-pick' style='height:100%;'>").appendTo(contentElement);
                     gridExisting = initDxGrid(gridContainer, {

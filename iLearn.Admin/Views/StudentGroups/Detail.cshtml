@@ -225,7 +225,12 @@
             title: "Add Members to Group",
             width: "90vw", maxWidth: 1200, height: "85vh",
             showCloseButton: true, dragEnabled: true,
+            deferRendering: false,
             wrapperAttr: { class: "shadow-lg rounded-4" },
+            onShown: function() {
+                const g = $("#grid-add-students").dxDataGrid("instance");
+                if (g) g.updateDimensions();
+            },
             contentTemplate: function (contentElement) {
                 $(`
                     <div class="d-flex h-100 gap-3">
@@ -426,7 +431,12 @@
             title: "Assign Course to Group",
             width: "90vw", maxWidth: 1200, height: "85vh",
             showCloseButton: true, dragEnabled: true,
+            deferRendering: false,
             wrapperAttr: { class: "shadow-lg rounded-4" },
+            onShown: function() {
+                const g = $("#ac-grid-courses").dxDataGrid("instance");
+                if (g) g.updateDimensions();
+            },
             contentTemplate: function (contentElement) {
                 $(`
                     <div class="d-flex h-100 gap-3">

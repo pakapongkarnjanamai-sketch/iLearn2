@@ -98,7 +98,12 @@
             const coursesPopup = $("#courses-popup").dxPopup({
                 title: "Select Courses", width: "90vw", maxWidth: 1100, height: "85vh",
                 showCloseButton: true, dragEnabled: true,
+                deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
+                onShown: function() {
+                    const g = $("#grid-courses").dxDataGrid("instance");
+                    if (g) g.updateDimensions();
+                },
                 contentTemplate: function(contentElement) {
                     $(`
 
@@ -261,7 +266,12 @@
             const employeesPopup = $("#employees-popup").dxPopup({
                 title: "Select Employees", width: "90vw", maxWidth: 1280, height: "85vh",
                 showCloseButton: true, dragEnabled: true,
+                deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
+                onShown: function() {
+                    const g = $("#grid-students").dxDataGrid("instance");
+                    if (g) g.updateDimensions();
+                },
                 contentTemplate: function(contentElement) {
                     $(`
 

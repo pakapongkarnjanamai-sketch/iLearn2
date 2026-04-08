@@ -1283,6 +1283,55 @@ img[loading="lazy"] {
     border-left-color: var(--success-color);
 }
 
+.course-item-code {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 1px 6px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+.course-item-code--deleted {
+    text-decoration: line-through;
+    color: var(--danger-color);
+    background: #fff2f0;
+    border-color: #ffa39e;
+}
+.course-item-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.course-item-title--deleted {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+.course-item-pct {
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 30px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.course-item-remove {
+    color: var(--text-secondary);
+    opacity: 0.35;
+    font-size: 11px;
+    text-decoration: none !important;
+    flex-shrink: 0;
+    transition: color 0.15s, opacity 0.15s;
+    line-height: 1;
+}
+.course-item-remove:hover {
+    color: var(--danger-color);
+    opacity: 1;
+}
+
 .version-card {
     border: 1px solid var(--border-color);
     border-left: 3px solid var(--border-color);

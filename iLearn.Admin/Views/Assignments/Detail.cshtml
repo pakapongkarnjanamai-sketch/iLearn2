@@ -90,22 +90,6 @@
                     <div class="meta-label">Created By</div>
                     <div class="meta-value" id="lbl-created-by">-</div>
                 </div>
-
-                <div class="d-flex flex-column gap-2 mt-3 pt-3 u-border-top">
-                    <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
-                       target="_blank" class="action-link">
-                        <i class="fas fa-file-alt text-secondary"></i>
-                        Export Report
-                    </a>
-                    <a href="javascript:void(0);" id="btn-extend-due-date" class="action-link">
-                        <i class="fas fa-calendar-plus u-text-warning"></i>
-                        Extend Due Date
-                    </a>
-                    <a href="javascript:void(0);" id="btn-delete-assignment" class="action-link danger">
-                        <i class="fas fa-trash-alt u-text-danger"></i>
-                        Delete Assignment
-                    </a>
-                </div>
             </div>
         </div>
 
@@ -148,10 +132,61 @@
         </div>
 
         <!-- Pie Chart -->
-        <div class="col-lg-6">
+        <div class="col-lg-3">
             <div class="border rounded bg-white h-100 p-3">
                 <div class="section-title">Status Distribution</div>
                 <div id="status-pie-chart" style="height:220px;"></div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="col-lg-3">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Actions</div>
+                <div class="d-flex flex-column gap-2">
+
+                    <a href="javascript:void(0);" id="btn-add-course" class="quick-action">
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-plus-circle"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Add Course</div>
+                            <div class="u-fs-11 text-secondary">Assign course to this plan</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btn-add-students" class="quick-action">
+                        <div class="qa-icon qa-icon-success"><i class="fas fa-user-plus"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Add Students</div>
+                            <div class="u-fs-11 text-secondary">Enroll learners to this plan</div>
+                        </div>
+                    </a>
+
+                    <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
+                       target="_blank" class="quick-action">
+                        <div class="qa-icon qa-icon-muted"><i class="fas fa-file-alt"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Export Report</div>
+                            <div class="u-fs-11 text-secondary">Open printable summary</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btn-extend-due-date" class="quick-action">
+                        <div class="qa-icon qa-icon-warning"><i class="fas fa-calendar-plus"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Extend Due Date</div>
+                            <div class="u-fs-11 text-secondary">Change submission deadline</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btn-delete-assignment" class="quick-action danger">
+                        <div class="qa-icon qa-icon-danger"><i class="fas fa-trash-alt"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Delete Assignment</div>
+                            <div class="u-fs-11 text-secondary">Remove this plan permanently</div>
+                        </div>
+                    </a>
+
+                </div>
             </div>
         </div>
     </div>
@@ -163,12 +198,6 @@
             <div class="border rounded bg-white h-100 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="section-title section-title-plain mb-0">Courses</div>
-                    <div class="d-flex align-items-center gap-2">
-             
-                        <a href="javascript:void(0);" id="btn-add-course" class="action-link" title="Add course">
-                            <i class="fas fa-plus text-secondary"></i> Add Course
-                        </a>
-                    </div>
                 </div>
                 <div id="course-list" class="d-flex flex-column u-maxh-420 u-overflow-y-auto"></div>
             </div>
@@ -179,15 +208,12 @@
             <div class="border rounded bg-white h-100 p-3 assignment-student-panel">
                 <div class="d-flex justify-content-between align-items-center mb-3 assignment-student-toolbar">
                     <div class="section-title section-title-plain mb-0">
-                        Student
+                        Students
                         <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
                               class="u-fs-11 u-text-transform-none u-letter-spacing-0">— All</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div id="course-selector" class="u-w-220"></div>
-                        <a href="javascript:void(0);" id="btn-add-students" class="action-link" title="Add students">
-                            <i class="fas fa-user-plus text-secondary"></i> Add Student
-                        </a>
                     </div>
                 </div>
                 <div class="assignment-student-grid-wrap">
@@ -220,6 +246,7 @@
     let studentsByRuleId = new Map();
     let addCoursePopup;
     let addStudentsPopup;
+    let extendDueDatePopup = null;
 
     $(() => {
         loadPanel = $("#load-panel").dxLoadPanel({
@@ -244,34 +271,136 @@
     function initializeManagementPopups() {
         addCoursePopup = $("#add-course-popup").dxPopup({
             title: "Add Courses",
-            width: "80vw",
-            maxWidth: 980,
-            height: "80vh",
+            width: "90vw",
+            maxWidth: 1100,
+            height: "85vh",
             showCloseButton: true,
             dragEnabled: true,
+            deferRendering: false,
+            wrapperAttr: { class: "shadow-lg rounded-4" },
+            onShown: function() {
+                const g = $("#add-course-grid").dxDataGrid("instance");
+                if (g) g.updateDimensions();
+            },
             contentTemplate: function(contentElement) {
-                $("<div id='add-course-grid'>").css("height", "100%").appendTo(contentElement);
+                $(`
+                    <div class="d-flex h-100 gap-3">
+                        <div class="sidebar-260">
+                            <div class="filter-panel h-100 d-flex flex-column gap-3">
+                                <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
+                                    <div id="add-filter-course-type"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <div id="add-filter-course-div"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Category</label>
+                                    <div id="add-filter-course-cat"></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="add-btn-clear-course-filter">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 d-flex flex-column u-min-w-0">
+                            <div id="add-course-grid" class="flex-grow-1"></div>
+                        </div>
+                    </div>
+                `).appendTo(contentElement);
 
-                initDxGrid("#add-course-grid", {
+                let allCoursesData = [];
+
+                const courseGrid = initDxGrid("#add-course-grid", {
                     preset: "selectionGrid",
-                    dataSource: new DevExpress.data.CustomStore({
-                        key: "id",
-                        load: () => $.ajax({
-                            url: ASSIGNMENT_LOOKUP_COURSES_URL,
-                            method: "GET",
-                            xhrFields: { withCredentials: true }
-                        }).then(res => res.data || [])
+                    dataSource: new DevExpress.data.DataSource({
+                        store: new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData })
                     }),
                     remoteOperations: false,
                     filterRow: { visible: true },
                     searchPanel: { placeholder: "Search code or title...", width: 220 },
                     selection: { mode: "multiple", showCheckBoxesMode: "always" },
                     columns: [
-                        { dataField: "code", caption: "Code", width: 120 },
+                        {
+                            dataField: "code", caption: "Code", width: 120,
+                            cellTemplate: function(container, options) {
+                                $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value).appendTo(container);
+                            }
+                        },
                         { dataField: "title", caption: "Course Title", minWidth: 220 },
-                        { dataField: "courseTypeName", caption: "Type", width: 140 },
-                        { dataField: "divisionId", caption: "Division", width: 90, visible: false }
+                        {
+                            dataField: "courseTypeName", caption: "Type", width: 140, alignment: "center",
+                            cellTemplate: function(container, options) {
+                                if (options.value) {
+                                    $("<span>").addClass("tag-pill pill-info").text(options.value).appendTo(container);
+                                }
+                            }
+                        }
                     ]
+                });
+
+                $.ajax({
+                    url: ASSIGNMENT_LOOKUP_COURSES_URL,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).done(function(res) {
+                    allCoursesData = res.data || [];
+                    courseGrid.option("dataSource", new DevExpress.data.DataSource({
+                        store: new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData })
+                    }));
+                });
+
+                function applyAddCourseFilters() {
+                    const typeVal = $("#add-filter-course-type").dxSelectBox("instance").option("value");
+                    const divVal  = $("#add-filter-course-div").dxSelectBox("instance").option("value");
+                    const catVal  = $("#add-filter-course-cat").dxSelectBox("instance").option("value");
+                    const conditions = [];
+                    if (typeVal) conditions.push(["courseTypeId", "=", typeVal]);
+                    if (divVal)  conditions.push(["divisionId",   "=", divVal]);
+                    if (catVal)  conditions.push(["categoryId",   "=", catVal]);
+                    applyAddCombinedFilter(courseGrid, conditions);
+                }
+
+                $("#add-filter-course-type").dxSelectBox({
+                    dataSource: createDataStore(serviceUrl, "admin/CourseTypesCRUD", { key: "id" }),
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Types", showClearButton: true,
+                    onValueChanged: applyAddCourseFilters
+                });
+
+                $("#add-filter-course-div").dxSelectBox({
+                    dataSource: createDataStore(serviceUrl, "admin/DivisionsCRUD", { key: "id" }),
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Divisions", showClearButton: true,
+                    onValueChanged: function(e) {
+                        const catBox = $("#add-filter-course-cat").dxSelectBox("instance");
+                        catBox.option("value", null);
+                        if (e.value) {
+                            catBox.option("dataSource", createDataStore(serviceUrl, "admin/CategoriesCRUD", {
+                                key: "id", action: "Get", filter: ["divisionId", "=", e.value]
+                            }));
+                            catBox.option("disabled", false);
+                        } else {
+                            catBox.option({ dataSource: [], disabled: true });
+                        }
+                        applyAddCourseFilters();
+                    }
+                });
+
+                $("#add-filter-course-cat").dxSelectBox({
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Categories", showClearButton: true,
+                    disabled: true,
+                    onValueChanged: applyAddCourseFilters
+                });
+
+                $("#add-btn-clear-course-filter").click(function() {
+                    $("#add-filter-course-type").dxSelectBox("instance").option("value", null);
+                    $("#add-filter-course-div").dxSelectBox("instance").option("value", null);
+                    $("#add-filter-course-cat").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+                    courseGrid.clearFilter();
                 });
             },
             toolbarItems: [
@@ -301,15 +430,51 @@
 
         addStudentsPopup = $("#add-students-popup").dxPopup({
             title: "Add Students",
-            width: "88vw",
-            maxWidth: 1220,
-            height: "82vh",
+            width: "90vw",
+            maxWidth: 1280,
+            height: "85vh",
             showCloseButton: true,
             dragEnabled: true,
+            deferRendering: false,
+            wrapperAttr: { class: "shadow-lg rounded-4" },
+            onShown: function() {
+                const g = $("#add-students-grid").dxDataGrid("instance");
+                if (g) g.updateDimensions();
+            },
             contentTemplate: function(contentElement) {
-                $("<div id='add-students-grid'>").css("height", "100%").appendTo(contentElement);
+                $(`
+                    <div class="d-flex h-100 gap-3">
+                        <div class="sidebar-240">
+                            <div class="filter-panel h-100 d-flex flex-column gap-3">
+                                <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <div id="add-filter-emp-div"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                    <div id="add-filter-emp-dept"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                    <div id="add-filter-emp-section"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Position</label>
+                                    <div id="add-filter-emp-position"></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="add-btn-clear-emp-filter">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 d-flex flex-column u-min-w-0">
+                            <div id="add-students-grid" class="flex-grow-1"></div>
+                        </div>
+                    </div>
+                `).appendTo(contentElement);
 
-                initDxGrid("#add-students-grid", {
+                const empGrid = initDxGrid("#add-students-grid", {
                     preset: "selectionGrid",
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
@@ -323,18 +488,123 @@
                     searchPanel: { placeholder: "Search ID or name...", width: 220 },
                     selection: { mode: "multiple", showCheckBoxesMode: "always" },
                     columns: [
-                        { dataField: "EId", caption: "ID", width: 110 },
                         {
-                            caption: "Name",
-                            minWidth: 180,
-                            calculateCellValue: function(data) {
-                                return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
+                            dataField: "EId", caption: "ID", width: 110,
+                            cellTemplate: function(container, options) {
+                                $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value).appendTo(container);
                             }
                         },
-                        { dataField: "Position", caption: "Position", width: 120 },
+                        {
+                            caption: "Name", minWidth: 180,
+                            calculateCellValue: function(data) {
+                                return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
+                            },
+                            cellTemplate: function(container, options) {
+                                $("<span>").addClass("fw-medium text-dark").text(options.value).appendTo(container);
+                            }
+                        },
+                        {
+                            dataField: "Position", caption: "Position", width: 120, alignment: "center",
+                            cellTemplate: function(container, options) {
+                                if (options.value) {
+                                    $("<span>").addClass("tag-pill pill-default").text(options.value).appendTo(container);
+                                }
+                            }
+                        },
                         { dataField: "Department", caption: "Department", width: 120 },
-                        { dataField: "Section", caption: "Section", minWidth: 140 }
+                        {
+                            dataField: "Section", caption: "Section", minWidth: 140,
+                            cellTemplate: function(container, options) {
+                                $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
+                            }
+                        }
                     ]
+                });
+
+                function buildAddEmpFilterQuery() {
+                    const filters = [];
+                    const divVal  = $("#add-filter-emp-div").dxSelectBox("instance").option("value");
+                    const deptVal = $("#add-filter-emp-dept").dxSelectBox("instance").option("value");
+                    const secVal  = $("#add-filter-emp-section").dxSelectBox("instance").option("value");
+                    const posVals = $("#add-filter-emp-position").dxTagBox("instance").option("value") || [];
+
+                    if (divVal)  filters.push(["Division",   "=", divVal]);
+                    if (deptVal) filters.push(["Department", "=", deptVal]);
+                    if (secVal)  filters.push(["Section",    "=", secVal]);
+                    if (posVals.length > 0) {
+                        let posFilter = ["Position", "=", posVals[0]];
+                        for (let i = 1; i < posVals.length; i++) {
+                            posFilter = [posFilter, "or", ["Position", "=", posVals[i]]];
+                        }
+                        filters.push(posFilter);
+                    }
+                    applyAddCombinedFilter(empGrid, filters);
+                }
+
+                function makeAddEmpLookupStore(endpoint, extraQuery) {
+                    return new DevExpress.data.CustomStore({
+                        key: "Name",
+                        load: () => $.ajax({
+                            url: `${serviceUrl}/Students/${endpoint}${extraQuery || ""}`,
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
+                        }).then(res => res.data || res)
+                    });
+                }
+
+                const addEmpDivBox = $("#add-filter-emp-div").dxSelectBox({
+                    dataSource: makeAddEmpLookupStore("GetDivisions", ""),
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Divisions", showClearButton: true,
+                    onValueChanged: function(e) {
+                        const deptBox    = $("#add-filter-emp-dept").dxSelectBox("instance");
+                        const sectionBox = $("#add-filter-emp-section").dxSelectBox("instance");
+                        deptBox.option({ value: null, disabled: !e.value, dataSource: e.value
+                            ? makeAddEmpLookupStore("GetDepartments", `?filter=["Division","=","${e.value}"]`)
+                            : [] });
+                        sectionBox.option({ value: null, disabled: true, dataSource: [] });
+                        buildAddEmpFilterQuery();
+                    }
+                }).dxSelectBox("instance");
+
+                const addEmpDeptBox = $("#add-filter-emp-dept").dxSelectBox({
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Departments", showClearButton: true, disabled: true,
+                    onValueChanged: function(e) {
+                        const sectionBox = $("#add-filter-emp-section").dxSelectBox("instance");
+                        const divVal = addEmpDivBox.option("value");
+                        const q = e.value
+                            ? `?filter=[["Division","=","${divVal}"],"and",["Department","=","${e.value}"]]`
+                            : (divVal ? `?filter=["Division","=","${divVal}"]` : "");
+                        sectionBox.option({ value: null, disabled: !e.value, dataSource: e.value
+                            ? makeAddEmpLookupStore("GetSections", q)
+                            : [] });
+                        buildAddEmpFilterQuery();
+                    }
+                }).dxSelectBox("instance");
+
+                $("#add-filter-emp-section").dxSelectBox({
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Sections", showClearButton: true, disabled: true,
+                    onValueChanged: buildAddEmpFilterQuery
+                });
+
+                $("#add-filter-emp-position").dxTagBox({
+                    dataSource: makeAddEmpLookupStore("GetPositions", ""),
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Positions",
+                    showClearButton: true,
+                    showSelectionControls: true,
+                    applyValueMode: "useButtons",
+                    onValueChanged: buildAddEmpFilterQuery
+                });
+
+                $("#add-btn-clear-emp-filter").click(function() {
+                    addEmpDivBox.option("value", null);
+                    addEmpDeptBox.option({ value: null, disabled: true, dataSource: [] });
+                    $("#add-filter-emp-section").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+                    $("#add-filter-emp-position").dxTagBox("instance").option("value", []);
+                    empGrid.clearFilter();
                 });
             },
             toolbarItems: [
@@ -363,6 +633,18 @@
         }).dxPopup("instance");
     }
 
+    function applyAddCombinedFilter(grid, conditions) {
+        if (conditions.length === 0) {
+            grid.clearFilter();
+            return;
+        }
+        let combined = conditions[0];
+        for (let i = 1; i < conditions.length; i++) {
+            combined = [combined, "and", conditions[i]];
+        }
+        grid.filter(combined);
+    }
+
     async function initializeDashboard() {
         try {
             const response = await $.ajax({
@@ -375,6 +657,7 @@
                 showApiError("Invalid data format.");
                 return;
             }
+
 
             const data = response.data;
             const courses = Array.isArray(data.courses) ? data.courses : [];
@@ -398,7 +681,12 @@
             }
 
             loadPanel.hide();
-        } catch {
+        } catch (error) {
+            if (error?.status === 404) {
+                showToast("Assignment no longer exists. Redirecting...", "info", 2000);
+                window.setTimeout(() => window.location.href = ASSIGNMENT_INDEX_URL, 1500);
+                return;
+            }
             showApiError("Error loading dashboard data.");
         }
     }
@@ -496,38 +784,48 @@
 
     function buildCourseCardHtml(course, isActive) {
         const percent = getCourseCompletionPercent(course);
+        const remaining = course.totalStudents - course.completedStudents;
         const leftColor = course.isCourseDeleted
             ? "#ffa39e"
             : getProgressColor(percent);
         const deletedBadge = course.isCourseDeleted
-            ? `<span class="tag-pill tag-pill-xs pill-danger ms-1"><i class="fas fa-trash-alt me-1"></i>Deleted</span>`
+            ? `<span class="tag-pill tag-pill-xs pill-danger ms-1"><i class="fas fa-ban me-1"></i>Deleted</span>`
             : "";
 
         return `
-            <div class="course-item ${percent === 100 ? "done" : ""} ${isActive ? "active" : ""}"
+            <div class="course-item ${percent === 100 ? "done" : ""} ${isActive ? "active" : ""} ${course.isCourseDeleted ? "opacity-75" : ""}"
                  data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}"
-                 style="border-left-color:${leftColor}; ${course.isCourseDeleted ? "opacity:0.75;" : ""}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center flex-wrap gap-1">
-                        <span class="fw-bold u-fs-11" style="${course.isCourseDeleted ? "text-decoration:line-through;color:var(--danger-color);" : ""}">${course.courseCode}</span>
-                        <span class="text-secondary ms-1 u-fs-11">${course.courseTitle}</span>
+                 style="border-left-color:${leftColor};">
+
+                <!-- Row 1: Code badge + remove button -->
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="course-item-code ${course.isCourseDeleted ? "course-item-code--deleted" : ""}">${course.courseCode}</span>
                         ${deletedBadge}
                     </div>
-                    <div class="d-flex align-items-center gap-2 ms-2">
-                        <span class="fw-bold" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${percent}%</span>
-                        <a href="javascript:void(0);" class="action-link action-link-xs btn-remove-course" data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
-                            <i class="fas fa-trash-alt u-text-danger"></i>
-                        </a>
+                    <a href="javascript:void(0);" class="course-item-remove btn-remove-course"
+                       data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+
+                <!-- Row 2: Course title -->
+                <div class="course-item-title ${course.isCourseDeleted ? "course-item-title--deleted" : ""} mb-2">${course.courseTitle}</div>
+
+                <!-- Row 3: Progress bar + percent -->
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="progress-slim flex-grow-1">
+                        <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
                     </div>
+                    <span class="course-item-pct" style="color:${leftColor};">${percent}%</span>
                 </div>
-                <div class="progress-slim">
-                    <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
+
+                <!-- Row 4: Stats -->
+                <div class="d-flex gap-3 u-fs-11">
+                    <span class="u-text-success"><i class="fas fa-check me-1"></i>${course.completedStudents} done</span>
+                    <span class="text-secondary">${remaining} left</span>
                 </div>
-                <div class="d-flex gap-3 mt-2 u-fs-11 text-secondary">
-                    <span class="u-text-success">✓ ${course.completedStudents}</span>
-                    <span class="text-secondary">◐ ${course.totalStudents - course.completedStudents}</span>
-                    <span class="ms-auto">${course.totalStudents} students</span>
-                </div>
+
             </div>`;
     }
 
@@ -935,12 +1233,23 @@
     }
 
     function openExtendDueDatePopup() {
-        const popup = $("#extend-due-date-popup").dxPopup({
+        if (!extendDueDatePopup) {
+            extendDueDatePopup = $("#extend-due-date-popup").dxPopup({
                 title: "Extend Due Date",
                 width: 340,
                 height: "auto",
                 showCloseButton: true,
                 dragEnabled: false,
+                deferRendering: false,
+                onShowing: function() {
+                    const picker = $("#new-due-date-picker").dxDateBox("instance");
+                    if (picker) {
+                        const minDate = currentStartDate
+                            ? new Date(currentStartDate.getFullYear(), currentStartDate.getMonth(), currentStartDate.getDate() + 1)
+                            : new Date();
+                        picker.option({ value: currentDueDate, min: minDate });
+                    }
+                },
                 contentTemplate: function (content) {
                     $("<div>").addClass("p-2").append(
                         $("<div>").addClass("mb-3").append(
@@ -966,7 +1275,7 @@
 
                     $("#btn-popup-cancel").dxButton({
                         text: "Cancel", stylingMode: "outlined",
-                        onClick: () => $("#extend-due-date-popup").dxPopup("instance").hide()
+                        onClick: () => extendDueDatePopup.hide()
                     });
 
                     $("#btn-popup-confirm").dxButton({
@@ -986,7 +1295,7 @@
                                 xhrFields: { withCredentials: true },
                                 data: JSON.stringify({ newDueDate: newDate }),
                                 success: function () {
-                                    $("#extend-due-date-popup").dxPopup("instance").hide();
+                                    extendDueDatePopup.hide();
                                     loadPanel.hide();
                                     currentDueDate = newDate;
                                     const formatted = new Date(newDate).toLocaleDateString(DATE_FORMAT);
@@ -1003,7 +1312,8 @@
                     });
                 }
             }).dxPopup("instance");
-        popup.show();
+        }
+        extendDueDatePopup.show();
     }
 
     function showApiError(msg) {
