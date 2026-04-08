@@ -144,6 +144,163 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = result });
         }
 
+        [HttpGet("resolve/{assignmentNo}")]
+        public async Task<IActionResult> ResolveByNo(string assignmentNo)
+        {
+            var assignment = await _dbContext.Assignments
+                .Where(a => !a.IsDeleted && a.AssignmentNo == assignmentNo)
+                .Select(a => new { a.Id })
+                .FirstOrDefaultAsync();
+
+            if (assignment == null)
+                return NotFound(new { message = "Assignment not found" });
+
+            return Ok(new { success = true, data = assignment.Id });
+        }
+
+        [HttpGet("reassign-data/{id}")]
+        public async Task<IActionResult> GetReassignData(int id)
+        {
+            var divisionId = _currentUser.DivisionId;
+
+            var mainAssignment = await _dbContext.Assignments
+                .AsNoTracking()
+                .Where(a => a.Id == id && (!divisionId.HasValue || a.DivisionId == divisionId.Value))
+                .Select(a => new { a.AssignmentNo, a.StudentGroupId })
+                .FirstOrDefaultAsync();
+
+            if (mainAssignment == null)
+                return NotFound(new { message = "Assignment not found" });
+
+            var courseIds = await _dbContext.Assignments
+                .AsNoTracking()
+                .Where(a => (!divisionId.HasValue || a.DivisionId == divisionId.Value)
+                    && (string.IsNullOrWhiteSpace(mainAssignment.AssignmentNo)
+                        ? a.Id == id
+                        : a.AssignmentNo == mainAssignment.AssignmentNo)
+                    && a.CourseId.HasValue)
+                .Join(_dbContext.Courses.Where(c => !c.IsDeleted),
+                    a => a.CourseId, c => c.Id,
+                    (a, c) => c.Id)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    courseIds,
+                    studentGroupId = mainAssignment.StudentGroupId
+                }
+            });
+        }
+
+        [HttpPost("{id}/reset-enrollments")]
+        public async Task<IActionResult> ResetEnrollments(int id, [FromBody] ResetEnrollmentsDto dto)
+        {
+            var mainRule = await _repo.GetByIdAsync(id);
+            if (mainRule == null)
+                return NotFound(new { message = "Assignment not found" });
+
+            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
+                return Forbid();
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var targetRuleIds = batchRules.Select(r => r.Id).ToList();
+
+            // Filter by specific rules if provided
+            if (dto.RuleIds is { Count: > 0 })
+                targetRuleIds = targetRuleIds.Intersect(dto.RuleIds).ToList();
+
+            if (targetRuleIds.Count == 0)
+                return BadRequest(new { message = "No matching courses found in this assignment." });
+
+            var normalizedStudentCodes = dto.StudentCodes is { Count: > 0 }
+                ? NormalizeStudentCodes(dto.StudentCodes)
+                : null;
+
+            // Find enrollment IDs via EnrollmentAssignment links
+            var linksQuery = _dbContext.EnrollmentAssignments
+                .Where(ea => targetRuleIds.Contains(ea.AssignmentId)
+                    && !ea.IsDeleted
+                    && ea.Enrollment != null);
+
+            if (normalizedStudentCodes != null)
+                linksQuery = linksQuery.Where(ea => normalizedStudentCodes.Contains(ea.Enrollment!.StudentCode));
+
+            var enrollmentIds = await linksQuery
+                .Select(ea => ea.EnrollmentId)
+                .Distinct()
+                .ToListAsync();
+
+            if (enrollmentIds.Count == 0)
+                return BadRequest(new { message = "No enrollments found matching the selected criteria." });
+
+            // If filtering by specific courses, also filter enrollments by those courses
+            var courseIds = batchRules
+                .Where(r => targetRuleIds.Contains(r.Id) && r.CourseId.HasValue)
+                .Select(r => r.CourseId!.Value)
+                .ToList();
+
+            var enrollments = await _dbContext.Enrollments
+                .Where(e => enrollmentIds.Contains(e.Id)
+                    && !e.IsDeleted
+                    && (courseIds.Count == 0 || courseIds.Contains(e.CourseId ?? 0)))
+                .ToListAsync();
+
+            if (enrollments.Count == 0)
+                return BadRequest(new { message = "No enrollments found matching the selected criteria." });
+
+            var now = _dateTime.Now;
+            var resetCount = 0;
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                // Snapshot current completion state in EnrollmentAssignment links
+                var enrollmentIdsToReset = enrollments.Select(e => e.Id).ToList();
+                var links = await _dbContext.EnrollmentAssignments
+                    .Where(ea => targetRuleIds.Contains(ea.AssignmentId)
+                        && enrollmentIdsToReset.Contains(ea.EnrollmentId)
+                        && !ea.IsDeleted)
+                    .ToListAsync();
+
+                // Clear snapshot so dashboard reads the actual (reset) enrollment values
+                foreach (var link in links)
+                {
+                    link.SnapshotCompleted = false;
+                    link.SnapshotCompletedDate = null;
+                    link.SnapshotProgress = 0;
+                }
+
+                foreach (var enrollment in enrollments)
+                {
+                    enrollment.IsCompleted = false;
+                    enrollment.CompletedDate = null;
+                    enrollment.Progress = 0;
+                    enrollment.TotalScore = 0;
+                    enrollment.ResetAt = now;
+                    resetCount++;
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Successfully reset {resetCount} enrollment(s).",
+                resetCount
+            });
+        }
+
         [HttpPost("validate-before-assign")]
         public async Task<IActionResult> ValidateBeforeAssign([FromBody] BulkAssignDto dto)
         {
@@ -644,7 +801,9 @@ namespace iLearn.API.Controllers
                     StartDate = a.StartDate,
                     DueDate = a.DueDate,
                     CreatedBy = a.CreatedBy,
-                    CreatedAt = a.CreatedAt
+                    CreatedAt = a.CreatedAt,
+                    StudentGroupId = a.StudentGroupId,
+                    StudentGroupName = a.StudentGroup != null ? a.StudentGroup.Name : null
                 })
                 .FirstOrDefaultAsync();
 
@@ -669,7 +828,9 @@ namespace iLearn.API.Controllers
                     StartDate = a.StartDate,
                     DueDate = a.DueDate,
                     CreatedBy = a.CreatedBy,
-                    CreatedAt = a.CreatedAt
+                    CreatedAt = a.CreatedAt,
+                    StudentGroupId = a.StudentGroupId,
+                    StudentGroupName = a.StudentGroup != null ? a.StudentGroup.Name : null
                 })
                 .ToListAsync();
 
@@ -813,6 +974,8 @@ namespace iLearn.API.Controllers
                 TotalEmployees = studentsByCode.Count,
                 TotalCourses = courseSummaries.Count,
                 CompletionRate = completionRate,
+                StudentGroupId = mainAssignment.StudentGroupId,
+                StudentGroupName = mainAssignment.StudentGroupName,
                 HasDeletedCourse = courseSummaries.Any(course => course.IsCourseDeleted),
                 ChartData = new DashboardChartDto
                 {
@@ -1112,6 +1275,8 @@ namespace iLearn.API.Controllers
             public DateTime? DueDate { get; set; }
             public string? CreatedBy { get; set; }
             public DateTime CreatedAt { get; set; }
+            public int? StudentGroupId { get; set; }
+            public string? StudentGroupName { get; set; }
         }
 
         private sealed class DashboardStudentRow

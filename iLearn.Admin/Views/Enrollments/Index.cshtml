@@ -139,17 +139,15 @@
         }
 
         function resetEnrollment(id, studentCode) {
-            Swal.fire({
+            showAdminConfirmDialog({
                 title: 'Reset Progress?',
-                html: `<div class="u-text-secondary-60">Reset all progress for <strong>${studentCode}</strong>.<br>Learning logs will be preserved for history.</div>`,
+                messageHtml: `<div class="u-text-secondary-60">Reset all progress for <strong>${escapeAdminHtml(studentCode)}</strong>.<br>Learning logs will be preserved for history.</div>`,
                 icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-rotate-right"></i> Reset',
+                confirmButtonText: 'Reset',
                 cancelButtonText: 'Cancel',
-                customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
-                buttonsStyling: false
-            }).then((result) => {
-                if (result.isConfirmed) {
+                confirmType: 'danger'
+            }).done((confirmed) => {
+                if (confirmed) {
                     $.ajax({
                         url: `${serviceUrl}/Enrollments/ResetStatus?key=${id}`,
                         type: 'POST',

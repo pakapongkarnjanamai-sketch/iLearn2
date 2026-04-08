@@ -146,8 +146,8 @@
         <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.close()">
             <i class="fas fa-times"></i> Close
         </button>
-        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.print()">
-            <i class="fas fa-print"></i> Print
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="exportAllToExcel()">
+            <i class="fas fa-file-excel"></i> Export All
         </button>
     </div>
 
@@ -162,9 +162,13 @@
     <script src="~/js/devextreme/dx.all.js"></script>
     <script src="~/src/devextreme-license.js"></script>
     <script src="~/lib/html2canvas/html2canvas.min.js"></script>
+    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
+    <script src="~/js/devextreme/filesaver.min.js"></script>
     <script>
-        const ASSIGNMENT_ID = @ViewBag.AssignmentId;
+        const INITIAL_ASSIGNMENT_ID = @(ViewBag.AssignmentId ?? 0);
+        const INITIAL_ASSIGNMENT_NO = "@(ViewBag.AssignmentNo ?? "")";
         const serviceUrl    = "@apiBaseUrl";
+        let ASSIGNMENT_ID = INITIAL_ASSIGNMENT_ID;
 
         // Helper: Format Date
         function formatDate(dateString) {
@@ -173,19 +177,32 @@
             return new Date(dateString).toLocaleDateString("en-GB", options);
         }
 
-        // Fetch Data
-        fetch(`${serviceUrl}/Assignments/dashboard/${ASSIGNMENT_ID}`, { credentials: "include" })
-            .then(r => r.json())
-            .then(res => {
-                if (!res.success || !res.data) {
+        // Resolve Assignment No → ID, then fetch dashboard
+        async function loadReport() {
+            try {
+                if (!ASSIGNMENT_ID && INITIAL_ASSIGNMENT_NO) {
+                    const resolveRes = await fetch(`${serviceUrl}/Assignments/resolve/${encodeURIComponent(INITIAL_ASSIGNMENT_NO)}`, { credentials: "include" });
+                    const resolveData = await resolveRes.json();
+                    if (!resolveRes.ok || !resolveData.success) {
+                        document.getElementById("report-content").innerHTML = '<div class="text-danger text-center py-4">Assignment not found.</div>';
+                        return;
+                    }
+                    ASSIGNMENT_ID = resolveData.data;
+                }
+
+                const res = await fetch(`${serviceUrl}/Assignments/dashboard/${ASSIGNMENT_ID}`, { credentials: "include" });
+                const data = await res.json();
+                if (!data.success || !data.data) {
                     document.getElementById("report-content").innerHTML = '<div class="text-danger text-center py-4">Failed to load report data.</div>';
                     return;
                 }
-                renderReport(res.data);
-            })
-            .catch(() => {
+                renderReport(data.data);
+            } catch {
                 document.getElementById("report-content").innerHTML = '<div class="text-danger text-center py-4">Network error.</div>';
-            });
+            }
+        }
+
+        loadReport();
 
         // ─── Component: Pivot Table ───
         function buildPivotTable(courses, students) {
@@ -256,6 +273,7 @@
 
         // ─── Component: Main Render ───
         function renderReport(data) {
+            _reportData = data;
             const cd = data.chartData;
 
             // Course Rows Data
@@ -367,8 +385,11 @@
                     </div>
 
                     <div class="col-md-8">
-                        <div class="border-bottom pb-2 mb-3">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                             <h2 class="fs-6 fw-bold m-0 text-dark">Course Overview</h2>
+                            <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportCourseOverview()">
+                                <i class="fas fa-file-excel"></i> Export
+                            </button>
                         </div>
                         <div class="border rounded overflow-hidden bg-white ">
                             <table class="table table-hover m-0">
@@ -389,15 +410,21 @@
                 </div>
 
                 <div class="mb-5">
-                    <div class="border-bottom pb-2 mb-3">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                         <h2 class="fs-6 fw-bold m-0 text-dark">Student × Course Matrix</h2>
+                        <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportPivotMatrix()">
+                            <i class="fas fa-file-excel"></i> Export
+                        </button>
                     </div>
                     ${buildPivotTable(data.courses, data.students)}
                 </div>
 
                 <div class="mb-5">
-                    <div class="border-bottom pb-2 mb-3">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                         <h2 class="fs-6 fw-bold m-0 text-dark">Student Tracking</h2>
+                        <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportStudentTracking()">
+                            <i class="fas fa-file-excel"></i> Export
+                        </button>
                     </div>
                     <div class="border rounded overflow-hidden bg-white ">
                         <table class="table table-hover m-0">
@@ -443,7 +470,124 @@
             });
         }
 
-        // ─── Component: Export Image Function ───
+        // ─── Store report data for Excel export ───
+        let _reportData = null;
+
+        // ─── Excel Export Helpers ───
+        function getExportFileName(prefix) {
+            const no = (_reportData?.assignmentNo || 'Unknown').replace(/[\\/:*?"<>|]/g, '_');
+            const now = new Date();
+            const ts = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+                String(now.getHours()).padStart(2, '0'),
+                String(now.getMinutes()).padStart(2, '0')
+            ].join('');
+            return `${prefix}_${no}_${ts}.xlsx`;
+        }
+
+        function saveWorkbook(workbook, fileName) {
+            workbook.xlsx.writeBuffer().then(function(buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            });
+        }
+
+        function styleHeaderRow(ws) {
+            const row = ws.getRow(1);
+            row.font = { bold: true, size: 11 };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            row.alignment = { vertical: 'middle' };
+            row.eachCell(cell => cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } });
+        }
+
+        function addCourseOverviewSheet(wb) {
+            const ws = wb.addWorksheet('Course Overview');
+            ws.columns = [
+                { header: 'Code',       key: 'code',  width: 15 },
+                { header: 'Course',     key: 'title', width: 40 },
+                { header: 'Total',      key: 'total', width: 10 },
+                { header: 'Done',       key: 'done',  width: 10 },
+                { header: 'Left',       key: 'left',  width: 10 },
+                { header: 'Progress %', key: 'pct',   width: 12 }
+            ];
+            (_reportData.courses || []).forEach(function(c) {
+                const pct = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
+                ws.addRow({ code: c.courseCode, title: c.courseTitle, total: c.totalStudents, done: c.completedStudents, left: c.totalStudents - c.completedStudents, pct });
+            });
+            styleHeaderRow(ws);
+        }
+
+        function addMatrixSheet(wb) {
+            const courses = _reportData.courses || [];
+            const studentMap = {};
+            (_reportData.students || []).forEach(function(s) {
+                if (!studentMap[s.studentCode]) studentMap[s.studentCode] = {};
+                studentMap[s.studentCode][s.assignmentRuleId] = s;
+            });
+
+            const ws = wb.addWorksheet('Student Course Matrix');
+            const headers = ['Employee ID', 'Name', ...courses.map(c => c.courseCode), 'Total'];
+            ws.addRow(headers);
+
+            Object.keys(studentMap).sort().forEach(function(code) {
+                const enrollments = studentMap[code];
+                const name = Object.values(enrollments)[0]?.studentName || '';
+                let completedCount = 0;
+                const row = [code, name];
+                courses.forEach(function(c) {
+                    const e = enrollments[c.assignmentRuleId];
+                    if (!e)            { row.push('—'); }
+                    else if (e.isCompleted) { completedCount++; row.push(e.completedDate ? new Date(e.completedDate).toLocaleDateString('en-GB') : 'Done'); }
+                    else if (e.progress > 0) { row.push(e.progress + '%'); }
+                    else               { row.push('Pending'); }
+                });
+                row.push(`${completedCount} / ${courses.length}`);
+                ws.addRow(row);
+            });
+
+            ws.columns.forEach(col => col.width = Math.max(col.width || 10, 14));
+            styleHeaderRow(ws);
+        }
+
+        function addStudentTrackingSheet(wb) {
+            const ws = wb.addWorksheet('Student Tracking');
+            ws.columns = [
+                { header: 'Employee ID', key: 'code',  width: 15 },
+                { header: 'Name',        key: 'name',  width: 30 },
+                { header: 'Total',       key: 'total', width: 10 },
+                { header: 'Done',        key: 'done',  width: 10 },
+                { header: 'Left',        key: 'left',  width: 10 },
+                { header: 'Progress %',  key: 'pct',   width: 12 }
+            ];
+            const studentGroups = {};
+            (_reportData.students || []).forEach(function(s) {
+                if (!studentGroups[s.studentCode]) studentGroups[s.studentCode] = [];
+                studentGroups[s.studentCode].push(s);
+            });
+            Object.entries(studentGroups).forEach(function([code, rows]) {
+                const total = rows.length;
+                const done  = rows.filter(r => r.isCompleted).length;
+                const pct   = Math.round(rows.reduce((a, r) => a + r.progress, 0) / rows.length);
+                ws.addRow({ code, name: rows[0]?.studentName || '', total, done, left: total - done, pct });
+            });
+            styleHeaderRow(ws);
+        }
+
+        function exportCourseOverview()  { if (!_reportData) return; const wb = new ExcelJS.Workbook(); addCourseOverviewSheet(wb);  saveWorkbook(wb, getExportFileName('Course_Overview')); }
+        function exportPivotMatrix()     { if (!_reportData) return; const wb = new ExcelJS.Workbook(); addMatrixSheet(wb);          saveWorkbook(wb, getExportFileName('Student_Course_Matrix')); }
+        function exportStudentTracking() { if (!_reportData) return; const wb = new ExcelJS.Workbook(); addStudentTrackingSheet(wb); saveWorkbook(wb, getExportFileName('Student_Tracking')); }
+
+        function exportAllToExcel() {
+            if (!_reportData) return;
+            const wb = new ExcelJS.Workbook();
+            addCourseOverviewSheet(wb);
+            addMatrixSheet(wb);
+            addStudentTrackingSheet(wb);
+            saveWorkbook(wb, getExportFileName('Assignment_Report'));
+        }
+
+        // ─── Export Summary Image ───
         function exportSummaryImage() {
             const targetDiv = document.getElementById("export-target");
             html2canvas(targetDiv, {

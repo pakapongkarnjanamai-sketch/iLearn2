@@ -30,6 +30,20 @@
         warning: 'fa-triangle-exclamation',
         info: 'fa-circle-info'
     };
+    const dialogIconMap = {
+        question: 'fa-circle-question',
+        warning: 'fa-triangle-exclamation',
+        error: 'fa-circle-xmark',
+        success: 'fa-circle-check',
+        info: 'fa-circle-info'
+    };
+    const dialogIconColorMap = {
+        question: 'var(--accent-color)',
+        warning: 'var(--warning-color)',
+        error: 'var(--danger-color)',
+        success: 'var(--success-color)',
+        info: 'var(--accent-color)'
+    };
     const sharedGridPreset = {
         width: '100%',
         height: '100%',
@@ -556,6 +570,104 @@
             .html(originalHtml || $button.html());
     }
 
+    function escapeHtml(value) {
+        return $('<div>').text(value == null ? '' : String(value)).html();
+    }
+
+    function normalizeDialogButtonType(type) {
+        if (type === 'danger' || type === 'success' || type === 'default') {
+            return type;
+        }
+
+        return 'normal';
+    }
+
+    function buildDialogMessageContent(options) {
+        const dialogOptions = options || {};
+        const iconName = dialogOptions.icon === false ? null : (dialogIconMap[dialogOptions.icon] || dialogIconMap.info);
+        const iconColor = dialogIconColorMap[dialogOptions.icon] || dialogIconColorMap.info;
+        const bodyHtml = dialogOptions.messageHtml
+            || (dialogOptions.text
+                ? `<div class="u-text-secondary-60">${escapeHtml(dialogOptions.text).replace(/\n/g, '<br>')}</div>`
+                : '');
+
+        if (!iconName) {
+            return `<div class="text-start dialog-body-sm">${bodyHtml}</div>`;
+        }
+
+        return `
+            <div class="d-flex align-items-start gap-3 text-start dialog-body-sm">
+                <div class="flex-shrink-0" style="font-size:22px; color:${iconColor}; line-height:1;">
+                    <i class="fas ${iconName}"></i>
+                </div>
+                <div class="flex-grow-1">${bodyHtml}</div>
+            </div>`;
+    }
+
+    function createAdminDialogController(options) {
+        const dialogOptions = options || {};
+        const contentId = `ilearn-dialog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const dialog = DevExpress.ui.dialog.custom({
+            title: dialogOptions.title || '',
+            showTitle: dialogOptions.showTitle !== false,
+            messageHtml: `<div id="${contentId}">${dialogOptions.messageHtml || dialogOptions.text || ''}</div>`,
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: dialogOptions.showCloseButton === true,
+            width: dialogOptions.width,
+            buttons: dialogOptions.buttons || []
+        });
+
+        dialog.show();
+
+        return {
+            hide: function () {
+                if (typeof dialog.hide === 'function') {
+                    dialog.hide();
+                }
+            },
+            find: function (selector) {
+                return $('#' + contentId).find(selector);
+            },
+            setHtml: function (html) {
+                $('#' + contentId).html(html);
+            }
+        };
+    }
+
+    function showAdminConfirmDialog(options) {
+        const dialogOptions = options || {};
+        const buttons = [];
+
+        if (dialogOptions.showCancelButton !== false) {
+            buttons.push({
+                text: dialogOptions.cancelButtonText || 'Cancel',
+                type: 'normal',
+                onClick: function () {
+                    return false;
+                }
+            });
+        }
+
+        buttons.push({
+            text: dialogOptions.confirmButtonText || 'Confirm',
+            type: normalizeDialogButtonType(dialogOptions.confirmType),
+            onClick: function () {
+                return true;
+            }
+        });
+
+        return DevExpress.ui.dialog.custom({
+            title: dialogOptions.title || 'Confirm',
+            messageHtml: buildDialogMessageContent(dialogOptions),
+            buttons: buttons,
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: false,
+            width: dialogOptions.width
+        }).show();
+    }
+
     function showToast(message, type, duration) {
         const toastType = type || 'info';
         const displayTime = duration || defaultToastDisplayTime;
@@ -674,35 +786,19 @@
         $.fn.dxPopup.__ilearnPopupSized = true;
     }
 
-    const SwalAdmin = typeof window.Swal !== 'undefined'
-        ? window.Swal.mixin({
-            customClass: {
-                popup: 'swal-admin-popup',
-                confirmButton: 'btn btn-primary ms-2',
-                cancelButton: 'btn btn-outline-secondary'
-            },
-            buttonsStyling: false
-        })
-        : null;
-
     function refreshUserCache() {
         const currentUrl = new URL(window.location.href);
         currentUrl.searchParams.set('_refresh', '1');
 
-        if (!SwalAdmin) {
-            window.location.href = currentUrl.toString();
-            return;
-        }
-
-        SwalAdmin.fire({
+        showAdminConfirmDialog({
             title: 'Refresh user access data?',
             text: 'Reload the latest role and division access from the API for this session.',
             icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: '<i class="fas fa-rotate-right me-1"></i>Refresh now',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result.isConfirmed) {
+            confirmButtonText: 'Refresh now',
+            cancelButtonText: 'Cancel',
+            confirmType: 'default'
+        }).done(function (confirmed) {
+            if (confirmed) {
                 window.location.href = currentUrl.toString();
             }
         });
@@ -732,12 +828,14 @@
     window.getDxGridOptions = getDxGridOptions;
     window.initDxGrid = initDxGrid;
     window.setButtonLoading = setButtonLoading;
+    window.escapeAdminHtml = escapeHtml;
+    window.createAdminDialogController = createAdminDialogController;
+    window.showAdminConfirmDialog = showAdminConfirmDialog;
     window.showToast = showToast;
     window.showStatSkeleton = showStatSkeleton;
     window.hideStatSkeleton = hideStatSkeleton;
     window.showCardsSkeleton = showCardsSkeleton;
     window.hideCardsSkeleton = hideCardsSkeleton;
-    window.SwalAdmin = SwalAdmin;
     window.refreshUserCache = refreshUserCache;
     window.refreshViewportGridHeights = refreshViewportGridHeights;
 })(window, window.jQuery);

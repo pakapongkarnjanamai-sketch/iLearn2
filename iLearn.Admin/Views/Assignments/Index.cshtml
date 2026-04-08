@@ -307,7 +307,7 @@
                     },
                     {
                         dataField: "completedEnrollmentCount", caption: "Progress", width: 130, alignment: "center",
-                        calculateSortValue: calculateCompletionPct,
+                        allowSorting: false,
                         cellTemplate: function(container, options) {
                             renderProgressCell(container, calculateCompletionPct(options.data));
                         }

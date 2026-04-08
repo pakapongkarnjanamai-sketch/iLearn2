@@ -17,6 +17,9 @@ namespace iLearn.Application.DTOs
         public List<CourseSummaryDto> Courses { get; set; }
         public List<StudentProgressDto> Students { get; set; }
 
+        public int? StudentGroupId { get; set; }
+        public string? StudentGroupName { get; set; }
+
         // ✅ แจ้ง Dashboard ว่า assignment นี้มี course ที่ถูกลบไปแล้ว
         public bool HasDeletedCourse { get; set; }
     }

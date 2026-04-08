@@ -135,26 +135,35 @@
             });
         }
 
-        function showProcessingDialog(title, text) {
-            if (typeof Swal === 'undefined') {
-                return;
-            }
+        let processingDialogController = null;
+        let batchPublishProgressDialogController = null;
 
-            Swal.fire({
+        function showProcessingDialog(title, text) {
+            closeProcessingDialog();
+
+            processingDialogController = createAdminDialogController({
                 title: title,
-                text: text,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: function() {
-                    Swal.showLoading();
-                }
+                width: 420,
+                messageHtml: `
+                    <div class="text-start dialog-body-sm">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-spinner fa-spin" style="color:var(--accent-color);"></i>
+                            <span class="u-fw-semibold">Processing</span>
+                        </div>
+                        <div class="u-text-secondary-60">${escapeAdminHtml(text)}</div>
+                    </div>`
             });
         }
 
         function closeProcessingDialog() {
-            if (typeof Swal !== 'undefined' && Swal.isVisible()) {
-                Swal.close();
+            if (processingDialogController) {
+                processingDialogController.hide();
+                processingDialogController = null;
+            }
+
+            if (batchPublishProgressDialogController) {
+                batchPublishProgressDialogController.hide();
+                batchPublishProgressDialogController = null;
             }
         }
 
@@ -173,13 +182,12 @@
         }
 
         function showBatchPublishProgressDialog() {
-            if (typeof Swal === 'undefined') {
-                return;
-            }
+            closeProcessingDialog();
 
-            Swal.fire({
+            batchPublishProgressDialogController = createAdminDialogController({
                 title: 'กำลัง Publish Resource',
-                html: `
+                width: 560,
+                messageHtml: `
                     <div class="text-start dialog-body-sm">
                         <div class="mb-2 text-muted" id="batchPublishStatusText">กำลังเตรียมข้อมูล...</div>
                         <div class="progress mb-2 u-progress-xs progress-track-neutral">
@@ -193,11 +201,7 @@
                         <div id="batchPublishLatestLog" class="log-panel-soft">
                             <div class="text-muted">Waiting for progress...</div>
                         </div>
-                    </div>`,
-                width: 560,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false
+                    </div>`
             });
         }
 
@@ -630,18 +634,16 @@
             });
 
             function setResourcePublic(id) {
-                Swal.fire({
+                showAdminConfirmDialog({
                     title: 'Publish Resource?',
                     text: 'Extract and publish this SCORM package?',
                     icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="fas fa-upload"></i> Publish',
+                    confirmButtonText: 'Publish',
                     cancelButtonText: 'Cancel',
-                    customClass: { confirmButton: 'btn btn-primary me-2', cancelButton: 'btn btn-secondary' },
-                    buttonsStyling: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                    runBatchPublishWithProgress([id]);
+                    confirmType: 'default'
+                }).done((confirmed) => {
+                    if (confirmed) {
+                        runBatchPublishWithProgress([id]);
                     }
                 });
             }
@@ -652,21 +654,19 @@
                 const filesText = stats ? `${stats.fileCount.toLocaleString()} files` : '';
                 const detail = sizeText ? `This will delete ${filesText} (${sizeText}) from the server.` : 'This will delete extracted files from the server.';
 
-                Swal.fire({
+                showAdminConfirmDialog({
                     title: 'Unpublish Resource?',
-                    html: `<div class="u-text-secondary-60 text-start">
-                               <p><strong>${name}</strong></p>
+                    messageHtml: `<div class="u-text-secondary-60 text-start">
+                               <p><strong>${escapeAdminHtml(name)}</strong></p>
                                <p>${detail}</p>
                                <p class="dialog-body-sm u-text-secondary-60">The original .zip file in the database will be kept so you can re-publish later.</p>
                            </div>`,
                     icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="fas fa-box-archive"></i> Unpublish',
+                    confirmButtonText: 'Unpublish',
                     cancelButtonText: 'Cancel',
-                    customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
-                    buttonsStyling: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
+                    confirmType: 'danger'
+                }).done((confirmed) => {
+                    if (confirmed) {
                         $.ajax({
                             url: `${serviceUrl}/Resources/Unpublish?key=${id}`,
                             type: 'POST',
@@ -845,17 +845,15 @@
                 $("#btnBulkUnpublish").off("click").on("click", function() {
                     const keys = unusedGridInstance.getSelectedRowKeys();
                     if (keys.length === 0) { showToast("Select resources to unpublish.", "warning"); return; }
-                    Swal.fire({
+                    showAdminConfirmDialog({
                         title: `Unpublish ${keys.length} Resource(s)?`,
-                        html: `<div class="u-text-secondary-60">This will delete extracted files from the server for <strong>${keys.length}</strong> resource(s).<br>Original .zip files in the database will be kept.</div>`,
+                        messageHtml: `<div class="u-text-secondary-60">This will delete extracted files from the server for <strong>${keys.length}</strong> resource(s).<br>Original .zip files in the database will be kept.</div>`,
                         icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: `<i class="fas fa-box-archive"></i> Unpublish ${keys.length}`,
+                        confirmButtonText: `Unpublish ${keys.length}`,
                         cancelButtonText: 'Cancel',
-                        customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
-                        buttonsStyling: false
-                    }).then(r => {
-                        if (r.isConfirmed) {
+                        confirmType: 'danger'
+                    }).done(confirmed => {
+                        if (confirmed) {
                             setButtonLoading("#btnBulkUnpublish", true, "Processing...");
                             showProcessingDialog('กำลังยกเลิกเผยแพร่', 'ระบบกำลังลบไฟล์ที่เผยแพร่ออกจากเซิร์ฟเวอร์ กรุณารอสักครู่');
                             $.ajax({
@@ -881,17 +879,15 @@
                 $("#btnBulkPublish").off("click").on("click", function() {
                     const keys = shouldPublishGridInstance.getSelectedRowKeys();
                     if (keys.length === 0) { showToast("Select resources to publish.", "warning"); return; }
-                    Swal.fire({
+                    showAdminConfirmDialog({
                         title: `Publish ${keys.length} Resource(s)?`,
-                        html: `<div class="u-text-secondary-60">This will extract and publish <strong>${keys.length}</strong> SCORM package(s) to the server.</div>`,
+                        messageHtml: `<div class="u-text-secondary-60">This will extract and publish <strong>${keys.length}</strong> SCORM package(s) to the server.</div>`,
                         icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: `<i class="fas fa-upload"></i> Publish ${keys.length}`,
+                        confirmButtonText: `Publish ${keys.length}`,
                         cancelButtonText: 'Cancel',
-                        customClass: { confirmButton: 'btn btn-primary me-2', cancelButton: 'btn btn-secondary' },
-                        buttonsStyling: false
-                    }).then(r => {
-                        if (r.isConfirmed) {
+                        confirmType: 'default'
+                    }).done(confirmed => {
+                        if (confirmed) {
                             setButtonLoading("#btnBulkPublish", true, "Processing...");
                             runBatchPublishWithProgress(keys)
                                 .finally(() => setButtonLoading("#btnBulkPublish", false));
@@ -900,21 +896,19 @@
                 });
 
                 $("#btnUnpublishAllPublished").off("click").on("click", function() {
-                    Swal.fire({
+                    showAdminConfirmDialog({
                         title: 'Unpublish all published resources?',
-                        html: `<div class="u-text-secondary-60 text-start">
+                        messageHtml: `<div class="u-text-secondary-60 text-start">
                                    <p>This will remove all published SCORM folders/files from the server.</p>
                                    <p>All affected records in <strong>Resources</strong> will be reverted to draft status.</p>
                                    <p class="u-text-danger dialog-body-sm">This action impacts every published resource.</p>
                                </div>`,
                         icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: '<i class="fas fa-box-archive"></i> Unpublish All',
+                        confirmButtonText: 'Unpublish All',
                         cancelButtonText: 'Cancel',
-                        customClass: { confirmButton: 'btn btn-warning me-2', cancelButton: 'btn btn-secondary' },
-                        buttonsStyling: false
-                    }).then(function(result) {
-                        if (!result.isConfirmed) return;
+                        confirmType: 'danger'
+                    }).done(function(confirmed) {
+                        if (!confirmed) return;
 
                         setButtonLoading("#btnUnpublishAllPublished", true, "Processing...");
                         showProcessingDialog('กำลังยกเลิกการเผยแพร่ทั้งหมด', 'ระบบกำลังลบไฟล์ที่ถูก publish ทั้งหมด และปรับ Resource กลับเป็น Draft');

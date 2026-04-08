@@ -1,7 +1,9 @@
 ﻿@{
     ViewBag.Title = "Bulk Course Assignments";
     var preselectedCourseId = Context.Request.Query["courseId"].ToString();
+    var preselectedCourseIds = Context.Request.Query["courseIds"].ToString();
     var preselectedGroupId = Context.Request.Query["groupId"].ToString();
+    var preselectedDescription = Context.Request.Query["description"].ToString();
 }
 
 <style>
@@ -128,14 +130,18 @@
 @section Scripts {
     <script>
         const initialCourseId = '@preselectedCourseId';
+        const initialCourseIds = '@preselectedCourseIds';
         const initialGroupId = '@preselectedGroupId';
+        const initialDescription = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(preselectedDescription ?? ""))';
         const ASSIGNMENT_VALIDATE_URL = `${serviceUrl}/Assignments/validate-before-assign`;
         const ASSIGNMENT_LOOKUP_COURSES_URL = `${serviceUrl}/Assignments/lookup-courses`;
         const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
 
-        let selectedCourseIds = initialCourseId ? [parseInt(initialCourseId, 10)] : [];
+        let selectedCourseIds = initialCourseIds
+            ? initialCourseIds.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+            : initialCourseId ? [parseInt(initialCourseId, 10)] : [];
         let selectedStudentCodes = [];
         let selectedGroupId = null;
         let selectedGroupName = null;
@@ -156,7 +162,7 @@
             // --- Main Form ---
             const form = $("#form-assignment").dxForm({
                 labelMode: "floating",
-                formData: { description: "", startDate: null, dueDate: null },
+                formData: { description: initialDescription || "", startDate: null, dueDate: null },
                 items: [
                     { dataField: "description", editorType: "dxTextArea", editorOptions: { height: 120 }, validationRules: [{ type: "required", message: "Required" }] },
                     { itemType: "group", colCount: 2, items: [

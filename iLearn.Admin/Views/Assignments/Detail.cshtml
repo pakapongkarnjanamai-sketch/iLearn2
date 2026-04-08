@@ -90,6 +90,10 @@
                     <div class="meta-label">Created By</div>
                     <div class="meta-value" id="lbl-created-by">-</div>
                 </div>
+                <div class="meta-item" id="meta-student-group" style="display:none;">
+                    <div class="meta-label">Student Group</div>
+                    <div class="meta-value" id="lbl-student-group">-</div>
+                </div>
             </div>
         </div>
 
@@ -162,11 +166,19 @@
                     </a>
 
                     <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
-                       target="_blank" class="quick-action">
+                       id="btn-report-link" target="_blank" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-file-alt"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Report</div>
                             <div class="u-fs-11 text-secondary">Open printable summary</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btn-reassignment" class="quick-action">
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-redo-alt"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Reassignment</div>
+                            <div class="u-fs-11 text-secondary">Create new assignment from this data</div>
                         </div>
                     </a>
 
@@ -225,7 +237,6 @@
 
 </div>
 
-<div id="extend-due-date-popup"></div>
 <div id="add-course-popup"></div>
 <div id="add-students-popup"></div>
 
@@ -246,7 +257,7 @@
     let studentsByRuleId = new Map();
     let addCoursePopup;
     let addStudentsPopup;
-    let extendDueDatePopup = null;
+    let dashboardData = null;
 
     $(() => {
         loadPanel = $("#load-panel").dxLoadPanel({
@@ -266,6 +277,7 @@
         $("#btn-extend-due-date").click(openExtendDueDatePopup);
         $("#btn-add-course").click(() => addCoursePopup.show());
         $("#btn-add-students").click(() => addStudentsPopup.show());
+        $("#btn-reassignment").click(handleReassignment);
     });
 
     function initializeManagementPopups() {
@@ -660,6 +672,7 @@
 
 
             const data = response.data;
+            dashboardData = data;
             const courses = Array.isArray(data.courses) ? data.courses : [];
             const students = Array.isArray(data.students) ? data.students : [];
             const firstRuleId = courses.length > 0 ? courses[0].assignmentRuleId : null;
@@ -705,6 +718,17 @@
         $("#lbl-description").text(data.description || "-");
         $("#lbl-schedule").attr("data-start", startText).text(`${startText} → ${dueText}`);
         $("#lbl-created-by").text(data.createdBy || "-");
+        if (refNo && refNo !== EMPTY_TEXT) {
+            $("#btn-report-link").attr("href", `/Assignments/Report/${encodeURIComponent(refNo)}`);
+        }
+
+        if (data.studentGroupId) {
+            $("#lbl-student-group").html(
+                `<a href="@Url.Action("Detail", "StudentGroups")?id=${data.studentGroupId}" class="action-link">${escapeHtml(data.studentGroupName || '-')}</a>` +
+                ` <span class="text-secondary u-fs-11">(ID: ${data.studentGroupId})</span>`
+            );
+            $("#meta-student-group").show();
+        }
 
         if (!data.hasDeletedCourse) {
             return;
@@ -780,6 +804,14 @@
             const title = $(this).data("title");
             confirmRemoveCourse(ruleId, title);
         });
+
+        $courseList.find(".btn-reset-course").on("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const ruleId = $(this).data("rule");
+            const title = $(this).data("title");
+            confirmResetCourse(ruleId, title);
+        });
     }
 
     function buildCourseCardHtml(course, isActive) {
@@ -803,10 +835,17 @@
                         <span class="course-item-code ${course.isCourseDeleted ? "course-item-code--deleted" : ""}">${course.courseCode}</span>
                         ${deletedBadge}
                     </div>
-                    <a href="javascript:void(0);" class="course-item-remove btn-remove-course"
-                       data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
-                        <i class="fas fa-times"></i>
-                    </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="javascript:void(0);" class="course-item-remove btn-reset-course"
+                           data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}"
+                           title="Reset all students">
+                            <i class="fas fa-sync-alt"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="course-item-remove btn-remove-course"
+                           data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Row 2: Course title -->
@@ -913,20 +952,32 @@
                 },
                 {
                     caption: "",
-                    width: 84,
+                    width: 100,
                     alignment: "center",
                     allowFiltering: false,
                     allowSorting: false,
                     cellTemplate: function(container, options) {
+                        const $wrap = $("<div>").addClass("d-flex align-items-center justify-content-center gap-2").appendTo(container);
                         $("<a>")
                             .attr("href", "javascript:void(0);")
+                            .attr("title", "Reset enrollment")
+                            .addClass("action-link action-link-xs")
+                            .html('<i class="fas fa-sync-alt u-text-warning"></i>')
+                            .on("click", function(e) {
+                                e.preventDefault();
+                                confirmResetStudent(options.data.assignmentRuleId, options.data.studentCode, options.data.studentName || options.data.studentCode);
+                            })
+                            .appendTo($wrap);
+                        $("<a>")
+                            .attr("href", "javascript:void(0);")
+                            .attr("title", "Remove student")
                             .addClass("action-link action-link-xs")
                             .html('<i class="fas fa-user-minus u-text-danger"></i>')
                             .on("click", function(e) {
                                 e.preventDefault();
                                 confirmRemoveStudent(options.data.studentCode, options.data.studentName || options.data.studentCode);
                             })
-                            .appendTo(container);
+                            .appendTo($wrap);
                     }
                 }
             ]
@@ -1045,19 +1096,20 @@
     }
 
     function showConfirmDialog(options) {
-        if (window.SwalAdmin && typeof window.SwalAdmin.fire === "function") {
-            return window.SwalAdmin.fire(options);
-        }
-
-        if (window.Swal && typeof window.Swal.fire === "function") {
-            return window.Swal.fire(options);
-        }
-
         const deferred = $.Deferred();
-        DevExpress.ui.dialog.confirm(options.html || options.text || "Please confirm this action.", options.title || "Confirm")
-            .done(function(confirmed) {
-                deferred.resolve({ isConfirmed: confirmed });
-            });
+        const confirmType = options.confirmClass === "btn-danger" ? "danger" : "default";
+
+        showAdminConfirmDialog({
+            title: options.title,
+            messageHtml: options.html,
+            text: options.text,
+            icon: options.icon || "warning",
+            confirmButtonText: options.confirmButtonText,
+            cancelButtonText: options.cancelButtonText,
+            confirmType: confirmType
+        }).done(function(confirmed) {
+            deferred.resolve({ isConfirmed: confirmed });
+        });
 
         return deferred.promise();
     }
@@ -1130,9 +1182,8 @@
         showConfirmDialog({
             title: "Remove assigned course?",
             html: `Course <b>${escapeHtml(title || EMPTY_TEXT)}</b> will be removed from this assignment.`,
-            icon: "warning",
-            showCancelButton: true,
             confirmButtonText: "Remove",
+            confirmClass: "btn-danger",
             cancelButtonText: "Cancel"
         }).then(async function(result) {
             if (!result.isConfirmed) {
@@ -1167,9 +1218,8 @@
         showConfirmDialog({
             title: "Remove student from assignment?",
             html: `<b>${escapeHtml(studentCode || EMPTY_TEXT)}</b> ${escapeHtml(studentName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
-            icon: "warning",
-            showCancelButton: true,
             confirmButtonText: "Remove",
+            confirmClass: "btn-danger",
             cancelButtonText: "Cancel"
         }).then(async function(result) {
             if (!result.isConfirmed) {
@@ -1198,20 +1248,113 @@
         return $("<div>").text(value || "").html();
     }
 
+    function handleReassignment(e) {
+        e.preventDefault();
+        if (!dashboardData) return;
+
+        const courses = Array.isArray(dashboardData.courses) ? dashboardData.courses : [];
+        const courseIds = courses
+            .filter(c => !c.isCourseDeleted && c.assignmentRuleId)
+            .map(c => {
+                const row = c.courseId;
+                return row;
+            });
+
+        // Build course IDs from the assignment rows (need to fetch from API)
+        const params = new URLSearchParams();
+        if (dashboardData.description) params.set("description", dashboardData.description);
+        if (dashboardData.studentGroupId) params.set("groupId", dashboardData.studentGroupId);
+
+        // Fetch actual course IDs from assignment rules
+        $.ajax({
+            url: `${ASSIGNMENTS_API_URL}/reassign-data/${ASSIGNMENT_ID}`,
+            method: "GET",
+            xhrFields: { withCredentials: true }
+        }).done(function(res) {
+            if (res.success && res.data) {
+                if (res.data.courseIds && res.data.courseIds.length > 0) {
+                    params.set("courseIds", res.data.courseIds.join(","));
+                }
+                window.location.href = `@Url.Action("Form", "Assignments")?${params.toString()}`;
+            }
+        }).fail(function() {
+            // Fallback: navigate without course pre-selection
+            window.location.href = `@Url.Action("Form", "Assignments")?${params.toString()}`;
+        });
+    }
+
+    function confirmResetEnrollment(options) {
+        const { title, messageHtml, ruleIds, studentCodes, loadingMessage, successMessage, errorMessage } = options;
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: title,
+            messageHtml: messageHtml,
+            buttons: [
+                { text: "Cancel", onClick: function() { return false; } },
+                { text: "Reset", type: "danger", onClick: function() { return true; } }
+            ]
+        });
+
+        dialog.show().done(async function(confirmed) {
+            if (!confirmed) return;
+
+            loadPanel.option("message", loadingMessage);
+            loadPanel.show();
+
+            try {
+                const payload = { ruleIds: ruleIds };
+                if (studentCodes) payload.studentCodes = studentCodes;
+
+                const response = await $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/reset-enrollments`,
+                    method: "POST",
+                    contentType: "application/json",
+                    xhrFields: { withCredentials: true },
+                    data: JSON.stringify(payload)
+                });
+
+                reloadDetail(response.message || successMessage);
+            } catch (error) {
+                loadPanel.hide();
+                showToast(getApiErrorMessage(error, errorMessage), "error", 4000);
+            }
+        });
+    }
+
+    function confirmResetCourse(ruleId, title) {
+        confirmResetEnrollment({
+            title: "Reset All Students",
+            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${escapeHtml(title)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            ruleIds: [ruleId],
+            studentCodes: null,
+            loadingMessage: "Resetting enrollments...",
+            successMessage: "Enrollments reset successfully.",
+            errorMessage: "Error resetting enrollments."
+        });
+    }
+
+    function confirmResetStudent(ruleId, studentCode, studentName) {
+        confirmResetEnrollment({
+            title: "Reset Student Enrollment",
+            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${escapeHtml(studentCode)} ${escapeHtml(studentName)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            ruleIds: [ruleId],
+            studentCodes: [studentCode],
+            loadingMessage: "Resetting enrollment...",
+            successMessage: "Enrollment reset successfully.",
+            errorMessage: "Error resetting enrollment."
+        });
+    }
+
     function handleDeleteAssignment(e) {
         e.preventDefault();
-        DevExpress.ui.dialog.confirm(
-            `<div class="py-2">
-                <div class="fw-bold mb-1">Delete this assignment?</div>
-                <div class="text-muted dialog-body-sm">
-                    All related enrollments will be permanently removed.
-                </div>
-            </div>`,
-            "Confirm Deletion"
-        ).done(async function(ok) {
-            if (!ok) {
-                return;
-            }
+        showConfirmDialog({
+            title: "Delete this assignment?",
+            html: `<div class="text-secondary">All related enrollments will be permanently removed.</div>`,
+            confirmButtonText: "Delete",
+            confirmClass: "btn-danger",
+            cancelButtonText: "Cancel"
+        }).then(async function(result) {
+            if (!result.isConfirmed) return;
 
             loadPanel.option("message", "Deleting...");
             loadPanel.show();
@@ -1233,87 +1376,103 @@
     }
 
     function openExtendDueDatePopup() {
-        if (!extendDueDatePopup) {
-            extendDueDatePopup = $("#extend-due-date-popup").dxPopup({
-                title: "Extend Due Date",
-                width: 340,
-                height: "auto",
-                showCloseButton: true,
-                dragEnabled: false,
-                deferRendering: false,
-                onShowing: function() {
-                    const picker = $("#new-due-date-picker").dxDateBox("instance");
-                    if (picker) {
-                        const minDate = currentStartDate
-                            ? new Date(currentStartDate.getFullYear(), currentStartDate.getMonth(), currentStartDate.getDate() + 1)
-                            : new Date();
-                        picker.option({ value: currentDueDate, min: minDate });
+        const dialogId = `extend-due-date-dialog-${Date.now()}`;
+        const pickerId = `${dialogId}-picker`;
+        const cancelId = `${dialogId}-cancel`;
+        const confirmId = `${dialogId}-confirm`;
+        const minDate = currentStartDate
+            ? new Date(currentStartDate.getFullYear(), currentStartDate.getMonth(), currentStartDate.getDate() + 1)
+            : new Date();
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Extend Due Date",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2">
+                    <div class="mb-3">
+                        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                            New Due Date
+                        </div>
+                        <div id="${pickerId}"></div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${confirmId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: true,
+            width: 360
+        });
+
+        dialog.show();
+
+        window.setTimeout(function() {
+            const $picker = $("#" + pickerId);
+            if (!$picker.length) {
+                return;
+            }
+
+            $picker.dxDateBox({
+                type: "date",
+                value: currentDueDate,
+                min: minDate,
+                displayFormat: "dd/MM/yyyy",
+                stylingMode: "outlined",
+                width: "100%"
+            });
+
+            $("#" + cancelId).dxButton({
+                text: "Cancel",
+                stylingMode: "outlined",
+                onClick: function() {
+                    dialog.hide();
+                }
+            });
+
+            $("#" + confirmId).dxButton({
+                text: "Confirm",
+                type: "default",
+                stylingMode: "contained",
+                onClick: function() {
+                    const newDate = $picker.dxDateBox("instance").option("value");
+                    if (!newDate) {
+                        showToast("Please select a date.", "warning", 2500);
+                        return;
                     }
-                },
-                contentTemplate: function (content) {
-                    $("<div>").addClass("p-2").append(
-                        $("<div>").addClass("mb-3").append(
-                            $("<div>").css({ fontSize: "11px", fontWeight: "600", color: "var(--text-secondary)",
-                                            textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: "6px" })
-                                       .text("New Due Date"),
-                            $("<div>").attr("id", "new-due-date-picker")
-                        ),
-                        $("<div>").addClass("d-flex gap-2 justify-content-end mt-3").append(
-                            $("<div>").attr("id", "btn-popup-cancel"),
-                            $("<div>").attr("id", "btn-popup-confirm")
-                        )
-                    ).appendTo(content);
 
-                    const minDate = currentStartDate
-                        ? new Date(currentStartDate.getFullYear(), currentStartDate.getMonth(), currentStartDate.getDate() + 1)
-                        : new Date();
+                    if (currentStartDate && new Date(newDate) <= currentStartDate) {
+                        showToast("Due date must be after start date.", "warning", 2500);
+                        return;
+                    }
 
-                    $("#new-due-date-picker").dxDateBox({
-                        type: "date", value: currentDueDate, min: minDate,
-                        displayFormat: "dd/MM/yyyy", stylingMode: "outlined", width: "100%"
-                    });
+                    dialog.hide();
+                    loadPanel.option("message", "Updating...");
+                    loadPanel.show();
 
-                    $("#btn-popup-cancel").dxButton({
-                        text: "Cancel", stylingMode: "outlined",
-                        onClick: () => extendDueDatePopup.hide()
-                    });
-
-                    $("#btn-popup-confirm").dxButton({
-                        text: "Confirm", type: "default", stylingMode: "contained",
-                        onClick: function () {
-                            const newDate = $("#new-due-date-picker").dxDateBox("instance").option("value");
-                            if (!newDate) { showToast("Please select a date.", "warning", 2500); return; }
-                            if (currentStartDate && new Date(newDate) <= currentStartDate) {
-                                showToast("Due date must be after start date.", "warning", 2500);
-                                return;
-                            }
-                            loadPanel.option("message", "Updating..."); loadPanel.show();
-                            $.ajax({
-                                url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/extend-due-date`,
-                                type: "PATCH",
-                                contentType: "application/json",
-                                xhrFields: { withCredentials: true },
-                                data: JSON.stringify({ newDueDate: newDate }),
-                                success: function () {
-                                    extendDueDatePopup.hide();
-                                    loadPanel.hide();
-                                    currentDueDate = newDate;
-                                    const formatted = new Date(newDate).toLocaleDateString(DATE_FORMAT);
-                                    const sDate = $("#lbl-schedule").data("start");
-                                    $("#lbl-schedule").text(`${sDate} → ${formatted}`);
-                                    showToast("Due date extended.", "success");
-                                },
-                                error: function (xhr) {
-                                    loadPanel.hide();
-                                    showToast(xhr.responseJSON?.message || "Error.", "error", 4000);
-                                }
-                            });
+                    $.ajax({
+                        url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/extend-due-date`,
+                        type: "PATCH",
+                        contentType: "application/json",
+                        xhrFields: { withCredentials: true },
+                        data: JSON.stringify({ newDueDate: newDate }),
+                        success: function() {
+                            loadPanel.hide();
+                            currentDueDate = newDate;
+                            const formatted = new Date(newDate).toLocaleDateString(DATE_FORMAT);
+                            const sDate = $("#lbl-schedule").data("start");
+                            $("#lbl-schedule").text(`${sDate} → ${formatted}`);
+                            showToast("Due date extended.", "success");
+                        },
+                        error: function(xhr) {
+                            loadPanel.hide();
+                            showToast(xhr.responseJSON?.message || "Error.", "error", 4000);
                         }
                     });
                 }
-            }).dxPopup("instance");
-        }
-        extendDueDatePopup.show();
+            });
+        }, 0);
     }
 
     function showApiError(msg) {

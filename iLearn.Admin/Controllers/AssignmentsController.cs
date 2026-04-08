@@ -31,6 +31,13 @@ namespace iLearn.Admin.Controllers
             return View("Report");
         }
 
+        [HttpGet(@"Assignments/Report/{assignmentNo:regex(^AS-\d{{8}}-\d+$)}")]
+        public IActionResult ReportByNo(string assignmentNo)
+        {
+            ViewBag.AssignmentNo = assignmentNo;
+            return View("Report");
+        }
+
         public IActionResult Gantt()
         {
             return View();

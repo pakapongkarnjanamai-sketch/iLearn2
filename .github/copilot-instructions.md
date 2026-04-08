@@ -9,7 +9,7 @@
 ## Architecture & Tech Stack
 - **Clean Architecture**: Domain -> Application -> Infrastructure -> Presentation
 - **Stack**: .NET 9, C# 13, EF Core 9 (SQL Server), Windows Auth
-- **Frontend**: DevExtreme 25.2, Bootstrap 5, jQuery, SweetAlert2
+- **Frontend**: DevExtreme 25.2, Bootstrap 5, jQuery, DevExpress dialogs
 
 ## Coding Rules
 1. **Soft Delete**: ใช้ `DeleteAsync()` (`IsDeleted = true`) เป็นค่าเริ่มต้น (Hard delete เฉพาะ FileStorage)
@@ -45,7 +45,7 @@
 
 ### 3. Notifications & Feedback
 - **Quick Toast (Stack)**: ให้ใช้ฟังก์ชัน Global `showToast(message, type)` หรือถ้าเรียก `DevExpress.ui.notify` โดยตรง **ต้องส่งพารามิเตอร์ที่ 2 เสมอ** เช่น `{ position: 'bottom center', direction: 'up-push' }` เพื่อให้ Toast แสดงผลแบบเรียงซ้อนกันได้ (Stack) และตกแต่งสไตล์ข้อความให้รองรับ Soft UI (มีเงา, ขอบมน, มีไอคอน FontAwesome)
-- **Dialog & Confirm**: ใช้ **SweetAlert2** (`Swal.fire`) โดยต้องปรับ Custom Class ให้ปุ่ม Confirm เป็นปุ่มสีธีม (`.btn-primary`) และขอบกล่องโค้งมน
+- **Dialog & Confirm**: ใช้ `DevExpress.ui.dialog.custom` หรือ helper กลางของโปรเจ็กต์ เช่น `showAdminConfirmDialog(...)` สำหรับกล่องยืนยันและข้อความสำคัญ โดยคงสไตล์ปุ่มให้เป็นสีธีมของหน้า
 - **Empty States**: หากไม่มีข้อมูลให้แสดงไอคอนขนาดใหญ่สีเทาจาง พร้อมข้อความที่เป็นมิตรตรงกลางพื้นที่ว่างเสมอ
 
 ### 4. Performance & Loading States (UX)
