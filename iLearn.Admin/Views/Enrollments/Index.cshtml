@@ -15,33 +15,33 @@
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2 mb-4" id="summary-bar">
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+            <div class="kpi-card kpi-all h-100">
                 <div class="kpi-label">Total Enrollments</div>
                 <div class="kpi-number" id="kpi-total">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--success-color);">
-                <div class="kpi-label" style="color:var(--success-color);">Completed</div>
-                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
+            <div class="kpi-card kpi-success h-100">
+                <div class="kpi-label">Completed</div>
+                <div class="kpi-number" id="kpi-completed">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
-                <div class="kpi-label" style="color:var(--accent-color);">In Progress</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">—</div>
+            <div class="kpi-card kpi-accent h-100">
+                <div class="kpi-label">In Progress</div>
+                <div class="kpi-number" id="kpi-inprogress">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
-                <div class="kpi-label" style="color:var(--warning-color);">Enrolled</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-enrolled">—</div>
+            <div class="kpi-card kpi-warning h-100">
+                <div class="kpi-label">Enrolled</div>
+                <div class="kpi-number" id="kpi-enrolled">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
-                <div class="kpi-label" style="color:#722ed1;">Avg. Progress</div>
-                <div class="kpi-number" style="color:#722ed1;" id="kpi-avgprogress">—</div>
+            <div class="kpi-card kpi-purple h-100">
+                <div class="kpi-label">Avg. Progress</div>
+                <div class="kpi-number" id="kpi-avgprogress">—</div>
             </div>
         </div>
     </div>
@@ -49,7 +49,7 @@
     <!-- ── Filter Bar ── -->
     <div class="border rounded bg-white p-3 mb-3">
         <div class="row g-3 align-items-end">
-            <div class="col-auto" style="min-width:260px;">
+            <div class="col-auto u-minw-260">
                 <label class="filter-label">Course</label>
                 <div id="filterCourse"></div>
             </div>
@@ -58,7 +58,7 @@
                 <div id="filterStatus"></div>
             </div>
             <div class="col-auto ms-auto">
-                <a href="javascript:void(0);" class="action-link" id="btnClearFilters" style="font-size:12px;">
+                <a href="javascript:void(0);" class="action-link action-link-sm" id="btnClearFilters">
                     <i class="fas fa-times"></i> Clear Filters
                 </a>
             </div>
@@ -141,7 +141,7 @@
         function resetEnrollment(id, studentCode) {
             Swal.fire({
                 title: 'Reset Progress?',
-                html: `<div style="font-size:13px;color:#666;">Reset all progress for <strong>${studentCode}</strong>.<br>Learning logs will be preserved for history.</div>`,
+                html: `<div class="u-text-secondary-60">Reset all progress for <strong>${studentCode}</strong>.<br>Learning logs will be preserved for history.</div>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: '<i class="fas fa-rotate-right"></i> Reset',
@@ -298,11 +298,11 @@
                         },
                         cellTemplate: function(container, options) {
                             const map = {
-                                "Completed":   "status-pill pill-success",
-                                "In Progress": "status-pill pill-info",
-                                "Enrolled":    "status-pill pill-default"
+                                "Completed":   "tag-pill pill-success",
+                                "In Progress": "tag-pill pill-info",
+                                "Enrolled":    "tag-pill pill-default"
                             };
-                            $("<span>").addClass(map[options.value] || "status-pill pill-default")
+                            $("<span>").addClass(map[options.value] || "tag-pill pill-default")
                                 .text(options.value).appendTo(container);
                         }
                     },

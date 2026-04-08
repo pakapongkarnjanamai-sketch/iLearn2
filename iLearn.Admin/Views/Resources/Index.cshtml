@@ -28,39 +28,39 @@
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2 mb-4" id="summary-bar">
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+            <div class="kpi-card kpi-all h-100">
                 <div class="kpi-label">Total Resources</div>
                 <div class="kpi-number" id="kpi-total">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--success-color);">
-                <div class="kpi-label" style="color:var(--success-color);">Published</div>
-                <div class="kpi-number" style="color:var(--success-color);" id="kpi-published">—</div>
+            <div class="kpi-card kpi-success h-100">
+                <div class="kpi-label">Published</div>
+                <div class="kpi-number" id="kpi-published">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
-                <div class="kpi-label" style="color:var(--warning-color);">Draft</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-draft">—</div>
+            <div class="kpi-card kpi-warning h-100">
+                <div class="kpi-label">Draft</div>
+                <div class="kpi-number" id="kpi-draft">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
-                <div class="kpi-label" style="color:var(--accent-color);">DB Storage</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-dbsize">—</div>
+            <div class="kpi-card kpi-accent h-100">
+                <div class="kpi-label">DB Storage</div>
+                <div class="kpi-number" id="kpi-dbsize">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
-                <div class="kpi-label" style="color:#722ed1;">Server Files</div>
-                <div class="kpi-number" style="color:#722ed1;" id="kpi-serverfiles">—</div>
+            <div class="kpi-card kpi-purple h-100">
+                <div class="kpi-label">Server Files</div>
+                <div class="kpi-number" id="kpi-serverfiles">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--danger-color);">
-                <div class="kpi-label" style="color:var(--danger-color);">Server Storage</div>
-                <div class="kpi-number" style="color:var(--danger-color);" id="kpi-serversize">—</div>
+            <div class="kpi-card kpi-danger h-100">
+                <div class="kpi-label">Server Storage</div>
+                <div class="kpi-number" id="kpi-serversize">—</div>
             </div>
         </div>
     </div>
@@ -72,7 +72,7 @@
                 <label class="filter-label">Resource Type</label>
                 <div id="filterType"></div>
             </div>
-            <div class="col-auto" style="min-width:280px;">
+            <div class="col-auto u-minw-280">
                 <label class="filter-label">Assigned Course</label>
                 <div id="filterCourse"></div>
             </div>
@@ -81,7 +81,7 @@
                 <div id="filterAssignment"></div>
             </div>
             <div class="col-auto ms-auto">
-                <a href="javascript:void(0);" class="action-link" id="btnClearFilters" style="font-size:12px;">
+                <a href="javascript:void(0);" class="action-link action-link-sm" id="btnClearFilters">
                     <i class="fas fa-times"></i> Clear Filters
                 </a>
             </div>
@@ -180,17 +180,17 @@
             Swal.fire({
                 title: 'กำลัง Publish Resource',
                 html: `
-                    <div class="text-start" style="font-size:12px;">
+                    <div class="text-start dialog-body-sm">
                         <div class="mb-2 text-muted" id="batchPublishStatusText">กำลังเตรียมข้อมูล...</div>
-                        <div class="progress mb-2" style="height:10px; background:#f0f0f0; border-radius:999px; overflow:hidden;">
-                            <div id="batchPublishProgressBar" style="height:100%; width:0%; background:#0050b3; transition:width .2s ease;"></div>
+                        <div class="progress mb-2 u-progress-xs progress-track-neutral">
+                            <div id="batchPublishProgressBar" class="progress-fill-brand" style="width:0%;"></div>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span id="batchPublishCounter">0 / 0</span>
                             <span id="batchPublishElapsed">00:00</span>
                         </div>
                         <div class="small text-muted mb-2">รายการล่าสุด</div>
-                        <div id="batchPublishLatestLog" style="max-height:180px; overflow:auto; background:#fafafa; border:1px solid #f0f0f0; border-radius:6px; padding:8px; line-height:1.5;">
+                        <div id="batchPublishLatestLog" class="log-panel-soft">
                             <div class="text-muted">Waiting for progress...</div>
                         </div>
                     </div>`,
@@ -249,7 +249,7 @@
                     `<div style="margin-bottom:6px; color:${color};">
                         <i class="fas ${icon} me-1"></i>
                         <strong>${latest.resourceName || progress.currentResourceName || 'Resource'}</strong>
-                        <div style="padding-left:18px; color:#666;">${detail}</div>
+                        <div class="log-item-detail">${detail}</div>
                     </div>`
                 );
             }
@@ -590,9 +590,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("status-pill pill-default").text("None").appendTo(container);
+                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
                             } else {
-                                $("<span>").addClass("status-pill pill-success").text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
+                                $("<span>").addClass("tag-pill pill-success").text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
                             }
                         }
                     },
@@ -609,7 +609,7 @@
                     { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center", width: 100,
                         allowEditing: false,
                         cellTemplate: function(container, options) {
-                            const cls = options.value ? "status-pill pill-success" : "status-pill pill-default";
+                            const cls = options.value ? "tag-pill pill-success" : "tag-pill pill-default";
                             const label = options.value ? "Active" : "Draft";
                             $("<span>").addClass(cls).text(label).appendTo(container);
                         }
@@ -654,10 +654,10 @@
 
                 Swal.fire({
                     title: 'Unpublish Resource?',
-                    html: `<div style="font-size:13px;color:#666;text-align:left;">
+                    html: `<div class="u-text-secondary-60 text-start">
                                <p><strong>${name}</strong></p>
                                <p>${detail}</p>
-                               <p style="color:var(--text-secondary);font-size:12px;">The original .zip file in the database will be kept so you can re-publish later.</p>
+                               <p class="dialog-body-sm u-text-secondary-60">The original .zip file in the database will be kept so you can re-publish later.</p>
                            </div>`,
                     icon: 'warning',
                     showCancelButton: true,
@@ -708,9 +708,9 @@
                     contentTemplate: function(contentElement) {
                         contentElement.append($(`
                             <div class="p-3">
-                                <div class="d-flex align-items-center gap-2 mb-3 p-3 border rounded" style="background:#fffbe6;">
-                                    <i class="fas fa-magic" style="color:#d48806; font-size:18px;"></i>
-                                    <div style="font-size:12px; color:#666;">
+                                <div class="d-flex align-items-center gap-2 mb-3 p-3 border rounded optimize-banner">
+                                    <i class="fas fa-magic optimize-banner-icon"></i>
+                                    <div class="u-fs-12 u-text-secondary-60">
                                         Analyze resource usage and optimize server storage. Unpublish unused resources to free disk space, or publish draft resources that are needed by active courses.
                                     </div>
                                 </div>
@@ -722,35 +722,35 @@
                                 </div>
 
                                 <div class="d-flex gap-2 mb-3" id="opt-summary">
-                                    <div class="border rounded p-2 px-3 flex-fill text-center" style="background:#fff2f0;">
-                                        <div style="font-size:11px; color:var(--danger-color); text-transform:uppercase; font-weight:600;">Unused Published</div>
-                                        <div style="font-size:1.3rem; font-weight:700; color:var(--danger-color);" id="opt-unused-count">—</div>
+                                    <div class="border rounded p-2 px-3 flex-fill text-center optimize-summary-card-danger">
+                                        <div class="optimize-summary-label u-text-danger">Unused Published</div>
+                                        <div class="optimize-summary-value u-text-danger" id="opt-unused-count">—</div>
                                     </div>
-                                    <div class="border rounded p-2 px-3 flex-fill text-center" style="background:#f6ffed;">
-                                        <div style="font-size:11px; color:var(--success-color); text-transform:uppercase; font-weight:600;">Should Publish</div>
-                                        <div style="font-size:1.3rem; font-weight:700; color:var(--success-color);" id="opt-publish-count">—</div>
+                                    <div class="border rounded p-2 px-3 flex-fill text-center optimize-summary-card-success">
+                                        <div class="optimize-summary-label u-text-success">Should Publish</div>
+                                        <div class="optimize-summary-value u-text-success" id="opt-publish-count">—</div>
                                     </div>
-                                    <div class="border rounded p-2 px-3 flex-fill text-center" style="background:#f0f5ff;">
-                                        <div style="font-size:11px; color:var(--accent-color); text-transform:uppercase; font-weight:600;">Reclaimable Space</div>
-                                        <div style="font-size:1.3rem; font-weight:700; color:var(--accent-color);" id="opt-reclaim-size">—</div>
+                                    <div class="border rounded p-2 px-3 flex-fill text-center optimize-summary-card-accent">
+                                        <div class="optimize-summary-label u-text-accent">Reclaimable Space</div>
+                                        <div class="optimize-summary-value u-text-accent" id="opt-reclaim-size">—</div>
                                     </div>
                                 </div>
 
                                 <div class="mb-2 d-flex justify-content-between align-items-center">
-                                    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--danger-color);">
+                                    <div class="optimize-section-title u-text-danger">
                                         <i class="fas fa-box-archive me-1"></i> Unused Published Resources
                                     </div>
-                                    <a href="javascript:void(0);" class="action-link" style="font-size:11px;" id="btnBulkUnpublish">
+                                    <a href="javascript:void(0);" class="action-link action-link-sm" id="btnBulkUnpublish">
                                         <i class="fas fa-box-archive"></i> Unpublish Selected
                                     </a>
                                 </div>
                                 <div id="unusedGrid" class="mb-4"></div>
 
                                 <div class="mb-2 d-flex justify-content-between align-items-center">
-                                    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--success-color);">
+                                    <div class="optimize-section-title u-text-success">
                                         <i class="fas fa-upload me-1"></i> Draft Resources Needed by Active Courses
                                     </div>
-                                    <a href="javascript:void(0);" class="action-link primary" style="font-size:11px;" id="btnBulkPublish">
+                                    <a href="javascript:void(0);" class="action-link primary action-link-sm" id="btnBulkPublish">
                                         <i class="fas fa-upload"></i> Publish Selected
                                     </a>
                                 </div>
@@ -799,7 +799,7 @@
                             { dataField: "totalCourseCount", caption: "Courses", width: 80, alignment: "center",
                                 cellTemplate: function(c, o) {
                                     const v = o.value || 0;
-                                    const cls = v > 0 ? "status-pill pill-default" : "status-pill pill-default";
+                                    const cls = v > 0 ? "tag-pill pill-default" : "tag-pill pill-default";
                                     $("<span>").addClass(cls).text(v === 0 ? "None" : v + " (inactive)").appendTo(c);
                                 }
                             }
@@ -831,7 +831,7 @@
                                 cellTemplate: function(c, o) {
                                     const courses = o.data.activeCourseVersions || [];
                                     courses.forEach(cv => {
-                                        $("<span>").addClass("status-pill pill-success").css({ marginRight: "4px", fontSize: "10px" })
+                                        $("<span>").addClass("tag-pill tag-pill-xs pill-success me-1")
                                             .text(`${cv.courseCode} v${cv.versionNumber}`).appendTo(c);
                                     });
                                 }
@@ -847,7 +847,7 @@
                     if (keys.length === 0) { showToast("Select resources to unpublish.", "warning"); return; }
                     Swal.fire({
                         title: `Unpublish ${keys.length} Resource(s)?`,
-                        html: `<div style="font-size:13px;color:#666;">This will delete extracted files from the server for <strong>${keys.length}</strong> resource(s).<br>Original .zip files in the database will be kept.</div>`,
+                        html: `<div class="u-text-secondary-60">This will delete extracted files from the server for <strong>${keys.length}</strong> resource(s).<br>Original .zip files in the database will be kept.</div>`,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonText: `<i class="fas fa-box-archive"></i> Unpublish ${keys.length}`,
@@ -883,7 +883,7 @@
                     if (keys.length === 0) { showToast("Select resources to publish.", "warning"); return; }
                     Swal.fire({
                         title: `Publish ${keys.length} Resource(s)?`,
-                        html: `<div style="font-size:13px;color:#666;">This will extract and publish <strong>${keys.length}</strong> SCORM package(s) to the server.</div>`,
+                        html: `<div class="u-text-secondary-60">This will extract and publish <strong>${keys.length}</strong> SCORM package(s) to the server.</div>`,
                         icon: 'question',
                         showCancelButton: true,
                         confirmButtonText: `<i class="fas fa-upload"></i> Publish ${keys.length}`,
@@ -902,10 +902,10 @@
                 $("#btnUnpublishAllPublished").off("click").on("click", function() {
                     Swal.fire({
                         title: 'Unpublish all published resources?',
-                        html: `<div style="font-size:13px;color:#666;text-align:left;">
+                        html: `<div class="u-text-secondary-60 text-start">
                                    <p>This will remove all published SCORM folders/files from the server.</p>
                                    <p>All affected records in <strong>Resources</strong> will be reverted to draft status.</p>
-                                   <p style="color:var(--danger-color);font-size:12px;">This action impacts every published resource.</p>
+                                   <p class="u-text-danger dialog-body-sm">This action impacts every published resource.</p>
                                </div>`,
                         icon: 'warning',
                         showCancelButton: true,

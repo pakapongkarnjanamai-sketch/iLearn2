@@ -14,12 +14,12 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-4" style="max-width:1400px;">
+<div class="container-fluid page-shell-lg px-4 py-4">
 
     <div class="row g-3 mb-4" id="maintenance-banner-row" style="display:none;">
         <div class="col-12">
-            <div class="dash-panel" style="border:1px solid #ffe58f; background:#fffbe6;">
-                <div class="dash-panel-header" style="color:#d48806;">Maintenance In Progress</div>
+            <div class="dash-panel maintenance-card">
+                <div class="dash-panel-header u-text-warning-strong">Maintenance In Progress</div>
                 <div class="dash-panel-body">
                     <div id="maintenance-status-list"></div>
                 </div>
@@ -33,28 +33,28 @@
             <a href="@Url.Action("Index", "Courses")" class="dash-stat-card blue">
                 <div class="ds-lbl">Active Courses</div>
                 <div class="ds-val" id="count-active-courses">0</div>
-                <div class="ds-link" style="color:var(--accent-color);">View All <i class="fas fa-arrow-right ms-1"></i></div>
+                <div class="ds-link">View All <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
             <a href="@Url.Action("Index", "Courses")" class="dash-stat-card yellow">
                 <div class="ds-lbl">Draft Courses</div>
                 <div class="ds-val" id="count-draft-courses">0</div>
-                <div class="ds-link" style="color:var(--warning-color);">Review <i class="fas fa-arrow-right ms-1"></i></div>
+                <div class="ds-link">Review <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
             <a href="@Url.Action("Index", "Assignments")" class="dash-stat-card green">
                 <div class="ds-lbl">Total Assignments (In Progress)</div>
                 <div class="ds-val" id="count-inprogress-assignments">0</div>
-                <div class="ds-link" style="color:var(--success-color);">View <i class="fas fa-arrow-right ms-1"></i></div>
+                <div class="ds-link">View <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
             <a href="@Url.Action("Index", "Resources")" class="dash-stat-card purple">
                 <div class="ds-lbl">Resources</div>
                 <div class="ds-val" id="count-resources">0</div>
-                <div class="ds-link" style="color:#722ed1;">Library <i class="fas fa-arrow-right ms-1"></i></div>
+                <div class="ds-link">Library <i class="fas fa-arrow-right ms-1"></i></div>
             </a>
         </div>
     </div>
@@ -65,7 +65,7 @@
             <div class="dash-panel h-100">
                 <div class="dash-panel-header d-flex justify-content-between align-items-center">
                     <span>Learning Activity Trends</span>
-                    <span style="font-size:11px; color:var(--text-secondary); font-weight:400;">learning sessions per month (last 6 months)</span>
+                    <span class="u-fs-11 text-secondary u-fw-normal">learning sessions per month (last 6 months)</span>
                 </div>
                 <div class="dash-panel-body">
                     <div id="learningActivityChartSkeleton" style="height:300px; padding:16px 0;">
@@ -85,42 +85,42 @@
                 <div class="dash-panel-body d-flex flex-column gap-2">
 
                     <a href="@Url.Action("Index", "Courses")" class="quick-action">
-                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);"><i class="fas fa-book"></i></div>
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-book"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Course Manager</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Create &amp; manage courses</div>
+                            <div class="u-fs-12 u-fw-semibold">Course Manager</div>
+                            <div class="u-fs-11 text-secondary">Create &amp; manage courses</div>
                         </div>
                     </a>
 
                     <a href="@Url.Action("Index", "Assignments")" class="quick-action">
-                        <div class="qa-icon" style="background:#fff7e6; color:var(--warning-color);"><i class="fas fa-tasks"></i></div>
+                        <div class="qa-icon qa-icon-warning"><i class="fas fa-tasks"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Assignments</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Bulk course assignment</div>
+                            <div class="u-fs-12 u-fw-semibold">Assignments</div>
+                            <div class="u-fs-11 text-secondary">Bulk course assignment</div>
                         </div>
                     </a>
 
                     <a href="@Url.Action("Index", "Students")" class="quick-action">
-                        <div class="qa-icon" style="background:#f6ffed; color:var(--success-color);"><i class="fas fa-user-graduate"></i></div>
+                        <div class="qa-icon qa-icon-success"><i class="fas fa-user-graduate"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Students</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Browse &amp; manage learners</div>
+                            <div class="u-fs-12 u-fw-semibold">Students</div>
+                            <div class="u-fs-11 text-secondary">Browse &amp; manage learners</div>
                         </div>
                     </a>
 
                     <a href="@Url.Action("Index", "Resources")" class="quick-action">
-                        <div class="qa-icon" style="background:#f9f0ff; color:#722ed1;"><i class="fas fa-folder-open"></i></div>
+                        <div class="qa-icon qa-icon-purple"><i class="fas fa-folder-open"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Resources</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Manage learning materials</div>
+                            <div class="u-fs-12 u-fw-semibold">Resources</div>
+                            <div class="u-fs-11 text-secondary">Manage learning materials</div>
                         </div>
                     </a>
 
                     <a href="@Url.Action("Index", "StudentGroups")" class="quick-action">
-                        <div class="qa-icon" style="background:var(--bg-light); color:var(--text-secondary);"><i class="fas fa-users"></i></div>
+                        <div class="qa-icon qa-icon-muted"><i class="fas fa-users"></i></div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Student Groups</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Organise learner groups</div>
+                            <div class="u-fs-12 u-fw-semibold">Student Groups</div>
+                            <div class="u-fs-11 text-secondary">Organise learner groups</div>
                         </div>
                     </a>
 
@@ -136,28 +136,28 @@
                 <div class="dash-panel-header">System Status</div>
                 <div class="dash-panel-body">
 
-                    <div class="d-flex align-items-center pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
+                    <div class="d-flex align-items-center pb-3 mb-3 u-border-bottom">
                         <div class="flex-grow-1">
-                            <div style="font-size:12px; font-weight:600;">Database Connection</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">API Server Status</div>
+                            <div class="u-fs-12 u-fw-semibold">Database Connection</div>
+                            <div class="u-fs-11 text-secondary">API Server Status</div>
                         </div>
-                        <span class="status-pill active"><i class="fas fa-check-circle me-1"></i>Active</span>
+                        <span class="tag-pill active"><i class="fas fa-check-circle me-1"></i>Active</span>
                     </div>
 
-                    <div class="d-flex align-items-center pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
+                    <div class="d-flex align-items-center pb-3 mb-3 u-border-bottom">
                         <div class="flex-grow-1">
-                            <div style="font-size:12px; font-weight:600;">Authentication Service</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">User Login System</div>
+                            <div class="u-fs-12 u-fw-semibold">Authentication Service</div>
+                            <div class="u-fs-11 text-secondary">User Login System</div>
                         </div>
-                        <span class="status-pill active"><i class="fas fa-check-circle me-1"></i>Running</span>
+                        <span class="tag-pill active"><i class="fas fa-check-circle me-1"></i>Running</span>
                     </div>
 
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div style="font-size:12px; font-weight:600;">File Storage Service</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Resource Upload System</div>
+                            <div class="u-fs-12 u-fw-semibold">File Storage Service</div>
+                            <div class="u-fs-11 text-secondary">Resource Upload System</div>
                         </div>
-                        <span class="status-pill active"><i class="fas fa-check-circle me-1"></i>Operational</span>
+                        <span class="tag-pill active"><i class="fas fa-check-circle me-1"></i>Operational</span>
                     </div>
 
                 </div>
@@ -169,35 +169,35 @@
                 <div class="dash-panel-header">Important Notices</div>
                 <div class="dash-panel-body">
 
-                    <div class="d-flex align-items-start gap-3 pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
-                        <div class="qa-icon flex-shrink-0" style="background:#e6f4ff; color:var(--accent-color); margin-top:2px;">
+                    <div class="d-flex align-items-start gap-3 pb-3 mb-3 u-border-bottom">
+                        <div class="qa-icon qa-icon-accent flex-shrink-0 u-mt-2px">
                             <i class="fas fa-info-circle"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Course Content Updated</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">5 courses have been updated in the last 7 days</div>
+                            <div class="u-fs-12 u-fw-semibold">Course Content Updated</div>
+                            <div class="u-fs-11 text-secondary">5 courses have been updated in the last 7 days</div>
                         </div>
                     </div>
 
-                    <div class="d-flex align-items-start gap-3 pb-3 mb-3" style="border-bottom:1px solid var(--border-color);">
-                        <div class="qa-icon flex-shrink-0" style="background:#fffbe6; color:var(--warning-color); margin-top:2px;">
+                    <div class="d-flex align-items-start gap-3 pb-3 mb-3 u-border-bottom">
+                        <div class="qa-icon qa-icon-warning flex-shrink-0 u-mt-2px">
                             <i class="fas fa-exclamation-circle"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">Pending Course Reviews</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">
+                            <div class="u-fs-12 u-fw-semibold">Pending Course Reviews</div>
+                            <div class="u-fs-11 text-secondary">
                                 <span id="pending-count" class="fw-bold">0</span> draft courses waiting for approval
                             </div>
                         </div>
                     </div>
 
                     <div class="d-flex align-items-start gap-3">
-                        <div class="qa-icon flex-shrink-0" style="background:#f6ffed; color:var(--success-color); margin-top:2px;">
+                        <div class="qa-icon qa-icon-success flex-shrink-0 u-mt-2px">
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600;">All Systems Operational</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Last backup completed 2 hours ago</div>
+                            <div class="u-fs-12 u-fw-semibold">All Systems Operational</div>
+                            <div class="u-fs-11 text-secondary">Last backup completed 2 hours ago</div>
                         </div>
                     </div>
 
@@ -211,7 +211,7 @@
             <div class="dash-panel">
                 <div class="dash-panel-header d-flex justify-content-between align-items-center">
                     <span>Recent Admin Activity</span>
-                    <span style="font-size:11px; color:var(--text-secondary); font-weight:400;">latest create / update actions</span>
+                    <span class="u-fs-11 text-secondary u-fw-normal">latest create / update actions</span>
                 </div>
                 <div class="dash-panel-body" id="recent-admin-activities">
                     <div class="text-muted small">Loading recent activity...</div>
@@ -282,21 +282,20 @@
             if (!normalized) return '';
 
             const isLast = index === totalCount - 1;
-            const borderClass = !isLast ? 'pb-3 mb-3' : '';
-            const borderStyle = !isLast ? 'border-bottom:1px solid var(--border-color);' : '';
+            const borderClass = !isLast ? 'pb-3 mb-3 u-border-bottom' : '';
 
             return `
-                <div class="d-flex align-items-start gap-3 ${borderClass}" style="${borderStyle}" data-activity-id="${normalized.id || ''}">
-                    <div class="qa-icon flex-shrink-0" style="background:#e6f4ff; color:var(--accent-color); margin-top:2px;">
+                <div class="d-flex align-items-start gap-3 ${borderClass}" data-activity-id="${normalized.id || ''}">
+                    <div class="qa-icon qa-icon-accent flex-shrink-0 u-mt-2px">
                         <i class="fas fa-user-pen"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <div style="font-size:12px; font-weight:600;">${escapeHtml(normalized.title)}</div>
-                        <div style="font-size:11px; color:var(--text-secondary);">${escapeHtml(normalized.description || '')}</div>
+                        <div class="u-fs-12 u-fw-semibold">${escapeHtml(normalized.title)}</div>
+                        <div class="u-fs-11 text-secondary">${escapeHtml(normalized.description || '')}</div>
                     </div>
-                    <div class="text-end" style="min-width:120px;">
-                        <div style="font-size:11px; font-weight:600; color:var(--text-primary);">${escapeHtml(normalized.createdBy || 'SYSTEM')}</div>
-                        <div style="font-size:11px; color:var(--text-secondary);">${formatRelativeTime(normalized.createdAt)}</div>
+                    <div class="text-end u-minw-120">
+                        <div class="u-fs-11 u-fw-semibold">${escapeHtml(normalized.createdBy || 'SYSTEM')}</div>
+                        <div class="u-fs-11 text-secondary">${formatRelativeTime(normalized.createdAt)}</div>
                     </div>
                 </div>`;
         }
@@ -324,7 +323,7 @@
                 const isLast = index === items.length - 1;
                 $item.toggleClass('pb-3', !isLast)
                     .toggleClass('mb-3', !isLast)
-                    .attr('style', !isLast ? 'border-bottom:1px solid var(--border-color);' : '');
+                    .toggleClass('u-border-bottom', !isLast);
             });
 
             if (items.length > 10) {
@@ -374,25 +373,25 @@
                         ? Math.min(100, Math.round(((op.currentItem || 0) / op.totalItems) * 100))
                         : 0;
                     const currentItemName = op.currentItemName
-                        ? `<div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">Current: ${escapeHtml(op.currentItemName)}</div>`
+                        ? `<div class="u-fs-11 text-secondary u-mt-4px">Current: ${escapeHtml(op.currentItemName)}</div>`
                         : '';
 
                     return `
-                        <div class="border rounded p-3 mb-2" style="background:#fff; border-color:#ffe58f !important;">
+                        <div class="maintenance-card rounded p-3 mb-2">
                             <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                                 <div>
-                                    <div style="font-size:12px; font-weight:700; color:#ad6800;">${escapeHtml(op.operationName)}</div>
-                                    <div style="font-size:11px; color:var(--text-secondary);">Step: ${escapeHtml(op.currentStep || 'Processing')}</div>
+                                    <div class="u-fs-12 fw-bold u-text-warning-strong">${escapeHtml(op.operationName)}</div>
+                                    <div class="u-fs-11 text-secondary">Step: ${escapeHtml(op.currentStep || 'Processing')}</div>
                                     ${currentItemName}
                                 </div>
-                                <span class="status-pill" style="background:#fff7e6; color:#d48806; border:1px solid #ffd591;">
+                                <span class="tag-pill alert">
                                     <i class="fas fa-gears me-1"></i>${op.currentItem || 0} / ${op.totalItems || 0}
                                 </span>
                             </div>
-                            <div class="progress" style="height:8px; background:#fff1b8; border-radius:999px; overflow:hidden;">
-                                <div style="height:100%; width:${percent}%; background:#faad14; transition:width .2s ease;"></div>
+                            <div class="progress u-progress-xs u-progress-track-warning">
+                                <div class="u-progress-fill-warning" style="width:${percent}%;"></div>
                             </div>
-                            <div class="d-flex justify-content-between mt-2" style="font-size:11px; color:var(--text-secondary);">
+                            <div class="d-flex justify-content-between mt-2 u-fs-11 text-secondary">
                                 <span>Success: ${op.successCount || 0} | Failed: ${op.failureCount || 0}</span>
                                 <span>By ${escapeHtml(op.initiatedBy || 'SYSTEM')}</span>
                             </div>

@@ -30,26 +30,26 @@
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-inprogress" onclick="filterByStatus('InProgress', this)">
-                <div class="kpi-label" style="color:var(--accent-color);">In Progress</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">—</div>
+                <div class="kpi-label">In Progress</div>
+                <div class="kpi-number" id="kpi-inprogress">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-upcoming" onclick="filterByStatus('Upcoming', this)">
-                <div class="kpi-label" style="color:var(--warning-color);">Upcoming</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-upcoming">—</div>
+                <div class="kpi-label">Upcoming</div>
+                <div class="kpi-number" id="kpi-upcoming">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-expired" onclick="filterByStatus('Expired', this)">
-                <div class="kpi-label" style="color:var(--danger-color);">Expired</div>
-                <div class="kpi-number" style="color:var(--danger-color);" id="kpi-expired">—</div>
+                <div class="kpi-label">Expired</div>
+                <div class="kpi-number" id="kpi-expired">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-completed" onclick="filterByStatus('Completed', this)">
-                <div class="kpi-label" style="color:var(--success-color);">Completed</div>
-                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
+                <div class="kpi-label">Completed</div>
+                <div class="kpi-number" id="kpi-completed">—</div>
             </div>
         </div>
     </div>
@@ -64,7 +64,7 @@
         const ASSIGNMENTS_HISTORY_URL = `${serviceUrl}/Assignments/history`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
-        const DEFAULT_PAGE_SIZE = getDxGridPreset("defaultGrid").paging.pageSize;
+        const DEFAULT_LOAD_SIZE = 100;
 
         let gridInstance;
         let activeStatus = null;
@@ -77,7 +77,7 @@
                 "InProgress": { cls: "pill-info",     text: "In Progress" }
             };
             const s = map[status] ?? { cls: "pill-default", text: status || "Unknown" };
-            return `<span class="status-pill ${s.cls}">${s.text}</span>`;
+            return `<span class="tag-pill ${s.cls}">${s.text}</span>`;
         }
 
         function appendText(container, text, styles) {
@@ -200,13 +200,15 @@
                 key: "id",
                 load: function(loadOptions) {
                     const sort = getSortParams(loadOptions);
+                    const take = loadOptions.take || DEFAULT_LOAD_SIZE;
+                    const skip = loadOptions.skip || 0;
 
                     return $.ajax({
                         url: ASSIGNMENTS_HISTORY_URL,
                         method: "GET",
                         data: {
-                            page: Math.floor((loadOptions.skip || 0) / (loadOptions.take || DEFAULT_PAGE_SIZE)) + 1,
-                            pageSize: loadOptions.take || DEFAULT_PAGE_SIZE,
+                            page: Math.floor(skip / take) + 1,
+                            pageSize: take,
                             search: loadOptions.searchValue || null,
                             status: activeStatus,
                             sortBy: sort.sortBy,

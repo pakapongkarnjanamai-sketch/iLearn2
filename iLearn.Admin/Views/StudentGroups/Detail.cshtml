@@ -27,23 +27,19 @@
     <!-- ?? Tabs ?? -->
     <div class="border rounded bg-white">
         <div class="d-flex border-bottom px-1">
-            <button id="tab-btn-members" onclick="switchTab('members', this)"
-                    style="padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;
-                           color:var(--accent-color);border-bottom:2px solid var(--accent-color);cursor:pointer;">
+            <button id="tab-btn-members" onclick="switchTab('members', this)" class="tab-btn active">
                 <i class="fas fa-users me-1"></i> Members
-                <span class="tag-pill pill-default ms-1" style="font-size:10px;" id="tab-badge-members">0</span>
+                <span class="tag-pill tag-pill-xs pill-default ms-1" id="tab-badge-members">0</span>
             </button>
-            <button id="tab-btn-assignments" onclick="switchTab('assignments', this)"
-                    style="padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;
-                           color:var(--text-secondary);border-bottom:2px solid transparent;cursor:pointer;">
+            <button id="tab-btn-assignments" onclick="switchTab('assignments', this)" class="tab-btn">
                 <i class="fas fa-clipboard-list me-1"></i> Assignment History
-                <span class="tag-pill pill-default ms-1" style="font-size:10px;" id="tab-badge-assignments">0</span>
+                <span class="tag-pill tag-pill-xs pill-default ms-1" id="tab-badge-assignments">0</span>
             </button>
         </div>
         <div id="panel-members">
             <div id="grid-members"></div>
         </div>
-        <div id="panel-assignments" style="display:none;">
+        <div id="panel-assignments" class="d-none">
             <div id="grid-assignments"></div>
         </div>
     </div>
@@ -233,7 +229,7 @@
             contentTemplate: function (contentElement) {
                 $(`
                     <div class="d-flex h-100 gap-3">
-                        <div style="width:240px; flex-shrink:0;">
+                        <div class="sidebar-240">
                             <div class="filter-panel h-100 d-flex flex-column gap-3">
                                 <h6 class="fw-bold mb-0">
                                     <i class="fas fa-filter text-primary me-2"></i>Filters
@@ -255,7 +251,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                        <div class="flex-grow-1 d-flex flex-column u-min-w-0">
                             <div id="grid-add-students" class="flex-grow-1"></div>
                         </div>
                     </div>
@@ -434,7 +430,7 @@
             contentTemplate: function (contentElement) {
                 $(`
                     <div class="d-flex h-100 gap-3">
-                        <div style="width:260px; flex-shrink:0;">
+                        <div class="sidebar-260">
                             <div class="filter-panel h-100 d-flex flex-column gap-3">
                                 <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
                                 <div>
@@ -454,7 +450,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                        <div class="flex-grow-1 d-flex flex-column u-min-w-0">
                             <div id="ac-grid-courses" class="flex-grow-1"></div>
                         </div>
                     </div>
@@ -803,17 +799,11 @@
     }
 
     function switchTab(tab, btn) {
-        ["members", "assignments"].forEach(function(tabName) {
-            const tabButton = document.getElementById(`tab-btn-${tabName}`);
-            tabButton.style.color = "var(--text-secondary)";
-            tabButton.style.borderBottom = "2px solid transparent";
-        });
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-        btn.style.color = "var(--accent-color)";
-        btn.style.borderBottom = "2px solid var(--accent-color)";
-
-        document.getElementById("panel-members").style.display = tab === "members" ? "" : "none";
-        document.getElementById("panel-assignments").style.display = tab === "assignments" ? "" : "none";
+        document.getElementById("panel-members").classList.toggle("d-none", tab !== "members");
+        document.getElementById("panel-assignments").classList.toggle("d-none", tab !== "assignments");
 
         if (tab === "assignments" && assignmentGrid) {
             assignmentGrid.updateDimensions();
@@ -889,7 +879,7 @@
 
     function renderStatusCell(container, value, map) {
         const status = map[value] || { cls: "pill-default", text: value || EMPTY_TEXT };
-        $(`<span class="status-pill ${status.cls}">${status.text}</span>`).appendTo(container);
+        $(`<span class="tag-pill ${status.cls}">${status.text}</span>`).appendTo(container);
     }
 
     function renderDueDateCell(container, value) {
@@ -918,7 +908,7 @@
 
         const wrapper = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(container);
         courses.slice(0, 2).forEach(function(courseName) {
-            $("<span>").addClass("tag-pill pill-default").css("font-size", "10px").text(courseName).appendTo(wrapper);
+            $("<span>").addClass("tag-pill tag-pill-xs pill-default").text(courseName).appendTo(wrapper);
         });
 
         if (courses.length > 2) {

@@ -47,7 +47,7 @@
         <div class="d-flex align-items-center gap-4 flex-wrap">
             <div class="profile-avatar" id="avatar-initials">�</div>
             <div class="flex-grow-1">
-                <div class="fw-bold text-dark mb-1" style="font-size:20px;" id="info-name">�</div>
+                <div class="fw-bold text-dark mb-1 u-fs-20" id="info-name">⏳</div>
                 <div class="mb-2"><span class="tag-pill pill-default" id="info-position">�</span></div>
                 <div class="d-flex flex-wrap gap-4 meta-row">
                     <span><i class="fas fa-id-badge"></i><span id="info-code">�</span></span>
@@ -68,41 +68,41 @@
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card">
-                <div class="kpi-label" style="color:var(--success-color);">Completed</div>
-                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">�</div>
+            <div class="kpi-card kpi-success">
+                <div class="kpi-label">Completed</div>
+                <div class="kpi-number" id="kpi-completed">�</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card">
-                <div class="kpi-label" style="color:var(--accent-color);">In Progress</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-inprogress">�</div>
+            <div class="kpi-card kpi-accent">
+                <div class="kpi-label">In Progress</div>
+                <div class="kpi-number" id="kpi-inprogress">�</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card">
-                <div class="kpi-label" style="color:var(--warning-color);">Total Time</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-time">�</div>
+            <div class="kpi-card kpi-warning">
+                <div class="kpi-label">Total Time</div>
+                <div class="kpi-number" id="kpi-time">�</div>
             </div>
         </div>
     </div>
 
     <!-- ?? Completion Rate Bar ??????????????????????????????????????????? -->
     <div class="border rounded bg-white p-3 mb-4 d-flex align-items-center gap-3">
-        <div style="font-size:12px; font-weight:600; color:var(--text-secondary); min-width:120px;">
+        <div class="u-fs-12 u-fw-semibold text-secondary u-minw-120">
             Overall Completion
         </div>
         <div class="history-bar-wrap">
-            <div class="history-bar-fill" id="overall-bar" style="width:0%; background:var(--success-color);"></div>
+            <div class="history-bar-fill u-bg-success" id="overall-bar" style="width:0%;"></div>
         </div>
-        <div class="fw-bold" style="font-size:14px; color:var(--success-color); min-width:44px;" id="overall-pct">0%</div>
+        <div class="fw-bold u-fs-14 u-text-success u-minw-44" id="overall-pct">0%</div>
     </div>
 
     <!-- ?? Learning History Grid ????????????????????????????????????????? -->
     <div class="border rounded bg-white">
         <div class="p-3 d-flex align-items-center justify-content-between">
             <div class="section-title mb-0">Learning History</div>
-            <div id="status-filter" style="width:160px;"></div>
+            <div id="status-filter" class="u-w-160"></div>
         </div>
         <div id="grid-history"></div>
     </div>
@@ -215,7 +215,7 @@
                         let cls, label, icon = "";
                         if (o.data.isAssignmentCancelled) {
                             cls = "pill-default"; label = "Cancelled";
-                            icon = `<i class="fas fa-ban me-1" style="font-size:10px;opacity:.55;"></i>`;
+                            icon = `<i class="fas fa-ban me-1 tag-pill-icon-sm u-opacity-55"></i>`;
                         } else if (o.value) {
                             cls = "pill-success"; label = "Completed";
                         } else if (o.data.dueDate && new Date(o.data.dueDate) < now) {

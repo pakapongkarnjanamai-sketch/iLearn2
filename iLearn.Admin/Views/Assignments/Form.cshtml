@@ -14,7 +14,7 @@
     </a>
 </div>
 
-<div class="container px-4 py-4" style="max-width:960px; margin-bottom:70px;">
+<div class="container page-shell-md px-4 py-4">
     <div id="load-panel"></div>
 
     <!-- ── Assignment Criteria ── -->
@@ -29,16 +29,16 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="target-card" id="btn-select-courses">
-                    <i class="fas fa-book-open fa-lg mb-3" style="color:var(--accent-color);"></i>
-                    <div class="fw-bold text-dark mb-1" style="font-size:13px;">Select Courses</div>
-                    <div class="text-secondary" style="font-size:11px;" id="selected-courses-text">No course selected</div>
+                    <i class="fas fa-book-open fa-lg mb-3 target-card-icon"></i>
+                    <div class="fw-bold text-dark mb-1 target-card-title">Select Courses</div>
+                    <div class="text-secondary target-card-subtitle" id="selected-courses-text">No course selected</div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="target-card" id="btn-select-employees">
-                    <i class="fas fa-users fa-lg mb-3" style="color:var(--accent-color);"></i>
-                    <div class="fw-bold text-dark mb-1" style="font-size:13px;">Select Students</div>
-                    <div class="text-secondary" style="font-size:11px;" id="selected-employees-text">No student selected</div>
+                    <i class="fas fa-users fa-lg mb-3 target-card-icon"></i>
+                    <div class="fw-bold text-dark mb-1 target-card-title">Select Students</div>
+                    <div class="text-secondary target-card-subtitle" id="selected-employees-text">No student selected</div>
                 </div>
             </div>
         </div>
@@ -103,7 +103,7 @@
                     $(`
 
                         <div class="d-flex h-100 gap-3">
-                            <div style="width:260px; flex-shrink:0;">
+                            <div class="sidebar-260">
                                 <div class="filter-panel h-100 d-flex flex-column gap-3">
                                     <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
                                     <div>
@@ -123,7 +123,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                            <div class="flex-grow-1 d-flex flex-column u-min-w-0">
                                 <div id="grid-courses" class="flex-grow-1"></div>
                             </div>
                         </div>
@@ -266,7 +266,7 @@
                     $(`
 
                         <div class="d-flex h-100 gap-3">
-                            <div style="width:240px; flex-shrink:0;">
+                            <div class="sidebar-240">
                                 <div class="filter-panel h-100 d-flex flex-column gap-3">
                                     <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
                                     <div>
@@ -290,7 +290,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex-grow-1 d-flex flex-column" style="min-width:0;">
+                            <div class="flex-grow-1 d-flex flex-column u-min-w-0">
                                 <div id="grid-students" class="flex-grow-1"></div>
                             </div>
                         </div>
@@ -504,7 +504,7 @@
                             <i class="fas ${iconClass} me-2"></i>
                             ${title} (${conflicts.length} รายการ)
                         </h6>
-                        <ul class="mb-0 small list-unstyled" style="max-height:150px;overflow-y:auto;">${items}</ul>
+                        <ul class="mb-0 small list-unstyled u-maxh-150 u-overflow-y-auto">${items}</ul>
                         <div class="mt-2 pt-2 border-top border-${alertClass} border-opacity-25 small text-muted">${footer}</div>
                     </div>`;
             }

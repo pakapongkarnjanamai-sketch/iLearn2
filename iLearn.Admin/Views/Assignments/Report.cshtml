@@ -149,8 +149,8 @@
         </button>
     </div>
 
-    <div id="report-content" class="container-fluid py-4" style="max-width: 1400px;">
-        <div class="d-flex flex-column justify-content-center align-items-center text-muted" style="min-height: 70vh;">
+    <div id="report-content" class="container-fluid py-4 page-shell-lg">
+        <div class="d-flex flex-column justify-content-center align-items-center text-muted u-minh-70vh">
             <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
             <span class="fs-6">Loading data...</span>
         </div>
@@ -196,9 +196,9 @@
 
             // ปรับ Course Code ให้เป็นตัวหนา และ Course Title ให้ตัวเล็กลง ตัดคำอัตโนมัติ
             const colHeaders = courses.map(c =>
-                `<th class="text-center align-middle" style="min-width:160px;">
+                `<th class="text-center align-middle u-minw-160">
                     <div class="fw-bold text-dark">${c.courseCode}</div>
-                    <div class="text-muted mt-1" style="font-size:10px; font-weight:normal; white-space:normal; line-height:1.2;">${c.courseTitle}</div>
+                    <div class="text-muted mt-1 u-fs-10 u-fw-normal u-whitespace-normal u-leading-tight">${c.courseTitle}</div>
                 </th>`
             ).join("");
 
@@ -216,12 +216,12 @@
                         const d = e.completedDate ? new Date(e.completedDate).toLocaleDateString("en-GB") : "";
                         return `<td class="text-center align-middle status-done">
                                     <i class="fas fa-check"></i>
-                                    <div style="font-size:10px;color:#8c8c8c">${d}</div>
+                                    <div class="u-fs-10 text-secondary">${d}</div>
                                 </td>`;
                     } else if (e.progress > 0) {
-                        return `<td class="text-center align-middle status-active" style="font-size:11px;">${e.progress}%</td>`;
+                        return `<td class="text-center align-middle status-active u-fs-11">${e.progress}%</td>`;
                     } else {
-                        return `<td class="text-center align-middle status-pending" style="font-size:11px;">Pending</td>`;
+                        return `<td class="text-center align-middle status-pending u-fs-11">Pending</td>`;
                     }
                 }).join("");
 
@@ -231,20 +231,20 @@
                 return `<tr>
                             <td class="sticky-col align-middle">
                                 <div class="fw-bold">${code}</div>
-                                <div class="text-muted" style="font-size:11px;">${name !== code ? name : ""}</div>
+                                <div class="text-muted u-fs-11">${name !== code ? name : ""}</div>
                             </td>
                             ${cells}
                             <td class="text-center align-middle fw-bold bg-light">${completedCount} / ${totalCourses}</td>
                         </tr>`;
             }).join("");
 
-            return `<div class="table-responsive border rounded bg-white " style="max-height: 600px;">
+            return `<div class="table-responsive border rounded bg-white u-maxh-600">
                         <table class="table table-bordered table-hover pivot-table m-0">
-                            <thead style="position: sticky; top: 0; z-index: 4;">
+                            <thead class="sticky-thead">
                                 <tr>
-                                    <th class="sticky-col align-middle" style="min-width:180px;">Student \\ Course</th>
+                                    <th class="sticky-col align-middle u-minw-180">Student \\ Course</th>
                                     ${colHeaders}
-                                    <th class="text-center align-middle bg-light" style="min-width:80px;">Total</th>
+                                    <th class="text-center align-middle bg-light u-minw-80">Total</th>
                                 </tr>
                             </thead>
                             <tbody>${dataRows}</tbody>
@@ -264,10 +264,10 @@
                     <td class="fw-bold align-middle">${c.courseCode}</td>
                     <td class="align-middle">${c.courseTitle}</td>
                     <td class="align-middle text-center">${c.totalStudents}</td>
-                    <td class="align-middle text-center" style="color:var(--success-color)">${c.completedStudents}</td>
+                    <td class="align-middle text-center u-text-success">${c.completedStudents}</td>
                     <td class="align-middle text-center">${c.totalStudents - c.completedStudents}</td>
-                    <td class="align-middle" style="width:150px;">
-                        <div class="d-flex justify-content-between" style="font-size:11px;">
+                    <td class="align-middle u-minw-150">
+                        <div class="d-flex justify-content-between u-fs-11">
                             <span class="text-muted">Progress</span><span class="fw-bold">${pct}%</span>
                         </div>
                         <div class="progress-slim">
@@ -300,13 +300,13 @@
                 return `<tr>
                     <td class="align-middle">
                         <div class="fw-bold">${code}</div>
-                        <div class="text-muted" style="font-size:11px;">${name}</div>
+                        <div class="text-muted u-fs-11">${name}</div>
                     </td>
                     <td class="align-middle text-center">${total}</td>
-                    <td class="align-middle text-center" style="color:var(--success-color)">${done}</td>
+                    <td class="align-middle text-center u-text-success">${done}</td>
                     <td class="align-middle text-center">${left}</td>
-                    <td class="align-middle" style="width:150px;">
-                        <div class="d-flex justify-content-between" style="font-size:11px;">
+                    <td class="align-middle u-minw-150">
+                        <div class="d-flex justify-content-between u-fs-11">
                             <span class="text-muted">Progress</span><span class="fw-bold">${overallPct}%</span>
                         </div>
                         <div class="progress-slim">
@@ -327,22 +327,22 @@
                     <div class="col-md-4">
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                             <h2 class="fs-6 fw-bold m-0 text-dark">Status Summary</h2>
-                            <button class="btn btn-outline-primary btn-sm py-1 px-2" style="font-size: 11px;" onclick="exportSummaryImage()">
+                            <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportSummaryImage()">
                                 <i class="fas fa-download"></i> Save Image
                             </button>
                         </div>
 
                         <div id="export-target" class="bg-white p-4 border rounded ">
                             <div class="text-center mb-3">
-                                <div class="small text-muted text-uppercase" style="letter-spacing: 0.5px;">Assignment No.</div>
+                                <div class="small text-muted text-uppercase u-letter-spacing-05">Assignment No.</div>
                                 <h3 class="fs-5 fw-bold m-0 text-dark">${data.assignmentNo || "-"}</h3>
                             </div>
 
                             <div class="text-center mb-4 bg-light p-2 rounded">
                                 <i class="far fa-calendar-alt text-muted me-1"></i>
-                                <span class="fw-bold" style="font-size: 12px;">${displayStartDate}</span>
-                                <i class="fas fa-arrow-right text-muted mx-2" style="font-size: 10px;"></i>
-                                <span class="fw-bold text-danger" style="font-size: 12px;">${displayDueDate}</span>
+                                <span class="fw-bold u-fs-12">${displayStartDate}</span>
+                                <i class="fas fa-arrow-right text-muted mx-2 u-fs-10"></i>
+                                <span class="fw-bold text-danger u-fs-12">${displayDueDate}</span>
                             </div>
 
                             <div class="d-flex justify-content-around text-center border-bottom pb-4 mb-4">
@@ -355,7 +355,7 @@
                                     <div class="small text-muted">Courses</div>
                                 </div>
                                 <div>
-                                    <div class="fs-4 fw-bold" style="color: var(--success-color);">${data.completionRate}%</div>
+                                    <div class="fs-4 fw-bold u-text-success">${data.completionRate}%</div>
                                     <div class="small text-muted">Completion</div>
                                 </div>
                             </div>

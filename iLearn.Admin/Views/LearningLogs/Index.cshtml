@@ -15,39 +15,39 @@
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2 mb-4" id="summary-bar">
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+            <div class="kpi-card kpi-all h-100">
                 <div class="kpi-label">Total Logs</div>
                 <div class="kpi-number" id="kpi-total">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--success-color);">
-                <div class="kpi-label" style="color:var(--success-color);">Completed / Passed</div>
-                <div class="kpi-number" style="color:var(--success-color);" id="kpi-completed">—</div>
+            <div class="kpi-card kpi-success h-100">
+                <div class="kpi-label">Completed / Passed</div>
+                <div class="kpi-number" id="kpi-completed">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
-                <div class="kpi-label" style="color:var(--warning-color);">In Progress</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-inprogress">—</div>
+            <div class="kpi-card kpi-warning h-100">
+                <div class="kpi-label">In Progress</div>
+                <div class="kpi-number" id="kpi-inprogress">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--danger-color);">
-                <div class="kpi-label" style="color:var(--danger-color);">Failed</div>
-                <div class="kpi-number" style="color:var(--danger-color);" id="kpi-failed">—</div>
+            <div class="kpi-card kpi-danger h-100">
+                <div class="kpi-label">Failed</div>
+                <div class="kpi-number" id="kpi-failed">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
-                <div class="kpi-label" style="color:#722ed1;">Avg. Score</div>
-                <div class="kpi-number" style="color:#722ed1;" id="kpi-avgscore">—</div>
+            <div class="kpi-card kpi-purple h-100">
+                <div class="kpi-label">Avg. Score</div>
+                <div class="kpi-number" id="kpi-avgscore">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
-                <div class="kpi-label" style="color:var(--accent-color);">Total Time</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-totaltime">—</div>
+            <div class="kpi-card kpi-accent h-100">
+                <div class="kpi-label">Total Time</div>
+                <div class="kpi-number" id="kpi-totaltime">—</div>
             </div>
         </div>
     </div>
@@ -55,11 +55,11 @@
     <!-- ── Filter Bar ── -->
     <div class="border rounded bg-white p-3 mb-3">
         <div class="row g-3 align-items-end">
-            <div class="col-auto" style="min-width:200px;">
+            <div class="col-auto u-minw-200">
                 <label class="filter-label">Student Code</label>
                 <div id="filterStudent"></div>
             </div>
-            <div class="col-auto" style="min-width:240px;">
+            <div class="col-auto u-minw-240">
                 <label class="filter-label">Course</label>
                 <div id="filterCourse"></div>
             </div>
@@ -68,7 +68,7 @@
                 <div id="filterStatus"></div>
             </div>
             <div class="col-auto ms-auto">
-                <a href="javascript:void(0);" class="action-link" id="btnClearFilters" style="font-size:12px;">
+                <a href="javascript:void(0);" class="action-link action-link-sm" id="btnClearFilters">
                     <i class="fas fa-times"></i> Clear Filters
                 </a>
             </div>
@@ -225,14 +225,14 @@
                         cellTemplate: function(container, options) {
                             const val = (options.value || "").toLowerCase();
                             const map = {
-                                "completed":   "status-pill pill-success",
-                                "passed":      "status-pill pill-success",
-                                "failed":      "status-pill pill-danger",
-                                "incomplete":  "status-pill pill-warning",
-                                "in_progress": "status-pill pill-info",
-                                "not_started": "status-pill pill-default"
+                                "completed":   "tag-pill pill-success",
+                                "passed":      "tag-pill pill-success",
+                                "failed":      "tag-pill pill-danger",
+                                "incomplete":  "tag-pill pill-warning",
+                                "in_progress": "tag-pill pill-info",
+                                "not_started": "tag-pill pill-default"
                             };
-                            $("<span>").addClass(map[val] || "status-pill pill-default")
+                            $("<span>").addClass(map[val] || "tag-pill pill-default")
                                 .text(options.value || "—").appendTo(container);
                         }
                     },

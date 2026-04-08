@@ -18,27 +18,27 @@
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2 mb-4" id="summary-bar">
         <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-all h-100" style="border-left-color:var(--text-secondary);">
+            <div class="kpi-card kpi-all h-100">
                 <div class="kpi-label">Total Divisions</div>
                 <div class="kpi-number" id="kpi-total">—</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100" style="border-left-color:var(--accent-color);">
-                <div class="kpi-label" style="color:var(--accent-color);">Total Categories</div>
-                <div class="kpi-number" style="color:var(--accent-color);" id="kpi-categories">—</div>
+            <div class="kpi-card kpi-accent h-100">
+                <div class="kpi-label">Total Categories</div>
+                <div class="kpi-number" id="kpi-categories">—</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100" style="border-left-color:#722ed1;">
-                <div class="kpi-label" style="color:#722ed1;">Total Roles</div>
-                <div class="kpi-number" style="color:#722ed1;" id="kpi-roles">—</div>
+            <div class="kpi-card kpi-purple h-100">
+                <div class="kpi-label">Total Roles</div>
+                <div class="kpi-number" id="kpi-roles">—</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100" style="border-left-color:var(--warning-color);">
-                <div class="kpi-label" style="color:var(--warning-color);">Unused Divisions</div>
-                <div class="kpi-number" style="color:var(--warning-color);" id="kpi-unused">—</div>
+            <div class="kpi-card kpi-warning h-100">
+                <div class="kpi-label">Unused Divisions</div>
+                <div class="kpi-number" id="kpi-unused">—</div>
             </div>
         </div>
     </div>
@@ -159,11 +159,11 @@
                         cellTemplate: function(container, options) {
                             const isActive = options.value;
                             if (isActive) {
-                                $("<span>").addClass("status-pill pill-success")
+                                $("<span>").addClass("tag-pill pill-success")
                                     .html('<i class="fas fa-check me-1"></i> Active')
                                     .appendTo(container);
                             } else {
-                                $("<span>").addClass("status-pill pill-default")
+                                $("<span>").addClass("tag-pill pill-default")
                                     .html('<i class="fas fa-times me-1"></i> Inactive')
                                     .appendTo(container);
                             }
@@ -178,9 +178,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("status-pill pill-default").text("None").appendTo(container);
+                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
                             } else {
-                                $("<span>").addClass("status-pill pill-success")
+                                $("<span>").addClass("tag-pill pill-success")
                                     .text(count + " categor" + (count > 1 ? "ies" : "y")).appendTo(container);
                             }
                         }
@@ -194,9 +194,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("status-pill pill-default").text("None").appendTo(container);
+                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
                             } else {
-                                $("<span>").addClass("status-pill pill-info")
+                                $("<span>").addClass("tag-pill pill-info")
                                     .text(count + " role" + (count > 1 ? "s" : "")).appendTo(container);
                             }
                         }

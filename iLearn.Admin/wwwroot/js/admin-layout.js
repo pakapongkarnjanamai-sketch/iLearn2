@@ -8,15 +8,74 @@
     const minGridHeight = 320;
     const gridBottomGap = 24;
     const minGridPageSize = 5;
-    const defaultGridPageSize = 20;
-    const defaultGridMinVisibleRows = defaultGridPageSize;
-    const compactGridPageSize = defaultGridPageSize;
+    const defaultGridMinVisibleRows = 20;
     const gridDataRowHeight = 34;
     const gridHeaderRowHeight = 38;
     const gridHeaderPanelHeight = 48;
-    const gridPagerHeight = 48;
     const gridSummaryHeight = 40;
     const gridFrameHeight = 2;
+    const popupRefreshDelay = 0;
+    const defaultToastDisplayTime = 3500;
+    const noDataMessages = {
+        courses: 'No courses found.',
+        students: 'No students found.',
+        resources: 'No resources found.',
+        content: 'No content added yet. Click buttons above to add.',
+        unusedPublishedResources: 'No unused published resources found.',
+        draftResourcesNeeded: 'No draft resources needed by active courses.'
+    };
+    const toastIconMap = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+    const sharedGridPreset = {
+        width: '100%',
+        height: '100%',
+        autoHeight: true,
+        columnAutoWidth: true,
+        showBorders: true,
+        rowAlternationEnabled: true,
+        showRowLines: true,
+        hoverStateEnabled: true,
+        scrolling: {
+            mode: 'virtual',
+            rowRenderingMode: 'virtual'
+        },
+        headerFilter: { visible: true },
+        loadPanel: {
+            enabled: true,
+            text: 'Loading data...',
+            showPane: true,
+            showIndicator: true,
+            shadingColor: 'rgba(250,250,250,0.7)',
+            shading: true,
+            position: { of: 'window' }
+        },
+        export: {
+            enabled: true,
+            allowExportSelectedData: true
+        },
+        onExporting: createGridExportHandler('Export')
+    };
+    const cardsSkeletonMarkup = [
+        '<div class="col-md-4 mb-2">',
+            '<div class="version-card-skeleton">',
+                '<div class="d-flex justify-content-between align-items-start mb-3">',
+                    '<div style="width:55%">',
+                        '<div class="skeleton skeleton-line w-80 mb-2"></div>',
+                        '<div class="skeleton skeleton-line w-40"></div>',
+                    '</div>',
+                    '<div class="skeleton" style="width:24px;height:24px;border-radius:3px;"></div>',
+                '</div>',
+                '<div class="skeleton skeleton-line w-100 mb-1"></div>',
+                '<div class="skeleton skeleton-line w-60 mb-3"></div>',
+                '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;margin-bottom:6px;"></div>',
+                '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;"></div>',
+            '</div>',
+        '</div>'
+    ].join('');
     const adminTypography = {
         family: 'var(--font-stack)',
         size: {
@@ -42,80 +101,14 @@
     };
 
     const dxGridPresets = {
-        defaultGrid: {
-            columnAutoWidth: true,
-            showBorders: true,
-            rowAlternationEnabled: true,
-            showRowLines: true,
-            hoverStateEnabled: true,
-            scrolling: {
-                mode: 'virtual',
-                rowRenderingMode: 'virtual'
-            },
-            paging: { enabled: false, pageSize: defaultGridPageSize },
-            pager: {
-                visible: false,
-                showInfo: true,
-                showNavigationButtons: true,
-                showPageSizeSelector: false,
-                allowedPageSizes: [defaultGridPageSize]
-            },
+        defaultGrid: $.extend(true, {}, sharedGridPreset, {
             headerFilter: { visible: true },
-            searchPanel: { visible: true, width: 300, placeholder: 'Search...' },
-            loadPanel: {
-                enabled: true,
-                text: 'Loading data...',
-                showPane: true,
-                showIndicator: true,
-                shadingColor: 'rgba(250,250,250,0.7)',
-                shading: true,
-                position: { of: 'window' }
-            },
-            export: {
-                enabled: true,
-                allowExportSelectedData: true
-            },
-            onExporting: function (e) {
-                handleExporting(e, getRouteExportFileName('Export'));
-            }
-        },
-        compactGrid: {
-            columnAutoWidth: true,
-            showBorders: true,
-            rowAlternationEnabled: true,
-            showRowLines: true,
-            hoverStateEnabled: true,
-            scrolling: {
-                mode: 'virtual',
-                rowRenderingMode: 'virtual'
-            },
-            paging: { enabled: false, pageSize: compactGridPageSize },
-            pager: {
-                visible: false,
-                showInfo: true,
-                showNavigationButtons: true,
-                showPageSizeSelector: false,
-                allowedPageSizes: [defaultGridPageSize]
-            },
+            searchPanel: { visible: true, width: 300, placeholder: 'Search...' }
+        }),
+        compactGrid: $.extend(true, {}, sharedGridPreset, {
             headerFilter: { visible: true },
-            searchPanel: { visible: true, width: 240, placeholder: 'Search...' },
-            loadPanel: {
-                enabled: true,
-                text: 'Loading data...',
-                showPane: true,
-                showIndicator: true,
-                shadingColor: 'rgba(250,250,250,0.7)',
-                shading: true,
-                position: { of: 'window' }
-            },
-            export: {
-                enabled: true,
-                allowExportSelectedData: true
-            },
-            onExporting: function (e) {
-                handleExporting(e, getRouteExportFileName('Export'));
-            }
-        }
+            searchPanel: { visible: true, width: 240, placeholder: 'Search...' }
+        })
     };
 
     dxGridPresets.selectionGrid = $.extend(true, {}, dxGridPresets.compactGrid, {
@@ -140,20 +133,37 @@
         return $.extend(true, {}, dxGridPresets[presetName] || dxGridPresets.defaultGrid);
     }
 
+    function createGridExportHandler(fallbackName) {
+        return function (e) {
+            handleExporting(e, getRouteExportFileName(fallbackName));
+        };
+    }
+
+    function hasToolbarItems(toolbar) {
+        return !!(toolbar && Array.isArray(toolbar.items) && toolbar.items.length > 0);
+    }
+
+    function hasSummaryItems(summary) {
+        if (!summary) {
+            return false;
+        }
+
+        const hasTotalItems = Array.isArray(summary.totalItems) && summary.totalItems.length > 0;
+        const hasGroupItems = Array.isArray(summary.groupItems) && summary.groupItems.length > 0;
+
+        return hasTotalItems || hasGroupItems;
+    }
+
     function getGridChromeHeight(options) {
         const normalizedOptions = options || {};
         const hasHeaderPanel = normalizedOptions.searchPanel?.visible !== false
             || normalizedOptions.export?.enabled === true
-            || (normalizedOptions.toolbar && Array.isArray(normalizedOptions.toolbar.items) && normalizedOptions.toolbar.items.length > 0);
-        const hasPager = normalizedOptions.paging?.enabled !== false && normalizedOptions.pager?.visible !== false;
-        const hasSummary = !!(normalizedOptions.summary
-            && ((Array.isArray(normalizedOptions.summary.totalItems) && normalizedOptions.summary.totalItems.length > 0)
-                || (Array.isArray(normalizedOptions.summary.groupItems) && normalizedOptions.summary.groupItems.length > 0)));
+            || hasToolbarItems(normalizedOptions.toolbar);
+        const hasSummary = hasSummaryItems(normalizedOptions.summary);
 
         return gridFrameHeight
             + gridHeaderRowHeight
             + (hasHeaderPanel ? gridHeaderPanelHeight : 0)
-            + (hasPager ? gridPagerHeight : 0)
             + (hasSummary ? gridSummaryHeight : 0);
     }
 
@@ -179,9 +189,17 @@
         const style = window.getComputedStyle(parentPanel);
         const hasExplicitHeight = style.height && style.height !== 'auto';
         const hasExplicitMaxHeight = style.maxHeight && style.maxHeight !== 'none';
-        const hasScrollableOverflow = /(auto|scroll|hidden)/.test(style.overflowY || '');
+        const hasScrollableOverflow = /(auto|scroll|hidden|clip)/.test(style.overflowY || '')
+            || /(auto|scroll|hidden|clip)/.test(style.overflow || '');
+        const usesStretchHeight = parentPanel.classList.contains('h-100')
+            || parentPanel.classList.contains('vh-100');
+        const isStructuredPanel = parentPanel.matches('.border.rounded.bg-white, .dash-panel, .panel, .card');
 
-        return (hasExplicitHeight || hasExplicitMaxHeight) && hasScrollableOverflow;
+        if (hasScrollableOverflow) {
+            return hasExplicitHeight || hasExplicitMaxHeight || usesStretchHeight;
+        }
+
+        return isStructuredPanel && (hasExplicitHeight || hasExplicitMaxHeight || usesStretchHeight);
     }
 
     function resolveGridViewportMetrics(element, options) {
@@ -190,7 +208,6 @@
 
         if (!element || !element.getBoundingClientRect) {
             return {
-                pageSize: minVisibleRows,
                 height: chromeHeight + (minVisibleRows * gridDataRowHeight)
             };
         }
@@ -220,7 +237,6 @@
         );
 
         return {
-            pageSize: visibleRows,
             height: chromeHeight + (visibleRows * gridDataRowHeight)
         };
     }
@@ -239,16 +255,7 @@
     }
 
     function getNoDataText(key, fallbackText) {
-        const messages = {
-            courses: 'No courses found.',
-            students: 'No students found.',
-            resources: 'No resources found.',
-            content: 'No content added yet. Click buttons above to add.',
-            unusedPublishedResources: 'No unused published resources found.',
-            draftResourcesNeeded: 'No draft resources needed by active courses.'
-        };
-
-        return messages[key] || fallbackText || 'No data found.';
+        return noDataMessages[key] || fallbackText || 'No data found.';
     }
 
     function getSelectionHintMarkup(count, itemLabel, actionText) {
@@ -275,6 +282,33 @@
         return segments.join('_') || fallbackName;
     }
 
+    function normalizeGridSize(value, fallbackValue) {
+        if (value === undefined || value === null || value === '') {
+            return fallbackValue;
+        }
+
+        return typeof value === 'number' ? `${value}px` : value;
+    }
+
+    function setGridHostSize($target, dimensions) {
+        if (!$target || !$target.length) {
+            return;
+        }
+
+        const width = normalizeGridSize(dimensions?.width, '100%');
+        const height = normalizeGridSize(dimensions?.height, null);
+
+        $target.css({
+            width: width,
+            minWidth: 0
+        });
+
+        if (height !== null) {
+            $target.css('height', height);
+            $target.data('gridHostHeight', height);
+        }
+    }
+
     function applyViewportGridHeight(gridInstance) {
         if (!gridInstance || typeof gridInstance.element !== 'function') {
             return;
@@ -290,15 +324,11 @@
         }
 
         const metrics = resolveGridViewportMetrics(element, gridInstance.option());
-        const currentHeight = gridInstance.option('height');
-        const currentPageSize = gridInstance.option('paging.pageSize');
+        const currentHeight = $element.data('gridHostHeight') || element.style.height;
+        const nextHeight = normalizeGridSize(metrics.height, null);
 
-        if (currentHeight !== metrics.height || currentPageSize !== metrics.pageSize) {
-            gridInstance.beginUpdate();
-            gridInstance.option('paging.pageSize', metrics.pageSize);
-            gridInstance.option('pager.visible', true);
-            gridInstance.option('height', metrics.height);
-            gridInstance.endUpdate();
+        if (currentHeight !== nextHeight) {
+            setGridHostSize($element, { height: metrics.height });
             gridInstance.updateDimensions();
         }
     }
@@ -367,35 +397,39 @@
         return DevExpress.data.AspNet.createStore(storeOptions);
     }
 
-    function handleExporting(e, fileName) {
+    function exportComponentToWorkbook(exporter, component, fileName, worksheetName, options) {
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
+        const worksheet = workbook.addWorksheet(worksheetName || 'Sheet1');
 
-        DevExpress.excelExporter.exportDataGrid({
-            component: e.component,
-            worksheet: worksheet,
-            autoFilterEnabled: true
-        }).then(function () {
+        exporter($.extend(true, {
+            component: component,
+            worksheet: worksheet
+        }, options)).then(function () {
             return workbook.xlsx.writeBuffer();
         }).then(function (buffer) {
-            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `${fileName || 'Data'}.xlsx`);
+            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
         });
+    }
+
+    function handleExporting(e, fileName) {
+        exportComponentToWorkbook(
+            DevExpress.excelExporter.exportDataGrid,
+            e.component,
+            `${fileName || 'Data'}.xlsx`,
+            fileName || 'Sheet1',
+            { autoFilterEnabled: true }
+        );
 
         e.cancel = true;
     }
 
     function handlePivotExporting(e, fileName) {
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
-
-        DevExpress.excelExporter.exportPivotGrid({
-            component: e.component,
-            worksheet: worksheet
-        }).then(function () {
-            return workbook.xlsx.writeBuffer();
-        }).then(function (buffer) {
-            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `${fileName || 'PivotData'}.xlsx`);
-        });
+        exportComponentToWorkbook(
+            DevExpress.excelExporter.exportPivotGrid,
+            e.component,
+            `${fileName || 'PivotData'}.xlsx`,
+            fileName || 'Sheet1'
+        );
 
         e.cancel = true;
     }
@@ -411,15 +445,8 @@
             rowRenderingMode: 'virtual'
         });
 
-        resolvedOptions.paging = $.extend(true, {}, resolvedOptions.paging, {
-            enabled: true,
-            pageSize: resolvedOptions.paging?.pageSize || defaultGridPageSize
-        });
-        resolvedOptions.pager = $.extend(true, {}, resolvedOptions.pager, {
-            visible: true,
-            showPageSizeSelector: false,
-            allowedPageSizes: [resolvedOptions.paging.pageSize || defaultGridPageSize]
-        });
+        delete resolvedOptions.paging;
+        delete resolvedOptions.pager;
 
         return resolvedOptions;
     }
@@ -471,14 +498,29 @@
         const $target = resolveGridTarget(selector);
         const presetName = pageOptions && pageOptions.preset ? pageOptions.preset : 'defaultGrid';
         const options = applyGridPresetClasses(getDxGridOptions(pageOptions), presetName);
-        const enableAutoHeight = !options.height;
+        const hasExplicitHeight = !!(pageOptions && Object.prototype.hasOwnProperty.call(pageOptions, 'height'));
+        const enableAutoHeight = options.autoHeight !== false && !hasExplicitHeight;
         const originalContentReady = options.onContentReady;
+        const requestedWidth = options.width;
+        const requestedHeight = options.height;
+
+        delete options.autoHeight;
+        options.width = '100%';
+        options.height = '100%';
+
+        if (!enableAutoHeight) {
+            setGridHostSize($target, {
+                width: requestedWidth,
+                height: requestedHeight || '100%'
+            });
+        }
 
         if (enableAutoHeight) {
             const metrics = resolveGridViewportMetrics($target.get(0), options);
-            options.height = metrics.height;
-            options.paging = $.extend(true, {}, options.paging, { pageSize: metrics.pageSize });
-            options.pager = $.extend(true, {}, options.pager, { allowedPageSizes: [metrics.pageSize] });
+            setGridHostSize($target, {
+                width: requestedWidth,
+                height: metrics.height
+            });
             options.onContentReady = function (e) {
                 applyViewportGridHeight(e.component);
                 if (typeof originalContentReady === 'function') {
@@ -516,14 +558,8 @@
 
     function showToast(message, type, duration) {
         const toastType = type || 'info';
-        const displayTime = duration || 3500;
-        const iconMap = {
-            success: 'fa-circle-check',
-            error: 'fa-circle-xmark',
-            warning: 'fa-triangle-exclamation',
-            info: 'fa-circle-info'
-        };
-        const icon = iconMap[toastType] || iconMap.info;
+        const displayTime = duration || defaultToastDisplayTime;
+        const icon = toastIconMap[toastType] || toastIconMap.info;
 
         DevExpress.ui.notify({
             type: toastType,
@@ -566,23 +602,7 @@
         const $container = $(selector).empty();
 
         for (let index = 0; index < total; index += 1) {
-            $container.append(
-                '<div class="col-md-4 mb-2">' +
-                    '<div class="version-card-skeleton">' +
-                        '<div class="d-flex justify-content-between align-items-start mb-3">' +
-                            '<div style="width:55%">' +
-                                '<div class="skeleton skeleton-line w-80 mb-2"></div>' +
-                                '<div class="skeleton skeleton-line w-40"></div>' +
-                            '</div>' +
-                            '<div class="skeleton" style="width:24px;height:24px;border-radius:3px;"></div>' +
-                        '</div>' +
-                        '<div class="skeleton skeleton-line w-100 mb-1"></div>' +
-                        '<div class="skeleton skeleton-line w-60 mb-3"></div>' +
-                        '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;margin-bottom:6px;"></div>' +
-                        '<div class="skeleton skeleton-block" style="height:32px;border-radius:3px;"></div>' +
-                    '</div>' +
-                '</div>'
-            );
+            $container.append(cardsSkeletonMarkup);
         }
     }
 
@@ -603,6 +623,18 @@
         };
     }
 
+    function schedulePopupGridRefresh(component) {
+        window.setTimeout(function () {
+            refreshPopupGridHeights(component);
+        }, popupRefreshDelay);
+    }
+
+    function invokeHandler(handler, eventArgs) {
+        if (typeof handler === 'function') {
+            handler(eventArgs);
+        }
+    }
+
     function applyGlobalDxPopupSizing() {
         if (!$.fn || typeof $.fn.dxPopup !== 'function' || $.fn.dxPopup.__ilearnPopupSized) {
             return;
@@ -620,27 +652,15 @@
 
                 args[0] = $.extend(true, {}, originalOptions, getGlobalPopupOptions(), {
                     onContentReady: function (e) {
-                        if (typeof originalContentReady === 'function') {
-                            originalContentReady(e);
-                        }
-
-                        window.setTimeout(function () {
-                            refreshPopupGridHeights(e.component);
-                        }, 0);
+                        invokeHandler(originalContentReady, e);
+                        schedulePopupGridRefresh(e.component);
                     },
                     onShown: function (e) {
-                        if (typeof originalShown === 'function') {
-                            originalShown(e);
-                        }
-
-                        window.setTimeout(function () {
-                            refreshPopupGridHeights(e.component);
-                        }, 0);
+                        invokeHandler(originalShown, e);
+                        schedulePopupGridRefresh(e.component);
                     },
                     onResizeEnd: function (e) {
-                        if (typeof originalResizeEnd === 'function') {
-                            originalResizeEnd(e);
-                        }
+                        invokeHandler(originalResizeEnd, e);
 
                         refreshPopupGridHeights(e.component);
                     }

@@ -15,7 +15,7 @@
     </a>
 </div>
 
-<div class="container px-4 py-4" style="max-width:960px; margin-bottom:70px;">
+<div class="container page-shell-md px-4 py-4">
     <div id="load-panel"></div>
 
     <!-- Version Details -->
@@ -27,30 +27,30 @@
     <!-- Course Content List -->
     <div class="border rounded bg-white p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0" style="border:none; padding:0;">Course Content List</div>
+            <div class="section-title section-title-plain mb-0">Course Content List</div>
             <span class="tag-pill pill-default" id="total-count-badge">0 Items</span>
         </div>
 
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing">
-                    <i class="fas fa-search fa-lg mb-3" style="color:var(--accent-color);"></i>
-                    <div class="fw-bold text-dark mb-1" style="font-size:13px;">Select Existing Resources</div>
-                    <div class="text-secondary" style="font-size:11px;">Choose files from the central library.</div>
+                    <i class="fas fa-search fa-lg mb-3 target-card-icon"></i>
+                    <div class="fw-bold text-dark mb-1 target-card-title">Select Existing Resources</div>
+                    <div class="text-secondary target-card-subtitle">Choose files from the central library.</div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload">
-                    <i class="fas fa-cloud-upload-alt fa-lg mb-3" style="color:var(--accent-color);"></i>
-                    <div class="fw-bold text-dark mb-1" style="font-size:13px;">Upload New SCORM</div>
-                    <div class="text-secondary" style="font-size:11px;">Drag &amp; drop or click to browse .zip</div>
+                    <i class="fas fa-cloud-upload-alt fa-lg mb-3 target-card-icon"></i>
+                    <div class="fw-bold text-dark mb-1 target-card-title">Upload New SCORM</div>
+                    <div class="text-secondary target-card-subtitle">Drag &amp; drop or click to browse .zip</div>
                 </div>
                 <div id="file-uploader-container"></div>
             </div>
         </div>
 
-        <div style="font-size:11px; color:var(--text-secondary); margin-bottom:12px;">
-            <i class="fas fa-info-circle" style="color:var(--accent-color);"></i>
+        <div class="inline-note">
+            <i class="fas fa-info-circle u-text-accent"></i>
             You can drag &amp; drop rows to reorder the content, and click on Type to change it for new files.
         </div>
 
@@ -62,8 +62,8 @@
 
 <!-- ── Fixed Bottom Toolbar ── -->
 <div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline" style="font-size:11px;">
-        <i class="fas fa-check-circle" style="color:var(--success-color);"></i>
+    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
+        <i class="fas fa-check-circle u-text-success"></i>
         Verify content order before saving.
     </span>
     <a href="javascript:history.back();" class="action-link">Cancel</a>
@@ -151,7 +151,7 @@
                                 .append($("<span>").addClass("fw-medium text-dark text-truncate").text(data.name));
 
                             if (isNew) {
-                                wrapper.append($("<span>").addClass("tag-pill pill-info ms-2").css("font-size", "0.7rem").text("New"));
+                                wrapper.append($("<span>").addClass("tag-pill tag-pill-xs pill-info ms-2").text("New"));
                             }
                             wrapper.appendTo(container);
                         }

@@ -5,28 +5,28 @@
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="fw-bold text-dark" style="font-size:15px;" id="pageTitle">Course Dashboard</div>
-        <div class="text-secondary" style="font-size:12px;" id="pageSubtitle">Manage course information and versions</div>
+        <div class="page-title" id="pageTitle">Course Dashboard</div>
+        <div class="page-subtitle" id="pageSubtitle">Manage course information and versions</div>
     </div>
     <a href="@Url.Action("Index", "Courses")" class="action-link">
         <i class="fas fa-arrow-left text-secondary"></i> Back to Courses
     </a>
 </div>
 
-<div class="container-fluid px-4 py-4" style="max-width:1400px;">
+<div class="container-fluid page-shell-lg px-4 py-4">
 
     <div class="row g-3 mb-4">
 
         <div class="col-lg-8">
             <div class="border rounded bg-white h-100 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="section-title mb-0" style="border:none; padding:0;">Course Information</div>
-                    <span id="courseStatusBadge" class="status-pill pill-default">
+                    <div class="section-title section-title-plain mb-0">Course Information</div>
+                    <span id="courseStatusBadge" class="tag-pill pill-default">
                         <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
                     </span>
                 </div>
                 <div id="courseInfoForm"></div>
-                <div class="text-end mt-3 pt-3" style="border-top:1px solid var(--border-color);">
+                <div class="text-end mt-3 pt-3 u-border-top">
                     <a href="javascript:void(0);" id="btnSaveCourse" class="action-link primary">
                         <i class="fas fa-save"></i> Save Changes
                     </a>
@@ -40,48 +40,48 @@
                 <div class="d-flex flex-column gap-2">
 
                     <a href="javascript:void(0);" id="btnNewVersion" class="quick-action">
-                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);">
+                        <div class="qa-icon qa-icon-accent">
                             <i class="fas fa-code-branch"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);">New Version</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Create a new content version</div>
+                            <div class="u-fs-12 u-fw-semibold text-dark">New Version</div>
+                            <div class="u-fs-11 text-secondary">Create a new content version</div>
                         </div>
                     </a>
 
                     <a href="javascript:void(0);" id="btnAssignment" class="quick-action">
-                        <div class="qa-icon" style="background:#e6f4ff; color:var(--accent-color);">
+                        <div class="qa-icon qa-icon-accent">
                             <i class="fas fa-user-plus"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);">Assignments</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Assign course to employees</div>
+                            <div class="u-fs-12 u-fw-semibold text-dark">Assignments</div>
+                            <div class="u-fs-11 text-secondary">Assign course to employees</div>
                         </div>
                     </a>
 
                     <a href="javascript:void(0);" id="btnTogglePublish" class="quick-action">
-                        <div class="qa-icon" id="publishIconBox" style="background:#fafafa; color:var(--text-secondary);">
+                        <div class="qa-icon qa-icon-muted" id="publishIconBox">
                             <i id="publishIcon" class="fas fa-globe"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);" id="publishBtnText">Publish Course</div>
-                            <div style="font-size:11px; color:var(--text-secondary);" id="publishBtnDesc">Make course available</div>
+                            <div class="u-fs-12 u-fw-semibold text-dark" id="publishBtnText">Publish Course</div>
+                            <div class="u-fs-11 text-secondary" id="publishBtnDesc">Make course available</div>
                         </div>
                     </a>
 
                     <a href="javascript:void(0);" id="btnDeleteCourse" class="quick-action danger">
-                        <div class="qa-icon" style="background:#fff2f0; color:var(--danger-color);">
+                        <div class="qa-icon qa-icon-danger">
                             <i class="fas fa-trash-alt"></i>
                         </div>
                         <div>
-                            <div style="font-size:12px; font-weight:600; color:var(--text-primary);">Delete Course</div>
-                            <div style="font-size:11px; color:var(--text-secondary);">Remove permanently</div>
+                            <div class="u-fs-12 u-fw-semibold text-dark">Delete Course</div>
+                            <div class="u-fs-11 text-secondary">Remove permanently</div>
                         </div>
                     </a>
 
                 </div>
 
-                <div id="warningMsg" class="mt-3 pt-3 d-none" style="border-top:1px solid var(--border-color); font-size:11px; color:var(--warning-color);">
+                <div id="warningMsg" class="mt-3 pt-3 d-none u-border-top u-fs-11 u-text-warning">
                     <i class="fas fa-exclamation-triangle me-1"></i> Cannot delete an active course.
                 </div>
             </div>
@@ -258,7 +258,7 @@
 
                 if (isActive) {
                     $publishIcon.removeClass("fa-globe").addClass("fa-lock");
-                    $publishIconBox.css({ background: "#fffbe6", color: "var(--warning-color)" });
+                    $publishIconBox.removeClass("qa-icon-muted").addClass("qa-icon-warning");
                     $publishBtnText.text("Close Course");
                     $publishBtnDesc.text("Deactivate — stop new learners");
                     $statusBadge.removeClass("pill-default pill-warning pill-danger pill-info")
@@ -269,7 +269,7 @@
                     $warnMsg.removeClass("d-none");
                 } else {
                     $publishIcon.removeClass("fa-lock").addClass("fa-globe");
-                    $publishIconBox.css({ background: "#fafafa", color: "var(--text-secondary)" });
+                    $publishIconBox.removeClass("qa-icon-warning").addClass("qa-icon-muted");
                     $publishBtnText.text("Publish Course");
                     $publishBtnDesc.text("Make course available");
                     $statusBadge.removeClass("pill-success pill-warning pill-danger pill-info")
@@ -674,7 +674,7 @@
 
             function renderStatusCell(container, value, map) {
                 const status = map[value] || { cls: 'pill-default', text: value || '—' };
-                $(`<span class="status-pill ${status.cls}">${status.text}</span>`).appendTo(container);
+                $(`<span class="tag-pill ${status.cls}">${status.text}</span>`).appendTo(container);
             }
 
             function renderDueDateCell(container, value) {
@@ -719,12 +719,12 @@
 
             function buildVersionActions(version) {
                 const editHref = `${newVersionUrl}?id=${version.id}&courseId=${courseId}`;
-                let actions = `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="${editHref}"><i class="fas fa-edit" style="width:14px;color:var(--warning-color);"></i><span style="font-size:12px;">Edit</span></a>`;
+                let actions = `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="${editHref}"><i class="fas fa-edit version-action-icon warning"></i><span class="u-fs-12">Edit</span></a>`;
 
                 if (!version.isActive) {
-                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${version.id})"><i class="fas fa-check-circle" style="width:14px;color:var(--accent-color);"></i><span style="font-size:12px;">Set Active</span></a>`;
+                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${version.id})"><i class="fas fa-check-circle version-action-icon accent"></i><span class="u-fs-12">Set Active</span></a>`;
                     actions += '<hr class="dropdown-divider my-1">';
-                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${version.id})"><i class="fas fa-trash-alt" style="width:14px;"></i><span style="font-size:12px;">Delete</span></a>`;
+                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${version.id})"><i class="fas fa-trash-alt version-action-icon"></i><span class="u-fs-12">Delete</span></a>`;
                 }
 
                 return actions;
@@ -732,7 +732,7 @@
 
             function buildVersionResourcesHtml(resources) {
                 if (!resources.length) {
-                    return '<span style="font-size:11px;color:var(--text-secondary);opacity:.5;font-style:italic;">No files attached</span>';
+                    return '<span class="version-resource-empty">No files attached</span>';
                 }
 
                 return resources.map(function(resource, index) {
@@ -740,14 +740,14 @@
                     const typeName = escapeHtml(resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam'));
                     const resourceName = escapeHtml(resource.name || 'Unnamed resource');
                     const previewButton = resource.isActive
-                        ? `<a href="javascript:void(0);" onclick="window.viewContent(${resource.id},'${escapeJsString(resource.name)}')" style="font-size:11px;color:var(--accent-color);flex-shrink:0;" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
+                        ? `<a href="javascript:void(0);" onclick="window.viewContent(${resource.id},'${escapeJsString(resource.name)}')" class="version-resource-preview" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
                         : '';
 
                     return `
-                        <div class="d-flex align-items-center gap-2 mb-1" style="padding:4px 8px;border:1px solid var(--border-color);border-radius:3px;font-size:11px;">
-                            <span style="min-width:16px;font-weight:600;color:var(--text-secondary);text-align:center;">${index + 1}</span>
-                            <span class="text-truncate flex-grow-1" style="color:var(--text-primary);font-weight:500;" title="${resourceName}">${resourceName}</span>
-                            <span class="tag-pill ${typeClass}" style="flex-shrink:0;font-size:10px;">${typeName}</span>
+                        <div class="version-resource-item d-flex align-items-center gap-2 mb-1">
+                            <span class="version-resource-index">${index + 1}</span>
+                            <span class="version-resource-name text-truncate flex-grow-1" title="${resourceName}">${resourceName}</span>
+                            <span class="tag-pill tag-pill-xs tag-pill-static ${typeClass}">${typeName}</span>
                             ${previewButton}
                         </div>`;
                 }).join('');
@@ -756,26 +756,26 @@
             function buildVersionCardHtml(version) {
                 const isActive = version.isActive;
                 const badge = isActive
-                    ? '<span class="tag-pill pill-info" style="font-size:10px;"><i class="fas fa-check-circle me-1"></i>Active</span>'
-                    : '<span class="tag-pill pill-default" style="font-size:10px;">Draft</span>';
+                    ? '<span class="tag-pill tag-pill-xs pill-info"><i class="fas fa-check-circle me-1"></i>Active</span>'
+                    : '<span class="tag-pill tag-pill-xs pill-default">Draft</span>';
                 const noteHtml = version.note
                     ? escapeHtml(version.note)
-                    : '<span style="opacity:.4;font-style:italic;">No description</span>';
+                    : '<span class="version-card-empty-note">No description</span>';
 
                 return `
                     <div class="col-md-4 mb-2">
-                        <div style="padding:16px 18px;border:1px solid var(--border-color);border-radius:6px; height:100%; background:${isActive ? '#fafeff' : '#fff'};${isActive ? 'border-left:3px solid var(--accent-color);' : ''}">
+                        <div class="version-card ${isActive ? 'active' : ''}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
-                                    <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Version ${version.versionNumber}</div>
+                                    <div class="version-card-title">Version ${version.versionNumber}</div>
                                     ${badge}
                                 </div>
                                 <div class="dropdown">
-                                    <button class="btn btn-sm p-1 text-secondary" style="background:none;border:none;" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v" style="font-size:11px;"></i></button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1" style="border-radius:4px;min-width:150px;">${buildVersionActions(version)}</ul>
+                                    <button class="btn btn-sm p-1 text-secondary version-card-menu" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v u-fs-11"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 version-card-dropdown">${buildVersionActions(version)}</ul>
                                 </div>
                             </div>
-                            <div style="font-size:11px;color:var(--text-secondary);min-height:28px;padding:6px 0; border-bottom:1px solid var(--border-color);margin-bottom:8px;">${noteHtml}</div>
+                            <div class="version-card-note u-fs-11 text-secondary u-border-bottom">${noteHtml}</div>
                             <div class="cv-res">${buildVersionResourcesHtml(version.resources || [])}</div>
                         </div>
                     </div>`;

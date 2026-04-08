@@ -25,13 +25,27 @@
     #course-selector {
         display: none;
     }
+
+    .assignment-student-panel {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .assignment-student-toolbar {
+        flex: 0 0 auto;
+    }
+
+    .assignment-student-grid-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
 </style>
 
 <!-- ── Page Header ────────────────────────────────────────────────── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="fw-bold text-dark" style="font-size:15px;">@ViewBag.Title</div>
-        <div class="text-secondary" id="lbl-assignment-no" style="font-size:12px;">Loading...</div>
+        <div class="page-title">@ViewBag.Title</div>
+        <div class="page-subtitle" id="lbl-assignment-no">Loading...</div>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
@@ -77,18 +91,18 @@
                     <div class="meta-value" id="lbl-created-by">-</div>
                 </div>
 
-                <div class="d-flex flex-column gap-2 mt-3 pt-3" style="border-top:1px solid var(--border-color);">
+                <div class="d-flex flex-column gap-2 mt-3 pt-3 u-border-top">
                     <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
                        target="_blank" class="action-link">
                         <i class="fas fa-file-alt text-secondary"></i>
                         Export Report
                     </a>
                     <a href="javascript:void(0);" id="btn-extend-due-date" class="action-link">
-                        <i class="fas fa-calendar-plus" style="color:var(--warning-color);"></i>
+                        <i class="fas fa-calendar-plus u-text-warning"></i>
                         Extend Due Date
                     </a>
                     <a href="javascript:void(0);" id="btn-delete-assignment" class="action-link danger">
-                        <i class="fas fa-trash-alt" style="color:var(--danger-color);"></i>
+                        <i class="fas fa-trash-alt u-text-danger"></i>
                         Delete Assignment
                     </a>
                 </div>
@@ -114,13 +128,13 @@
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-completed" style="color:var(--success-color);">0</div>
+                            <div class="stat-value u-text-success" id="stat-completed">0</div>
                             <div class="stat-label">Completed</div>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-inprogress" style="color:var(--warning-color);">0</div>
+                            <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
                             <div class="stat-label">In Progress</div>
                         </div>
                     </div>
@@ -128,7 +142,7 @@
 
                 <div class="border rounded p-3 text-center bg-white mt-auto flex-grow-1 d-flex flex-column justify-content-center">
                     <div class="stat-label mb-1">Overall Completion</div>
-                    <div class="stat-value" id="stat-progress-text" style="color:var(--success-color); font-size: 28px;">0%</div>
+                    <div class="stat-value u-text-success u-fs-28" id="stat-progress-text">0%</div>
                 </div>
             </div>
         </div>
@@ -148,7 +162,7 @@
         <div class="col-xl-4">
             <div class="border rounded bg-white h-100 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="section-title mb-0" style="border:none; padding:0;">Courses</div>
+                    <div class="section-title section-title-plain mb-0">Courses</div>
                     <div class="d-flex align-items-center gap-2">
              
                         <a href="javascript:void(0);" id="btn-add-course" class="action-link" title="Add course">
@@ -156,27 +170,29 @@
                         </a>
                     </div>
                 </div>
-                <div id="course-list" class="d-flex flex-column" style="max-height:420px; overflow-y:auto;"></div>
+                <div id="course-list" class="d-flex flex-column u-maxh-420 u-overflow-y-auto"></div>
             </div>
         </div>
 
         <!-- Student DataGrid -->
         <div class="col-xl-8">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="section-title mb-0" style="border:none; padding:0;">
+            <div class="border rounded bg-white h-100 p-3 assignment-student-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3 assignment-student-toolbar">
+                    <div class="section-title section-title-plain mb-0">
                         Student
                         <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
-                              style="font-size:11px; text-transform:none; letter-spacing:0;">— All</span>
+                              class="u-fs-11 u-text-transform-none u-letter-spacing-0">— All</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <div id="course-selector" style="width:220px;"></div>
+                        <div id="course-selector" class="u-w-220"></div>
                         <a href="javascript:void(0);" id="btn-add-students" class="action-link" title="Add students">
                             <i class="fas fa-user-plus text-secondary"></i> Add Student
                         </a>
                     </div>
                 </div>
-                <div id="student-grid"></div>
+                <div class="assignment-student-grid-wrap">
+                    <div id="student-grid"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -484,7 +500,7 @@
             ? "#ffa39e"
             : getProgressColor(percent);
         const deletedBadge = course.isCourseDeleted
-            ? `<span class="status-pill ms-1" style="background:#fff1f0;border:1px solid #ffa39e;color:var(--danger-color);font-size:9px;"><i class="fas fa-trash-alt me-1"></i>Deleted</span>`
+            ? `<span class="tag-pill tag-pill-xs pill-danger ms-1"><i class="fas fa-trash-alt me-1"></i>Deleted</span>`
             : "";
 
         return `
@@ -493,23 +509,23 @@
                  style="border-left-color:${leftColor}; ${course.isCourseDeleted ? "opacity:0.75;" : ""}">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center flex-wrap gap-1">
-                        <span class="fw-bold" style="font-size:11px; ${course.isCourseDeleted ? "text-decoration:line-through;color:var(--danger-color);" : ""}">${course.courseCode}</span>
-                        <span class="text-secondary ms-1" style="font-size:11px;">${course.courseTitle}</span>
+                        <span class="fw-bold u-fs-11" style="${course.isCourseDeleted ? "text-decoration:line-through;color:var(--danger-color);" : ""}">${course.courseCode}</span>
+                        <span class="text-secondary ms-1 u-fs-11">${course.courseTitle}</span>
                         ${deletedBadge}
                     </div>
                     <div class="d-flex align-items-center gap-2 ms-2">
                         <span class="fw-bold" style="font-size:11px; color:${leftColor}; white-space:nowrap;">${percent}%</span>
-                        <a href="javascript:void(0);" class="action-link btn-remove-course" data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}" style="padding:2px 8px; font-size:11px;">
-                            <i class="fas fa-trash-alt" style="color:var(--danger-color);"></i>
+                        <a href="javascript:void(0);" class="action-link action-link-xs btn-remove-course" data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
+                            <i class="fas fa-trash-alt u-text-danger"></i>
                         </a>
                     </div>
                 </div>
                 <div class="progress-slim">
                     <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
                 </div>
-                <div class="d-flex gap-3 mt-2" style="font-size:11px; color:var(--text-secondary);">
-                    <span style="color:var(--success-color);">✓ ${course.completedStudents}</span>
-                    <span style="color:var(--text-secondary);">◐ ${course.totalStudents - course.completedStudents}</span>
+                <div class="d-flex gap-3 mt-2 u-fs-11 text-secondary">
+                    <span class="u-text-success">✓ ${course.completedStudents}</span>
+                    <span class="text-secondary">◐ ${course.totalStudents - course.completedStudents}</span>
                     <span class="ms-auto">${course.totalStudents} students</span>
                 </div>
             </div>`;
@@ -533,6 +549,7 @@
     function initializeStudentGrid(students) {
         initDxGrid("#student-grid", {
             preset: "compactGrid",
+            minVisibleRows: 8,
             dataSource: students,
             rowAlternationEnabled: false,
             filterRow: { visible: false },
@@ -605,9 +622,8 @@
                     cellTemplate: function(container, options) {
                         $("<a>")
                             .attr("href", "javascript:void(0);")
-                            .addClass("action-link")
-                            .css({ padding: "3px 8px", fontSize: "11px" })
-                            .html('<i class="fas fa-user-minus" style="color:var(--danger-color);"></i>')
+                            .addClass("action-link action-link-xs")
+                            .html('<i class="fas fa-user-minus u-text-danger"></i>')
                             .on("click", function(e) {
                                 e.preventDefault();
                                 confirmRemoveStudent(options.data.studentCode, options.data.studentName || options.data.studentCode);
@@ -889,7 +905,7 @@
         DevExpress.ui.dialog.confirm(
             `<div class="py-2">
                 <div class="fw-bold mb-1">Delete this assignment?</div>
-                <div class="text-muted" style="font-size:12px;">
+                <div class="text-muted dialog-body-sm">
                     All related enrollments will be permanently removed.
                 </div>
             </div>`,

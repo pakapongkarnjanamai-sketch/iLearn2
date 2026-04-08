@@ -290,7 +290,7 @@
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Title</span><span class="tl-tooltip-value">${$("<span>").text(task.title || "—").html()}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Period</span><span class="tl-tooltip-value">${fmtDate(task._start)} — ${fmtDate(task._end)}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Progress</span><span class="tl-tooltip-value">${task.progress}%</span></div>
-                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Status</span><span class="status-pill ${pill}">${task.status}</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Status</span><span class="tag-pill ${pill}">${task.status}</span></div>
             `;
             $("#tl-tooltip").html(html).show();
             moveTooltip(ev);

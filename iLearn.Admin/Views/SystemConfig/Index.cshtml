@@ -5,9 +5,9 @@
 
     string EnvBadge(string env) => env switch
     {
-        "Production"  => "status-pill green",
-        "Staging"     => "status-pill yellow",
-        _             => "status-pill blue",
+        "Production"  => "tag-pill green",
+        "Staging"     => "tag-pill yellow",
+        _             => "tag-pill blue",
     };
     string LogLevelClass(string level) => level switch
     {
@@ -30,22 +30,22 @@
     <div class="d-flex align-items-center gap-2">
         @if (Model.ApiReachable)
         {
-            <span class="tag-pill green"><i class="fas fa-circle me-1" style="font-size:8px;"></i> API Online</span>
+            <span class="tag-pill green"><i class="fas fa-circle tag-pill-icon-xs me-1"></i> API Online</span>
         }
         else if (Model.ApiConfigFallbackUsed)
         {
-            <span class="tag-pill yellow"><i class="fas fa-triangle-exclamation me-1" style="font-size:10px;"></i> API Config Fallback</span>
+            <span class="tag-pill yellow"><i class="fas fa-triangle-exclamation tag-pill-icon-sm me-1"></i> API Config Fallback</span>
         }
         else
         {
-            <span class="tag-pill red"><i class="fas fa-circle me-1" style="font-size:8px;"></i> API Unreachable</span>
+            <span class="tag-pill red"><i class="fas fa-circle tag-pill-icon-xs me-1"></i> API Unreachable</span>
         }
         @if (!string.IsNullOrWhiteSpace(Model.ApiSource))
         {
-            <span class="tag-pill blue"><i class="fas fa-database me-1" style="font-size:10px;"></i> @Model.ApiSource</span>
+            <span class="tag-pill blue"><i class="fas fa-database tag-pill-icon-sm me-1"></i> @Model.ApiSource</span>
         }
         <span class="@EnvBadge(Model.AdminEnvironment)">
-            <i class="fas fa-circle me-1" style="font-size:8px;"></i> @Model.AdminEnvironment
+            <i class="fas fa-circle tag-pill-icon-xs me-1"></i> @Model.AdminEnvironment
         </span>
     </div>
 </div>
@@ -275,7 +275,7 @@
         <div class="col-lg-6">
             <div class="panel">
                 <div class="panel-header">
-                    <i class="fas fa-list-alt me-2 text-primary"></i>Logging — Admin App
+                    <i class="fas fa-list-alt me-2 text-primary"></i>Logging ï¿½ Admin App
                 </div>
                 <div class="panel-body">
                     <table class="config-table">
@@ -299,7 +299,7 @@
             <div class="col-lg-6">
                 <div class="panel">
                     <div class="panel-header">
-                        <i class="fas fa-list-alt me-2 text-primary"></i>Logging — API App
+                        <i class="fas fa-list-alt me-2 text-primary"></i>Logging ï¿½ API App
                     </div>
                     <div class="panel-body">
                         <table class="config-table">
@@ -390,26 +390,5 @@
         border-color: #91caff;
     }
 
-    /* Tag/Status Pill Ant Design Standard */
-    .tag-pill, .status-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0 8px;
-        font-size: 12px;
-        line-height: 20px;
-        border-radius: 4px;
-        white-space: nowrap;
-        font-weight: 400;
-    }
-
-    .tag-pill.purple { background: #f9f0ff; color: #531dab; border: 1px solid #d3adf7; }
-    .tag-pill.blue   { background: #e6f4ff; color: #0050b3; border: 1px solid #91caff; }
-    .tag-pill.green  { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
-    .tag-pill.yellow { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
-    .tag-pill.red    { background: #fff2f0; color: #cf1322; border: 1px solid #ffa39e; }
-
-    .status-pill.green  { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
-    .status-pill.yellow { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
-    .status-pill.blue   { background: #e6f4ff; color: #0050b3; border: 1px solid #91caff; }
 </style>
 }
