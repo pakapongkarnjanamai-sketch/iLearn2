@@ -7,13 +7,18 @@
 }
 
 <style>
+    /* ── Shell & Layout ── */
     .assign-page-shell {
-        --assign-grid-height: clamp(420px, calc(100vh - 240px), 600px);
         min-height: calc(100vh - 120px);
         padding-top: 16px !important;
         padding-bottom: 64px !important;
     }
 
+    .assign-main-card {
+        min-height: calc(100vh - 280px);
+    }
+
+    /* ── Wizard Steps ── */
     .assign-wizard-steps {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -65,17 +70,13 @@
         margin-top: 2px;
     }
 
-    .assign-content-card,
+    /* ── Cards ── */
     .assign-summary-card,
     .assign-review-card,
     .assign-conflict-card {
         border: 1px solid var(--border-color);
         border-radius: 4px;
         background: #fff;
-    }
-
-    .assign-content-card {
-        padding: 8px;
     }
 
     .assign-meta-card {
@@ -85,25 +86,22 @@
         padding: 12px;
     }
 
-    .assign-main-card {
-        min-height: calc(100vh - 340px);
+    .assign-summary-card,
+    .assign-review-card,
+    .assign-conflict-card {
+        padding: 12px;
     }
 
-    .assign-main-card.is-fit-content {
-        min-height: auto;
-    }
-
+    /* ── Panels ── */
     .assign-panel {
         display: none;
-        height: 100%;
     }
 
     .assign-panel.active {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+        display: block;
     }
 
+    /* ── Snapshot Meta ── */
     .assign-meta-item {
         padding: 8px 0;
         border-bottom: 1px solid var(--border-color);
@@ -127,42 +125,28 @@
         color: var(--text-primary);
     }
 
-    .assign-summary-card,
-    .assign-review-card,
-    .assign-conflict-card {
-        padding: 12px;
-    }
-
+    /* ── Selection Layout (Filter + Grid) ── */
     .assign-selection-layout {
         display: grid;
         grid-template-columns: 240px minmax(0, 1fr);
         gap: 12px;
-        flex: 1;
-        min-height: 0;
-        align-items: stretch;
-    }
-
-    .assign-filter-shell,
-    .assign-grid-shell {
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fff;
     }
 
     .assign-filter-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
         background: #fafafa;
         padding: 12px;
         height: 100%;
     }
 
     .assign-grid-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
     }
 
-   
     .assign-grid-head {
         display: flex;
         align-items: center;
@@ -186,23 +170,19 @@
         color: var(--text-secondary);
     }
 
-    .assign-grid-body {
-        padding: 0;
-        height: var(--assign-grid-height);
-        flex: 0 0 auto;
-        min-height: 0;
-    }
-
+    /* ── Inline Grids (direct clamp height like sg-student-grid) ── */
     .assign-inline-grid {
-        height: 100%;
-        min-height: 0;
+        height: clamp(300px, calc(100vh - 460px), 420px);
+        min-height: 300px;
     }
 
-    .assign-inline-grid.assign-inline-grid-groups {
-        height: 100%;
-        min-height: 0;
+    .assign-inline-actions {
+        padding: 10px 12px;
+        border-top: 1px solid var(--border-color);
+        background: #fff;
     }
 
+    /* ── Target Mode ── */
     .assign-target-mode-bar {
         display: flex;
         align-items: center;
@@ -216,12 +196,27 @@
         color: var(--text-secondary);
     }
 
-    .assign-inline-actions {
-        padding: 10px 12px;
-        border-top: 1px solid var(--border-color);
-        background: #fff;
+    .target-mode-btn {
+        background: var(--bg-secondary, #fafafa);
+        border: 1px solid var(--border-color, #f0f0f0);
+        color: var(--text-secondary, #8c8c8c);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 10px;
+        transition: all 0.15s;
     }
 
+    .target-mode-btn:hover {
+        border-color: var(--primary-color, #0050b3);
+        color: var(--primary-color, #0050b3);
+    }
+
+    .target-mode-btn.active {
+        background: var(--primary-color, #0050b3);
+        color: #fff;
+    }
+
+    /* ── Summary Grid (Review Step) ── */
     .assign-summary-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -250,6 +245,7 @@
         margin-top: 6px;
     }
 
+    /* ── Detail Grid (Review Step) ── */
     .assign-detail-grid {
         display: grid;
         grid-template-columns: 1.4fr 1fr;
@@ -277,6 +273,7 @@
         color: var(--text-primary);
     }
 
+    /* ── Conflict Lists ── */
     .assign-conflict-card + .assign-conflict-card {
         margin-top: 12px;
     }
@@ -285,7 +282,7 @@
         list-style: none;
         margin: 0;
         padding: 0;
-        max-height: 160px;
+        max-height: clamp(120px, calc(100vh - 520px), 200px);
         overflow-y: auto;
     }
 
@@ -301,24 +298,7 @@
         border-bottom: none;
     }
 
-    .target-mode-btn {
-        background: var(--bg-secondary, #fafafa);
-        border: 1px solid var(--border-color, #f0f0f0);
-        color: var(--text-secondary, #8c8c8c);
-        font-size: 11px;
-        font-weight: 500;
-        padding: 2px 10px;
-        transition: all 0.15s;
-    }
-    .target-mode-btn:hover {
-        border-color: var(--primary-color, #0050b3);
-        color: var(--primary-color, #0050b3);
-    }
-    .target-mode-btn.active {
-        background: var(--primary-color, #0050b3);
-        color: #fff;
-    }
-
+    /* ── Form Overrides ── */
     .dx-layout-manager .dx-field-item {
         padding-bottom: 12px;
     }
@@ -328,6 +308,7 @@
         font-size: 13px;
     }
 
+    /* ── Responsive ── */
     @@media (max-width: 991.98px) {
         .assign-page-shell {
             min-height: auto;
@@ -353,19 +334,11 @@
 
     @@media (max-width: 767.98px) {
         .assign-page-shell {
-            --assign-grid-height: clamp(280px, calc(100vh - 340px), 380px);
             padding-bottom: 156px !important;
         }
 
-        .assign-inline-grid,
-        .assign-inline-grid.assign-inline-grid-groups {
-            height: 100%;
-        }
-
-       
-
-        .assign-grid-body {
-            min-height: var(--assign-grid-height);
+        .assign-inline-grid {
+            height: clamp(280px, calc(100vh - 340px), 380px);
         }
     }
 </style>
@@ -435,7 +408,7 @@
         </div>
 
         <div class="col-xl-9">
-            <div class="assign-content-card assign-main-card is-fit-content" id="wizard-main-card">
+            <div class="border rounded bg-white p-2 assign-main-card" id="wizard-main-card">
         <div id="step-panel-1" class="assign-panel active">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
@@ -468,9 +441,7 @@
                         <div class="assign-grid-title">Course Catalog</div>
                         <div class="assign-grid-note" id="course-selection-note">No course selected</div>
                     </div>
-                    <div class="assign-grid-body">
-                        <div id="grid-courses-inline" class="assign-inline-grid"></div>
-                    </div>
+                    <div id="grid-courses-inline" class="assign-inline-grid"></div>
                 </div>
             </div>
         </div>
@@ -524,9 +495,7 @@
                             <div class="assign-grid-title">Student Directory</div>
                             <div class="assign-grid-note" id="student-selection-note">No student selected</div>
                         </div>
-                        <div class="assign-grid-body">
-                            <div id="grid-students-inline" class="assign-inline-grid"></div>
-                        </div>
+                        <div id="grid-students-inline" class="assign-inline-grid"></div>
                     </div>
                 </div>
             </div>
@@ -537,9 +506,7 @@
                         <div class="assign-grid-title">Student Groups</div>
                         <div class="assign-grid-note" id="group-selection-note">No group selected</div>
                     </div>
-                    <div class="assign-grid-body">
-                        <div id="grid-groups-inline" class="assign-inline-grid assign-inline-grid-groups"></div>
-                    </div>
+                    <div id="grid-groups-inline" class="assign-inline-grid"></div>
                     <div class="assign-inline-actions d-none" id="group-reset-row">
                         <a href="javascript:void(0);" class="action-link text-danger small" id="btn-reset-group">
                             <i class="fas fa-times me-1"></i> Clear selection
@@ -1281,7 +1248,6 @@
                         .toggleClass("complete", cardStep < step);
                 });
 
-                $("#wizard-main-card").toggleClass("is-fit-content", step === 3 || step === 4);
                 $("#btn-prev-step").toggleClass("d-none", step === 1);
                 $("#btn-next-step").toggleClass("d-none", !(step === 1 || step === 2));
                 $("#btn-review-step").toggleClass("d-none", step !== 3);
