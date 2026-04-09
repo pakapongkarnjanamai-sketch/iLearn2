@@ -660,7 +660,7 @@
             $("#btn-reset-group").click(() => clearGroupSelection(true));
 
             if (initialGroupId) {
-                window.switchTargetMode('group');
+                switchTargetMode('group');
                 $.ajax({
                     url: `${serviceUrl}/StudentGroups/${initialGroupId}`,
                     method: "GET",
@@ -975,7 +975,7 @@
                 });
             }
 
-            window.switchTargetMode = function(mode) {
+            function switchTargetMode(mode) {
                 currentTargetMode = mode;
                 $(".target-mode-btn").removeClass("active");
                 $(`#mode-${mode}`).addClass("active");
@@ -988,7 +988,9 @@
                 }
                 updateTargetModeNote();
                 refreshVisibleSelectionGrids();
-            };
+            }
+
+            window.switchTargetMode = switchTargetMode;
 
             function refreshGridInstance(gridInstance) {
                 if (!gridInstance) {
