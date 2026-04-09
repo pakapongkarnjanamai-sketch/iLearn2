@@ -4,10 +4,10 @@
 }
 
 <!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
         <div class="page-title">@ViewBag.Title</div>
-        <div class="page-subtitle">@(isEdit ? "Update group name and description." : "Create a new reusable group of learners.")</div>
+        <div class="page-subtitle">@(isEdit ? "Update reusable group information for course assignments." : "Create a reusable group for course assignments.")</div>
     </div>
     <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
         <i class="fas fa-arrow-left text-secondary"></i> Back
@@ -18,16 +18,31 @@
     <div id="load-panel"></div>
 
     <!-- Group Information -->
-    <div class="border rounded bg-white p-3">
-        <div class="section-title">Group Information</div>
-        <div id="form-container"></div>
-
-        <div class="text-end mt-3 pt-3 u-border-top">
-            <a href="javascript:void(0);" id="btn-save" class="action-link primary">
-                <i class="fas fa-save"></i> Save
-            </a>
+    <div class="border rounded bg-white d-flex flex-column">
+        <div class="p-3">
+            <div class="admin-section-header">
+                <div class="admin-section-header-main">
+                    <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
+                </div>
+                <div class="admin-section-divider"></div>
+            </div>
+        </div>
+        <div class="px-3 pb-3">
+            <div id="form-container"></div>
         </div>
     </div>
+</div>
+
+<!-- ── Fixed Bottom Toolbar ── -->
+<div class="bottom-toolbar">
+    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
+        <i class="fas fa-check-circle u-text-success"></i>
+        Review group information before saving.
+    </span>
+    <a href="@Url.Action("Index", "StudentGroups")" class="action-link">Cancel</a>
+    <a href="javascript:void(0);" id="btn-save" class="action-link primary">
+        <i class="fas fa-save"></i> @(isEdit ? "Save Changes" : "Create Group")
+    </a>
 </div>
 
 @section Scripts {
@@ -42,9 +57,12 @@
 
     $(() => {
         const loadPanel = $("#load-panel").dxLoadPanel({
-            shadingColor: "rgba(255,255,255,0.6)",
-            position: { of: ".page-shell-sm" },
-            visible: false
+            shadingColor: "rgba(255,255,255,0.8)",
+            position: { of: "body" },
+            visible: false,
+            showIndicator: true,
+            showPane: true,
+            shading: true
         }).dxLoadPanel("instance");
 
         formInstance = $("#form-container").dxForm({

@@ -252,7 +252,7 @@
                     $("<span>").addClass("tl-bar-text").text(task.title || task.assignmentNo).appendTo($bar);
                 }
                 if (widthPx > 40) {
-                    $("<span>").addClass("tl-bar-pct").text(`${task.progress}%`).appendTo($bar);
+                    $("<span>").addClass("tl-bar-pct").text(window.formatAdminPercentage(task.progress, '0%')).appendTo($bar);
                 }
 
                 // events
@@ -291,7 +291,7 @@
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Assignment</span><span class="tl-tooltip-value">${task.assignmentNo || "—"}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Title</span><span class="tl-tooltip-value">${$("<span>").text(task.title || "—").html()}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Period</span><span class="tl-tooltip-value">${fmtDate(task._start)} — ${fmtDate(task._end)}</span></div>
-                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Progress</span><span class="tl-tooltip-value">${task.progress}%</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Progress</span><span class="tl-tooltip-value">${window.formatAdminPercentage(task.progress, '0%')}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Status</span><span class="tag-pill ${pill}">${task.status}</span></div>
             `;
             $("#tl-tooltip").html(html).show();
@@ -328,7 +328,7 @@
                 t.title || "—",
                 fmtDate(t._start),
                 fmtDate(t._end),
-                `${t.progress}%`,
+                window.formatAdminPercentage(t.progress, '0%'),
                 t.status
             ]);
 

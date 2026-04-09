@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Manage Group Members";
+    ViewBag.Title = "Student Group";
     var groupId = ViewBag.GroupId is int gid ? gid : 0;
 }
 
@@ -14,7 +14,7 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title" id="page-title">Manage Group Members</div>
+        <div class="page-title" id="page-title">Student Group</div>
         <div class="page-subtitle" id="page-subtitle">Loading...</div>
     </div>
     <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
@@ -29,7 +29,7 @@
         <!-- Group Info -->
         <div class="col-lg-3">
             <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Group Info</div>
+                <div class="section-title">Info</div>
 
                 <div class="meta-item">
                     <div class="meta-label">Group Name</div>
@@ -52,49 +52,39 @@
             </div>
         </div>
 
-        <!-- Stat Cards -->
-        <div class="col-lg-3">
+        <!-- Summary -->
+        <div class="col-lg-6">
             <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
                 <div class="section-title">Summary</div>
                 <div class="row g-2 text-center mb-3">
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value" id="stat-total-members">0</div>
                             <div class="stat-label">Members</div>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value" id="stat-total-assignments">0</div>
                             <div class="stat-label">Assignments</div>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value u-text-success" id="stat-completed">0</div>
                             <div class="stat-label">Completed</div>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
                             <div class="stat-label">In Progress</div>
                         </div>
                     </div>
                 </div>
-
-                <div class="border rounded p-3 text-center bg-white mt-auto flex-grow-1 d-flex flex-column justify-content-center">
-                    <div class="stat-label mb-1">Avg. Completion</div>
-                    <div class="stat-value u-text-success u-fs-28" id="stat-avg-completion">0%</div>
+                <div class="d-flex align-items-stretch justify-content-center flex-grow-1 px-3 pt-3 pb-3" style="min-height:240px;">
+                    <div id="status-pie-chart" style="width:100%;height:100%;min-height:240px;"></div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Pie Chart -->
-        <div class="col-lg-3">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Assignment Status</div>
-                <div id="status-pie-chart" style="height:220px;"></div>
             </div>
         </div>
 
@@ -108,7 +98,7 @@
                         <div class="qa-icon qa-icon-success"><i class="fas fa-user-plus"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Add Members</div>
-                            <div class="u-fs-11 text-secondary">Add learners to this group</div>
+                            <div class="u-fs-11 text-secondary">Add students to this group</div>
                         </div>
                     </a>
 
@@ -116,14 +106,14 @@
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-book-open"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Assign Course</div>
-                            <div class="u-fs-11 text-secondary">Assign course to all members</div>
+                            <div class="u-fs-11 text-secondary">Assign courses to this group</div>
                         </div>
                     </a>
 
                     <a href="@Url.Action("Form", "StudentGroups")?id=@groupId" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-edit"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Edit Group</div>
+                            <div class="u-fs-12 u-fw-semibold">Edit Student Group</div>
                             <div class="u-fs-11 text-secondary">Change name or description</div>
                         </div>
                     </a>
@@ -131,8 +121,8 @@
                     <a href="javascript:void(0);" id="btn-delete-group" class="quick-action danger">
                         <div class="qa-icon qa-icon-danger"><i class="fas fa-trash-alt"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Delete Group</div>
-                            <div class="u-fs-11 text-secondary">Remove group and all members</div>
+                            <div class="u-fs-12 u-fw-semibold">Delete Student Group</div>
+                            <div class="u-fs-11 text-secondary">Delete this group and its members</div>
                         </div>
                     </a>
 
@@ -236,7 +226,7 @@
                     type: "buttons", caption: "Actions", width: 90,
                     alignment: "center", fixed: true, fixedPosition: "right",
                     buttons: [{
-                        hint: "Remove from group", icon: "remove",
+                        hint: "Remove from student group", icon: "remove",
                         onClick: e => confirmRemoveMember(e.row.data)
                     }]
                 }
@@ -336,7 +326,7 @@
         let confirmAddFn = null;
 
         const addPopup = $("#popup-add-members").dxPopup({
-            title: "Add Members to Group",
+            title: "Add Members to Student Group",
             width: "90vw", maxWidth: 1200, height: "85vh",
             showCloseButton: true, dragEnabled: true,
             deferRendering: false,
@@ -529,7 +519,7 @@
                 {
                     widget: "dxButton", toolbar: "bottom", location: "after",
                     options: {
-                        text: "Add to Group", type: "default", stylingMode: "contained",
+                        text: "Add to Student Group", type: "default", stylingMode: "contained",
                         elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
                         onClick: () => confirmAddFn && confirmAddFn()
                     }
@@ -541,7 +531,7 @@
 
         window.confirmRemoveMember = function (data) {
             DevExpress.ui.dialog.confirm(
-                `Remove <b>${data.studentName || data.studentCode}</b> from this group?`,
+                `Remove <b>${data.studentName || data.studentCode}</b> from this student group?`,
                 "Confirm Remove"
             ).then(async function (confirmed) {
                 if (!confirmed) {
@@ -565,8 +555,8 @@
 
         $("#btn-delete-group").click(function () {
             DevExpress.ui.dialog.confirm(
-                `<b>Delete this group?</b><br>
-                 <small class="text-muted">All members in this group will also be removed.</small>`,
+                `<b>Delete this student group?</b><br>
+                 <small class="text-muted">All members in this student group will also be removed.</small>`,
                 "Confirm Delete"
             ).then(async function (confirmed) {
                 if (!confirmed) {
@@ -580,10 +570,10 @@
                         xhrFields: { withCredentials: true }
                     });
 
-                    showToast("Group deleted.", "success");
+                    showToast("Student group deleted.", "success");
                     window.location.href = INDEX_URL;
                 } catch {
-                    showToast("Failed to delete group.", "error");
+                    showToast("Failed to delete student group.", "error");
                 }
             });
         });
@@ -611,7 +601,7 @@
             // Group Info panel
             $("#summary-name").text(g.name || EMPTY_TEXT);
             $("#summary-description").text(g.description || "No description");
-            $("#summary-member-count").text(`${members.length} member${members.length !== 1 ? "s" : ""}`);
+            $("#summary-member-count").text(window.formatAdminCountLabel(members.length, 'member'));
             $("#summary-created-by").text(g.createdBy || EMPTY_TEXT);
 
             // Stat: Members
@@ -678,12 +668,9 @@
         const avgCompletion = total > 0
             ? Math.round(assignments.reduce(function(sum, a) { return sum + (a.completionPct || 0); }, 0) / total)
             : 0;
-        $("#stat-avg-completion").text(`${avgCompletion}%`);
-
-        // Pie chart
         $("#status-pie-chart").dxPieChart({
             type: "doughnut",
-            innerRadius: 0.7,
+            innerRadius: 0.65,
             palette: ["#52c41a", "#1890ff", "#faad14", "#ff4d4f"],
             dataSource: [
                 { status: "Completed", count: completed },
@@ -691,24 +678,44 @@
                 { status: "Upcoming", count: upcoming },
                 { status: "Expired", count: expired }
             ],
+            centerTemplate: function(pieChart, container) {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+                const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                label.setAttribute("text-anchor", "middle");
+                label.setAttribute("y", "-6");
+                label.setAttribute("style", "font-size:11px;fill:#8c8c8c;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;");
+                label.textContent = "Avg. Completion";
+
+                const value = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                value.setAttribute("text-anchor", "middle");
+                value.setAttribute("y", "18");
+                value.setAttribute("style", "font-size:22px;fill:#52c41a;font-weight:700;");
+                value.textContent = window.formatAdminPercentage(avgCompletion, '0%');
+
+                svg.appendChild(label);
+                svg.appendChild(value);
+                container.appendChild(svg);
+            },
             series: [{
                 argumentField: "status",
                 valueField: "count",
                 label: {
                     visible: true,
+                    position: "outside",
                     connector: { visible: true },
                     format: { type: "fixedPoint", precision: 0 },
-                    font: { size: 11 },
+                    font: { size: 11, color: "#595959" },
                     customizeText: function(point) {
-                        return point.value > 0 ? `${point.argumentText}: ${point.value}` : "";
+                        return point.value > 0 ? `${point.valueText} (${point.percentText})` : "";
                     }
                 }
             }],
             legend: {
                 horizontalAlignment: "right",
-                verticalAlignment: "center",
-                margin: 0,
-                font: { size: 12, color: "#595959" }
+                verticalAlignment: "bottom",
+                margin: 12,
+                font: { size: 11, color: "#595959" }
             },
             tooltip: { enabled: true }
         });
@@ -719,7 +726,7 @@
     }
 
     function formatDate(value) {
-        return value ? new Date(value).toLocaleDateString("en-GB") : EMPTY_TEXT;
+        return window.formatAdminDate(value, EMPTY_TEXT);
     }
 
     function truncateText(text, maxLength) {
@@ -760,7 +767,7 @@
                     fontWeight: "600",
                     minWidth: "32px",
                     color: "var(--text-secondary)"
-                }).text(`${progress}%`)
+                }).text(window.formatAdminPercentage(progress, '0%'))
             )
             .appendTo(container);
     }
@@ -800,7 +807,7 @@
         });
 
         if (courses.length > 2) {
-            appendText(wrapper, `+${courses.length - 2} more`, { fontSize: "11px", color: "var(--text-secondary)" });
+            appendText(wrapper, window.formatAdminCountLabel(courses.length - 2, 'more', 'more', '0 more', { prefix: '+' }), { fontSize: "11px", color: "var(--text-secondary)" });
         }
     }
 

@@ -5,11 +5,11 @@
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title" id="pageTitle">Course Dashboard</div>
-        <div class="page-subtitle" id="pageSubtitle">Manage course information and versions</div>
+        <div class="page-title" id="pageTitle">Course Detail</div>
+        <div class="page-subtitle" id="pageSubtitle">Loading...</div>
     </div>
     <a href="@Url.Action("Index", "Courses")" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back to Courses
+        <i class="fas fa-arrow-left text-secondary"></i> Back
     </a>
 </div>
 
@@ -18,18 +18,25 @@
     <div class="row g-3 mb-4">
 
         <div class="col-lg-8">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="section-title section-title-plain mb-0">Course Information</div>
-                    <span id="courseStatusBadge" class="tag-pill pill-default">
-                        <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
-                    </span>
+            <div class="border rounded bg-white h-100 d-flex flex-column">
+                <div class="p-3">
+                    <div class="admin-section-header">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Course Information</div>
+                            <span id="courseStatusBadge" class="tag-pill pill-default admin-section-status">
+                                <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
+                            </span>
+                        </div>
+                        <div class="admin-section-divider"></div>
+                    </div>
                 </div>
-                <div id="courseInfoForm"></div>
-                <div class="text-end mt-3 pt-3 u-border-top">
-                    <a href="javascript:void(0);" id="btnSaveCourse" class="action-link primary">
-                        <i class="fas fa-save"></i> Save Changes
-                    </a>
+                <div class="px-3 pb-3 d-flex flex-column flex-grow-1">
+                    <div id="courseInfoForm"></div>
+                    <div class="text-end mt-3 pt-3 u-border-top">
+                        <a href="javascript:void(0);" id="btnSaveCourse" class="action-link primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,6 +97,13 @@
     </div>
 
     <div class="border rounded bg-white p-3">
+        <div class="admin-section-header mb-3">
+            <div class="admin-section-header-main">
+                <div class="section-title mb-0 admin-section-title-fill">Course Versions</div>
+                <span class="tag-pill pill-default admin-section-meta" id="versionsCountBadge">0 Versions</span>
+            </div>
+            <div class="admin-section-divider"></div>
+        </div>
         <div id="versionsToolbar" class="mb-3"></div>
         <div id="versionsCardContainer" class="row g-3"></div>
     </div>
@@ -370,6 +384,7 @@
 
             function renderVersionCards(versions) {
                 versionsData = versions || [];
+                updateVersionsCountBadge(versionsData.length);
 
                 if (!$("#versionsToolbar").hasClass("dx-toolbar")) {
                     $("#versionsToolbar").dxToolbar({
@@ -410,6 +425,7 @@
                 $container.empty();
 
                 const filteredVersions = versionsData.filter(version => matchesVersionSearch(version, searchText));
+                updateVersionsCountBadge(filteredVersions.length);
 
                 if (filteredVersions.length === 0) {
                     $container.html('<div class="col-12 text-center text-secondary py-4">No versions found.</div>');
@@ -597,8 +613,12 @@
             }
 
             function updateCourseHeader(courseName, courseCode) {
-                $("#pageTitle").text(courseName || 'Course Dashboard');
-                $("#pageSubtitle").text(courseCode ? `Code: ${courseCode}` : 'Manage course information and versions');
+                $("#pageTitle").text(courseName || 'Course Detail');
+                $("#pageSubtitle").text(courseCode ? `Code: ${courseCode}` : 'Course information and versions');
+            }
+
+            function updateVersionsCountBadge(count) {
+                $("#versionsCountBadge").text(window.formatAdminCountLabel(count, 'version'));
             }
 
             function getApiErrorMessage(xhr, fallbackMessage) {
@@ -626,7 +646,7 @@
             }
 
             function formatDate(value) {
-                return value ? new Date(value).toLocaleDateString('en-GB') : '—';
+                return window.formatAdminDate(value, '—');
             }
 
             function truncateText(value, maxLength) {
@@ -667,7 +687,7 @@
                             fontWeight: '600',
                             minWidth: '32px',
                             color: 'var(--text-secondary)'
-                        }).text(`${progress}%`)
+                        }).text(window.formatAdminPercentage(progress, '0%'))
                     )
                     .appendTo(container);
             }
@@ -767,8 +787,8 @@
                         <div class="version-card ${isActive ? 'active' : ''}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
-                                    <div class="version-card-title">Version ${version.versionNumber}</div>
-                                    ${badge}
+                                    <div class="version-card-title"> ${badge} Version ${version.versionNumber}</div>
+                                   
                                 </div>
                                 <div class="dropdown">
                                     <button class="btn btn-sm p-1 text-secondary version-card-menu" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v u-fs-11"></i></button>

@@ -26,18 +26,9 @@
         display: none;
     }
 
-    .assignment-student-panel {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .assignment-student-toolbar {
-        flex: 0 0 auto;
-    }
-
-    .assignment-student-grid-wrap {
+    .assignment-panel-title {
         flex: 1 1 auto;
-        min-height: 0;
+        min-width: 0;
     }
 </style>
 
@@ -97,49 +88,39 @@
             </div>
         </div>
 
-        <!-- Stat Cards -->
-        <div class="col-lg-3">
+        <!-- Summary + Status Distribution -->
+        <div class="col-lg-6">
             <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
                 <div class="section-title">Summary</div>
                 <div class="row g-2 text-center mb-3">
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value" id="stat-total-emp">0</div>
                             <div class="stat-label">Students</div>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value" id="stat-total-courses">0</div>
                             <div class="stat-label">Courses</div>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value u-text-success" id="stat-completed">0</div>
                             <div class="stat-label">Completed</div>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
                             <div class="stat-label">In Progress</div>
                         </div>
                     </div>
                 </div>
-
-                <div class="border rounded p-3 text-center bg-white mt-auto flex-grow-1 d-flex flex-column justify-content-center">
-                    <div class="stat-label mb-1">Overall Completion</div>
-                    <div class="stat-value u-text-success u-fs-28" id="stat-progress-text">0%</div>
+                <div class="d-flex align-items-stretch justify-content-center flex-grow-1 px-3 pt-3 pb-3" style="min-height:240px;">
+                    <div id="status-pie-chart" style="width:100%;height:100%;min-height:240px;"></div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Pie Chart -->
-        <div class="col-lg-3">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Status Distribution</div>
-                <div id="status-pie-chart" style="height:220px;"></div>
             </div>
         </div>
 
@@ -207,19 +188,21 @@
     <div class="row g-3">
         <!-- Course List -->
         <div class="col-xl-4">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="section-title section-title-plain mb-0">Courses</div>
+            <div class="border rounded bg-white d-flex flex-column">
+                <div class="p-3 d-flex justify-content-between align-items-center">
+                    <div class="section-title mb-0 assignment-panel-title">Courses</div>
                 </div>
-                <div id="course-list" class="d-flex flex-column u-maxh-420 u-overflow-y-auto"></div>
+                <div class="px-3 pb-3">
+                    <div id="course-list" class="d-flex flex-column"></div>
+                </div>
             </div>
         </div>
 
         <!-- Student DataGrid -->
         <div class="col-xl-8">
-            <div class="border rounded bg-white h-100 p-3 assignment-student-panel">
-                <div class="d-flex justify-content-between align-items-center mb-3 assignment-student-toolbar">
-                    <div class="section-title section-title-plain mb-0">
+            <div class="border rounded bg-white">
+                <div class="p-3 d-flex justify-content-between align-items-center">
+                    <div class="section-title mb-0 assignment-panel-title">
                         Students
                         <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
                               class="u-fs-11 u-text-transform-none u-letter-spacing-0">— All</span>
@@ -228,7 +211,7 @@
                         <div id="course-selector" class="u-w-220"></div>
                     </div>
                 </div>
-                <div class="assignment-student-grid-wrap">
+                <div class="px-3 pb-3">
                     <div id="student-grid"></div>
                 </div>
             </div>
@@ -247,9 +230,10 @@
     const ASSIGNMENT_DASHBOARD_URL = `${ASSIGNMENTS_API_URL}/dashboard/${ASSIGNMENT_ID}`;
     const ASSIGNMENT_INDEX_URL = `@Url.Action("Index", "Assignments")`;
     const ASSIGNMENT_LOOKUP_COURSES_URL = `${ASSIGNMENTS_API_URL}/lookup-courses`;
+    const ASSIGNMENT_VALIDATE_URL = `${ASSIGNMENTS_API_URL}/validate-before-assign`;
+    const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
     const STUDENT_PROFILE_URL = `@Url.Action("Profile", "Students")`;
     const EMPTY_TEXT = "—";
-    const DATE_FORMAT = "en-GB";
 
     let loadPanel;
     let currentDueDate = null;
@@ -683,7 +667,7 @@
 
             initializeHeader(data);
             initializeStats(data);
-            initializeStatusChart(data.chartData);
+            initializeStatusChart(data.chartData, data.completionRate);
             initializeCourseList(courses, firstRuleId);
             initializeCourseSelector(dropdownOptions, firstRuleId);
             studentsByRuleId = groupStudentsByRuleId(students);
@@ -750,19 +734,38 @@
         $("#stat-total-courses").text(data.totalCourses ?? 0);
         $("#stat-completed").text(chartData.completed ?? 0);
         $("#stat-inprogress").text(chartData.inProgress ?? 0);
-        $("#stat-progress-text").text(`${data.completionRate ?? 0}%`);
     }
 
-    function initializeStatusChart(chartData) {
+    function initializeStatusChart(chartData, completionRate) {
         $("#status-pie-chart").dxPieChart({
             type: "doughnut",
-            innerRadius: 0.7,
+            innerRadius: 0.65,
             palette: ["#52c41a", "#faad14", "#d9d9d9"],
             dataSource: [
                 { status: "Completed", count: chartData.completed ?? 0 },
                 { status: "In Progress", count: chartData.inProgress ?? 0 },
                 { status: "Not Started", count: chartData.notStarted ?? 0 }
             ],
+            centerTemplate: function(pieChart, container) {
+                const rate = completionRate ?? 0;
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+                const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                label.setAttribute("text-anchor", "middle");
+                label.setAttribute("y", "-6");
+                label.setAttribute("style", "font-size:11px;fill:#8c8c8c;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;");
+                label.textContent = "Completion";
+
+                const value = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                value.setAttribute("text-anchor", "middle");
+                value.setAttribute("y", "18");
+                value.setAttribute("style", "font-size:22px;fill:#52c41a;font-weight:700;");
+                value.textContent = window.formatAdminPercentage(rate, '0%');
+
+                svg.appendChild(label);
+                svg.appendChild(value);
+                container.appendChild(svg);
+            },
             series: [{
                 argumentField: "status",
                 valueField: "count",
@@ -776,9 +779,9 @@
             }],
             legend: {
                 horizontalAlignment: "right",
-                verticalAlignment: "center",
-                margin: 0,
-                font: { size: 12, color: "#595959" }
+                verticalAlignment: "bottom",
+                margin: 12,
+                font: { size: 11, color: "#595959" }
             },
             tooltip: { enabled: true }
         });
@@ -856,13 +859,13 @@
                     <div class="progress-slim flex-grow-1">
                         <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
                     </div>
-                    <span class="course-item-pct" style="color:${leftColor};">${percent}%</span>
+                    <span class="course-item-pct" style="color:${leftColor};">${window.formatAdminPercentage(percent, '0%')}</span>
                 </div>
 
                 <!-- Row 4: Stats -->
                 <div class="d-flex gap-3 u-fs-11">
-                    <span class="u-text-success"><i class="fas fa-check me-1"></i>${course.completedStudents} done</span>
-                    <span class="text-secondary">${remaining} left</span>
+                    <span class="u-text-success"><i class="fas fa-check me-1"></i>${window.formatAdminCountLabel(course.completedStudents, 'done', 'done')}</span>
+                    <span class="text-secondary">${window.formatAdminCountLabel(remaining, 'left', 'left')}</span>
                 </div>
 
             </div>`;
@@ -886,6 +889,7 @@
     function initializeStudentGrid(students) {
         initDxGrid("#student-grid", {
             preset: "compactGrid",
+            height: "auto",
             minVisibleRows: 8,
             dataSource: students,
             rowAlternationEnabled: false,
@@ -943,7 +947,7 @@
                     dataField: "completedDate",
                     caption: "Completed On",
                     dataType: "date",
-                    format: "dd/MM/yyyy",
+                    format: ADMIN_DATE_DISPLAY_FORMAT,
                     alignment: "center",
                     width: 110,
                     cellTemplate: function(container, options) {
@@ -1083,7 +1087,7 @@
     }
 
     function formatDate(value, fallback = EMPTY_TEXT) {
-        return value ? new Date(value).toLocaleDateString(DATE_FORMAT) : fallback;
+        return window.formatAdminDate(value, fallback);
     }
 
     function getApiErrorMessage(error, fallbackMessage) {
@@ -1155,7 +1159,7 @@
                     fontWeight: "600",
                     minWidth: "32px",
                     color: "var(--text-secondary)"
-                }).text(`${progress}%`)
+                }).text(window.formatAdminPercentage(progress, '0%'))
             )
             .appendTo(container);
     }
@@ -1248,39 +1252,287 @@
         return $("<div>").text(value || "").html();
     }
 
-    function handleReassignment(e) {
-        e.preventDefault();
-        if (!dashboardData) return;
+    function getDefaultReassignmentDates() {
+        const today = new Date();
+        const defaultStartDate = currentStartDate || today;
+        const defaultDueDate = currentDueDate
+            || new Date(defaultStartDate.getFullYear(), defaultStartDate.getMonth(), defaultStartDate.getDate() + 7);
 
-        const courses = Array.isArray(dashboardData.courses) ? dashboardData.courses : [];
-        const courseIds = courses
-            .filter(c => !c.isCourseDeleted && c.assignmentRuleId)
-            .map(c => {
-                const row = c.courseId;
-                return row;
+        return {
+            startDate: defaultStartDate,
+            dueDate: defaultDueDate
+        };
+    }
+
+    function getReassignmentStudentCodes() {
+        return [...new Set((dashboardData?.students || [])
+            .map(student => student.studentCode)
+            .filter(Boolean))];
+    }
+
+    function buildConflictPreviewHtml(items, title, toneClass, iconClass) {
+        if (!items.length) {
+            return "";
+        }
+
+        const previewItems = items.slice(0, 5).map(function(item) {
+            return `
+                <li class="mb-1">
+                    <span class="fw-semibold">${escapeHtml(item.studentCode)}</span>
+                    <span class="text-secondary mx-1">→</span>
+                    <span>${escapeHtml(item.courseTitle)}</span>
+                </li>`;
+        }).join("");
+
+        const remainingCount = items.length - 5;
+        const moreText = remainingCount > 0
+            ? `<div class="u-fs-11 text-secondary mt-2">${window.formatAdminCountLabel(remainingCount, 'more', 'more', '0 more', { prefix: '+' })}</div>`
+            : "";
+
+        return `
+            <div class="border rounded p-3 mt-3 ${toneClass}">
+                <div class="u-fw-semibold u-fs-12 mb-2">
+                    <i class="fas ${iconClass} me-1"></i>${title} (${window.formatAdminCountLabel(items.length, 'item')})
+                </div>
+                <ul class="mb-0 ps-3 u-fs-12">${previewItems}</ul>
+                ${moreText}
+            </div>`;
+    }
+
+    function showReassignmentSummaryDialog(validationResult, payload) {
+        const resolvedCount = validationResult.resolvedCount
+            || payload.employeeCodes.length
+            || dashboardData?.totalStudents
+            || dashboardData?.totalEmployees
+            || 0;
+        const targetText = payload.groupId
+            ? `${escapeHtml(dashboardData?.studentGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'student')})`
+            : window.formatAdminCountLabel(resolvedCount, 'student');
+        const inProgressConflicts = validationResult.inProgressConflicts || [];
+        const completedConflicts = validationResult.completedConflicts || [];
+
+        const summaryHtml = `
+            <div class="text-start dialog-body-sm">
+                <div class="border rounded p-3 bg-light-subtle mb-3">
+                    <div class="u-fs-11 text-uppercase text-secondary u-fw-semibold mb-1">Assignment Criteria</div>
+                    <div class="u-fs-12 mb-1"><strong>Description:</strong> ${escapeHtml(payload.description || EMPTY_TEXT)}</div>
+                    <div class="u-fs-12 mb-1"><strong>Period:</strong> ${formatDate(payload.startDate)} → ${formatDate(payload.dueDate)}</div>
+                    <div class="u-fs-12 mb-1"><strong>Courses:</strong> ${payload.courseIds.length}</div>
+                    <div class="u-fs-12"><strong>Target:</strong> ${targetText}</div>
+                </div>
+                <div class="u-fs-12 text-secondary">Courses and target students are copied from the current assignment. Only the criteria above will be changed.</div>
+                ${buildConflictPreviewHtml(inProgressConflicts, "In-progress enrollments will be reset", "border-warning-subtle bg-warning-subtle", "fa-rotate-right")}
+                ${buildConflictPreviewHtml(completedConflicts, "Completed enrollments will be re-assigned", "border-info-subtle bg-info-subtle", "fa-check-circle")}
+            </div>`;
+
+        return showAdminConfirmDialog({
+            title: "Create Reassignment?",
+            messageHtml: summaryHtml,
+            icon: "question",
+            confirmButtonText: "Create Reassignment",
+            cancelButtonText: "Cancel",
+            confirmType: "default",
+            width: 560
+        });
+    }
+
+    async function executeReassignment(payload) {
+        loadPanel.option("message", "Creating reassignment...");
+        loadPanel.show();
+
+        try {
+            const response = await $.ajax({
+                url: BULK_ASSIGN_URL,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
             });
 
-        // Build course IDs from the assignment rows (need to fetch from API)
-        const params = new URLSearchParams();
-        if (dashboardData.description) params.set("description", dashboardData.description);
-        if (dashboardData.studentGroupId) params.set("groupId", dashboardData.studentGroupId);
+            showToast("Reassignment created successfully.", "success", 2000);
+            window.setTimeout(() => window.location.href = `@Url.Action("Detail", "Assignments")/${response.assignmentId}`, 1500);
+        } catch (error) {
+            loadPanel.hide();
+            showToast(getApiErrorMessage(error, "Failed to create reassignment."), "error", 4000);
+        }
+    }
 
-        // Fetch actual course IDs from assignment rules
-        $.ajax({
-            url: `${ASSIGNMENTS_API_URL}/reassign-data/${ASSIGNMENT_ID}`,
-            method: "GET",
-            xhrFields: { withCredentials: true }
-        }).done(function(res) {
-            if (res.success && res.data) {
-                if (res.data.courseIds && res.data.courseIds.length > 0) {
-                    params.set("courseIds", res.data.courseIds.join(","));
-                }
-                window.location.href = `@Url.Action("Form", "Assignments")?${params.toString()}`;
+    async function handleReassignment(e) {
+        e.preventDefault();
+        if (!dashboardData) {
+            return;
+        }
+
+        loadPanel.option("message", "Preparing reassignment...");
+        loadPanel.show();
+
+        let reassignData;
+        try {
+            const response = await $.ajax({
+                url: `${ASSIGNMENTS_API_URL}/reassign-data/${ASSIGNMENT_ID}`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+
+            if (!response.success || !response.data?.courseIds?.length) {
+                loadPanel.hide();
+                showToast("No courses available for reassignment.", "warning", 3000);
+                return;
             }
-        }).fail(function() {
-            // Fallback: navigate without course pre-selection
-            window.location.href = `@Url.Action("Form", "Assignments")?${params.toString()}`;
+
+            reassignData = response.data;
+            loadPanel.hide();
+        } catch (error) {
+            loadPanel.hide();
+            showToast(getApiErrorMessage(error, "Unable to prepare reassignment."), "error", 4000);
+            return;
+        }
+
+        const dialogId = `reassignment-dialog-${Date.now()}`;
+        const formId = `${dialogId}-form`;
+        const cancelId = `${dialogId}-cancel`;
+        const confirmId = `${dialogId}-confirm`;
+        const defaults = getDefaultReassignmentDates();
+        const lockedTargetText = reassignData.studentGroupId
+            ? escapeHtml(dashboardData.studentGroupName || "Selected group")
+            : window.formatAdminCountLabel(getReassignmentStudentCodes().length, 'student');
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Reassignment",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2 text-start">
+                    <div class="u-fs-12 text-secondary mb-3">
+                        Courses and target students are copied from the current assignment. You can change only the assignment criteria below.
+                    </div>
+                    <div class="border rounded p-3 bg-light-subtle mb-3 u-fs-12">
+                        <div class="mb-1"><strong>Courses:</strong> ${reassignData.courseIds.length}</div>
+                        <div><strong>Target:</strong> ${lockedTargetText}</div>
+                    </div>
+                    <div id="${formId}"></div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${confirmId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: true,
+            width: 520
         });
+
+        dialog.show();
+
+        window.setTimeout(function() {
+            const $formHost = $("#" + formId);
+            if (!$formHost.length) {
+                return;
+            }
+
+            const criteriaForm = $formHost.dxForm({
+                labelMode: "floating",
+                formData: {
+                    description: dashboardData.description || "",
+                    startDate: defaults.startDate,
+                    dueDate: defaults.dueDate
+                },
+                items: [
+                    {
+                        dataField: "description",
+                        editorType: "dxTextArea",
+                        editorOptions: { height: 100 },
+                        validationRules: [{ type: "required", message: "Required" }]
+                    },
+                    {
+                        itemType: "group",
+                        colCount: 2,
+                        items: [
+                            {
+                                dataField: "startDate",
+                                editorType: "dxDateBox",
+                                editorOptions: { width: "100%", displayFormat: ADMIN_DATE_DISPLAY_FORMAT },
+                                validationRules: [{ type: "required", message: "Required" }]
+                            },
+                            {
+                                dataField: "dueDate",
+                                editorType: "dxDateBox",
+                                editorOptions: { width: "100%", displayFormat: ADMIN_DATE_DISPLAY_FORMAT },
+                                validationRules: [{ type: "required", message: "Required" }]
+                            }
+                        ]
+                    }
+                ]
+            }).dxForm("instance");
+
+            $("#" + cancelId).dxButton({
+                text: "Cancel",
+                stylingMode: "outlined",
+                onClick: function() {
+                    dialog.hide();
+                }
+            });
+
+            $("#" + confirmId).dxButton({
+                text: "Continue",
+                type: "default",
+                stylingMode: "contained",
+                onClick: async function() {
+                    if (!criteriaForm.validate().isValid) {
+                        return;
+                    }
+
+                    const formData = criteriaForm.option("formData");
+                    if (new Date(formData.dueDate) <= new Date(formData.startDate)) {
+                        showToast("Due date must be after start date.", "warning", 2500);
+                        return;
+                    }
+
+                    const employeeCodes = reassignData.studentGroupId ? [] : getReassignmentStudentCodes();
+                    if (!reassignData.studentGroupId && employeeCodes.length === 0) {
+                        showToast("No students available for reassignment.", "warning", 3000);
+                        return;
+                    }
+
+                    const payload = {
+                        courseIds: reassignData.courseIds,
+                        employeeCodes: employeeCodes,
+                        groupId: reassignData.studentGroupId || null,
+                        startDate: formData.startDate,
+                        dueDate: formData.dueDate,
+                        description: formData.description,
+                        confirmReassignInProgress: false,
+                        confirmReassignCompleted: false
+                    };
+
+                    dialog.hide();
+                    loadPanel.option("message", "Validating reassignment...");
+                    loadPanel.show();
+
+                    try {
+                        const validationResult = await $.ajax({
+                            url: ASSIGNMENT_VALIDATE_URL,
+                            method: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify(payload),
+                            xhrFields: { withCredentials: true }
+                        });
+
+                        loadPanel.hide();
+                        payload.confirmReassignInProgress = (validationResult.inProgressConflicts || []).length > 0;
+                        payload.confirmReassignCompleted = (validationResult.completedConflicts || []).length > 0;
+
+                        showReassignmentSummaryDialog(validationResult, payload).done(function(confirmed) {
+                            if (confirmed) {
+                                executeReassignment(payload);
+                            }
+                        });
+                    } catch (error) {
+                        loadPanel.hide();
+                        showToast(getApiErrorMessage(error, "Unable to validate reassignment."), "error", 4000);
+                    }
+                }
+            });
+        }, 0);
     }
 
     function confirmResetEnrollment(options) {
@@ -1418,7 +1670,7 @@
                 type: "date",
                 value: currentDueDate,
                 min: minDate,
-                displayFormat: "dd/MM/yyyy",
+                displayFormat: ADMIN_DATE_DISPLAY_FORMAT,
                 stylingMode: "outlined",
                 width: "100%"
             });
@@ -1460,7 +1712,7 @@
                         success: function() {
                             loadPanel.hide();
                             currentDueDate = newDate;
-                            const formatted = new Date(newDate).toLocaleDateString(DATE_FORMAT);
+                            const formatted = window.formatAdminDate(newDate, EMPTY_TEXT);
                             const sDate = $("#lbl-schedule").data("start");
                             $("#lbl-schedule").text(`${sDate} → ${formatted}`);
                             showToast("Due date extended.", "success");

@@ -108,6 +108,16 @@
             bold: 700
         }
     };
+    const adminDateLocale = 'en-GB';
+    const adminDateDisplayFormat = 'dd/MM/yyyy';
+    const adminDateTimeDisplayFormat = 'dd/MM/yyyy HH:mm';
+    const adminNumberLocale = adminDateLocale;
+    const adminFileSizeUnits = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const adminTimeOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    };
     const dxGridPresetCssClassMap = {
         defaultGrid: 'admin-grid admin-grid--default',
         compactGrid: 'admin-grid admin-grid--compact',
@@ -151,6 +161,178 @@
         return function (e) {
             handleExporting(e, getRouteExportFileName(fallbackName));
         };
+    }
+
+    function normalizeAdminDateValue(value) {
+        if (value === undefined || value === null || value === '') {
+            return null;
+        }
+
+        const date = value instanceof Date ? value : new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function normalizeAdminNumberValue(value) {
+        if (value === undefined || value === null || value === '') {
+            return null;
+        }
+
+        if (typeof value === 'number') {
+            return Number.isFinite(value) ? value : null;
+        }
+
+        const normalizedValue = Number(String(value).replace(/,/g, ''));
+        return Number.isFinite(normalizedValue) ? normalizedValue : null;
+    }
+
+    function formatAdminNumber(value, fallback, options) {
+        const number = normalizeAdminNumberValue(value);
+        if (number === null) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        return number.toLocaleString(adminNumberLocale, options);
+    }
+
+    function formatAdminInteger(value, fallback) {
+        return formatAdminNumber(value, fallback, {
+            maximumFractionDigits: 0
+        });
+    }
+
+    function formatAdminPercentage(value, fallback, options) {
+        const number = normalizeAdminNumberValue(value);
+        if (number === null) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        const precision = Number.isInteger(options?.precision) ? options.precision : 0;
+        const suffix = options?.suffix !== undefined ? options.suffix : '%';
+        const formatted = formatAdminNumber(number, fallback, {
+            minimumFractionDigits: precision,
+            maximumFractionDigits: precision
+        });
+
+        return `${formatted}${suffix}`;
+    }
+
+    function formatAdminFileSize(value, fallback, options) {
+        const bytes = normalizeAdminNumberValue(value);
+        if (bytes === null || bytes <= 0) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        let unitIndex = 0;
+        let size = bytes;
+        while (size >= 1024 && unitIndex < adminFileSizeUnits.length - 1) {
+            size /= 1024;
+            unitIndex += 1;
+        }
+
+        const precision = Number.isInteger(options?.precision)
+            ? options.precision
+            : (unitIndex === 0 ? 0 : 1);
+
+        return `${formatAdminNumber(size, fallback, {
+            minimumFractionDigits: precision,
+            maximumFractionDigits: precision
+        })} ${adminFileSizeUnits[unitIndex]}`;
+    }
+
+    function formatAdminCountLabel(value, singularLabel, pluralLabel, fallback, options) {
+        const number = normalizeAdminNumberValue(value);
+        if (number === null) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        const rounded = Math.round(number);
+        const resolvedPluralLabel = pluralLabel || `${singularLabel}s`;
+        const label = rounded === 1 ? singularLabel : resolvedPluralLabel;
+        const prefix = options?.prefix || '';
+
+        return `${prefix}${formatAdminInteger(rounded, fallback)} ${label}`;
+    }
+
+    function formatAdminDuration(value, fallback, options) {
+        const totalSeconds = normalizeAdminNumberValue(value);
+        if (totalSeconds === null || totalSeconds <= 0) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        const wholeSeconds = Math.floor(totalSeconds);
+        const hours = Math.floor(wholeSeconds / 3600);
+        const minutes = Math.floor((wholeSeconds % 3600) / 60);
+        const seconds = Math.floor(wholeSeconds % 60);
+        const includeSeconds = options?.includeSeconds === true;
+
+        if (hours > 0) {
+            return `${formatAdminInteger(hours, '0')}h ${formatAdminInteger(minutes, '0')}m`;
+        }
+
+        if (minutes > 0) {
+            return includeSeconds
+                ? `${formatAdminInteger(minutes, '0')}m ${formatAdminInteger(seconds, '0')}s`
+                : `${formatAdminInteger(minutes, '0')}m`;
+        }
+
+        return `${formatAdminInteger(seconds, '0')}s`;
+    }
+
+    function formatAdminRelativeTime(value, fallback) {
+        const date = normalizeAdminDateValue(value);
+        if (!date) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        const diffMs = Date.now() - date.getTime();
+        const diffMinutes = Math.floor(diffMs / 60000);
+
+        if (diffMinutes < 1) {
+            return 'just now';
+        }
+
+        if (diffMinutes < 60) {
+            return `${formatAdminInteger(diffMinutes, '0')} min ago`;
+        }
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24) {
+            return `${formatAdminInteger(diffHours, '0')} hr ago`;
+        }
+
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays < 7) {
+            return formatAdminCountLabel(diffDays, 'day ago', 'days ago', fallback);
+        }
+
+        return formatAdminDateTime(date, fallback);
+    }
+
+    function formatAdminDate(value, fallback) {
+        const date = normalizeAdminDateValue(value);
+        if (!date) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        return date.toLocaleDateString(adminDateLocale);
+    }
+
+    function formatAdminTime(value, fallback) {
+        const date = normalizeAdminDateValue(value);
+        if (!date) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        return date.toLocaleTimeString(adminDateLocale, adminTimeOptions);
+    }
+
+    function formatAdminDateTime(value, fallback) {
+        const date = normalizeAdminDateValue(value);
+        if (!date) {
+            return fallback !== undefined ? fallback : '—';
+        }
+
+        return `${formatAdminDate(date)} ${formatAdminTime(date, '')}`.trim();
     }
 
     function hasToolbarItems(toolbar) {
@@ -274,7 +456,7 @@
 
     function getSelectionHintMarkup(count, itemLabel, actionText) {
         if (count > 0) {
-            return `<i class="fas fa-check-circle text-success me-1"></i> <b>${count}</b> ${itemLabel}(s) selected.`;
+            return `<i class="fas fa-check-circle text-success me-1"></i> <b>${formatAdminCountLabel(count, itemLabel)}</b> selected.`;
         }
 
         return `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows ${actionText}.`;
@@ -519,8 +701,8 @@
         const requestedHeight = options.height;
 
         delete options.autoHeight;
-        options.width = '100%';
-        options.height = '100%';
+        options.width = requestedWidth || '100%';
+        options.height = hasExplicitHeight ? requestedHeight : '100%';
 
         if (!enableAutoHeight) {
             setGridHostSize($target, {
@@ -761,8 +943,15 @@
                 const originalShown = originalOptions.onShown;
                 const originalResizeEnd = originalOptions.onResizeEnd;
                 const originalContentReady = originalOptions.onContentReady;
+                const shouldPreservePopupHeight = originalOptions.disableGlobalHeightSizing === true;
+                const baseOptions = shouldPreservePopupHeight
+                    ? $.extend(true, {}, originalOptions, {
+                        width: originalOptions.width || getGlobalPopupOptions().width,
+                        maxWidth: originalOptions.maxWidth || getGlobalPopupOptions().maxWidth
+                    })
+                    : $.extend(true, {}, originalOptions, getGlobalPopupOptions());
 
-                args[0] = $.extend(true, {}, originalOptions, getGlobalPopupOptions(), {
+                args[0] = $.extend(true, {}, baseOptions, {
                     onContentReady: function (e) {
                         invokeHandler(originalContentReady, e);
                         schedulePopupGridRefresh(e.component);
@@ -815,6 +1004,10 @@
 
     window.API_BASE = apiBaseUrl;
     window.serviceUrl = apiBaseUrl;
+    window.ADMIN_DATE_LOCALE = adminDateLocale;
+    window.ADMIN_DATE_DISPLAY_FORMAT = adminDateDisplayFormat;
+    window.ADMIN_DATETIME_DISPLAY_FORMAT = adminDateTimeDisplayFormat;
+    window.ADMIN_NUMBER_LOCALE = adminNumberLocale;
     window.createDataStore = createDataStore;
     window.handleExporting = handleExporting;
     window.handlePivotExporting = handlePivotExporting;
@@ -838,4 +1031,14 @@
     window.hideCardsSkeleton = hideCardsSkeleton;
     window.refreshUserCache = refreshUserCache;
     window.refreshViewportGridHeights = refreshViewportGridHeights;
+    window.formatAdminDate = formatAdminDate;
+    window.formatAdminTime = formatAdminTime;
+    window.formatAdminDateTime = formatAdminDateTime;
+    window.formatAdminNumber = formatAdminNumber;
+    window.formatAdminInteger = formatAdminInteger;
+    window.formatAdminPercentage = formatAdminPercentage;
+    window.formatAdminFileSize = formatAdminFileSize;
+    window.formatAdminCountLabel = formatAdminCountLabel;
+    window.formatAdminDuration = formatAdminDuration;
+    window.formatAdminRelativeTime = formatAdminRelativeTime;
 })(window, window.jQuery);

@@ -6,7 +6,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <div class="page-title">Student Groups</div>
-        <div class="page-subtitle">Manage reusable groups of learners for course assignments</div>
+        <div class="page-subtitle">Reusable groups for course assignments</div>
     </div>
     <a href="@Url.Action("Form", "StudentGroups")" class="action-link primary">
         <i class="fas fa-plus"></i> New Group
@@ -66,7 +66,7 @@
                     cellTemplate: function(container, options) {
                         $("<span>")
                             .addClass("tag-pill pill-info")
-                            .text(`${options.value ?? 0} members`)
+                            .text(window.formatAdminCountLabel(options.value ?? 0, 'member'))
                             .appendTo(container);
                     }
                 },
@@ -85,7 +85,7 @@
                     alignment: "center", fixed: true, fixedPosition: "right",
                     buttons: [
                         {
-                            hint: "Manage Members", icon: "info",
+                            hint: "Open Student Group", icon: "info",
                             onClick: function(e) {
                                 navigateToGroupDetail(e.row.data.id);
                             }
@@ -100,8 +100,8 @@
 
         function confirmDelete(data) {
             DevExpress.ui.dialog.confirm(
-                `<b>Delete group "${data.name}"?</b><br>
-                 <small class="text-muted">All members in this group will also be removed.</small>`,
+                `<b>Delete student group "${data.name}"?</b><br>
+                 <small class="text-muted">All members in this student group will also be removed.</small>`,
                 "Confirm Delete"
             ).then(async function (confirmed) {
                 if (!confirmed) {
@@ -115,10 +115,10 @@
                         xhrFields: { withCredentials: true }
                     });
 
-                    showToast("Group deleted.", "success");
+                    showToast("Student group deleted.", "success");
                     loadGroups();
                 } catch {
-                    showToast("Failed to delete group.", "error");
+                    showToast("Failed to delete student group.", "error");
                 }
             });
         }
@@ -159,7 +159,7 @@
         }
 
         function formatDate(value) {
-            return value ? new Date(value).toLocaleDateString("en-GB") : EMPTY_TEXT;
+            return window.formatAdminDate(value, EMPTY_TEXT);
         }
     });
 </script>

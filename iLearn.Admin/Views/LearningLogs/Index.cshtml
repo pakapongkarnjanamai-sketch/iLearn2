@@ -96,21 +96,11 @@
         const coursesLookupStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` });
 
         function formatTimeSpent(seconds) {
-            if (!seconds || seconds === 0) return '—';
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            if (h > 0) return h + 'h ' + m + 'm';
-            if (m > 0) return m + 'm ' + s + 's';
-            return s + 's';
+            return window.formatAdminDuration(seconds, '—', { includeSeconds: true });
         }
 
         function formatTimeFull(seconds) {
-            if (!seconds || seconds === 0) return '—';
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            if (h > 0) return h.toLocaleString() + 'h ' + m + 'm';
-            return m + 'm';
+            return window.formatAdminDuration(seconds, '—');
         }
 
         function loadSummaryStats() {
@@ -120,11 +110,11 @@
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done(function(d) {
-                $("#kpi-total").text(d.totalLogs.toLocaleString());
-                $("#kpi-completed").text(d.completedCount.toLocaleString());
-                $("#kpi-inprogress").text(d.inProgressCount.toLocaleString());
-                $("#kpi-failed").text(d.failedCount.toLocaleString());
-                $("#kpi-avgscore").text(d.avgScore > 0 ? d.avgScore : '—');
+                $("#kpi-total").text(window.formatAdminInteger(d.totalLogs, '0'));
+                $("#kpi-completed").text(window.formatAdminInteger(d.completedCount, '0'));
+                $("#kpi-inprogress").text(window.formatAdminInteger(d.inProgressCount, '0'));
+                $("#kpi-failed").text(window.formatAdminInteger(d.failedCount, '0'));
+                $("#kpi-avgscore").text(d.avgScore > 0 ? window.formatAdminPercentage(d.avgScore, '—') : '—');
                 $("#kpi-totaltime").text(formatTimeFull(d.totalTimeSpent));
             }).fail(function() {
                 hideStatSkeleton(['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-failed', 'kpi-avgscore', 'kpi-totaltime']);
@@ -265,8 +255,8 @@
                         }
                     },
                     { dataField: "attemptCount", caption: "Attempts", width: 80, alignment: "center" },
-                    { dataField: "updatedAt", caption: "Last Activity", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 155 },
-                    { dataField: "createdAt", caption: "First Access", dataType: "datetime", format: "dd MMM yyyy HH:mm", width: 155, visible: false }
+                    { dataField: "updatedAt", caption: "Last Activity", dataType: "datetime", format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 155 },
+                    { dataField: "createdAt", caption: "First Access", dataType: "datetime", format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 155, visible: false }
                 ]
             });
         });

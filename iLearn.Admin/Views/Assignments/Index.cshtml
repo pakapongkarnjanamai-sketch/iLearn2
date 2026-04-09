@@ -93,7 +93,7 @@
         }
 
         function formatDate(value) {
-            return value ? new Date(value).toLocaleDateString("en-GB") : EMPTY_TEXT;
+            return window.formatAdminDate(value, EMPTY_TEXT);
         }
 
         function renderProgressCell(container, percent) {
@@ -126,7 +126,7 @@
                         fontWeight: "600",
                         minWidth: "32px",
                         color: "var(--text-secondary)"
-                    }).text(`${progress}%`)
+                    }).text(window.formatAdminPercentage(progress, '0%'))
                 )
                 .appendTo(container);
         }
@@ -144,7 +144,7 @@
             });
 
             if (courses.length > 3) {
-                appendText(wrap, `+${courses.length - 3} more`, { fontSize: "11px", color: "var(--text-secondary)" });
+                appendText(wrap, window.formatAdminCountLabel(courses.length - 3, 'more', 'more', '0 more', { prefix: '+' }), { fontSize: "11px", color: "var(--text-secondary)" });
             }
         }
 
@@ -314,7 +314,7 @@
                     },
                     {
                         dataField: "startDate", caption: "Start", dataType: "date",
-                        format: "dd/MM/yyyy", width: 100, alignment: "center",
+                        format: ADMIN_DATE_DISPLAY_FORMAT, width: 100, alignment: "center",
                         cellTemplate: function(container, options) {
                             appendText(container, formatDate(options.value), {
                                 fontSize: "11px",
@@ -324,7 +324,7 @@
                     },
                     {
                         dataField: "dueDate", caption: "Due", dataType: "date",
-                        format: "dd/MM/yyyy", width: 100, alignment: "center",
+                        format: ADMIN_DATE_DISPLAY_FORMAT, width: 100, alignment: "center",
                         cellTemplate: function(container, options) {
                             appendText(container, formatDate(options.value), {
                                 fontSize: "11px",

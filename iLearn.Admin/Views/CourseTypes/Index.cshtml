@@ -167,7 +167,7 @@
                                 $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
                             } else {
                                 $("<span>").addClass("tag-pill pill-success")
-                                    .text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
+                                    .text(window.formatAdminCountLabel(count, 'course')).appendTo(container);
                             }
                         }
                     },

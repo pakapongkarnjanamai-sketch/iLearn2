@@ -110,6 +110,46 @@ img[loading="lazy"] {
     color: var(--text-secondary);
 }
 
+.admin-section-title-fill {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.admin-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-section-header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-section-divider {
+    height: 1px;
+    background: var(--border-color);
+}
+
+.admin-section-meta,
+.admin-section-status {
+    flex: 0 0 auto;
+}
+
+.admin-section-header .section-title {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.admin-section-header .section-title::before,
+.admin-section-header .section-title::after {
+    display: none;
+    content: none;
+}
+
 .filter-label {
     display: block;
     margin-bottom: 6px;

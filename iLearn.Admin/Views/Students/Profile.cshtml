@@ -246,7 +246,7 @@
                     dataField: "startDate", caption: "Started", width: 105, alignment: "center",
                     cellTemplate: (c, o) =>
                         $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .text(window.formatAdminDate(o.value, "—"))
                                    .appendTo(c)
                 },
                 {
@@ -260,7 +260,7 @@
                         $("<span>").css({ fontSize: "11px",
                                           color:      isPast ? "var(--danger-color)" : "var(--text-secondary)",
                                           fontWeight: isPast ? "600" : "400" })
-                                   .text(new Date(o.value).toLocaleDateString("en-GB"))
+                                   .text(window.formatAdminDate(o.value, "—"))
                                    .appendTo(c);
                     }
                 },
@@ -268,7 +268,7 @@
                     dataField: "completedDate", caption: "Completed On", width: 120, alignment: "center",
                     cellTemplate: (c, o) =>
                         $("<span>").css({ fontSize: "11px", color: "var(--success-color)" })
-                                   .text(o.value ? new Date(o.value).toLocaleDateString("en-GB") : "—")
+                                   .text(window.formatAdminDate(o.value, "—"))
                                    .appendTo(c)
                 }
             ]
@@ -331,12 +331,7 @@
 
         // ?? Helper ???????????????????????????????????????????????????????
         function formatDuration(seconds) {
-            if (!seconds || seconds <= 0) return "—";
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            if (h > 0) return `${h}h ${m}m`;
-            if (m > 0) return `${m}m`;
-            return `${seconds}s`;
+            return window.formatAdminDuration(seconds, "—");
         }
     });
 </script>

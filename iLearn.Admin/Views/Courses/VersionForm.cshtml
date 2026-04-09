@@ -5,10 +5,10 @@
 }
 
 <!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
         <div class="page-title">@ViewBag.Title</div>
-        <div class="page-subtitle">@(isEdit ? "Update version details and rearrange resources." : "Create a new version and manage learning materials.")</div>
+        <div class="page-subtitle">@(isEdit ? "Update version details and content order." : "Create a version and add learning content.")</div>
     </div>
     <a href="javascript:history.back();" class="action-link">
         <i class="fas fa-arrow-left text-secondary"></i> Back
@@ -19,43 +19,59 @@
     <div id="load-panel"></div>
 
     <!-- Version Details -->
-    <div class="border rounded bg-white p-3 mb-3">
-        <div class="section-title">Version Details</div>
-        <div id="form-container"></div>
+    <div class="border rounded bg-white d-flex flex-column mb-3">
+        <div class="p-3">
+            <div class="admin-section-header">
+                <div class="admin-section-header-main">
+                    <div class="section-title mb-0 admin-section-title-fill">Version Details</div>
+                </div>
+                <div class="admin-section-divider"></div>
+            </div>
+        </div>
+        <div class="px-3 pb-3">
+            <div id="form-container"></div>
+        </div>
     </div>
 
-    <!-- Course Content List -->
-    <div class="border rounded bg-white p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title section-title-plain mb-0">Course Content List</div>
-            <span class="tag-pill pill-default" id="total-count-badge">0 Items</span>
-        </div>
-
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing">
-                    <i class="fas fa-search fa-lg mb-3 target-card-icon"></i>
-                    <div class="fw-bold text-dark mb-1 target-card-title">Select Existing Resources</div>
-                    <div class="text-secondary target-card-subtitle">Choose files from the central library.</div>
+    <!-- Version Content -->
+    <div class="border rounded bg-white d-flex flex-column">
+        <div class="p-3">
+            <div class="admin-section-header">
+                <div class="admin-section-header-main">
+                    <div class="section-title mb-0 admin-section-title-fill">Version Content</div>
+                    <span class="tag-pill pill-default admin-section-meta" id="total-count-badge">0 Items</span>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload">
-                    <i class="fas fa-cloud-upload-alt fa-lg mb-3 target-card-icon"></i>
-                    <div class="fw-bold text-dark mb-1 target-card-title">Upload New SCORM</div>
-                    <div class="text-secondary target-card-subtitle">Drag &amp; drop or click to browse .zip</div>
-                </div>
-                <div id="file-uploader-container"></div>
+                <div class="admin-section-divider"></div>
             </div>
         </div>
 
-        <div class="inline-note">
-            <i class="fas fa-info-circle u-text-accent"></i>
-            You can drag &amp; drop rows to reorder the content, and click on Type to change it for new files.
-        </div>
+        <div class="px-3 pb-3">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing">
+                        <i class="fas fa-search fa-lg mb-3 target-card-icon"></i>
+                        <div class="fw-bold text-dark mb-1 target-card-title">Select Existing Resources</div>
+                        <div class="text-secondary target-card-subtitle">Choose files from the central library.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload">
+                        <i class="fas fa-cloud-upload-alt fa-lg mb-3 target-card-icon"></i>
+                        <div class="fw-bold text-dark mb-1 target-card-title">Upload New SCORM</div>
+                        <div class="text-secondary target-card-subtitle">Drag &amp; drop or click to browse .zip</div>
+                    </div>
+                    <div id="file-uploader-container"></div>
+                </div>
+            </div>
 
-        <div class="border rounded overflow-hidden">
-            <div id="master-resources-grid"></div>
+            <div class="inline-note mb-3">
+                <i class="fas fa-info-circle u-text-accent"></i>
+                You can drag &amp; drop rows to reorder the content, and click on Type to change it for new files.
+            </div>
+
+            <div class="border rounded overflow-hidden">
+                <div id="master-resources-grid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -89,15 +105,33 @@
 
         $(async () => {
             loadPanel = $("#load-panel").dxLoadPanel({
-                shadingColor: "rgba(255,255,255,0.8)", position: { of: "body" }, visible: false, showIndicator: true, showPane: true, shading: true
+                shadingColor: "rgba(255,255,255,0.8)",
+                position: { of: "body" },
+                visible: false,
+                showIndicator: true,
+                showPane: true,
+                shading: true
             }).dxLoadPanel("instance");
 
             formWidget = $("#form-container").dxForm({
                 formData: { courseId: COURSE_ID, isActive: true },
-                colCount: 1, labelMode: "floating", stylingMode: "outlined",
+                colCount: 1,
+                labelMode: "floating",
+                stylingMode: "outlined",
                 items: [
-                    { dataField: "note", editorType: "dxTextArea", label: { text: "Version Name / Note" }, editorOptions: { height: 90, placeholder: "e.g. Added new V2 materials" }, validationRules: [{ type: "required", message: "Required" }] },
-                    { dataField: "isActive", editorType: "dxCheckBox", label: { text: "Status", visible: false }, editorOptions: { text: "Set as Active Version" } }
+                    {
+                        dataField: "note",
+                        editorType: "dxTextArea",
+                        label: { text: "Version Name / Note" },
+                        editorOptions: { height: 90, placeholder: "e.g. Added new V2 materials" },
+                        validationRules: [{ type: "required", message: "Required" }]
+                    },
+                    {
+                        dataField: "isActive",
+                        editorType: "dxCheckBox",
+                        label: { text: "Status", visible: false },
+                        editorOptions: { text: "Set as Active Version" }
+                    }
                 ]
             }).dxForm("instance");
 
@@ -197,12 +231,13 @@
 
             function refreshMasterGrid() {
                 masterGrid.option("dataSource", unifiedResources);
-                $("#total-count-badge").text(`${unifiedResources.length} Items`);
+                $("#total-count-badge").text(window.formatAdminCountLabel(unifiedResources.length, 'item'));
             }
 
             popupExisting = $("#popup-existing").dxPopup({
                 title: "Select Existing Resources",
-                width: "90vw", maxWidth: 1100, height: "85vh",
+                width: "90vw", maxWidth: 1100,
+                disableGlobalHeightSizing: true,
                 showCloseButton: true, dragEnabled: true,
                 deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
@@ -472,8 +507,7 @@
             }
 
             function formatDateTime(value) {
-                const date = new Date(value);
-                return `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })} ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+                return window.formatAdminDateTime(value, '—');
             }
 
             function getApiErrorMessage(error, fallbackMessage) {
