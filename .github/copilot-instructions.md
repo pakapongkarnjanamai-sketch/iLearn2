@@ -101,3 +101,31 @@
 - **PivotGrid Exporting**: ใช้ `handlePivotExporting(e, fileName)` สำหรับหน้า Report หรือตารางสรุปผลแบบ Pivot
 - **Shared Formatting Helpers**: ในฝั่ง Admin ให้ใช้ helper กลางจาก `iLearn.Admin/wwwroot/js/admin-layout.js` เช่น `formatAdminDate`, `formatAdminDateTime`, `formatAdminPercentage`, `formatAdminCountLabel`, `formatAdminFileSize`, `formatAdminDuration` แทนการประกอบ string หรือ format วันที่/ตัวเลขแยกในแต่ละหน้า
 - **Popup vs Dialog**: งานเลือกข้อมูลหรือจัดการรายการจำนวนมากยังใช้ `dxPopup` ได้ตามปกติ แต่ dialog สำหรับยืนยัน/แก้ไขข้อมูลสั้นๆ ควรใช้ `DevExpress.ui.dialog.custom` เพื่อให้ UX และสไตล์สม่ำเสมอ
+
+### 6. Wizard Page Pattern (Admin)
+- สำหรับหน้าที่เป็น flow หลายขั้นตอน เช่น `Add Members`, `Bulk Course Assignments`, หรือ flow ที่ต้องเลือกข้อมูลจำนวนมาก ให้ใช้ **wizard layout แบบเต็มหน้า** เป็นมาตรฐาน แทนการยัดทุกอย่างไว้ใน popup
+- โครงสร้างมาตรฐาน:
+   - ด้านบนใช้ `.page-header` + subtitle
+   - ใต้ header ใช้ step cards เรียงแนวนอน (`grid`) พร้อมสถานะ `active` และ `complete`
+   - เนื้อหาหลักใช้ layout `row` แบ่งเป็น **snapshot sidebar ซ้าย** และ **main card ขวา** เมื่อข้อมูลมีหลายมิติหรือผู้ใช้ต้องติดตาม context ระหว่างทำรายการ
+   - ปุ่ม action หลักให้อยู่ใน `bottom-toolbar` เสมอ เช่น `Previous`, `Continue`, `Review`, `Confirm`
+- **Snapshot Sidebar**:
+   - ใช้สำหรับสรุป context ปัจจุบัน เช่น ชื่อรายการ, ช่วงเวลา, จำนวนที่เลือก, target mode, target name
+   - ใช้รูปแบบ meta item แบบ label/value ที่อ่านเร็ว และอัปเดตแบบ real-time เมื่อผู้ใช้เปลี่ยนค่าใน form หรือ grid
+- **Wizard Steps**:
+   - Step title ใช้ตัวพิมพ์ใหญ่สั้นๆ และมีคำอธิบาย 1 บรรทัดใต้หัวข้อ
+   - จำนวน step ควรชัดเจนตั้งแต่ต้น และไม่เปลี่ยนลำดับไปมาระหว่าง iteration ถ้าไม่จำเป็น
+   - ถ้า step ใดมีข้อมูลน้อย เช่น criteria หรือ review ให้ card สูงเท่าที่จำเป็น (`fit-content`) ไม่ต้องฝืนยืดเต็มความสูง
+- **Selection Step Layout**:
+   - ถ้าเป็น step เลือกข้อมูล ให้ใช้ซ้ายเป็น filter panel ขวาเป็น grid เป็นค่าเริ่มต้น
+   - Grid ควรมีความสูงแบบ viewport-aware เช่น `clamp(...)` เพื่อให้ใช้งานได้ดีทั้งบนจอเล็กและจอใหญ่
+   - ถ้า grid ถูก initialize ขณะ panel ซ่อนอยู่ ต้อง refresh `updateDimensions()` เมื่อ step ถูกแสดง เพื่อป้องกันความสูงเพี้ยน
+   - ใช้ inline selection เป็นค่าเริ่มต้นก่อน popup; popup ใช้เฉพาะกรณีที่ task นั้นต้องการ isolated workflow จริงๆ
+- **Review Step**:
+   - แสดง summary cards ด้านบนก่อน แล้วค่อยตามด้วย detail blocks / conflict lists / impact tables
+   - ถ้าไม่มี conflict หรือข้อมูลว่าง ให้มี empty state หรือ success state ที่ชัดเจน ไม่ปล่อยพื้นที่ว่างโล่ง
+- **Responsiveness**:
+   - บน mobile/tablet step cards และ summary grids ควร collapse เป็น 1 คอลัมน์
+   - ต้องเผื่อ `padding-bottom` ให้มากพอสำหรับ `bottom-toolbar` ทุกครั้ง เพื่อไม่ให้ content ถูกบัง
+- **Consistency Rule**:
+   - ถ้ามี wizard ใหม่ในฝั่ง Admin ให้ยึด `iLearn.Admin/Views/StudentGroups/AddMembers.cshtml` เป็น visual baseline ก่อน แล้วค่อยปรับเฉพาะส่วนที่จำเป็นตาม use case
