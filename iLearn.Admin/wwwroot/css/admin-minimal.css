@@ -1098,6 +1098,15 @@ main > .container {
     border-color: var(--brand-color);
 }
 
+.quick-action:disabled,
+.quick-action.disabled,
+.quick-action[aria-disabled="true"] {
+    opacity: 0.45;
+    pointer-events: none;
+    cursor: not-allowed;
+    background: #fafafa;
+}
+
 .quick-action.danger:hover {
     border-color: var(--danger-color);
     background: #fff2f0;

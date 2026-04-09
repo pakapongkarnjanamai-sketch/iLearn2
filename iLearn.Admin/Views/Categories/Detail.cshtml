@@ -1,0 +1,702 @@
+@{
+    ViewBag.Title = "Category Detail";
+    int categoryId = ViewBag.CategoryId;
+}
+
+<style>
+    .meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .meta-item:last-child { border-bottom: none; }
+    .meta-label { font-size: 11px; color: var(--text-secondary); font-weight: 600;
+                  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+    .meta-value { font-size: 13px; color: var(--text-primary); }
+</style>
+
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <div class="page-title" id="page-title">Category Detail</div>
+        <div class="page-subtitle" id="page-subtitle">Loading...</div>
+    </div>
+    <a href="@Url.Action("Index", "Categories")" class="action-link">
+        <i class="fas fa-arrow-left text-secondary"></i> Back
+    </a>
+</div>
+
+<div class="container-fluid px-4 py-4">
+    <div id="load-panel"></div>
+
+    <!-- ── Row 1: Info / Summary / Actions ── -->
+    <div class="row g-3 mb-4">
+
+        <!-- Category Info -->
+        <div class="col-lg-3">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Info</div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Category Name</div>
+                    <div class="meta-value fw-bold" id="info-name">—</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Division</div>
+                    <div class="meta-value" id="info-division">—</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Status</div>
+                    <div class="meta-value" id="info-status">—</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Created By</div>
+                    <div class="meta-value" id="info-created-by">—</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Created At</div>
+                    <div class="meta-value" id="info-created-at">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary + Enrollment Distribution -->
+        <div class="col-lg-6">
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
+                <div class="section-title">Summary</div>
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-courses">0</div>
+                            <div class="stat-label">Courses</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-students">0</div>
+                            <div class="stat-label">Students</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value u-text-success" id="stat-completed">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
+                            <div class="stat-label">In Progress</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-stretch justify-content-center flex-grow-1 px-3 pt-3 pb-3" style="min-height:240px;">
+                    <div id="status-pie-chart" style="width:100%;height:100%;min-height:240px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="col-lg-3">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Actions</div>
+                <div class="d-flex flex-column gap-2">
+
+                    <a href="javascript:void(0);" id="btn-edit-category" class="quick-action">
+                        <div class="qa-icon qa-icon-muted"><i class="fas fa-edit"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Edit Category</div>
+                            <div class="u-fs-11 text-secondary">Change name, division, or status</div>
+                        </div>
+                    </a>
+
+                    <a href="@Url.Action("Report", "Categories", new { id = categoryId })" target="_blank" class="quick-action">
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-file-alt"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Report</div>
+                            <div class="u-fs-11 text-secondary">Open printable summary</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btn-toggle-status" class="quick-action">
+                        <div class="qa-icon qa-icon-success" id="toggle-icon-box"><i id="toggle-icon" class="fas fa-check-circle"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold" id="toggle-btn-text">Activate</div>
+                            <div class="u-fs-11 text-secondary" id="toggle-btn-desc">Make category active</div>
+                        </div>
+                    </a>
+
+                    <a href="javascript:void(0);" id="btn-delete-category" class="quick-action danger">
+                        <div class="qa-icon qa-icon-danger"><i id="delete-icon" class="fas fa-trash-alt"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold" id="delete-btn-text">Delete Category</div>
+                            <div class="u-fs-11 text-secondary">Remove permanently</div>
+                        </div>
+                    </a>
+
+                </div>
+
+                <div id="warning-msg" class="mt-3 pt-3 d-none u-border-top u-fs-11 u-text-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Cannot delete a category with courses.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Row 2: Courses Grid ── -->
+    <div class="border rounded bg-white p-3">
+        <div class="admin-section-header mb-3">
+            <div class="admin-section-header-main">
+                <div class="section-title mb-0 admin-section-title-fill">
+                    <i class="fas fa-book me-1"></i> Courses
+                    <span class="tag-pill tag-pill-xs pill-default ms-2" id="courses-badge">0</span>
+                </div>
+            </div>
+            <div class="admin-section-divider"></div>
+        </div>
+        <div id="grid-courses"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const CATEGORY_ID = @categoryId;
+    const API_URL = `${serviceUrl}/admin/CategoriesCRUD`;
+    const COURSE_DETAIL_URL = '@Url.Action("Detail", "Courses")';
+    const INDEX_URL = '@Url.Action("Index", "Categories")';
+    const EMPTY_TEXT = "—";
+
+    let categoryData = null;
+    let coursesData = [];
+    let statsData = null;
+    let coursesGrid;
+
+    const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
+        key: 'id',
+        loadUrl: `${serviceUrl}/Divisions`
+    });
+    const dsDivisionsSelect = { store: divisionsStore, paginate: true, pageSize: 20 };
+
+    $(() => {
+        coursesGrid = initDxGrid("#grid-courses", {
+            dataSource: [],
+            searchPanel: { placeholder: "Search courses..." },
+            rowAlternationEnabled: true,
+            showRowLines: true,
+            hoverStateEnabled: true,
+            columns: [
+                {
+                    dataField: "code",
+                    caption: "Code",
+                    width: 130,
+                    cellTemplate: function(container, options) {
+                        $("<a>")
+                            .attr("href", `${COURSE_DETAIL_URL}?id=${options.row.data.id}`)
+                            .addClass("tag-pill pill-default fw-bold")
+                            .text(options.value || EMPTY_TEXT)
+                            .appendTo(container);
+                    }
+                },
+                {
+                    dataField: "title",
+                    caption: "Course Name",
+                    minWidth: 200,
+                    cellTemplate: function(container, options) {
+                        $("<div>").addClass("d-flex align-items-center gap-2")
+                            .append($("<i>").addClass("fas fa-book").css({ color: "var(--accent-color)", opacity: ".75" }))
+                            .append($("<span>").addClass("fw-bold text-dark").text(options.value || EMPTY_TEXT))
+                            .appendTo(container);
+                    }
+                },
+                {
+                    dataField: "courseTypeName",
+                    caption: "Type",
+                    width: 120,
+                    alignment: "center",
+                    cellTemplate: function(container, options) {
+                        const typeName = options.value;
+                        if (typeName) {
+                            const cls = typeName === "Learn" ? "pill-learn" : typeName === "Exam" ? "pill-exam" : "pill-default";
+                            $("<span>").addClass("tag-pill " + cls).text(typeName).appendTo(container);
+                        } else {
+                            $("<span>").addClass("text-muted").text(EMPTY_TEXT).appendTo(container);
+                        }
+                    }
+                },
+                {
+                    dataField: "isActive",
+                    caption: "Status",
+                    width: 120,
+                    alignment: "center",
+                    cellTemplate: function(container, options) {
+                        if (options.value) {
+                            $("<span>").addClass("tag-pill pill-success")
+                                .html('<i class="fas fa-check me-1"></i> Active')
+                                .appendTo(container);
+                        } else {
+                            $("<span>").addClass("tag-pill pill-default")
+                                .html('<i class="fas fa-times me-1"></i> Inactive')
+                                .appendTo(container);
+                        }
+                    }
+                },
+                {
+                    dataField: "enrollmentCount",
+                    caption: "Enrollments",
+                    width: 130,
+                    alignment: "center",
+                    cellTemplate: function(container, options) {
+                        const count = options.value || 0;
+                        if (count === 0) {
+                            $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                        } else {
+                            $("<span>").addClass("tag-pill pill-info")
+                                .text(count + " enrolled").appendTo(container);
+                        }
+                    }
+                },
+                {
+                    dataField: "completedCount",
+                    caption: "Completed",
+                    width: 130,
+                    alignment: "center",
+                    cellTemplate: function(container, options) {
+                        const completed = options.value || 0;
+                        const total = options.row.data.enrollmentCount || 0;
+                        if (total === 0) {
+                            $("<span>").addClass("text-muted").text(EMPTY_TEXT).appendTo(container);
+                        } else {
+                            const pct = Math.round((completed / total) * 100);
+                            const cls = pct === 100 ? "pill-success" : pct >= 50 ? "pill-info" : "pill-warning";
+                            $("<span>").addClass("tag-pill " + cls)
+                                .text(completed + "/" + total + " (" + pct + "%)")
+                                .appendTo(container);
+                        }
+                    }
+                },
+                {
+                    type: "buttons",
+                    caption: "Actions",
+                    width: 80,
+                    alignment: "center",
+                    fixed: true,
+                    fixedPosition: "right",
+                    buttons: [{
+                        hint: "View Detail",
+                        icon: "fas fa-external-link-alt",
+                        onClick: function(e) {
+                            window.open(`${COURSE_DETAIL_URL}?id=${e.row.data.id}`, '_blank');
+                        }
+                    }]
+                }
+            ]
+        });
+
+        loadDashboard();
+    });
+
+    async function loadDashboard() {
+        try {
+            const res = await $.ajax({
+                url: `${API_URL}/GetDashboard/${CATEGORY_ID}`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+
+            if (!res.success || !res.data) {
+                showToast("Category not found.", "error");
+                return;
+            }
+
+            categoryData = res.data.category;
+            coursesData = res.data.courses || [];
+            statsData = res.data.stats;
+
+            renderCategoryInfo();
+            renderStats();
+            renderChart();
+            renderCoursesGrid();
+            updateActions();
+
+        } catch (err) {
+            showToast("Error loading category detail.", "error");
+        }
+    }
+
+    function renderCategoryInfo() {
+        const c = categoryData;
+        $("#page-title").text(c.name);
+        $("#page-subtitle").text(c.divisionName ? `Division: ${c.divisionName}` : "No division assigned");
+
+        $("#info-name").text(c.name);
+        $("#info-division").html(
+            c.divisionName
+                ? `<span class="tag-pill pill-info">${c.divisionName}</span>`
+                : `<span class="text-muted fst-italic">${EMPTY_TEXT}</span>`
+        );
+        $("#info-status").html(
+            c.isActive
+                ? '<span class="tag-pill pill-success"><i class="fas fa-check me-1"></i> Active</span>'
+                : '<span class="tag-pill pill-default"><i class="fas fa-times me-1"></i> Inactive</span>'
+        );
+        $("#info-created-by").text(c.createdBy || EMPTY_TEXT);
+        $("#info-created-at").text(window.formatAdminDate ? window.formatAdminDate(c.createdAt, EMPTY_TEXT) : EMPTY_TEXT);
+    }
+
+    function renderStats() {
+        const s = statsData;
+        $("#stat-courses").text(s.totalCourses);
+        $("#stat-students").text(s.uniqueStudents);
+        $("#stat-completed").text(s.completedEnrollments);
+        $("#stat-inprogress").text(s.inProgressEnrollments);
+    }
+
+    function renderChart() {
+        const s = statsData;
+        const avgProgress = s.avgProgress || 0;
+
+        $("#status-pie-chart").dxPieChart({
+            type: "doughnut",
+            innerRadius: 0.65,
+            palette: ["#52c41a", "#1890ff", "#d9d9d9"],
+            dataSource: [
+                { status: "Completed", count: s.completedEnrollments },
+                { status: "In Progress", count: s.inProgressEnrollments },
+                { status: "Not Started", count: s.notStartedEnrollments }
+            ],
+            centerTemplate: function(pieChart, container) {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+                const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                label.setAttribute("text-anchor", "middle");
+                label.setAttribute("y", "-6");
+                label.setAttribute("style", "font-size:11px;fill:#8c8c8c;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;");
+                label.textContent = "Avg. Progress";
+
+                const value = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                value.setAttribute("text-anchor", "middle");
+                value.setAttribute("y", "18");
+                value.setAttribute("style", "font-size:22px;fill:#52c41a;font-weight:700;");
+                value.textContent = window.formatAdminPercentage
+                    ? window.formatAdminPercentage(avgProgress, '0%')
+                    : avgProgress + '%';
+
+                svg.appendChild(label);
+                svg.appendChild(value);
+                container.appendChild(svg);
+            },
+            series: [{
+                argumentField: "status",
+                valueField: "count",
+                label: {
+                    visible: true,
+                    position: "outside",
+                    connector: { visible: true },
+                    format: { type: "fixedPoint", precision: 0 },
+                    font: { size: 11, color: "#595959" },
+                    customizeText: function(point) {
+                        return point.argumentText + ": " + point.valueText;
+                    }
+                }
+            }],
+            legend: {
+                horizontalAlignment: "right",
+                verticalAlignment: "bottom",
+                margin: 12,
+                font: { size: 11, color: "#595959" }
+            },
+            tooltip: { enabled: true }
+        });
+    }
+
+    function renderCoursesGrid() {
+        $("#courses-badge").text(coursesData.length);
+        coursesGrid.option("dataSource", coursesData);
+    }
+
+    function updateActions() {
+        const c = categoryData;
+        const hasCourses = coursesData.length > 0;
+
+        // Toggle status button
+        if (c.isActive) {
+            $("#toggle-icon-box").removeClass("qa-icon-success").addClass("qa-icon-warning");
+            $("#toggle-icon").removeClass("fa-check-circle").addClass("fa-pause-circle");
+            $("#toggle-btn-text").text("Deactivate");
+            $("#toggle-btn-desc").text("Set category to inactive");
+        } else {
+            $("#toggle-icon-box").removeClass("qa-icon-warning").addClass("qa-icon-success");
+            $("#toggle-icon").removeClass("fa-pause-circle").addClass("fa-check-circle");
+            $("#toggle-btn-text").text("Activate");
+            $("#toggle-btn-desc").text("Make category active");
+        }
+
+        // Warning for delete
+        if (hasCourses) {
+            $("#warning-msg").removeClass("d-none");
+            $("#btn-delete-category").addClass("disabled").css("pointer-events", "none");
+        } else {
+            $("#warning-msg").addClass("d-none");
+            $("#btn-delete-category").removeClass("disabled").css("pointer-events", "");
+        }
+    }
+
+    // ── Edit Category ──
+    $("#btn-edit-category").click(function() {
+        const c = categoryData;
+        const dialogId = `edit-category-dialog-${Date.now()}`;
+        const formId = `${dialogId}-form`;
+        const cancelId = `${dialogId}-cancel`;
+        const saveId = `${dialogId}-save`;
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Edit Category",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2 text-start">
+                    <div id="${formId}"></div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${saveId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: true,
+            showCloseButton: true,
+            width: 450
+        });
+
+        dialog.show();
+
+        window.setTimeout(function() {
+            const $formHost = $("#" + formId);
+            if (!$formHost.length) {
+                return;
+            }
+
+            const editForm = $formHost.dxForm({
+                labelLocation: "top",
+                colCount: 1,
+                formData: {
+                    name: c.name,
+                    divisionId: c.divisionId,
+                    isActive: c.isActive
+                },
+                items: [
+                    {
+                        dataField: "name",
+                        label: { text: "Category Name" },
+                        editorOptions: { placeholder: "Enter category name..." },
+                        validationRules: [{ type: "required", message: "Name is required" }]
+                    },
+                    {
+                        dataField: "divisionId",
+                        label: { text: "Division" },
+                        editorType: "dxSelectBox",
+                        editorOptions: {
+                            dataSource: dsDivisionsSelect,
+                            displayExpr: "name",
+                            valueExpr: "id",
+                            showClearButton: true,
+                            searchEnabled: true,
+                            placeholder: "Select a Division..."
+                        }
+                    },
+                    { itemType: "empty" },
+                    {
+                        dataField: "isActive",
+                        editorType: "dxSwitch",
+                        label: { text: "Status (Active)" },
+                        editorOptions: {
+                            switchedOnText: "Yes",
+                            switchedOffText: "No"
+                        }
+                    }
+                ]
+            }).dxForm("instance");
+
+            $("#" + cancelId).dxButton({
+                text: "Cancel",
+                stylingMode: "outlined",
+                onClick: function() {
+                    dialog.hide();
+                }
+            });
+
+            $("#" + saveId).dxButton({
+                text: "Save",
+                type: "default",
+                stylingMode: "contained",
+                onClick: async function() {
+                    const saveButton = $("#" + saveId).dxButton("instance");
+                    const result = editForm.validate();
+                    if (!result.isValid) {
+                        return;
+                    }
+
+                    const formData = editForm.option("formData");
+                    setDialogSaveButtonState(saveButton, true);
+                    dialog.option("closeOnOutsideClick", false);
+                    try {
+                        await $.ajax({
+                            url: `${API_URL}/Put`,
+                            method: "PUT",
+                            data: {
+                                key: CATEGORY_ID,
+                                values: JSON.stringify(formData)
+                            },
+                            xhrFields: { withCredentials: true }
+                        });
+
+                        showToast("Category updated successfully.", "success");
+                        dialog.hide();
+                        loadDashboard();
+                    } catch (err) {
+                        dialog.option("closeOnOutsideClick", true);
+                        setDialogSaveButtonState(saveButton, false);
+                        showToast(getApiErrorMessage(err, "Failed to update category."), "error");
+                    }
+                }
+            });
+        }, 0);
+    });
+
+    // ── Toggle Status ──
+    $("#btn-toggle-status").click(function() {
+        const c = categoryData;
+        const newStatus = !c.isActive;
+        const action = newStatus ? "activate" : "deactivate";
+
+        showCategoryConfirmDialog({
+            title: "Confirm Status Change",
+            messageHtml: `Are you sure you want to <b>${action}</b> this category?`,
+            confirmButtonText: newStatus ? "Activate" : "Deactivate",
+            confirmType: "default",
+            icon: "warning"
+        }).done(async function(confirmed) {
+            if (!confirmed) return;
+
+            setQuickActionLoadingState($("#btn-toggle-status"), true, {
+                iconSelector: "#toggle-icon",
+                textSelector: "#toggle-btn-text",
+                loadingText: newStatus ? "Activating..." : "Deactivating..."
+            });
+
+            try {
+                await $.ajax({
+                    url: `${API_URL}/Put`,
+                    method: "PUT",
+                    data: {
+                        key: CATEGORY_ID,
+                        values: JSON.stringify({ isActive: newStatus })
+                    },
+                    xhrFields: { withCredentials: true }
+                });
+
+                showToast(`Category ${action}d successfully.`, "success");
+                loadDashboard();
+            } catch (err) {
+                setQuickActionLoadingState($("#btn-toggle-status"), false, {
+                    iconSelector: "#toggle-icon",
+                    textSelector: "#toggle-btn-text"
+                });
+                showToast(getApiErrorMessage(err, `Failed to ${action} category.`), "error");
+            }
+        });
+    });
+
+    // ── Delete Category ──
+    $("#btn-delete-category").click(function() {
+        if (coursesData.length > 0) return;
+
+        showCategoryConfirmDialog({
+            title: "Confirm Delete",
+            messageHtml: "<b>Delete this category?</b><br><small class='text-muted'>This action cannot be undone.</small>",
+            confirmButtonText: "Delete",
+            confirmType: "danger",
+            icon: "warning"
+        }).done(async function(confirmed) {
+            if (!confirmed) return;
+
+            setQuickActionLoadingState($("#btn-delete-category"), true, {
+                iconSelector: "#delete-icon",
+                textSelector: "#delete-btn-text",
+                loadingText: "Deleting..."
+            });
+
+            try {
+                await $.ajax({
+                    url: `${API_URL}/Delete`,
+                    method: "DELETE",
+                    data: { key: CATEGORY_ID },
+                    xhrFields: { withCredentials: true }
+                });
+
+                showToast("Category deleted.", "success");
+                window.location.href = INDEX_URL;
+            } catch (err) {
+                setQuickActionLoadingState($("#btn-delete-category"), false, {
+                    iconSelector: "#delete-icon",
+                    textSelector: "#delete-btn-text"
+                });
+                showToast(getApiErrorMessage(err, "Failed to delete category."), "error");
+            }
+        });
+    });
+
+    function showCategoryConfirmDialog(options) {
+        return showAdminConfirmDialog({
+            title: options.title,
+            messageHtml: options.messageHtml,
+            text: options.text,
+            icon: options.icon || "warning",
+            confirmButtonText: options.confirmButtonText || "Confirm",
+            cancelButtonText: options.cancelButtonText || "Cancel",
+            confirmType: options.confirmType || "default"
+        });
+    }
+
+    function setDialogSaveButtonState(button, isLoading) {
+        if (!button) {
+            return;
+        }
+
+        button.option({
+            disabled: isLoading,
+            text: isLoading ? "Saving..." : "Save",
+            icon: isLoading ? "refresh" : undefined
+        });
+    }
+
+    function setQuickActionLoadingState($element, isLoading, options) {
+        if (!$element || !$element.length) {
+            return;
+        }
+
+        const settings = options || {};
+        const $icon = settings.iconSelector ? $(settings.iconSelector) : $element.find(".qa-icon i").first();
+        const $text = settings.textSelector ? $(settings.textSelector) : $element.find(".u-fw-semibold").first();
+
+        $element.toggleClass("disabled", isLoading).attr("aria-disabled", isLoading ? "true" : "false");
+
+        if ($icon.length) {
+            if (isLoading) {
+                $icon.data("original-class", $icon.attr("class") || "");
+                $icon.attr("class", "fas fa-spinner fa-spin");
+            } else {
+                $icon.attr("class", $icon.data("original-class") || "fas fa-spinner fa-spin");
+            }
+        }
+
+        if ($text.length) {
+            if (isLoading) {
+                $text.data("original-text", $text.text());
+                $text.text(settings.loadingText || "Processing...");
+            } else {
+                $text.text($text.data("original-text") || $text.text());
+            }
+        }
+    }
+
+    function getApiErrorMessage(error, fallbackMessage) {
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+    }
+</script>
+}

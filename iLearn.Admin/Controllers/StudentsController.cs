@@ -11,7 +11,7 @@ namespace iLearn.Admin.Controllers
             return View();
         }
 
-        public IActionResult Profile(string code)
+        public IActionResult Report(string code)
         {
             ViewBag.StudentCode = code ?? "";
             return View();

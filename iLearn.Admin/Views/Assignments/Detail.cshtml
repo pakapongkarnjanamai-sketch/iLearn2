@@ -232,7 +232,7 @@
     const ASSIGNMENT_LOOKUP_COURSES_URL = `${ASSIGNMENTS_API_URL}/lookup-courses`;
     const ASSIGNMENT_VALIDATE_URL = `${ASSIGNMENTS_API_URL}/validate-before-assign`;
     const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
-    const STUDENT_PROFILE_URL = `@Url.Action("Profile", "Students")`;
+    const STUDENT_PROFILE_URL = `@Url.Action("Report", "Students")`;
     const EMPTY_TEXT = "—";
 
     let loadPanel;
@@ -912,6 +912,7 @@
                     cellTemplate: function(container, options) {
                         $("<a>")
                             .attr("href", `${STUDENT_PROFILE_URL}?code=${options.value}`)
+                            .attr("target", "_blank")
                             .css({ fontSize: "11px", fontWeight: "600" })
                             .addClass("tag-pill pill-default")
                             .text(options.value)

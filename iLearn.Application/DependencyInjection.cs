@@ -8,7 +8,7 @@ namespace iLearn.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-            // ?? Application Services ??
+            // Application Services
             services.AddScoped<ICourseService, CourseService>();
             services.AddScoped<ICourseVersionService, CourseVersionService>();
             services.AddScoped<ICourseAssignmentService, CourseAssignmentService>();
@@ -16,7 +16,16 @@ namespace iLearn.Application
             services.AddScoped<IAssignmentDashboardService, AssignmentDashboardService>();
             services.AddScoped<IStudentGroupService, StudentGroupService>();
 
+            // Lazy<T> support to break circular dependencies
+            services.AddTransient(typeof(Lazy<>), typeof(LazyServiceFactory<>));
+
             return services;
         }
+    }
+
+    internal sealed class LazyServiceFactory<T> : Lazy<T> where T : class
+    {
+        public LazyServiceFactory(IServiceProvider serviceProvider)
+            : base(serviceProvider.GetRequiredService<T>) { }
     }
 }

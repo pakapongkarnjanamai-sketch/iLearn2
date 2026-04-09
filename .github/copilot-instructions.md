@@ -34,7 +34,8 @@
 - **Colors**: Primary `#0050b3`, Background `#fafafa`, Border `#f0f0f0`
 - **Typography**: Base `13px` (System font), Section Headers `11px` (Uppercase + Letter spacing)
 - **Elements**: ขอบเหลี่ยมเล็กน้อย (`border-radius: 4px`), เน้นใช้เส้นขอบบางๆ (`1px solid`) แทนการใช้เงา (No Box-shadow)
-- **Components**: ใช้ `.page-header`, `.panel`, `.status-pill` (โค้งมนสีอ่อน), `.action-link` (ปุ่มแบบ flat)
+- **Components**: ใช้ `.page-header`, `.panel`, `.status-pill` (โค้งมนสีอ่อน), `.action-link` (ปุ่มแบบ flat), `.quick-action` สำหรับแผง Actions ในหน้า Detail
+- **Detail Action Panels**: ในหน้า Detail ของฝั่ง Admin ให้ใช้การ์ด Actions แบบ `quick-action` เป็นมาตรฐาน, รองรับสถานะ `disabled`, และถ้ามี action เชิงทำลายให้ใช้ class `danger`
 
 ### 2. Learner UI (`iLearn.User`) - "Soft UI / User-Friendly"
 เน้นความนุ่มนวล เป็นมิตร ใช้งานบนมือถือได้ดี
@@ -45,12 +46,50 @@
 
 ### 3. Notifications & Feedback
 - **Quick Toast (Stack)**: ให้ใช้ฟังก์ชัน Global `showToast(message, type)` หรือถ้าเรียก `DevExpress.ui.notify` โดยตรง **ต้องส่งพารามิเตอร์ที่ 2 เสมอ** เช่น `{ position: 'bottom center', direction: 'up-push' }` เพื่อให้ Toast แสดงผลแบบเรียงซ้อนกันได้ (Stack) และตกแต่งสไตล์ข้อความให้รองรับ Soft UI (มีเงา, ขอบมน, มีไอคอน FontAwesome)
-- **Dialog & Confirm**: ใช้ `DevExpress.ui.dialog.custom` หรือ helper กลางของโปรเจ็กต์ เช่น `showAdminConfirmDialog(...)` สำหรับกล่องยืนยันและข้อความสำคัญ โดยคงสไตล์ปุ่มให้เป็นสีธีมของหน้า
+- **Dialog & Confirm**: ใช้ `DevExpress.ui.dialog.custom` หรือ helper กลางของโปรเจ็กต์ เช่น `showAdminConfirmDialog(...)` สำหรับกล่องยืนยันและข้อความสำคัญ โดยคงสไตล์ปุ่มให้เป็นสีธีมของหน้า และหลีกเลี่ยง `DevExpress.ui.dialog.confirm(...)` ตรงๆ ในหน้าใหม่หรือโค้ดที่ปรับปรุง
+- **Edit Dialogs**: ถ้าเป็นฟอร์มแก้ไขขนาดเล็กถึงกลางในหน้า Admin Detail ให้ prefer `DevExpress.ui.dialog.custom` + `dxForm` + `dxButton` มากกว่าแยกไปหน้าใหม่หรือใช้ popup แบบเก่าที่ไม่จำเป็น
 - **Empty States**: หากไม่มีข้อมูลให้แสดงไอคอนขนาดใหญ่สีเทาจาง พร้อมข้อความที่เป็นมิตรตรงกลางพื้นที่ว่างเสมอ
+
+### 3.1 Section Identity Icons
+- ให้กำหนด **ไอคอนประจำตัว** ของแต่ละส่วนงานให้คงที่ทั้งในเมนู, page header, quick actions, empty state, summary card, dialog title และปุ่มหลัก เพื่อให้ผู้ใช้จดจำส่วนงานได้ทันที
+- ใช้ Font Awesome แบบ `fas` เป็นค่าเริ่มต้น และหลีกเลี่ยงการเปลี่ยนไอคอนของโมดูลเดียวกันไปมาระหว่างหน้าต่างๆ ถ้าไม่จำเป็น
+- Mapping มาตรฐานของ Admin UI:
+   - `Dashboard` -> `fas fa-chart-pie`
+   - `Courses` / `Course Management` -> `fas fa-book`
+   - `Assignments` -> `fas fa-tasks`
+   - `Students` -> `fas fa-user-graduate`
+   - `Student Groups` -> `fas fa-users`
+   - `Resources` -> `fas fa-folder-open`
+   - `Categories` -> `fas fa-layer-group`
+   - `Course Types` -> `fas fa-tag`
+   - `Divisions` -> `fas fa-building`
+   - `Users` -> `fas fa-user`
+   - `Roles` -> `fas fa-shield-halved`
+   - `System Config` -> `fas fa-cog`
+   - `Reports` / printable summary -> `fas fa-file-alt`
+   - `Learning Logs` / activity history -> `fas fa-clock-rotate-left`
+- Action icon mapping มาตรฐาน:
+   - `Add/Create` -> `fas fa-plus` หรือ `fas fa-plus-circle`
+   - `Add User/Member/Student` -> `fas fa-user-plus`
+   - `Edit` -> `fas fa-edit`
+   - `Delete` -> `fas fa-trash-alt`
+   - `View Detail / Open` -> `fas fa-eye` หรือ `fas fa-external-link-alt`
+   - `Assign` -> `fas fa-book-open`
+   - `Activate` -> `fas fa-check-circle`
+   - `Deactivate` / `Pause` -> `fas fa-pause-circle`
+   - `Refresh / Retry / Reassign / Reset` -> `fas fa-rotate-right` หรือ `fas fa-redo-alt`
+   - `Filter` -> `fas fa-filter`
+   - `Save` -> `fas fa-save`
+   - `Export Excel` -> `fas fa-file-excel`
+   - `Print` -> `fas fa-print`
+- Loading icon มาตรฐานทุกส่วนงาน: `fas fa-spinner fa-spin`
+- ถ้าจำเป็นต้องใช้ไอคอนอื่น ให้เลือกตัวที่มีความหมายใกล้เคียงที่สุดกับ mapping นี้ และพยายามคงให้สม่ำเสมอในทุก view ของโมดูลเดียวกัน
 
 ### 4. Performance & Loading States (UX)
 - **Skeleton Loaders (iLearn.User)**: ในระหว่างรอข้อมูลจาก API (เช่น โหลดรายการคอร์สเรียน, แดชบอร์ด) ให้แสดงโครงร่างกล่องเทาๆ (Skeleton) ที่มีเอฟเฟกต์ Shimmer กระพริบนุ่มๆ แทนการใช้ Spinner หมุนๆ กลางจอ
 - **Button Loading State**: เมื่อคลิกปุ่มบันทึก/Submit ต้อง Disable ปุ่มเสมอ พร้อมกับเปลี่ยนข้อความและแสดง Spinner (เช่น `<i class="fas fa-spinner fa-spin"></i> กำลังประมวลผล...`) เพื่อป้องกันผู้ใช้กดเบิ้ล
+- **Action Loading State**: ในหน้า Admin Detail ถ้า action เป็น `quick-action`, เมื่อเริ่ม request ให้ Disable action นั้นทันที, เปลี่ยน icon เป็น spinner, และเปลี่ยนข้อความเป็นสถานะปัจจุบัน เช่น `Saving...`, `Deleting...`, `Activating...`, `Adding...`
+- **Popup/Dialog Submit State**: ปุ่มยืนยันใน `dxPopup` หรือ `DevExpress.ui.dialog.custom` ต้องมี loading state เช่นเดียวกัน และถ้ากำลัง submit ห้ามปิด dialog/popup จาก outside click จนกว่า request จะสำเร็จหรือเกิด error
 - **Lazy Loading**: รูปภาพประกอบคอร์สเรียน (Thumbnails) และรูปภาพขนาดใหญ่ ต้องใส่ Attribute `loading="lazy"` ไว้เสมอ
 - **DataGrid Loading**: ใน DevExtreme DataGrid ให้ใช้ฟีเจอร์ Loading Panel มาตรฐาน ไม่ต้องทำ Skeleton
 
@@ -60,3 +99,5 @@
 - **DataGrid Defaults**: เริ่มต้น DataGrid ด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้ให้รองรับกรอบ, สลับสีแถว, และ **เปิดฟีเจอร์ Export อัตโนมัติ**
 - **DataGrid Exporting**: ใช้ `handleExporting(e, fileName)` ร่วมกับ `ExcelJS` (ถูกฝังอยู่ใน Default แล้ว หากต้องการแก้ชื่อไฟล์ให้ Override `onExporting` ในหน้านั้นๆ)
 - **PivotGrid Exporting**: ใช้ `handlePivotExporting(e, fileName)` สำหรับหน้า Report หรือตารางสรุปผลแบบ Pivot
+- **Shared Formatting Helpers**: ในฝั่ง Admin ให้ใช้ helper กลางจาก `iLearn.Admin/wwwroot/js/admin-layout.js` เช่น `formatAdminDate`, `formatAdminDateTime`, `formatAdminPercentage`, `formatAdminCountLabel`, `formatAdminFileSize`, `formatAdminDuration` แทนการประกอบ string หรือ format วันที่/ตัวเลขแยกในแต่ละหน้า
+- **Popup vs Dialog**: งานเลือกข้อมูลหรือจัดการรายการจำนวนมากยังใช้ `dxPopup` ได้ตามปกติ แต่ dialog สำหรับยืนยัน/แก้ไขข้อมูลสั้นๆ ควรใช้ `DevExpress.ui.dialog.custom` เพื่อให้ UX และสไตล์สม่ำเสมอ

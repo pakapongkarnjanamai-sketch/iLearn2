@@ -98,6 +98,50 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [HttpPost("{id}/members/preview")]
+        public async Task<IActionResult> PreviewAddMembers(int id, [FromBody] StudentGroupAddMembersOptionsDto dto)
+        {
+            try
+            {
+                var result = await _service.PreviewAddMembersAsync(id, dto);
+                return Ok(new { success = true, data = result });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
+        [HttpPost("{id}/members/confirm")]
+        public async Task<IActionResult> ConfirmAddMembers(int id, [FromBody] StudentGroupAddMembersOptionsDto dto)
+        {
+            try
+            {
+                var result = await _service.AddMembersWithAssignmentsAsync(id, dto);
+                return Ok(new { success = true, data = result, message = "Members updated successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
         // DELETE: api/studentgroups/5/members/10
         [HttpDelete("{id}/members/{memberId}")]
         public async Task<IActionResult> RemoveMember(int id, int memberId)

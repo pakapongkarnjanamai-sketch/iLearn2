@@ -14,11 +14,42 @@
 </div>
 
 <div class="container-fluid px-4 py-3 pb-5 h-100">
-    <div class="row g-3 h-100">
 
+    <!-- ── Summary KPI Bar ── -->
+    <div class="row g-2 mb-4" id="summary-bar">
+        <div class="col-6 col-md-3">
+            <div class="kpi-card kpi-all h-100">
+                <div class="kpi-label">Total Categories</div>
+                <div class="kpi-number" id="kpi-total">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card kpi-accent h-100">
+                <div class="kpi-label">Active</div>
+                <div class="kpi-number" id="kpi-active">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card kpi-purple h-100">
+                <div class="kpi-label">Total Courses</div>
+                <div class="kpi-number" id="kpi-courses">—</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card kpi-warning h-100">
+                <div class="kpi-label">Unused Categories</div>
+                <div class="kpi-number" id="kpi-unused">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Main Content ── -->
+    <div class="row g-3 h-100">
         <div class="col-md-4 col-lg-3 h-100">
-            <div class="border rounded bg-white h-100 d-flex flex-column">
-                <div class="panel-header">Filter by Division</div>
+            <div class="panel h-100 d-flex flex-column">
+                <div class="panel-header">
+                    <i class="fas fa-filter me-1"></i> Filter by Division
+                </div>
                 <div class="p-2 flex-grow-1 overflow-hidden">
                     <div id="divisionTreeView"></div>
                 </div>
@@ -28,7 +59,6 @@
         <div class="col-md-8 col-lg-9 h-100">
             <div id="grid" class="h-100"></div>
         </div>
-
     </div>
 </div>
 
@@ -36,6 +66,7 @@
     <script>
         const ROOT_NODE_ID = 'root';
         const ALL_CATEGORIES_LABEL = 'All Categories';
+        const KPI_IDS = ['kpi-total', 'kpi-active', 'kpi-courses', 'kpi-unused'];
 
         let gridInstance;
         let availableDivisions = [];
@@ -45,11 +76,29 @@
             loadUrl: `${serviceUrl}/Divisions`
         });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
+        const DETAIL_URL = '@Url.Action("Detail", "Categories")';
 
-        const dsDivisionsLookup = { store: divisionsStore, loadMode: 'raw', cacheRawData: true };
         const dsDivisionsSelect = { store: divisionsStore, paginate: true, pageSize: 20 };
 
+        function loadSummaryStats() {
+            showStatSkeleton(KPI_IDS);
+            $.ajax({
+                url: `${serviceUrl}/admin/CategoriesCRUD/GetSummaryStats`,
+                type: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(d) {
+                $("#kpi-total").text(d.totalCategories);
+                $("#kpi-active").text(d.activeCategories);
+                $("#kpi-courses").text(d.totalCourses);
+                $("#kpi-unused").text(d.unusedCategories);
+            }).fail(function() {
+                hideStatSkeleton(KPI_IDS);
+            });
+        }
+
         $(async () => {
+            loadSummaryStats();
+
             gridInstance = initDxGrid("#grid", {
                 dataSource: categoriesStore,
                 remoteOperations: true,
@@ -72,14 +121,13 @@
                     useIcons: true,
                     texts: { confirmDeleteMessage: "Are you sure you want to delete this category?" },
                     popup: {
-                        title: "Category Information",
+                        title: "Category Details",
                         showTitle: true,
                         width: 450,
                         height: "auto",
                         position: { my: "center", at: "center", of: window },
                         dragEnabled: true,
-                        hideOnOutsideClick: true,
-                        wrapperAttr: { class: "rounded-4 shadow-lg" }
+                        hideOnOutsideClick: true
                     },
                     form: {
                         labelLocation: "top",
@@ -129,7 +177,7 @@
                     {
                         dataField: "id",
                         caption: "ID",
-                        width: 80,
+                        width: 70,
                         alignment: "center",
                         allowEditing: false,
                         sortOrder: 'desc',
@@ -138,19 +186,46 @@
                     {
                         dataField: "name",
                         caption: "Category Name",
-                        minWidth: 250,
+                        minWidth: 200,
                         cellTemplate: function(container, options) {
-                            $("<span>").addClass("fw-bold text-dark").text(options.value).appendTo(container);
+                            $("<div>").addClass("d-flex align-items-center gap-2")
+                                .append($("<i>").addClass("fas fa-layer-group").css({ color: "var(--accent-color)", opacity: ".75" }))
+                                .append(
+                                    $("<a>").attr("href", `${DETAIL_URL}?id=${options.row.data.id}`)
+                                        .addClass("fw-bold text-dark text-decoration-none")
+                                        .text(options.value)
+                                )
+                                .appendTo(container);
                         }
                     },
                     {
-                        dataField: "divisionId",
+                        dataField: "divisionName",
                         caption: "Division",
-                        width: 200,
-                        lookup: {
-                            dataSource: dsDivisionsLookup,
-                            displayExpr: 'name',
-                            valueExpr: 'id'
+                        width: 180,
+                        allowEditing: false,
+                        cellTemplate: function(container, options) {
+                            const name = options.value;
+                            if (name) {
+                                $("<span>").addClass("tag-pill pill-info").text(name).appendTo(container);
+                            } else {
+                                $("<span>").addClass("text-muted fst-italic").text("—").appendTo(container);
+                            }
+                        }
+                    },
+                    {
+                        dataField: "courseCount",
+                        caption: "Courses",
+                        width: 120,
+                        alignment: "center",
+                        allowEditing: false,
+                        cellTemplate: function(container, options) {
+                            const count = options.value || 0;
+                            if (count === 0) {
+                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                            } else {
+                                $("<span>").addClass("tag-pill pill-success")
+                                    .text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
+                            }
                         }
                     },
                     {
@@ -163,27 +238,45 @@
                             displayExpr: 'name', valueExpr: 'id'
                         },
                         cellTemplate: function(container, options) {
-                            $(buildStatusPill(options.value)).appendTo(container);
+                            if (options.value) {
+                                $("<span>").addClass("tag-pill pill-success")
+                                    .html('<i class="fas fa-check me-1"></i> Active')
+                                    .appendTo(container);
+                            } else {
+                                $("<span>").addClass("tag-pill pill-default")
+                                    .html('<i class="fas fa-times me-1"></i> Inactive')
+                                    .appendTo(container);
+                            }
                         }
                     },
                     {
                         type: "buttons",
                         caption: "Manage",
-                        width: 100,
+                        width: 130,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
                         buttons: [
+                            {
+                                hint: "View Detail",
+                                icon: "fas fa-eye",
+                                onClick: function(e) {
+                                    window.location.href = `${DETAIL_URL}?id=${e.row.data.id}`;
+                                }
+                            },
                             "edit",
                             {
                                 name: "delete",
                                 visible: function(e) {
-                                    return e.row.data.isActive === false;
+                                    return e.row.data.isActive === false && (e.row.data.courseCount || 0) === 0;
                                 }
                             }
                         ]
                     }
-                ]
+                ],
+                onRowInserted: () => loadSummaryStats(),
+                onRowUpdated: () => loadSummaryStats(),
+                onRowRemoved: () => loadSummaryStats()
             });
 
             try {
@@ -192,14 +285,6 @@
                 console.error("Error loading divisions for treeview", err);
             }
         });
-
-        function buildStatusPill(isActive) {
-            if (isActive) {
-                return '<span class="tag-pill pill-success"><i class="fas fa-check me-1"></i> Active</span>';
-            }
-
-            return '<span class="tag-pill pill-default"><i class="fas fa-times me-1"></i> Inactive</span>';
-        }
 
         async function loadDivisionsAndTree() {
             const divisionsData = await divisionsStore.load();
@@ -246,34 +331,20 @@
         }
 
         function applyDivisionFilter(node) {
-            const grid = getGridInstance();
-            if (!grid || !node) {
-                return;
-            }
+            if (!gridInstance || !node) return;
 
             if (node.isRoot) {
-                grid.clearFilter();
+                gridInstance.clearFilter();
                 return;
             }
 
             if (node.divisionId) {
-                grid.filter(["divisionId", "=", node.divisionId]);
+                gridInstance.filter(["divisionId", "=", node.divisionId]);
             }
-        }
-
-        function getGridInstance() {
-            const gridElement = $("#grid");
-            if (!gridElement.length || !gridElement.data("dxDataGrid")) {
-                return null;
-            }
-
-            return gridElement.dxDataGrid("instance");
         }
 
         function addNewCategory() {
-            if (gridInstance) {
-                gridInstance.addRow();
-            }
+            if (gridInstance) gridInstance.addRow();
         }
 
         window.addNewCategory = addNewCategory;

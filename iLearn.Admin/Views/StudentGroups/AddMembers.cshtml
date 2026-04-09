@@ -1,0 +1,1131 @@
+@{
+    ViewBag.Title = "Add Members";
+    var groupId = ViewBag.GroupId is int gid ? gid : 0;
+}
+
+<style>
+    .sg-page-shell {
+        min-height: calc(100vh - 120px);
+        padding-top: 16px !important;
+        padding-bottom: 104px !important;
+    }
+
+    .sg-main-card {
+        min-height: calc(100vh - 280px);
+    }
+
+    .sg-wizard-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .sg-step-card {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        padding: 12px 14px;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .sg-step-card.active {
+        border-color: var(--primary-color);
+        background: #f4f8ff;
+    }
+
+    .sg-step-card.complete {
+        border-color: #b7eb8f;
+        background: #f6ffed;
+    }
+
+    .sg-step-index {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        font-size: 11px;
+        font-weight: 700;
+        margin-right: 8px;
+    }
+
+    .sg-step-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-step-text {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    .sg-meta-item {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sg-meta-item:last-child {
+        border-bottom: none;
+    }
+
+    .sg-meta-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 3px;
+    }
+
+    .sg-meta-value {
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+
+    .sg-panel {
+        display: none;
+    }
+
+    .sg-panel.active {
+        display: block;
+    }
+
+    .sg-student-grid {
+        height: clamp(300px, calc(100vh - 460px), 420px);
+        min-height: 300px;
+    }
+
+    .sg-filter-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 12px;
+        height: 100%;
+    }
+
+    .sg-selection-card,
+    .sg-option-card,
+    .sg-summary-card,
+    .sg-table-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+    }
+
+    .sg-selection-card,
+    .sg-option-card,
+    .sg-summary-card {
+        padding: 12px;
+    }
+
+    .sg-option-card.is-disabled {
+        opacity: 0.55;
+    }
+
+    .sg-status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .sg-status-option {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 10px;
+        background: #fff;
+    }
+
+    .sg-status-option.disabled {
+        background: #fafafa;
+        color: var(--text-secondary);
+    }
+
+    .sg-status-option label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .sg-status-option .form-check-input {
+        margin-top: 0;
+    }
+
+    .sg-status-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .sg-status-note {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+
+    .sg-overview-grid,
+    .sg-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .sg-overview-item,
+    .sg-summary-item {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 10px;
+    }
+
+    .sg-overview-value,
+    .sg-summary-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .sg-overview-label,
+    .sg-summary-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-top: 6px;
+    }
+
+    .sg-table-shell {
+        overflow: hidden;
+    }
+
+    .sg-table-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .sg-table-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-table-wrap {
+        overflow: auto;
+        max-height: clamp(200px, calc(100vh - 520px), 320px);
+    }
+
+    .sg-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+    }
+
+    .sg-table th,
+    .sg-table td {
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 12px;
+        vertical-align: top;
+    }
+
+    .sg-table thead th {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        background: #fafafa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .sg-empty-state {
+        padding: 32px 16px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .sg-empty-state i {
+        font-size: 28px;
+        color: #d9d9d9;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .sg-inline-note {
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    .sg-student-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .sg-student-note,
+    .sg-assignment-note {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+
+    @@media (max-width: 991.98px) {
+        .sg-page-shell {
+            min-height: auto;
+            padding-bottom: 128px !important;
+        }
+
+        .sg-main-card {
+            min-height: auto;
+        }
+
+        .sg-wizard-steps,
+        .sg-overview-grid,
+        .sg-summary-grid,
+        .sg-status-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .sg-page-shell {
+            padding-bottom: 156px !important;
+        }
+
+        .sg-student-grid {
+            height: clamp(280px, calc(100vh - 340px), 380px);
+        }
+    }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
+    <div>
+        <div class="page-title"><i class="fas fa-user-plus text-primary me-2"></i>Add Members</div>
+        <div class="page-subtitle">Add learners to this student group and optionally enroll them into related assignments.</div>
+    </div>
+    <a href="@Url.Action("Detail", "StudentGroups", new { id = groupId })" class="action-link">
+        <i class="fas fa-arrow-left text-secondary"></i> Back to Group
+    </a>
+</div>
+
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 sg-page-shell">
+    <div class="sg-wizard-steps">
+        <div class="sg-step-card active" data-step-card="1">
+            <div class="sg-step-title"><span class="sg-step-index">1</span>Select Students</div>
+            <div class="sg-step-text">Choose which learners should be added to this group.</div>
+        </div>
+        <div class="sg-step-card" data-step-card="2">
+            <div class="sg-step-title"><span class="sg-step-index">2</span>Assignment Options</div>
+            <div class="sg-step-text">Decide whether selected learners should be enrolled in related assignments.</div>
+        </div>
+        <div class="sg-step-card" data-step-card="3">
+            <div class="sg-step-title"><span class="sg-step-index">3</span>Review And Confirm</div>
+            <div class="sg-step-text">Review the final impact before applying changes.</div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-3">
+            <div class="sg-selection-card h-100">
+                <div class="section-title">Group Snapshot</div>
+                <div class="sg-meta-item">
+                    <div class="sg-meta-label">Group Name</div>
+                    <div class="sg-meta-value fw-bold" id="group-name">Loading...</div>
+                </div>
+                <div class="sg-meta-item">
+                    <div class="sg-meta-label">Description</div>
+                    <div class="sg-meta-value" id="group-description">Loading...</div>
+                </div>
+                <div class="sg-meta-item">
+                    <div class="sg-meta-label">Current Members</div>
+                    <div class="sg-meta-value"><span class="tag-pill pill-info" id="group-member-count">0 members</span></div>
+                </div>
+                <div class="sg-meta-item">
+                    <div class="sg-meta-label">Related Assignments</div>
+                    <div class="sg-meta-value"><span class="tag-pill pill-default" id="group-assignment-count">0 batches</span></div>
+                </div>
+                <div class="sg-meta-item">
+                    <div class="sg-meta-label">Status Mix</div>
+                    <div class="sg-meta-value" id="assignment-status-overview">Loading...</div>
+                </div>
+                <div class="sg-meta-item">
+                    <div class="sg-meta-label">Current Selection</div>
+                    <div class="sg-meta-value" id="selected-summary">0 students selected</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-9">
+            <div class="border rounded bg-white p-2 sg-main-card">
+                <div id="step-panel-1" class="sg-panel active">
+                    <div class="admin-section-header mb-2">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Select Students</div>
+                        </div>
+                        <div class="admin-section-divider"></div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-lg-3">
+                            <div class="sg-filter-shell d-flex flex-column gap-3">
+                                <div>
+                                    <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary"></i>Filters</div>
+                                    <div class="sg-inline-note">Use division, department, and section filters to narrow the student list.</div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <div id="filter-div"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                    <div id="filter-dept"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                    <div id="filter-section"></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-lg-9 d-flex flex-column gap-2">
+                            <div class="sg-selection-card">
+                                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                    <div>
+                                        <div class="u-fs-12 u-fw-semibold text-dark">Learner Selection</div>
+                                        <div class="sg-inline-note">Choose one or more learners to add to this student group.</div>
+                                    </div>
+                                    <div id="selection-hint" class="sg-inline-note">
+                                        <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to continue.
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="grid-add-students" class="sg-student-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="step-panel-2" class="sg-panel">
+                    <div class="admin-section-header mb-2">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Assignment Options</div>
+                        </div>
+                        <div class="admin-section-divider"></div>
+                    </div>
+
+                    <div class="sg-option-card mb-2">
+                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <div class="u-fs-12 u-fw-semibold text-dark">Related Assignment Enrollment</div>
+                                <div class="sg-inline-note">When enabled, the selected learners will be enrolled into existing assignment batches that belong to this student group.</div>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" id="chk-enroll-related">
+                                <label class="form-check-label u-fs-12 u-fw-semibold text-dark" for="chk-enroll-related">Enroll learners to related assignments</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="status-options-card" class="sg-option-card is-disabled mb-2">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                            <div>
+                                <div class="u-fs-12 u-fw-semibold text-dark">Assignment Status Filters</div>
+                                <div class="sg-inline-note">Choose which current assignment statuses should receive the new learners.</div>
+                            </div>
+                            <div class="tag-pill pill-default" id="selected-status-count">0 statuses selected</div>
+                        </div>
+
+                        <div class="sg-status-grid">
+                            <div class="sg-status-option" data-status-option="Completed">
+                                <label for="status-completed">
+                                    <div>
+                                        <div class="sg-status-title">Completed</div>
+                                        <div class="sg-status-note">Assignments where all current learners have completed the batch.</div>
+                                    </div>
+                                    <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-completed" value="Completed" disabled>
+                                </label>
+                            </div>
+                            <div class="sg-status-option" data-status-option="InProgress">
+                                <label for="status-inprogress">
+                                    <div>
+                                        <div class="sg-status-title">In Progress</div>
+                                        <div class="sg-status-note">Assignments that are currently active and not yet fully completed.</div>
+                                    </div>
+                                    <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-inprogress" value="InProgress" disabled>
+                                </label>
+                            </div>
+                            <div class="sg-status-option" data-status-option="Upcoming">
+                                <label for="status-upcoming">
+                                    <div>
+                                        <div class="sg-status-title">Upcoming</div>
+                                        <div class="sg-status-note">Assignments with a start date in the future.</div>
+                                    </div>
+                                    <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-upcoming" value="Upcoming" disabled>
+                                </label>
+                            </div>
+                            <div class="sg-status-option" data-status-option="Expired">
+                                <label for="status-expired">
+                                    <div>
+                                        <div class="sg-status-title">Expired</div>
+                                        <div class="sg-status-note">Assignments whose due date has already passed.</div>
+                                    </div>
+                                    <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-expired" value="Expired" disabled>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sg-option-card">
+                        <div class="u-fs-12 u-fw-semibold text-dark mb-3">Current Related Assignment Overview</div>
+                        <div id="assignment-overview-grid" class="sg-overview-grid mb-3"></div>
+                        <div id="assignment-overview-note" class="sg-inline-note"></div>
+                    </div>
+                </div>
+
+                <div id="step-panel-3" class="sg-panel">
+                    <div class="admin-section-header mb-3">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
+                        </div>
+                        <div class="admin-section-divider"></div>
+                    </div>
+
+                    <div id="summary-cards" class="sg-summary-grid mb-3"></div>
+
+                    <div class="sg-table-shell mb-3">
+                        <div class="sg-table-head">
+                            <div class="sg-table-title">Selected Learners</div>
+                            <div class="sg-inline-note" id="student-summary-note"></div>
+                        </div>
+                        <div class="sg-table-wrap" id="student-summary-table"></div>
+                    </div>
+
+                    <div class="sg-table-shell">
+                        <div class="sg-table-head">
+                            <div class="sg-table-title">Assignment Enrollment Impact</div>
+                            <div class="sg-inline-note" id="assignment-summary-note"></div>
+                        </div>
+                        <div class="sg-table-wrap" id="assignment-summary-table"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-toolbar">
+    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
+        <i class="fas fa-user-plus text-primary"></i>
+        Review the summary before applying changes.
+    </span>
+    <a href="@Url.Action("Detail", "StudentGroups", new { id = groupId })" class="action-link">Cancel</a>
+    <a href="javascript:void(0);" id="btn-prev-step" class="action-link d-none">
+        <i class="fas fa-arrow-left"></i> Previous
+    </a>
+    <a href="javascript:void(0);" id="btn-next-step" class="action-link primary">
+        <i class="fas fa-arrow-right"></i> Continue
+    </a>
+    <a href="javascript:void(0);" id="btn-preview-summary" class="action-link primary d-none">
+        <i class="fas fa-file-alt"></i> Preview Summary
+    </a>
+    <a href="javascript:void(0);" id="btn-confirm" class="action-link primary d-none">
+        <i class="fas fa-check-circle"></i> Confirm Changes
+    </a>
+</div>
+
+@section Scripts {
+<script>
+    const GROUP_ID = @groupId;
+    const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
+    const STUDENTS_API_URL = `${serviceUrl}/Students`;
+    const GROUP_DETAIL_URL = '@Url.Action("Detail", "StudentGroups", new { id = groupId })';
+    const EMPTY_TEXT = "—";
+
+    const wizardState = {
+        currentStep: 1,
+        group: null,
+        relatedAssignments: [],
+        preview: null
+    };
+
+    let studentsGrid = null;
+
+    $(() => {
+        if (!(GROUP_ID > 0)) {
+            showToast("Student group is unavailable.", "warning");
+            window.location.href = '@Url.Action("Index", "StudentGroups")';
+            return;
+        }
+
+        initializeStudentGrid();
+        initializeFilters();
+        initializeActions();
+        loadPageContext();
+        updateWizardUi();
+    });
+
+    async function loadPageContext() {
+        try {
+            const [groupResponse, assignmentResponse] = await Promise.all([
+                $.ajax({
+                    url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }),
+                $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/group/${GROUP_ID}/history`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                })
+            ]);
+
+            wizardState.group = groupResponse.data || null;
+            wizardState.relatedAssignments = assignmentResponse.data || [];
+
+            renderGroupSnapshot();
+            renderAssignmentOverview();
+        } catch (error) {
+            showToast(getApiErrorMessage(error, "Failed to load student group context."), "error");
+            window.location.href = GROUP_DETAIL_URL;
+        }
+    }
+
+    function initializeStudentGrid() {
+        studentsGrid = initDxGrid("#grid-add-students", {
+            preset: "selectionGrid",
+            dataSource: DevExpress.data.AspNet.createStore({
+                key: "EId",
+                loadUrl: `${STUDENTS_API_URL}/Get`,
+                onBeforeSend: (method, options) => options.xhrFields = { withCredentials: true }
+            }),
+            remoteOperations: true,
+            filterRow: { visible: true },
+            searchPanel: { placeholder: "Search ID or name..." },
+            noDataText: getNoDataText("students"),
+            columns: [
+                {
+                    dataField: "EId", caption: "ID", width: 120,
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
+                },
+                {
+                    caption: "Name", minWidth: 180,
+                    calculateCellValue: function(data) {
+                        return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
+                    },
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("fw-medium text-dark").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
+                },
+                { dataField: "Division", caption: "Division", width: 140 },
+                { dataField: "Department", caption: "Department", width: 140 },
+                {
+                    dataField: "Section", caption: "Section", minWidth: 140,
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
+                }
+            ],
+            onSelectionChanged: function(event) {
+                setSelectionHint("#selection-hint", event.selectedRowKeys.length, "student", "selected");
+                updateSelectionSummary();
+                invalidatePreview();
+            }
+        });
+    }
+
+    function initializeFilters() {
+        function makeLookup(endpoint, queryText) {
+            return new DevExpress.data.CustomStore({
+                key: "Name",
+                load: () => $.ajax({
+                    url: `${STUDENTS_API_URL}/${endpoint}${queryText || ""}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).then(function(response) { return response.data || response; })
+            });
+        }
+
+        function applyFilters() {
+            const division = $("#filter-div").dxSelectBox("instance").option("value");
+            const department = $("#filter-dept").dxSelectBox("instance").option("value");
+            const section = $("#filter-section").dxSelectBox("instance").option("value");
+            const filters = [];
+
+            if (division) filters.push(["Division", "=", division]);
+            if (department) filters.push(["Department", "=", department]);
+            if (section) filters.push(["Section", "=", section]);
+
+            applyCombinedFilter(studentsGrid, filters);
+        }
+
+        const divisionBox = $("#filter-div").dxSelectBox({
+            dataSource: makeLookup("GetDivisions"),
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Divisions",
+            showClearButton: true,
+            onValueChanged: function(event) {
+                const departmentBox = $("#filter-dept").dxSelectBox("instance");
+                departmentBox.option({
+                    value: null,
+                    disabled: !event.value,
+                    dataSource: event.value
+                        ? makeLookup("GetDepartments", `?filter=[\"Division\",\"=\",\"${event.value}\"]`)
+                        : []
+                });
+
+                $("#filter-section").dxSelectBox("instance").option({
+                    value: null,
+                    disabled: true,
+                    dataSource: []
+                });
+
+                applyFilters();
+            }
+        }).dxSelectBox("instance");
+
+        $("#filter-dept").dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Departments",
+            showClearButton: true,
+            disabled: true,
+            onValueChanged: function(event) {
+                const sectionBox = $("#filter-section").dxSelectBox("instance");
+                const division = divisionBox.option("value");
+                const queryText = event.value
+                    ? `?filter=[[\"Division\",\"=\",\"${division}\"],\"and\",[\"Department\",\"=\",\"${event.value}\"]]`
+                    : (division ? `?filter=[\"Division\",\"=\",\"${division}\"]` : "");
+
+                sectionBox.option({
+                    value: null,
+                    disabled: !event.value,
+                    dataSource: event.value ? makeLookup("GetSections", queryText) : []
+                });
+
+                applyFilters();
+            }
+        });
+
+        $("#filter-section").dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Sections",
+            showClearButton: true,
+            disabled: true,
+            onValueChanged: applyFilters
+        });
+
+        $("#btn-clear-filter").on("click", function() {
+            divisionBox.option("value", null);
+            $("#filter-dept").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            $("#filter-section").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            studentsGrid.clearFilter();
+        });
+    }
+
+    function initializeActions() {
+        $("#chk-enroll-related").on("change", function() {
+            toggleStatusOptions($(this).is(":checked"));
+            invalidatePreview();
+        });
+
+        $(".sg-status-checkbox").on("change", function() {
+            updateSelectedStatusCount();
+            invalidatePreview();
+        });
+
+        $("#btn-next-step").on("click", function() {
+            if (wizardState.currentStep === 1) {
+                if (getSelectedStudentCodes().length === 0) {
+                    showToast("Please select at least one student.", "warning");
+                    return;
+                }
+
+                wizardState.currentStep = 2;
+                updateWizardUi();
+            }
+        });
+
+        $("#btn-prev-step").on("click", function() {
+            if (wizardState.currentStep > 1) {
+                wizardState.currentStep -= 1;
+                updateWizardUi();
+            }
+        });
+
+        $("#btn-preview-summary").on("click", previewSummary);
+        $("#btn-confirm").on("click", confirmChanges);
+    }
+
+    async function previewSummary() {
+        const payload = getPayload();
+        if (!payload.studentCodes.length) {
+            showToast("Please select at least one student.", "warning");
+            wizardState.currentStep = 1;
+            updateWizardUi();
+            return;
+        }
+
+        if (payload.enrollToRelatedAssignments && payload.assignmentStatuses.length === 0) {
+            showToast("Select at least one assignment status.", "warning");
+            return;
+        }
+
+        setButtonLoading("#btn-preview-summary", true, "Loading Summary...");
+        try {
+            const response = await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}/members/preview`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
+            });
+
+            wizardState.preview = response.data || null;
+            renderPreviewSummary();
+            wizardState.currentStep = 3;
+            updateWizardUi();
+        } catch (error) {
+            showToast(getApiErrorMessage(error, "Failed to build summary."), "error");
+        } finally {
+            setButtonLoading("#btn-preview-summary", false);
+        }
+    }
+
+    async function confirmChanges() {
+        const payload = getPayload();
+
+        const confirmed = await showAdminConfirmDialog({
+            title: "Confirm Add Members",
+            messageHtml: "<b>Apply these student group updates?</b><br><small class='text-muted'>This will add the selected learners to the group and apply the assignment enrollment options shown in the summary.</small>",
+            confirmButtonText: "Confirm",
+            confirmType: "default",
+            icon: "question"
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        setButtonLoading("#btn-confirm", true, "Applying...");
+        try {
+            const response = await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}/members/confirm`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
+            });
+
+            const result = response.data || {};
+            showToast(buildSuccessMessage(result), "success");
+            window.location.href = GROUP_DETAIL_URL;
+        } catch (error) {
+            showToast(getApiErrorMessage(error, "Failed to apply student group changes."), "error");
+        } finally {
+            setButtonLoading("#btn-confirm", false);
+        }
+    }
+
+    function updateWizardUi() {
+        $(".sg-panel").removeClass("active");
+        $(`#step-panel-${wizardState.currentStep}`).addClass("active");
+
+        $("[data-step-card]").each(function() {
+            const step = Number($(this).attr("data-step-card"));
+            $(this)
+                .toggleClass("active", step === wizardState.currentStep)
+                .toggleClass("complete", step < wizardState.currentStep);
+        });
+
+        $("#btn-prev-step").toggleClass("d-none", wizardState.currentStep === 1);
+        $("#btn-next-step").toggleClass("d-none", wizardState.currentStep !== 1);
+        $("#btn-preview-summary").toggleClass("d-none", wizardState.currentStep !== 2);
+        $("#btn-confirm").toggleClass("d-none", wizardState.currentStep !== 3);
+    }
+
+    function renderGroupSnapshot() {
+        const group = wizardState.group;
+        const assignments = wizardState.relatedAssignments;
+
+        $("#group-name").text(group?.name || EMPTY_TEXT);
+        $("#group-description").text(group?.description || "No description");
+        $("#group-member-count").text(window.formatAdminCountLabel((group?.members || []).length, "member"));
+        $("#group-assignment-count").text(window.formatAdminCountLabel(assignments.length, "batch"));
+        $("#assignment-status-overview").html(buildStatusOverview(assignments));
+        updateSelectionSummary();
+    }
+
+    function renderAssignmentOverview() {
+        const items = [
+            { label: "Completed", value: countAssignmentsByStatus("Completed"), className: "u-text-success" },
+            { label: "In Progress", value: countAssignmentsByStatus("InProgress"), className: "u-text-info" },
+            { label: "Upcoming", value: countAssignmentsByStatus("Upcoming"), className: "u-text-warning" },
+            { label: "Expired", value: countAssignmentsByStatus("Expired"), className: "u-text-danger" }
+        ];
+
+        $("#assignment-overview-grid").html(items.map(function(item) {
+            return `
+                <div class="sg-overview-item">
+                    <div class="sg-overview-value ${item.className}">${item.value}</div>
+                    <div class="sg-overview-label">${item.label}</div>
+                </div>`;
+        }).join(""));
+
+        const total = wizardState.relatedAssignments.length;
+        $("#assignment-overview-note").text(total > 0
+            ? `${window.formatAdminCountLabel(total, "related assignment batch")} currently belong to this student group.`
+            : "No related assignment batches were found for this student group yet.");
+    }
+
+    function renderPreviewSummary() {
+        const preview = wizardState.preview;
+        if (!preview) {
+            return;
+        }
+
+        $("#summary-cards").html([
+            buildSummaryCard(preview.selectedStudentCount, "Selected Students", "text-dark"),
+            buildSummaryCard(preview.newMemberCount, "New Members", "u-text-success"),
+            buildSummaryCard(preview.existingMemberCount, "Already In Group", "u-text-warning"),
+            buildSummaryCard(preview.selectedAssignmentCount, "Assignment Batches", "u-text-info"),
+            buildSummaryCard(preview.selectedCourseCount, "Courses Affected", "text-dark"),
+            buildSummaryCard(preview.estimatedEnrollmentCount, "Estimated Enrollments", "u-text-info")
+        ].join(""));
+
+        $("#student-summary-note").text(`${window.formatAdminCountLabel(preview.selectedStudentCount, "student")} included in this action.`);
+        $("#assignment-summary-note").text(preview.enrollToRelatedAssignments
+            ? `${window.formatAdminCountLabel(preview.selectedAssignmentCount, "assignment batch")} will receive the selected learners.`
+            : "Related assignment enrollment is disabled for this run.");
+
+        $("#student-summary-table").html(buildStudentsSummaryTable(preview.students || []));
+        $("#assignment-summary-table").html(buildAssignmentsSummaryTable(preview.assignments || []));
+    }
+
+    function buildStudentsSummaryTable(students) {
+        if (!students.length) {
+            return buildEmptyState("fas fa-user-graduate", "No learners selected yet.");
+        }
+
+        const rows = students.map(function(student) {
+            const memberState = student.isAlreadyMember
+                ? '<span class="tag-pill pill-warning">Already in group</span>'
+                : '<span class="tag-pill pill-success">New member</span>';
+
+            return `
+                <tr>
+                    <td>
+                        <div class="tag-pill pill-default fw-bold">${escapeHtml(student.studentCode || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>
+                        <div class="sg-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
+                        <div class="sg-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
+                    <td>${memberState}</td>
+                </tr>`;
+        }).join("");
+
+        return `
+            <table class="sg-table">
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Learner</th>
+                        <th>Position</th>
+                        <th>Membership Impact</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    }
+
+    function buildAssignmentsSummaryTable(assignments) {
+        if (!assignments.length) {
+            return buildEmptyState("fas fa-tasks", "No related assignments will be updated with this action.");
+        }
+
+        const rows = assignments.map(function(assignment) {
+            return `
+                <tr>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(assignment.assignmentNo || EMPTY_TEXT)}</div>
+                        <div class="sg-assignment-note">${escapeHtml(assignment.description || "No description")}</div>
+                    </td>
+                    <td>
+                        <div>${escapeHtml(assignment.courseNames || EMPTY_TEXT)}</div>
+                        <div class="sg-assignment-note">${window.formatAdminCountLabel(assignment.courseCount || 0, "course")}</div>
+                    </td>
+                    <td>${renderStatusPill(assignment.status)}</td>
+                    <td>${window.formatAdminDate(assignment.startDate, EMPTY_TEXT)}</td>
+                    <td>${window.formatAdminDate(assignment.dueDate, EMPTY_TEXT)}</td>
+                    <td>${window.formatAdminCountLabel(assignment.currentLearnerCount || 0, "learner")}</td>
+                    <td>${window.formatAdminCountLabel(assignment.estimatedEnrollmentCount || 0, "enrollment")}</td>
+                </tr>`;
+        }).join("");
+
+        return `
+            <table class="sg-table">
+                <thead>
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Courses</th>
+                        <th>Status</th>
+                        <th>Start</th>
+                        <th>Due</th>
+                        <th>Current Learners</th>
+                        <th>Estimated Enrollments</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    }
+
+    function buildSummaryCard(value, label, className) {
+        return `
+            <div class="sg-summary-item">
+                <div class="sg-summary-value ${className}">${value}</div>
+                <div class="sg-summary-label">${label}</div>
+            </div>`;
+    }
+
+    function buildEmptyState(iconClass, message) {
+        return `
+            <div class="sg-empty-state">
+                <i class="${iconClass}"></i>
+                <div>${message}</div>
+            </div>`;
+    }
+
+    function buildStatusOverview(assignments) {
+        if (!assignments.length) {
+            return '<span class="text-muted">No assignments yet</span>';
+        }
+
+        const parts = [
+            { status: "Completed", label: "Completed", cls: "pill-success" },
+            { status: "InProgress", label: "In Progress", cls: "pill-info" },
+            { status: "Upcoming", label: "Upcoming", cls: "pill-warning" },
+            { status: "Expired", label: "Expired", cls: "pill-danger" }
+        ].map(function(item) {
+            return `<span class="tag-pill ${item.cls} me-1 mb-1">${item.label}: ${countAssignmentsByStatus(item.status)}</span>`;
+        });
+
+        return parts.join("");
+    }
+
+    function renderStatusPill(status) {
+        const map = {
+            Completed: { cls: "pill-success", text: "Completed" },
+            InProgress: { cls: "pill-info", text: "In Progress" },
+            Upcoming: { cls: "pill-warning", text: "Upcoming" },
+            Expired: { cls: "pill-danger", text: "Expired" }
+        };
+
+        const resolved = map[status] || { cls: "pill-default", text: status || EMPTY_TEXT };
+        return `<span class="tag-pill ${resolved.cls}">${resolved.text}</span>`;
+    }
+
+    function toggleStatusOptions(enabled) {
+        $("#status-options-card").toggleClass("is-disabled", !enabled);
+        $(".sg-status-checkbox").prop("disabled", !enabled);
+        $(".sg-status-option").toggleClass("disabled", !enabled);
+
+        if (!enabled) {
+            $(".sg-status-checkbox").prop("checked", false);
+        }
+
+        updateSelectedStatusCount();
+    }
+
+    function updateSelectedStatusCount() {
+        const count = getSelectedStatuses().length;
+        $("#selected-status-count").text(window.formatAdminCountLabel(count, "status"));
+    }
+
+    function updateSelectionSummary() {
+        const count = getSelectedStudentCodes().length;
+        $("#selected-summary").text(window.formatAdminCountLabel(count, "student", "students", "0 students selected"));
+    }
+
+    function invalidatePreview() {
+        wizardState.preview = null;
+    }
+
+    function countAssignmentsByStatus(status) {
+        return wizardState.relatedAssignments.filter(function(item) {
+            return item.status === status;
+        }).length;
+    }
+
+    function getSelectedStudentCodes() {
+        return studentsGrid ? (studentsGrid.getSelectedRowKeys() || []) : [];
+    }
+
+    function getSelectedStatuses() {
+        return $(".sg-status-checkbox:checked").map(function() {
+            return $(this).val();
+        }).get();
+    }
+
+    function getPayload() {
+        return {
+            studentCodes: getSelectedStudentCodes(),
+            enrollToRelatedAssignments: $("#chk-enroll-related").is(":checked"),
+            assignmentStatuses: getSelectedStatuses()
+        };
+    }
+
+    function buildSuccessMessage(result) {
+        const addedMembers = Number(result.addedMemberCount || 0);
+        const assignments = Number(result.assignmentCount || 0);
+
+        if (assignments > 0) {
+            return `${window.formatAdminCountLabel(addedMembers, "member")} added and ${window.formatAdminCountLabel(assignments, "assignment batch")} updated.`;
+        }
+
+        return `${window.formatAdminCountLabel(addedMembers, "member")} added successfully.`;
+    }
+
+    function applyCombinedFilter(gridInstance, conditions) {
+        if (!conditions.length) {
+            gridInstance.clearFilter();
+            return;
+        }
+
+        let filter = conditions[0];
+        for (let index = 1; index < conditions.length; index += 1) {
+            filter = [filter, "and", conditions[index]];
+        }
+
+        gridInstance.filter(filter);
+    }
+
+    function getApiErrorMessage(error, fallbackMessage) {
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+    }
+
+    function escapeHtml(value) {
+        return window.escapeAdminHtml ? window.escapeAdminHtml(String(value || "")) : String(value || "");
+    }
+</script>
+}

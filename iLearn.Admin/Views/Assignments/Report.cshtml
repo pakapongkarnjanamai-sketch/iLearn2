@@ -1,75 +1,14 @@
 ﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
-    Layout = null;
+    Layout = "_ReportLayout";
+    ViewData["Title"] = "Assignment Report";
+    ViewData["ReportTitle"] = "Assignment Report";
+    ViewData["ReportIcon"] = "fa-file-alt";
     var apiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <title>Assignment Report</title>
-    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
-    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
-    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
-    <link href="~/css/admin-minimal.css" rel="stylesheet" />
 
-
+@section Styles {
     <style>
-        body {
-            font-family: var(--font-stack);
-            background: #fff;
-            color: var(--text-primary);
-            font-size: 13px;
-            padding-top: 50px;
-            height: auto;
-            overflow: auto;
-        }
-
-        /* ── Header & Toolbar ── */
-        .toolbar {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 999;
-            background: #fff;
-            border-bottom: 1px solid var(--border-color);
-            padding: 10px 24px;
-        }
-
-        .toolbar-btn {
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 6px 14px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            background: #fff;
-            color: var(--text-secondary);
-            transition: 0.2s;
-        }
-
-            .toolbar-btn:hover {
-                background: var(--bg-light);
-                color: var(--text-primary);
-            }
-
-        /* ── Table Customizations over Bootstrap ── */
-        .table {
-            font-size: 12px;
-            border-color: var(--border-color) !important;
-            margin-bottom: 0;
-        }
-
-            .table th {
-                background: var(--bg-light);
-                font-weight: 600;
-                color: var(--text-secondary);
-            }
-
-        .table-hover tbody tr:hover {
-            background-color: var(--bg-light);
-        }
-
-        /* ── Sticky Column for Pivot Matrix ── */
         .sticky-col {
             position: sticky;
             left: 0;
@@ -84,86 +23,31 @@
 
         th.sticky-col {
             background-color: var(--bg-light);
-            z-index: 3; /* ให้อยู่เหนือ column อื่นๆ ตอน scroll */
-        }
-
-        /* ── Status Indicators ── */
-        .status-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-
-        .status-done {
-            color: var(--success-color);
-        }
-
-            .status-done .status-dot {
-                background: var(--success-color);
-            }
-
-        .status-active {
-            color: var(--warning-color);
-        }
-
-            .status-active .status-dot {
-                background: var(--warning-color);
-            }
-
-        .status-pending {
-            color: var(--text-secondary);
-        }
-
-            .status-pending .status-dot {
-                background: #d9d9d9;
-            }
-
-        .progress-slim {
-            height: 4px;
-            background: var(--border-color);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 4px;
-        }
-
-        @@media print {
-            .toolbar {
-                display: none !important;
-            }
-
-            body {
-                padding-top: 0;
-            }
+            z-index: 3;
         }
     </style>
-</head>
-<body>
+}
 
-    <div class="toolbar d-flex align-items-center gap-2">
-        <span class="fw-bold fs-6 flex-grow-1">Data Report</span>
+@section ToolbarActions {
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.print()">
+            <i class="fas fa-print"></i> Print
+        </button>
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="exportAllToExcel()">
+            <i class="fas fa-file-excel"></i> Export
+        </button>
         <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.close()">
             <i class="fas fa-times"></i> Close
         </button>
-        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="exportAllToExcel()">
-            <i class="fas fa-file-excel"></i> Export All
-        </button>
-    </div>
+}
 
-    <div id="report-content" class="container-fluid py-4 page-shell-lg">
+    <div id="report-content" class="container-fluid py-4">
         <div class="d-flex flex-column justify-content-center align-items-center text-muted u-minh-70vh">
             <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
             <span class="fs-6">Loading data...</span>
         </div>
     </div>
 
-    <script src="~/js/devextreme/jquery.js"></script>
-    <script src="~/js/devextreme/dx.all.js"></script>
-    <script src="~/src/devextreme-license.js"></script>
-    <script src="~/lib/html2canvas/html2canvas.min.js"></script>
-    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
-    <script src="~/js/devextreme/filesaver.min.js"></script>
+@section Scripts {
     <script>
         const INITIAL_ASSIGNMENT_ID = @(ViewBag.AssignmentId ?? 0);
         const INITIAL_ASSIGNMENT_NO = "@(ViewBag.AssignmentNo ?? "")";
@@ -603,5 +487,4 @@
             });
         }
     </script>
-</body>
-</html>
+}

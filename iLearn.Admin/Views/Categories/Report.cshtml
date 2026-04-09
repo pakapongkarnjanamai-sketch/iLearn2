@@ -1,0 +1,409 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    Layout = "_ReportLayout";
+    ViewData["Title"] = "Category Report";
+    ViewData["ReportTitle"] = "Category Report";
+    ViewData["ReportIcon"] = "fa-file-alt";
+    var apiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+    int categoryId = ViewBag.CategoryId;
+}
+
+@section Styles {
+    <style>
+        .category-avatar {
+            width: 64px;
+            height: 64px;
+            background: #e6f4ff;
+            color: var(--accent-color);
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid #fff;
+            outline: 1px solid var(--border-color);
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-row:last-child { border-bottom: none; }
+        .info-row i { width: 16px; text-align: center; color: var(--text-secondary); opacity: 0.6; }
+        .info-row .info-label { min-width: 92px; font-weight: 500; }
+        .info-row .info-value { font-weight: 600; color: var(--text-primary); }
+        .stat-block { text-align: center; }
+        .stat-block .stat-num { font-size: 22px; font-weight: 700; line-height: 1.2; }
+        .stat-block .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    </style>
+}
+
+@section ToolbarActions {
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.print()">
+            <i class="fas fa-print"></i> Print
+        </button>
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="exportAllToExcel()">
+            <i class="fas fa-file-excel"></i> Export
+        </button>
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.close()">
+            <i class="fas fa-times"></i> Close
+        </button>
+}
+
+    <div id="report-content" class="container-fluid py-4">
+        <div class="d-flex flex-column justify-content-center align-items-center text-muted u-minh-70vh">
+            <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
+            <span class="fs-6">Loading data...</span>
+        </div>
+    </div>
+
+@section Scripts {
+    <script>
+        const CATEGORY_ID = @categoryId;
+        const serviceUrl = "@apiBaseUrl";
+        const API_URL = serviceUrl + "/admin/CategoriesCRUD";
+
+        let _reportData = null;
+
+        function esc(value) {
+            return window.escapeAdminHtml ? window.escapeAdminHtml(value) : $("<span>").text(value).html();
+        }
+
+        function formatDate(dateString) {
+            return window.formatAdminDate
+                ? window.formatAdminDate(dateString, "—")
+                : (dateString || "—");
+        }
+
+        function formatPct(value) {
+            if (value == null) return "0%";
+            return Math.round(value) + "%";
+        }
+
+        // ─── Load Data ───
+        async function loadReport() {
+            try {
+                const res = await fetch(API_URL + "/GetDashboard/" + CATEGORY_ID, { credentials: "include" });
+                const data = await res.json();
+
+                if (!data.success || !data.data) {
+                    document.getElementById("report-content").innerHTML =
+                        '<div class="text-danger text-center py-4">Category not found.</div>';
+                    return;
+                }
+
+                _reportData = data.data;
+                renderReport(data.data);
+            } catch (e) {
+                document.getElementById("report-content").innerHTML =
+                    '<div class="text-danger text-center py-4">Network error.</div>';
+            }
+        }
+
+        loadReport();
+
+        // ─── Render Report ───
+        function renderReport(data) {
+            var c = data.category;
+            var s = data.stats;
+            var courses = data.courses || [];
+            var initial = (c.name || "?").charAt(0).toUpperCase();
+            var completionPct = s.totalEnrollments > 0
+                ? Math.round((s.completedEnrollments / s.totalEnrollments) * 100)
+                : 0;
+
+            var infoItems = [
+                { icon: "fa-layer-group", label: "Category", value: c.name },
+                { icon: "fa-building", label: "Division", value: c.divisionName || "No Division" },
+                { icon: "fa-toggle-on", label: "Status", value: c.isActive ? "Active" : "Inactive" },
+                { icon: "fa-book", label: "Courses", value: String(s.totalCourses) },
+                { icon: "fa-users", label: "Students", value: String(s.uniqueStudents) },
+                { icon: "fa-user-edit", label: "Created By", value: c.createdBy || "—" },
+                { icon: "fa-calendar-alt", label: "Created At", value: formatDate(c.createdAt) }
+            ].map(function(item) {
+                return '<div class="info-row">'
+                    + '<i class="fas ' + item.icon + '"></i>'
+                    + '<span class="info-label">' + esc(item.label) + '</span>'
+                    + '<span class="info-value">' + esc(String(item.value)) + '</span>'
+                    + '</div>';
+            }).join('');
+
+            // Build course rows
+            var courseRows = courses.map(function(course) {
+                var pct = course.enrollmentCount > 0
+                    ? Math.round((course.completedCount / course.enrollmentCount) * 100) : 0;
+                var colorClass = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
+                return '<tr>'
+                    + '<td class="fw-bold align-middle">' + esc(course.code || '—') + '</td>'
+                    + '<td class="align-middle">' + esc(course.title || '—') + '</td>'
+                    + '<td class="align-middle text-center">' + esc(course.courseTypeName || '—') + '</td>'
+                    + '<td class="align-middle text-center">'
+                        + (course.isActive
+                            ? '<span class="status-done"><span class="status-dot"></span>Active</span>'
+                            : '<span class="status-pending"><span class="status-dot"></span>Inactive</span>')
+                    + '</td>'
+                    + '<td class="align-middle text-center">' + course.enrollmentCount + '</td>'
+                    + '<td class="align-middle text-center u-text-success">' + course.completedCount + '</td>'
+                    + '<td class="align-middle text-center">' + (course.enrollmentCount - course.completedCount) + '</td>'
+                    + '<td class="align-middle u-minw-150">'
+                        + '<div class="d-flex justify-content-between u-fs-11">'
+                            + '<span class="text-muted">Progress</span>'
+                            + '<span class="fw-bold">' + pct + '%</span>'
+                        + '</div>'
+                        + '<div class="progress-slim">'
+                            + '<div style="height:100%;width:' + pct + '%;background:' + colorClass + ';"></div>'
+                        + '</div>'
+                    + '</td>'
+                    + '</tr>';
+            }).join('');
+
+            // No courses empty state
+            if (courses.length === 0) {
+                courseRows = '<tr><td colspan="8" class="text-center text-muted py-4">'
+                    + '<i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>No courses in this category.</td></tr>';
+            }
+
+            // Status label
+            var statusLabel = c.isActive
+                ? '<span class="status-done"><span class="status-dot"></span>Active</span>'
+                : '<span class="status-pending"><span class="status-dot"></span>Inactive</span>';
+
+            document.getElementById("report-content").innerHTML = ''
+                + '<div class="row g-4 mb-5">'
+
+                // Left: Category info
+                + '  <div class="col-md-4">'
+                + '    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">'
+                + '      <h2 class="fs-6 fw-bold m-0 text-dark">Category Information</h2>'
+                + '      <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportSummaryImage()">'
+                + '        <i class="fas fa-download"></i> Save Image'
+                + '      </button>'
+                + '    </div>'
+                + '    <div id="export-target" class="bg-white p-4 border rounded">'
+                + '      <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">'
+                + '        <div class="category-avatar">' + esc(initial) + '</div>'
+                + '        <div>'
+                + '          <div class="fw-bold text-dark" style="font-size:16px;">' + esc(c.name || '—') + '</div>'
+                + '          <div class="text-muted u-fs-12">' + (c.divisionName ? esc(c.divisionName) : 'No Division') + '</div>'
+                + '        </div>'
+                + '      </div>'
+                +        infoItems
+                + '    </div>'
+                + '  </div>'
+
+                // Right: Completion summary
+                + '  <div class="col-md-8">'
+                + '    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">'
+                + '      <h2 class="fs-6 fw-bold m-0 text-dark">Completion Summary</h2>'
+                + '    </div>'
+                + '    <div class="border rounded bg-white p-4">'
+                + '      <div class="d-flex justify-content-around text-center border-bottom pb-4 mb-4">'
+                + '        <div class="stat-block">'
+                + '          <div class="stat-num">' + s.totalCourses + '</div>'
+                + '          <div class="stat-label">Total Courses</div>'
+                + '        </div>'
+                + '        <div class="stat-block">'
+                + '          <div class="stat-num" style="color:var(--success-color);">' + s.completedEnrollments + '</div>'
+                + '          <div class="stat-label">Completed</div>'
+                + '        </div>'
+                + '        <div class="stat-block">'
+                + '          <div class="stat-num" style="color:var(--warning-color);">' + s.inProgressEnrollments + '</div>'
+                + '          <div class="stat-label">In Progress</div>'
+                + '        </div>'
+                + '        <div class="stat-block">'
+                + '          <div class="stat-num">' + s.notStartedEnrollments + '</div>'
+                + '          <div class="stat-label">Not Started</div>'
+                + '        </div>'
+                + '        <div class="stat-block">'
+                + '          <div class="stat-num" style="color:var(--accent-color);">' + completionPct + '%</div>'
+                + '          <div class="stat-label">Completion</div>'
+                + '        </div>'
+                + '      </div>'
+                + '      <div class="text-center mb-4 bg-light p-2 rounded">'
+                +           statusLabel
+                + '        <span class="text-muted mx-2">|</span>'
+                + '        <span class="text-muted u-fs-12">Avg. Progress ' + formatPct(s.avgProgress) + '</span>'
+                + '      </div>'
+                + '      <div id="report-pie-chart" style="height:220px;"></div>'
+                + '    </div>'
+                + '  </div>'
+
+                + '</div>'
+
+                // Course overview
+                + '<div class="mb-5">'
+                + '  <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">'
+                + '    <h2 class="fs-6 fw-bold m-0 text-dark">Course Overview</h2>'
+                + '    <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportCourseOverview()">'
+                + '      <i class="fas fa-file-excel"></i> Export'
+                + '    </button>'
+                + '  </div>'
+                + '  <div class="border rounded overflow-hidden bg-white">'
+                + '    <table class="table table-hover m-0">'
+                + '      <thead>'
+                + '        <tr>'
+                + '          <th>Code</th>'
+                + '          <th>Course</th>'
+                + '          <th class="text-center">Type</th>'
+                + '          <th class="text-center">Status</th>'
+                + '          <th class="text-center">Enrollments</th>'
+                + '          <th class="text-center">Done</th>'
+                + '          <th class="text-center">Left</th>'
+                + '          <th>Progress</th>'
+                + '        </tr>'
+                + '      </thead>'
+                + '      <tbody>' + courseRows + '</tbody>'
+                + '    </table>'
+                + '  </div>'
+                + '</div>';
+
+            // Render Donut Chart
+            $("#report-pie-chart").dxPieChart({
+                type: "doughnut",
+                innerRadius: 0.7,
+                palette: ["#52c41a", "#faad14", "#d9d9d9"],
+                dataSource: [
+                    { status: "Completed",   count: s.completedEnrollments },
+                    { status: "In Progress", count: s.inProgressEnrollments },
+                    { status: "Not Started", count: s.notStartedEnrollments }
+                ],
+                series: [{
+                    argumentField: "status",
+                    valueField: "count",
+                    label: {
+                        visible: true,
+                        position: "outside",
+                        customizeText: function(p) { return p.valueText + " (" + p.percentText + ")"; },
+                        font: { size: 11, color: "#595959" },
+                        connector: { visible: true, width: 1 }
+                    }
+                }],
+                legend: {
+                    horizontalAlignment: "right",
+                    verticalAlignment: "center",
+                    margin: 0,
+                    font: { size: 12, color: "#595959" }
+                },
+                tooltip: { enabled: true }
+            });
+        }
+
+        // ─── Excel Export Helpers ───
+        function getExportFileName(prefix) {
+            var name = (_reportData && _reportData.category ? _reportData.category.name : 'Category').replace(/[\\/:*?"<>|]/g, '_');
+            var now = new Date();
+            var ts = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+                String(now.getHours()).padStart(2, '0'),
+                String(now.getMinutes()).padStart(2, '0')
+            ].join('');
+            return prefix + '_' + name + '_' + ts + '.xlsx';
+        }
+
+        function saveWorkbook(workbook, fileName) {
+            workbook.xlsx.writeBuffer().then(function(buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            });
+        }
+
+        function styleHeaderRow(ws) {
+            var row = ws.getRow(1);
+            row.font = { bold: true, size: 11 };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            row.alignment = { vertical: 'middle' };
+            row.eachCell(function(cell) {
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } };
+            });
+        }
+
+        function addCourseOverviewSheet(wb) {
+            var ws = wb.addWorksheet('Course Overview');
+            ws.columns = [
+                { header: 'Code',        key: 'code',  width: 15 },
+                { header: 'Course',      key: 'title', width: 40 },
+                { header: 'Type',        key: 'type',  width: 15 },
+                { header: 'Status',      key: 'status', width: 10 },
+                { header: 'Enrollments', key: 'total', width: 12 },
+                { header: 'Completed',   key: 'done',  width: 12 },
+                { header: 'Remaining',   key: 'left',  width: 12 },
+                { header: 'Progress %',  key: 'pct',   width: 12 }
+            ];
+            var courses = (_reportData && _reportData.courses) || [];
+            courses.forEach(function(c) {
+                var pct = c.enrollmentCount > 0 ? Math.round((c.completedCount / c.enrollmentCount) * 100) : 0;
+                ws.addRow({
+                    code: c.code,
+                    title: c.title,
+                    type: c.courseTypeName || '',
+                    status: c.isActive ? 'Active' : 'Inactive',
+                    total: c.enrollmentCount,
+                    done: c.completedCount,
+                    left: c.enrollmentCount - c.completedCount,
+                    pct: pct
+                });
+            });
+            styleHeaderRow(ws);
+        }
+
+        function addSummarySheet(wb) {
+            var ws = wb.addWorksheet('Summary');
+            ws.columns = [
+                { header: 'Metric', key: 'metric', width: 25 },
+                { header: 'Value',  key: 'value',  width: 15 }
+            ];
+            var c = _reportData.category;
+            var s = _reportData.stats;
+            ws.addRow({ metric: 'Category Name', value: c.name });
+            ws.addRow({ metric: 'Division', value: c.divisionName || '—' });
+            ws.addRow({ metric: 'Status', value: c.isActive ? 'Active' : 'Inactive' });
+            ws.addRow({ metric: 'Created By', value: c.createdBy || '—' });
+            ws.addRow({ metric: '', value: '' });
+            ws.addRow({ metric: 'Total Courses', value: s.totalCourses });
+            ws.addRow({ metric: 'Active Courses', value: s.activeCourses });
+            ws.addRow({ metric: 'Total Enrollments', value: s.totalEnrollments });
+            ws.addRow({ metric: 'Completed', value: s.completedEnrollments });
+            ws.addRow({ metric: 'In Progress', value: s.inProgressEnrollments });
+            ws.addRow({ metric: 'Not Started', value: s.notStartedEnrollments });
+            ws.addRow({ metric: 'Unique Students', value: s.uniqueStudents });
+            ws.addRow({ metric: 'Avg. Progress', value: s.avgProgress + '%' });
+            styleHeaderRow(ws);
+        }
+
+        function exportCourseOverview() {
+            var wb = new ExcelJS.Workbook();
+            addCourseOverviewSheet(wb);
+            saveWorkbook(wb, getExportFileName('CategoryCourses'));
+        }
+
+        function exportAllToExcel() {
+            var wb = new ExcelJS.Workbook();
+            addSummarySheet(wb);
+            addCourseOverviewSheet(wb);
+            saveWorkbook(wb, getExportFileName('CategoryReport'));
+        }
+
+        function exportSummaryImage() {
+            const target = document.getElementById("export-target");
+            html2canvas(target, { scale: 2, backgroundColor: "#ffffff", logging: false })
+                .then(function(canvas) {
+                    const link = document.createElement("a");
+                    link.download = `Category_Summary_${CATEGORY_ID}.png`;
+                    link.href = canvas.toDataURL("image/png");
+                    link.click();
+                })
+                .catch(function() {
+                    alert("Could not save the image.");
+                });
+        }
+    </script>
+}

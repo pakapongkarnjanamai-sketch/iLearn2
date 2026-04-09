@@ -32,7 +32,8 @@
                 columns: [
                     { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,
                         cellTemplate: (c, o) => {
-                            $("<a>").attr("href", `@Url.Action("Profile", "Students")?code=${o.value}`)
+                            $("<a>").attr("href", `@Url.Action("Report", "Students")?code=${o.value}`)
+                                   .attr("target", "_blank")
                                    .addClass("tag-pill pill-default fw-bold")
                                    .text(o.value || "—").appendTo(c);
                         }

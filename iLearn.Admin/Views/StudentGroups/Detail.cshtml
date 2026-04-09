@@ -94,15 +94,15 @@
                 <div class="section-title">Actions</div>
                 <div class="d-flex flex-column gap-2">
 
-                    <a href="javascript:void(0);" id="btn-add-members" class="quick-action">
-                        <div class="qa-icon qa-icon-success"><i class="fas fa-user-plus"></i></div>
+                    <a href="@Url.Action("AddMembers", "StudentGroups", new { id = groupId })" id="btn-add-members" class="quick-action disabled" aria-disabled="true" tabindex="-1">
+                        <div class="qa-icon qa-icon-success"><i id="add-members-icon" class="fas fa-user-plus"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Add Members</div>
+                            <div class="u-fs-12 u-fw-semibold" id="add-members-text">Add Members</div>
                             <div class="u-fs-11 text-secondary">Add students to this group</div>
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Form", "Assignments")?groupId=@groupId" class="quick-action">
+                    <a href="@Url.Action("Form", "Assignments")?groupId=@groupId" id="btn-assign-course" class="quick-action disabled" aria-disabled="true" tabindex="-1">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-book-open"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Assign Course</div>
@@ -110,7 +110,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Form", "StudentGroups")?id=@groupId" class="quick-action">
+                    <a href="@Url.Action("Form", "StudentGroups")?id=@groupId" id="btn-edit-group" class="quick-action disabled" aria-disabled="true" tabindex="-1">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-edit"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Edit Student Group</div>
@@ -118,10 +118,10 @@
                         </div>
                     </a>
 
-                    <a href="javascript:void(0);" id="btn-delete-group" class="quick-action danger">
-                        <div class="qa-icon qa-icon-danger"><i class="fas fa-trash-alt"></i></div>
+                    <a href="javascript:void(0);" id="btn-delete-group" class="quick-action danger disabled" aria-disabled="true" tabindex="-1">
+                        <div class="qa-icon qa-icon-danger"><i id="delete-group-icon" class="fas fa-trash-alt"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Delete Student Group</div>
+                            <div class="u-fs-12 u-fw-semibold" id="delete-group-text">Delete Student Group</div>
                             <div class="u-fs-11 text-secondary">Delete this group and its members</div>
                         </div>
                     </a>
@@ -140,7 +140,7 @@
                 <span class="tag-pill tag-pill-xs pill-default ms-1" id="tab-badge-members">0</span>
             </button>
             <button id="tab-btn-assignments" onclick="switchTab('assignments', this)" class="tab-btn">
-                <i class="fas fa-clipboard-list me-1"></i> Assignment History
+                <i class="fas fa-tasks me-1"></i> Assignment History
                 <span class="tag-pill tag-pill-xs pill-default ms-1" id="tab-badge-assignments">0</span>
             </button>
         </div>
@@ -154,19 +154,17 @@
 
 </div>
 
-<!-- ?? Add Members Popup ?? -->
-<div id="popup-add-members"></div>
-
 @section Scripts {
 <script>
     const GROUP_ID = @groupId;
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
     const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
-    const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const ASSIGNMENT_DETAIL_URL = '@Url.Action("Detail", "Assignments")';
-    const STUDENT_PROFILE_URL = '@Url.Action("Profile", "Students")';
+    const STUDENT_PROFILE_URL = '@Url.Action("Report", "Students")';
+    const ADD_MEMBERS_URL = '@Url.Action("AddMembers", "StudentGroups", new { id = groupId })';
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
     const EMPTY_TEXT = "—";
+    const HAS_VALID_GROUP_ID = GROUP_ID > 0;
 
     let membersGrid;
     let assignmentGrid;
@@ -182,6 +180,7 @@
                     cellTemplate: function(container, options) {
                         $("<a>")
                             .attr("href", `${STUDENT_PROFILE_URL}?code=${options.value}`)
+                            .attr("target", "_blank")
                             .addClass("tag-pill pill-default fw-bold")
                             .text(options.value || EMPTY_TEXT)
                             .appendTo(container);
@@ -321,219 +320,29 @@
             ]
         });
 
+        setActionPanelState(!HAS_VALID_GROUP_ID);
+
+        if (!HAS_VALID_GROUP_ID) {
+            $("#page-subtitle").text("Student group is unavailable.");
+            showToast("Student group is unavailable.", "warning");
+            return;
+        }
+
         loadGroupDetail();
 
-        let confirmAddFn = null;
-
-        const addPopup = $("#popup-add-members").dxPopup({
-            title: "Add Members to Student Group",
-            width: "90vw", maxWidth: 1200, height: "85vh",
-            showCloseButton: true, dragEnabled: true,
-            deferRendering: false,
-            wrapperAttr: { class: "shadow-lg rounded-4" },
-            onShown: function() {
-                const g = $("#grid-add-students").dxDataGrid("instance");
-                if (g) g.updateDimensions();
-            },
-            contentTemplate: function (contentElement) {
-                $(`
-                    <div class="d-flex h-100 gap-3">
-                        <div class="sidebar-240">
-                            <div class="filter-panel h-100 d-flex flex-column gap-3">
-                                <h6 class="fw-bold mb-0">
-                                    <i class="fas fa-filter text-primary me-2"></i>Filters
-                                </h6>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
-                                    <div id="filter-div"></div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
-                                    <div id="filter-dept"></div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
-                                    <div id="filter-section"></div>
-                                </div>
-                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-filter">
-                                    <i class="fas fa-times me-1"></i> Clear Filters
-                                </button>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 d-flex flex-column u-min-w-0">
-                            <div id="grid-add-students" class="flex-grow-1"></div>
-                        </div>
-                    </div>
-                `).appendTo(contentElement);
-
-                let selectedCodes = [];
-
-                const addGrid = initDxGrid("#grid-add-students", {
-                    preset: "selectionGrid",
-                    dataSource: DevExpress.data.AspNet.createStore({
-                        key: "EId",
-                        loadUrl: `${serviceUrl}/Students/Get`,
-                        onBeforeSend: (m, opts) => opts.xhrFields = { withCredentials: true }
-                    }),
-                    remoteOperations: true,
-                    filterRow: { visible: true },
-                    searchPanel: { placeholder: "Search ID or name..." },
-                    noDataText: getNoDataText("students"),
-                    columns: [
-                        {
-                            dataField: "EId", caption: "ID", width: 110,
-                            cellTemplate: (c, o) =>
-                                $("<span>").addClass("tag-pill pill-default fw-bold").text(o.value).appendTo(c)
-                        },
-                        {
-                            caption: "Name", minWidth: 160,
-                            calculateCellValue: d =>
-                                [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
-                            cellTemplate: (c, o) =>
-                                $("<span>").addClass("fw-medium text-dark").text(o.value).appendTo(c)
-                        },
-                        { dataField: "Division", caption: "Division", width: 120 },
-                        { dataField: "Department", caption: "Dept.", width: 100 },
-                        {
-                            dataField: "Section", caption: "Section", minWidth: 120,
-                            cellTemplate: (c, o) =>
-                                $("<span>").addClass("text-muted small").text(o.value || "—").appendTo(c)
-                        }
-                    ],
-                    onSelectionChanged: function (e) {
-                        selectedCodes = e.selectedRowKeys;
-                        setSelectionHint("#add-hint", selectedCodes.length, "student", "to add");
-                    }
-                });
-
-                function makeLookup(endpoint, q) {
-                    return new DevExpress.data.CustomStore({
-                        key: "Name",
-                        load: () => $.ajax({
-                            url: `${STUDENTS_API_URL}/${endpoint}${q || ""}`,
-                            method: "GET",
-                            xhrFields: { withCredentials: true }
-                        }).then(res => res.data || res)
-                    });
-                }
-
-                function buildFilter() {
-                    const divVal = $("#filter-div").dxSelectBox("instance").option("value");
-                    const deptVal = $("#filter-dept").dxSelectBox("instance").option("value");
-                    const secVal = $("#filter-section").dxSelectBox("instance").option("value");
-                    const filters = [];
-                    if (divVal) filters.push(["Division", "=", divVal]);
-                    if (deptVal) filters.push(["Department", "=", deptVal]);
-                    if (secVal) filters.push(["Section", "=", secVal]);
-                    applyCombinedFilter(addGrid, filters);
-                }
-
-                const divBox = $("#filter-div").dxSelectBox({
-                    dataSource: makeLookup("GetDivisions"),
-                    displayExpr: "Name", valueExpr: "Name",
-                    placeholder: "All Divisions", showClearButton: true,
-                    onValueChanged: function (e) {
-                        const deptBox = $("#filter-dept").dxSelectBox("instance");
-                        deptBox.option({
-                            value: null, disabled: !e.value,
-                            dataSource: e.value
-                                ? makeLookup("GetDepartments", `?filter=["Division","=","${e.value}"]`)
-                                : []
-                        });
-                        $("#filter-section").dxSelectBox("instance")
-                                            .option({ value: null, disabled: true, dataSource: [] });
-                        buildFilter();
-                    }
-                }).dxSelectBox("instance");
-
-                $("#filter-dept").dxSelectBox({
-                    displayExpr: "Name", valueExpr: "Name",
-                    placeholder: "All Departments", showClearButton: true, disabled: true,
-                    onValueChanged: function (e) {
-                        const secBox = $("#filter-section").dxSelectBox("instance");
-                        const divVal = divBox.option("value");
-                        const q = e.value
-                            ? `?filter=[["Division","=","${divVal}"],"and",["Department","=","${e.value}"]]`
-                            : (divVal ? `?filter=["Division","=","${divVal}"]` : "");
-                        secBox.option({
-                            value: null, disabled: !e.value,
-                            dataSource: e.value ? makeLookup("GetSections", q) : []
-                        });
-                        buildFilter();
-                    }
-                });
-
-                $("#filter-section").dxSelectBox({
-                    displayExpr: "Name", valueExpr: "Name",
-                    placeholder: "All Sections", showClearButton: true, disabled: true,
-                    onValueChanged: buildFilter
-                });
-
-                $("#btn-clear-filter").click(function () {
-                    divBox.option("value", null);
-                    $("#filter-dept").dxSelectBox("instance")
-                                     .option({ value: null, disabled: true, dataSource: [] });
-                    $("#filter-section").dxSelectBox("instance")
-                                        .option({ value: null, disabled: true, dataSource: [] });
-                    addGrid.clearFilter();
-                });
-
-                confirmAddFn = async function () {
-                    if (selectedCodes.length === 0) {
-                        showToast("Please select at least one student.", "warning");
-                        return;
-                    }
-
-                    try {
-                        await $.ajax({
-                            url: `${GROUPS_API_URL}/${GROUP_ID}/members`,
-                            method: "POST",
-                            contentType: "application/json",
-                            data: JSON.stringify({ studentCodes: selectedCodes }),
-                            xhrFields: { withCredentials: true }
-                        });
-
-                        showToast("Members added successfully.", "success");
-                        addPopup.hide();
-                        loadGroupDetail();
-                    } catch (err) {
-                        showToast(`Error: ${getApiErrorMessage(err, "Failed to add")}`, "error", 4000);
-                    }
-                };
-            },
-            toolbarItems: [
-                {
-                    toolbar: "bottom", location: "before",
-                    template: () => $(`
-                        <div id="add-hint" class="text-muted small fw-medium ps-1 d-flex align-items-center">
-                            <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to add.
-                        </div>`)
-                },
-                {
-                    widget: "dxButton", toolbar: "bottom", location: "after",
-                    options: {
-                        text: "Cancel", stylingMode: "outlined",
-                        onClick: () => addPopup.hide()
-                    }
-                },
-                {
-                    widget: "dxButton", toolbar: "bottom", location: "after",
-                    options: {
-                        text: "Add to Student Group", type: "default", stylingMode: "contained",
-                        elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
-                        onClick: () => confirmAddFn && confirmAddFn()
-                    }
-                }
-            ]
-        }).dxPopup("instance");
-
-        $("#btn-add-members").click(() => addPopup.show());
+        $("#btn-add-members").click(function(event) {
+            event.preventDefault();
+            window.location.href = ADD_MEMBERS_URL;
+        });
 
         window.confirmRemoveMember = function (data) {
-            DevExpress.ui.dialog.confirm(
-                `Remove <b>${data.studentName || data.studentCode}</b> from this student group?`,
-                "Confirm Remove"
-            ).then(async function (confirmed) {
+            showStudentGroupConfirmDialog({
+                title: "Confirm Remove",
+                messageHtml: `Remove <b>${data.studentName || data.studentCode}</b> from this student group?`,
+                confirmButtonText: "Remove",
+                confirmType: "danger",
+                icon: "warning"
+            }).done(async function (confirmed) {
                 if (!confirmed) {
                     return;
                 }
@@ -547,21 +356,31 @@
 
                     showToast("Member removed.", "success");
                     loadGroupDetail();
-                } catch {
-                    showToast("Failed to remove member.", "error");
+                } catch (err) {
+                    showToast(getApiErrorMessage(err, "Failed to remove member."), "error");
                 }
             });
         };
 
         $("#btn-delete-group").click(function () {
-            DevExpress.ui.dialog.confirm(
-                `<b>Delete this student group?</b><br>
+            showStudentGroupConfirmDialog({
+                title: "Confirm Delete",
+                messageHtml: `<b>Delete this student group?</b><br>
                  <small class="text-muted">All members in this student group will also be removed.</small>`,
-                "Confirm Delete"
-            ).then(async function (confirmed) {
+                confirmButtonText: "Delete",
+                confirmType: "danger",
+                icon: "warning"
+            }).done(async function (confirmed) {
                 if (!confirmed) {
                     return;
                 }
+
+                setActionPanelState(true);
+                setQuickActionLoadingState($("#btn-delete-group"), true, {
+                    iconSelector: "#delete-group-icon",
+                    textSelector: "#delete-group-text",
+                    loadingText: "Deleting..."
+                });
 
                 try {
                     await $.ajax({
@@ -572,8 +391,13 @@
 
                     showToast("Student group deleted.", "success");
                     window.location.href = INDEX_URL;
-                } catch {
-                    showToast("Failed to delete student group.", "error");
+                } catch (err) {
+                    setActionPanelState(false);
+                    setQuickActionLoadingState($("#btn-delete-group"), false, {
+                        iconSelector: "#delete-group-icon",
+                        textSelector: "#delete-group-text"
+                    });
+                    showToast(getApiErrorMessage(err, "Failed to delete student group."), "error");
                 }
             });
         });
@@ -607,10 +431,68 @@
             // Stat: Members
             $("#stat-total-members").text(members.length);
 
+            setActionPanelState(false);
             membersGrid.option("dataSource", members);
             loadAssignmentHistory();
         } catch {
+            setActionPanelState(true);
             showToast("Error loading group detail.", "error");
+        }
+    }
+
+    function setActionPanelState(disabled) {
+        setQuickActionState($("#btn-add-members"), disabled);
+        setQuickActionState($("#btn-assign-course"), disabled);
+        setQuickActionState($("#btn-edit-group"), disabled);
+        setQuickActionState($("#btn-delete-group"), disabled);
+    }
+
+    function setQuickActionState($element, disabled) {
+        $element
+            .toggleClass("disabled", disabled)
+            .attr("aria-disabled", disabled ? "true" : "false")
+            .attr("tabindex", disabled ? "-1" : "0");
+    }
+
+    function showStudentGroupConfirmDialog(options) {
+        return showAdminConfirmDialog({
+            title: options.title,
+            messageHtml: options.messageHtml,
+            text: options.text,
+            icon: options.icon || "warning",
+            confirmButtonText: options.confirmButtonText || "Confirm",
+            cancelButtonText: options.cancelButtonText || "Cancel",
+            confirmType: options.confirmType || "default"
+        });
+    }
+
+    function setQuickActionLoadingState($element, isLoading, options) {
+        if (!$element || !$element.length) {
+            return;
+        }
+
+        const settings = options || {};
+        const $icon = settings.iconSelector ? $(settings.iconSelector) : $element.find(".qa-icon i").first();
+        const $text = settings.textSelector ? $(settings.textSelector) : $element.find(".u-fw-semibold").first();
+
+        $element.toggleClass("disabled", isLoading).attr("aria-disabled", isLoading ? "true" : "false");
+
+        if ($icon.length) {
+            if (isLoading) {
+                $icon.data("original-class", $icon.attr("class") || "");
+                $icon.attr("class", "fas fa-spinner fa-spin");
+            } else {
+                $icon.attr("class", $icon.data("original-class") || "fas fa-spinner fa-spin");
+            }
+        }
+
+        if ($text.length) {
+            if (isLoading) {
+                $text.data("original-text", $text.text());
+                $text.text(settings.loadingText || "Processing...");
+            } else {
+                $text.text($text.data("original-text") || $text.text());
+            }
         }
     }
 

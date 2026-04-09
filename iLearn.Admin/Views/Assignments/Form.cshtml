@@ -62,11 +62,11 @@
             <div class="col-md-6 d-flex flex-column">
                 <div class="d-flex align-items-center mb-2" style="min-height: 28px;">
                     <span class="target-col-label">
-                        <i class="fas fa-book-open me-1"></i> Courses
+                        <i class="fas fa-book me-1"></i> Courses
                     </span>
                 </div>
                 <div class="target-card flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="btn-select-courses">
-                    <i class="fas fa-book-open fa-2x mb-2 target-card-icon"></i>
+                    <i class="fas fa-book fa-2x mb-2 target-card-icon"></i>
                     <div class="fw-bold text-dark mb-1 target-card-title">Select Courses</div>
                     <div class="text-secondary target-card-subtitle" id="selected-courses-text">No course selected</div>
                 </div>
@@ -75,23 +75,23 @@
             <div class="col-md-6 d-flex flex-column">
                 <div class="d-flex align-items-center mb-2" style="min-height: 28px;">
                     <span class="target-col-label">
-                        <i class="fas fa-users me-1"></i> Students
+                        <i class="fas fa-user-graduate me-1"></i> Students
                     </span>
                     <div class="d-flex gap-1 ms-auto">
                         <button class="btn btn-sm rounded-pill target-mode-btn active" id="mode-individual"
                                 onclick="switchTargetMode('individual')">
-                            <i class="fas fa-user me-1"></i> Individual
+                            <i class="fas fa-user-graduate me-1"></i> Individual
                         </button>
                         <button class="btn btn-sm rounded-pill target-mode-btn" id="mode-group"
                                 onclick="switchTargetMode('group')">
-                            <i class="fas fa-layer-group me-1"></i> Group
+                            <i class="fas fa-users me-1"></i> Group
                         </button>
                     </div>
                 </div>
                 <!-- Individual card -->
                 <div id="card-individual" class="flex-grow-1 d-flex">
                     <div class="target-card flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="btn-select-employees">
-                        <i class="fas fa-user fa-2x mb-2 target-card-icon"></i>
+                        <i class="fas fa-user-graduate fa-2x mb-2 target-card-icon"></i>
                         <div class="fw-bold text-dark mb-1 target-card-title">Select Students</div>
                         <div class="text-secondary target-card-subtitle" id="selected-employees-text">No student selected</div>
                     </div>
@@ -99,7 +99,7 @@
                 <!-- Group card -->
                 <div id="card-group" class="d-none flex-grow-1 d-flex flex-column">
                     <div class="target-card flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="btn-select-group">
-                        <i class="fas fa-layer-group fa-2x mb-2 target-card-icon"></i>
+                        <i class="fas fa-users fa-2x mb-2 target-card-icon"></i>
                         <div class="fw-bold text-dark mb-1 target-card-title">Select Student Group</div>
                         <div class="text-secondary target-card-subtitle" id="selected-group-text">No group selected</div>
                         <div id="group-reset-row" class="d-none mt-3">
@@ -822,7 +822,7 @@
                         <div class="col-4">
                             <div class="border rounded p-2 text-center" style="background: #fff;">
                                 <div class="text-muted small text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">
-                                    ${payload.groupId ? '<i class="fas fa-layer-group me-1"></i>Students' : 'Students'}
+                                    ${payload.groupId ? '<i class="fas fa-users me-1"></i>Students' : '<i class="fas fa-user-graduate me-1"></i>Students'}
                                 </div>
                                 <div class="fs-4 mt-1">${targetLabel}</div>
                             </div>

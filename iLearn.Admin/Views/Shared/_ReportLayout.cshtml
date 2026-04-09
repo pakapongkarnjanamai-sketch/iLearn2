@@ -1,0 +1,141 @@
+@{
+    var pageTitle = ViewData["Title"] as string ?? "Report";
+    var reportTitle = ViewData["ReportTitle"] as string ?? pageTitle;
+    var reportIcon = ViewData["ReportIcon"] as string ?? "fa-file-alt";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@pageTitle</title>
+    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
+    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/admin-minimal.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: var(--font-stack);
+            background: #fff;
+            color: var(--text-primary);
+            font-size: 13px;
+            padding-top: 50px;
+            height: auto;
+            overflow: auto;
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 24px;
+        }
+
+        .toolbar-btn {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #fff;
+            color: var(--text-secondary);
+            transition: 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .table {
+            font-size: 12px;
+            border-color: var(--border-color) !important;
+            margin-bottom: 0;
+        }
+
+        .table th {
+            background: var(--bg-light);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: var(--bg-light);
+        }
+
+        .progress-slim {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-done {
+            color: var(--success-color);
+        }
+
+        .status-done .status-dot {
+            background: var(--success-color);
+        }
+
+        .status-active {
+            color: var(--warning-color);
+        }
+
+        .status-active .status-dot {
+            background: var(--warning-color);
+        }
+
+        .status-pending {
+            color: var(--text-secondary);
+        }
+
+        .status-pending .status-dot {
+            background: #d9d9d9;
+        }
+
+        @@media print {
+            .toolbar {
+                display: none !important;
+            }
+
+            body {
+                padding-top: 0;
+            }
+        }
+    </style>
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <div class="toolbar d-flex align-items-center gap-2">
+        <span class="fw-bold fs-6 flex-grow-1">
+            <i class="fas @reportIcon me-2 text-muted"></i>@reportTitle
+        </span>
+        @RenderSection("ToolbarActions", required: false)
+    </div>
+
+    @RenderBody()
+
+    <script src="~/js/devextreme/jquery.js"></script>
+    <script src="~/js/devextreme/dx.all.js"></script>
+    <script src="~/src/devextreme-license.js"></script>
+    <script src="~/js/admin-layout.js"></script>
+    <script src="~/lib/html2canvas/html2canvas.min.js"></script>
+    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
+    <script src="~/js/devextreme/filesaver.min.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
