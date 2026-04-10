@@ -46,6 +46,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             IQueryable<Category> query = _repository.GetQuery().Include(c => c.Division);
 
             // ── Data Isolation ──
@@ -303,6 +305,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             var query = _repository.GetQuery().AsQueryable();
 
             // กรองข้อมูลให้เห็นเฉพาะ Division ของตัวเอง (ถ้ามี DivisionId)
@@ -324,6 +328,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             var query = _repository.GetQuery()
                 .AsNoTracking()
                 .Select(c => new
@@ -386,6 +392,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             var query = _repository.GetQuery()
                 .Select(ct => new
                 {
@@ -445,6 +453,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             var query = _repository.GetQuery().AsQueryable();
 
             // ── Data Isolation ──
@@ -540,6 +550,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             var query = _repository.GetQuery()
                 .Include(e => e.Course)
                 .Select(e => new
@@ -604,6 +616,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             var query = _repository.GetQuery()
                 .Include(l => l.Enrollment)
                     .ThenInclude(e => e!.Course)
@@ -679,12 +693,14 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
             return await GetFiltered(loadOptions, courseId: null);
         }
 
         [HttpGet("GetByCourse")]
         public async Task<IActionResult> GetByCourse(DataSourceLoadOptions loadOptions, [FromQuery] int courseId)
         {
+            CapLoadOptionsTake(loadOptions);
             return await GetFiltered(loadOptions, courseId);
         }
 
@@ -894,6 +910,8 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
+
             IQueryable<User> query = _repository.GetQuery()
                 .Include(u => u.UserRoles).ThenInclude(ur => ur.Role);
 
@@ -1043,6 +1061,7 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            CapLoadOptionsTake(loadOptions);
             var query = _repository.GetQuery().Include(c => c.Resource);
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }

@@ -23,6 +23,11 @@
    - ใช้เงื่อนไข `if (_currentUser.DivisionId.HasValue)` ในการกรอง Query
    - ระบบจัดการ **Bypass** ให้สิทธิ์ระดับสูง (เช่น `SuperAdmin`, `Admin`) อัตโนมัติจาก `CurrentUserService` ซึ่งจะคืนค่า `DivisionId` เป็น `null` ทำให้มองเห็นข้อมูลทั้งหมดทั่วระบบ
 8. **Backend Language (English Only)**: การเขียนคอมเมนต์ (Comments), การเก็บ Logs, ข้อความ Exceptions และ Response Messages ภายในฝั่ง Backend (`iLearn.API`, `Application`, `Infrastructure`) **ต้องเขียนเป็นภาษาอังกฤษทั้งหมด** เพื่อความเป็นมาตรฐานสากลและหลีกเลี่ยงปัญหา Encoding (ส่วน Frontend UI ยังคงแสดงผลภาษาไทยให้ผู้ใช้งานตามปกติ)
+9. **Data Fetching Cap (Important)**:
+   - **Server-side**: ทุก CRUD Controller ที่สืบทอดจาก `GenericController<T>` ต้องเรียก `CapLoadOptionsTake(loadOptions)` เป็นบรรทัดแรกใน override `Get(DataSourceLoadOptions)` เสมอ — ค่า default cap = **200 rows** (`MaxTakePerRequest`)
+   - **Server-side (Proxy)**: Controller ที่ทำหน้าที่ Proxy (เช่น `StudentsController`) ต้อง cap `take` ก่อน forward ไปยัง External API ด้วย (ใช้ Regex replace บน query string)
+   - **Client-side**: `createDataStore()` ฝัง `capRemoteTake(ajaxOptions)` ไว้ใน `onBeforeSend` อัตโนมัติแล้ว — cap `take` ที่ **200** ก่อนส่ง request
+   - **Inline Stores**: ถ้าสร้าง `DevExpress.data.AspNet.createStore({...})` ตรงๆ ในหน้า view (ไม่ผ่าน `createDataStore`) ต้องเพิ่ม `capRemoteTake(ajaxOptions);` ใน `onBeforeSend` เอง
 
 
 ## Front-end Design Patterns
@@ -101,6 +106,15 @@
 - **PivotGrid Exporting**: ใช้ `handlePivotExporting(e, fileName)` สำหรับหน้า Report หรือตารางสรุปผลแบบ Pivot
 - **Shared Formatting Helpers**: ในฝั่ง Admin ให้ใช้ helper กลางจาก `iLearn.Admin/wwwroot/js/admin-layout.js` เช่น `formatAdminDate`, `formatAdminDateTime`, `formatAdminPercentage`, `formatAdminCountLabel`, `formatAdminFileSize`, `formatAdminDuration` แทนการประกอบ string หรือ format วันที่/ตัวเลขแยกในแต่ละหน้า
 - **Popup vs Dialog**: งานเลือกข้อมูลหรือจัดการรายการจำนวนมากยังใช้ `dxPopup` ได้ตามปกติ แต่ dialog สำหรับยืนยัน/แก้ไขข้อมูลสั้นๆ ควรใช้ `DevExpress.ui.dialog.custom` เพื่อให้ UX และสไตล์สม่ำเสมอ
+- **DataGrid Performance Defaults** (ตั้งค่าใน `admin-layout.js` แล้ว ห้ามเปลี่ยน):
+   - `remoteOperations: true` — ใช้ Server-side paging/sorting/filtering เสมอ
+   - `scrolling.mode: 'virtual'` + `rowRenderingMode: 'virtual'` — ใช้ Virtual Scrolling แทน Pager
+   - `paging.pageSize: 30` — โหลดครั้งละ 30 rows
+   - `selectAllMode: 'page'` — บน `selectionGrid` preset ให้ Select All เฉพาะหน้าปัจจุบัน (ป้องกัน full-data fetch)
+- **Selection Grids in Wizards**:
+   - ใช้ `preset: "selectionGrid"` และปิด `headerFilter: { visible: false }` เพื่อป้องกัน DevExtreme ดึงข้อมูลทั้งหมดสำหรับ dropdown filter
+   - ถ้า grid อยู่ใน wizard step ที่ยัง `display: none` ขณะหน้าโหลด ต้อง **lazy-init** grid เมื่อ step นั้นแสดงครั้งแรก เพื่อให้ DevExtreme คำนวณ viewport ได้ถูกต้อง (ไม่งั้น virtual scrolling จะ request `take` เท่ากับจำนวนข้อมูลทั้งหมด)
+   - หลัง init grid ใน step ที่เพิ่งแสดง ต้องเรียก `refreshGridInstance()` (`repaint` + `updateDimensions`) เสมอ
 
 ### 6. Wizard Page Pattern (Admin)
 - สำหรับหน้าที่เป็น flow หลายขั้นตอน เช่น `Add Members`, `Bulk Course Assignments`, หรือ flow ที่ต้องเลือกข้อมูลจำนวนมาก ให้ใช้ **wizard layout แบบเต็มหน้า** เป็นมาตรฐาน แทนการยัดทุกอย่างไว้ใน popup

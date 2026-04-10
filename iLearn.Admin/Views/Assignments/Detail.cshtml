@@ -477,6 +477,7 @@
                         loadUrl: `${serviceUrl}/Students/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
+                            capRemoteTake(ajaxOptions);
                         }
                     }),
                     remoteOperations: true,

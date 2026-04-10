@@ -612,9 +612,13 @@
             dataSource: DevExpress.data.AspNet.createStore({
                 key: "EId",
                 loadUrl: `${STUDENTS_API_URL}/Get`,
-                onBeforeSend: (method, options) => options.xhrFields = { withCredentials: true }
+                onBeforeSend: function(method, options) {
+                    options.xhrFields = { withCredentials: true };
+                    capRemoteTake(options);
+                }
             }),
             remoteOperations: true,
+            headerFilter: { visible: false },
             filterRow: { visible: true },
             searchPanel: { visible: false },
             noDataText: getNoDataText("students"),

@@ -571,7 +571,6 @@
         const initialGroupId = '@preselectedGroupId';
         const initialDescription = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(preselectedDescription ?? ""))';
         const ASSIGNMENT_VALIDATE_URL = `${serviceUrl}/Assignments/validate-before-assign`;
-        const ASSIGNMENT_LOOKUP_COURSES_URL = `${serviceUrl}/Assignments/lookup-courses`;
         const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
@@ -591,6 +590,8 @@
         let courseGrid;
         let studentGrid;
         let groupGrid;
+        let studentGridInitialized = false;
+        let groupGridInitialized = false;
 
         $(() => {
             loadPanel = $("#load-panel").dxLoadPanel({
@@ -599,7 +600,7 @@
 
             form = $("#form-assignment").dxForm({
                 labelMode: "floating",
-                formData: { description: initialDescription || "", startDate: null, dueDate: null },
+                formData: { description: initialDescription || "", dateRange: [null, null] },
                 items: [
                     {
                         dataField: "description",
@@ -607,17 +608,23 @@
                         validationRules: [{ type: "required", message: "Required" }],
                         editorOptions: { height: 96, onValueChanged: updateSnapshotFromForm }
                     },
-                    { itemType: "group", colCount: 2, items: [
-                        { dataField: "startDate", editorType: "dxDateBox", editorOptions: { width: "100%", displayFormat: ADMIN_DATE_DISPLAY_FORMAT, onValueChanged: updateSnapshotFromForm }, validationRules: [{ type: "required", message: "Required" }] },
-                        { dataField: "dueDate", editorType: "dxDateBox", editorOptions: { width: "100%", displayFormat: ADMIN_DATE_DISPLAY_FORMAT, onValueChanged: updateSnapshotFromForm }, validationRules: [{ type: "required", message: "Required" }] }
-                    ]}
-
+                    {
+                        dataField: "dateRange",
+                        label: { text: "Schedule" },
+                        editorType: "dxDateRangeBox",
+                        validationRules: [{ type: "required", message: "Required" }],
+                        editorOptions: {
+                            width: "100%",
+                            displayFormat: ADMIN_DATE_DISPLAY_FORMAT,
+                            startDateLabel: "Start Date",
+                            endDateLabel: "Due Date",
+                            onValueChanged: updateSnapshotFromForm
+                        }
+                    }
                 ]
             }).dxForm("instance");
 
             initializeCourseSelection();
-            initializeStudentSelection();
-            initializeGroupSelection();
             updateSnapshotFromForm();
             updateCourseSelectionUi();
             updateStudentSelectionUi();
@@ -646,12 +653,18 @@
             }
 
             function initializeCourseSelection() {
-                let allCoursesData = [];
-                const coursesLocalStore = new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData });
-
                 courseGrid = initDxGrid("#grid-courses-inline", {
                     preset: "selectionGrid",
-                    dataSource: new DevExpress.data.DataSource({ store: coursesLocalStore }),
+                    dataSource: DevExpress.data.AspNet.createStore({
+                        key: "id",
+                        loadUrl: `${serviceUrl}/admin/CoursesCRUD/Get`,
+                        onBeforeSend: function(method, ajaxOptions) {
+                            ajaxOptions.xhrFields = { withCredentials: true };
+                            capRemoteTake(ajaxOptions);
+                        }
+                    }),
+                    remoteOperations: true,
+                    headerFilter: { visible: false },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
                     noDataText: getNoDataText("courses"),
@@ -679,18 +692,6 @@
                         selectedCourseIds = e.selectedRowKeys;
                         updateCourseSelectionUi();
                     }
-                });
-
-                $.ajax({
-                    url: ASSIGNMENT_LOOKUP_COURSES_URL,
-                    method: "GET", xhrFields: { withCredentials: true }
-                }).done(function(res) {
-                    allCoursesData = res.data || [];
-                    courseGrid.option("dataSource", new DevExpress.data.DataSource({
-                        store: new DevExpress.data.ArrayStore({ key: "id", data: allCoursesData })
-                    }));
-                    courseGrid.option("selectedRowKeys", selectedCourseIds);
-                    updateCourseSelectionUi();
                 });
 
                 function applyCourseFilters() {
@@ -756,9 +757,11 @@
                         loadUrl: `${serviceUrl}/Students/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
+                            capRemoteTake(ajaxOptions);
                         }
                     }),
                     remoteOperations: true,
+                    headerFilter: { visible: false },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
                     noDataText: getNoDataText("students"),
@@ -1041,10 +1044,11 @@
             }
 
             function updateSnapshotFromForm() {
-                const formData = form ? form.option("formData") : { description: initialDescription || "", startDate: null, dueDate: null };
+                const formData = form ? form.option("formData") : { description: initialDescription || "", dateRange: [null, null] };
+                const [startDate, dueDate] = formData.dateRange || [null, null];
                 $("#snapshot-description").text(formData.description || "No description");
-                $("#snapshot-period").text(formData.startDate || formData.dueDate
-                    ? `${window.formatAdminDate(formData.startDate, EMPTY_TEXT)} — ${window.formatAdminDate(formData.dueDate, EMPTY_TEXT)}`
+                $("#snapshot-period").text(startDate || dueDate
+                    ? `${window.formatAdminDate(startDate, EMPTY_TEXT)} — ${window.formatAdminDate(dueDate, EMPTY_TEXT)}`
                     : "Not set");
             }
 
@@ -1169,12 +1173,13 @@
 
                 const isGroupMode = currentTargetMode === 'group';
                 const formData = form.option('formData');
+                const [rangeStart, rangeEnd] = formData.dateRange || [null, null];
                 const payload = {
                     courseIds: selectedCourseIds,
                     employeeCodes: isGroupMode ? [] : selectedStudentCodes,
                     groupId: isGroupMode ? selectedGroupId : null,
-                    startDate: formData.startDate,
-                    dueDate: formData.dueDate,
+                    startDate: rangeStart,
+                    dueDate: rangeEnd,
                     description: formData.description,
                     confirmReassignInProgress: false,
                     confirmReassignCompleted: false
@@ -1240,6 +1245,19 @@
             function updateWizardUi(step) {
                 $(".assign-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
+
+                // Lazy-init student & group grids on first visit to step 2
+                // so DevExtreme can compute the correct viewport height.
+                if (step === 2) {
+                    if (!studentGridInitialized) {
+                        initializeStudentSelection();
+                        studentGridInitialized = true;
+                    }
+                    if (!groupGridInitialized) {
+                        initializeGroupSelection();
+                        groupGridInitialized = true;
+                    }
+                }
 
                 $("[data-step-card]").each(function () {
                     const cardStep = Number($(this).attr("data-step-card"));

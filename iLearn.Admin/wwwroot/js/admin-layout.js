@@ -14,6 +14,7 @@
     const gridHeaderPanelHeight = 48;
     const gridSummaryHeight = 40;
     const gridFrameHeight = 2;
+    const maxRemoteTakePerRequest = 200;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
     const noDataMessages = {
@@ -53,6 +54,7 @@
         rowAlternationEnabled: true,
         showRowLines: true,
         hoverStateEnabled: true,
+        remoteOperations: true,
         scrolling: {
             mode: 'virtual',
             rowRenderingMode: 'virtual'
@@ -147,7 +149,8 @@
         },
         selection: {
             mode: 'multiple',
-            showCheckBoxesMode: 'always'
+            showCheckBoxesMode: 'always',
+            selectAllMode: 'page'
         }
     });
 
@@ -571,17 +574,33 @@
         $(window).data('gridResizeBound', true);
     }
 
+    function capRemoteTake(ajaxOptions, maxTake) {
+        var limit = maxTake || maxRemoteTakePerRequest;
+        if (ajaxOptions.data && typeof ajaxOptions.data.take === 'number' && ajaxOptions.data.take > limit) {
+            ajaxOptions.data.take = limit;
+        }
+    }
+
     function createDataStore(baseUrl, controllerName, options) {
+        var callerOnBeforeSend = options && typeof options.onBeforeSend === 'function'
+            ? options.onBeforeSend
+            : null;
+
         const storeOptions = $.extend(true, {}, {
             key: 'id',
             loadUrl: `${baseUrl}/${controllerName}/Get`,
             insertUrl: `${baseUrl}/${controllerName}/Post`,
             updateUrl: `${baseUrl}/${controllerName}/Put`,
-            deleteUrl: `${baseUrl}/${controllerName}/Delete`,
+            deleteUrl: `${baseUrl}/${controllerName}/Delete`
+        }, options, {
             onBeforeSend: function (method, ajaxOptions) {
                 ajaxOptions.xhrFields = { withCredentials: true };
+                capRemoteTake(ajaxOptions);
+                if (callerOnBeforeSend) {
+                    callerOnBeforeSend(method, ajaxOptions);
+                }
             }
-        }, options);
+        });
 
         if (options && options.action && !options.loadUrl) {
             storeOptions.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
@@ -641,7 +660,7 @@
             rowRenderingMode: 'virtual'
         });
 
-        delete resolvedOptions.paging;
+        resolvedOptions.paging = { enabled: true, pageSize: 30 };
         delete resolvedOptions.pager;
 
         return resolvedOptions;
@@ -1009,6 +1028,7 @@
     window.ADMIN_DATETIME_DISPLAY_FORMAT = adminDateTimeDisplayFormat;
     window.ADMIN_NUMBER_LOCALE = adminNumberLocale;
     window.createDataStore = createDataStore;
+    window.capRemoteTake = capRemoteTake;
     window.handleExporting = handleExporting;
     window.handlePivotExporting = handlePivotExporting;
     window.dxGridDefaults = dxGridDefaults;

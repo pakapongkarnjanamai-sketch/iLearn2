@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace iLearn.API.Controllers
 {
@@ -10,6 +11,8 @@ namespace iLearn.API.Controllers
     [ApiController]
     public class StudentsController : ControllerBase
     {
+        private const int MaxTakePerRequest = 200;
+
         private readonly IStudentApiService _studentService;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
@@ -128,20 +131,24 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet("Get")]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get([FromQuery] int? take)
         {
-            // 1. ดึงค่า Query String ทั้งหมดที่ DataGrid ส่งมา (เช่นการแบ่งหน้า, ค้นหา)
             var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
 
-            // 2. ส่งต่อให้ Service ไปคุยกับ API ต้นทาง
+            // Cap the take parameter to prevent loading excessive data from the external API.
+            // The totalCount in the response is preserved, so virtual scrolling still works correctly.
+            if (take.HasValue && take.Value > MaxTakePerRequest)
+            {
+                queryString = Regex.Replace(queryString, @"([?&])take=\d+", $"$1take={MaxTakePerRequest}");
+            }
+
             var resultJson = await _studentService.GetStudentsDxGridAsync(queryString);
 
             if (resultJson == null)
             {
-                return StatusCode(500, new { message = "ไม่สามารถเชื่อมต่อดึงข้อมูลจากฐานข้อมูลพนักงานได้ครับ" });
+                return StatusCode(500, new { message = "Failed to connect to the employee data source." });
             }
 
-            // 3. ส่ง JSON ที่ได้กลับไปให้หน้าบ้านตรงๆ เลย ด้วย ContentType application/json
             return Content(resultJson, "application/json");
         }
 
