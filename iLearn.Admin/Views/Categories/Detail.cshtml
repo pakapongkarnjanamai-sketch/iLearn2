@@ -1,6 +1,7 @@
 @{
     ViewBag.Title = "Category Detail";
     int categoryId = ViewBag.CategoryId;
+    var categoryReportUrl = Url.Content($"~/Categories/Report/{categoryId}");
 }
 
 <style>
@@ -106,7 +107,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Report", "Categories", new { id = categoryId })" target="_blank" class="quick-action">
+                    <a href="@categoryReportUrl" target="_blank" class="quick-action">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-file-alt"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Report</div>

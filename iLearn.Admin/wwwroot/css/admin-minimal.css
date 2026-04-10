@@ -475,34 +475,44 @@ img[loading="lazy"] {
     transition: width .2s ease;
 }
 
+.qa-icon-accent,
+.qa-icon-warning,
+.qa-icon-success,
+.qa-icon-danger,
+.qa-icon-purple,
+.qa-icon-muted {
+    background: var(--qa-icon-bg);
+    color: var(--qa-icon-color);
+}
+
 .qa-icon-accent {
-    background: #e6f4ff;
-    color: var(--accent-color);
+    --qa-icon-bg: #e6f4ff;
+    --qa-icon-color: var(--accent-color);
 }
 
 .qa-icon-warning {
-    background: #fffbe6;
-    color: var(--warning-color);
+    --qa-icon-bg: #fffbe6;
+    --qa-icon-color: var(--warning-color);
 }
 
 .qa-icon-success {
-    background: #f6ffed;
-    color: var(--success-color);
+    --qa-icon-bg: #f6ffed;
+    --qa-icon-color: var(--success-color);
 }
 
 .qa-icon-danger {
-    background: #fff2f0;
-    color: var(--danger-color);
+    --qa-icon-bg: #fff2f0;
+    --qa-icon-color: var(--danger-color);
 }
 
 .qa-icon-purple {
-    background: #f9f0ff;
-    color: #722ed1;
+    --qa-icon-bg: #f9f0ff;
+    --qa-icon-color: #722ed1;
 }
 
 .qa-icon-muted {
-    background: var(--bg-light);
-    color: var(--text-secondary);
+    --qa-icon-bg: var(--bg-light);
+    --qa-icon-color: var(--text-secondary);
 }
 
 .maintenance-card {
@@ -1158,6 +1168,7 @@ main > .container {
 }
 
 .dash-stat-card {
+    --dash-stat-color: var(--border-color);
     display: block;
     border: 1px solid var(--border-color);
     border-left: 3px solid var(--border-color);
@@ -1174,20 +1185,27 @@ main > .container {
     color: var(--text-primary);
 }
 
+.dash-stat-card.blue,
+.dash-stat-card.green,
+.dash-stat-card.yellow,
+.dash-stat-card.purple {
+    border-left-color: var(--dash-stat-color);
+}
+
 .dash-stat-card.blue {
-    border-left-color: var(--brand-color);
+    --dash-stat-color: var(--brand-color);
 }
 
 .dash-stat-card.green {
-    border-left-color: var(--success-color);
+    --dash-stat-color: var(--success-color);
 }
 
 .dash-stat-card.yellow {
-    border-left-color: var(--warning-color);
+    --dash-stat-color: var(--warning-color);
 }
 
 .dash-stat-card.purple {
-    border-left-color: #531dab;
+    --dash-stat-color: #531dab;
 }
 
 .dash-stat-card .ds-val {
@@ -1212,20 +1230,11 @@ main > .container {
     margin-top: 10px;
 }
 
-.dash-stat-card.blue .ds-link {
-    color: var(--accent-color);
-}
-
-.dash-stat-card.yellow .ds-link {
-    color: var(--warning-color);
-}
-
-.dash-stat-card.green .ds-link {
-    color: var(--success-color);
-}
-
+.dash-stat-card.blue .ds-link,
+.dash-stat-card.yellow .ds-link,
+.dash-stat-card.green .ds-link,
 .dash-stat-card.purple .ds-link {
-    color: #722ed1;
+    color: var(--dash-stat-color);
 }
 
 .dash-panel {

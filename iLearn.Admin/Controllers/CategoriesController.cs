@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace iLearn.Admin.Controllers
 {
@@ -16,7 +17,9 @@ namespace iLearn.Admin.Controllers
             return View();
         }
 
-        [HttpGet]
+        [HttpGet("Categories/Report")]
+        [HttpGet("Categories/Report/{id:int}")]
+        [Authorize(Policy = "DomainUser")]
         public IActionResult Report(int id)
         {
             ViewBag.CategoryId = id;

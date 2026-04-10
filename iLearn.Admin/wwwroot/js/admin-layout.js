@@ -4,18 +4,18 @@
     const toastPosition = { position: 'bottom right', direction: 'up-push' };
     const spinnerIconHtml = '<i class="fas fa-spinner fa-spin me-1"></i>';
     const gridResizeNamespace = '.ilearnGridViewport';
-    const autoHeightGridSelector = '[data-grid-auto-height="true"]';
-    const minGridHeight = 320;
-    const gridBottomGap = 24;
-    const minGridPageSize = 5;
-    const defaultGridMinVisibleRows = 20;
-    const gridDataRowHeight = 34;
-    const gridHeaderRowHeight = 38;
-    const gridHeaderPanelHeight = 48;
-    const gridSummaryHeight = 40;
-    const gridFrameHeight = 2;
+    const managedGridSelector = '.admin-grid';
+    const gridLoadBoundDataKey = 'gridLoadBound';
+    const gridResizeBoundDataKey = 'gridResizeBound';
+    const defaultGridPageSize = 30;
+    const gridResizeRefreshDelay = 80;
+    const gridPostRenderRefreshDelay = 120;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
+    const adminDialogDefaults = {
+        dragEnabled: false,
+        closeOnOutsideClick: false
+    };
     const noDataMessages = {
         courses: 'No courses found.',
         students: 'No students found.',
@@ -46,8 +46,6 @@
     };
     const sharedGridPreset = {
         width: '100%',
-        height: '100%',
-        autoHeight: true,
         columnAutoWidth: true,
         showBorders: true,
         rowAlternationEnabled: true,
@@ -248,8 +246,13 @@
         }
 
         const rounded = Math.round(number);
-        const resolvedPluralLabel = pluralLabel || `${singularLabel}s`;
-        const label = rounded === 1 ? singularLabel : resolvedPluralLabel;
+        const resolvedSingularLabel = typeof singularLabel === 'string' && singularLabel.trim()
+            ? singularLabel.trim()
+            : 'item';
+        const resolvedPluralLabel = typeof pluralLabel === 'string' && pluralLabel.trim()
+            ? pluralLabel.trim()
+            : `${resolvedSingularLabel}`;
+        const label = rounded === 1 ? resolvedSingularLabel : resolvedPluralLabel;
         const prefix = options?.prefix || '';
 
         return `${prefix}${formatAdminInteger(rounded, fallback)} ${label}`;
@@ -337,108 +340,6 @@
         return `${formatAdminDate(date)} ${formatAdminTime(date, '')}`.trim();
     }
 
-    function hasToolbarItems(toolbar) {
-        return !!(toolbar && Array.isArray(toolbar.items) && toolbar.items.length > 0);
-    }
-
-    function hasSummaryItems(summary) {
-        if (!summary) {
-            return false;
-        }
-
-        const hasTotalItems = Array.isArray(summary.totalItems) && summary.totalItems.length > 0;
-        const hasGroupItems = Array.isArray(summary.groupItems) && summary.groupItems.length > 0;
-
-        return hasTotalItems || hasGroupItems;
-    }
-
-    function getGridChromeHeight(options) {
-        const normalizedOptions = options || {};
-        const hasHeaderPanel = normalizedOptions.searchPanel?.visible !== false
-            || normalizedOptions.export?.enabled === true
-            || hasToolbarItems(normalizedOptions.toolbar);
-        const hasSummary = hasSummaryItems(normalizedOptions.summary);
-
-        return gridFrameHeight
-            + gridHeaderRowHeight
-            + (hasHeaderPanel ? gridHeaderPanelHeight : 0)
-            + (hasSummary ? gridSummaryHeight : 0);
-    }
-
-    function getGridMinVisibleRows(options) {
-        const configuredMinVisibleRows = Number(options?.minVisibleRows);
-
-        if (Number.isFinite(configuredMinVisibleRows) && configuredMinVisibleRows > 0) {
-            return Math.max(minGridPageSize, Math.floor(configuredMinVisibleRows));
-        }
-
-        return defaultGridMinVisibleRows;
-    }
-
-    function shouldConstrainToParentPanel(parentPanel) {
-        if (!parentPanel) {
-            return false;
-        }
-
-        if (parentPanel.matches('.dx-popup-content, .dx-overlay-content, .tab-pane')) {
-            return true;
-        }
-
-        const style = window.getComputedStyle(parentPanel);
-        const hasExplicitHeight = style.height && style.height !== 'auto';
-        const hasExplicitMaxHeight = style.maxHeight && style.maxHeight !== 'none';
-        const hasScrollableOverflow = /(auto|scroll|hidden|clip)/.test(style.overflowY || '')
-            || /(auto|scroll|hidden|clip)/.test(style.overflow || '');
-        const usesStretchHeight = parentPanel.classList.contains('h-100')
-            || parentPanel.classList.contains('vh-100');
-        const isStructuredPanel = parentPanel.matches('.border.rounded.bg-white, .dash-panel, .panel, .card');
-
-        if (hasScrollableOverflow) {
-            return hasExplicitHeight || hasExplicitMaxHeight || usesStretchHeight;
-        }
-
-        return isStructuredPanel && (hasExplicitHeight || hasExplicitMaxHeight || usesStretchHeight);
-    }
-
-    function resolveGridViewportMetrics(element, options) {
-        const minVisibleRows = getGridMinVisibleRows(options);
-        const chromeHeight = getGridChromeHeight(options);
-
-        if (!element || !element.getBoundingClientRect) {
-            return {
-                height: chromeHeight + (minVisibleRows * gridDataRowHeight)
-            };
-        }
-
-        const rect = element.getBoundingClientRect();
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 900;
-        let availableHeight = viewportHeight - rect.top - gridBottomGap;
-
-        const parentPanel = element.closest('.dx-popup-content, .dx-overlay-content, .border.rounded.bg-white, .dash-panel, .panel, .tab-pane, .container-fluid');
-        const isParentConstrained = shouldConstrainToParentPanel(parentPanel);
-        if (isParentConstrained && parentPanel.getBoundingClientRect) {
-            const parentRect = parentPanel.getBoundingClientRect();
-            const parentAvailableHeight = parentRect.bottom - rect.top - 16;
-            if (parentAvailableHeight > 0) {
-                availableHeight = Math.min(availableHeight, parentAvailableHeight);
-            }
-        }
-
-        const effectiveMinVisibleRows = isParentConstrained ? minGridPageSize : minVisibleRows;
-        const minimumHeight = chromeHeight + (effectiveMinVisibleRows * gridDataRowHeight);
-
-        availableHeight = Math.max(minGridHeight, minimumHeight, Math.floor(availableHeight));
-
-        const visibleRows = Math.max(
-            effectiveMinVisibleRows,
-            Math.floor((availableHeight - chromeHeight) / gridDataRowHeight)
-        );
-
-        return {
-            height: chromeHeight + (visibleRows * gridDataRowHeight)
-        };
-    }
-
     function getDataGridInstance(element) {
         if (!element) {
             return null;
@@ -504,40 +405,38 @@
         if (height !== null) {
             $target.css('height', height);
             $target.data('gridHostHeight', height);
+            return;
         }
+
+        $target.css('height', '');
+        $target.removeData('gridHostHeight');
     }
 
-    function applyViewportGridHeight(gridInstance) {
-        if (!gridInstance || typeof gridInstance.element !== 'function') {
+    function refreshGridDimensions(gridInstance) {
+        if (!gridInstance || typeof gridInstance.updateDimensions !== 'function') {
             return;
         }
 
-        const $element = gridInstance.element();
-        const element = $element && $element.get ? $element.get(0) : null;
-        const isAutoHeightGrid = $element.data('gridAutoHeight') === true
-            || $element.attr('data-grid-auto-height') === 'true';
-
-        if (!element || !isAutoHeightGrid) {
-            return;
-        }
-
-        const metrics = resolveGridViewportMetrics(element, gridInstance.option());
-        const currentHeight = $element.data('gridHostHeight') || element.style.height;
-        const nextHeight = normalizeGridSize(metrics.height, null);
-
-        if (currentHeight !== nextHeight) {
-            setGridHostSize($element, { height: metrics.height });
-            gridInstance.updateDimensions();
-        }
+        gridInstance.updateDimensions();
     }
 
     function refreshViewportGridHeights() {
-        $(autoHeightGridSelector).each(function () {
+        $(managedGridSelector).each(function () {
             const instance = getDataGridInstance(this);
             if (instance) {
-                applyViewportGridHeight(instance);
+                refreshGridDimensions(instance);
             }
         });
+    }
+
+    function registerWindowScopedHandler(dataKey, eventName, handler) {
+        const $window = $(window);
+        if ($window.data(dataKey)) {
+            return;
+        }
+
+        $window.on(`${eventName}${gridResizeNamespace}`, handler);
+        $window.data(dataKey, true);
     }
 
     function refreshPopupGridHeights(popupComponent) {
@@ -552,10 +451,10 @@
             return;
         }
 
-        $content.find(autoHeightGridSelector).each(function () {
+        $content.find(managedGridSelector).each(function () {
             const instance = getDataGridInstance(this);
             if (instance) {
-                applyViewportGridHeight(instance);
+                refreshGridDimensions(instance);
             }
         });
     }
@@ -566,46 +465,36 @@
         }
 
         window.requestAnimationFrame(function () {
-            applyViewportGridHeight(gridInstance);
+            refreshGridDimensions(gridInstance);
 
             window.requestAnimationFrame(function () {
-                applyViewportGridHeight(gridInstance);
+                refreshGridDimensions(gridInstance);
             });
         });
 
         window.setTimeout(function () {
-            applyViewportGridHeight(gridInstance);
-        }, 120);
+            refreshGridDimensions(gridInstance);
+        }, gridPostRenderRefreshDelay);
     }
 
     function registerGridLoadHandler() {
-        if ($(window).data('gridLoadBound')) {
-            return;
-        }
-
-        $(window).on(`load${gridResizeNamespace}`, function () {
+        registerWindowScopedHandler(gridLoadBoundDataKey, 'load', function () {
             window.setTimeout(refreshViewportGridHeights, 0);
         });
-
-        $(window).data('gridLoadBound', true);
     }
 
     function registerGridResizeHandler() {
-        if ($(window).data('gridResizeBound')) {
-            return;
-        }
-
         let resizeTimer = null;
-        $(window).on(`resize${gridResizeNamespace}`, function () {
+        registerWindowScopedHandler(gridResizeBoundDataKey, 'resize', function () {
             window.clearTimeout(resizeTimer);
-            resizeTimer = window.setTimeout(refreshViewportGridHeights, 80);
+            resizeTimer = window.setTimeout(refreshViewportGridHeights, gridResizeRefreshDelay);
         });
-        $(window).data('gridResizeBound', true);
     }
 
     function createDataStore(baseUrl, controllerName, options) {
-        var callerOnBeforeSend = options && typeof options.onBeforeSend === 'function'
-            ? options.onBeforeSend
+        const normalizedOptions = options || {};
+        const callerOnBeforeSend = typeof normalizedOptions.onBeforeSend === 'function'
+            ? normalizedOptions.onBeforeSend
             : null;
 
         const storeOptions = $.extend(true, {}, {
@@ -614,7 +503,7 @@
             insertUrl: `${baseUrl}/${controllerName}/Post`,
             updateUrl: `${baseUrl}/${controllerName}/Put`,
             deleteUrl: `${baseUrl}/${controllerName}/Delete`
-        }, options, {
+        }, normalizedOptions, {
             onBeforeSend: function (method, ajaxOptions) {
                 ajaxOptions.xhrFields = { withCredentials: true };
                 if (callerOnBeforeSend) {
@@ -623,10 +512,10 @@
             }
         });
 
-        if (options && options.action && !options.loadUrl) {
-            storeOptions.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
-            if (options.ParamKey) {
-                storeOptions.loadUrl += `/${options.ParamKey}`;
+        if (normalizedOptions.action && !normalizedOptions.loadUrl) {
+            storeOptions.loadUrl = `${baseUrl}/${controllerName}/${normalizedOptions.action}`;
+            if (normalizedOptions.ParamKey) {
+                storeOptions.loadUrl += `/${normalizedOptions.ParamKey}`;
             }
         }
 
@@ -671,14 +560,15 @@
     }
 
     function getDxGridOptions(pageOptions) {
-        const overrides = $.extend(true, {}, pageOptions || {});
+        const normalizedPageOptions = pageOptions || {};
+        const overrides = $.extend(true, {}, normalizedPageOptions);
         const presetName = overrides.preset || 'defaultGrid';
         delete overrides.preset;
         const resolvedOptions = $.extend(true, {}, getDxGridPreset(presetName), overrides);
 
         // Allow callers to opt out of virtual scrolling by providing their own scrolling.mode
         // (e.g. wizard selection grids that use pager instead).
-        var callerScrollMode = pageOptions && pageOptions.scrolling && pageOptions.scrolling.mode;
+        const callerScrollMode = normalizedPageOptions.scrolling?.mode;
         if (!callerScrollMode) {
             resolvedOptions.scrolling = $.extend(true, {}, resolvedOptions.scrolling, {
                 mode: 'virtual',
@@ -687,9 +577,9 @@
         }
 
         // Allow callers to override paging (e.g. pageSize: 15 for wizard grids).
-        var callerPaging = pageOptions && pageOptions.paging;
+        const callerPaging = normalizedPageOptions.paging;
         if (!callerPaging) {
-            resolvedOptions.paging = { enabled: true, pageSize: 30 };
+            resolvedOptions.paging = { enabled: true, pageSize: defaultGridPageSize };
             delete resolvedOptions.pager;
         }
 
@@ -741,49 +631,32 @@
 
     function initDxGrid(selector, pageOptions) {
         const $target = resolveGridTarget(selector);
-        const presetName = pageOptions && pageOptions.preset ? pageOptions.preset : 'defaultGrid';
+        const normalizedPageOptions = pageOptions || {};
+        const presetName = normalizedPageOptions.preset || 'defaultGrid';
         const options = applyGridPresetClasses(getDxGridOptions(pageOptions), presetName);
-        const hasExplicitHeight = !!(pageOptions && Object.prototype.hasOwnProperty.call(pageOptions, 'height'));
-        const enableAutoHeight = options.autoHeight !== false && !hasExplicitHeight;
-        const originalContentReady = options.onContentReady;
+        const hasExplicitHeight = Object.prototype.hasOwnProperty.call(normalizedPageOptions, 'height');
         const requestedWidth = options.width;
         const requestedHeight = options.height;
 
-        delete options.autoHeight;
         options.width = requestedWidth || '100%';
-        options.height = hasExplicitHeight ? requestedHeight : '100%';
+        delete options.autoHeight;
 
-        if (!enableAutoHeight) {
-            setGridHostSize($target, {
-                width: requestedWidth,
-                height: hasExplicitHeight ? requestedHeight : null
-            });
+        if (hasExplicitHeight) {
+            options.height = requestedHeight;
+        } else {
+            delete options.height;
         }
 
-        if (enableAutoHeight) {
-            const metrics = resolveGridViewportMetrics($target.get(0), options);
-            setGridHostSize($target, {
-                width: requestedWidth,
-                height: metrics.height
-            });
-            options.onContentReady = function (e) {
-                applyViewportGridHeight(e.component);
-                if (typeof originalContentReady === 'function') {
-                    originalContentReady(e);
-                }
-            };
-        }
+        setGridHostSize($target, {
+            width: requestedWidth,
+            height: hasExplicitHeight ? requestedHeight : null
+        });
 
         const instance = $target.dxDataGrid(options).dxDataGrid('instance');
 
-        if (enableAutoHeight) {
-            instance.element().data('gridAutoHeight', true);
-            instance.element().attr('data-grid-auto-height', 'true');
-            registerGridResizeHandler();
-            registerGridLoadHandler();
-            applyViewportGridHeight(instance);
-            scheduleViewportGridHeightRefresh(instance);
-        }
+        registerGridResizeHandler();
+        registerGridLoadHandler();
+        scheduleViewportGridHeightRefresh(instance);
 
         return instance;
     }
@@ -800,7 +673,8 @@
 
         const originalHtml = $button.data('original-html');
         $button.prop('disabled', false)
-            .html(originalHtml || $button.html());
+            .html(originalHtml || $button.html())
+            .removeData('original-html');
     }
 
     function escapeHtml(value) {
@@ -840,16 +714,14 @@
     function createAdminDialogController(options) {
         const dialogOptions = options || {};
         const contentId = `ilearn-dialog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const dialog = DevExpress.ui.dialog.custom({
+        const dialog = DevExpress.ui.dialog.custom($.extend(true, {}, adminDialogDefaults, {
             title: dialogOptions.title || '',
             showTitle: dialogOptions.showTitle !== false,
             messageHtml: `<div id="${contentId}">${dialogOptions.messageHtml || dialogOptions.text || ''}</div>`,
-            dragEnabled: false,
-            closeOnOutsideClick: false,
             showCloseButton: dialogOptions.showCloseButton === true,
             width: dialogOptions.width,
             buttons: dialogOptions.buttons || []
-        });
+        }));
 
         dialog.show();
 
@@ -890,15 +762,13 @@
             }
         });
 
-        return DevExpress.ui.dialog.custom({
+        return DevExpress.ui.dialog.custom($.extend(true, {}, adminDialogDefaults, {
             title: dialogOptions.title || 'Confirm',
             messageHtml: buildDialogMessageContent(dialogOptions),
             buttons: buttons,
-            dragEnabled: false,
-            closeOnOutsideClick: false,
             showCloseButton: false,
             width: dialogOptions.width
-        }).show();
+        })).show();
     }
 
     function showToast(message, type, duration) {
@@ -937,7 +807,7 @@
             const $element = $('#' + id);
             const originalText = $element.data('original-text');
             if (originalText !== undefined) {
-                $element.text(originalText);
+                $element.text(originalText).removeData('original-text');
             }
         });
     }
@@ -968,6 +838,19 @@
         };
     }
 
+    function resolvePopupSizingOptions(originalOptions) {
+        const globalPopupOptions = getGlobalPopupOptions();
+
+        if (originalOptions.disableGlobalHeightSizing === true) {
+            return $.extend(true, {}, originalOptions, {
+                width: originalOptions.width || globalPopupOptions.width,
+                maxWidth: originalOptions.maxWidth || globalPopupOptions.maxWidth
+            });
+        }
+
+        return $.extend(true, {}, originalOptions, globalPopupOptions);
+    }
+
     function schedulePopupGridRefresh(component) {
         window.setTimeout(function () {
             refreshPopupGridHeights(component);
@@ -994,13 +877,7 @@
                 const originalShown = originalOptions.onShown;
                 const originalResizeEnd = originalOptions.onResizeEnd;
                 const originalContentReady = originalOptions.onContentReady;
-                const shouldPreservePopupHeight = originalOptions.disableGlobalHeightSizing === true;
-                const baseOptions = shouldPreservePopupHeight
-                    ? $.extend(true, {}, originalOptions, {
-                        width: originalOptions.width || getGlobalPopupOptions().width,
-                        maxWidth: originalOptions.maxWidth || getGlobalPopupOptions().maxWidth
-                    })
-                    : $.extend(true, {}, originalOptions, getGlobalPopupOptions());
+                const baseOptions = resolvePopupSizingOptions(originalOptions);
 
                 args[0] = $.extend(true, {}, baseOptions, {
                     onContentReady: function (e) {

@@ -97,6 +97,7 @@
 - โค้ด JavaScript เฉพาะหน้าต้องอยู่ใน `@section Scripts { }` เสมอ
 - **DataStore**: สร้างผ่านฟังก์ชัน `createDataStore(baseUrl, controllerName, options)`
 - **DataGrid Defaults**: เริ่มต้น DataGrid ด้วย `initDxGrid(selector, options)` ซึ่งตั้งค่า Default ไว้ให้รองรับกรอบ, สลับสีแถว, และ **เปิดฟีเจอร์ Export อัตโนมัติ**
+- **Grid Height Rule**: ปัจจุบัน `initDxGrid` **ไม่คำนวณ auto-height จาก viewport ให้อีกแล้ว**; ถ้าหน้าใดต้องการความสูงเฉพาะ ต้องกำหนด `height` เองใน `options` หรือควบคุมผ่าน container CSS ของหน้านั้นอย่างชัดเจน
 - **DataGrid Exporting**: ใช้ `handleExporting(e, fileName)` ร่วมกับ `ExcelJS` (ถูกฝังอยู่ใน Default แล้ว หากต้องการแก้ชื่อไฟล์ให้ Override `onExporting` ในหน้านั้นๆ)
 - **PivotGrid Exporting**: ใช้ `handlePivotExporting(e, fileName)` สำหรับหน้า Report หรือตารางสรุปผลแบบ Pivot
 - **Shared Formatting Helpers**: ในฝั่ง Admin ให้ใช้ helper กลางจาก `iLearn.Admin/wwwroot/js/admin-layout.js` เช่น `formatAdminDate`, `formatAdminDateTime`, `formatAdminPercentage`, `formatAdminCountLabel`, `formatAdminFileSize`, `formatAdminDuration` แทนการประกอบ string หรือ format วันที่/ตัวเลขแยกในแต่ละหน้า
@@ -115,7 +116,7 @@
      pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true }
      ```
    - ต้อง override `selection: { selectAllMode: 'allPages' }` เพื่อให้ Select All เลือกข้อมูลทุกหน้าที่ filter ไว้ (ไม่ใช่แค่หน้าปัจจุบัน)
-   - **ห้ามกำหนด** `autoHeight: false` หรือ `height: '100%'` — ปล่อยให้ `initDxGrid` auto-height คำนวณความสูงจาก viewport เอง เพื่อให้ grid สูงเท่ากับข้อมูลในพื้นที่ที่มีอยู่ และ **ห้ามกำหนด CSS fixed height** (เช่น `height: clamp(...)`) บน container div ของ grid ใน wizard
+   - **ต้องกำหนดความสูงเองอย่างชัดเจน** สำหรับ grid ใน wizard เช่น `height: STUDENT_GRID_HEIGHT` หรือกำหนดผ่าน container CSS ที่หน้าเป็นคนควบคุม; หลีกเลี่ยง `height: '100%'` หาก parent ไม่มี explicit height จริง
    - ถ้า grid อยู่ใน wizard step ที่ยัง `display: none` ขณะหน้าโหลด ต้อง **lazy-init** grid เมื่อ step นั้นแสดงครั้งแรก เพื่อไม่ให้โหลดข้อมูลก่อนที่ผู้ใช้จะเปิด step
    - หลัง init grid ใน step ที่เพิ่งแสดง ต้องเรียก `refreshGridInstance()` (`repaint` + `updateDimensions`) เสมอ
 
@@ -135,7 +136,7 @@
    - ถ้า step ใดมีข้อมูลน้อย เช่น criteria หรือ review ให้ card สูงเท่าที่จำเป็น (`fit-content`) ไม่ต้องฝืนยืดเต็มความสูง
 - **Selection Step Layout**:
    - ถ้าเป็น step เลือกข้อมูล ให้ใช้ซ้ายเป็น filter panel ขวาเป็น grid เป็นค่าเริ่มต้น
-   - Grid ควรมีความสูงแบบ viewport-aware เช่น `clamp(...)` เพื่อให้ใช้งานได้ดีทั้งบนจอเล็กและจอใหญ่
+   - Grid height ต้องถูกควบคุมแบบ explicit โดยหน้าปัจจุบัน เช่นใช้ค่าคงที่ `height` ใน `initDxGrid(...)` หรือ host container ที่มีความสูงชัดเจน; ถ้าต้อง responsive สามารถใช้ container ที่มี `clamp(...)` หรือค่าคงที่แยกตาม use case ได้
    - ถ้า grid ถูก initialize ขณะ panel ซ่อนอยู่ ต้อง refresh `updateDimensions()` เมื่อ step ถูกแสดง เพื่อป้องกันความสูงเพี้ยน
    - ใช้ inline selection เป็นค่าเริ่มต้นก่อน popup; popup ใช้เฉพาะกรณีที่ task นั้นต้องการ isolated workflow จริงๆ
 - **Review Step**:

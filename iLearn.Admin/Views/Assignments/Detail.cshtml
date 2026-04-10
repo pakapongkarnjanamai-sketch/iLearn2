@@ -1,5 +1,8 @@
 ﻿@{
     ViewBag.Title = "Assignment Detail";
+    var reportByNoUrlTemplate = Url.Content("~/Assignments/Report/__ASSIGNMENT_NO__");
+    var reportByIdUrl = Url.Content($"~/Assignments/Report/{ViewBag.AssignmentId}");
+    var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
 }
 
 <style>
@@ -146,7 +149,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Report", "Assignments", new { id = ViewBag.AssignmentId })"
+                          <a href="@reportByIdUrl"
                        id="btn-report-link" target="_blank" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-file-alt"></i></div>
                         <div>
@@ -229,10 +232,11 @@
     const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
     const ASSIGNMENT_DASHBOARD_URL = `${ASSIGNMENTS_API_URL}/dashboard/${ASSIGNMENT_ID}`;
     const ASSIGNMENT_INDEX_URL = `@Url.Action("Index", "Assignments")`;
+    const ASSIGNMENT_REPORT_BY_NO_URL_TEMPLATE = '@reportByNoUrlTemplate';
     const ASSIGNMENT_LOOKUP_COURSES_URL = `${ASSIGNMENTS_API_URL}/lookup-courses`;
     const ASSIGNMENT_VALIDATE_URL = `${ASSIGNMENTS_API_URL}/validate-before-assign`;
     const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
-    const STUDENT_PROFILE_URL = `@Url.Action("Report", "Students")`;
+    const STUDENT_REPORT_URL_TEMPLATE = '@studentReportUrlTemplate';
     const EMPTY_TEXT = "—";
 
     let loadPanel;
@@ -703,7 +707,10 @@
         $("#lbl-schedule").attr("data-start", startText).text(`${startText} → ${dueText}`);
         $("#lbl-created-by").text(data.createdBy || "-");
         if (refNo && refNo !== EMPTY_TEXT) {
-            $("#btn-report-link").attr("href", `/Assignments/Report/${encodeURIComponent(refNo)}`);
+            $("#btn-report-link").attr(
+                "href",
+                ASSIGNMENT_REPORT_BY_NO_URL_TEMPLATE.replace("__ASSIGNMENT_NO__", encodeURIComponent(refNo))
+            );
         }
 
         if (data.studentGroupId) {
@@ -911,7 +918,7 @@
                     width: 100,
                     cellTemplate: function(container, options) {
                         $("<a>")
-                            .attr("href", `${STUDENT_PROFILE_URL}?code=${options.value}`)
+                            .attr("href", STUDENT_REPORT_URL_TEMPLATE.replace("__STUDENT_CODE__", encodeURIComponent(options.value || "")))
                             .attr("target", "_blank")
                             .css({ fontSize: "11px", fontWeight: "600" })
                             .addClass("tag-pill pill-default")

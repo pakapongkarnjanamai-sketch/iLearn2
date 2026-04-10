@@ -1,5 +1,6 @@
 ﻿@{
     ViewBag.Title = "Students (Employees)";
+    var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
 }
 
 <!-- ── Page Header ── -->
@@ -32,7 +33,7 @@
                 columns: [
                     { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,
                         cellTemplate: (c, o) => {
-                            $("<a>").attr("href", `@Url.Action("Report", "Students")?code=${o.value}`)
+                            $("<a>").attr("href", `@studentReportUrlTemplate`.replace("__STUDENT_CODE__", encodeURIComponent(o.value || "")))
                                    .attr("target", "_blank")
                                    .addClass("tag-pill pill-default fw-bold")
                                    .text(o.value || "—").appendTo(c);

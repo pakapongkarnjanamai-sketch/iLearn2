@@ -84,9 +84,159 @@
         }
 
             .my-course-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+                transform: translateY(-3px);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.08);
             }
+
+        /* ========== Horizontal Scroll Carousel (My Courses) ========== */
+        .my-courses-carousel {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(2,125,131,0.3) transparent;
+        }
+
+        .my-courses-carousel::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .my-courses-carousel::-webkit-scrollbar-thumb {
+            background: rgba(2,125,131,0.3);
+            border-radius: 3px;
+        }
+
+        .my-courses-carousel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .my-courses-carousel .carousel-card {
+            flex: 0 0 220px;
+            max-width: 220px;
+            scroll-snap-align: start;
+        }
+
+        /* Expanded grid mode (toggle) */
+        .my-courses-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .my-courses-grid .carousel-card {
+            flex: 0 0 calc(16.666% - 0.85rem);
+            max-width: calc(16.666% - 0.85rem);
+        }
+
+        @@media (max-width: 1399px) {
+            .my-courses-grid .carousel-card {
+                flex: 0 0 calc(20% - 0.8rem);
+                max-width: calc(20% - 0.8rem);
+            }
+        }
+
+        @@media (max-width: 1199px) {
+            .my-courses-grid .carousel-card {
+                flex: 0 0 calc(25% - 0.75rem);
+                max-width: calc(25% - 0.75rem);
+            }
+        }
+
+        @@media (max-width: 991px) {
+            .my-courses-grid .carousel-card {
+                flex: 0 0 calc(33.333% - 0.67rem);
+                max-width: calc(33.333% - 0.67rem);
+            }
+        }
+
+        @@media (max-width: 767px) {
+            .my-courses-grid .carousel-card,
+            .my-courses-carousel .carousel-card {
+                flex: 0 0 180px;
+                max-width: 180px;
+            }
+        }
+
+        /* Compact card overrides for My Courses carousel */
+        .my-courses-carousel .course-thumb,
+        .my-courses-grid .course-thumb {
+            height: 70px;
+        }
+
+        .my-courses-carousel .course-code-text,
+        .my-courses-grid .course-code-text {
+            font-size: 0.75rem;
+        }
+
+        .my-courses-carousel .course-body,
+        .my-courses-grid .course-body {
+            padding: 0.5rem 0.6rem;
+        }
+
+        .my-courses-carousel .course-title,
+        .my-courses-grid .course-title {
+            font-size: 0.78rem;
+            line-height: 1.35;
+            margin-bottom: 0.3rem;
+            -webkit-line-clamp: 2;
+        }
+
+        .my-courses-carousel .progress-section,
+        .my-courses-grid .progress-section {
+            padding-top: 0.5rem;
+        }
+
+        .my-courses-carousel .due-date-row,
+        .my-courses-grid .due-date-row {
+            font-size: 0.7rem;
+        }
+
+        .my-courses-carousel .progress-wrapper-inline,
+        .my-courses-grid .progress-wrapper-inline {
+            height: 5px;
+        }
+
+        .my-courses-carousel .progress-info,
+        .my-courses-grid .progress-info {
+            margin-bottom: 0.4rem;
+        }
+
+        .my-courses-carousel .progress-info .text-primary,
+        .my-courses-grid .progress-info .text-primary {
+            font-size: 0.75rem;
+        }
+
+        .my-courses-carousel .btn-continue,
+        .my-courses-grid .btn-continue {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            margin-top: 0.2rem;
+        }
+
+        .my-courses-carousel .category-badge,
+        .my-courses-grid .category-badge {
+            font-size: 0.6rem;
+            padding: 0.05rem 0.4rem;
+        }
+
+        /* Toggle button */
+        .btn-view-toggle {
+            color: var(--brand-color);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            transition: all 0.2s;
+        }
+
+        .btn-view-toggle:hover {
+            text-decoration: underline;
+        }
 
         .course-thumb {
             height: 130px;
@@ -234,6 +384,34 @@
             .btn-continue:hover {
                 transform: translateY(-2px);
             }
+
+        /* ========== Compact Catalog Cards ========== */
+        .catalog-content .course-thumb {
+            height: 80px;
+        }
+
+        .catalog-content .course-code-text {
+            font-size: 0.8rem;
+        }
+
+        .catalog-content .course-body {
+            padding: 0.5rem 0.7rem;
+        }
+
+        .catalog-content .course-title {
+            font-size: 0.8rem;
+            line-height: 1.4;
+            margin-bottom: 0.3rem;
+        }
+
+        .catalog-content .btn-continue {
+            font-size: 0.72rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .catalog-content .progress-section {
+            padding-top: 0.5rem;
+        }
 
         /* Profile Stats */
         .stat-box {
@@ -483,7 +661,12 @@ else
                 </ul>
             </div>
 
-            <div id="myCoursesContainer" class="row g-4"></div>
+            <div id="myCoursesContainer" class="my-courses-carousel"></div>
+            <div class="text-center mt-2" id="viewToggleContainer" style="display:none;">
+                <button class="btn-view-toggle" id="btnViewToggle" onclick="toggleMyCoursesView()">
+                    <i class="fas fa-th-large me-1"></i> ดูทั้งหมด
+                </button>
+            </div>
         </div>
 
         <div class="catalog-section">
@@ -535,6 +718,9 @@ else
         let allCourseTypes = []; // dynamic course types loaded from API
         let categorizedCourses = {};
 
+        let myCoursesExpanded = false;
+        const MY_COURSES_COLLAPSED_COUNT = 10;
+
         const typeColorPalette = [
             'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -571,7 +757,7 @@ else
 
         // ========== Load My Courses ==========
         function loadMyCourses() {
-            showSkeletonCards('#myCoursesContainer', 4);
+            showSkeletonCarousel('#myCoursesContainer', 6);
             $.ajax({
                 url: `${baseUrl}/enrollments/my-courses?studentCode=${studentCode}`,
                 method: 'GET',
@@ -598,7 +784,21 @@ else
             const $container = $("#myCoursesContainer");
             $container.empty();
 
-            enrollments.forEach(en => {
+            // Show toggle button when more than collapsed count
+            if (enrollments.length > MY_COURSES_COLLAPSED_COUNT) {
+                $('#viewToggleContainer').show();
+            } else {
+                $('#viewToggleContainer').hide();
+            }
+
+            // Apply collapsed/expanded mode
+            const isExpanded = myCoursesExpanded;
+            const displayItems = isExpanded ? enrollments : enrollments.slice(0, MY_COURSES_COLLAPSED_COUNT);
+
+            $container.removeClass('my-courses-carousel my-courses-grid');
+            $container.addClass(isExpanded ? 'my-courses-grid' : 'my-courses-carousel');
+
+            displayItems.forEach(en => {
                 const course = en.course || {};
                 const progress = en.progress || 0;
                 const isCompleted = !!en.isCompleted;
@@ -615,7 +815,7 @@ else
                     : '';
 
                 const $card = $("<div>")
-                    .addClass(`col-md-6 col-lg-4 col-xl-3 course-item`)
+                    .addClass('carousel-card course-item')
                     .attr('data-status', statusClass)
                     .html(`
                         <div class="my-course-card">
@@ -674,6 +874,37 @@ else
             const inProgress = data.length - completed;
             $("#statEnrolled").text(inProgress);
             $("#statCompleted").text(completed);
+        }
+
+        // ========== Toggle My Courses View ==========
+        function toggleMyCoursesView() {
+            myCoursesExpanded = !myCoursesExpanded;
+            const $btn = $('#btnViewToggle');
+            if (myCoursesExpanded) {
+                $btn.html('<i class="fas fa-arrow-left me-1"></i> ย่อส่วน');
+            } else {
+                $btn.html('<i class="fas fa-th-large me-1"></i> ดูทั้งหมด');
+            }
+            // Re-render with current filter
+            let filteredData = myCoursesData;
+            if (currentFilter === 'not-started') {
+                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) === 0);
+            } else if (currentFilter === 'progress') {
+                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) > 0);
+            } else if (currentFilter === 'completed') {
+                filteredData = myCoursesData.filter(e => !!e.isCompleted);
+            }
+            if (filteredData.length === 0) {
+                const messages = {
+                    'all': 'คุณยังไม่มีคอร์สที่ลงทะเบียน',
+                    'not-started': 'คุณยังไม่มีคอร์สที่ยังไม่เริ่มเรียน',
+                    'progress': 'คุณยังไม่มีคอร์สที่กำลังเรียน',
+                    'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
+                };
+                renderEmptyState('#myCoursesContainer', messages[currentFilter]);
+            } else {
+                renderMyCourses(filteredData);
+            }
         }
 
         // ========== Filter My Courses ==========
@@ -743,7 +974,7 @@ else
         // ========== Load Catalog ==========
         function loadAllCourses() {
             $("#catalogLayout").show();
-            showSkeletonCards('#catalogContent', 6, 'col-md-6 col-lg-4');
+            showSkeletonCards('#catalogContent', 6, 'col-md-4 col-lg-3 col-xxl-2');
             $.ajax({
                 url: `${baseUrl}/courses`,
                 method: 'GET',
@@ -867,7 +1098,7 @@ else
             const courseCode = course.code || '-';
 
             return $(`
-                <div class="col-md-6 col-lg-4 catalog-course-item">
+                <div class="col-md-4 col-lg-3 col-xxl-2 catalog-course-item">
                     <div class="my-course-card">
                         <div class="course-thumb">
                             <img src="${bgImage}" alt="${course.title}" loading="lazy">
@@ -941,12 +1172,35 @@ else
         function renderEmptyState(selector, message) {
             $(selector).html(
                 '<div class="col-12">' +
-                    '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-center">' +
-                        '<i class="fas fa-inbox fa-3x mb-3" style="color:#d0d0d0;"></i>' +
-                        '<p class="text-muted mb-0">' + message + '</p>' +
+                    '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-center">' +
+                        '<i class="fas fa-inbox fa-2x mb-2" style="color:#d0d0d0;"></i>' +
+                        '<p class="text-muted mb-0 small">' + message + '</p>' +
                     '</div>' +
                 '</div>'
             );
+        }
+
+        // ========== Skeleton Carousel Helper ==========
+        function showSkeletonCarousel(selector, count) {
+            count = count || 6;
+            var $el = $(selector);
+            $el.removeClass('my-courses-grid').addClass('my-courses-carousel');
+            var html = '';
+            for (var i = 0; i < count; i++) {
+                html +=
+                    '<div class="carousel-card">' +
+                        '<div class="skeleton-card">' +
+                            '<div class="skeleton" style="height:70px;"></div>' +
+                            '<div style="padding:0.5rem 0.6rem;">' +
+                                '<div class="skeleton skeleton-title"></div>' +
+                                '<div class="skeleton skeleton-bar" style="width:60%;"></div>' +
+                                '<div class="skeleton" style="height:5px;margin-bottom:4px;"></div>' +
+                                '<div class="skeleton" style="height:28px;border-radius:8px;margin-top:0.4rem;"></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+            }
+            $el.html(html);
         }
     </script>
 }

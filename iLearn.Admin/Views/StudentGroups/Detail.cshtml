@@ -1,6 +1,7 @@
 ﻿@{
     ViewBag.Title = "Student Group";
     var groupId = ViewBag.GroupId is int gid ? gid : 0;
+    var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
 }
 
 <style>
@@ -160,7 +161,7 @@
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
     const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
     const ASSIGNMENT_DETAIL_URL = '@Url.Action("Detail", "Assignments")';
-    const STUDENT_PROFILE_URL = '@Url.Action("Report", "Students")';
+    const STUDENT_REPORT_URL_TEMPLATE = '@studentReportUrlTemplate';
     const ADD_MEMBERS_URL = '@Url.Action("AddMembers", "StudentGroups", new { id = groupId })';
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
     const EMPTY_TEXT = "—";
@@ -179,7 +180,7 @@
                     dataField: "studentCode", caption: "Employee ID", width: 130,
                     cellTemplate: function(container, options) {
                         $("<a>")
-                            .attr("href", `${STUDENT_PROFILE_URL}?code=${options.value}`)
+                            .attr("href", STUDENT_REPORT_URL_TEMPLATE.replace("__STUDENT_CODE__", encodeURIComponent(options.value || "")))
                             .attr("target", "_blank")
                             .addClass("tag-pill pill-default fw-bold")
                             .text(options.value || EMPTY_TEXT)

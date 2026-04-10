@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace iLearn.Admin.Controllers
 {
@@ -24,7 +25,9 @@ namespace iLearn.Admin.Controllers
             return View();
         }
 
-        [HttpGet]
+        [HttpGet("Assignments/Report")]
+        [HttpGet("Assignments/Report/{id:int}")]
+        [Authorize(Policy = "DomainUser")]
         public IActionResult Report(int id)
         {
             ViewBag.AssignmentId = id;
@@ -32,6 +35,7 @@ namespace iLearn.Admin.Controllers
         }
 
         [HttpGet(@"Assignments/Report/{assignmentNo:regex(^AS-\d{{8}}-\d+$)}")]
+        [Authorize(Policy = "DomainUser")]
         public IActionResult ReportByNo(string assignmentNo)
         {
             ViewBag.AssignmentNo = assignmentNo;

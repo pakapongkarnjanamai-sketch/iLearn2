@@ -168,6 +168,18 @@ namespace iLearn.API.Controllers
             // 1. ข้อมูลส่วนตัวจาก External API
             var studentInfo = await _studentService.GetStudentByCodeAsync(code);
 
+            if (_currentUser.DivisionId.HasValue)
+            {
+                if (studentInfo == null)
+                    return NotFound(new { message = "Student not found." });
+
+                if (string.IsNullOrWhiteSpace(_currentUser.DivisionName)
+                    || !string.Equals(studentInfo.Division, _currentUser.DivisionName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new { message = "Student not found." });
+                }
+            }
+
             // 2. Enrollment ทั้งหมดของ student พร้อม Course
             //    ใช้ ignoreQueryFilters เพื่อให้โหลด Course ที่ถูก Soft Delete ได้ด้วย
             var enrollments = await _enrollmentRepo.GetAsync(
