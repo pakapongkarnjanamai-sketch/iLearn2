@@ -4,14 +4,20 @@
 }
 
 <style>
+    /* ── Height Settings ── */
     .sg-page-shell {
-        min-height: calc(100vh - 120px);
-        padding-top: 16px !important;
-        padding-bottom: 64px !important;
-    }
+        --sg-page-min-height-offset: 120px;
+        --sg-page-bottom-padding: 64px;
+        --sg-page-bottom-padding-tablet: 128px;
+        --sg-page-bottom-padding-mobile: 156px;
+        --sg-review-table-min-height: 200px;
+        --sg-review-table-viewport-offset: 520px;
+        --sg-review-table-max-height: 320px;
+        --admin-review-content-max-width: 1120px;
 
-    .sg-main-card {
-        min-height: calc(100vh - 280px);
+        min-height: calc(100vh - var(--sg-page-min-height-offset));
+        padding-top: 16px !important;
+        padding-bottom: var(--sg-page-bottom-padding) !important;
     }
 
     .sg-wizard-steps {
@@ -88,6 +94,12 @@
         color: var(--text-primary);
     }
 
+    .sg-selection-layout {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 12px;
+    }
+
     .sg-panel {
         display: none;
     }
@@ -96,15 +108,42 @@
         display: block;
     }
 
-    .sg-student-grid {
-    }
-
     .sg-filter-shell {
         border: 1px solid var(--border-color);
         border-radius: 4px;
         background: #fafafa;
         padding: 12px;
         height: 100%;
+    }
+
+    .sg-grid-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .sg-grid-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+        background: #fafafa;
+    }
+
+    .sg-grid-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-grid-note {
+        font-size: 12px;
+        color: var(--text-secondary);
     }
 
     .sg-selection-card,
@@ -224,7 +263,11 @@
 
     .sg-table-wrap {
         overflow: auto;
-        max-height: clamp(200px, calc(100vh - 520px), 320px);
+        max-height: clamp(
+            var(--sg-review-table-min-height),
+            calc(100vh - var(--sg-review-table-viewport-offset)),
+            var(--sg-review-table-max-height)
+        );
     }
 
     .sg-table {
@@ -285,13 +328,10 @@
     @@media (max-width: 991.98px) {
         .sg-page-shell {
             min-height: auto;
-            padding-bottom: 128px !important;
+            padding-bottom: var(--sg-page-bottom-padding-tablet) !important;
         }
 
-        .sg-main-card {
-            min-height: auto;
-        }
-
+        .sg-selection-layout,
         .sg-wizard-steps,
         .sg-overview-grid,
         .sg-summary-grid,
@@ -302,7 +342,7 @@
 
     @@media (max-width: 767.98px) {
         .sg-page-shell {
-            padding-bottom: 156px !important;
+            padding-bottom: var(--sg-page-bottom-padding-mobile) !important;
         }
 
 
@@ -319,7 +359,7 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 sg-page-shell">
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 sg-page-shell admin-review-flow">
     <div class="sg-wizard-steps">
         <div class="sg-step-card active" data-step-card="1">
             <div class="sg-step-title"><span class="sg-step-index">1</span>Select Students</div>
@@ -335,8 +375,8 @@
         </div>
     </div>
 
-    <div class="row g-3">
-        <div class="col-xl-3">
+    <div class="row g-3 sg-layout-row admin-review-layout-row">
+        <div class="col-xl-3 sg-sidebar-col admin-review-sidebar-col">
             <div class="sg-selection-card h-100">
                 <div class="section-title">Group Snapshot</div>
                 <div class="sg-meta-item">
@@ -366,7 +406,7 @@
             </div>
         </div>
 
-        <div class="col-xl-9">
+        <div class="col-xl-9 sg-main-col admin-review-main-col">
             <div class="border rounded bg-white p-2 sg-main-card">
                 <div id="step-panel-1" class="sg-panel active">
                     <div class="admin-section-header mb-2">
@@ -375,40 +415,36 @@
                         </div>
                         <div class="admin-section-divider"></div>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-lg-3">
-                            <div class="sg-filter-shell d-flex flex-column gap-3">
-                                <div>
-                                    <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary"></i>Filters</div>
-                                    <div class="sg-inline-note">Use division, department, and section filters to narrow the student list.</div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
-                                    <div id="filter-div"></div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
-                                    <div id="filter-dept"></div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
-                                    <div id="filter-section"></div>
-                                </div>
-                                <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
-                                    <i class="fas fa-times me-1"></i> Clear Filters
-                                </button>
+                    <div class="sg-selection-layout">
+                        <div class="sg-filter-shell d-flex flex-column gap-3">
+                            <div>
+                                <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary"></i>Filters</div>
+                                <div class="sg-inline-note">Use division, department, and section filters to narrow the student list.</div>
                             </div>
+                            <div>
+                                <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                <div id="filter-div"></div>
+                            </div>
+                            <div>
+                                <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                <div id="filter-dept"></div>
+                            </div>
+                            <div>
+                                <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                <div id="filter-section"></div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
+                                <i class="fas fa-times me-1"></i> Clear Filters
+                            </button>
                         </div>
-                        <div class="col-lg-9 d-flex flex-column gap-2">
-                            <div class="sg-selection-card">
-                                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                                    <div>
-                                        <div class="u-fs-12 u-fw-semibold text-dark">Learner Selection</div>
-                                        <div class="sg-inline-note">Choose one or more learners to add to this student group.</div>
-                                    </div>
-                                    <div id="selection-hint" class="sg-inline-note">
-                                        <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to continue.
-                                    </div>
+                        <div class="sg-grid-shell">
+                            <div class="sg-grid-head">
+                                <div>
+                                    <div class="sg-grid-title">Learner Selection</div>
+                                    <div class="sg-inline-note">Choose one or more learners to add to this student group.</div>
+                                </div>
+                                <div id="selection-hint" class="sg-grid-note">
+                                    <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to continue.
                                 </div>
                             </div>
                             <div id="grid-add-students" class="sg-student-grid"></div>
@@ -494,29 +530,31 @@
                 </div>
 
                 <div id="step-panel-3" class="sg-panel">
-                    <div class="admin-section-header mb-3">
+                    <div class="admin-section-header admin-review-header">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
                         </div>
                         <div class="admin-section-divider"></div>
                     </div>
 
-                    <div id="summary-cards" class="sg-summary-grid mb-3"></div>
+                    <div class="admin-review-stack">
+                        <div id="summary-cards" class="sg-summary-grid"></div>
 
-                    <div class="sg-table-shell mb-3">
-                        <div class="sg-table-head">
-                            <div class="sg-table-title">Selected Learners</div>
-                            <div class="sg-inline-note" id="student-summary-note"></div>
+                        <div class="sg-table-shell">
+                            <div class="sg-table-head">
+                                <div class="sg-table-title">Selected Learners</div>
+                                <div class="sg-inline-note" id="student-summary-note"></div>
+                            </div>
+                            <div class="sg-table-wrap" id="student-summary-table"></div>
                         </div>
-                        <div class="sg-table-wrap" id="student-summary-table"></div>
-                    </div>
 
-                    <div class="sg-table-shell">
-                        <div class="sg-table-head">
-                            <div class="sg-table-title">Assignment Enrollment Impact</div>
-                            <div class="sg-inline-note" id="assignment-summary-note"></div>
+                        <div class="sg-table-shell">
+                            <div class="sg-table-head">
+                                <div class="sg-table-title">Assignment Enrollment Impact</div>
+                                <div class="sg-inline-note" id="assignment-summary-note"></div>
+                            </div>
+                            <div class="sg-table-wrap" id="assignment-summary-table"></div>
                         </div>
-                        <div class="sg-table-wrap" id="assignment-summary-table"></div>
                     </div>
                 </div>
             </div>
@@ -529,7 +567,6 @@
         <i class="fas fa-user-plus text-primary"></i>
         Review the summary before applying changes.
     </span>
-    <a href="@Url.Action("Detail", "StudentGroups", new { id = groupId })" class="action-link">Cancel</a>
     <a href="javascript:void(0);" id="btn-prev-step" class="action-link d-none">
         <i class="fas fa-arrow-left"></i> Previous
     </a>
@@ -552,6 +589,9 @@
     const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const GROUP_DETAIL_URL = '@Url.Action("Detail", "StudentGroups", new { id = groupId })';
     const EMPTY_TEXT = "—";
+
+    // Height Settings
+    const STUDENT_SELECTION_GRID_HEIGHT = 560;
 
     const wizardState = {
         currentStep: 1,
@@ -605,6 +645,7 @@
     function initializeStudentGrid() {
         studentsGrid = initDxGrid("#grid-add-students", {
             preset: "selectionGrid",
+            height: STUDENT_SELECTION_GRID_HEIGHT,
             dataSource: DevExpress.data.AspNet.createStore({
                 key: "EId",
                 loadUrl: `${STUDENTS_API_URL}/Get`,
@@ -617,7 +658,7 @@
             filterRow: { visible: true },
             searchPanel: { visible: false },
             scrolling: { mode: 'standard' },
-            paging: { enabled: true, pageSize: 15 },
+            paging: { enabled: true, pageSize: 12 },
             pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
             selection: { selectAllMode: 'allPages' },
             noDataText: getNoDataText("students"),
@@ -852,6 +893,7 @@
     function updateWizardUi() {
         $(".sg-panel").removeClass("active");
         $(`#step-panel-${wizardState.currentStep}`).addClass("active");
+        $(".sg-page-shell").toggleClass("is-review-step", wizardState.currentStep === 3);
 
         $("[data-step-card]").each(function() {
             const step = Number($(this).attr("data-step-card"));

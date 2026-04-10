@@ -121,6 +121,40 @@ img[loading="lazy"] {
     gap: 10px;
 }
 
+.admin-review-flow {
+    --admin-review-content-max-width: 1120px;
+}
+
+.admin-review-header {
+    margin-bottom: 16px;
+}
+
+.admin-review-layout-row {
+    margin-top: 0;
+}
+
+.admin-review-flow.is-review-step .admin-review-layout-row {
+    justify-content: center;
+}
+
+.admin-review-flow.is-review-step .admin-review-sidebar-col {
+    display: none;
+}
+
+.admin-review-flow.is-review-step .admin-review-main-col {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: min(100%, var(--admin-review-content-max-width));
+    margin: 0 auto;
+}
+
+.admin-review-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .admin-section-header-main {
     display: flex;
     align-items: center;

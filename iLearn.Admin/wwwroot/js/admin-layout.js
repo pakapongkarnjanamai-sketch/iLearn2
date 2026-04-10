@@ -560,6 +560,36 @@
         });
     }
 
+    function scheduleViewportGridHeightRefresh(gridInstance) {
+        if (!gridInstance) {
+            return;
+        }
+
+        window.requestAnimationFrame(function () {
+            applyViewportGridHeight(gridInstance);
+
+            window.requestAnimationFrame(function () {
+                applyViewportGridHeight(gridInstance);
+            });
+        });
+
+        window.setTimeout(function () {
+            applyViewportGridHeight(gridInstance);
+        }, 120);
+    }
+
+    function registerGridLoadHandler() {
+        if ($(window).data('gridLoadBound')) {
+            return;
+        }
+
+        $(window).on(`load${gridResizeNamespace}`, function () {
+            window.setTimeout(refreshViewportGridHeights, 0);
+        });
+
+        $(window).data('gridLoadBound', true);
+    }
+
     function registerGridResizeHandler() {
         if ($(window).data('gridResizeBound')) {
             return;
@@ -750,7 +780,9 @@
             instance.element().data('gridAutoHeight', true);
             instance.element().attr('data-grid-auto-height', 'true');
             registerGridResizeHandler();
+            registerGridLoadHandler();
             applyViewportGridHeight(instance);
+            scheduleViewportGridHeightRefresh(instance);
         }
 
         return instance;

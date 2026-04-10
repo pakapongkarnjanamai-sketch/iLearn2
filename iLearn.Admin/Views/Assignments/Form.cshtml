@@ -7,16 +7,23 @@
 }
 
 <style>
-    /* ── Shell & Layout ── */
+    /* ── Height Settings ── */
     .assign-page-shell {
-        min-height: calc(100vh - 120px);
+        --assign-page-min-height-offset: 120px;
+        --assign-page-bottom-padding: 64px;
+        --assign-page-bottom-padding-tablet: 128px;
+        --assign-page-bottom-padding-mobile: 156px;
+        --assign-conflict-list-min-height: 120px;
+        --assign-conflict-list-viewport-offset: 520px;
+        --assign-conflict-list-max-height: 200px;
+        --admin-review-content-max-width: 1120px;
+
+        min-height: calc(100vh - var(--assign-page-min-height-offset));
         padding-top: 16px !important;
-        padding-bottom: 64px !important;
+        padding-bottom: var(--assign-page-bottom-padding) !important;
     }
 
-    .assign-main-card {
-        min-height: calc(100vh - 280px);
-    }
+    /* ── Shell & Layout ── */
 
     /* ── Wizard Steps ── */
     .assign-wizard-steps {
@@ -77,18 +84,13 @@
         border: 1px solid var(--border-color);
         border-radius: 4px;
         background: #fff;
+        padding: 12px;
     }
 
     .assign-meta-card {
         border: 1px solid var(--border-color);
         border-radius: 4px;
         background: #fff;
-        padding: 12px;
-    }
-
-    .assign-summary-card,
-    .assign-review-card,
-    .assign-conflict-card {
         padding: 12px;
     }
 
@@ -170,10 +172,7 @@
         color: var(--text-secondary);
     }
 
-    /* ── Inline Grids ── */
-    .assign-inline-grid {
-    }
-
+    /* ── Inline ── */
     .assign-inline-actions {
         padding: 10px 12px;
         border-top: 1px solid var(--border-color);
@@ -280,7 +279,11 @@
         list-style: none;
         margin: 0;
         padding: 0;
-        max-height: clamp(120px, calc(100vh - 520px), 200px);
+        max-height: clamp(
+            var(--assign-conflict-list-min-height),
+            calc(100vh - var(--assign-conflict-list-viewport-offset)),
+            var(--assign-conflict-list-max-height)
+        );
         overflow-y: auto;
     }
 
@@ -310,11 +313,7 @@
     @@media (max-width: 991.98px) {
         .assign-page-shell {
             min-height: auto;
-            padding-bottom: 128px !important;
-        }
-
-        .assign-main-card {
-            min-height: auto;
+            padding-bottom: var(--assign-page-bottom-padding-tablet) !important;
         }
 
         .assign-wizard-steps,
@@ -332,7 +331,7 @@
 
     @@media (max-width: 767.98px) {
         .assign-page-shell {
-            padding-bottom: 156px !important;
+            padding-bottom: var(--assign-page-bottom-padding-mobile) !important;
         }
 
 
@@ -350,7 +349,7 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 assign-page-shell">
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 assign-page-shell admin-review-flow">
     <div class="assign-wizard-steps">
         <div class="assign-step-card active" data-step-card="1">
             <div class="assign-step-title"><span class="assign-step-index">1</span>Course Selection</div>
@@ -372,8 +371,8 @@
 
     <div id="load-panel"></div>
 
-    <div class="row g-3">
-        <div class="col-xl-3">
+    <div class="row g-3 assign-layout-row admin-review-layout-row">
+        <div class="col-xl-3 assign-sidebar-col admin-review-sidebar-col">
             <div class="assign-meta-card h-100">
                 <div class="section-title">Selection Snapshot</div>
                 <div class="assign-meta-item">
@@ -403,7 +402,7 @@
             </div>
         </div>
 
-        <div class="col-xl-9">
+        <div class="col-xl-9 assign-main-col admin-review-main-col">
             <div class="border rounded bg-white p-2 assign-main-card" id="wizard-main-card">
         <div id="step-panel-1" class="assign-panel active">
             <div class="admin-section-header mb-2">
@@ -523,16 +522,18 @@
         </div>
 
         <div id="step-panel-4" class="assign-panel">
-            <div class="admin-section-header mb-3">
+            <div class="admin-section-header admin-review-header">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
                 </div>
                 <div class="admin-section-divider"></div>
             </div>
 
-            <div id="review-summary-cards" class="assign-summary-grid mb-2"></div>
-            <div id="review-details" class="assign-detail-grid mb-2"></div>
-            <div id="review-conflicts"></div>
+            <div class="admin-review-stack">
+                <div id="review-summary-cards" class="assign-summary-grid"></div>
+                <div id="review-details" class="assign-detail-grid"></div>
+                <div id="review-conflicts"></div>
+            </div>
         </div>
     </div>
         </div>
@@ -545,7 +546,6 @@
         <i class="fas fa-check-circle u-text-success"></i>
         Review the summary before confirming the assignment batch.
     </span>
-    <a href="javascript:history.back();" class="action-link">Cancel</a>
     <a href="javascript:void(0);" class="action-link d-none" id="btn-prev-step">
         <i class="fas fa-arrow-left"></i> Previous
     </a>
@@ -570,6 +570,13 @@
         const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
+
+        // Height Settings
+        const DESCRIPTION_FIELD_HEIGHT = 96;
+        const COURSE_GRID_HEIGHT = 560;
+        const STUDENT_GRID_HEIGHT = 540;
+        const GROUP_GRID_HEIGHT = 540;
+
         const hasPreselectedGroupId = Boolean(initialGroupId);
 
         let selectedCourseIds = initialCourseIds
@@ -602,7 +609,7 @@
                         dataField: "description",
                         editorType: "dxTextArea",
                         validationRules: [{ type: "required", message: "Required" }],
-                        editorOptions: { height: 96, onValueChanged: updateSnapshotFromForm }
+                        editorOptions: { height: DESCRIPTION_FIELD_HEIGHT, onValueChanged: updateSnapshotFromForm }
                     },
                     {
                         dataField: "dateRange",
@@ -651,6 +658,7 @@
             function initializeCourseSelection() {
                 courseGrid = initDxGrid("#grid-courses-inline", {
                     preset: "selectionGrid",
+                    height: COURSE_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "id",
                         loadUrl: `${serviceUrl}/admin/CoursesCRUD/Get`,
@@ -663,7 +671,7 @@
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
                     scrolling: { mode: 'standard' },
-                    paging: { enabled: true, pageSize: 15 },
+                    paging: { enabled: true, pageSize: 12 },
                     pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
                     selection: { selectAllMode: 'allPages' },
                     noDataText: getNoDataText("courses"),
@@ -751,6 +759,7 @@
             function initializeStudentSelection() {
                 studentGrid = initDxGrid("#grid-students-inline", {
                     preset: "selectionGrid",
+                    height: STUDENT_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
                         loadUrl: `${serviceUrl}/Students/Get`,
@@ -763,7 +772,7 @@
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
                     scrolling: { mode: 'standard' },
-                    paging: { enabled: true, pageSize: 15 },
+                    paging: { enabled: true, pageSize: 12 },
                     pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
                     selection: { selectAllMode: 'allPages' },
                     noDataText: getNoDataText("students"),
@@ -894,20 +903,24 @@
 
             function initializeGroupSelection() {
                 groupGrid = initDxGrid("#grid-groups-inline", {
-                    dataSource: {
-                        store: new DevExpress.data.CustomStore({
-                            key: "id",
-                            load: () => $.ajax({
-                                url: `${serviceUrl}/StudentGroups`,
-                                method: "GET",
-                                xhrFields: { withCredentials: true }
-                            }).then(res => res.data || [])
+                    preset: "selectionGrid",
+                    height: GROUP_GRID_HEIGHT,
+                    dataSource: new DevExpress.data.CustomStore({
+                        key: "id",
+                        loadMode: "raw",
+                        load: () => $.ajax({
+                            url: `${serviceUrl}/StudentGroups`,
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
+                        }).then(function(res) {
+                            return res?.data || [];
                         })
-                    },
+                    }),
+                    remoteOperations: false,
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
                     scrolling: { mode: 'standard' },
-                    paging: { enabled: true, pageSize: 15 },
+                    paging: { enabled: true, pageSize: 12 },
                     pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
                     noDataText: getNoDataText("student groups"),
                     export: { enabled: false },
@@ -1250,9 +1263,8 @@
             function updateWizardUi(step) {
                 $(".assign-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
+                $(".assign-page-shell").toggleClass("is-review-step", step === 4);
 
-                // Lazy-init student & group grids on first visit to step 2
-                // so DevExtreme can compute the correct viewport height.
                 if (step === 2) {
                     if (!studentGridInitialized) {
                         initializeStudentSelection();

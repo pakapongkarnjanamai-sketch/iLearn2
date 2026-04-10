@@ -3,60 +3,537 @@
     var isEdit = ViewBag.Id != null;
 }
 
+<style>
+    /* ── Height Settings ── */
+    .sg-page-shell {
+        --sg-page-min-height-offset: 120px;
+        --sg-page-bottom-padding: 64px;
+        --sg-page-bottom-padding-tablet: 128px;
+        --sg-page-bottom-padding-mobile: 156px;
+        --sg-review-table-min-height: 200px;
+        --sg-review-table-viewport-offset: 520px;
+        --sg-review-table-max-height: 320px;
+        --admin-review-content-max-width: 1120px;
+
+        min-height: calc(100vh - var(--sg-page-min-height-offset));
+        padding-top: 16px !important;
+        padding-bottom: var(--sg-page-bottom-padding) !important;
+    }
+
+    .sg-wizard-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .sg-step-card {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        padding: 12px 14px;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .sg-step-card.active {
+        border-color: var(--primary-color);
+        background: #f4f8ff;
+    }
+
+    .sg-step-card.complete {
+        border-color: #b7eb8f;
+        background: #f6ffed;
+    }
+
+    .sg-step-index {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        font-size: 11px;
+        font-weight: 700;
+        margin-right: 8px;
+    }
+
+    .sg-step-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-step-text {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    .sg-panel {
+        display: none;
+    }
+
+    .sg-panel.active {
+        display: block;
+    }
+
+    .sg-selection-card,
+    .sg-summary-card,
+    .sg-table-shell,
+    .sg-detail-card {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+    }
+
+    .sg-selection-card,
+    .sg-summary-card,
+    .sg-detail-card {
+        padding: 12px;
+    }
+
+    .sg-meta-item {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sg-meta-item:last-child {
+        border-bottom: none;
+    }
+
+    .sg-meta-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 3px;
+    }
+
+    .sg-meta-value {
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+
+    .sg-selection-layout {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .sg-filter-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 12px;
+        height: 100%;
+    }
+
+    .sg-grid-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .sg-grid-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+        background: #fafafa;
+    }
+
+    .sg-grid-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-grid-note,
+    .sg-inline-note {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .sg-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .sg-summary-item {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 10px;
+    }
+
+    .sg-summary-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .sg-summary-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-top: 6px;
+    }
+
+    .sg-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .sg-detail-item {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 10px;
+    }
+
+    .sg-detail-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+
+    .sg-detail-value {
+        font-size: 13px;
+        color: var(--text-primary);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .sg-table-shell {
+        overflow: hidden;
+    }
+
+    .sg-table-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .sg-table-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-table-wrap {
+        overflow: auto;
+        max-height: clamp(
+            var(--sg-review-table-min-height),
+            calc(100vh - var(--sg-review-table-viewport-offset)),
+            var(--sg-review-table-max-height)
+        );
+    }
+
+    .sg-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+    }
+
+    .sg-table th,
+    .sg-table td {
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 12px;
+        vertical-align: top;
+    }
+
+    .sg-table thead th {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        background: #fafafa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .sg-empty-state {
+        padding: 32px 16px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .sg-empty-state i {
+        font-size: 28px;
+        color: #d9d9d9;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .sg-student-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .sg-student-note {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+
+    @@media (max-width: 991.98px) {
+        .sg-page-shell {
+            min-height: auto;
+            padding-bottom: var(--sg-page-bottom-padding-tablet) !important;
+        }
+
+        .sg-selection-layout,
+        .sg-wizard-steps,
+        .sg-summary-grid,
+        .sg-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .sg-page-shell {
+            padding-bottom: var(--sg-page-bottom-padding-mobile) !important;
+        }
+    }
+</style>
+
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
-        <div class="page-title">@ViewBag.Title</div>
-        <div class="page-subtitle">@(isEdit ? "Update reusable group information for course assignments." : "Create a reusable group for course assignments.")</div>
+        <div class="page-title"><i class="fas fa-users text-primary me-2"></i>@ViewBag.Title</div>
+        <div class="page-subtitle">@(isEdit ? "Update reusable group information for course assignments." : "Create a reusable group and optionally add initial members in one flow.")</div>
     </div>
     <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
         <i class="fas fa-arrow-left text-secondary"></i> Back
     </a>
 </div>
 
-<div class="container page-shell-sm px-4 py-4">
-    <div id="load-panel"></div>
+@if (isEdit)
+{
+    <div class="container page-shell-sm px-4 py-4">
+        <div id="load-panel"></div>
 
-    <!-- Group Information -->
-    <div class="border rounded bg-white d-flex flex-column">
-        <div class="p-3">
-            <div class="admin-section-header">
-                <div class="admin-section-header-main">
-                    <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
+        <div class="border rounded bg-white d-flex flex-column">
+            <div class="p-3">
+                <div class="admin-section-header">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
                 </div>
-                <div class="admin-section-divider"></div>
+            </div>
+            <div class="px-3 pb-3">
+                <div id="form-container"></div>
             </div>
         </div>
-        <div class="px-3 pb-3">
-            <div id="form-container"></div>
+    </div>
+
+    <div class="bottom-toolbar">
+        <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
+            <i class="fas fa-check-circle u-text-success"></i>
+            Review group information before saving.
+        </span>
+        <a href="javascript:void(0);" id="btn-save" class="action-link primary">
+            <i class="fas fa-save"></i> Save Changes
+        </a>
+    </div>
+}
+else
+{
+    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 sg-page-shell admin-review-flow">
+        <div id="load-panel"></div>
+
+        <div class="sg-wizard-steps">
+            <div class="sg-step-card active" data-step-card="1">
+                <div class="sg-step-title"><span class="sg-step-index">1</span>Group Information</div>
+                <div class="sg-step-text">Define the reusable student group name and description.</div>
+            </div>
+            <div class="sg-step-card" data-step-card="2">
+                <div class="sg-step-title"><span class="sg-step-index">2</span>Initial Members</div>
+                <div class="sg-step-text">Optionally select the first learners to include in this new group.</div>
+            </div>
+            <div class="sg-step-card" data-step-card="3">
+                <div class="sg-step-title"><span class="sg-step-index">3</span>Review And Confirm</div>
+                <div class="sg-step-text">Review the group details and initial members before creating it.</div>
+            </div>
+        </div>
+
+        <div class="row g-3 sg-layout-row admin-review-layout-row">
+            <div class="col-xl-3 sg-sidebar-col admin-review-sidebar-col">
+                <div class="sg-selection-card h-100">
+                    <div class="section-title">Group Snapshot</div>
+                    <div class="sg-meta-item">
+                        <div class="sg-meta-label">Group Name</div>
+                        <div class="sg-meta-value fw-bold" id="snapshot-name">Not set</div>
+                    </div>
+                    <div class="sg-meta-item">
+                        <div class="sg-meta-label">Description</div>
+                        <div class="sg-meta-value" id="snapshot-description">No description</div>
+                    </div>
+                    <div class="sg-meta-item">
+                        <div class="sg-meta-label">Initial Members</div>
+                        <div class="sg-meta-value"><span class="tag-pill pill-info" id="snapshot-member-count">0 students selected</span></div>
+                    </div>
+                    <div class="sg-meta-item">
+                        <div class="sg-meta-label">Selection Preview</div>
+                        <div class="sg-meta-value" id="snapshot-member-preview">No initial members selected</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-9 sg-main-col admin-review-main-col">
+                <div class="border rounded bg-white p-2">
+                    <div id="step-panel-1" class="sg-panel active">
+                        <div class="admin-section-header mb-2">
+                            <div class="admin-section-header-main">
+                                <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
+                            </div>
+                            <div class="admin-section-divider"></div>
+                        </div>
+                        <div class="sg-detail-card">
+                            <div class="sg-inline-note mb-3">Create the reusable group first, then choose whether you want to seed it with members immediately.</div>
+                            <div id="form-container"></div>
+                        </div>
+                    </div>
+
+                    <div id="step-panel-2" class="sg-panel">
+                        <div class="admin-section-header mb-2">
+                            <div class="admin-section-header-main">
+                                <div class="section-title mb-0 admin-section-title-fill">Initial Members</div>
+                            </div>
+                            <div class="admin-section-divider"></div>
+                        </div>
+
+                        <div class="sg-selection-layout">
+                            <div class="sg-filter-shell d-flex flex-column gap-3">
+                                <div>
+                                    <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary"></i>Filters</div>
+                                    <div class="sg-inline-note">Use division, department, and section filters to narrow the learner list.</div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <div id="filter-div"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                    <div id="filter-dept"></div>
+                                </div>
+                                <div>
+                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                    <div id="filter-section"></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+
+                            <div class="sg-grid-shell">
+                                <div class="sg-grid-head">
+                                    <div>
+                                        <div class="sg-grid-title">Learner Selection</div>
+                                        <div class="sg-inline-note">Select the first learners to attach to this group. This step is optional.</div>
+                                    </div>
+                                    <div id="selection-hint" class="sg-grid-note">
+                                        <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to include initial members.
+                                    </div>
+                                </div>
+                                <div id="grid-initial-members"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-panel-3" class="sg-panel">
+                        <div class="admin-section-header admin-review-header">
+                            <div class="admin-section-header-main">
+                                <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
+                            </div>
+                            <div class="admin-section-divider"></div>
+                        </div>
+
+                            <div class="admin-review-stack">
+                                <div id="summary-cards" class="sg-summary-grid"></div>
+                                <div id="review-details" class="sg-detail-grid"></div>
+
+                                <div class="sg-table-shell">
+                                    <div class="sg-table-head">
+                                        <div class="sg-table-title">Initial Members</div>
+                                        <div class="sg-inline-note" id="member-review-note"></div>
+                                    </div>
+                                    <div class="sg-table-wrap" id="selected-members-review"></div>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ── Fixed Bottom Toolbar ── -->
-<div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-        <i class="fas fa-check-circle u-text-success"></i>
-        Review group information before saving.
-    </span>
-    <a href="@Url.Action("Index", "StudentGroups")" class="action-link">Cancel</a>
-    <a href="javascript:void(0);" id="btn-save" class="action-link primary">
-        <i class="fas fa-save"></i> @(isEdit ? "Save Changes" : "Create Group")
-    </a>
-</div>
+    <div class="bottom-toolbar">
+        <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
+            <i class="fas fa-users text-primary"></i>
+            Review the summary before creating the student group.
+        </span>
+        <a href="javascript:void(0);" id="btn-prev-step" class="action-link d-none">
+            <i class="fas fa-arrow-left"></i> Previous
+        </a>
+        <a href="javascript:void(0);" id="btn-next-step" class="action-link primary">
+            <i class="fas fa-arrow-right"></i> Continue
+        </a>
+        <a href="javascript:void(0);" id="btn-save" class="action-link primary d-none">
+            <i class="fas fa-save"></i> Create Group
+        </a>
+    </div>
+}
 
 @section Scripts {
 <script>
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const GROUP_ID = @(ViewBag.Id ?? "null");
     const IS_EDIT = @(isEdit ? "true" : "false");
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
     const DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
+    const EMPTY_TEXT = "—";
+
+    // Height Settings
+    const DESCRIPTION_FIELD_HEIGHT = 120;
+    const INITIAL_MEMBER_GRID_HEIGHT = 560;
+
+    const createState = {
+        currentStep: 1,
+        selectedStudentCodes: [],
+        selectedStudents: new Map(),
+        reviewStudents: []
+    };
 
     let formInstance;
+    let loadPanel;
+    let studentsGrid = null;
 
     $(() => {
-        const loadPanel = $("#load-panel").dxLoadPanel({
+        loadPanel = $("#load-panel").dxLoadPanel({
             shadingColor: "rgba(255,255,255,0.8)",
             position: { of: "body" },
             visible: false,
@@ -65,6 +542,23 @@
             shading: true
         }).dxLoadPanel("instance");
 
+        initializeForm();
+
+        if (IS_EDIT) {
+            loadGroupData();
+            $("#btn-save").on("click", saveGroupChanges);
+            return;
+        }
+
+        initializeStudentGrid();
+        initializeFilters();
+        initializeCreateActions();
+        updateSelectionSummary();
+        updateCreateSnapshot();
+        updateCreateWizardUi();
+    });
+
+    function initializeForm() {
         formInstance = $("#form-container").dxForm({
             labelMode: "floating",
             colCount: 1,
@@ -73,7 +567,10 @@
                 {
                     dataField: "name",
                     label: { text: "Group Name" },
-                    editorOptions: { placeholder: "e.g. New Hires 2026 Q1" },
+                    editorOptions: {
+                        placeholder: "e.g. New Hires 2026 Q1",
+                        onValueChanged: updateCreateSnapshot
+                    },
                     validationRules: [
                         { type: "required", message: "Group name is required" },
                         { type: "stringLength", max: 200, message: "Max 200 characters" }
@@ -84,87 +581,557 @@
                     label: { text: "Description (optional)" },
                     editorType: "dxTextArea",
                     editorOptions: {
-                        height: 120,
-                        placeholder: "Brief description of this group's purpose"
+                        height: DESCRIPTION_FIELD_HEIGHT,
+                        placeholder: "Brief description of this group's purpose",
+                        onValueChanged: updateCreateSnapshot
                     }
                 }
             ]
         }).dxForm("instance");
+    }
 
-        if (IS_EDIT) {
-            loadGroupData();
-        }
+    async function loadGroupData() {
+        loadPanel.show();
+        try {
+            const res = await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
 
-        $("#btn-save").click(saveGroup);
-
-        async function loadGroupData() {
-            loadPanel.show();
-            try {
-                const res = await $.ajax({
-                    url: `${GROUPS_API_URL}/${GROUP_ID}`,
-                    method: "GET",
-                    xhrFields: { withCredentials: true }
-                });
-
-                const g = res.data;
-                if (!g) {
-                    showToast("Group not found.", "error");
-                    window.location.href = INDEX_URL;
-                    return;
-                }
-
-                formInstance.option("formData", {
-                    name: g.name || "",
-                    description: g.description || ""
-                });
-            } catch {
-                showToast("Error loading group.", "error");
+            const group = res.data;
+            if (!group) {
+                showToast("Group not found.", "error");
                 window.location.href = INDEX_URL;
-            } finally {
-                loadPanel.hide();
-            }
-        }
-
-        async function saveGroup() {
-            if (!formInstance.validate().isValid) {
                 return;
             }
 
-            const data = formInstance.option("formData");
-            const url = IS_EDIT ? `${GROUPS_API_URL}/${GROUP_ID}` : GROUPS_API_URL;
-            const method = IS_EDIT ? "PUT" : "POST";
+            formInstance.option("formData", {
+                name: group.name || "",
+                description: group.description || ""
+            });
+        } catch {
+            showToast("Error loading group.", "error");
+            window.location.href = INDEX_URL;
+        } finally {
+            loadPanel.hide();
+        }
+    }
 
-            const $btn = $("#btn-save");
-            setButtonLoading($btn, true, "Saving...");
+    function initializeStudentGrid() {
+        studentsGrid = initDxGrid("#grid-initial-members", {
+            preset: "selectionGrid",
+            height: INITIAL_MEMBER_GRID_HEIGHT,
+            dataSource: DevExpress.data.AspNet.createStore({
+                key: "EId",
+                loadUrl: `${STUDENTS_API_URL}/Get`,
+                onBeforeSend: function(method, options) {
+                    options.xhrFields = { withCredentials: true };
+                }
+            }),
+            remoteOperations: true,
+            headerFilter: { visible: false },
+            filterRow: { visible: true },
+            searchPanel: { visible: false },
+            scrolling: { mode: "standard" },
+            paging: { enabled: true, pageSize: 12 },
+            pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
+            selection: { selectAllMode: "allPages" },
+            noDataText: getNoDataText("students"),
+            columns: [
+                {
+                    dataField: "EId", caption: "ID", width: 120,
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
+                },
+                {
+                    caption: "Name", minWidth: 180,
+                    calculateCellValue: function(data) {
+                        return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
+                    },
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("fw-medium text-dark").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
+                },
+                { dataField: "Division", caption: "Division", width: 140 },
+                { dataField: "Department", caption: "Department", width: 140 },
+                {
+                    dataField: "Section", caption: "Section", minWidth: 140,
+                    cellTemplate: function(container, options) {
+                        $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
+                    }
+                }
+            ],
+            onSelectionChanged: function(event) {
+                createState.selectedStudentCodes = (event.selectedRowKeys || []).map(String);
+                syncSelectedStudentCache(event);
+                setSelectionHint("#selection-hint", createState.selectedStudentCodes.length, "student", "to include initial members");
+                updateSelectionSummary();
+                updateCreateSnapshot();
+            }
+        });
+    }
 
-            try {
-                const res = await $.ajax({
-                    url: url,
-                    method: method,
-                    contentType: "application/json",
-                    data: JSON.stringify(data),
+    function initializeFilters() {
+        function makeLookup(endpoint, queryText) {
+            return new DevExpress.data.CustomStore({
+                key: "Name",
+                load: () => $.ajax({
+                    url: `${STUDENTS_API_URL}/${endpoint}${queryText || ""}`,
+                    method: "GET",
                     xhrFields: { withCredentials: true }
+                }).then(function(response) { return response.data || response; })
+            });
+        }
+
+        function applyFilters() {
+            const division = $("#filter-div").dxSelectBox("instance").option("value");
+            const department = $("#filter-dept").dxSelectBox("instance").option("value");
+            const section = $("#filter-section").dxSelectBox("instance").option("value");
+            const filters = [];
+
+            if (division) filters.push(["Division", "=", division]);
+            if (department) filters.push(["Department", "=", department]);
+            if (section) filters.push(["Section", "=", section]);
+
+            applyCombinedFilter(studentsGrid, filters);
+        }
+
+        const divisionBox = $("#filter-div").dxSelectBox({
+            dataSource: makeLookup("GetDivisions"),
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Divisions",
+            showClearButton: true,
+            onValueChanged: function(event) {
+                const departmentBox = $("#filter-dept").dxSelectBox("instance");
+                departmentBox.option({
+                    value: null,
+                    disabled: !event.value,
+                    dataSource: event.value
+                        ? makeLookup("GetDepartments", `?filter=[\"Division\",\"=\",\"${event.value}\"]`)
+                        : []
                 });
 
-                showToast(IS_EDIT ? "Group updated successfully." : "Group created successfully.", "success");
+                $("#filter-section").dxSelectBox("instance").option({
+                    value: null,
+                    disabled: true,
+                    dataSource: []
+                });
 
-                if (!IS_EDIT && res.data?.id) {
-                    window.location.href = `${DETAIL_URL}?id=${res.data.id}`;
-                } else if (!IS_EDIT && res.id) {
-                    window.location.href = `${DETAIL_URL}?id=${res.id}`;
-                } else {
-                    window.location.href = INDEX_URL;
-                }
-            } catch (err) {
-                showToast(`Error: ${getApiErrorMessage(err, "Failed to save")}`, "error", 4000);
-            } finally {
-                setButtonLoading($btn, false);
+                applyFilters();
             }
+        }).dxSelectBox("instance");
+
+        $("#filter-dept").dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Departments",
+            showClearButton: true,
+            disabled: true,
+            onValueChanged: function(event) {
+                const sectionBox = $("#filter-section").dxSelectBox("instance");
+                const division = divisionBox.option("value");
+                const queryText = event.value
+                    ? `?filter=[[\"Division\",\"=\",\"${division}\"],\"and\",[\"Department\",\"=\",\"${event.value}\"]]`
+                    : (division ? `?filter=[\"Division\",\"=\",\"${division}\"]` : "");
+
+                sectionBox.option({
+                    value: null,
+                    disabled: !event.value,
+                    dataSource: event.value ? makeLookup("GetSections", queryText) : []
+                });
+
+                applyFilters();
+            }
+        });
+
+        $("#filter-section").dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Sections",
+            showClearButton: true,
+            disabled: true,
+            onValueChanged: applyFilters
+        });
+
+        $("#btn-clear-filter").on("click", function() {
+            divisionBox.option("value", null);
+            $("#filter-dept").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            $("#filter-section").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            studentsGrid.clearFilter();
+        });
+    }
+
+    function initializeCreateActions() {
+        $("#btn-next-step").on("click", async function() {
+            if (createState.currentStep === 1) {
+                if (!formInstance.validate().isValid) {
+                    return;
+                }
+
+                createState.currentStep = 2;
+                updateCreateWizardUi();
+                return;
+            }
+
+            if (createState.currentStep === 2) {
+                if (!formInstance.validate().isValid) {
+                    createState.currentStep = 1;
+                    updateCreateWizardUi();
+                    return;
+                }
+
+                setButtonLoading("#btn-next-step", true, "Building Review...");
+                try {
+                    createState.reviewStudents = await loadReviewStudents();
+                    renderCreateReview();
+                    createState.currentStep = 3;
+                    updateCreateWizardUi();
+                } finally {
+                    setButtonLoading("#btn-next-step", false);
+                }
+            }
+        });
+
+        $("#btn-prev-step").on("click", function() {
+            if (createState.currentStep > 1) {
+                createState.currentStep -= 1;
+                updateCreateWizardUi();
+            }
+        });
+
+        $("#btn-save").on("click", createGroup);
+    }
+
+    async function createGroup() {
+        if (!formInstance.validate().isValid) {
+            createState.currentStep = 1;
+            updateCreateWizardUi();
+            return;
         }
 
-        function getApiErrorMessage(error, fallbackMessage) {
-            return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+        const data = formInstance.option("formData");
+        const payload = {
+            name: data.name,
+            description: data.description,
+            studentCodes: getSelectedStudentCodes()
+        };
+
+        const confirmed = await showAdminConfirmDialog({
+            title: "Create Student Group",
+            messageHtml: `<b>Create this student group now?</b><br><small class='text-muted'>${window.formatAdminCountLabel(payload.studentCodes.length, "initial member", "initial members", "No initial members selected yet")} will be included in the first setup.</small>`,
+            confirmButtonText: "Create Group",
+            confirmType: "default",
+            icon: "question"
+        });
+
+        if (!confirmed) {
+            return;
         }
-    });
+
+        setButtonLoading("#btn-save", true, "Creating...");
+        try {
+            const res = await $.ajax({
+                url: GROUPS_API_URL,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
+            });
+
+            showToast("Group created successfully.", "success");
+
+            const createdId = res?.data?.id || res?.id;
+            if (createdId) {
+                window.location.href = `${DETAIL_URL}?id=${createdId}`;
+                return;
+            }
+
+            window.location.href = INDEX_URL;
+        } catch (err) {
+            showToast(`Error: ${getApiErrorMessage(err, "Failed to create group")}`, "error", 4000);
+        } finally {
+            setButtonLoading("#btn-save", false);
+        }
+    }
+
+    async function saveGroupChanges() {
+        if (!formInstance.validate().isValid) {
+            return;
+        }
+
+        const data = formInstance.option("formData");
+        setButtonLoading("#btn-save", true, "Saving...");
+
+        try {
+            await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                xhrFields: { withCredentials: true }
+            });
+
+            showToast("Group updated successfully.", "success");
+            window.location.href = INDEX_URL;
+        } catch (err) {
+            showToast(`Error: ${getApiErrorMessage(err, "Failed to save")}`, "error", 4000);
+        } finally {
+            setButtonLoading("#btn-save", false);
+        }
+    }
+
+    function updateCreateWizardUi() {
+        $(".sg-panel").removeClass("active");
+        $(`#step-panel-${createState.currentStep}`).addClass("active");
+        $(".sg-page-shell").toggleClass("is-review-step", createState.currentStep === 3);
+
+        $("[data-step-card]").each(function() {
+            const step = Number($(this).attr("data-step-card"));
+            $(this)
+                .toggleClass("active", step === createState.currentStep)
+                .toggleClass("complete", step < createState.currentStep);
+        });
+
+        $("#btn-prev-step").toggleClass("d-none", createState.currentStep === 1);
+        $("#btn-next-step").toggleClass("d-none", createState.currentStep === 3);
+        $("#btn-save").toggleClass("d-none", createState.currentStep !== 3);
+
+        refreshCreateGrid();
+    }
+
+    function refreshCreateGrid() {
+        if (!studentsGrid || createState.currentStep !== 2) {
+            return;
+        }
+
+        window.requestAnimationFrame(function() {
+            studentsGrid.repaint();
+            studentsGrid.updateDimensions();
+        });
+    }
+
+    function updateCreateSnapshot() {
+        if (IS_EDIT || !formInstance) {
+            return;
+        }
+
+        const formData = formInstance.option("formData") || { name: "", description: "" };
+        const selectedCodes = getSelectedStudentCodes();
+        const previewCodes = selectedCodes.slice(0, 3);
+        const remainingCount = Math.max(selectedCodes.length - previewCodes.length, 0);
+
+        $("#snapshot-name").text(formData.name || "Not set");
+        $("#snapshot-description").text(formData.description || "No description");
+        $("#snapshot-member-count").text(window.formatAdminCountLabel(selectedCodes.length, "student", "students", "0 students selected"));
+        $("#snapshot-member-preview").text(previewCodes.length > 0
+            ? `${previewCodes.join(", ")}${remainingCount > 0 ? ` +${remainingCount} more` : ""}`
+            : "No initial members selected");
+    }
+
+    function updateSelectionSummary() {
+        if (IS_EDIT) {
+            return;
+        }
+
+        setSelectionHint("#selection-hint", getSelectedStudentCodes().length, "student", "to include initial members");
+    }
+
+    function syncSelectedStudentCache(event) {
+        const selectedRows = event.selectedRowsData || [];
+        selectedRows.forEach(function(row) {
+            const student = normalizeStudentProfile(row, row?.EId || row?.eid || row?.Code || row?.code);
+            if (student.studentCode) {
+                createState.selectedStudents.set(student.studentCode, student);
+            }
+        });
+
+        (event.currentDeselectedRowKeys || []).forEach(function(code) {
+            createState.selectedStudents.delete(String(code));
+        });
+
+        const activeCodes = new Set((event.selectedRowKeys || []).map(String));
+        Array.from(createState.selectedStudents.keys()).forEach(function(code) {
+            if (!activeCodes.has(code)) {
+                createState.selectedStudents.delete(code);
+            }
+        });
+    }
+
+    async function loadReviewStudents() {
+        const selectedCodes = getSelectedStudentCodes();
+        if (!selectedCodes.length) {
+            return [];
+        }
+
+        const missingCodes = selectedCodes.filter(function(code) {
+            return !createState.selectedStudents.has(code);
+        });
+
+        if (missingCodes.length) {
+            const results = await Promise.all(missingCodes.map(loadStudentProfileByCode));
+            results.filter(Boolean).forEach(function(student) {
+                createState.selectedStudents.set(student.studentCode, student);
+            });
+        }
+
+        return selectedCodes.map(function(code) {
+            return createState.selectedStudents.get(code) || {
+                studentCode: code,
+                studentName: code,
+                division: null,
+                department: null,
+                section: null,
+                position: null
+            };
+        });
+    }
+
+    async function loadStudentProfileByCode(code) {
+        try {
+            const response = await $.ajax({
+                url: `${STUDENTS_API_URL}/GetStudentbyEID/${encodeURIComponent(code)}`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+
+            return normalizeStudentProfile(response, code);
+        } catch {
+            return {
+                studentCode: String(code),
+                studentName: String(code),
+                division: null,
+                department: null,
+                section: null,
+                position: null
+            };
+        }
+    }
+
+    function normalizeStudentProfile(source, fallbackCode) {
+        const studentCode = String(source?.studentCode || source?.StudentCode || source?.EId || source?.eid || source?.Code || source?.code || fallbackCode || "");
+        const studentName = source?.studentName
+            || source?.StudentName
+            || source?.Name
+            || source?.name
+            || [source?.EnglishFirstName, source?.EnglishLastName].filter(Boolean).join(" ")
+            || studentCode;
+
+        return {
+            studentCode: studentCode,
+            studentName: studentName,
+            division: source?.division || source?.Division || null,
+            department: source?.department || source?.Department || null,
+            section: source?.section || source?.Section || null,
+            position: source?.position || source?.Position || null
+        };
+    }
+
+    function renderCreateReview() {
+        const formData = formInstance.option("formData") || { name: "", description: "" };
+        const students = createState.reviewStudents || [];
+        const distinctDivisions = countDistinctValues(students, function(student) { return student.division; });
+        const distinctDepartments = countDistinctValues(students, function(student) { return student.department; });
+
+        $("#summary-cards").html([
+            buildSummaryCard(students.length, "Initial Members", students.length > 0 ? "u-text-info" : "text-dark"),
+            buildSummaryCard(distinctDivisions, "Divisions", distinctDivisions > 0 ? "text-primary" : "text-dark"),
+            buildSummaryCard(distinctDepartments, "Departments", distinctDepartments > 0 ? "u-text-success" : "text-dark")
+        ].join(""));
+
+        $("#review-details").html(`
+            <div class="sg-detail-item">
+                <div class="sg-detail-label">Group Name</div>
+                <div class="sg-detail-value">${escapeHtml(formData.name || EMPTY_TEXT)}</div>
+            </div>
+            <div class="sg-detail-item">
+                <div class="sg-detail-label">Description</div>
+                <div class="sg-detail-value">${escapeHtml(formData.description || "No description")}</div>
+            </div>
+        `);
+
+        $("#member-review-note").text(students.length > 0
+            ? `${window.formatAdminCountLabel(students.length, "student")} will be added immediately after the group is created.`
+            : "The group will be created without initial members.");
+        $("#selected-members-review").html(buildMembersReviewTable(students));
+    }
+
+    function buildSummaryCard(value, label, className) {
+        return `
+            <div class="sg-summary-item">
+                <div class="sg-summary-value ${className || ""}">${value}</div>
+                <div class="sg-summary-label">${label}</div>
+            </div>`;
+    }
+
+    function buildMembersReviewTable(students) {
+        if (!students.length) {
+            return `
+                <div class="sg-empty-state">
+                    <i class="fas fa-user-plus"></i>
+                    <div>No initial members selected yet.</div>
+                </div>`;
+        }
+
+        const rows = students.map(function(student) {
+            return `
+                <tr>
+                    <td><div class="tag-pill pill-default fw-bold">${escapeHtml(student.studentCode || EMPTY_TEXT)}</div></td>
+                    <td>
+                        <div class="sg-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
+                        <div class="sg-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
+                </tr>`;
+        }).join("");
+
+        return `
+            <table class="sg-table">
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Learner</th>
+                        <th>Position</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    }
+
+    function countDistinctValues(items, selector) {
+        return new Set(items.map(selector).filter(Boolean)).size;
+    }
+
+    function getSelectedStudentCodes() {
+        if (!studentsGrid) {
+            return createState.selectedStudentCodes;
+        }
+
+        return (studentsGrid.getSelectedRowKeys() || []).map(String);
+    }
+
+    function applyCombinedFilter(gridInstance, conditions) {
+        if (!conditions.length) {
+            gridInstance.clearFilter();
+            return;
+        }
+
+        let filter = conditions[0];
+        for (let index = 1; index < conditions.length; index += 1) {
+            filter = [filter, "and", conditions[index]];
+        }
+
+        gridInstance.filter(filter);
+    }
+
+    function getApiErrorMessage(error, fallbackMessage) {
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+    }
+
+    function escapeHtml(value) {
+        return window.escapeAdminHtml ? window.escapeAdminHtml(String(value || "")) : String(value || "");
+    }
 </script>
 }

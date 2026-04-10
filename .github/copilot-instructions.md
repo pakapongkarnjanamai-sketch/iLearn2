@@ -140,7 +140,12 @@
    - ใช้ inline selection เป็นค่าเริ่มต้นก่อน popup; popup ใช้เฉพาะกรณีที่ task นั้นต้องการ isolated workflow จริงๆ
 - **Review Step**:
    - แสดง summary cards ด้านบนก่อน แล้วค่อยตามด้วย detail blocks / conflict lists / impact tables
+   - ระยะห่างก่อน review content ให้คุมจาก shared utility class กลางบน header เช่น `.admin-review-header` แทนการใส่ `mt-*` ซ้ำที่ content block แรกของแต่ละหน้า
+   - ถ้ามีหลาย block ใน review ให้ห่อด้วย shared stack utility เช่น `.admin-review-stack` แทนการใส่ `mb-*` ไล่ทีละ block
    - ถ้าไม่มี conflict หรือข้อมูลว่าง ให้มี empty state หรือ success state ที่ชัดเจน ไม่ปล่อยพื้นที่ว่างโล่ง
+- **Shared Review Layout Rule**:
+   - ใน wizard ของฝั่ง Admin เมื่อเข้า step review ให้ใช้ shared layout classes เช่น `.admin-review-flow`, `.admin-review-layout-row`, `.admin-review-sidebar-col`, `.admin-review-main-col` เพื่อซ่อน snapshot sidebar และจัด main content ให้อยู่กึ่งกลางในความกว้างแบบ container
+   - ใช้ shared utility class สำหรับ spacing ของ review header และ review content blocks เพื่อให้ทุกหน้าใช้ pattern เดียวกัน
 - **Responsiveness**:
    - บน mobile/tablet step cards และ summary grids ควร collapse เป็น 1 คอลัมน์
    - ต้องเผื่อ `padding-bottom` ให้มากพอสำหรับ `bottom-toolbar` ทุกครั้ง เพื่อไม่ให้ content ถูกบัง
