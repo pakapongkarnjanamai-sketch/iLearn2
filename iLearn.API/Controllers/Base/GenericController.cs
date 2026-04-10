@@ -15,8 +15,6 @@ namespace iLearn.API.Controllers.Base
     [Authorize]
     public class GenericController<T> : ControllerBase where T : BaseEntity, new()
     {
-        private const int MaxTakePerRequest = 200;
-
         protected readonly IGenericRepository<T> _repository;
         protected readonly ICurrentUserService _currentUser;
 
@@ -26,19 +24,9 @@ namespace iLearn.API.Controllers.Base
             _currentUser = currentUser;
         }
 
-        /// <summary>
-        /// Caps the Take value in DataSourceLoadOptions to prevent excessively large data fetches.
-        /// </summary>
-        protected static void CapLoadOptionsTake(DataSourceLoadOptions loadOptions, int maxTake = MaxTakePerRequest)
-        {
-            if (loadOptions.Take <= 0 || loadOptions.Take > maxTake)
-                loadOptions.Take = maxTake;
-        }
-
         [HttpGet("Get")]
         public virtual async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
             var data = await _repository.GetAllAsync();
             return Ok(DataSourceLoader.Load(data, loadOptions));
         }

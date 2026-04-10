@@ -11,20 +11,21 @@ namespace iLearn.API.Controllers
     [ApiController]
     public class StudentsController : ControllerBase
     {
-        private const int MaxTakePerRequest = 200;
-
         private readonly IStudentApiService _studentService;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
+        private readonly ICurrentUserService _currentUser;
 
         public StudentsController(
             IStudentApiService studentService,
             IGenericRepository<Enrollment> enrollmentRepo,
-            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo)
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
+            ICurrentUserService currentUser)
         {
             _studentService = studentService;
             _enrollmentRepo = enrollmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
+            _currentUser = currentUser;
         }
 
         [HttpGet("GetStudentbyEID/{employeeCode}")]
@@ -77,6 +78,12 @@ namespace iLearn.API.Controllers
         [HttpGet("GetDivisions")]
         public async Task<IActionResult> GetDivisions()
         {
+            // Data isolation: non-SuperAdmin users can only see their own division.
+            if (_currentUser.DivisionId.HasValue && !string.IsNullOrEmpty(_currentUser.DivisionName))
+            {
+                return Ok(new[] { new { Name = _currentUser.DivisionName } });
+            }
+
             var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
             var result = await _studentService.GetDivisionsAsync(queryString);
 
@@ -131,15 +138,14 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet("Get")]
-        public async Task<IActionResult> Get([FromQuery] int? take)
+        public async Task<IActionResult> Get()
         {
             var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
 
-            // Cap the take parameter to prevent loading excessive data from the external API.
-            // The totalCount in the response is preserved, so virtual scrolling still works correctly.
-            if (take.HasValue && take.Value > MaxTakePerRequest)
+            // Data isolation: restrict student data to the current user's division.
+            if (_currentUser.DivisionId.HasValue && !string.IsNullOrEmpty(_currentUser.DivisionName))
             {
-                queryString = Regex.Replace(queryString, @"([?&])take=\d+", $"$1take={MaxTakePerRequest}");
+                queryString = InjectDivisionFilter(queryString, _currentUser.DivisionName);
             }
 
             var resultJson = await _studentService.GetStudentsDxGridAsync(queryString);
@@ -227,6 +233,29 @@ namespace iLearn.API.Controllers
                     enrollments = history
                 }
             });
+        }
+
+        /// <summary>
+        /// Injects a DevExtreme-compatible Division filter into the proxy query string
+        /// so that non-SuperAdmin users only see employees within their own division.
+        /// </summary>
+        private static string InjectDivisionFilter(string queryString, string divisionName)
+        {
+            var divFilter = System.Text.Json.JsonSerializer.Serialize(
+                new object[] { "Division", "=", divisionName }
+            );
+
+            var filterMatch = Regex.Match(queryString, @"([?&])filter=([^&]*)");
+            if (filterMatch.Success)
+            {
+                var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value);
+                var combined = $"[{existingFilter},\"and\",{divFilter}]";
+                return queryString.Replace(filterMatch.Value,
+                    $"{filterMatch.Groups[1].Value}filter={Uri.EscapeDataString(combined)}");
+            }
+
+            var separator = queryString.Contains('?') ? "&" : "?";
+            return $"{queryString}{separator}filter={Uri.EscapeDataString(divFilter)}";
         }
     }
 }

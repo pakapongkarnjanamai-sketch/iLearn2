@@ -170,10 +170,8 @@
         color: var(--text-secondary);
     }
 
-    /* ── Inline Grids (direct clamp height like sg-student-grid) ── */
+    /* ── Inline Grids ── */
     .assign-inline-grid {
-        height: clamp(300px, calc(100vh - 460px), 420px);
-        min-height: 300px;
     }
 
     .assign-inline-actions {
@@ -337,9 +335,7 @@
             padding-bottom: 156px !important;
         }
 
-        .assign-inline-grid {
-            height: clamp(280px, calc(100vh - 340px), 380px);
-        }
+
     }
 </style>
 
@@ -660,13 +656,16 @@
                         loadUrl: `${serviceUrl}/admin/CoursesCRUD/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
-                            capRemoteTake(ajaxOptions);
                         }
                     }),
                     remoteOperations: true,
                     headerFilter: { visible: false },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
+                    scrolling: { mode: 'standard' },
+                    paging: { enabled: true, pageSize: 15 },
+                    pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
+                    selection: { selectAllMode: 'allPages' },
                     noDataText: getNoDataText("courses"),
                     columns: [
                         {
@@ -757,13 +756,16 @@
                         loadUrl: `${serviceUrl}/Students/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
-                            capRemoteTake(ajaxOptions);
                         }
                     }),
                     remoteOperations: true,
                     headerFilter: { visible: false },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
+                    scrolling: { mode: 'standard' },
+                    paging: { enabled: true, pageSize: 15 },
+                    pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
+                    selection: { selectAllMode: 'allPages' },
                     noDataText: getNoDataText("students"),
                     columns: [
                         {
@@ -904,6 +906,9 @@
                     },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
+                    scrolling: { mode: 'standard' },
+                    paging: { enabled: true, pageSize: 15 },
+                    pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
                     noDataText: getNoDataText("student groups"),
                     export: { enabled: false },
                     selection: {

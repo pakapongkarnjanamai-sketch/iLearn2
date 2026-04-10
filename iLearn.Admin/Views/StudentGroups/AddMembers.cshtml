@@ -97,8 +97,6 @@
     }
 
     .sg-student-grid {
-        height: clamp(300px, calc(100vh - 460px), 420px);
-        min-height: 300px;
     }
 
     .sg-filter-shell {
@@ -307,9 +305,7 @@
             padding-bottom: 156px !important;
         }
 
-        .sg-student-grid {
-            height: clamp(280px, calc(100vh - 340px), 380px);
-        }
+
     }
 </style>
 
@@ -614,13 +610,16 @@
                 loadUrl: `${STUDENTS_API_URL}/Get`,
                 onBeforeSend: function(method, options) {
                     options.xhrFields = { withCredentials: true };
-                    capRemoteTake(options);
                 }
             }),
             remoteOperations: true,
             headerFilter: { visible: false },
             filterRow: { visible: true },
             searchPanel: { visible: false },
+            scrolling: { mode: 'standard' },
+            paging: { enabled: true, pageSize: 15 },
+            pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true },
+            selection: { selectAllMode: 'allPages' },
             noDataText: getNoDataText("students"),
             columns: [
                 {

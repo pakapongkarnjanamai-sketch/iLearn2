@@ -1,4 +1,4 @@
-﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using iLearn.API.Services;
 using iLearn.Application.Interfaces.Repositories;
@@ -46,11 +46,10 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             IQueryable<Category> query = _repository.GetQuery().Include(c => c.Division);
 
-            // ── Data Isolation ──
+            // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
 
@@ -301,15 +300,14 @@ namespace iLearn.API.Controllers.Base
             IGenericRepository<Assignment> repository,
             ICurrentUserService currentUser) : base(repository, currentUser) { }
 
-        // ── เพิ่มโค้ดส่วนนี้เข้าไป ──
+        // -- ?????????????????????? --
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             var query = _repository.GetQuery().AsQueryable();
 
-            // กรองข้อมูลให้เห็นเฉพาะ Division ของตัวเอง (ถ้ามี DivisionId)
+            // ?????????????????????? Division ????????? (????? DivisionId)
             if (_currentUser.DivisionId.HasValue)
             {
                 query = query.Where(a => a.DivisionId == _currentUser.DivisionId.Value);
@@ -328,7 +326,6 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             var query = _repository.GetQuery()
                 .AsNoTracking()
@@ -346,7 +343,7 @@ namespace iLearn.API.Controllers.Base
                 })
                 .AsQueryable();
 
-            // ── Data Isolation ──
+            // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
 
@@ -358,7 +355,7 @@ namespace iLearn.API.Controllers.Base
         {
             var query = _repository.GetQuery().AsQueryable();
 
-            // ── Data Isolation ──
+            // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
 
@@ -374,7 +371,7 @@ namespace iLearn.API.Controllers.Base
                 .Include(c => c.Versions)
                 .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive));
 
-            // ── Data Isolation ──
+            // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
 
@@ -392,7 +389,6 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             var query = _repository.GetQuery()
                 .Select(ct => new
@@ -453,11 +449,10 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             var query = _repository.GetQuery().AsQueryable();
 
-            // ── Data Isolation ──
+            // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(d => d.Id == _currentUser.DivisionId.Value);
 
@@ -550,7 +545,6 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             var query = _repository.GetQuery()
                 .Include(e => e.Course)
@@ -616,7 +610,6 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             var query = _repository.GetQuery()
                 .Include(l => l.Enrollment)
@@ -693,14 +686,12 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
             return await GetFiltered(loadOptions, courseId: null);
         }
 
         [HttpGet("GetByCourse")]
         public async Task<IActionResult> GetByCourse(DataSourceLoadOptions loadOptions, [FromQuery] int courseId)
         {
-            CapLoadOptionsTake(loadOptions);
             return await GetFiltered(loadOptions, courseId);
         }
 
@@ -910,12 +901,11 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
 
             IQueryable<User> query = _repository.GetQuery()
                 .Include(u => u.UserRoles).ThenInclude(ur => ur.Role);
 
-            // ── Data Isolation: Admin เห็นเฉพาะ User ใน Division ตัวเอง ──
+            // -- Data Isolation: Admin ????????? User ?? Division ?????? --
             if (_currentUser.DivisionId.HasValue)
             {
                 var myDivId = _currentUser.DivisionId.Value;
@@ -1061,7 +1051,6 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
-            CapLoadOptionsTake(loadOptions);
             var query = _repository.GetQuery().Include(c => c.Resource);
             return Ok(DataSourceLoader.Load(query, loadOptions));
         }

@@ -14,7 +14,6 @@
     const gridHeaderPanelHeight = 48;
     const gridSummaryHeight = 40;
     const gridFrameHeight = 2;
-    const maxRemoteTakePerRequest = 200;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
     const noDataMessages = {
@@ -574,13 +573,6 @@
         $(window).data('gridResizeBound', true);
     }
 
-    function capRemoteTake(ajaxOptions, maxTake) {
-        var limit = maxTake || maxRemoteTakePerRequest;
-        if (ajaxOptions.data && typeof ajaxOptions.data.take === 'number' && ajaxOptions.data.take > limit) {
-            ajaxOptions.data.take = limit;
-        }
-    }
-
     function createDataStore(baseUrl, controllerName, options) {
         var callerOnBeforeSend = options && typeof options.onBeforeSend === 'function'
             ? options.onBeforeSend
@@ -595,7 +587,6 @@
         }, options, {
             onBeforeSend: function (method, ajaxOptions) {
                 ajaxOptions.xhrFields = { withCredentials: true };
-                capRemoteTake(ajaxOptions);
                 if (callerOnBeforeSend) {
                     callerOnBeforeSend(method, ajaxOptions);
                 }
@@ -655,13 +646,22 @@
         delete overrides.preset;
         const resolvedOptions = $.extend(true, {}, getDxGridPreset(presetName), overrides);
 
-        resolvedOptions.scrolling = $.extend(true, {}, resolvedOptions.scrolling, {
-            mode: 'virtual',
-            rowRenderingMode: 'virtual'
-        });
+        // Allow callers to opt out of virtual scrolling by providing their own scrolling.mode
+        // (e.g. wizard selection grids that use pager instead).
+        var callerScrollMode = pageOptions && pageOptions.scrolling && pageOptions.scrolling.mode;
+        if (!callerScrollMode) {
+            resolvedOptions.scrolling = $.extend(true, {}, resolvedOptions.scrolling, {
+                mode: 'virtual',
+                rowRenderingMode: 'virtual'
+            });
+        }
 
-        resolvedOptions.paging = { enabled: true, pageSize: 30 };
-        delete resolvedOptions.pager;
+        // Allow callers to override paging (e.g. pageSize: 15 for wizard grids).
+        var callerPaging = pageOptions && pageOptions.paging;
+        if (!callerPaging) {
+            resolvedOptions.paging = { enabled: true, pageSize: 30 };
+            delete resolvedOptions.pager;
+        }
 
         return resolvedOptions;
     }
@@ -726,7 +726,7 @@
         if (!enableAutoHeight) {
             setGridHostSize($target, {
                 width: requestedWidth,
-                height: requestedHeight || '100%'
+                height: hasExplicitHeight ? requestedHeight : null
             });
         }
 
@@ -1028,7 +1028,6 @@
     window.ADMIN_DATETIME_DISPLAY_FORMAT = adminDateTimeDisplayFormat;
     window.ADMIN_NUMBER_LOCALE = adminNumberLocale;
     window.createDataStore = createDataStore;
-    window.capRemoteTake = capRemoteTake;
     window.handleExporting = handleExporting;
     window.handlePivotExporting = handlePivotExporting;
     window.dxGridDefaults = dxGridDefaults;

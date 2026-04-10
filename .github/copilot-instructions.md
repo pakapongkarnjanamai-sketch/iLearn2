@@ -23,11 +23,6 @@
    - ใช้เงื่อนไข `if (_currentUser.DivisionId.HasValue)` ในการกรอง Query
    - ระบบจัดการ **Bypass** ให้สิทธิ์ระดับสูง (เช่น `SuperAdmin`, `Admin`) อัตโนมัติจาก `CurrentUserService` ซึ่งจะคืนค่า `DivisionId` เป็น `null` ทำให้มองเห็นข้อมูลทั้งหมดทั่วระบบ
 8. **Backend Language (English Only)**: การเขียนคอมเมนต์ (Comments), การเก็บ Logs, ข้อความ Exceptions และ Response Messages ภายในฝั่ง Backend (`iLearn.API`, `Application`, `Infrastructure`) **ต้องเขียนเป็นภาษาอังกฤษทั้งหมด** เพื่อความเป็นมาตรฐานสากลและหลีกเลี่ยงปัญหา Encoding (ส่วน Frontend UI ยังคงแสดงผลภาษาไทยให้ผู้ใช้งานตามปกติ)
-9. **Data Fetching Cap (Important)**:
-   - **Server-side**: ทุก CRUD Controller ที่สืบทอดจาก `GenericController<T>` ต้องเรียก `CapLoadOptionsTake(loadOptions)` เป็นบรรทัดแรกใน override `Get(DataSourceLoadOptions)` เสมอ — ค่า default cap = **200 rows** (`MaxTakePerRequest`)
-   - **Server-side (Proxy)**: Controller ที่ทำหน้าที่ Proxy (เช่น `StudentsController`) ต้อง cap `take` ก่อน forward ไปยัง External API ด้วย (ใช้ Regex replace บน query string)
-   - **Client-side**: `createDataStore()` ฝัง `capRemoteTake(ajaxOptions)` ไว้ใน `onBeforeSend` อัตโนมัติแล้ว — cap `take` ที่ **200** ก่อนส่ง request
-   - **Inline Stores**: ถ้าสร้าง `DevExpress.data.AspNet.createStore({...})` ตรงๆ ในหน้า view (ไม่ผ่าน `createDataStore`) ต้องเพิ่ม `capRemoteTake(ajaxOptions);` ใน `onBeforeSend` เอง
 
 
 ## Front-end Design Patterns
@@ -113,7 +108,15 @@
    - `selectAllMode: 'page'` — บน `selectionGrid` preset ให้ Select All เฉพาะหน้าปัจจุบัน (ป้องกัน full-data fetch)
 - **Selection Grids in Wizards**:
    - ใช้ `preset: "selectionGrid"` และปิด `headerFilter: { visible: false }` เพื่อป้องกัน DevExtreme ดึงข้อมูลทั้งหมดสำหรับ dropdown filter
-   - ถ้า grid อยู่ใน wizard step ที่ยัง `display: none` ขณะหน้าโหลด ต้อง **lazy-init** grid เมื่อ step นั้นแสดงครั้งแรก เพื่อให้ DevExtreme คำนวณ viewport ได้ถูกต้อง (ไม่งั้น virtual scrolling จะ request `take` เท่ากับจำนวนข้อมูลทั้งหมด)
+   - **ห้ามใช้ virtual scrolling** ใน wizard — ให้ใช้ standard paging แทน เพื่อป้องกันปัญหา Select All ดึงข้อมูลทั้งหมดและ viewport miscalculation:
+     ```js
+     scrolling: { mode: 'standard' },
+     paging: { enabled: true, pageSize: 15 },
+     pager: { visible: true, showPageSizeSelector: false, showInfo: true, showNavigationButtons: true }
+     ```
+   - ต้อง override `selection: { selectAllMode: 'allPages' }` เพื่อให้ Select All เลือกข้อมูลทุกหน้าที่ filter ไว้ (ไม่ใช่แค่หน้าปัจจุบัน)
+   - **ห้ามกำหนด** `autoHeight: false` หรือ `height: '100%'` — ปล่อยให้ `initDxGrid` auto-height คำนวณความสูงจาก viewport เอง เพื่อให้ grid สูงเท่ากับข้อมูลในพื้นที่ที่มีอยู่ และ **ห้ามกำหนด CSS fixed height** (เช่น `height: clamp(...)`) บน container div ของ grid ใน wizard
+   - ถ้า grid อยู่ใน wizard step ที่ยัง `display: none` ขณะหน้าโหลด ต้อง **lazy-init** grid เมื่อ step นั้นแสดงครั้งแรก เพื่อไม่ให้โหลดข้อมูลก่อนที่ผู้ใช้จะเปิด step
    - หลัง init grid ใน step ที่เพิ่งแสดง ต้องเรียก `refreshGridInstance()` (`repaint` + `updateDimensions`) เสมอ
 
 ### 6. Wizard Page Pattern (Admin)
@@ -143,3 +146,30 @@
    - ต้องเผื่อ `padding-bottom` ให้มากพอสำหรับ `bottom-toolbar` ทุกครั้ง เพื่อไม่ให้ content ถูกบัง
 - **Consistency Rule**:
    - ถ้ามี wizard ใหม่ในฝั่ง Admin ให้ยึด `iLearn.Admin/Views/StudentGroups/AddMembers.cshtml` เป็น visual baseline ก่อน แล้วค่อยปรับเฉพาะส่วนที่จำเป็นตาม use case
+
+
+
+---
+description: 'Answer questions about DevExpress UI Components and their API using the dxdocs server'
+---
+
+You are a .NET/JavaScript programmer and DevExpress product expert.
+
+Your task is to answer questions about DevExpress components and their APIs using dxdocs MCP server tools.
+
+When replying to **ANY** question about DevExpress components, use the dxdocs server to construct your answer.
+
+## Workflow:
+
+1. **Call devexpress_docs_search** to obtain help topics related to the user's question
+2. **Call devexpress_docs_get_content** to fetch and read the most relevant help topics
+3. **Reflect on the obtained content** and how it relates to the question
+4. **Provide a comprehensive answer** based solely on retrieved information
+
+## Constraints:
+
+- **Use devexpress_docs_search only once** per question to avoid redundant queries
+- **Answer questions based solely** on information obtained from MCP server tools
+- If relevant code examples are available in documentation, **include those code examples**
+- **Reference specific DevExpress controls and properties** mentioned in the docs
+- If a user specifies a version (such as v24.2 or 24.2), invoke MCP server tools corresponding to that version (for example, "dxdocs24_2")
