@@ -84,7 +84,6 @@
         }
 
             .my-course-card:hover {
-                transform: translateY(-3px);
                 box-shadow: 0 8px 20px rgba(0,0,0,0.08);
             }
 
@@ -252,9 +251,7 @@
                 transition: transform 0.5s ease;
             }
 
-        .my-course-card:hover .course-thumb img {
-            transform: scale(1.05);
-        }
+       
 
         /* Course Code Overlay */
         .course-code-overlay {
@@ -381,36 +378,126 @@
             transition: all 0.2s;
         }
 
-            .btn-continue:hover {
-                transform: translateY(-2px);
-            }
+           
 
-        /* ========== Compact Catalog Cards ========== */
+        /* ========== Compact Catalog Cards (Grid Mode) ========== */
         .catalog-content .course-thumb {
-            height: 80px;
+            height: 130px;
         }
 
         .catalog-content .course-code-text {
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
         .catalog-content .course-body {
-            padding: 0.5rem 0.7rem;
+            padding: 0.65rem 0.85rem;
         }
 
         .catalog-content .course-title {
-            font-size: 0.8rem;
-            line-height: 1.4;
-            margin-bottom: 0.3rem;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            margin-bottom: 0.4rem;
         }
 
         .catalog-content .btn-continue {
-            font-size: 0.72rem;
-            padding: 0.25rem 0.5rem;
+            font-size: 0.78rem;
+            padding: 0.3rem 0.6rem;
         }
 
         .catalog-content .progress-section {
-            padding-top: 0.5rem;
+            padding-top: 0.6rem;
+        }
+
+        /* ========== Catalog List View ========== */
+        .catalog-list-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            background: white;
+            border: 1px solid #f0f0f0;
+            border-radius: 6px;
+            margin-bottom: 0.35rem;
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .catalog-list-item:hover {
+            border-color: rgba(2, 125, 131, 0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .catalog-list-item .list-code-badge {
+            flex-shrink: 0;
+            background: var(--brand-color);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .catalog-list-item .list-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .catalog-list-item .list-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .catalog-list-item .list-action {
+            flex-shrink: 0;
+        }
+
+        .catalog-list-item .btn-list-view {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        /* ========== Catalog View Toggle ========== */
+        .catalog-view-toggle {
+            display: inline-flex;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .catalog-view-toggle .toggle-btn {
+            border: none;
+            background: white;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.15s;
+            line-height: 1;
+        }
+
+        .catalog-view-toggle .toggle-btn:not(:last-child) {
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .catalog-view-toggle .toggle-btn.active {
+            background: var(--brand-color);
+            color: white;
+        }
+
+        .catalog-view-toggle .toggle-btn:hover:not(.active) {
+            background: #f5f5f5;
+            color: #555;
         }
 
         /* Profile Stats */
@@ -597,8 +684,7 @@ else
                                 <i class="fas fa-building text-brand me-1"></i>@div - @dept
                             </p>
                         </div>
-                        <a href="@Url.Action("Logout", "Home")" id="btnLogout"
-                           onclick="return confirm('คุณต้องการออกจากระบบใช่หรือไม่?')"
+                        <a href="javascript:void(0)" id="btnLogout"
                            class="btn btn-sm d-flex align-items-center gap-2"
                            style="border:1.5px solid var(--brand-color);color:var(--brand-color);border-radius:8px;padding:0.4rem 1rem;font-weight:600;font-size:0.85rem;background:transparent;transition:all 0.2s;">
                             <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
@@ -686,6 +772,14 @@ else
                         </li>
                     </ul>
                     <div id="searchBoxContainer"></div>
+                    <div class="catalog-view-toggle">
+                        <button class="toggle-btn active" id="btnListView" onclick="setCatalogView('list')" title="มุมมองรายการ">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button class="toggle-btn" id="btnGridView" onclick="setCatalogView('grid')" title="มุมมองกริด">
+                            <i class="fas fa-th"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -717,6 +811,7 @@ else
         let selectedCourseType = 'all';
         let allCourseTypes = []; // dynamic course types loaded from API
         let categorizedCourses = {};
+        let catalogViewMode = 'list'; // 'list' or 'grid'
 
         let myCoursesExpanded = false;
         const MY_COURSES_COLLAPSED_COUNT = 10;
@@ -740,7 +835,53 @@ else
             loadMyCourses();
             loadCourseTypes();
         });
-        function initLogout() { /* replaced by inline HTML button */ }
+        function initLogout() {
+            $('#btnLogout').on('click', function (e) {
+                e.preventDefault();
+                const logoutUrl = '@Url.Action("Logout", "Home")';
+
+                const dialog = DevExpress.ui.dialog.custom({
+                    title: '',
+                    messageHtml: `
+                        <div class="text-center py-2">
+                            <i class="fas fa-sign-out-alt" style="font-size:2.5rem;color:var(--brand-color);margin-bottom:0.75rem;"></i>
+                            <h5 style="font-weight:700;color:#2c3e50;margin-bottom:0.4rem;">ออกจากระบบ</h5>
+                            <p style="color:#7f8c8d;font-size:0.9rem;margin-bottom:0;">คุณต้องการออกจากระบบใช่หรือไม่?</p>
+                        </div>`,
+                    buttons: [],
+                    dragEnabled: false,
+                    showCloseButton: false,
+                    width: 340
+                });
+
+                dialog.show();
+
+                const $footer = dialog.$element().find('.dx-popup-bottom');
+                $footer.empty().append(`
+                    <div class="d-flex gap-2 justify-content-center pb-2">
+                        <div id="dlg-logout-cancel"></div>
+                        <div id="dlg-logout-confirm"></div>
+                    </div>
+                `);
+
+                $('#dlg-logout-cancel').dxButton({
+                    text: 'ยกเลิก',
+                    stylingMode: 'outlined',
+                    onClick: function () { dialog.hide(); }
+                });
+
+                $('#dlg-logout-confirm').dxButton({
+                    text: 'ออกจากระบบ',
+                    type: 'danger',
+                    stylingMode: 'contained',
+                    icon: 'fas fa-sign-out-alt',
+                    onClick: function () {
+                        dialog.hide();
+                        window.location.href = logoutUrl;
+                    }
+                });
+            });
+        }
 
         // ========== Search Box ==========
         function initSearchBox() {
@@ -974,7 +1115,7 @@ else
         // ========== Load Catalog ==========
         function loadAllCourses() {
             $("#catalogLayout").show();
-            showSkeletonCards('#catalogContent', 6, 'col-md-4 col-lg-3 col-xxl-2');
+            showSkeletonCards('#catalogContent', 4, 'col-md-6 col-lg-4 col-xl-3');
             $.ajax({
                 url: `${baseUrl}/courses`,
                 method: 'GET',
@@ -1065,7 +1206,19 @@ else
             renderCatalogContent(selectedCategoryId);
         }
 
-        // ========== Render Catalog Content (flat grid, no course-type grouping headers) ==========
+        // ========== Set Catalog View Mode ==========
+        function setCatalogView(mode) {
+            catalogViewMode = mode;
+            $('#btnListView, #btnGridView').removeClass('active');
+            if (mode === 'list') {
+                $('#btnListView').addClass('active');
+            } else {
+                $('#btnGridView').addClass('active');
+            }
+            renderCatalogContent(selectedCategoryId);
+        }
+
+        // ========== Render Catalog Content ==========
         function renderCatalogContent(categoryId) {
             const $content = $("#catalogContent");
             $content.empty();
@@ -1084,21 +1237,28 @@ else
                 return;
             }
 
-            const $grid = $('<div class="row g-3"></div>');
-            coursesToShow.forEach(course => {
-                $grid.append(renderCatalogCard(course));
-            });
-            $content.append($grid);
+            if (catalogViewMode === 'list') {
+                const $list = $('<div class="catalog-list-container"></div>');
+                coursesToShow.forEach(course => {
+                    $list.append(renderCatalogListItem(course));
+                });
+                $content.append($list);
+            } else {
+                const $grid = $('<div class="row g-3"></div>');
+                coursesToShow.forEach(course => {
+                    $grid.append(renderCatalogCard(course));
+                });
+                $content.append($grid);
+            }
         }
 
-           
-               // ========== Render Single Catalog Card ==========
+        // ========== Render Single Catalog Card (Grid) ==========
         function renderCatalogCard(course) {
             const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
             const courseCode = course.code || '-';
 
             return $(`
-                <div class="col-md-4 col-lg-3 col-xxl-2 catalog-course-item">
+                <div class="col-md-6 col-lg-4 col-xl-3 catalog-course-item">
                     <div class="my-course-card">
                         <div class="course-thumb">
                             <img src="${bgImage}" alt="${course.title}" loading="lazy">
@@ -1120,6 +1280,25 @@ else
             `);
         }
 
+        // ========== Render Single Catalog List Item ==========
+        function renderCatalogListItem(course) {
+            const courseCode = course.code || '-';
+
+            return $(`
+                <div class="catalog-list-item catalog-course-item">
+                    <div class="list-code-badge">${courseCode}</div>
+                    <div class="list-info">
+                        <div class="list-title course-title" title="${course.title}">${course.title}</div>
+                    </div>
+                    <div class="list-action">
+                        <a href="@Url.Action("Player", "MyLearning")?courseId=${course.id}" class="btn btn-outline-primary btn-list-view">
+                            <i class="fas fa-eye me-1"></i> ดูเนื้อหา
+                        </a>
+                    </div>
+                </div>
+            `);
+        }
+
         // ========== Filter Catalog (Search) ==========
         function filterCatalog(searchText) {
             const $items = $(".catalog-course-item");
@@ -1133,7 +1312,7 @@ else
             $items.each(function() {
                 const $item = $(this);
                 const title = $item.find('.course-title').text().toLowerCase();
-                const code = $item.find('.course-code-text').text().toLowerCase();
+                const code = $item.find('.course-code-text, .list-code-badge').text().toLowerCase();
 
                 if (title.includes(lowerSearch) || code.includes(lowerSearch)) {
                     $item.show();
@@ -1148,7 +1327,7 @@ else
         function highlightText($item, searchText) {
             removeHighlights();
             const $title = $item.find('.course-title');
-            const $code = $item.find('.course-code-text');
+            const $code = $item.find('.course-code-text, .list-code-badge');
 
             const titleHtml = $title.html();
             const codeHtml = $code.html();
