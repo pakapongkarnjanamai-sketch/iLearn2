@@ -1090,16 +1090,8 @@
             : 0;
     }
 
-    function appendText(container, text, styles) {
-        return $("<span>").css(styles || {}).text(text).appendTo(container);
-    }
-
     function formatDate(value, fallback = EMPTY_TEXT) {
         return window.formatAdminDate(value, fallback);
-    }
-
-    function getApiErrorMessage(error, fallbackMessage) {
-        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
     }
 
     function reloadDetail(message) {
@@ -1254,10 +1246,6 @@
                 showToast(getApiErrorMessage(error, "Error removing student."), "error", 4000);
             }
         });
-    }
-
-    function escapeHtml(value) {
-        return $("<div>").text(value || "").html();
     }
 
     function getDefaultReassignmentDates() {
