@@ -855,15 +855,6 @@
 
             window.switchTargetMode = switchTargetMode;
 
-            function refreshGridInstance(gridInstance) {
-                if (!gridInstance) {
-                    return;
-                }
-
-                gridInstance.repaint();
-                gridInstance.updateDimensions();
-            }
-
             function refreshVisibleSelectionGrids() {
                 window.requestAnimationFrame(function() {
                     const currentStep = getCurrentStep();

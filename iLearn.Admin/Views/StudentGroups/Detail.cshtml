@@ -467,36 +467,6 @@
         });
     }
 
-    function setQuickActionLoadingState($element, isLoading, options) {
-        if (!$element || !$element.length) {
-            return;
-        }
-
-        const settings = options || {};
-        const $icon = settings.iconSelector ? $(settings.iconSelector) : $element.find(".qa-icon i").first();
-        const $text = settings.textSelector ? $(settings.textSelector) : $element.find(".u-fw-semibold").first();
-
-        $element.toggleClass("disabled", isLoading).attr("aria-disabled", isLoading ? "true" : "false");
-
-        if ($icon.length) {
-            if (isLoading) {
-                $icon.data("original-class", $icon.attr("class") || "");
-                $icon.attr("class", "fas fa-spinner fa-spin");
-            } else {
-                $icon.attr("class", $icon.data("original-class") || "fas fa-spinner fa-spin");
-            }
-        }
-
-        if ($text.length) {
-            if (isLoading) {
-                $text.data("original-text", $text.text());
-                $text.text(settings.loadingText || "Processing...");
-            } else {
-                $text.text($text.data("original-text") || $text.text());
-            }
-        }
-    }
-
     function switchTab(tab, btn) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
