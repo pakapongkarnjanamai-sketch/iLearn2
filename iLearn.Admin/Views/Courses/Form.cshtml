@@ -1043,7 +1043,7 @@ else
                 }, 1000);
             } catch (err) {
                 console.error(err);
-                showToast(`Error: ${getApiErrorMessage(err, "Request failed")}`, "error", 4000);
+                showToast(`Error: ${window.getApiErrorMessage(err, "Request failed")}`, "error", 4000);
             } finally {
                 loadPanel.hide();
                 setButtonLoading(submitButtonSelector, false);
@@ -1306,8 +1306,8 @@ else
             ].map(function(detail) {
                 return `
                     <div class="course-detail-item">
-                        <div class="course-detail-label">${escapeHtml(detail.label)}</div>
-                        <div class="course-detail-value">${escapeHtml(detail.value)}</div>
+                        <div class="course-detail-label">${window.escapeHtml(detail.label)}</div>
+                        <div class="course-detail-value">${window.escapeHtml(detail.value)}</div>
                     </div>`;
             }).join('');
 
@@ -1349,11 +1349,11 @@ else
                     <tr>
                         <td>${index + 1}</td>
                         <td>
-                            <div class="course-resource-name">${escapeHtml(resource.name)}</div>
-                            <div class="course-resource-note">${escapeHtml(sourceText)}</div>
+                            <div class="course-resource-name">${window.escapeHtml(resource.name)}</div>
+                            <div class="course-resource-note">${window.escapeHtml(sourceText)}</div>
                         </td>
-                        <td><span class="tag-pill ${sourceBadge}">${escapeHtml(sourceText)}</span></td>
-                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>
+                        <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
+                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>
                         <td>${resource.isNew ? "Queued for upload" : "Linked from library"}</td>
                     </tr>`;
             }).join('');
@@ -1392,16 +1392,8 @@ else
             return typeId === 2 ? "Exam" : "Learn";
         }
 
-        function escapeHtml(value) {
-            return window.escapeHtml(value);
-        }
-
         function formatDateTime(value) {
             return window.formatAdminDateTime(value, '—');
-        }
-
-        function getApiErrorMessage(error, fallbackMessage) {
-            return window.getApiErrorMessage(error, fallbackMessage);
         }
     </script>
 }

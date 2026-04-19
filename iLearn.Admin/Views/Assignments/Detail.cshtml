@@ -585,7 +585,7 @@
 
         if (data.studentGroupId) {
             $("#lbl-student-group").html(
-                `<a href="@Url.Action("Detail", "StudentGroups")?id=${data.studentGroupId}" class="action-link">${escapeHtml(data.studentGroupName || '-')}</a>` +
+                `<a href="@Url.Action("Detail", "StudentGroups")?id=${data.studentGroupId}" class="action-link">${window.escapeHtml(data.studentGroupName || '-')}</a>` +
                 ` <span class="text-secondary u-fs-11">(ID: ${data.studentGroupId})</span>`
             );
             $("#meta-student-group").show();
@@ -801,7 +801,7 @@
                     caption: "Name",
                     minWidth: 120,
                     cellTemplate: function(container, options) {
-                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
+                        appendAdminText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
                     }
                 },
                 {
@@ -810,7 +810,7 @@
                     width: 140,
                     alignment: "center",
                     cellTemplate: function(container, options) {
-                        renderProgressCell(container, options.value || 0, false);
+                        renderAdminProgressCell(container, options.value || 0, { useWarningForPartial: false });
                     }
                 },
                 {
@@ -829,7 +829,7 @@
                     alignment: "center",
                     width: 110,
                     cellTemplate: function(container, options) {
-                        appendText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
+                        appendAdminText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
                     }
                 },
                 {
@@ -890,7 +890,7 @@
             reloadDetail(response.message || "Courses updated.");
         } catch (error) {
             loadPanel.hide();
-            showToast(getApiErrorMessage(error, "Error adding courses."), "error", 4000);
+            showToast(window.getApiErrorMessage(error, "Error adding courses."), "error", 4000);
         }
     }
 
@@ -918,7 +918,7 @@
             reloadDetail(response.message || "Students updated.");
         } catch (error) {
             loadPanel.hide();
-            showToast(getApiErrorMessage(error, "Error adding students."), "error", 4000);
+            showToast(window.getApiErrorMessage(error, "Error adding students."), "error", 4000);
         }
     }
 
@@ -960,16 +960,8 @@
             : 0;
     }
 
-    function appendText(container, text, styles) {
-        return $("<span>").css(styles || {}).text(text).appendTo(container);
-    }
-
     function formatDate(value, fallback = EMPTY_TEXT) {
         return window.formatAdminDate(value, fallback);
-    }
-
-    function getApiErrorMessage(error, fallbackMessage) {
-        return window.getApiErrorMessage(error, fallbackMessage);
     }
 
     function reloadDetail(message) {
@@ -1008,40 +1000,6 @@
         return "var(--border-color)";
     }
 
-    function renderProgressCell(container, progress, useWarningForPartial) {
-        const color = progress === 100
-            ? "var(--success-color)"
-            : progress > 0
-                ? (useWarningForPartial ? "var(--warning-color)" : "var(--accent-color)")
-                : "var(--border-color)";
-
-        $("<div>").addClass("d-flex align-items-center gap-2")
-            .append(
-                $("<div>").css({
-                    flex: "1",
-                    height: "3px",
-                    background: "var(--border-color)",
-                    borderRadius: "2px",
-                    overflow: "hidden"
-                }).append(
-                    $("<div>").css({
-                        height: "100%",
-                        width: `${progress}%`,
-                        background: color
-                    })
-                )
-            )
-            .append(
-                $("<span>").css({
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    minWidth: "32px",
-                    color: "var(--text-secondary)"
-                }).text(window.formatAdminPercentage(progress, '0%'))
-            )
-            .appendTo(container);
-    }
-
     function renderStudentStatusCell(container, isCompleted, progress) {
         let dotClass = "dot-default";
         let label = "Pending";
@@ -1063,7 +1021,7 @@
     function confirmRemoveCourse(ruleId, title) {
         showConfirmDialog({
             title: "Remove assigned course?",
-            html: `Course <b>${escapeHtml(title || EMPTY_TEXT)}</b> will be removed from this assignment.`,
+            html: `Course <b>${window.escapeHtml(title || EMPTY_TEXT)}</b> will be removed from this assignment.`,
             confirmButtonText: "Remove",
             confirmClass: "btn-danger",
             cancelButtonText: "Cancel"
@@ -1091,7 +1049,7 @@
                 reloadDetail(response.message || "Course removed.");
             } catch (error) {
                 loadPanel.hide();
-                showToast(getApiErrorMessage(error, "Error removing course."), "error", 4000);
+                showToast(window.getApiErrorMessage(error, "Error removing course."), "error", 4000);
             }
         });
     }
@@ -1099,7 +1057,7 @@
     function confirmRemoveStudent(studentCode, studentName) {
         showConfirmDialog({
             title: "Remove student from assignment?",
-            html: `<b>${escapeHtml(studentCode || EMPTY_TEXT)}</b> ${escapeHtml(studentName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
+            html: `<b>${window.escapeHtml(studentCode || EMPTY_TEXT)}</b> ${window.escapeHtml(studentName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
             confirmButtonText: "Remove",
             confirmClass: "btn-danger",
             cancelButtonText: "Cancel"
@@ -1121,13 +1079,9 @@
                 reloadDetail(response.message || "Student removed.");
             } catch (error) {
                 loadPanel.hide();
-                showToast(getApiErrorMessage(error, "Error removing student."), "error", 4000);
+                showToast(window.getApiErrorMessage(error, "Error removing student."), "error", 4000);
             }
         });
-    }
-
-    function escapeHtml(value) {
-        return window.escapeHtml(value);
     }
 
     function getDefaultReassignmentDates() {
@@ -1156,9 +1110,9 @@
         const previewItems = items.slice(0, 5).map(function(item) {
             return `
                 <li class="mb-1">
-                    <span class="fw-semibold">${escapeHtml(item.studentCode)}</span>
+                    <span class="fw-semibold">${window.escapeHtml(item.studentCode)}</span>
                     <span class="text-secondary mx-1">→</span>
-                    <span>${escapeHtml(item.courseTitle)}</span>
+                    <span>${window.escapeHtml(item.courseTitle)}</span>
                 </li>`;
         }).join("");
 
@@ -1184,7 +1138,7 @@
             || dashboardData?.totalEmployees
             || 0;
         const targetText = payload.groupId
-            ? `${escapeHtml(dashboardData?.studentGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'student')})`
+            ? `${window.escapeHtml(dashboardData?.studentGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'student')})`
             : window.formatAdminCountLabel(resolvedCount, 'student');
         const inProgressConflicts = validationResult.inProgressConflicts || [];
         const completedConflicts = validationResult.completedConflicts || [];
@@ -1193,7 +1147,7 @@
             <div class="text-start dialog-body-sm">
                 <div class="border rounded p-3 bg-light-subtle mb-3">
                     <div class="u-fs-11 text-uppercase text-secondary u-fw-semibold mb-1">Assignment Criteria</div>
-                    <div class="u-fs-12 mb-1"><strong>Description:</strong> ${escapeHtml(payload.description || EMPTY_TEXT)}</div>
+                    <div class="u-fs-12 mb-1"><strong>Description:</strong> ${window.escapeHtml(payload.description || EMPTY_TEXT)}</div>
                     <div class="u-fs-12 mb-1"><strong>Period:</strong> ${formatDate(payload.startDate)} → ${formatDate(payload.dueDate)}</div>
                     <div class="u-fs-12 mb-1"><strong>Courses:</strong> ${payload.courseIds.length}</div>
                     <div class="u-fs-12"><strong>Target:</strong> ${targetText}</div>
@@ -1231,7 +1185,7 @@
             window.setTimeout(() => window.location.href = `@Url.Action("Detail", "Assignments")/${response.assignmentId}`, 1500);
         } catch (error) {
             loadPanel.hide();
-            showToast(getApiErrorMessage(error, "Failed to create reassignment."), "error", 4000);
+            showToast(window.getApiErrorMessage(error, "Failed to create reassignment."), "error", 4000);
         }
     }
 
@@ -1262,7 +1216,7 @@
             loadPanel.hide();
         } catch (error) {
             loadPanel.hide();
-            showToast(getApiErrorMessage(error, "Unable to prepare reassignment."), "error", 4000);
+            showToast(window.getApiErrorMessage(error, "Unable to prepare reassignment."), "error", 4000);
             return;
         }
 
@@ -1272,7 +1226,7 @@
         const confirmId = `${dialogId}-confirm`;
         const defaults = getDefaultReassignmentDates();
         const lockedTargetText = reassignData.studentGroupId
-            ? escapeHtml(dashboardData.studentGroupName || "Selected group")
+            ? window.escapeHtml(dashboardData.studentGroupName || "Selected group")
             : window.formatAdminCountLabel(getReassignmentStudentCodes().length, 'student');
 
         const dialog = DevExpress.ui.dialog.custom({
@@ -1406,7 +1360,7 @@
                         });
                     } catch (error) {
                         loadPanel.hide();
-                        showToast(getApiErrorMessage(error, "Unable to validate reassignment."), "error", 4000);
+                        showToast(window.getApiErrorMessage(error, "Unable to validate reassignment."), "error", 4000);
                     }
                 }
             });
@@ -1446,7 +1400,7 @@
                 reloadDetail(response.message || successMessage);
             } catch (error) {
                 loadPanel.hide();
-                showToast(getApiErrorMessage(error, errorMessage), "error", 4000);
+                showToast(window.getApiErrorMessage(error, errorMessage), "error", 4000);
             }
         });
     }
@@ -1454,7 +1408,7 @@
     function confirmResetCourse(ruleId, title) {
         confirmResetEnrollment({
             title: "Reset All Students",
-            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${escapeHtml(title)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: null,
             loadingMessage: "Resetting enrollments...",
@@ -1466,7 +1420,7 @@
     function confirmResetStudent(ruleId, studentCode, studentName) {
         confirmResetEnrollment({
             title: "Reset Student Enrollment",
-            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${escapeHtml(studentCode)} ${escapeHtml(studentName)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: [studentCode],
             loadingMessage: "Resetting enrollment...",

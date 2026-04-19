@@ -371,7 +371,7 @@
                     showToast("Saved successfully!", "success", 2000);
                     setTimeout(() => window.location.href = `${COURSE_DETAIL_URL}?id=${COURSE_ID}`, 1200);
                 } catch (xhr) {
-                    showToast(`Error: ${getApiErrorMessage(xhr, "Failed to save")}`, "error", 4000);
+                    showToast(`Error: ${window.getApiErrorMessage(xhr, "Failed to save")}`, "error", 4000);
                 } finally {
                     loadPanel.hide();
                 }
@@ -395,7 +395,7 @@
 
                     await loadExistingResources(detailData.resourceIds || []);
                 } catch (xhr) {
-                    showToast(getApiErrorMessage(xhr, "Error loading version"), "error");
+                    showToast(window.getApiErrorMessage(xhr, "Error loading version"), "error");
                 } finally {
                     loadPanel.hide();
                 }
@@ -508,10 +508,6 @@
 
             function formatDateTime(value) {
                 return window.formatAdminDateTime(value, '—');
-            }
-
-            function getApiErrorMessage(error, fallbackMessage) {
-                return error?.responseJSON?.message || error?.statusText || fallbackMessage;
             }
         });
     </script>
