@@ -352,13 +352,55 @@
                     }));
                 });
 
-                initAdminCourseFilters({
-                    serviceUrl: serviceUrl,
-                    gridInstance: courseGrid,
-                    typeSel: "#add-filter-course-type",
-                    divSel: "#add-filter-course-div",
-                    catSel: "#add-filter-course-cat",
-                    clearSel: "#add-btn-clear-course-filter"
+                function applyAddCourseFilters() {
+                    const typeVal = $("#add-filter-course-type").dxSelectBox("instance").option("value");
+                    const divVal  = $("#add-filter-course-div").dxSelectBox("instance").option("value");
+                    const catVal  = $("#add-filter-course-cat").dxSelectBox("instance").option("value");
+                    const conditions = [];
+                    if (typeVal) conditions.push(["courseTypeId", "=", typeVal]);
+                    if (divVal)  conditions.push(["divisionId",   "=", divVal]);
+                    if (catVal)  conditions.push(["categoryId",   "=", catVal]);
+                    applyAddCombinedFilter(courseGrid, conditions);
+                }
+
+                $("#add-filter-course-type").dxSelectBox({
+                    dataSource: createDataStore(serviceUrl, "admin/CourseTypesCRUD", { key: "id" }),
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Types", showClearButton: true,
+                    onValueChanged: applyAddCourseFilters
+                });
+
+                $("#add-filter-course-div").dxSelectBox({
+                    dataSource: createDataStore(serviceUrl, "admin/DivisionsCRUD", { key: "id" }),
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Divisions", showClearButton: true,
+                    onValueChanged: function(e) {
+                        const catBox = $("#add-filter-course-cat").dxSelectBox("instance");
+                        catBox.option("value", null);
+                        if (e.value) {
+                            catBox.option("dataSource", createDataStore(serviceUrl, "admin/CategoriesCRUD", {
+                                key: "id", action: "Get", filter: ["divisionId", "=", e.value]
+                            }));
+                            catBox.option("disabled", false);
+                        } else {
+                            catBox.option({ dataSource: [], disabled: true });
+                        }
+                        applyAddCourseFilters();
+                    }
+                });
+
+                $("#add-filter-course-cat").dxSelectBox({
+                    displayExpr: "name", valueExpr: "id",
+                    placeholder: "All Categories", showClearButton: true,
+                    disabled: true,
+                    onValueChanged: applyAddCourseFilters
+                });
+
+                $("#add-btn-clear-course-filter").click(function() {
+                    $("#add-filter-course-type").dxSelectBox("instance").option("value", null);
+                    $("#add-filter-course-div").dxSelectBox("instance").option("value", null);
+                    $("#add-filter-course-cat").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+                    courseGrid.clearFilter();
                 });
             },
             toolbarItems: [
@@ -479,14 +521,90 @@
                     ]
                 });
 
-                initAdminStudentOrgFilters({
-                    studentsBaseUrl: `${serviceUrl}/Students`,
-                    gridInstance: empGrid,
-                    divSelector: "#add-filter-emp-div",
-                    deptSelector: "#add-filter-emp-dept",
-                    sectionSelector: "#add-filter-emp-section",
-                    positionSelector: "#add-filter-emp-position",
-                    clearSelector: "#add-btn-clear-emp-filter"
+                function buildAddEmpFilterQuery() {
+                    const filters = [];
+                    const divVal  = $("#add-filter-emp-div").dxSelectBox("instance").option("value");
+                    const deptVal = $("#add-filter-emp-dept").dxSelectBox("instance").option("value");
+                    const secVal  = $("#add-filter-emp-section").dxSelectBox("instance").option("value");
+                    const posVals = $("#add-filter-emp-position").dxTagBox("instance").option("value") || [];
+
+                    if (divVal)  filters.push(["Division",   "=", divVal]);
+                    if (deptVal) filters.push(["Department", "=", deptVal]);
+                    if (secVal)  filters.push(["Section",    "=", secVal]);
+                    if (posVals.length > 0) {
+                        let posFilter = ["Position", "=", posVals[0]];
+                        for (let i = 1; i < posVals.length; i++) {
+                            posFilter = [posFilter, "or", ["Position", "=", posVals[i]]];
+                        }
+                        filters.push(posFilter);
+                    }
+                    applyAddCombinedFilter(empGrid, filters);
+                }
+
+                function makeAddEmpLookupStore(endpoint, extraQuery) {
+                    return new DevExpress.data.CustomStore({
+                        key: "Name",
+                        load: () => $.ajax({
+                            url: `${serviceUrl}/Students/${endpoint}${extraQuery || ""}`,
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
+                        }).then(res => res.data || res)
+                    });
+                }
+
+                const addEmpDivBox = $("#add-filter-emp-div").dxSelectBox({
+                    dataSource: makeAddEmpLookupStore("GetDivisions", ""),
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Divisions", showClearButton: true,
+                    onValueChanged: function(e) {
+                        const deptBox    = $("#add-filter-emp-dept").dxSelectBox("instance");
+                        const sectionBox = $("#add-filter-emp-section").dxSelectBox("instance");
+                        deptBox.option({ value: null, disabled: !e.value, dataSource: e.value
+                            ? makeAddEmpLookupStore("GetDepartments", `?filter=["Division","=","${e.value}"]`)
+                            : [] });
+                        sectionBox.option({ value: null, disabled: true, dataSource: [] });
+                        buildAddEmpFilterQuery();
+                    }
+                }).dxSelectBox("instance");
+
+                const addEmpDeptBox = $("#add-filter-emp-dept").dxSelectBox({
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Departments", showClearButton: true, disabled: true,
+                    onValueChanged: function(e) {
+                        const sectionBox = $("#add-filter-emp-section").dxSelectBox("instance");
+                        const divVal = addEmpDivBox.option("value");
+                        const q = e.value
+                            ? `?filter=[["Division","=","${divVal}"],"and",["Department","=","${e.value}"]]`
+                            : (divVal ? `?filter=["Division","=","${divVal}"]` : "");
+                        sectionBox.option({ value: null, disabled: !e.value, dataSource: e.value
+                            ? makeAddEmpLookupStore("GetSections", q)
+                            : [] });
+                        buildAddEmpFilterQuery();
+                    }
+                }).dxSelectBox("instance");
+
+                $("#add-filter-emp-section").dxSelectBox({
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Sections", showClearButton: true, disabled: true,
+                    onValueChanged: buildAddEmpFilterQuery
+                });
+
+                $("#add-filter-emp-position").dxTagBox({
+                    dataSource: makeAddEmpLookupStore("GetPositions", ""),
+                    displayExpr: "Name", valueExpr: "Name",
+                    placeholder: "All Positions",
+                    showClearButton: true,
+                    showSelectionControls: true,
+                    applyValueMode: "useButtons",
+                    onValueChanged: buildAddEmpFilterQuery
+                });
+
+                $("#add-btn-clear-emp-filter").click(function() {
+                    addEmpDivBox.option("value", null);
+                    addEmpDeptBox.option({ value: null, disabled: true, dataSource: [] });
+                    $("#add-filter-emp-section").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+                    $("#add-filter-emp-position").dxTagBox("instance").option("value", []);
+                    empGrid.clearFilter();
                 });
             },
             toolbarItems: [
@@ -513,6 +631,18 @@
                 }
             ]
         }).dxPopup("instance");
+    }
+
+    function applyAddCombinedFilter(grid, conditions) {
+        if (conditions.length === 0) {
+            grid.clearFilter();
+            return;
+        }
+        let combined = conditions[0];
+        for (let i = 1; i < conditions.length; i++) {
+            combined = [combined, "and", conditions[i]];
+        }
+        grid.filter(combined);
     }
 
     async function initializeDashboard() {
@@ -969,7 +1099,7 @@
     }
 
     function getApiErrorMessage(error, fallbackMessage) {
-        return window.getApiErrorMessage(error, fallbackMessage);
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
     }
 
     function reloadDetail(message) {
@@ -1127,7 +1257,7 @@
     }
 
     function escapeHtml(value) {
-        return window.escapeHtml(value);
+        return $("<div>").text(value || "").html();
     }
 
     function getDefaultReassignmentDates() {

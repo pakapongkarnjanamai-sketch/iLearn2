@@ -697,7 +697,7 @@
     }
 
     function getApiErrorMessage(error, fallbackMessage) {
-        return window.getApiErrorMessage(error, fallbackMessage);
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
     }
 </script>
 }

@@ -357,15 +357,30 @@
 
         // ─── Excel Export Helpers ───
         function getExportFileName(prefix) {
-            return buildAdminExportFileName(prefix, _reportData && _reportData.assignmentNo);
+            const no = (_reportData?.assignmentNo || 'Unknown').replace(/[\\/:*?"<>|]/g, '_');
+            const now = new Date();
+            const ts = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+                String(now.getHours()).padStart(2, '0'),
+                String(now.getMinutes()).padStart(2, '0')
+            ].join('');
+            return `${prefix}_${no}_${ts}.xlsx`;
         }
 
         function saveWorkbook(workbook, fileName) {
-            saveAdminWorkbook(workbook, fileName);
+            workbook.xlsx.writeBuffer().then(function(buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            });
         }
 
         function styleHeaderRow(ws) {
-            styleAdminExcelHeaderRow(ws);
+            const row = ws.getRow(1);
+            row.font = { bold: true, size: 11 };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            row.alignment = { vertical: 'middle' };
+            row.eachCell(cell => cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } });
         }
 
         function addCourseOverviewSheet(wb) {
