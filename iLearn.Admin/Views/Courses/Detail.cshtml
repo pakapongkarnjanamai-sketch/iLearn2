@@ -254,7 +254,7 @@
                     updateCourseHeader(formData.courseName, formData.courseCode);
                     showToast("Course updated successfully.", "success", 2000);
                 } catch (xhr) {
-                    showToast(getApiErrorMessage(xhr, "Error updating course."), "error");
+                    showToast(window.getApiErrorMessage(xhr, "Error updating course."), "error");
                 } finally {
                     setSaveButtonLoading($button, false);
                 }
@@ -329,7 +329,7 @@
                         const successMessage = response.message || (newState ? "Course published!" : "Course closed.");
                         showToast(successMessage, "success", 2000);
                     } catch (xhr) {
-                        showToast(getApiErrorMessage(xhr, "Error updating status."), "error", 4000);
+                        showToast(window.getApiErrorMessage(xhr, "Error updating status."), "error", 4000);
                     } finally {
                         setActionLinkState($btn, false, "opacity-50 pe-none");
                     }
@@ -359,7 +359,7 @@
                             window.location.href = courseIndexUrl;
                         }, 1500);
                     } catch (xhr) {
-                        showToast(getApiErrorMessage(xhr, "Error deleting course."), "error");
+                        showToast(window.getApiErrorMessage(xhr, "Error deleting course."), "error");
                     }
                 });
             });
@@ -493,7 +493,7 @@
                     showToast('Active version updated.', 'success', 2000);
                     await reloadVersions();
                 } catch (xhr) {
-                    showToast(getApiErrorMessage(xhr, 'Error updating active version.'), 'error');
+                    showToast(window.getApiErrorMessage(xhr, 'Error updating active version.'), 'error');
                 }
             };
 
@@ -513,7 +513,7 @@
                         showToast('Version deleted.', 'success', 2000);
                         await reloadVersions();
                     } catch (xhr) {
-                        showToast(getApiErrorMessage(xhr, 'Error deleting version.'), 'error');
+                        showToast(window.getApiErrorMessage(xhr, 'Error deleting version.'), 'error');
                     }
                 });
             };
@@ -607,7 +607,7 @@
                     renderVersionCards(versions);
                 } catch (xhr) {
                     $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
-                    showToast(`Error loading course: ${getApiErrorMessage(xhr, 'Unknown error')}`, 'error');
+                    showToast(`Error loading course: ${window.getApiErrorMessage(xhr, 'Unknown error')}`, 'error');
                     console.log(xhr);
                 }
             }
@@ -619,10 +619,6 @@
 
             function updateVersionsCountBadge(count) {
                 $("#versionsCountBadge").text(window.formatAdminCountLabel(count, 'version'));
-            }
-
-            function getApiErrorMessage(xhr, fallbackMessage) {
-                return window.getApiErrorMessage(xhr, fallbackMessage);
             }
 
             function setActionLinkState($element, disabled, extraClasses) {
@@ -641,32 +637,8 @@
                         : '<i class="fas fa-save"></i> Save Changes');
             }
 
-            function appendText(container, text, styles) {
-                return appendAdminText(container, text, styles);
-            }
-
             function formatDate(value) {
                 return window.formatAdminDate(value, '—');
-            }
-
-            function truncateText(value, maxLength) {
-                return truncateAdminText(value, maxLength);
-            }
-
-            function renderProgressCell(container, value) {
-                renderAdminProgressCell(container, value);
-            }
-
-            function renderStatusCell(container, value, map) {
-                renderAdminStatusCell(container, value, map);
-            }
-
-            function renderDueDateCell(container, value) {
-                renderAdminDueDateCell(container, value);
-            }
-
-            function escapeHtml(value) {
-                return window.escapeHtml(value);
             }
 
             function escapeJsString(value) {
@@ -703,8 +675,8 @@
 
                 return resources.map(function(resource, index) {
                     const typeClass = resource.typeId === 1 ? 'pill-learn' : 'pill-exam';
-                    const typeName = escapeHtml(resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam'));
-                    const resourceName = escapeHtml(resource.name || 'Unnamed resource');
+                    const typeName = window.escapeHtml(resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam'));
+                    const resourceName = window.escapeHtml(resource.name || 'Unnamed resource');
                     const previewButton = resource.isActive
                         ? `<a href="javascript:void(0);" onclick="window.viewContent(${resource.id},'${escapeJsString(resource.name)}')" class="version-resource-preview" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
                         : '';
@@ -725,7 +697,7 @@
                     ? '<span class="tag-pill tag-pill-xs pill-info"><i class="fas fa-check-circle me-1"></i>Active</span>'
                     : '<span class="tag-pill tag-pill-xs pill-default">Draft</span>';
                 const noteHtml = version.note
-                    ? escapeHtml(version.note)
+                    ? window.escapeHtml(version.note)
                     : '<span class="version-card-empty-note">No description</span>';
 
                 return `
