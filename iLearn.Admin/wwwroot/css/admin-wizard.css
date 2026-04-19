@@ -1,0 +1,247 @@
+/*
+ * Shared Admin Wizard CSS
+ * Common structural classes reused by all wizard/multi-step views in the Admin UI.
+ * Page-specific overrides (grid column counts, page-shell padding variables, etc.)
+ * remain in each view's own <style> block.
+ */
+/* ── Wizard Step Cards ──────────────────────────────────────────────────── */
+.admin-step-card {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    padding: 12px 14px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.admin-step-card.active {
+    border-color: var(--primary-color);
+    background: #f4f8ff;
+}
+.admin-step-card.complete {
+    border-color: #b7eb8f;
+    background: #f6ffed;
+}
+.admin-step-index {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 8px;
+}
+.admin-step-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.admin-step-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+/* ── Wizard Panel Visibility ──────────────────────────────────────────── */
+.admin-wizard-panel {
+    display: none;
+}
+.admin-wizard-panel.active {
+    display: block;
+}
+/* ── Snapshot Meta (sidebar) ──────────────────────────────────────────── */
+.admin-meta-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.admin-meta-item:last-child {
+    border-bottom: none;
+}
+.admin-meta-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+}
+.admin-meta-value {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+/* ── Selection Layout (Filter + Grid) ────────────────────────────────── */
+.admin-selection-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 12px;
+}
+.admin-filter-shell {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fafafa;
+    padding: 12px;
+    height: 100%;
+}
+.admin-grid-shell {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+}
+.admin-grid-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: #fafafa;
+}
+.admin-grid-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.admin-grid-note,
+.admin-inline-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+/* ── Wizard Table Shell ───────────────────────────────────────────────── */
+.admin-table-shell {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+}
+.admin-table-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.admin-table-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.admin-table-wrap {
+    overflow: auto;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+.admin-table th,
+.admin-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    vertical-align: top;
+}
+.admin-table thead th {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+/* ── Empty State ─────────────────────────────────────────────────────── */
+.admin-wizard-empty-state {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+.admin-wizard-empty-state i {
+    font-size: 28px;
+    color: #d9d9d9;
+    margin-bottom: 10px;
+    display: block;
+}
+/* ── Summary Stat Card (Review Step) ─────────────────────────────────── */
+.admin-summary-item {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fafafa;
+    padding: 10px;
+}
+.admin-summary-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+.admin-summary-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 6px;
+}
+/* ── Student Row Typography ───────────────────────────────────────────── */
+.admin-student-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.admin-student-note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+/* ── sg-* class aliases (StudentGroups wizard pages) ─────────────────── */
+/* These classes remain in the shared stylesheet so the StudentGroups/Form and
+   StudentGroups/AddMembers pages no longer need to duplicate them inline. */
+.sg-step-card { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; padding: 12px 14px; transition: border-color 0.2s ease, background-color 0.2s ease; }
+.sg-step-card.active { border-color: var(--primary-color); background: #f4f8ff; }
+.sg-step-card.complete { border-color: #b7eb8f; background: #f6ffed; }
+.sg-step-index { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid currentColor; font-size: 11px; font-weight: 700; margin-right: 8px; }
+.sg-step-title { font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; }
+.sg-step-text { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.sg-panel { display: none; }
+.sg-panel.active { display: block; }
+.sg-meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+.sg-meta-item:last-child { border-bottom: none; }
+.sg-meta-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.sg-meta-value { font-size: 13px; color: var(--text-primary); }
+.sg-selection-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; }
+.sg-filter-shell { border: 1px solid var(--border-color); border-radius: 4px; background: #fafafa; padding: 12px; height: 100%; }
+.sg-grid-shell { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; overflow: hidden; }
+.sg-grid-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); background: #fafafa; }
+.sg-grid-title { font-size: 11px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; }
+.sg-grid-note, .sg-inline-note { font-size: 12px; color: var(--text-secondary); }
+.sg-selection-card, .sg-summary-card, .sg-option-card, .sg-table-shell, .sg-detail-card { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; }
+.sg-selection-card, .sg-summary-card, .sg-option-card, .sg-detail-card { padding: 12px; }
+.sg-option-card.is-disabled { opacity: 0.55; }
+.sg-summary-item, .sg-overview-item { border: 1px solid var(--border-color); border-radius: 4px; background: #fafafa; padding: 10px; }
+.sg-summary-value, .sg-overview-value { font-size: 20px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+.sg-summary-label, .sg-overview-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 6px; }
+.sg-table-shell { overflow: hidden; }
+.sg-table-head { padding: 10px 14px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sg-table-title { font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; }
+.sg-table-wrap { overflow: auto; }
+.sg-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.sg-table th, .sg-table td { padding: 8px 14px; border-bottom: 1px solid var(--border-color); font-size: 12px; vertical-align: top; }
+.sg-table thead th { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; background: #fafafa; position: sticky; top: 0; z-index: 1; }
+.sg-empty-state { padding: 32px 16px; text-align: center; color: var(--text-secondary); }
+.sg-empty-state i { font-size: 28px; color: #d9d9d9; margin-bottom: 10px; display: block; }
+.sg-student-name { font-weight: 600; color: var(--text-primary); }
+.sg-student-note, .sg-assignment-note { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+    .admin-selection-layout,
+    .sg-selection-layout {
+        grid-template-columns: 1fr;
+    }
+}
