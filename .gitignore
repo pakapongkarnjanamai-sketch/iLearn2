@@ -363,7 +363,3 @@ MigrationBackup/
 FodyWeavers.xsd
 
 
-# Project specific wwwroot folders
-iLearn.Admin/wwwroot
-iLearn.API/wwwroot
-iLearn.User/wwwroot
