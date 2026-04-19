@@ -605,7 +605,7 @@
     }
 
     function appendText(container, text, styles) {
-        return $("<span>").css(styles || {}).text(text).appendTo(container);
+        return appendAdminText(container, text, styles);
     }
 
     function formatDate(value) {
@@ -613,103 +613,27 @@
     }
 
     function truncateText(text, maxLength) {
-        if (!text || text.length <= maxLength) {
-            return text || EMPTY_TEXT;
-        }
-
-        return `${text.slice(0, maxLength)}…`;
+        return truncateAdminText(text, maxLength);
     }
 
     function renderProgressCell(container, value) {
-        const progress = value || 0;
-        const color = progress === 100
-            ? "var(--success-color)"
-            : progress >= 50
-                ? "var(--accent-color)"
-                : "var(--warning-color)";
-
-        $("<div>").addClass("d-flex align-items-center gap-2")
-            .append(
-                $("<div>").css({
-                    flex: "1",
-                    height: "3px",
-                    background: "var(--border-color)",
-                    borderRadius: "2px",
-                    overflow: "hidden"
-                }).append(
-                    $("<div>").css({
-                        height: "100%",
-                        width: `${progress}%`,
-                        background: color
-                    })
-                )
-            )
-            .append(
-                $("<span>").css({
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    minWidth: "32px",
-                    color: "var(--text-secondary)"
-                }).text(window.formatAdminPercentage(progress, '0%'))
-            )
-            .appendTo(container);
+        renderAdminProgressCell(container, value);
     }
 
     function renderStatusCell(container, value, map) {
-        const status = map[value] || { cls: "pill-default", text: value || EMPTY_TEXT };
-        $(`<span class="tag-pill ${status.cls}">${status.text}</span>`).appendTo(container);
+        renderAdminStatusCell(container, value, map);
     }
 
     function renderDueDateCell(container, value) {
-        if (!value) {
-            appendText(container, EMPTY_TEXT, { fontSize: "11px", color: "var(--text-secondary)" });
-            return;
-        }
-
-        const isPast = new Date(value) < new Date();
-        appendText(container, formatDate(value), {
-            fontSize: "11px",
-            color: isPast ? "var(--danger-color)" : "var(--text-secondary)",
-            fontWeight: isPast ? "600" : "400"
-        });
+        renderAdminDueDateCell(container, value);
     }
 
     function renderCoursesCell(container, value) {
-        const courses = (value || "").split(", ").filter(function(course) {
-            return course.trim();
-        });
-
-        if (!courses.length) {
-            appendText(container, EMPTY_TEXT, { color: "var(--text-secondary)" });
-            return;
-        }
-
-        const wrapper = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(container);
-        courses.slice(0, 2).forEach(function(courseName) {
-            $("<span>").addClass("tag-pill tag-pill-xs pill-default").text(courseName).appendTo(wrapper);
-        });
-
-        if (courses.length > 2) {
-            appendText(wrapper, window.formatAdminCountLabel(courses.length - 2, 'more', 'more', '0 more', { prefix: '+' }), { fontSize: "11px", color: "var(--text-secondary)" });
-        }
-    }
-
-    function applyCombinedFilter(gridInstance, conditions) {
-        if (!conditions.length) {
-            gridInstance.clearFilter();
-            return;
-        }
-
-        let filter = conditions[0];
-        for (let index = 1; index < conditions.length; index += 1) {
-            filter = [filter, "and", conditions[index]];
-        }
-
-        gridInstance.filter(filter);
+        renderAdminCoursesCell(container, value, { maxVisible: 2 });
     }
 
     function getApiErrorMessage(error, fallbackMessage) {
-        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+        return window.getApiErrorMessage(error, fallbackMessage);
     }
 </script>
 }

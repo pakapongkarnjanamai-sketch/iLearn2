@@ -622,7 +622,7 @@
             }
 
             function getApiErrorMessage(xhr, fallbackMessage) {
-                return xhr?.responseJSON?.message || xhr?.responseText || fallbackMessage;
+                return window.getApiErrorMessage(xhr, fallbackMessage);
             }
 
             function setActionLinkState($element, disabled, extraClasses) {
@@ -642,7 +642,7 @@
             }
 
             function appendText(container, text, styles) {
-                return $("<span>").css(styles || {}).text(text).appendTo(container);
+                return appendAdminText(container, text, styles);
             }
 
             function formatDate(value) {
@@ -650,77 +650,23 @@
             }
 
             function truncateText(value, maxLength) {
-                if (!value || value.length <= maxLength) {
-                    return value || '—';
-                }
-
-                return `${value.slice(0, maxLength)}…`;
+                return truncateAdminText(value, maxLength);
             }
 
             function renderProgressCell(container, value) {
-                const progress = value || 0;
-                const color = progress === 100
-                    ? 'var(--success-color)'
-                    : progress >= 50
-                        ? 'var(--accent-color)'
-                        : 'var(--warning-color)';
-
-                $("<div>").addClass('d-flex align-items-center gap-2')
-                    .append(
-                        $("<div>").css({
-                            flex: '1',
-                            height: '3px',
-                            background: 'var(--border-color)',
-                            borderRadius: '2px',
-                            overflow: 'hidden'
-                        }).append(
-                            $("<div>").css({
-                                height: '100%',
-                                width: `${progress}%`,
-                                background: color
-                            })
-                        )
-                    )
-                    .append(
-                        $("<span>").css({
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            minWidth: '32px',
-                            color: 'var(--text-secondary)'
-                        }).text(window.formatAdminPercentage(progress, '0%'))
-                    )
-                    .appendTo(container);
+                renderAdminProgressCell(container, value);
             }
 
             function renderStatusCell(container, value, map) {
-                const status = map[value] || { cls: 'pill-default', text: value || '—' };
-                $(`<span class="tag-pill ${status.cls}">${status.text}</span>`).appendTo(container);
+                renderAdminStatusCell(container, value, map);
             }
 
             function renderDueDateCell(container, value) {
-                if (!value) {
-                    appendText(container, '—', { fontSize: '11px', color: 'var(--text-secondary)' });
-                    return;
-                }
-
-                const isPast = new Date(value) < new Date();
-                appendText(container, formatDate(value), {
-                    fontSize: '11px',
-                    color: isPast ? 'var(--danger-color)' : 'var(--text-secondary)',
-                    fontWeight: isPast ? '600' : '400'
-                });
+                renderAdminDueDateCell(container, value);
             }
 
             function escapeHtml(value) {
-                return String(value || '').replace(/[&<>"']/g, function(char) {
-                    return {
-                        '&': '&amp;',
-                        '<': '&lt;',
-                        '>': '&gt;',
-                        '"': '&quot;',
-                        "'": '&#39;'
-                    }[char];
-                });
+                return window.escapeHtml(value);
             }
 
             function escapeJsString(value) {
