@@ -1393,7 +1393,12 @@ else
         }
 
         function escapeHtml(value) {
-            return window.escapeHtml(value);
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         function formatDateTime(value) {
@@ -1401,7 +1406,7 @@ else
         }
 
         function getApiErrorMessage(error, fallbackMessage) {
-            return window.getApiErrorMessage(error, fallbackMessage);
+            return error?.responseJSON?.message || error?.statusText || fallbackMessage;
         }
     </script>
 }

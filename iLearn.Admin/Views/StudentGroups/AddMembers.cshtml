@@ -4,7 +4,7 @@
 }
 
 <style>
-    /* ── Page Shell (height settings specific to this page) ── */
+    /* ── Height Settings ── */
     .sg-page-shell {
         --sg-page-min-height-offset: 120px;
         --sg-page-bottom-padding: 64px;
@@ -20,14 +20,151 @@
         padding-bottom: var(--sg-page-bottom-padding) !important;
     }
 
-    /* ── Step grid (3 columns, this page only) ── */
     .sg-wizard-steps {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
     }
 
-    /* ── Assignment status option cards ── */
+    .sg-step-card {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        padding: 12px 14px;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .sg-step-card.active {
+        border-color: var(--primary-color);
+        background: #f4f8ff;
+    }
+
+    .sg-step-card.complete {
+        border-color: #b7eb8f;
+        background: #f6ffed;
+    }
+
+    .sg-step-index {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        font-size: 11px;
+        font-weight: 700;
+        margin-right: 8px;
+    }
+
+    .sg-step-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-step-text {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    .sg-meta-item {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sg-meta-item:last-child {
+        border-bottom: none;
+    }
+
+    .sg-meta-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 3px;
+    }
+
+    .sg-meta-value {
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+
+    .sg-selection-layout {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .sg-panel {
+        display: none;
+    }
+
+    .sg-panel.active {
+        display: block;
+    }
+
+    .sg-filter-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 12px;
+        height: 100%;
+    }
+
+    .sg-grid-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .sg-grid-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+        background: #fafafa;
+    }
+
+    .sg-grid-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .sg-grid-note {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .sg-selection-card,
+    .sg-option-card,
+    .sg-summary-card,
+    .sg-table-shell {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fff;
+    }
+
+    .sg-selection-card,
+    .sg-option-card,
+    .sg-summary-card {
+        padding: 12px;
+    }
+
+    .sg-option-card.is-disabled {
+        opacity: 0.55;
+    }
+
     .sg-status-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -71,7 +208,6 @@
         margin-top: 4px;
     }
 
-    /* ── Review overview/summary grids (4 columns) ── */
     .sg-overview-grid,
     .sg-summary-grid {
         display: grid;
@@ -79,7 +215,52 @@
         gap: 12px;
     }
 
-    /* ── Scrollable review table ── */
+    .sg-overview-item,
+    .sg-summary-item {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: #fafafa;
+        padding: 10px;
+    }
+
+    .sg-overview-value,
+    .sg-summary-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .sg-overview-label,
+    .sg-summary-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-top: 6px;
+    }
+
+    .sg-table-shell {
+        overflow: hidden;
+    }
+
+    .sg-table-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .sg-table-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
     .sg-table-wrap {
         overflow: auto;
         max-height: clamp(
@@ -87,6 +268,61 @@
             calc(100vh - var(--sg-review-table-viewport-offset)),
             var(--sg-review-table-max-height)
         );
+    }
+
+    .sg-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+    }
+
+    .sg-table th,
+    .sg-table td {
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 12px;
+        vertical-align: top;
+    }
+
+    .sg-table thead th {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        background: #fafafa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .sg-empty-state {
+        padding: 32px 16px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .sg-empty-state i {
+        font-size: 28px;
+        color: #d9d9d9;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .sg-inline-note {
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    .sg-student-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .sg-student-note,
+    .sg-assignment-note {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 4px;
     }
 
     @@media (max-width: 991.98px) {
@@ -108,6 +344,8 @@
         .sg-page-shell {
             padding-bottom: var(--sg-page-bottom-padding-mobile) !important;
         }
+
+
     }
 </style>
 
@@ -458,9 +696,93 @@
     }
 
     function initializeFilters() {
-        initAdminStudentOrgFilters({
-            studentsBaseUrl: STUDENTS_API_URL,
-            gridInstance: studentsGrid
+        function makeLookup(endpoint, queryText) {
+            return new DevExpress.data.CustomStore({
+                key: "Name",
+                load: () => $.ajax({
+                    url: `${STUDENTS_API_URL}/${endpoint}${queryText || ""}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }).then(function(response) { return response.data || response; })
+            });
+        }
+
+        function applyFilters() {
+            const division = $("#filter-div").dxSelectBox("instance").option("value");
+            const department = $("#filter-dept").dxSelectBox("instance").option("value");
+            const section = $("#filter-section").dxSelectBox("instance").option("value");
+            const filters = [];
+
+            if (division) filters.push(["Division", "=", division]);
+            if (department) filters.push(["Department", "=", department]);
+            if (section) filters.push(["Section", "=", section]);
+
+            applyCombinedFilter(studentsGrid, filters);
+        }
+
+        const divisionBox = $("#filter-div").dxSelectBox({
+            dataSource: makeLookup("GetDivisions"),
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Divisions",
+            showClearButton: true,
+            onValueChanged: function(event) {
+                const departmentBox = $("#filter-dept").dxSelectBox("instance");
+                departmentBox.option({
+                    value: null,
+                    disabled: !event.value,
+                    dataSource: event.value
+                        ? makeLookup("GetDepartments", `?filter=[\"Division\",\"=\",\"${event.value}\"]`)
+                        : []
+                });
+
+                $("#filter-section").dxSelectBox("instance").option({
+                    value: null,
+                    disabled: true,
+                    dataSource: []
+                });
+
+                applyFilters();
+            }
+        }).dxSelectBox("instance");
+
+        $("#filter-dept").dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Departments",
+            showClearButton: true,
+            disabled: true,
+            onValueChanged: function(event) {
+                const sectionBox = $("#filter-section").dxSelectBox("instance");
+                const division = divisionBox.option("value");
+                const queryText = event.value
+                    ? `?filter=[[\"Division\",\"=\",\"${division}\"],\"and\",[\"Department\",\"=\",\"${event.value}\"]]`
+                    : (division ? `?filter=[\"Division\",\"=\",\"${division}\"]` : "");
+
+                sectionBox.option({
+                    value: null,
+                    disabled: !event.value,
+                    dataSource: event.value ? makeLookup("GetSections", queryText) : []
+                });
+
+                applyFilters();
+            }
+        });
+
+        $("#filter-section").dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Sections",
+            showClearButton: true,
+            disabled: true,
+            onValueChanged: applyFilters
+        });
+
+        $("#btn-clear-filter").on("click", function() {
+            divisionBox.option("value", null);
+            $("#filter-dept").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            $("#filter-section").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            studentsGrid.clearFilter();
         });
     }
 
@@ -724,7 +1046,11 @@
     }
 
     function buildSummaryCard(value, label, className) {
-        return buildAdminSummaryCard(value, label, className);
+        return `
+            <div class="sg-summary-item">
+                <div class="sg-summary-value ${className}">${value}</div>
+                <div class="sg-summary-label">${label}</div>
+            </div>`;
     }
 
     function buildEmptyState(iconClass, message) {
@@ -823,6 +1149,28 @@
         }
 
         return `${window.formatAdminCountLabel(addedMembers, "member")} added successfully.`;
+    }
+
+    function applyCombinedFilter(gridInstance, conditions) {
+        if (!conditions.length) {
+            gridInstance.clearFilter();
+            return;
+        }
+
+        let filter = conditions[0];
+        for (let index = 1; index < conditions.length; index += 1) {
+            filter = [filter, "and", conditions[index]];
+        }
+
+        gridInstance.filter(filter);
+    }
+
+    function getApiErrorMessage(error, fallbackMessage) {
+        return error?.responseJSON?.message || error?.statusText || fallbackMessage;
+    }
+
+    function escapeHtml(value) {
+        return window.escapeAdminHtml ? window.escapeAdminHtml(String(value || "")) : String(value || "");
     }
 </script>
 }
