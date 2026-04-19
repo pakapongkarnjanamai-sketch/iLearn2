@@ -1,0 +1,394 @@
+/*
+ * admin-wizard.css
+ * Shared structural styles for Admin wizard, review-flow, and selection-layout pages.
+ * Referenced globally from _DevExtremeLayout.cshtml.
+ *
+ * These classes were previously duplicated inline in:
+ *   StudentGroups/Form.cshtml, StudentGroups/AddMembers.cshtml
+ * They are defined here once and removed from those files.
+ *
+ * Convention: all class names use the ".sg-" prefix (StudentGroups canonical).
+ * Other wizard pages (course-*, assign-*) retain page-local styles because
+ * those CSS rules appear in only one file each.
+ */
+
+/* ── Page Shell ─────────────────────────────────────────────────── */
+.sg-page-shell {
+    --sg-page-min-height-offset: 120px;
+    --sg-page-bottom-padding: 64px;
+    --sg-page-bottom-padding-tablet: 128px;
+    --sg-page-bottom-padding-mobile: 156px;
+    --sg-review-table-min-height: 200px;
+    --sg-review-table-viewport-offset: 520px;
+    --sg-review-table-max-height: 320px;
+    --admin-review-content-max-width: 1120px;
+
+    min-height: calc(100vh - var(--sg-page-min-height-offset));
+    padding-top: 16px !important;
+    padding-bottom: var(--sg-page-bottom-padding) !important;
+}
+
+/* ── Wizard Steps ───────────────────────────────────────────────── */
+.sg-wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.sg-step-card {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    padding: 12px 14px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.sg-step-card.active {
+    border-color: var(--primary-color);
+    background: #f4f8ff;
+}
+
+.sg-step-card.complete {
+    border-color: #b7eb8f;
+    background: #f6ffed;
+}
+
+.sg-step-index {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+.sg-step-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.sg-step-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* ── Step Panels ────────────────────────────────────────────────── */
+.sg-panel {
+    display: none;
+}
+
+.sg-panel.active {
+    display: block;
+}
+
+/* ── Snapshot Meta Items ────────────────────────────────────────── */
+.sg-meta-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sg-meta-item:last-child {
+    border-bottom: none;
+}
+
+.sg-meta-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+}
+
+.sg-meta-value {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.sg-selection-card,
+.sg-option-card,
+.sg-summary-card,
+.sg-detail-card,
+.sg-table-shell {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+}
+
+.sg-selection-card,
+.sg-option-card,
+.sg-summary-card,
+.sg-detail-card {
+    padding: 12px;
+}
+
+.sg-option-card.is-disabled {
+    opacity: 0.55;
+}
+
+/* ── Status Option Grid (Add Members step 2) ────────────────────── */
+.sg-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.sg-status-option {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    background: #fff;
+}
+
+.sg-status-option.disabled {
+    background: #fafafa;
+    color: var(--text-secondary);
+}
+
+.sg-status-option label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.sg-status-option .form-check-input {
+    margin-top: 0;
+}
+
+.sg-status-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sg-status-note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ── Selection Layout (Filter + Grid) ──────────────────────────── */
+.sg-selection-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 12px;
+}
+
+.sg-filter-shell {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fafafa;
+    padding: 12px;
+    height: 100%;
+}
+
+.sg-grid-shell {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.sg-grid-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: #fafafa;
+}
+
+.sg-grid-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.sg-grid-note,
+.sg-inline-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ── Summary / Detail Grids ─────────────────────────────────────── */
+.sg-overview-grid,
+.sg-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.sg-overview-item,
+.sg-summary-item {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fafafa;
+    padding: 10px;
+}
+
+.sg-overview-value,
+.sg-summary-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+.sg-overview-label,
+.sg-summary-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 6px;
+}
+
+.sg-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.sg-detail-item {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fafafa;
+    padding: 10px;
+}
+
+.sg-detail-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.sg-detail-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ── Review Table ───────────────────────────────────────────────── */
+.sg-table-shell {
+    overflow: hidden;
+}
+
+.sg-table-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sg-table-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.sg-table-wrap {
+    overflow: auto;
+    max-height: clamp(
+        var(--sg-review-table-min-height),
+        calc(100vh - var(--sg-review-table-viewport-offset)),
+        var(--sg-review-table-max-height)
+    );
+}
+
+.sg-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.sg-table th,
+.sg-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    vertical-align: top;
+}
+
+.sg-table thead th {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* ── Empty State ────────────────────────────────────────────────── */
+.sg-empty-state {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.sg-empty-state i {
+    font-size: 28px;
+    color: #d9d9d9;
+    margin-bottom: 10px;
+    display: block;
+}
+
+/* ── Inline Labels ──────────────────────────────────────────────── */
+.sg-student-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sg-student-note,
+.sg-assignment-note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ── Responsive Overrides ───────────────────────────────────────── */
+@media (max-width: 991.98px) {
+    .sg-page-shell {
+        min-height: auto;
+        padding-bottom: var(--sg-page-bottom-padding-tablet) !important;
+    }
+
+    .sg-selection-layout,
+    .sg-wizard-steps,
+    .sg-overview-grid,
+    .sg-summary-grid,
+    .sg-status-grid,
+    .sg-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sg-page-shell {
+        padding-bottom: var(--sg-page-bottom-padding-mobile) !important;
+    }
+}
