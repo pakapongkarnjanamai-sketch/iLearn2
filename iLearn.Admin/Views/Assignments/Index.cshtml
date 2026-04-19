@@ -81,15 +81,11 @@
         }
 
         function appendText(container, text, styles) {
-            return $("<span>").css(styles || {}).text(text).appendTo(container);
+            return appendAdminText(container, text, styles);
         }
 
         function truncateText(text, maxLength) {
-            if (!text || text.length <= maxLength) {
-                return text || EMPTY_TEXT;
-            }
-
-            return `${text.slice(0, maxLength)}…`;
+            return truncateAdminText(text, maxLength);
         }
 
         function formatDate(value) {
@@ -97,55 +93,11 @@
         }
 
         function renderProgressCell(container, percent) {
-            const progress = percent ?? 0;
-            const color = progress === 100
-                ? "var(--success-color)"
-                : progress >= 50
-                    ? "var(--accent-color)"
-                    : "var(--warning-color)";
-
-            $("<div>").addClass("d-flex align-items-center gap-2")
-                .append(
-                    $("<div>").css({
-                        flex: "1",
-                        height: "3px",
-                        background: "var(--border-color)",
-                        borderRadius: "2px",
-                        overflow: "hidden"
-                    }).append(
-                        $("<div>").css({
-                            height: "100%",
-                            width: `${progress}%`,
-                            background: color
-                        })
-                    )
-                )
-                .append(
-                    $("<span>").css({
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        minWidth: "32px",
-                        color: "var(--text-secondary)"
-                    }).text(window.formatAdminPercentage(progress, '0%'))
-                )
-                .appendTo(container);
+            renderAdminProgressCell(container, percent);
         }
 
         function renderCoursesCell(container, value) {
-            const courses = value ? value.split(", ").filter(course => course.trim()) : [];
-            if (!courses.length) {
-                appendText(container, EMPTY_TEXT, { color: "var(--text-secondary)" });
-                return;
-            }
-
-            const wrap = $("<div>").addClass("d-flex flex-wrap gap-1").appendTo(container);
-            courses.slice(0, 3).forEach(courseName => {
-                $("<span>").addClass("tag-pill pill-default").text(courseName).appendTo(wrap);
-            });
-
-            if (courses.length > 3) {
-                appendText(wrap, window.formatAdminCountLabel(courses.length - 3, 'more', 'more', '0 more', { prefix: '+' }), { fontSize: "11px", color: "var(--text-secondary)" });
-            }
+            renderAdminCoursesCell(container, value);
         }
 
         function updateActiveKpiCard(element) {
