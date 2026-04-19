@@ -34,7 +34,7 @@
     function truncateText(text, maxLength, fallback) {
         var fb = (fallback !== undefined) ? fallback : "—";
         if (!text) { return fb; }
-        if (text.length <= maxLength) { return text; }
+        if (typeof maxLength !== "number" || maxLength <= 0 || text.length <= maxLength) { return text; }
         return text.slice(0, maxLength) + "…";
     }
 
@@ -76,6 +76,7 @@
      * @param {Array[]} conditions - array of DevExtreme filter expressions
      */
     function applyCombinedFilter(gridInstance, conditions) {
+        if (!gridInstance) { return; }
         if (!conditions || conditions.length === 0) {
             gridInstance.clearFilter();
             return;
@@ -214,6 +215,7 @@
      *   (must expose: GetDivisions, GetDepartments, GetSections)
      */
     function initStudentCascadeFilters(grid, studentsApiUrl) {
+        if (!grid) { return; }
         function makeLookup(endpoint, queryText) {
             return new DevExpress.data.CustomStore({
                 key: "Name",
@@ -250,7 +252,7 @@
                     value: null,
                     disabled: !event.value,
                     dataSource: event.value
-                        ? makeLookup("GetDepartments", '?filter=["Division","=","' + event.value + '"]')
+                        ? makeLookup("GetDepartments", '?filter=["Division","=","' + encodeURIComponent(event.value) + '"]')
                         : []
                 });
                 $("#filter-section").dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
@@ -268,8 +270,8 @@
                 var sectionBox = $("#filter-section").dxSelectBox("instance");
                 var division = divisionBox.option("value");
                 var queryText = event.value
-                    ? '?filter=[["Division","=","' + division + '"],"and",["Department","=","' + event.value + '"]]'
-                    : (division ? '?filter=["Division","=","' + division + '"]' : "");
+                    ? '?filter=[["Division","=","' + encodeURIComponent(division) + '"],"and",["Department","=","' + encodeURIComponent(event.value) + '"]]'
+                    : (division ? '?filter=["Division","=","' + encodeURIComponent(division) + '"]' : "");
                 sectionBox.option({
                     value: null,
                     disabled: !event.value,
