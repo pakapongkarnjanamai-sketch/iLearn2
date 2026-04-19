@@ -169,7 +169,7 @@
             }
 
             function appendText(container, text, styles) {
-                return $("<span>").css(styles || {}).text(text).appendTo(container);
+                return appendAdminText(container, text, styles);
             }
 
             function applyTreeFilter(gridInstance, node) {

@@ -147,15 +147,11 @@
         }
 
         function appendText(container, text, styles) {
-            return $("<span>").css(styles || {}).text(text).appendTo(container);
+            return appendAdminText(container, text, styles);
         }
 
         function truncateText(text, maxLength) {
-            if (!text || text.length <= maxLength) {
-                return text || EMPTY_TEXT;
-            }
-
-            return `${text.slice(0, maxLength)}…`;
+            return truncateAdminText(text, maxLength);
         }
 
         function formatDate(value) {
