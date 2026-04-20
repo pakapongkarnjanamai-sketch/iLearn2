@@ -18,62 +18,86 @@
     </div>
 </div>
 
-<div class="container page-shell-lg px-4 py-3 pb-4 d-flex flex-column gap-3">
+<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
-    <!-- ── KPI Bar ── -->
-    <div class="row g-2" id="kpi-bar">
-        <div class="col-6 col-md">
-            <button type="button" class="kpi-card active" aria-pressed="true" onclick="filterByStatus(null, this)">
-                <div class="kpi-label">All</div>
-                <div class="kpi-number" id="kpi-all">—</div>
-            </button>
+    <!-- ── Table Panel ── -->
+    <div class="panel flex-grow-1 d-flex flex-column">
+        <div class="panel-header d-flex align-items-center justify-content-between gap-2">
+            <span>Assignments</span>
+            <input id="search-input" type="text" class="form-control form-control-sm"
+                   placeholder="Search by assignment no., course, or creator..."
+                   style="max-width: 320px;" />
         </div>
-        <div class="col-6 col-md">
-            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('InProgress', this)">
-                <div class="kpi-label">In Progress</div>
-                <div class="kpi-number" id="kpi-inprogress">—</div>
-            </button>
+        <div class="panel-body p-0 flex-grow-1 overflow-auto">
+            <table class="admin-table" id="assignments-table">
+                <thead>
+                    <tr>
+                        <th class="sortable text-center" data-sort="assignmentNo" style="width:145px">Assignment No <i class="sort-icon fas fa-sort-down"></i></th>
+                        <th class="sortable" data-sort="createdBy" style="width:140px">Created By <i class="sort-icon fas fa-sort"></i></th>
+                        <th>Courses</th>
+                        <th>Description</th>
+                        <th class="sortable text-center" data-sort="studentCount" style="width:90px">Students <i class="sort-icon fas fa-sort"></i></th>
+                        <th class="text-center" style="width:130px">Progress</th>
+                        <th class="sortable text-center" data-sort="startDate" style="width:100px">Start <i class="sort-icon fas fa-sort"></i></th>
+                        <th class="sortable text-center" data-sort="dueDate" style="width:100px">Due <i class="sort-icon fas fa-sort"></i></th>
+                        <th class="sortable text-center" data-sort="status" style="width:130px">Status <i class="sort-icon fas fa-sort"></i></th>
+                        <th class="text-center" style="width:60px"></th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+            <div id="empty-state" class="text-center py-5 d-none" style="color: var(--text-secondary);">
+                <i class="fas fa-inbox d-block mb-2" style="font-size: 28px; color: var(--border-color);"></i>
+                No assignments found.
+            </div>
         </div>
-        <div class="col-6 col-md">
-            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('Upcoming', this)">
-                <div class="kpi-label">Upcoming</div>
-                <div class="kpi-number" id="kpi-upcoming">—</div>
-            </button>
-        </div>
-        <div class="col-6 col-md">
-            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('Expired', this)">
-                <div class="kpi-label">Expired</div>
-                <div class="kpi-number" id="kpi-expired">—</div>
-            </button>
-        </div>
-        <div class="col-6 col-md">
-            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('Completed', this)">
-                <div class="kpi-label">Completed</div>
-                <div class="kpi-number" id="kpi-completed">—</div>
-            </button>
-        </div>
-    </div>
-
-    <!-- ── DataGrid ── -->
-    <div class="panel">
-        <div class="panel-header">Assignments</div>
-        <div class="panel-body p-0">
-            <div id="grid"></div>
+        <div class="panel-footer d-flex align-items-center justify-content-between px-3 py-2" style="border-top: 1px solid var(--border-color); font-size: var(--font-size-sm); color: var(--text-secondary);">
+            <span id="page-info"></span>
+            <div class="d-flex align-items-center gap-1">
+                <button id="btn-prev" class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-chevron-left"></i></button>
+                <span id="page-numbers" class="d-flex gap-1"></span>
+                <button id="btn-next" class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-chevron-right"></i></button>
+            </div>
         </div>
     </div>
 
 </div>
 
 @section Scripts {
+    <style>
+        .admin-table .sortable { cursor: pointer; user-select: none; }
+        .admin-table .sortable:hover { background: var(--bg-light); }
+        .admin-table .sort-icon { margin-left: 4px; font-size: 10px; color: var(--text-tertiary); }
+        .admin-table .sortable.active .sort-icon { color: var(--brand-color); }
+        .admin-table tbody tr { cursor: pointer; }
+        .admin-table tbody tr:hover { background: var(--bg-light); }
+        .admin-table tbody tr.row-expired { background: var(--surface-danger-subtle); }
+        .admin-table tbody tr.row-expired:hover { background: #ffe8e6; }
+        .admin-table tbody tr.row-completed { background: var(--surface-success-subtle); }
+        .admin-table tbody tr.row-completed:hover { background: #e8ffe0; }
+        .admin-table .progress-bar-cell { display: flex; align-items: center; gap: 8px; }
+        .admin-table .progress-track { flex: 1; height: 3px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
+        .admin-table .progress-fill { height: 100%; }
+        .panel-footer .page-btn { min-width: 28px; height: 28px; padding: 0 6px; font-size: 12px; border: 1px solid var(--border-color); background: var(--surface-base); color: var(--text-secondary); border-radius: var(--radius-xs); cursor: pointer; }
+        .panel-footer .page-btn:hover { background: var(--bg-light); }
+        .panel-footer .page-btn.active { background: var(--brand-color); color: #fff; border-color: var(--brand-color); }
+        .panel-footer .page-btn:disabled { opacity: .4; cursor: default; }
+    </style>
     <script>
         const ASSIGNMENTS_HISTORY_URL = `${serviceUrl}/Assignments/history`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
-        const DEFAULT_LOAD_SIZE = 100;
+        const PAGE_SIZE = 20;
 
-        let gridInstance;
-        let activeStatus = null;
+        let currentPage = 1;
+        let totalCount = 0;
+        let sortBy = "assignmentNo";
+        let sortDesc = true;
+        let searchText = "";
+        let searchTimer = null;
+        let loading = false;
 
+        // ── Status badge ──
         function statusBadge(status) {
             const map = {
                 "Completed":  { cls: "pill-success", text: "Completed"   },
@@ -85,215 +109,197 @@
             return `<span class="tag-pill ${s.cls}">${s.text}</span>`;
         }
 
-        function formatDate(value) {
-            return window.formatAdminDate(value, EMPTY_TEXT);
+        // ── Helpers ──
+        function fmtDate(v) { return window.formatAdminDate(v, EMPTY_TEXT); }
+
+        function escHtml(str) {
+            return window.escapeAdminHtml ? window.escapeAdminHtml(str) : $('<span>').text(str).html();
         }
 
-        function renderCoursesCell(container, value) {
-            renderAdminCoursesCell(container, value);
+        function truncate(text, max) {
+            if (!text) return EMPTY_TEXT;
+            return text.length > max ? text.slice(0, max) + "\u2026" : text;
         }
 
-        function updateActiveKpiCard(element) {
-            $(".kpi-card").removeClass("active").attr("aria-pressed", "false");
-            $(element).addClass("active").attr("aria-pressed", "true");
+        function completionPct(d) {
+            const total = d.totalEnrollmentCount || 0;
+            const done = d.completedEnrollmentCount || 0;
+            return total > 0 ? Math.round((done / total) * 100) : 0;
         }
 
-        function calculateStudentCount(data) {
-            return data.studentCount || (data.employeeCodes ? data.employeeCodes.split(",").filter(code => code.trim()).length : 0);
+        function progressBarHtml(pct) {
+            let color;
+            if (pct === 100) color = "var(--success-color)";
+            else if (pct >= 50) color = "var(--accent-color)";
+            else color = "var(--warning-color)";
+            const label = window.formatAdminPercentage ? window.formatAdminPercentage(pct, "0%") : pct + "%";
+            return `<div class="progress-bar-cell">
+                <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+                <span style="font-size:11px;font-weight:600;min-width:32px;color:var(--text-secondary)">${escHtml(label)}</span>
+            </div>`;
         }
 
-        function calculateCompletionPct(data) {
-            const total = data.totalEnrollmentCount || 0;
-            const completed = data.completedEnrollmentCount || 0;
-            return total > 0 ? Math.round((completed / total) * 100) : 0;
+        function coursePillsHtml(value) {
+            if (!value) return `<span style="color:var(--text-secondary)">${EMPTY_TEXT}</span>`;
+            const courses = value.split(", ").filter(c => c.trim());
+            if (!courses.length) return `<span style="color:var(--text-secondary)">${EMPTY_TEXT}</span>`;
+            const max = 3;
+            let html = '<div class="d-flex flex-wrap gap-1">';
+            courses.slice(0, max).forEach(name => {
+                html += `<span class="tag-pill tag-pill-xs pill-default">${escHtml(name)}</span>`;
+            });
+            if (courses.length > max) {
+                html += `<span style="font-size:11px;color:var(--text-secondary)">+${courses.length - max} more</span>`;
+            }
+            html += '</div>';
+            return html;
         }
 
-        function navigateToAssignmentDetail(assignmentId) {
-            window.location.href = `${ASSIGNMENT_DETAIL_URL}/${assignmentId}`;
+        // ── Build table row ──
+        function buildRow(d) {
+            const pct = completionPct(d);
+            const desc = d.description || EMPTY_TEXT;
+            const rowClass = d.status === "Expired" ? "row-expired" : d.status === "Completed" ? "row-completed" : "";
+            return `<tr class="${rowClass}" data-id="${d.id}">
+                <td class="text-center"><span style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(d.assignmentNo || "-")}</span></td>
+                <td><span style="font-size:12px;color:var(--text-secondary)">${escHtml(d.createdBy || "-")}</span></td>
+                <td>${coursePillsHtml(d.courseNames)}</td>
+                <td><span style="font-size:12px;color:var(--text-secondary)" title="${escHtml(desc)}">${escHtml(truncate(desc, 55))}</span></td>
+                <td class="text-center"><span style="font-size:12px;font-weight:600;color:var(--accent-color)">${d.studentCount ?? 0}</span></td>
+                <td>${progressBarHtml(pct)}</td>
+                <td class="text-center"><span style="font-size:11px;color:var(--text-secondary)">${escHtml(fmtDate(d.startDate))}</span></td>
+                <td class="text-center"><span style="font-size:11px;color:var(--text-secondary)">${escHtml(fmtDate(d.dueDate))}</span></td>
+                <td class="text-center">${statusBadge(d.status)}</td>
+                <td class="text-center"><button class="btn btn-sm btn-link p-0 detail-btn" title="Open Assignment Details" data-id="${d.id}"><i class="fas fa-info-circle" style="color:var(--brand-color)"></i></button></td>
+            </tr>`;
         }
 
-        function updateKpi(summary) {
-            $("#kpi-all").text(summary?.all ?? 0);
-            $("#kpi-inprogress").text(summary?.inProgress ?? 0);
-            $("#kpi-upcoming").text(summary?.upcoming ?? 0);
-            $("#kpi-expired").text(summary?.expired ?? 0);
-            $("#kpi-completed").text(summary?.completed ?? 0);
+        // ── Render table ──
+        function renderTable(data) {
+            const $body = $("#table-body");
+            const $empty = $("#empty-state");
+            if (!data.length) {
+                $body.empty();
+                $empty.removeClass("d-none");
+            } else {
+                $empty.addClass("d-none");
+                $body.html(data.map(buildRow).join(""));
+            }
         }
 
-        function filterByStatus(status, el) {
-            activeStatus = status;
-            updateActiveKpiCard(el);
-            gridInstance.pageIndex(0);
-            gridInstance.refresh();
+        // ── Pagination ──
+        function totalPages() { return Math.max(1, Math.ceil(totalCount / PAGE_SIZE)); }
+
+        function renderPagination() {
+            const pages = totalPages();
+            const $info = $("#page-info");
+            const $nums = $("#page-numbers");
+            const start = (currentPage - 1) * PAGE_SIZE + 1;
+            const end = Math.min(currentPage * PAGE_SIZE, totalCount);
+
+            $info.text(totalCount > 0 ? `${start}–${end} of ${totalCount}` : "No results");
+            $("#btn-prev").prop("disabled", currentPage <= 1);
+            $("#btn-next").prop("disabled", currentPage >= pages);
+
+            $nums.empty();
+            // Show up to 5 page buttons centered around current page
+            let from = Math.max(1, currentPage - 2);
+            let to = Math.min(pages, from + 4);
+            from = Math.max(1, to - 4);
+
+            for (let i = from; i <= to; i++) {
+                $nums.append(`<button class="page-btn${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`);
+            }
         }
 
-        window.filterByStatus = filterByStatus;
-
-        function getSortParams(loadOptions) {
-            const sort = Array.isArray(loadOptions.sort) && loadOptions.sort.length
-                ? loadOptions.sort[0]
-                : null;
-
-            return {
-                sortBy: sort?.selector || "assignmentNo",
-                sortDescending: sort?.desc !== false
-            };
+        // ── Sort icon update ──
+        function updateSortIcons() {
+            $(".sortable .sort-icon").removeClass("fa-sort-up fa-sort-down").addClass("fa-sort");
+            $(".sortable").removeClass("active");
+            const $active = $(`.sortable[data-sort="${sortBy}"]`);
+            $active.addClass("active");
+            $active.find(".sort-icon").removeClass("fa-sort").addClass(sortDesc ? "fa-sort-down" : "fa-sort-up");
         }
 
-        function createAssignmentsStore() {
-            return new DevExpress.data.CustomStore({
-                key: "id",
-                load: function(loadOptions) {
-                    const sort = getSortParams(loadOptions);
-                    const take = loadOptions.take || DEFAULT_LOAD_SIZE;
-                    const skip = loadOptions.skip || 0;
+        // ── Load data ──
+        function loadData() {
+            if (loading) return;
+            loading = true;
+            $("#table-body").css("opacity", "0.5");
 
-                    return $.ajax({
-                        url: ASSIGNMENTS_HISTORY_URL,
-                        method: "GET",
-                        data: {
-                            page: Math.floor(skip / take) + 1,
-                            pageSize: take,
-                            search: loadOptions.searchValue || null,
-                            status: activeStatus,
-                            sortBy: sort.sortBy,
-                            sortDescending: sort.sortDescending
-                        },
-                        xhrFields: { withCredentials: true }
-                    }).then(function(response) {
-                        updateKpi(response.summary);
-
-                        return {
-                            data: response.data || [],
-                            totalCount: response.totalCount || 0
-                        };
-                    }).catch(function() {
-                        showToast("Couldn't load assignments. Please refresh and try again.", "error");
-                        return {
-                            data: [],
-                            totalCount: 0
-                        };
-                    });
-                }
+            $.ajax({
+                url: ASSIGNMENTS_HISTORY_URL,
+                method: "GET",
+                data: {
+                    page: currentPage,
+                    pageSize: PAGE_SIZE,
+                    search: searchText || null,
+                    sortBy: sortBy,
+                    sortDescending: sortDesc
+                },
+                xhrFields: { withCredentials: true }
+            }).done(function (res) {
+                totalCount = res.totalCount || 0;
+                renderTable(res.data || []);
+                renderPagination();
+            }).fail(function () {
+                showToast("Couldn't load assignments. Please refresh and try again.", "error");
+                renderTable([]);
+                totalCount = 0;
+                renderPagination();
+            }).always(function () {
+                loading = false;
+                $("#table-body").css("opacity", "1");
             });
         }
 
+        // ── Event bindings ──
         $(() => {
-            gridInstance = initDxGrid("#grid", {
-                dataSource: createAssignmentsStore(),
-                remoteOperations: {
-                    paging: true,
-                    sorting: true,
-                    filtering: true
-                },
-                selection: { mode: "single" },
-                rowAlternationEnabled: false,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                searchPanel: { visible: true, placeholder: "Search by assignment no., course, or creator..." },
-                headerFilter: { visible: false },
-                export: { enabled: true, allowExportSelectedData: true },   
-                onExporting: (e) => handleExporting(e, 'Assignments_History'),
-                onRowPrepared: function (e) {
-                    if (e.rowType === "data" && e.data.status === "Expired") {
-                        $(e.rowElement).css("background-color", "var(--surface-danger-subtle)");
-                    }
+            loadData();
+            updateSortIcons();
 
-                    if (e.rowType === "data" && e.data.status === "Completed") {
-                        $(e.rowElement).css("background-color", "var(--surface-success-subtle)");
-                    }
-                },
-                columns: [
-                    {
-                        dataField: "assignmentNo", caption: "Assignment No", width: 145,
-                        alignment: "center", sortOrder: "desc",
-                        cellTemplate: function(container, options) {
-                            appendAdminText(container, options.value || "-", {
-                                fontSize: "12px",
-                                fontWeight: "600",
-                                color: "var(--text-primary)"
-                            });
-                        }
-                    },
-                    {
-                        dataField: "createdBy", caption: "Created By", width: 140,
-                        cellTemplate: function(container, options) {
-                            appendAdminText(container, options.value || "-", {
-                                fontSize: "12px",
-                                color: "var(--text-secondary)"
-                            });
-                        }
-                    },
-                    {
-                        dataField: "courseNames", caption: "Courses", minWidth: 220,
-                        cellTemplate: function(container, options) {
-                            renderCoursesCell(container, options.value);
-                        }
-                    },
-                    {
-                        dataField: "description", caption: "Description", minWidth: 180,
-                        cellTemplate: function(container, options) {
-                            const description = options.value || "-";
-                            appendAdminText(container, truncateAdminText(description, 55), {
-                                fontSize: "12px",
-                                color: "var(--text-secondary)"
-                            }).attr("title", description);
-                        }
-                    },
-                    {
-                        dataField: "studentCount", caption: "Students", width: 90, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            appendAdminText(container, String(options.value ?? 0), {
-                                fontSize: "12px",
-                                fontWeight: "600",
-                                color: "var(--accent-color)"
-                            });
-                        }
-                    },
-                    {
-                        dataField: "completedEnrollmentCount", caption: "Progress", width: 130, alignment: "center",
-                        allowSorting: false,
-                        cellTemplate: function(container, options) {
-                            renderAdminProgressCell(container, calculateCompletionPct(options.data));
-                        }
-                    },
-                    {
-                        dataField: "startDate", caption: "Start", dataType: "date",
-                        format: ADMIN_DATE_DISPLAY_FORMAT, width: 100, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            appendAdminText(container, formatDate(options.value), {
-                                fontSize: "11px",
-                                color: "var(--text-secondary)"
-                            });
-                        }
-                    },
-                    {
-                        dataField: "dueDate", caption: "Due", dataType: "date",
-                        format: ADMIN_DATE_DISPLAY_FORMAT, width: 100, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            appendAdminText(container, formatDate(options.value), {
-                                fontSize: "11px",
-                                color: "var(--text-secondary)"
-                            });
-                        }
-                    },
-                    {
-                        dataField: "status", caption: "Status", width: 130, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            $(statusBadge(options.value)).appendTo(container);
-                        }
-                    },
-                    {
-                        type: "buttons", caption: "Quick Actions", width: 70,
-                        alignment: "center", fixed: true, fixedPosition: "right",
-                        buttons: [{
-                            hint: "Open Assignment Details", icon: "info",
-                            onClick: function(e) {
-                                navigateToAssignmentDetail(e.row.data.id);
-                            }
-                        }]
-                    }
-                ]
+            // Sort
+            $(".sortable").on("click", function () {
+                const col = $(this).data("sort");
+                if (sortBy === col) {
+                    sortDesc = !sortDesc;
+                } else {
+                    sortBy = col;
+                    sortDesc = true;
+                }
+                currentPage = 1;
+                updateSortIcons();
+                loadData();
+            });
+
+            // Search (debounced)
+            $("#search-input").on("input", function () {
+                clearTimeout(searchTimer);
+                const val = $(this).val().trim();
+                searchTimer = setTimeout(function () {
+                    searchText = val;
+                    currentPage = 1;
+                    loadData();
+                }, 400);
+            });
+
+            // Pagination buttons
+            $("#btn-prev").on("click", function () { if (currentPage > 1) { currentPage--; loadData(); } });
+            $("#btn-next").on("click", function () { if (currentPage < totalPages()) { currentPage++; loadData(); } });
+            $("#page-numbers").on("click", ".page-btn", function () {
+                currentPage = +$(this).data("page");
+                loadData();
+            });
+
+            // Row click → detail
+            $("#table-body").on("dblclick", "tr[data-id]", function () {
+                window.location.href = `${ASSIGNMENT_DETAIL_URL}/${$(this).data("id")}`;
+            });
+
+            // Detail button
+            $("#table-body").on("click", ".detail-btn", function (e) {
+                e.stopPropagation();
+                window.location.href = `${ASSIGNMENT_DETAIL_URL}/${$(this).data("id")}`;
             });
         });
     </script>

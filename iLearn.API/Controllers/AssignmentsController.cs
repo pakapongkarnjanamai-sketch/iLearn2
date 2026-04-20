@@ -1082,8 +1082,8 @@ namespace iLearn.API.Controllers
             };
 
             return sortDescending
-                ? history.OrderByDescending(keySelector).ThenByDescending(item => item.CreatedAt)
-                : history.OrderBy(keySelector).ThenByDescending(item => item.CreatedAt);
+                ? history.OrderByDescending(keySelector).ThenByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
+                : history.OrderBy(keySelector).ThenByDescending(item => item.CreatedAt).ThenBy(item => item.Id);
         }
 
         private static object BuildHistorySummary(IEnumerable<AssignmentHistoryDto> history)
@@ -1105,7 +1105,7 @@ namespace iLearn.API.Controllers
             DateTime currentDate,
             IReadOnlyDictionary<int, AssignmentHistoryCourseRow> courseMap)
         {
-            var first = group.First();
+            var first = group.OrderBy(item => item.Id).First();
             var relatedLinks = group
                 .SelectMany(item => linksByAssignmentId[item.Id])
                 .Where(link => !string.IsNullOrWhiteSpace(link.StudentCode))
@@ -1161,7 +1161,7 @@ namespace iLearn.API.Controllers
             ILookup<int, GanttLinkRow> linksByAssignmentId,
             DateTime currentDate)
         {
-            var first = group.First();
+            var first = group.OrderBy(item => item.Id).First();
             var relatedLinks = group
                 .SelectMany(item => linksByAssignmentId[item.Id])
                 .ToList();

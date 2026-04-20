@@ -15,68 +15,20 @@
     </div>
 </div>
 
-<div class="container page-shell-lg px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
-    <!-- ── Summary KPI Bar ── -->
-    <div class="row g-2" id="summary-bar">
-        <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-static h-100">
-                <div class="kpi-label">Total Categories</div>
-                <div class="kpi-number" id="kpi-total">—</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-static h-100">
-                <div class="kpi-label">Active</div>
-                <div class="kpi-number" id="kpi-active">—</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-static h-100">
-                <div class="kpi-label">Total Courses</div>
-                <div class="kpi-number" id="kpi-courses">—</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-static h-100">
-                <div class="kpi-label">Unused Categories</div>
-                <div class="kpi-number" id="kpi-unused">—</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Main Content ── -->
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div class="col-md-4 col-lg-3 h-100">
-            <div class="panel h-100 d-flex flex-column">
-                <div class="panel-header">
-                    <i class="fas fa-filter me-1"></i> Filter By Division
-                </div>
-                <div class="panel-body p-2 flex-grow-1 overflow-hidden">
-                    <div id="divisionTreeView"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-8 col-lg-9 h-100">
-            <div class="panel h-100 d-flex flex-column">
-                <div class="panel-header">Categories</div>
-                <div class="panel-body p-0 flex-grow-1 overflow-hidden">
-                    <div id="grid" class="h-100"></div>
-                </div>
-            </div>
+    <!-- ── DataGrid ── -->
+    <div class="panel flex-grow-1 d-flex flex-column">
+        <div class="panel-header">Categories</div>
+        <div class="panel-body p-0 flex-grow-1 overflow-hidden">
+            <div id="grid" class="h-100"></div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        const ROOT_NODE_ID = 'root';
-        const ALL_CATEGORIES_LABEL = 'All Categories';
-        const KPI_IDS = ['kpi-total', 'kpi-active', 'kpi-courses', 'kpi-unused'];
-
         let gridInstance;
-        let availableDivisions = [];
 
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
@@ -87,38 +39,11 @@
 
         const dsDivisionsSelect = { store: divisionsStore, paginate: true, pageSize: 20 };
 
-        function loadSummaryStats() {
-            showStatSkeleton(KPI_IDS);
-            $.ajax({
-                url: `${serviceUrl}/admin/CategoriesCRUD/GetSummaryStats`,
-                type: 'GET',
-                xhrFields: { withCredentials: true }
-            }).done(function(d) {
-                $("#kpi-total").text(d.totalCategories);
-                $("#kpi-active").text(d.activeCategories);
-                $("#kpi-courses").text(d.totalCourses);
-                $("#kpi-unused").text(d.unusedCategories);
-            }).fail(function() {
-                hideStatSkeleton(KPI_IDS);
-            });
-        }
+        $(() => {
 
-        $(async () => {
-            loadSummaryStats();
-
-            gridInstance = initDxGrid("#grid", {
+            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search by category name or division...", {
                 dataSource: categoriesStore,
                 remoteOperations: true,
-                selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search by category name or division..." },
-                rowAlternationEnabled: true,
-                showRowLines: true,
-                hoverStateEnabled: true,
-                onInitNewRow: function(e) {
-                    if (availableDivisions.length === 1) {
-                        e.data.divisionId = availableDivisions[0].id;
-                    }
-                },
 
                 editing: {
                     mode: "popup",
@@ -281,74 +206,8 @@
                         ]
                     }
                 ],
-                onRowInserted: () => loadSummaryStats(),
-                onRowUpdated: () => loadSummaryStats(),
-                onRowRemoved: () => loadSummaryStats()
-            });
-
-            try {
-                await loadDivisionsAndTree();
-            } catch (err) {
-                console.error("Error loading divisions for treeview", err);
-            }
+            }));
         });
-
-        async function loadDivisionsAndTree() {
-            const divisionsData = await divisionsStore.load();
-            availableDivisions = Array.isArray(divisionsData) ? divisionsData : [];
-            availableDivisions.sort(sortDivisionsByName);
-
-            $("#divisionTreeView").dxTreeView({
-                dataSource: buildDivisionTreeData(availableDivisions),
-                dataStructure: 'tree',
-                keyExpr: 'id',
-                displayExpr: 'text',
-                itemsExpr: 'items',
-                selectionMode: 'single',
-                selectByClick: true,
-                onItemSelectionChanged: function(e) {
-                    applyDivisionFilter(e.itemData);
-                },
-                onContentReady: function(e) {
-                    e.component.selectItem(ROOT_NODE_ID);
-                }
-            });
-        }
-
-        function buildDivisionTreeData(divisions) {
-            return [{
-                id: ROOT_NODE_ID,
-                text: ALL_CATEGORIES_LABEL,
-                icon: 'home',
-                expanded: true,
-                isRoot: true,
-                items: divisions.map(function(division) {
-                    return {
-                        id: `div_${division.id}`,
-                        text: division.isActive ? division.name : `Draft: ${division.name}`,
-                        icon: 'folder',
-                        divisionId: division.id
-                    };
-                })
-            }];
-        }
-
-        function sortDivisionsByName(left, right) {
-            return left.name.localeCompare(right.name);
-        }
-
-        function applyDivisionFilter(node) {
-            if (!gridInstance || !node) return;
-
-            if (node.isRoot) {
-                gridInstance.clearFilter();
-                return;
-            }
-
-            if (node.divisionId) {
-                gridInstance.filter(["divisionId", "=", node.divisionId]);
-            }
-        }
 
         function addNewCategory() {
             if (gridInstance) gridInstance.addRow();

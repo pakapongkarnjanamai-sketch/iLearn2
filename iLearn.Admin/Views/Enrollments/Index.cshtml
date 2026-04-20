@@ -10,10 +10,10 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
-    <div class="row g-2 mb-4" id="summary-bar">
+    <div class="row g-2" id="summary-bar">
         <div class="col-6 col-md">
             <div class="kpi-card kpi-all h-100">
                 <div class="kpi-label">Total Enrollments</div>
@@ -47,25 +47,36 @@
     </div>
 
     <!-- ── Filter Bar ── -->
-    <div class="border rounded bg-white p-3 mb-3">
-        <div class="row g-3 align-items-end">
-            <div class="col-auto u-minw-260">
-                <label class="filter-label">Course</label>
-                <div id="filterCourse"></div>
-            </div>
-            <div class="col-auto">
-                <label class="filter-label">Status</label>
-                <div id="filterStatus"></div>
-            </div>
-            <div class="col-auto ms-auto">
-                <a href="javascript:void(0);" class="action-link action-link-sm" id="btnClearFilters">
-                    <i class="fas fa-times"></i> Clear Filters
-                </a>
+    <div class="panel">
+        <div class="panel-header">
+            <i class="fas fa-filter me-1"></i> Filters
+        </div>
+        <div class="panel-body p-2">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto u-minw-260">
+                    <label class="filter-label">Course</label>
+                    <div id="filterCourse"></div>
+                </div>
+                <div class="col-auto">
+                    <label class="filter-label">Status</label>
+                    <div id="filterStatus"></div>
+                </div>
+                <div class="col-auto ms-auto">
+                    <button type="button" class="action-link action-link-sm" id="btnClearFilters">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="grid"></div>
+    <!-- ── DataGrid ── -->
+    <div class="panel flex-grow-1 d-flex flex-column">
+        <div class="panel-header">Enrollments</div>
+        <div class="panel-body p-0 flex-grow-1 overflow-hidden">
+            <div id="grid" class="h-100"></div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -199,13 +210,9 @@
             });
 
             // ── DataGrid ──
-            gridInstance = initDxGrid("#grid", {
+            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search student code...", {
                 dataSource: enrollmentsStore,
                 remoteOperations: true,
-                searchPanel: { visible: true, placeholder: "Search student code..." },
-                rowAlternationEnabled: true,
-                showRowLines: true,
-                hoverStateEnabled: true,
 
                 export: { enabled: true, allowExportSelectedData: true },
                 onExporting: (e) => handleExporting(e, 'Enrollment_Report'),
@@ -359,7 +366,7 @@
                 ],
                 onRowUpdated: () => loadSummaryStats(),
                 onRowRemoved: () => loadSummaryStats()
-            });
+            }));
         });
     </script>
 }

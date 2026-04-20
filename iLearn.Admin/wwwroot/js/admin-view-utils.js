@@ -29,6 +29,24 @@
         }
         gridInstance.filter(filter);
     }
+    // ─── Standard Grid Options Builder ──────────────────────────────────────────
+    // Returns consistent baseline options for admin DataGrid usage.
+    // Pass page-specific settings through the overrides object.
+    function buildAdminGridOptions(searchPlaceholder, overrides) {
+        var defaults = {
+            selection: { mode: 'single' },
+            rowAlternationEnabled: false,
+            showRowLines: true,
+            hoverStateEnabled: true,
+            headerFilter: { visible: false },
+            searchPanel: {
+                visible: true,
+                placeholder: searchPlaceholder || 'Search...'
+            }
+        };
+
+        return $.extend(true, {}, defaults, overrides || {});
+    }
     // ─── Generic DOM Helpers ──────────────────────────────────────────────────────
     function appendAdminText(container, text, styles) {
         return $('<span>').css(styles || {}).text(text).appendTo(container);
@@ -366,6 +384,7 @@
     window.escapeHtml = escapeHtml;
     window.getApiErrorMessage = getApiErrorMessage;
     window.applyCombinedFilter = applyCombinedFilter;
+    window.buildAdminGridOptions = buildAdminGridOptions;
     window.appendAdminText = appendAdminText;
     window.truncateAdminText = truncateAdminText;
     window.renderAdminProgressCell = renderAdminProgressCell;

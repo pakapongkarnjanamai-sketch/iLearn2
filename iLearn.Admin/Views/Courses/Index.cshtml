@@ -15,13 +15,15 @@
     </div>
 </div>
 
-<div class="container page-shell-lg px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
 
         <!-- Categories TreeView -->
         <div class="col-md-4 col-lg-3 h-100">
             <div class="panel h-100 d-flex flex-column">
-                <div class="panel-header">Filter By Category</div>
+                <div class="panel-header">
+                    <i class="fas fa-filter me-1"></i> Filters
+                </div>
 
                 <div class="panel-body p-2 flex-grow-1 overflow-hidden">
                     <div id="categoryTreeView"></div>
@@ -50,11 +52,9 @@
         const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
         $(async () => {
-            const grid = initDxGrid("#grid", {
+            const grid = initDxGrid("#grid", buildAdminGridOptions("Search by code, name, category, or type...", {
                 dataSource: coursesStore,
                 remoteOperations: true,
-                selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search by code, name, category, or type..." },
 
                 editing: {
                     allowDeleting: true,
@@ -137,7 +137,7 @@
                         ]
                     }
                 ]
-            });
+            }));
 
             try {
                 const treeData = await $.ajax({

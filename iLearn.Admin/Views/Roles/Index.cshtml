@@ -8,13 +8,20 @@
         <div class="page-title">Roles Management</div>
         <div class="page-subtitle">Manage system roles, permissions, and role types.</div>
     </div>
-    <a href="javascript:void(0);" class="action-link primary" onclick="addNewRole()">
+    <button type="button" class="action-link primary" onclick="addNewRole()">
         <i class="fas fa-plus"></i> New Role
-    </a>
+    </button>
 </div>
 
-<div class="container-fluid px-4 py-3">
-    <div id="grid"></div>
+<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+
+    <!-- ── DataGrid ── -->
+    <div class="panel flex-grow-1 d-flex flex-column">
+        <div class="panel-header">Roles</div>
+        <div class="panel-body p-0 flex-grow-1 overflow-hidden">
+            <div id="grid" class="h-100"></div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -32,11 +39,9 @@
         let gridInstance;
 
         $(() => {
-            gridInstance = initDxGrid("#grid", {
+            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search roles...", {
                 dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD'),
                 remoteOperations: true,
-                selection: { mode: 'single' },
-                searchPanel: { visible: true, placeholder: "Search roles..." },
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'Roles_Data'),
                 editing: {
@@ -70,7 +75,7 @@
                         }
                     }
                 ]
-            });
+            }));
         });
 
         function addNewRole() {

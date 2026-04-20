@@ -13,8 +13,15 @@
     </button>
 </div>
 
-<div class="container-fluid px-4 py-3">
-    <div id="grid"></div>
+<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+
+    <!-- ── DataGrid ── -->
+    <div class="panel flex-grow-1 d-flex flex-column">
+        <div class="panel-header">User Accounts</div>
+        <div class="panel-body p-0 flex-grow-1 overflow-hidden">
+            <div id="grid" class="h-100"></div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -26,11 +33,9 @@
             cacheRawData: true
         };
         $(() => {
-            gridInstance = initDxGrid("#grid", {
+            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search users...", {
                 dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD'),
                 remoteOperations: true,
-                selection: { mode: 'single' },
-                searchPanel: { visible: true, placeholder: "Search users..." },
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'User_Accounts'),
                 editing: {
@@ -104,7 +109,7 @@
                     },
                     { dataField: "createdAt", dataType: "date", format: ADMIN_DATETIME_DISPLAY_FORMAT, visible: false }
                 ]
-            });
+            }));
 
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({
