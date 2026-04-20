@@ -7,18 +7,18 @@
 /* ── Wizard Step Cards ──────────────────────────────────────────────────── */
 .admin-step-card {
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
-    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-base);
+    padding: var(--panel-padding-y) var(--panel-padding-x);
     transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 .admin-step-card.active {
-    border-color: var(--primary-color);
-    background: #f4f8ff;
+    border-color: var(--state-step-active-border);
+    background: var(--state-step-active-bg);
 }
 .admin-step-card.complete {
-    border-color: #b7eb8f;
-    background: #f6ffed;
+    border-color: var(--state-step-complete-border);
+    background: var(--state-step-complete-bg);
 }
 .admin-step-index {
     width: 24px;
@@ -26,21 +26,21 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     border: 1px solid currentColor;
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     font-weight: 700;
-    margin-right: 8px;
+    margin-right: var(--space-xs);
 }
 .admin-step-title {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
 }
 .admin-step-text {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-secondary);
     margin-top: 2px;
 }
@@ -53,14 +53,14 @@
 }
 /* ── Snapshot Meta (sidebar) ──────────────────────────────────────────── */
 .admin-meta-item {
-    padding: 8px 0;
+    padding: var(--space-xs) 0;
     border-bottom: 1px solid var(--border-color);
 }
 .admin-meta-item:last-child {
     border-bottom: none;
 }
 .admin-meta-label {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-secondary);
     font-weight: 600;
     text-transform: uppercase;
@@ -68,39 +68,39 @@
     margin-bottom: 3px;
 }
 .admin-meta-value {
-    font-size: 13px;
+    font-size: var(--font-size-md);
     color: var(--text-primary);
 }
 /* ── Selection Layout (Filter + Grid) ────────────────────────────────── */
 .admin-selection-layout {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--panel-gap);
 }
 .admin-filter-shell {
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fafafa;
-    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+    padding: var(--panel-padding-y);
     height: 100%;
 }
 .admin-grid-shell {
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
+    border-radius: var(--radius-sm);
+    background: var(--surface-base);
     overflow: hidden;
 }
 .admin-grid-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: var(--panel-gap);
+    padding: var(--space-sm) var(--space-md);
     border-bottom: 1px solid var(--border-color);
-    background: #fafafa;
+    background: var(--surface-subtle);
 }
 .admin-grid-title {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
@@ -108,26 +108,26 @@
 }
 .admin-grid-note,
 .admin-inline-note {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
 }
 /* ── Wizard Table Shell ───────────────────────────────────────────────── */
 .admin-table-shell {
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fff;
+    border-radius: var(--radius-sm);
+    background: var(--surface-base);
     overflow: hidden;
 }
 .admin-table-head {
-    padding: 10px 14px;
+    padding: var(--space-sm) var(--panel-padding-x);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--panel-gap);
 }
 .admin-table-title {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
@@ -143,52 +143,52 @@
 }
 .admin-table th,
 .admin-table td {
-    padding: 8px 14px;
+    padding: var(--space-xs) var(--panel-padding-x);
     border-bottom: 1px solid var(--border-color);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     vertical-align: top;
 }
 .admin-table thead th {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    background: #fafafa;
+    background: var(--surface-subtle);
     position: sticky;
     top: 0;
     z-index: 1;
 }
 /* ── Empty State ─────────────────────────────────────────────────────── */
 .admin-wizard-empty-state {
-    padding: 32px 16px;
+    padding: var(--space-3xl) var(--space-xl);
     text-align: center;
     color: var(--text-secondary);
 }
 .admin-wizard-empty-state i {
-    font-size: 28px;
-    color: #d9d9d9;
-    margin-bottom: 10px;
+    font-size: var(--font-size-display);
+    color: var(--state-empty-icon);
+    margin-bottom: var(--space-sm);
     display: block;
 }
 /* ── Summary Stat Card (Review Step) ─────────────────────────────────── */
 .admin-summary-item {
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: #fafafa;
-    padding: 10px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+    padding: var(--space-sm);
 }
 .admin-summary-value {
-    font-size: 20px;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.1;
 }
 .admin-summary-label {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    margin-top: 6px;
+    margin-top: var(--space-2xs);
 }
 /* ── Student Row Typography ───────────────────────────────────────────── */
 .admin-student-name {
@@ -196,28 +196,28 @@
     color: var(--text-primary);
 }
 .admin-student-note {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: var(--space-3xs);
 }
 /* ── sg-* class aliases (StudentGroups wizard pages) ─────────────────── */
 /* These classes remain in the shared stylesheet so the StudentGroups/Form and
    StudentGroups/AddMembers pages no longer need to duplicate them inline. */
-.sg-step-card { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; padding: 12px 14px; transition: border-color 0.2s ease, background-color 0.2s ease; }
-.sg-step-card.active { border-color: var(--primary-color); background: #f4f8ff; }
-.sg-step-card.complete { border-color: #b7eb8f; background: #f6ffed; }
-.sg-step-index { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid currentColor; font-size: 11px; font-weight: 700; margin-right: 8px; }
-.sg-step-title { font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; }
-.sg-step-text { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.sg-step-card { border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface-base); padding: var(--panel-padding-y) var(--panel-padding-x); transition: border-color 0.2s ease, background-color 0.2s ease; }
+.sg-step-card.active { border-color: var(--state-step-active-border); background: var(--state-step-active-bg); }
+.sg-step-card.complete { border-color: var(--state-step-complete-border); background: var(--state-step-complete-bg); }
+.sg-step-index { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-pill); border: 1px solid currentColor; font-size: var(--font-size-caption); font-weight: 700; margin-right: var(--space-xs); }
+.sg-step-title { font-size: var(--font-size-sm); font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; }
+.sg-step-text { font-size: var(--font-size-caption); color: var(--text-secondary); margin-top: 2px; }
 .sg-panel { display: none; }
 .sg-panel.active { display: block; }
-.sg-meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+.sg-meta-item { padding: var(--space-xs) 0; border-bottom: 1px solid var(--border-color); }
 .sg-meta-item:last-child { border-bottom: none; }
-.sg-meta-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
-.sg-meta-value { font-size: 13px; color: var(--text-primary); }
-.sg-selection-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; }
-.sg-filter-shell { border: 1px solid var(--border-color); border-radius: 4px; background: #fafafa; padding: 12px; height: 100%; }
-.sg-grid-shell { border: 1px solid var(--border-color); border-radius: 4px; background: #fff; overflow: hidden; }
+.sg-meta-label { font-size: var(--font-size-caption); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.sg-meta-value { font-size: var(--font-size-md); color: var(--text-primary); }
+.sg-selection-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--panel-gap); }
+.sg-filter-shell { border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface-subtle); padding: var(--panel-padding-y); height: 100%; }
+.sg-grid-shell { border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface-base); overflow: hidden; }
 .sg-grid-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); background: #fafafa; }
 .sg-grid-title { font-size: 11px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; }
 .sg-grid-note, .sg-inline-note { font-size: 12px; color: var(--text-secondary); }

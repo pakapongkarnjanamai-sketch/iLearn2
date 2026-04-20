@@ -1,61 +1,13 @@
 /*
  * admin-minimal.css
  * Unified design system for iLearn.Admin.
- * Brand Blue: #0050b3
+ * Structural and component styles for iLearn.Admin.
  */
 
 /* -------------------------------------------------------------
-   1. Design Tokens
+    1. Shared Tokens
    ------------------------------------------------------------- */
-:root {
-    --brand-color: #0050b3;
-    --brand-dark: #003a8c;
-    --brand-light: #e6f4ff;
-    --brand-mid: #1677ff;
-
-    --accent-color: var(--brand-color);
-    --success-color: #52c41a;
-    --warning-color: #faad14;
-    --danger-color: #ff4d4f;
-
-    --text-primary: #262626;
-    --text-secondary: #595959;
-    --border-color: #f0f0f0;
-    --bg-light: #fafafa;
-
-    --font-family-base: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-stack: var(--font-family-base);
-    --font-size-caption: 11px;
-    --font-size-sm: 12px;
-    --font-size-md: 13px;
-    --font-size-lg: 15px;
-    --font-size-xl: 20px;
-    --font-size-display: 28px;
-    --font-size-grid-header: 11px;
-    --font-size-grid-cell: 12px;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-bold: 700;
-    --radius-xs: 3px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    --radius-sm: 4px;
-
-    --grid-header-spacing-x: 14px;
-    --grid-header-spacing-y: 12px;
-    --grid-header-spacing-compact-x: 12px;
-    --grid-header-spacing-compact-y: 10px;
-    --grid-toolbar-spacing-x: 14px;
-    --grid-toolbar-spacing-y: 10px;
-    --grid-toolbar-spacing-compact-x: 12px;
-    --grid-toolbar-spacing-compact-y: 8px;
-    --grid-pager-spacing-x: 14px;
-    --grid-pager-spacing-y: 10px;
-    --grid-pager-spacing-compact-x: 12px;
-    --grid-pager-spacing-compact-y: 8px;
-    --grid-row-height: 34px;
-    --grid-header-row-height: 38px;
-}
+/* Tokens are defined in admin-tokens.css and loaded before this file. */
 
 /* -------------------------------------------------------------
    2. Base
@@ -66,7 +18,7 @@
 
 body {
     font-family: var(--font-stack);
-    background: #fff;
+    background: var(--surface-base);
     color: var(--text-primary);
     font-size: var(--font-size-md);
     padding-top: 48px;

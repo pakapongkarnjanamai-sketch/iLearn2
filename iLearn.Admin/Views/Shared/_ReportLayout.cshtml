@@ -11,13 +11,14 @@
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/admin-tokens.css" rel="stylesheet" />
     <link href="~/css/admin-minimal.css" rel="stylesheet" />
     <style>
         body {
             font-family: var(--font-stack);
-            background: #fff;
+            background: var(--surface-base);
             color: var(--text-primary);
-            font-size: 13px;
+            font-size: var(--font-size-md);
             padding-top: 50px;
             height: auto;
             overflow: auto;
@@ -29,19 +30,19 @@
             left: 0;
             right: 0;
             z-index: 999;
-            background: #fff;
+            background: var(--surface-base);
             border-bottom: 1px solid var(--border-color);
-            padding: 10px 24px;
+            padding: var(--space-sm) var(--space-2xl);
         }
 
         .toolbar-btn {
             border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 6px 14px;
-            font-size: 12px;
+            border-radius: var(--radius-sm);
+            padding: var(--space-2xs) var(--space-lg);
+            font-size: var(--font-size-sm);
             font-weight: 500;
             cursor: pointer;
-            background: #fff;
+            background: var(--surface-base);
             color: var(--text-secondary);
             transition: 0.2s;
         }
