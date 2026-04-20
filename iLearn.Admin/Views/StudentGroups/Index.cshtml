@@ -16,211 +16,87 @@
 </div>
 
 <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-
-    <!-- ── Table Panel ── -->
-    <div class="panel flex-grow-1 d-flex flex-column">
-        <div class="panel-header d-flex align-items-center justify-content-between gap-2">
-            <span>Groups</span>
-            <input id="search-input" type="text" class="form-control form-control-sm"
-                   placeholder="Search by group name, description, or owner..."
-                   style="max-width: 320px;" />
-        </div>
-        <div class="panel-body p-0 flex-grow-1 overflow-auto">
-            <table class="admin-table" id="groups-table">
-                <thead>
-                    <tr>
-                        <th class="sortable" data-sort="name" style="min-width:200px">Group Name <i class="sort-icon fas fa-sort"></i></th>
-                        <th style="min-width:240px">Description</th>
-                        <th class="sortable text-center" data-sort="memberCount" style="width:120px">Members <i class="sort-icon fas fa-sort"></i></th>
-                        <th class="sortable" data-sort="createdBy" style="width:140px">Created By <i class="sort-icon fas fa-sort"></i></th>
-                        <th class="text-center" style="width:80px"></th>
-                    </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
-            <div id="empty-state" class="text-center py-5 d-none" style="color: var(--text-secondary);">
-                <i class="fas fa-inbox d-block mb-2" style="font-size: 28px; color: var(--border-color);"></i>
-                No student groups found.
-            </div>
-        </div>
-        <div class="panel-footer d-flex align-items-center justify-content-between px-3 py-2" style="border-top: 1px solid var(--border-color); font-size: var(--font-size-sm); color: var(--text-secondary);">
-            <span id="page-info"></span>
-            <div class="d-flex align-items-center gap-1">
-                <button id="btn-prev" class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-chevron-left"></i></button>
-                <span id="page-numbers" class="d-flex gap-1"></span>
-                <button id="btn-next" class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-chevron-right"></i></button>
-            </div>
-        </div>
+    <div class="row g-3 h-100 admin-responsive-content">
+        <div id="grid" class="h-100"></div>
     </div>
 </div>
 
 @section Scripts {
-    <style>
-        .admin-table .sortable { cursor: pointer; user-select: none; }
-        .admin-table .sortable:hover { background: var(--bg-light); }
-        .admin-table .sort-icon { margin-left: 4px; font-size: 10px; color: var(--text-tertiary); }
-        .admin-table .sortable.active .sort-icon { color: var(--brand-color); }
-        .admin-table tbody tr { cursor: pointer; }
-        .admin-table tbody tr:hover { background: var(--bg-light); }
-        .panel-footer .page-btn { min-width: 28px; height: 28px; padding: 0 6px; font-size: 12px; border: 1px solid var(--border-color); background: var(--surface-base); color: var(--text-secondary); border-radius: var(--radius-xs); cursor: pointer; }
-        .panel-footer .page-btn:hover { background: var(--bg-light); }
-        .panel-footer .page-btn.active { background: var(--brand-color); color: #fff; border-color: var(--brand-color); }
-    </style>
     <script>
-        const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
-        const GROUP_DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
-        const EMPTY_TEXT = "—";
+        const groupDetailUrl = '@Url.Action("Detail", "StudentGroups")';
+        const groupsStore = createDataStore(serviceUrl, 'admin/StudentGroupsCRUD', { key: 'id' });
 
-        let sortBy = "name";
-        let sortDesc = false;
-        const PAGE_SIZE = 20;
-        let currentPage = 1;
-        let totalCount = 0;
-        let searchText = "";
-        let searchTimer = null;
-        let loading = false;
+        $(function () {
+            initDxGrid("#grid", buildAdminGridOptions("Search by group name, description, or owner...", {
+                dataSource: groupsStore,
+                remoteOperations: true,
 
-        function escHtml(str) {
-            return window.escapeAdminHtml ? window.escapeAdminHtml(str) : $('<span>').text(str).html();
-        }
-
-        function truncate(text, max) {
-            if (!text) return EMPTY_TEXT;
-            return text.length > max ? text.slice(0, max) + "\u2026" : text;
-        }
-
-        // ── Build row ──
-        function buildRow(d) {
-            const desc = d.description || EMPTY_TEXT;
-            const memberLabel = window.formatAdminCountLabel
-                ? window.formatAdminCountLabel(d.memberCount ?? 0, "member")
-                : (d.memberCount ?? 0) + " member" + ((d.memberCount ?? 0) !== 1 ? "s" : "");
-
-            return `<tr data-id="${d.id}">
-                <td><span style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(d.name || EMPTY_TEXT)}</span></td>
-                <td><span style="font-size:12px;color:var(--text-secondary)" title="${escHtml(desc)}">${escHtml(truncate(desc, 70))}</span></td>
-                <td class="text-center"><span class="tag-pill pill-info">${escHtml(memberLabel)}</span></td>
-                <td><span style="font-size:12px;color:var(--text-secondary)">${escHtml(d.createdBy || EMPTY_TEXT)}</span></td>
-                <td class="text-center"><button class="btn btn-sm btn-link p-0 detail-btn" title="Open Group Details" data-id="${d.id}"><i class="fas fa-info-circle" style="color:var(--brand-color)"></i></button></td>
-            </tr>`;
-        }
-
-        function totalPages() { return Math.max(1, Math.ceil(totalCount / PAGE_SIZE)); }
-
-        function renderPagination() {
-            const pages = totalPages();
-            const start = (currentPage - 1) * PAGE_SIZE + 1;
-            const end = Math.min(currentPage * PAGE_SIZE, totalCount);
-            $("#page-info").text(totalCount > 0 ? `${start}\u2013${end} of ${totalCount}` : "No results");
-            $("#btn-prev").prop("disabled", currentPage <= 1);
-            $("#btn-next").prop("disabled", currentPage >= pages);
-            const $nums = $("#page-numbers").empty();
-            let from = Math.max(1, currentPage - 2);
-            let to = Math.min(pages, from + 4);
-            from = Math.max(1, to - 4);
-            for (let i = from; i <= to; i++) {
-                $nums.append(`<button class="page-btn${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`);
-            }
-        }
-
-        function renderTable(data) {
-            const $body = $("#table-body");
-            const $empty = $("#empty-state");
-            if (!data.length) {
-                $body.empty();
-                $empty.removeClass("d-none");
-            } else {
-                $empty.addClass("d-none");
-                $body.html(data.map(buildRow).join(""));
-            }
-        }
-
-        // ── Sort icons ──
-        function updateSortIcons() {
-            $(".sortable .sort-icon").removeClass("fa-sort-up fa-sort-down").addClass("fa-sort");
-            $(".sortable").removeClass("active");
-            const $active = $(`.sortable[data-sort="${sortBy}"]`);
-            $active.addClass("active");
-            $active.find(".sort-icon").removeClass("fa-sort").addClass(sortDesc ? "fa-sort-down" : "fa-sort-up");
-        }
-
-        // ── Load data (server-side) ──
-        function loadGroups() {
-            if (loading) return;
-            loading = true;
-            $("#table-body").css("opacity", "0.5");
-
-            $.ajax({
-                url: `${GROUPS_API_URL}/paged`,
-                method: "GET",
-                data: {
-                    page: currentPage,
-                    pageSize: PAGE_SIZE,
-                    search: searchText || null,
-                    sortBy: sortBy,
-                    sortDescending: sortDesc
+                onRowDblClick: function (e) {
+                    if (e.data?.id) window.location.href = `${groupDetailUrl}?id=${e.data.id}`;
                 },
-                xhrFields: { withCredentials: true }
-            }).done(function (res) {
-                totalCount = res.totalCount || 0;
-                renderTable(res.data || []);
-                renderPagination();
-            }).fail(function () {
-                showToast("Couldn't load student groups. Please refresh and try again.", "error");
-                renderTable([]);
-                totalCount = 0;
-                renderPagination();
-            }).always(function () {
-                loading = false;
-                $("#table-body").css("opacity", "1");
-            });
-        }
-
-        function navigateToDetail(id) {
-            if (id) window.location.href = `${GROUP_DETAIL_URL}?id=${id}`;
-        }
-
-        // ── Init ──
-        $(() => {
-            loadGroups();
-            updateSortIcons();
-
-            // Sort
-            $(".sortable").on("click", function () {
-                const col = $(this).data("sort");
-                if (sortBy === col) sortDesc = !sortDesc;
-                else { sortBy = col; sortDesc = false; }
-                currentPage = 1;
-                updateSortIcons();
-                loadGroups();
-            });
-
-            // Search (debounced)
-            $("#search-input").on("input", function () {
-                clearTimeout(searchTimer);
-                const val = $(this).val().trim();
-                searchTimer = setTimeout(function () {
-                    searchText = val;
-                    currentPage = 1;
-                    loadGroups();
-                }, 300);
-            });
-
-            // Pagination
-            $("#btn-prev").on("click", function () { if (currentPage > 1) { currentPage--; loadGroups(); } });
-            $("#btn-next").on("click", function () { if (currentPage < totalPages()) { currentPage++; loadGroups(); } });
-            $("#page-numbers").on("click", ".page-btn", function () { currentPage = +$(this).data("page"); loadGroups(); });
-
-            // Detail button
-            $("#table-body").on("click", ".detail-btn", function (e) {
-                e.stopPropagation();
-                navigateToDetail($(this).data("id"));
-            });
-
-            // Double-click → detail
-            $("#table-body").on("dblclick", "tr[data-id]", function () {
-                navigateToDetail($(this).data("id"));
-            });
+                groupPanel: {
+                    emptyPanelText: '@ViewBag.Title',
+                    visible: true,
+                },
+                columns: [
+                    {
+                        dataField: "name",
+                        caption: "Group Name",
+                        minWidth: 200,
+                        cellTemplate: function (container, options) {
+                            appendAdminText(container, options.value || "—", { fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" });
+                        }
+                    },
+                    {
+                        dataField: "description",
+                        caption: "Description",
+                        minWidth: 240,
+                        cellTemplate: function (container, options) {
+                            const text = options.value || "—";
+                            const display = text.length > 70 ? text.slice(0, 70) + "\u2026" : text;
+                            const el = $("<span>").text(display).css({ fontSize: "12px", color: "var(--text-secondary)" });
+                            if (text.length > 70) el.attr("title", text);
+                            $(container).append(el);
+                        }
+                    },
+                    {
+                        dataField: "memberCount",
+                        caption: "Members",
+                        width: 120,
+                        alignment: "center",
+                        cellTemplate: function (container, options) {
+                            const count = options.value || 0;
+                            const label = count + " member" + (count !== 1 ? "s" : "");
+                            $("<span>").addClass("tag-pill pill-info").text(label).appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "createdBy",
+                        caption: "Created By",
+                        width: 140,
+                        cellTemplate: function (container, options) {
+                            appendAdminText(container, options.value || "—", { fontSize: "12px", color: "var(--text-secondary)" });
+                        }
+                    },
+                    {
+                        type: "buttons",
+                        caption: "",
+                        width: 60,
+                        alignment: "center",
+                        fixed: true,
+                        fixedPosition: "right",
+                        buttons: [
+                            {
+                                hint: "Open Group Details",
+                                icon: "info",
+                                onClick: function (e) {
+                                    if (e.row.data.id) window.location.href = `${groupDetailUrl}?id=${e.row.data.id}`;
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }));
         });
     </script>
 }

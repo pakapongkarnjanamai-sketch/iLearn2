@@ -4,6 +4,7 @@ using iLearn.API.Services;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -346,24 +347,85 @@ namespace iLearn.API.Controllers.Base
 
     public class AssignmentsCRUDController : GenericController<Assignment>
     {
+        private readonly IAssignmentDashboardService _dashboardService;
+        private readonly IDateTime _dateTime;
+
         public AssignmentsCRUDController(
             IGenericRepository<Assignment> repository,
-            ICurrentUserService currentUser) : base(repository, currentUser) { }
+            ICurrentUserService currentUser,
+            IAssignmentDashboardService dashboardService,
+            IDateTime dateTime) : base(repository, currentUser)
+        {
+            _dashboardService = dashboardService;
+            _dateTime = dateTime;
+        }
 
-        // -- ?????????????????????? --
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
         {
+            var divisionId = _currentUser.DivisionId;
+            var currentDate = _dateTime.Now;
 
-            var query = _repository.GetQuery().AsQueryable();
+            var assignmentRows = await _repository.GetQuery()
+                .AsNoTracking()
+                .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.AssignmentNo,
+                    a.Description,
+                    a.EmployeeCodes,
+                    a.CourseId,
+                    CourseTitle = a.Course != null ? a.Course.Title : null,
+                    IsCourseDeleted = a.Course != null && a.Course.IsDeleted,
+                    a.StartDate,
+                    a.DueDate,
+                    a.CreatedBy,
+                    a.CreatedAt
+                })
+                .ToListAsync();
 
-            // ?????????????????????? Division ????????? (????? DivisionId)
-            if (_currentUser.DivisionId.HasValue)
-            {
-                query = query.Where(a => a.DivisionId == _currentUser.DivisionId.Value);
-            }
+            // Group by AssignmentNo (same pattern as history)
+            var grouped = assignmentRows
+                .GroupBy(a => string.IsNullOrWhiteSpace(a.AssignmentNo) ? $"assignment:{a.Id}" : a.AssignmentNo!)
+                .Select(g =>
+                {
+                    var first = g.OrderBy(x => x.Id).First();
+                    var courseEntries = g
+                        .Where(x => x.CourseId.HasValue && x.CourseTitle != null)
+                        .Select(x => new { x.CourseId, x.CourseTitle, x.IsCourseDeleted })
+                        .DistinctBy(x => x.CourseId)
+                        .ToList();
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+                    var activeCourses = courseEntries.Where(c => !c.IsCourseDeleted).ToList();
+                    var deletedCourses = courseEntries.Where(c => c.IsCourseDeleted).ToList();
+                    var courseNameParts = activeCourses.Select(c => c.CourseTitle!)
+                        .Concat(deletedCourses.Select(c => $"{c.CourseTitle} [Deleted]"));
+
+                    var studentCount = string.IsNullOrWhiteSpace(first.EmployeeCodes)
+                        ? 0
+                        : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length;
+
+                    return new
+                    {
+                        first.Id,
+                        AssignmentNo = g.Key,
+                        Description = first.Description ?? string.Empty,
+                        first.StartDate,
+                        first.DueDate,
+                        CourseNames = string.Join(", ", courseNameParts),
+                        CourseCount = courseEntries.Count,
+                        StudentCount = studentCount,
+                        CreatedBy = first.CreatedBy ?? string.Empty,
+                        first.CreatedAt,
+                        HasDeletedCourse = deletedCourses.Count > 0,
+                        Status = AssignmentDashboardService.CalculateStatus(
+                            studentCount > 0, false, first.StartDate, first.DueDate, currentDate)
+                    };
+                })
+                .ToList();
+
+            return Ok(DataSourceLoader.Load(grouped, loadOptions));
         }
     }
 
@@ -1103,6 +1165,48 @@ namespace iLearn.API.Controllers.Base
         {
             var query = _repository.GetQuery().Include(c => c.Resource);
             return Ok(DataSourceLoader.Load(query, loadOptions));
+        }
+    }
+
+    public class StudentGroupsCRUDController : GenericController<StudentGroup>
+    {
+        public StudentGroupsCRUDController(
+            IGenericRepository<StudentGroup> repository,
+            ICurrentUserService currentUser) : base(repository, currentUser) { }
+
+        [HttpGet("Get")]
+        public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repository.GetQuery()
+                .AsNoTracking()
+                .Select(g => new
+                {
+                    g.Id,
+                    g.Name,
+                    g.Description,
+                    g.DivisionId,
+                    MemberCount = g.Members.Count(),
+                    g.CreatedBy,
+                    g.CreatedAt
+                });
+
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(g => g.DivisionId == _currentUser.DivisionId.Value);
+
+            return Ok(await DataSourceLoader.LoadAsync(query, loadOptions));
+        }
+
+        [HttpDelete("Delete")]
+        public override async Task<IActionResult> Delete([FromForm] int key)
+        {
+            var entity = await _repository.GetByIdAsync(key);
+            if (entity == null) return NotFound();
+
+            if (_currentUser.DivisionId.HasValue && entity.DivisionId != _currentUser.DivisionId.Value)
+                return NotFound();
+
+            await _repository.DeleteAsync(entity);
+            return Ok();
         }
     }
 }
