@@ -38,12 +38,12 @@
 <!-- ── Page Header ────────────────────────────────────────────────── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title">@ViewBag.Title</div>
+        <h1 class="page-title">@ViewBag.Title</h1>
         <div class="page-subtitle" id="lbl-assignment-no">Loading...</div>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
-            <i class="fas fa-arrow-left text-secondary"></i> Back
+            <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
         </a>
     </div>
 </div>
@@ -53,7 +53,7 @@
 
     <!-- ✅ Deleted Course Banner — แสดงเฉพาะเมื่อ assignment นี้มี course ที่ถูกลบ -->
     <div class="deleted-course-banner mb-3" id="deleted-course-banner">
-        <i class="fas fa-exclamation-triangle"></i>
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
         <strong>Note:</strong>
         The following course(s) in this assignment have been deleted and are no longer available:
         <span id="deleted-course-names" class="fw-bold ms-1"></span>.

@@ -11,37 +11,34 @@
 - **Stack**: .NET 9, C# 13, EF Core 9 (SQL Server), Windows Auth
 - **Frontend**: DevExtreme 25.2, Bootstrap 5, jQuery, DevExpress dialogs
 
-## Design Context
 
-### Users
-The product serves two distinct audiences.
 
-Admin UI users are HR and training managers, plus division-level administrators, working primarily on desktop during office hours. Their main jobs are managing course catalogs, assigning learning, monitoring progress, and making fast, confident decisions from large datasets. For admin feature design, the default interaction model is desktop-first, table-heavy workflows with predictable wizard steps for complex actions.
 
-Learner UI users are employees and staff accessing assigned learning content. Their main jobs are finding required courses quickly, understanding progress clearly, and completing learning tasks with minimal friction.
 
-### Brand Personality
-Admin UI voice: focused, structured, trustworthy.
 
-The Admin experience should feel professional, efficient, minimal, and data-confident. It should support dense information without feeling chaotic or inconsistent. Copy should stay concise and practical (short labels, short helper text, no verbose explanations).
+## DevExpress MCP Server: Configure Your AI-powered Coding Assistant
 
-Learner UI voice: accessible, encouraging, clear.
+---
+description: 'Answer questions about DevExpress UI Components and their API using the dxdocs server'
+---
 
-The Learner experience should feel welcoming, approachable, and motivating, with lower cognitive load and stronger mobile friendliness.
+You are a .NET/JavaScript programmer and DevExpress product expert.
 
-### Aesthetic Direction
-Admin UI follows a minimal, data-heavy, flat visual system based on brand blue #0050b3. It should use consistent spacing, clear hierarchy, restrained surfaces, and standardized page structures so users can move between modules without relearning the interface. Emphasize table-based information display for large datasets and standardized wizard flows for multi-step tasks. Avoid decorative effects: no unnecessary animation and no decorative shadows.
+Your task is to answer questions about DevExpress components and their APIs using dxdocs MCP server tools.
 
-Learner UI follows a soft, human-friendly visual system based on brand teal #027d83. It should feel calm, readable, and supportive, using rounded shapes, gentle contrast, and mobile-friendly interaction patterns.
+When replying to **ANY** question about DevExpress components, use the dxdocs server to construct your answer.
 
-Accessibility target: WCAG AA minimum, with attention to keyboard navigation, high readability, clear contrast, and reduced-motion friendliness.
+## Workflow:
 
-### Design Principles
-1. Standardize structure and interaction patterns across Admin pages so similar tasks always look and behave the same.
-2. Prioritize high-density table layouts for data-heavy work, with concise labels and short action-oriented text.
-3. Keep wizard flows linear, predictable, and professional, with clear step status and minimal cognitive overhead.
-4. Keep Admin optimized for focused desktop work; treat mobile adaptation as optional unless explicitly required.
-5. Use one dominant brand hue per interface context, keep surfaces flat and clean, and avoid decorative shadows.
-6. Keep motion minimal by default; avoid non-essential animation unless it communicates state.
-7. Use accessibility as a baseline quality bar, not a follow-up task.
+1. **Call devexpress_docs_search** to obtain help topics related to the user's question
+2. **Call devexpress_docs_get_content** to fetch and read the most relevant help topics
+3. **Reflect on the obtained content** and how it relates to the question
+4. **Provide a comprehensive answer** based solely on retrieved information
 
+## Constraints:
+
+- **Use devexpress_docs_search only once** per question to avoid redundant queries
+- **Answer questions based solely** on information obtained from MCP server tools
+- If relevant code examples are available in documentation, **include those code examples**
+- **Reference specific DevExpress controls and properties** mentioned in the docs
+- If a user specifies a version (such as v24.2 or 24.2), invoke MCP server tools corresponding to that version (for example, "dxdocs24_2")

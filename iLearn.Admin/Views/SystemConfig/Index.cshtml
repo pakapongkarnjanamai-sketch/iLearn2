@@ -24,28 +24,28 @@
 <!-- ?? Page Header ?? -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title">System Configuration</div>
+        <h1 class="page-title">System Configuration</h1>
         <div class="page-subtitle">Runtime settings and environment information</div>
     </div>
     <div class="d-flex align-items-center gap-2">
         @if (Model.ApiReachable)
         {
-            <span class="tag-pill green"><i class="fas fa-circle tag-pill-icon-xs me-1"></i> API Online</span>
+            <span class="tag-pill green"><i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> API Online</span>
         }
         else if (Model.ApiConfigFallbackUsed)
         {
-            <span class="tag-pill yellow"><i class="fas fa-triangle-exclamation tag-pill-icon-sm me-1"></i> API Config Fallback</span>
+            <span class="tag-pill yellow"><i class="fas fa-triangle-exclamation tag-pill-icon-sm me-1" aria-hidden="true"></i> API Config Fallback</span>
         }
         else
         {
-            <span class="tag-pill red"><i class="fas fa-circle tag-pill-icon-xs me-1"></i> API Unreachable</span>
+            <span class="tag-pill red"><i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> API Unreachable</span>
         }
         @if (!string.IsNullOrWhiteSpace(Model.ApiSource))
         {
-            <span class="tag-pill blue"><i class="fas fa-database tag-pill-icon-sm me-1"></i> @Model.ApiSource</span>
+            <span class="tag-pill blue"><i class="fas fa-database tag-pill-icon-sm me-1" aria-hidden="true"></i> @Model.ApiSource</span>
         }
         <span class="@EnvBadge(Model.AdminEnvironment)">
-            <i class="fas fa-circle tag-pill-icon-xs me-1"></i> @Model.AdminEnvironment
+            <i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> @Model.AdminEnvironment
         </span>
     </div>
 </div>

@@ -8,17 +8,17 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title">Resource Library</div>
+        <h1 class="page-title">Resource Library</h1>
         <div class="page-subtitle">Manage learning materials, SCORM packages, and assign them to courses.</div>
     </div>
     <div class="d-flex gap-2">
    
             <button type="button" class="action-link" onclick="openOptimizePopup()">
-                <i class="fas fa-magic text-secondary"></i> Optimize
+                <i class="fas fa-magic text-secondary" aria-hidden="true"></i> Optimize
             </button>
     
         <button type="button" class="action-link primary" onclick="openUploadPopup()">
-            <i class="fas fa-cloud-upload-alt"></i> Upload Resource
+            <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Upload Resource
         </button>
     </div>
 </div>
@@ -779,6 +779,7 @@
                 } else {
                     unusedGridInstance = initDxGrid("#unusedGrid", {
                         preset: "selectionGrid",
+                        height: 350,
                         dataSource: d.unusedPublished,
                         keyExpr: "id",
                         columns: [
@@ -817,6 +818,7 @@
                 } else {
                     shouldPublishGridInstance = initDxGrid("#shouldPublishGrid", {
                         preset: "selectionGrid",
+                        height: 350,
                         dataSource: d.shouldPublish,
                         keyExpr: "id",
                         columns: [

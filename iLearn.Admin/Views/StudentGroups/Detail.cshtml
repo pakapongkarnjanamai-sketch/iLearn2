@@ -15,11 +15,11 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title" id="page-title">Student Group</div>
+        <h1 class="page-title" id="page-title">Student Group</h1>
         <div class="page-subtitle" id="page-subtitle">Loading...</div>
     </div>
     <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
     </a>
 </div>
 
@@ -96,7 +96,7 @@
                 <div class="d-flex flex-column gap-2">
 
                     <a href="@Url.Action("AddMembers", "StudentGroups", new { id = groupId })" id="btn-add-members" class="quick-action disabled" aria-disabled="true" tabindex="-1">
-                        <div class="qa-icon qa-icon-success"><i id="add-members-icon" class="fas fa-user-plus"></i></div>
+                        <div class="qa-icon qa-icon-success"><i id="add-members-icon" class="fas fa-user-plus" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold" id="add-members-text">Add Members</div>
                             <div class="u-fs-11 text-secondary">Add students to this group</div>
@@ -104,7 +104,7 @@
                     </a>
 
                     <a href="@Url.Action("Form", "Assignments")?groupId=@groupId" id="btn-assign-course" class="quick-action disabled" aria-disabled="true" tabindex="-1">
-                        <div class="qa-icon qa-icon-accent"><i class="fas fa-book-open"></i></div>
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-book-open" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Assign Course</div>
                             <div class="u-fs-11 text-secondary">Assign courses to this group</div>
@@ -112,7 +112,7 @@
                     </a>
 
                     <a href="@Url.Action("Form", "StudentGroups")?id=@groupId" id="btn-edit-group" class="quick-action disabled" aria-disabled="true" tabindex="-1">
-                        <div class="qa-icon qa-icon-muted"><i class="fas fa-edit"></i></div>
+                        <div class="qa-icon qa-icon-muted"><i class="fas fa-edit" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Edit Student Group</div>
                             <div class="u-fs-11 text-secondary">Change name or description</div>
@@ -120,7 +120,7 @@
                     </a>
 
                     <a href="javascript:void(0);" id="btn-delete-group" class="quick-action danger disabled" aria-disabled="true" tabindex="-1">
-                        <div class="qa-icon qa-icon-danger"><i id="delete-group-icon" class="fas fa-trash-alt"></i></div>
+                        <div class="qa-icon qa-icon-danger"><i id="delete-group-icon" class="fas fa-trash-alt" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold" id="delete-group-text">Delete Student Group</div>
                             <div class="u-fs-11 text-secondary">Delete this group and its members</div>
@@ -137,11 +137,11 @@
     <div class="border rounded bg-white flex-grow-1 d-flex flex-column" style="min-height:0">
         <div class="d-flex border-bottom px-1 flex-shrink-0">
             <button id="tab-btn-members" onclick="switchTab('members', this)" class="tab-btn active">
-                <i class="fas fa-users me-1"></i> Members
+                <i class="fas fa-users me-1" aria-hidden="true"></i> Members
                 <span class="tag-pill tag-pill-xs pill-default ms-1" id="tab-badge-members">0</span>
             </button>
             <button id="tab-btn-assignments" onclick="switchTab('assignments', this)" class="tab-btn">
-                <i class="fas fa-tasks me-1"></i> Assignment History
+                <i class="fas fa-tasks me-1" aria-hidden="true"></i> Assignment History
                 <span class="tag-pill tag-pill-xs pill-default ms-1" id="tab-badge-assignments">0</span>
             </button>
         </div>

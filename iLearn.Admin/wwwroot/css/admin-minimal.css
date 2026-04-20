@@ -24,7 +24,7 @@ body {
     line-height: var(--text-body-line-height);
     font-kerning: normal;
     text-rendering: optimizeLegibility;
-    padding-top: 48px;
+    padding-top: var(--layout-navbar-height);
     overflow: hidden;
 }
 
@@ -58,6 +58,7 @@ img[loading="lazy"] {
     font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     line-height: var(--text-subheading-line-height);
+    margin: 0;
 }
 
 .page-subtitle {
@@ -160,23 +161,23 @@ img[loading="lazy"] {
 }
 
 .u-fs-10 {
-    font-size: 10px !important;
+    font-size: 0.625rem !important;
 }
 
 .u-fs-11 {
-    font-size: 11px !important;
+    font-size: 0.6875rem !important;
 }
 
 .u-fs-12 {
-    font-size: 12px !important;
+    font-size: 0.75rem !important;
 }
 
 .u-fs-13 {
-    font-size: 13px !important;
+    font-size: 0.8125rem !important;
 }
 
 .u-fs-28 {
-    font-size: 28px !important;
+    font-size: 1.75rem !important;
 }
 
 .u-fw-normal {
@@ -320,11 +321,11 @@ img[loading="lazy"] {
 }
 
 .u-fs-14 {
-    font-size: 14px !important;
+    font-size: 0.875rem !important;
 }
 
 .u-fs-20 {
-    font-size: 20px !important;
+    font-size: 1.25rem !important;
 }
 
 .u-letter-spacing-05 {
@@ -412,6 +413,7 @@ img[loading="lazy"] {
     height: 100%;
     background: var(--brand-color);
     transition: width .2s ease;
+    will-change: width;
 }
 
 .log-panel-soft {
@@ -438,6 +440,7 @@ img[loading="lazy"] {
     height: 100%;
     background: var(--warning-color);
     transition: width .2s ease;
+    will-change: width;
 }
 
 .qa-icon-accent,
@@ -704,7 +707,7 @@ img[loading="lazy"] {
 /* -------------------------------------------------------------
    5. Layout Components
    ------------------------------------------------------------- */
-main[role="main"] {
+main {
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
@@ -2288,7 +2291,7 @@ footer.footer {
         overflow: visible;
     }
 
-    main[role="main"] {
+    main {
         overflow: visible;
     }
 

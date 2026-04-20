@@ -292,11 +292,11 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
-        <div class="page-title"><i class="fas fa-book text-primary me-2"></i>@ViewBag.Title</div>
+        <h1 class="page-title"><i class="fas fa-book text-primary me-2" aria-hidden="true"></i>@ViewBag.Title</h1>
         <div class="page-subtitle">@(isEdit ? "Update course information and content." : "Create a course, prepare learning content, and review everything before publishing.")</div>
     </div>
     <a href="@Url.Action("Index", "Courses")" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
     </a>
 </div>
 
@@ -333,14 +333,14 @@
             <div class="px-3 pb-3">
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing">
+                        <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing" role="button" tabindex="0">
                             <i class="fas fa-search fa-lg mb-3 target-card-icon"></i>
                             <div class="fw-bold text-dark mb-1 target-card-title">Select Existing Resources</div>
                             <div class="text-secondary target-card-subtitle">Choose files from the central library.</div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload">
+                        <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload" role="button" tabindex="0">
                             <i class="fas fa-cloud-upload-alt fa-lg mb-3 target-card-icon"></i>
                             <div class="fw-bold text-dark mb-1 target-card-title">Upload New SCORM</div>
                             <div class="text-secondary target-card-subtitle">Drag &amp; drop or click to browse .zip</div>
@@ -350,7 +350,7 @@
                 </div>
 
                 <div class="inline-note mb-3">
-                    <i class="fas fa-info-circle u-text-accent"></i>
+                    <i class="fas fa-info-circle u-text-accent" aria-hidden="true"></i>
                     You can drag &amp; drop rows to reorder the content, and click on Type to change it for new files.
                 </div>
 
@@ -363,11 +363,11 @@
 
         <div class="bottom-toolbar">
         <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-            <i class="fas fa-check-circle u-text-success"></i>
+            <i class="fas fa-check-circle u-text-success" aria-hidden="true"></i>
             Please verify all information and content order before saving.
         </span>
             <a href="javascript:void(0);" id="btn-save" class="action-link primary">
-                <i class="fas fa-save"></i> Save Changes
+                <i class="fas fa-save" aria-hidden="true"></i> Save Changes
             </a>
     </div>
 }
@@ -448,14 +448,14 @@ else
                         <div class="course-section-card">
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing">
+                                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing" role="button" tabindex="0">
                                         <i class="fas fa-search fa-lg mb-3 target-card-icon"></i>
                                         <div class="fw-bold text-dark mb-1 target-card-title">Select Existing Resources</div>
                                         <div class="text-secondary target-card-subtitle">Choose files from the central library.</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload">
+                                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload" role="button" tabindex="0">
                                         <i class="fas fa-cloud-upload-alt fa-lg mb-3 target-card-icon"></i>
                                         <div class="fw-bold text-dark mb-1 target-card-title">Upload New SCORM</div>
                                         <div class="text-secondary target-card-subtitle">Drag &amp; drop or click to browse .zip</div>
@@ -901,6 +901,8 @@ else
 
             $("#btn-show-existing").on("click", function() {
                 popupExisting.show();
+            }).on("keydown", function(e) {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(this).click(); }
             });
         }
 
@@ -922,6 +924,10 @@ else
                     refreshMasterGrid();
                     showToast("File added to queue", "success", 2000);
                 }
+            });
+
+            $("#btn-trigger-upload").on("keydown", function(e) {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(this).click(); }
             });
         }
 

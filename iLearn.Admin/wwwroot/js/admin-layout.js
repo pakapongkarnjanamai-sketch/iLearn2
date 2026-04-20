@@ -622,10 +622,6 @@
 
         window.requestAnimationFrame(function () {
             refreshGridDimensions(gridInstance);
-
-            window.requestAnimationFrame(function () {
-                refreshGridDimensions(gridInstance);
-            });
         });
 
         window.setTimeout(function () {
@@ -895,7 +891,7 @@
         if (hasExplicitHeight) {
             options.height = requestedHeight;
         } else {
-            delete options.height;
+            options.height = '100%';
         }
 
         setGridHostSize($target, {

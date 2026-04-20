@@ -5,11 +5,11 @@
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title" id="pageTitle">Course Detail</div>
+        <h1 class="page-title" id="pageTitle">Course Detail</h1>
         <div class="page-subtitle" id="pageSubtitle">Loading...</div>
     </div>
     <a href="@Url.Action("Index", "Courses")" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
     </a>
 </div>
 
@@ -24,7 +24,7 @@
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Course Information</div>
                             <span id="courseStatusBadge" class="tag-pill pill-default admin-section-status">
-                                <i class="fas fa-circle-notch fa-spin me-1"></i> Loading...
+                                <i class="fas fa-circle-notch fa-spin me-1" aria-hidden="true"></i> Loading...
                             </span>
                         </div>
                         <div class="admin-section-divider"></div>
@@ -34,7 +34,7 @@
                     <div id="courseInfoForm"></div>
                     <div class="text-end mt-3 pt-3 u-border-top">
                         <a href="javascript:void(0);" id="btnSaveCourse" class="action-link primary">
-                            <i class="fas fa-save"></i> Save Changes
+                            <i class="fas fa-save" aria-hidden="true"></i> Save Changes
                         </a>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
 
                     <a href="javascript:void(0);" id="btnNewVersion" class="quick-action">
                         <div class="qa-icon qa-icon-accent">
-                            <i class="fas fa-code-branch"></i>
+                            <i class="fas fa-code-branch" aria-hidden="true"></i>
                         </div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold text-dark">New Version</div>
@@ -58,7 +58,7 @@
 
                     <a href="javascript:void(0);" id="btnAssignment" class="quick-action">
                         <div class="qa-icon qa-icon-accent">
-                            <i class="fas fa-user-plus"></i>
+                            <i class="fas fa-user-plus" aria-hidden="true"></i>
                         </div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold text-dark">Assignments</div>
@@ -68,7 +68,7 @@
 
                     <a href="javascript:void(0);" id="btnTogglePublish" class="quick-action">
                         <div class="qa-icon qa-icon-muted" id="publishIconBox">
-                            <i id="publishIcon" class="fas fa-globe"></i>
+                            <i id="publishIcon" class="fas fa-globe" aria-hidden="true"></i>
                         </div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold text-dark" id="publishBtnText">Publish Course</div>
@@ -78,7 +78,7 @@
 
                     <a href="javascript:void(0);" id="btnDeleteCourse" class="quick-action danger">
                         <div class="qa-icon qa-icon-danger">
-                            <i class="fas fa-trash-alt"></i>
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
                         </div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold text-dark">Delete Course</div>
@@ -89,7 +89,7 @@
                 </div>
 
                 <div id="warningMsg" class="mt-3 pt-3 d-none u-border-top u-fs-11 u-text-warning">
-                    <i class="fas fa-exclamation-triangle me-1"></i> Cannot delete an active course.
+                    <i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i> Cannot delete an active course.
                 </div>
             </div>
         </div>

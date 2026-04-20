@@ -113,11 +113,11 @@
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
-        <div class="page-title"><i class="fas fa-user-plus text-primary me-2"></i>Add Members</div>
+        <h1 class="page-title"><i class="fas fa-user-plus text-primary me-2" aria-hidden="true"></i>Add Members</h1>
         <div class="page-subtitle">Add learners to this student group and optionally enroll them into related assignments.</div>
     </div>
     <a href="@Url.Action("Detail", "StudentGroups", new { id = groupId })" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back to Group
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back to Group
     </a>
 </div>
 
@@ -180,7 +180,7 @@
                     <div class="sg-selection-layout">
                         <div class="sg-filter-shell d-flex flex-column gap-3">
                             <div>
-                                <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary"></i>Filters</div>
+                                <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
                                 <div class="sg-inline-note">Use division, department, and section filters to narrow the student list.</div>
                             </div>
                             <div>
@@ -196,7 +196,7 @@
                                 <div id="filter-section"></div>
                             </div>
                             <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
-                                <i class="fas fa-times me-1"></i> Clear Filters
+                                <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                             </button>
                         </div>
                         <div class="sg-grid-shell">
@@ -206,7 +206,7 @@
                                     <div class="sg-inline-note">Choose one or more learners to add to this student group.</div>
                                 </div>
                                 <div id="selection-hint" class="sg-grid-note">
-                                    <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to continue.
+                                    <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to continue.
                                 </div>
                             </div>
                             <div id="grid-add-students" class="sg-student-grid"></div>
@@ -326,20 +326,20 @@
 
 <div class="bottom-toolbar">
     <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-        <i class="fas fa-user-plus text-primary"></i>
+        <i class="fas fa-user-plus text-primary" aria-hidden="true"></i>
         Review the summary before applying changes.
     </span>
     <a href="javascript:void(0);" id="btn-prev-step" class="action-link d-none">
-        <i class="fas fa-arrow-left"></i> Previous
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
     </a>
     <a href="javascript:void(0);" id="btn-next-step" class="action-link primary">
-        <i class="fas fa-arrow-right"></i> Continue
+        <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
     </a>
     <a href="javascript:void(0);" id="btn-preview-summary" class="action-link primary d-none">
-        <i class="fas fa-file-alt"></i> Preview Summary
+        <i class="fas fa-file-alt" aria-hidden="true"></i> Preview Summary
     </a>
     <a href="javascript:void(0);" id="btn-confirm" class="action-link primary d-none">
-        <i class="fas fa-check-circle"></i> Confirm Changes
+        <i class="fas fa-check-circle" aria-hidden="true"></i> Confirm Changes
     </a>
 </div>
 

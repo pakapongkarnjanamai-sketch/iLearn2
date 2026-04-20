@@ -5,12 +5,12 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <div class="page-title">@ViewBag.Title</div>
+        <h1 class="page-title">@ViewBag.Title</h1>
         <div class="page-subtitle">Manage courses and versions.</div>
     </div>
     <div class="page-header-actions">
         <a href="@Url.Action("Form", "Courses")" class="action-link primary">
-            <i class="fas fa-plus"></i> Create Course
+            <i class="fas fa-plus" aria-hidden="true"></i> Create Course
         </a>
     </div>
 </div>
@@ -22,7 +22,7 @@
         <div class="col-md-4 col-lg-3 h-100">
             <div class="panel h-100 d-flex flex-column">
                 <div class="panel-header">
-                    <i class="fas fa-filter me-1"></i> Filters
+                    <i class="fas fa-filter me-1" aria-hidden="true"></i> Filters
                 </div>
 
                 <div class="panel-body p-2 flex-grow-1 overflow-hidden">

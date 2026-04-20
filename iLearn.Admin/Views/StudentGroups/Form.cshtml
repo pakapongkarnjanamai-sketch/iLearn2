@@ -96,11 +96,11 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
-        <div class="page-title"><i class="fas fa-users text-primary me-2"></i>@ViewBag.Title</div>
+        <h1 class="page-title"><i class="fas fa-users text-primary me-2" aria-hidden="true"></i>@ViewBag.Title</h1>
         <div class="page-subtitle">@(isEdit ? "Update reusable group information for course assignments." : "Create a reusable group and optionally add initial members in one flow.")</div>
     </div>
     <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
     </a>
 </div>
 
@@ -126,11 +126,11 @@
 
     <div class="bottom-toolbar">
         <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-            <i class="fas fa-check-circle u-text-success"></i>
+            <i class="fas fa-check-circle u-text-success" aria-hidden="true"></i>
             Review group information before saving.
         </span>
         <a href="javascript:void(0);" id="btn-save" class="action-link primary">
-            <i class="fas fa-save"></i> Save Changes
+            <i class="fas fa-save" aria-hidden="true"></i> Save Changes
         </a>
     </div>
 }
@@ -203,7 +203,7 @@ else
                         <div class="sg-selection-layout">
                             <div class="sg-filter-shell d-flex flex-column gap-3">
                                 <div>
-                                    <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary"></i>Filters</div>
+                                    <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
                                     <div class="sg-inline-note">Use division, department, and section filters to narrow the learner list.</div>
                                 </div>
                                 <div>
@@ -219,7 +219,7 @@ else
                                     <div id="filter-section"></div>
                                 </div>
                                 <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
-                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                    <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                                 </button>
                             </div>
 
@@ -230,7 +230,7 @@ else
                                         <div class="sg-inline-note">Select the first learners to attach to this group. This step is optional.</div>
                                     </div>
                                     <div id="selection-hint" class="sg-grid-note">
-                                        <i class="fas fa-info-circle text-primary me-1"></i> Check the rows to include initial members.
+                                        <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to include initial members.
                                     </div>
                                 </div>
                                 <div id="grid-initial-members"></div>
@@ -266,17 +266,17 @@ else
 
     <div class="bottom-toolbar">
         <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-            <i class="fas fa-users text-primary"></i>
+            <i class="fas fa-users text-primary" aria-hidden="true"></i>
             Review the summary before creating the student group.
         </span>
         <a href="javascript:void(0);" id="btn-prev-step" class="action-link d-none">
-            <i class="fas fa-arrow-left"></i> Previous
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
         </a>
         <a href="javascript:void(0);" id="btn-next-step" class="action-link primary">
-            <i class="fas fa-arrow-right"></i> Continue
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
         </a>
         <a href="javascript:void(0);" id="btn-save" class="action-link primary d-none">
-            <i class="fas fa-save"></i> Create Group
+            <i class="fas fa-save" aria-hidden="true"></i> Create Group
         </a>
     </div>
 }
@@ -756,7 +756,7 @@ else
         if (!students.length) {
             return `
                 <div class="sg-empty-state">
-                    <i class="fas fa-user-plus"></i>
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
                     <div>No initial members selected yet.</div>
                 </div>`;
         }

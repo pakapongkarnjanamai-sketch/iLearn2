@@ -341,11 +341,11 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
     <div>
-        <div class="page-title"><i class="fas fa-tasks text-primary me-2"></i>Bulk Course Assignments</div>
+        <h1 class="page-title"><i class="fas fa-tasks text-primary me-2" aria-hidden="true"></i>Bulk Course Assignments</h1>
         <div class="page-subtitle">Assign training courses to multiple students</div>
     </div>
     <a href="javascript:history.back();" class="action-link">
-        <i class="fas fa-arrow-left text-secondary"></i> Back
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
     </a>
 </div>
 
@@ -414,7 +414,7 @@
 
             <div class="assign-selection-layout">
                 <div class="assign-filter-shell d-flex flex-column gap-3">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                    <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
                     <div>
                         <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
                         <div id="filter-course-type"></div>
@@ -428,7 +428,7 @@
                         <div id="filter-course-cat"></div>
                     </div>
                     <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-course-filter">
-                        <i class="fas fa-times me-1"></i> Clear Filters
+                        <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                     </button>
                 </div>
                 <div class="assign-grid-shell">
@@ -453,10 +453,10 @@
                 <div class="assign-target-mode-note" id="target-selection-note">Select individual students or switch to student group mode.</div>
                 <div class="d-flex gap-1">
                     <button type="button" class="btn btn-sm rounded-pill target-mode-btn active" id="mode-individual" onclick="switchTargetMode('individual')">
-                        <i class="fas fa-user-graduate me-1"></i> Individual
+                        <i class="fas fa-user-graduate me-1" aria-hidden="true"></i> Individual
                     </button>
                     <button type="button" class="btn btn-sm rounded-pill target-mode-btn" id="mode-group" onclick="switchTargetMode('group')">
-                        <i class="fas fa-users me-1"></i> Group
+                        <i class="fas fa-users me-1" aria-hidden="true"></i> Group
                     </button>
                 </div>
             </div>
@@ -464,7 +464,7 @@
             <div id="target-panel-individual">
                 <div class="assign-selection-layout">
                     <div class="assign-filter-shell d-flex flex-column gap-3">
-                        <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                        <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
                         <div>
                             <label class="small fw-bold text-muted mb-1 d-block">Division</label>
                             <div id="filter-emp-div"></div>
@@ -482,7 +482,7 @@
                             <div id="filter-emp-position"></div>
                         </div>
                         <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-emp-filter">
-                            <i class="fas fa-times me-1"></i> Clear Filters
+                            <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                         </button>
                     </div>
                     <div class="assign-grid-shell">
@@ -504,7 +504,7 @@
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
                     <div class="assign-inline-actions d-none" id="group-reset-row">
                         <a href="javascript:void(0);" class="action-link text-danger small" id="btn-reset-group">
-                            <i class="fas fa-times me-1"></i> Clear selection
+                            <i class="fas fa-times me-1" aria-hidden="true"></i> Clear selection
                         </a>
                     </div>
                 </div>
@@ -543,20 +543,20 @@
 <!-- ── Fixed Bottom Toolbar ── -->
 <div class="bottom-toolbar">
     <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-        <i class="fas fa-check-circle u-text-success"></i>
+        <i class="fas fa-check-circle u-text-success" aria-hidden="true"></i>
         Review the summary before confirming the assignment batch.
     </span>
     <a href="javascript:void(0);" class="action-link d-none" id="btn-prev-step">
-        <i class="fas fa-arrow-left"></i> Previous
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
     </a>
     <a href="javascript:void(0);" class="action-link primary" id="btn-next-step">
-        <i class="fas fa-arrow-right"></i> Continue
+        <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
     </a>
     <a href="javascript:void(0);" class="action-link primary d-none" id="btn-review-step">
-        <i class="fas fa-file-alt"></i> Review Assignment
+        <i class="fas fa-file-alt" aria-hidden="true"></i> Review Assignment
     </a>
     <a href="javascript:void(0);" class="action-link primary d-none" id="btn-confirm-assign">
-        <i class="fas fa-save"></i> Confirm &amp; Assign
+        <i class="fas fa-save" aria-hidden="true"></i> Confirm &amp; Assign
     </a>
 </div>
 
