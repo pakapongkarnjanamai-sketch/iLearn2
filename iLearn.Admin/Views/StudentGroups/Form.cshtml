@@ -424,17 +424,15 @@ else
                     calculateCellValue: function(data) {
                         return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
                     },
-                    cellTemplate: function(container, options) {
-                        $("<span>").addClass("fw-medium text-dark").text(options.value || EMPTY_TEXT).appendTo(container);
-                    }
+                    cssClass: "fw-medium text-dark",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 { dataField: "Division", caption: "Division", width: 140 },
                 { dataField: "Department", caption: "Department", width: 140 },
                 {
                     dataField: "Section", caption: "Section", minWidth: 140,
-                    cellTemplate: function(container, options) {
-                        $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
-                    }
+                    cssClass: "cell-muted",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 }
             ],
             onSelectionChanged: function(event) {

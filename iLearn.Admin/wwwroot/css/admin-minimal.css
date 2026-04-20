@@ -2142,6 +2142,45 @@ iframe#scormFrame {
     background-color: var(--bg-light);
 }
 
+/* ── Grid Cell Utilities (used via column cssClass) ── */
+.cell-code {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cell-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cell-secondary {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.cell-muted {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.cell-accent {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.cell-caption {
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+}
+
+.cell-bold {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
 .dx-button-mode-contained.dx-button-default {
     background-color: var(--brand-color) !important;
     border-color: var(--brand-color) !important;

@@ -74,9 +74,8 @@
                         caption: "Code",
                         width: 150,
                         alignment: "center",
-                        cellTemplate: function(container, options) {
-                            appendText(container, options.value || "—", { fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" });
-                        }
+                        cssClass: "cell-code",
+                        customizeText: function(e) { return e.value || "—"; }
                     },
                     {
                         dataField: "title",
@@ -99,9 +98,8 @@
                         dataField: "categoryName",
                         caption: "Category",
                         width: 200,
-                        cellTemplate: function(container, options) {
-                            appendText(container, options.value || "—", { fontSize: "12px", color: "var(--text-secondary)" });
-                        }
+                        cssClass: "cell-secondary",
+                        customizeText: function(e) { return e.value || "—"; }
                     },
                     {
                         dataField: "courseTypeName",

@@ -189,27 +189,23 @@
                 },
                 {
                     dataField: "studentName", caption: "Full Name", minWidth: 180,
-                    cellTemplate: function(container, options) {
-                        $("<span>").addClass("fw-medium text-dark").text(options.value || EMPTY_TEXT).appendTo(container);
-                    }
+                    cssClass: "fw-medium text-dark",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     dataField: "division", caption: "Division", width: 130,
-                    cellTemplate: function(container, options) {
-                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
-                    }
+                    cssClass: "cell-secondary",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     dataField: "department", caption: "Department", width: 130,
-                    cellTemplate: function(container, options) {
-                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
-                    }
+                    cssClass: "cell-secondary",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     dataField: "section", caption: "Section", minWidth: 130,
-                    cellTemplate: function(container, options) {
-                        appendText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
-                    }
+                    cssClass: "cell-secondary",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     dataField: "position", caption: "Position", width: 110, alignment: "center",
@@ -254,13 +250,8 @@
                 {
                     dataField: "assignmentNo", caption: "Assignment No", width: 150,
                     sortOrder: "desc", alignment: "center",
-                    cellTemplate: function(container, options) {
-                        appendText(container, options.value || EMPTY_TEXT, {
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            color: "var(--text-primary)"
-                        });
-                    }
+                    cssClass: "cell-bold",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     dataField: "courseNames", caption: "Courses", minWidth: 200,
@@ -297,9 +288,9 @@
                 },
                 {
                     dataField: "startDate", caption: "Start", width: 100, alignment: "center",
-                    cellTemplate: function(container, options) {
-                        appendText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
-                    }
+                    dataType: "date",
+                    format: ADMIN_DATE_DISPLAY_FORMAT,
+                    cssClass: "cell-caption"
                 },
                 {
                     dataField: "dueDate", caption: "Due", width: 100, alignment: "center",

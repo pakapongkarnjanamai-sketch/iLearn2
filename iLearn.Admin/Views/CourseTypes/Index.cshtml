@@ -43,15 +43,15 @@
         </div>
     </div>
 
-
-
-</div>
     <!-- ── DataGrid ── -->
    <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
         <div id="grid" class="h-100"></div>
     </div>
 </div>
+
+</div>
+
 @section Scripts {
     <script>
         let gridInstance;
@@ -150,10 +150,8 @@
                         dataField: "description",
                         caption: "Description",
                         minWidth: 200,
-                        cellTemplate: function(container, options) {
-                            $("<span>").css({ color: "var(--text-secondary)", fontSize: "12px" })
-                                .text(options.value || "�").appendTo(container);
-                        }
+                        cssClass: "cell-secondary",
+                        customizeText: function(e) { return e.value || "—"; }
                     },
                     {
                         dataField: "courseCount",

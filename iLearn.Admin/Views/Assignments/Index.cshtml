@@ -54,17 +54,15 @@
                         caption: "Assignment No",
                         width: 150,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            appendAdminText(container, options.value || "—", { fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" });
-                        }
+                        cssClass: "cell-code",
+                        customizeText: function(e) { return e.value || "—"; }
                     },
                     {
                         dataField: "createdBy",
                         caption: "Created By",
                         width: 140,
-                        cellTemplate: function (container, options) {
-                            appendAdminText(container, options.value || "—", { fontSize: "12px", color: "var(--text-secondary)" });
-                        }
+                        cssClass: "cell-secondary",
+                        customizeText: function(e) { return e.value || "—"; }
                     },
                     {
                         dataField: "courseNames",
@@ -78,9 +76,10 @@
                         dataField: "description",
                         caption: "Description",
                         minWidth: 180,
-                        cellTemplate: function (container, options) {
-                            const text = options.value || "—";
-                            appendAdminText(container, text.length > 55 ? text.slice(0, 55) + "\u2026" : text, { fontSize: "12px", color: "var(--text-secondary)" });
+                        cssClass: "cell-secondary",
+                        customizeText: function(e) {
+                            var text = e.value || "—";
+                            return text.length > 55 ? text.slice(0, 55) + "\u2026" : text;
                         }
                     },
                     {
@@ -88,9 +87,8 @@
                         caption: "Students",
                         width: 90,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            appendAdminText(container, options.value ?? 0, { fontSize: "12px", fontWeight: "600", color: "var(--accent-color)" });
-                        }
+                        cssClass: "cell-accent",
+                        customizeText: function(e) { return String(e.value ?? 0); }
                     },
                     {
                         dataField: "startDate",
@@ -98,9 +96,8 @@
                         width: 110,
                         alignment: "center",
                         dataType: "date",
-                        cellTemplate: function (container, options) {
-                            appendAdminText(container, formatAdminDate(options.value, "—"), { fontSize: "11px", color: "var(--text-secondary)" });
-                        }
+                        cssClass: "cell-caption",
+                        format: ADMIN_DATE_DISPLAY_FORMAT
                     },
                     {
                         dataField: "dueDate",

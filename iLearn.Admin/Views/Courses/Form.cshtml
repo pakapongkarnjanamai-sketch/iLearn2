@@ -843,9 +843,7 @@ else
                         columns: [
                             {
                                 dataField: "name", caption: "Resource Name", minWidth: 200,
-                                cellTemplate: function(container, options) {
-                                    $("<span>").addClass("fw-medium text-dark").text(options.value).appendTo(container);
-                                }
+                                cssClass: "fw-medium text-dark"
                             },
                             {
                                 dataField: "typeId", caption: "Type", width: 110, alignment: "center",
@@ -870,14 +868,8 @@ else
                                 dataField: "createdAt", caption: "Created", width: 155, alignment: "center",
                                 dataType: "datetime",
                                 sortOrder: "desc", sortIndex: 0,
-                                cellTemplate: function(container, options) {
-                                    if (!options.value) {
-                                        return;
-                                    }
-
-                                    const formatted = formatDateTime(options.value);
-                                    $("<span>").addClass("text-muted small").text(formatted).appendTo(container);
-                                }
+                                format: ADMIN_DATETIME_DISPLAY_FORMAT,
+                                cssClass: "cell-muted"
                             }
                         ]
                     });

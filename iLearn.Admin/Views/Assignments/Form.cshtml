@@ -737,9 +737,7 @@
                         {
                             caption: "Name", minWidth: 160,
                             calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
-                            cellTemplate: function(container, options) {
-                                $("<span>").addClass("fw-medium text-dark").text(options.value).appendTo(container);
-                            }
+                            cssClass: "fw-medium text-dark"
                         },
                         {
                             dataField: "Position", caption: "Position", width: 90, alignment: "center",
@@ -753,9 +751,8 @@
                         },
                         { dataField: "Department", caption: "Dept.", width: 90 },
                         { dataField: "Section", caption: "Section", minWidth: 120,
-                            cellTemplate: function(container, options) {
-                                $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
-                            }
+                            cssClass: "cell-muted",
+                            customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }
                     ],
                     selectedRowKeys: selectedStudentCodes,
@@ -806,14 +803,11 @@
                     },
                     columns: [
                         { dataField: "name", caption: "Group Name", minWidth: 200,
-                            cellTemplate: function(container, options) {
-                                $('<span>').addClass('fw-medium text-dark').text(options.value).appendTo(container);
-                            }
+                            cssClass: "fw-medium text-dark"
                         },
                         { dataField: "description", caption: "Description", minWidth: 200,
-                            cellTemplate: function(container, options) {
-                                $('<span>').addClass('text-muted small').text(options.value || EMPTY_TEXT).appendTo(container);
-                            }
+                            cssClass: "cell-muted",
+                            customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         },
                         { dataField: "memberCount", caption: "Members", width: 100, alignment: "center",
                             cellTemplate: function(container, options) {

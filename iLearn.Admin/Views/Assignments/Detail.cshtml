@@ -457,9 +457,7 @@
                             calculateCellValue: function(data) {
                                 return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
                             },
-                            cellTemplate: function(container, options) {
-                                $("<span>").addClass("fw-medium text-dark").text(options.value).appendTo(container);
-                            }
+                            cssClass: "fw-medium text-dark"
                         },
                         {
                             dataField: "Position", caption: "Position", width: 120, alignment: "center",
@@ -472,9 +470,8 @@
                         { dataField: "Department", caption: "Department", width: 120 },
                         {
                             dataField: "Section", caption: "Section", minWidth: 140,
-                            cellTemplate: function(container, options) {
-                                $("<span>").addClass("text-muted small").text(options.value || EMPTY_TEXT).appendTo(container);
-                            }
+                            cssClass: "cell-muted",
+                            customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }
                     ]
                 });
@@ -802,9 +799,8 @@
                     dataField: "studentName",
                     caption: "Name",
                     minWidth: 120,
-                    cellTemplate: function(container, options) {
-                        appendAdminText(container, options.value || EMPTY_TEXT, { fontSize: "12px", color: "var(--text-secondary)" });
-                    }
+                    cssClass: "cell-secondary",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     dataField: "progress",
@@ -830,9 +826,7 @@
                     format: ADMIN_DATE_DISPLAY_FORMAT,
                     alignment: "center",
                     width: 110,
-                    cellTemplate: function(container, options) {
-                        appendAdminText(container, formatDate(options.value), { fontSize: "11px", color: "var(--text-secondary)" });
-                    }
+                    cssClass: "cell-caption"
                 },
                 {
                     caption: "",

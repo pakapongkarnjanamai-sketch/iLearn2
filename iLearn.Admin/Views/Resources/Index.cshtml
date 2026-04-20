@@ -93,14 +93,14 @@
         </div>
     </div>
 
-
-
-</div>
 <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
         <div id="grid" class="h-100"></div>
     </div>
 </div>
+
+</div>
+
 
 <div id="uploadPopup"></div>
 <div id="optimizePopup"></div>
@@ -558,10 +558,8 @@
                     },
                     { dataField: "fileLength", caption: "DB Size", dataType: "number", alignment: "center", width: 100,
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                .text(window.formatAdminFileSize(options.value, '—')).appendTo(container);
-                        }
+                        cssClass: "cell-caption",
+                        customizeText: function(e) { return window.formatAdminFileSize(e.value, '—'); }
                     },
                     { caption: "Server Files", dataType: "number", alignment: "center", width: 100,
                         allowEditing: false, allowSorting: false, allowFiltering: false,

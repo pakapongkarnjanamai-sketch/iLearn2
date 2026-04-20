@@ -70,15 +70,15 @@
         </div>
     </div>
 
-
-
-</div>
     <!-- ── DataGrid ── -->
    <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
         <div id="grid" class="h-100"></div>
     </div>
 </div>
+
+</div>
+
 @section Scripts {
     <script>
         let gridInstance;
@@ -333,21 +333,16 @@
                     {
                         dataField: "totalTimeSpent", caption: "Time Spent", width: 100, alignment: "center",
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)" })
-                                .text(formatTimeSpent(options.value)).appendTo(container);
-                        }
+                        cssClass: "cell-caption",
+                        customizeText: function(e) { return formatTimeSpent(e.value); }
                     },
                     {
                         dataField: "completedDate", caption: "Completed On", dataType: "datetime",
                         format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 160, alignment: "center",
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            if (options.value) {
-                                $("<span>").css({ fontSize: "11px" }).text(window.formatAdminDateTime(options.value, "—")).appendTo(container);
-                            } else {
-                                $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
-                            }
+                        cssClass: "cell-caption",
+                        customizeText: function(e) {
+                            return e.value ? window.formatAdminDateTime(e.value, "—") : "—";
                         }
                     },
                     { dataField: "createdAt", caption: "Enrolled On", dataType: "datetime", format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 160, allowEditing: false },
