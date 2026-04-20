@@ -99,19 +99,27 @@
     const adminTypography = {
         family: 'var(--font-stack)',
         size: {
-            caption: '11px',
-            sm: '12px',
-            md: '13px',
-            lg: '15px',
-            xl: '20px',
-            display: '28px',
-            gridHeader: '11px',
-            gridCell: '12px'
+            micro: '10px',      // --font-size-micro
+            xs: '11px',         // --font-size-xs
+            caption: '12px',    // --font-size-caption
+            sm: '13px',         // --font-size-sm
+            md: '16px',         // --font-size-md
+            lg: '18px',         // --font-size-lg
+            xl: '22px',        // --font-size-xl
+            display: '28px',    // --font-size-display
+            gridHeader: '12px', // --font-size-grid-header
+            gridCell: '13px'    // --font-size-grid-cell
         },
         weight: {
+            normal: 400,
             medium: 500,
             semibold: 600,
             bold: 700
+        },
+        letterSpacing: {
+            tight: '0.2px',     // --letter-spacing-tight
+            normal: '0.4px',    // --letter-spacing-normal
+            wide: '0.6px'       // --letter-spacing-wide
         }
     };
     const adminTokenFallbackMap = {
@@ -402,16 +410,16 @@
 
         return {
             label: {
-                fontSize: options.labelFontSize || '11px',
+                fontSize: options.labelFontSize || adminTypography.size.xs,
                 fill: options.labelFill || 'var(--text-tertiary)',
-                fontWeight: options.labelFontWeight || 600,
+                fontWeight: options.labelFontWeight || adminTypography.weight.semibold,
                 textTransform: options.labelTextTransform || 'uppercase',
-                letterSpacing: options.labelLetterSpacing || '0.4px'
+                letterSpacing: options.labelLetterSpacing || adminTypography.letterSpacing.normal
             },
             value: {
-                fontSize: options.valueFontSize || '22px',
+                fontSize: options.valueFontSize || adminTypography.size.xl,
                 fill: options.valueFill || 'var(--success-color)',
-                fontWeight: options.valueFontWeight || 700
+                fontWeight: options.valueFontWeight || adminTypography.weight.bold
             }
         };
     }

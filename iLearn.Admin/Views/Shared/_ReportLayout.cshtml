@@ -8,9 +8,18 @@
 <head>
     <meta charset="utf-8" />
     <title>@pageTitle</title>
+    <link rel="preload" href="~/lib/font-awesome/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="~/js/devextreme/dx.all.js" as="script" />
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <style>
+        @@font-face { font-family: "Font Awesome 7 Free"; font-display: swap; }
+        @@font-face { font-family: "Font Awesome 7 Brands"; font-display: swap; }
+        @@font-face { font-family: "Font Awesome 5 Free"; font-display: swap; }
+        @@font-face { font-family: "Font Awesome 5 Brands"; font-display: swap; }
+        @@font-face { font-family: "FontAwesome"; font-display: swap; }
+    </style>
     <link href="~/css/admin-tokens.css" rel="stylesheet" />
     <link href="~/css/admin-minimal.css" rel="stylesheet" />
     <style>
@@ -177,10 +186,10 @@
 
     @RenderBody()
 
-    <script src="~/js/devextreme/jquery.js"></script>
-    <script src="~/js/devextreme/dx.all.js"></script>
-    <script src="~/src/devextreme-license.js"></script>
-    <script src="~/js/admin-layout.js"></script>
+    <script src="~/js/devextreme/jquery.js" defer></script>
+    <script src="~/js/devextreme/dx.all.js" defer></script>
+    <script src="~/src/devextreme-license.js" defer></script>
+    <script src="~/js/admin-layout.js" defer></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -49,15 +49,15 @@
     border-radius: var(--radius-pill);
     border: 1px solid currentColor;
     font-size: var(--font-size-caption);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     margin-right: var(--space-xs);
 }
 .admin-step-title {
     font-size: var(--font-size-sm);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 /* ── Wizard Panel Visibility ──────────────────────────────────────── */
@@ -87,9 +87,9 @@
 .admin-meta-label {
     font-size: var(--font-size-caption);
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
     margin-bottom: 3px;
 }
 .admin-meta-value {
@@ -127,10 +127,10 @@
 }
 .admin-grid-title {
     font-size: var(--font-size-caption);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
 }
 .admin-grid-note,
 .admin-inline-note {
@@ -162,10 +162,10 @@
 }
 .admin-table-title {
     font-size: var(--font-size-sm);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
 }
 .admin-table-wrap {
     overflow: auto;
@@ -187,7 +187,7 @@
     font-size: var(--font-size-caption);
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
     background: var(--surface-subtle);
     position: sticky;
     top: 0;
@@ -221,7 +221,7 @@
 }
 .admin-summary-value {
     font-size: var(--font-size-xl);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     line-height: 1.1;
 }
@@ -229,7 +229,7 @@
     font-size: var(--font-size-caption);
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
     margin-top: var(--space-2xs);
 }
 
@@ -249,9 +249,9 @@
     font-size: var(--font-size-caption);
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: var(--letter-spacing-normal);
     margin-bottom: 6px;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
 }
 .admin-detail-value {
     font-size: var(--font-size-sm);
@@ -270,7 +270,7 @@
 
 /* ── Row Typography (review tables) ──────────────────────────────── */
 .admin-student-name {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
 }
 .admin-student-note {
