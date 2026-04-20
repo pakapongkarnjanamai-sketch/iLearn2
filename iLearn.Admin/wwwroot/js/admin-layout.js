@@ -12,6 +12,11 @@
     const gridPostRenderRefreshDelay = 120;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
+    const exportDependencyScripts = [
+        '/js/devextreme/dx-exceljs-fork.min.js',
+        '/js/devextreme/filesaver.min.js'
+    ];
+    let exportDependenciesPromise = null;
     const adminDialogDefaults = {
         dragEnabled: false,
         closeOnOutsideClick: false
@@ -671,41 +676,111 @@
         return DevExpress.data.AspNet.createStore(storeOptions);
     }
 
-    function exportComponentToWorkbook(exporter, component, fileName, worksheetName, options) {
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet(worksheetName || 'Sheet1');
+    function loadScriptOnce(scriptPath) {
+        return new Promise(function (resolve, reject) {
+            const selector = `script[src="${scriptPath}"]`;
+            const existing = document.querySelector(selector);
 
-        exporter($.extend(true, {
-            component: component,
-            worksheet: worksheet
-        }, options)).then(function () {
-            return workbook.xlsx.writeBuffer();
-        }).then(function (buffer) {
-            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            if (existing) {
+                if (existing.dataset.loaded === 'true') {
+                    resolve();
+                    return;
+                }
+
+                existing.addEventListener('load', function onLoad() {
+                    existing.dataset.loaded = 'true';
+                    existing.removeEventListener('load', onLoad);
+                    resolve();
+                }, { once: true });
+
+                existing.addEventListener('error', function onError() {
+                    existing.removeEventListener('error', onError);
+                    reject(new Error(`Failed to load script: ${scriptPath}`));
+                }, { once: true });
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = scriptPath;
+            script.async = true;
+
+            script.addEventListener('load', function () {
+                script.dataset.loaded = 'true';
+                resolve();
+            }, { once: true });
+
+            script.addEventListener('error', function () {
+                reject(new Error(`Failed to load script: ${scriptPath}`));
+            }, { once: true });
+
+            document.head.appendChild(script);
+        });
+    }
+
+    function ensureExportDependencies() {
+        if (window.ExcelJS && window.saveAs) {
+            return Promise.resolve();
+        }
+
+        if (exportDependenciesPromise) {
+            return exportDependenciesPromise;
+        }
+
+        exportDependenciesPromise = Promise.all(exportDependencyScripts.map(loadScriptOnce))
+            .then(function () {
+                if (!window.ExcelJS || !window.saveAs) {
+                    throw new Error('Export dependencies are unavailable after loading scripts.');
+                }
+            })
+            .catch(function (error) {
+                exportDependenciesPromise = null;
+                throw error;
+            });
+
+        return exportDependenciesPromise;
+    }
+
+    function exportComponentToWorkbook(exporter, component, fileName, worksheetName, options) {
+        return ensureExportDependencies().then(function () {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(worksheetName || 'Sheet1');
+
+            return exporter($.extend(true, {
+                component: component,
+                worksheet: worksheet
+            }, options)).then(function () {
+                return workbook.xlsx.writeBuffer();
+            }).then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            });
         });
     }
 
     function handleExporting(e, fileName) {
+        e.cancel = true;
+
         exportComponentToWorkbook(
             DevExpress.excelExporter.exportDataGrid,
             e.component,
             `${fileName || 'Data'}.xlsx`,
             fileName || 'Sheet1',
             { autoFilterEnabled: true }
-        );
-
-        e.cancel = true;
+        ).catch(function () {
+            showToast('Unable to export right now. Please try again.', 'error');
+        });
     }
 
     function handlePivotExporting(e, fileName) {
+        e.cancel = true;
+
         exportComponentToWorkbook(
             DevExpress.excelExporter.exportPivotGrid,
             e.component,
             `${fileName || 'PivotData'}.xlsx`,
             fileName || 'Sheet1'
-        );
-
-        e.cancel = true;
+        ).catch(function () {
+            showToast('Unable to export right now. Please try again.', 'error');
+        });
     }
 
     function getDxGridOptions(pageOptions) {

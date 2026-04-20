@@ -6,23 +6,24 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <div class="page-title">@ViewBag.Title</div>
-        <div class="page-subtitle">Manage all training courses and versions</div>
+        <div class="page-subtitle">Manage courses and versions.</div>
     </div>
-    <a href="@Url.Action("Form", "Courses")" class="action-link primary">
-        <i class="fas fa-plus"></i> New Course
-    </a>
+    <div class="page-header-actions">
+        <a href="@Url.Action("Form", "Courses")" class="action-link primary">
+            <i class="fas fa-plus"></i> Create Course
+        </a>
+    </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-5 h-100">
-    <div class="row g-3 h-100">
+<div class="container-fluid page-shell-lg px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+    <div class="row g-3 h-100 admin-responsive-content">
 
         <!-- Categories TreeView -->
         <div class="col-md-4 col-lg-3 h-100">
-            <div class="border rounded bg-white h-100 d-flex flex-column">
-          
-                <div class="panel-header">Categories</div>
+            <div class="panel h-100 d-flex flex-column">
+                <div class="panel-header">Filter By Category</div>
 
-                <div class="p-2 flex-grow-1 overflow-hidden">
+                <div class="panel-body p-2 flex-grow-1 overflow-hidden">
                     <div id="categoryTreeView"></div>
                 </div>
             </div>
@@ -30,7 +31,12 @@
 
         <!-- Course DataGrid -->
         <div class="col-md-8 col-lg-9 h-100">
-            <div id="grid" class="h-100"></div>
+            <div class="panel h-100 d-flex flex-column">
+                <div class="panel-header">Courses</div>
+                <div class="panel-body p-0 flex-grow-1 overflow-hidden">
+                    <div id="grid" class="h-100"></div>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -48,12 +54,12 @@
                 dataSource: coursesStore,
                 remoteOperations: true,
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search courses..." },
+                searchPanel: { placeholder: "Search by code, name, category, or type..." },
 
                 editing: {
                     allowDeleting: true,
                     useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this course and all its versions?" }
+                    texts: { confirmDeleteMessage: "Delete this course and all of its versions? This action cannot be undone." }
                 },
 
                 onRowDblClick: function(e) {
@@ -115,14 +121,14 @@
                     },
                     {
                         type: "buttons",
-                        caption: "Actions",
+                        caption: "Quick Actions",
                         width: 130,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
                         buttons: [
                             {
-                                hint: "View Course Dashboard",
+                                hint: "Open Course Details",
                                 icon: "info",
                                 onClick: function(e) {
                                     navigateToCourseDetail(e.row.data.id);

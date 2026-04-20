@@ -1,53 +1,53 @@
 ﻿@{
-    ViewBag.Title = "Assignments Management";
+    ViewBag.Title = "Assignment Management";
 }
 
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <div class="page-title">@ViewBag.Title</div>
-        <div class="page-subtitle">View and manage all course assignments</div>
+        <div class="page-subtitle">Track assignment progress and completion.</div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="page-header-actions">
         <a href="@Url.Action("Gantt", "Assignments")" class="action-link">
-            <i class="fas fa-project-diagram text-secondary"></i> Gantt View
+            Timeline
         </a>
         <a href="@Url.Action("Form", "Assignments")" class="action-link primary">
-            <i class="fas fa-plus"></i> New Assignment
+            <i class="fas fa-plus"></i> Create Assignment
         </a>
     </div>
 </div>
 
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid page-shell-lg px-4 py-3 pb-4 d-flex flex-column gap-3">
 
     <!-- ── KPI Bar ── -->
-    <div class="row g-2 mb-4" id="kpi-bar">
+    <div class="row g-2" id="kpi-bar">
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-all active" onclick="filterByStatus(null, this)">
+            <div class="kpi-card active" onclick="filterByStatus(null, this)">
                 <div class="kpi-label">All</div>
                 <div class="kpi-number" id="kpi-all">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-inprogress" onclick="filterByStatus('InProgress', this)">
+            <div class="kpi-card" onclick="filterByStatus('InProgress', this)">
                 <div class="kpi-label">In Progress</div>
                 <div class="kpi-number" id="kpi-inprogress">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-upcoming" onclick="filterByStatus('Upcoming', this)">
+            <div class="kpi-card" onclick="filterByStatus('Upcoming', this)">
                 <div class="kpi-label">Upcoming</div>
                 <div class="kpi-number" id="kpi-upcoming">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-expired" onclick="filterByStatus('Expired', this)">
+            <div class="kpi-card" onclick="filterByStatus('Expired', this)">
                 <div class="kpi-label">Expired</div>
                 <div class="kpi-number" id="kpi-expired">—</div>
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card kpi-completed" onclick="filterByStatus('Completed', this)">
+            <div class="kpi-card" onclick="filterByStatus('Completed', this)">
                 <div class="kpi-label">Completed</div>
                 <div class="kpi-number" id="kpi-completed">—</div>
             </div>
@@ -55,7 +55,12 @@
     </div>
 
     <!-- ── DataGrid ── -->
-    <div id="grid"></div>
+    <div class="panel">
+        <div class="panel-header">Assignments</div>
+        <div class="panel-body p-0">
+            <div id="grid"></div>
+        </div>
+    </div>
 
 </div>
 
@@ -76,7 +81,7 @@
                 "Expired":    { cls: "pill-danger",   text: "Expired"     },
                 "InProgress": { cls: "pill-info",     text: "In Progress" }
             };
-            const s = map[status] ?? { cls: "pill-default", text: status || "Unknown" };
+            const s = map[status] ?? { cls: "pill-default", text: status || "Not Set" };
             return `<span class="tag-pill ${s.cls}">${s.text}</span>`;
         }
 
@@ -163,7 +168,7 @@
                             totalCount: response.totalCount || 0
                         };
                     }).catch(function() {
-                        showToast("Error loading assignment history.", "error");
+                        showToast("Couldn't load assignments. Please refresh and try again.", "error");
                         return {
                             data: [],
                             totalCount: 0
@@ -185,7 +190,7 @@
                 rowAlternationEnabled: false,
                 showRowLines: true,
                 hoverStateEnabled: true,
-                searchPanel: { visible: true, placeholder: "Search assignments..." },
+                searchPanel: { visible: true, placeholder: "Search by assignment no., course, or creator..." },
                 headerFilter: { visible: false },
                 export: { enabled: true, allowExportSelectedData: true },   
                 onExporting: (e) => handleExporting(e, 'Assignments_History'),
@@ -279,10 +284,10 @@
                         }
                     },
                     {
-                        type: "buttons", caption: "Actions", width: 70,
+                        type: "buttons", caption: "Quick Actions", width: 70,
                         alignment: "center", fixed: true, fixedPosition: "right",
                         buttons: [{
-                            hint: "View Progress", icon: "info",
+                            hint: "Open Assignment Details", icon: "info",
                             onClick: function(e) {
                                 navigateToAssignmentDetail(e.row.data.id);
                             }

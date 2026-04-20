@@ -16,30 +16,32 @@
 ### Users
 The product serves two distinct audiences.
 
-Admin UI users are HR and training managers, plus division-level administrators, working primarily on desktop during office hours. Their main jobs are managing course catalogs, assigning learning, monitoring progress, and making fast, confident decisions from large datasets.
+Admin UI users are HR and training managers, plus division-level administrators, working primarily on desktop during office hours. Their main jobs are managing course catalogs, assigning learning, monitoring progress, and making fast, confident decisions from large datasets. For admin feature design, the default interaction model is desktop-first, table-heavy workflows with predictable wizard steps for complex actions.
 
 Learner UI users are employees and staff accessing assigned learning content. Their main jobs are finding required courses quickly, understanding progress clearly, and completing learning tasks with minimal friction.
 
 ### Brand Personality
 Admin UI voice: focused, structured, trustworthy.
 
-The Admin experience should feel professional, efficient, and data-confident. It should support dense information without feeling chaotic or inconsistent.
+The Admin experience should feel professional, efficient, minimal, and data-confident. It should support dense information without feeling chaotic or inconsistent. Copy should stay concise and practical (short labels, short helper text, no verbose explanations).
 
 Learner UI voice: accessible, encouraging, clear.
 
 The Learner experience should feel welcoming, approachable, and motivating, with lower cognitive load and stronger mobile friendliness.
 
 ### Aesthetic Direction
-Admin UI follows a minimal, data-heavy, flat visual system based on brand blue `#0050b3`. It should use consistent spacing, clear hierarchy, restrained surfaces, and standardized page structures so users can move between modules without relearning the interface. The main design risk to avoid is inconsistency across pages and DataGrid-heavy screens that feel overwhelming.
+Admin UI follows a minimal, data-heavy, flat visual system based on brand blue #0050b3. It should use consistent spacing, clear hierarchy, restrained surfaces, and standardized page structures so users can move between modules without relearning the interface. Emphasize table-based information display for large datasets and standardized wizard flows for multi-step tasks. Avoid decorative effects: no unnecessary animation and no decorative shadows.
 
-Learner UI follows a soft, human-friendly visual system based on brand teal `#027d83`. It should feel calm, readable, and supportive, using rounded shapes, gentle contrast, and mobile-friendly interaction patterns.
+Learner UI follows a soft, human-friendly visual system based on brand teal #027d83. It should feel calm, readable, and supportive, using rounded shapes, gentle contrast, and mobile-friendly interaction patterns.
 
-Accessibility target: WCAG AA minimum, with attention to keyboard navigation, contrast, reduced motion, and clearer interaction states.
+Accessibility target: WCAG AA minimum, with attention to keyboard navigation, high readability, clear contrast, and reduced-motion friendliness.
 
 ### Design Principles
 1. Standardize structure and interaction patterns across Admin pages so similar tasks always look and behave the same.
-2. Reduce cognitive load in data-heavy screens by improving hierarchy, grouping, and progressive disclosure instead of relying on DataGrid alone.
-3. Use accessibility as a baseline quality bar, not a follow-up task.
-4. Keep Admin optimized for focused desktop work, while keeping Learner UI friendly to mobile and touch contexts.
-5. Make every visual treatment purposeful; avoid decorative patterns that do not improve clarity, trust, or task flow.
+2. Prioritize high-density table layouts for data-heavy work, with concise labels and short action-oriented text.
+3. Keep wizard flows linear, predictable, and professional, with clear step status and minimal cognitive overhead.
+4. Keep Admin optimized for focused desktop work; treat mobile adaptation as optional unless explicitly required.
+5. Use one dominant brand hue per interface context, keep surfaces flat and clean, and avoid decorative shadows.
+6. Keep motion minimal by default; avoid non-essential animation unless it communicates state.
+7. Use accessibility as a baseline quality bar, not a follow-up task.
 

@@ -6,37 +6,39 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <div class="page-title">Category Management</div>
-        <div class="page-subtitle">Manage course categories and assign them to divisions.</div>
+        <div class="page-subtitle">Manage categories by division.</div>
     </div>
-    <a href="javascript:void(0);" class="action-link primary" onclick="addNewCategory()">
-        <i class="fas fa-plus"></i> New Category
-    </a>
+    <div class="page-header-actions">
+        <a href="javascript:void(0);" class="action-link primary" onclick="addNewCategory()">
+            <i class="fas fa-plus"></i> Create Category
+        </a>
+    </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-5 h-100">
+<div class="container-fluid page-shell-lg px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
-    <div class="row g-2 mb-4" id="summary-bar">
+    <div class="row g-2" id="summary-bar">
         <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-all h-100">
+            <div class="kpi-card kpi-static h-100">
                 <div class="kpi-label">Total Categories</div>
                 <div class="kpi-number" id="kpi-total">—</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-accent h-100">
+            <div class="kpi-card kpi-static h-100">
                 <div class="kpi-label">Active</div>
                 <div class="kpi-number" id="kpi-active">—</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-purple h-100">
+            <div class="kpi-card kpi-static h-100">
                 <div class="kpi-label">Total Courses</div>
                 <div class="kpi-number" id="kpi-courses">—</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card kpi-warning h-100">
+            <div class="kpi-card kpi-static h-100">
                 <div class="kpi-label">Unused Categories</div>
                 <div class="kpi-number" id="kpi-unused">—</div>
             </div>
@@ -44,20 +46,25 @@
     </div>
 
     <!-- ── Main Content ── -->
-    <div class="row g-3 h-100">
+    <div class="row g-3 h-100 admin-responsive-content">
         <div class="col-md-4 col-lg-3 h-100">
             <div class="panel h-100 d-flex flex-column">
                 <div class="panel-header">
-                    <i class="fas fa-filter me-1"></i> Filter by Division
+                    <i class="fas fa-filter me-1"></i> Filter By Division
                 </div>
-                <div class="p-2 flex-grow-1 overflow-hidden">
+                <div class="panel-body p-2 flex-grow-1 overflow-hidden">
                     <div id="divisionTreeView"></div>
                 </div>
             </div>
         </div>
 
         <div class="col-md-8 col-lg-9 h-100">
-            <div id="grid" class="h-100"></div>
+            <div class="panel h-100 d-flex flex-column">
+                <div class="panel-header">Categories</div>
+                <div class="panel-body p-0 flex-grow-1 overflow-hidden">
+                    <div id="grid" class="h-100"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -103,7 +110,7 @@
                 dataSource: categoriesStore,
                 remoteOperations: true,
                 selection: { mode: 'single' },
-                searchPanel: { placeholder: "Search categories..." },
+                searchPanel: { placeholder: "Search by category name or division..." },
                 rowAlternationEnabled: true,
                 showRowLines: true,
                 hoverStateEnabled: true,
@@ -119,9 +126,9 @@
                     allowAdding: true,
                     allowDeleting: true,
                     useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this category?" },
+                    texts: { confirmDeleteMessage: "Delete this category? You can only delete categories that are inactive and unused." },
                     popup: {
-                        title: "Category Details",
+                        title: "Edit Category",
                         showTitle: true,
                         width: 450,
                         height: "auto",
@@ -135,7 +142,7 @@
                         items: [
                             {
                                 itemType: "group",
-                                caption: "Category Details",
+                                caption: "Category Information",
                                 items: [
                                     {
                                         dataField: "name",
@@ -153,7 +160,7 @@
                                             valueExpr: "id",
                                             showClearButton: true,
                                             searchEnabled: true,
-                                            placeholder: "Select a Division..."
+                                            placeholder: "Select a division"
                                         }
                                     },
                                     {
@@ -251,14 +258,14 @@
                     },
                     {
                         type: "buttons",
-                        caption: "Manage",
+                                caption: "Quick Actions",
                         width: 130,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
                         buttons: [
                             {
-                                hint: "View Detail",
+                                hint: "Open Category Details",
                                 icon: "fas fa-eye",
                                 onClick: function(e) {
                                     window.location.href = `${DETAIL_URL}?id=${e.row.data.id}`;
