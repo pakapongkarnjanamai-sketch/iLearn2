@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -74,6 +75,62 @@ namespace iLearn.Application.Services
                 CreatedAt   = g.CreatedAt,
                 CreatedBy   = g.CreatedBy
             }).ToList();
+        }
+
+        public async Task<PagedResult<StudentGroupDto>> GetPagedAsync(PaginationParams p)
+        {
+            var query = _groupRepo.GetQuery().AsNoTracking();
+
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(g => g.DivisionId == _currentUser.DivisionId.Value);
+
+            if (!string.IsNullOrWhiteSpace(p.Search))
+            {
+                var term = p.Search.Trim().ToLower();
+                query = query.Where(g =>
+                    g.Name.ToLower().Contains(term) ||
+                    (g.Description != null && g.Description.ToLower().Contains(term)) ||
+                    (g.CreatedBy != null && g.CreatedBy.ToLower().Contains(term)));
+            }
+
+            query = (p.SortBy?.ToLower(), p.SortDescending) switch
+            {
+                ("name",        true)  => query.OrderByDescending(g => g.Name),
+                ("name",        false) => query.OrderBy(g => g.Name),
+                ("membercount", true)  => query.OrderByDescending(g => g.Members.Count),
+                ("membercount", false) => query.OrderBy(g => g.Members.Count),
+                ("createdby",   true)  => query.OrderByDescending(g => g.CreatedBy),
+                ("createdby",   false) => query.OrderBy(g => g.CreatedBy),
+                (_,             true)  => query.OrderByDescending(g => g.Id),
+                _                      => query.OrderBy(g => g.Name),
+            };
+
+            var totalCount = await query.CountAsync();
+            var page = Math.Max(1, p.Page);
+            var pageSize = Math.Clamp(p.PageSize, 1, 100);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(g => new StudentGroupDto
+                {
+                    Id          = g.Id,
+                    Name        = g.Name,
+                    Description = g.Description,
+                    MemberCount = g.Members.Count,
+                    DivisionId  = g.DivisionId,
+                    CreatedAt   = g.CreatedAt,
+                    CreatedBy   = g.CreatedBy
+                })
+                .ToListAsync();
+
+            return new PagedResult<StudentGroupDto>
+            {
+                Data       = items,
+                TotalCount = totalCount,
+                Page       = page,
+                PageSize   = pageSize
+            };
         }
 
         public async Task<StudentGroupDetailDto?> GetByIdAsync(int id)

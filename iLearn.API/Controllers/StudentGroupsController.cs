@@ -26,6 +26,14 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = result, totalCount = result.Count });
         }
 
+        // GET: api/studentgroups/paged?page=1&pageSize=20&search=...&sortBy=name&sortDescending=false
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged([FromQuery] PaginationParams p)
+        {
+            var result = await _service.GetPagedAsync(p);
+            return Ok(new { success = true, data = result.Data, totalCount = result.TotalCount });
+        }
+
         // GET: api/studentgroups/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)

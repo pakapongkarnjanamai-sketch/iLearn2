@@ -17,202 +17,375 @@
 
 <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
-    <!-- ── DataGrid ── -->
+    <!-- ── Table Panel ── -->
     <div class="panel flex-grow-1 d-flex flex-column">
-        <div class="panel-header">Categories</div>
-        <div class="panel-body p-0 flex-grow-1 overflow-hidden">
-            <div id="grid" class="h-100"></div>
+        <div class="panel-header d-flex align-items-center justify-content-between gap-2">
+            <span>Categories</span>
+            <input id="search-input" type="text" class="form-control form-control-sm"
+                   placeholder="Search by category name or division..."
+                   style="max-width: 320px;" />
+        </div>
+        <div class="panel-body p-0 flex-grow-1 overflow-auto">
+            <table class="admin-table" id="categories-table">
+                <thead>
+                    <tr>
+                        <th class="sortable text-center" data-sort="id" style="width:70px">ID <i class="sort-icon fas fa-sort-down"></i></th>
+                        <th class="sortable" data-sort="name" style="min-width:200px">Category Name <i class="sort-icon fas fa-sort"></i></th>
+                        <th style="width:180px">Division</th>
+                        <th class="text-center" style="width:120px">Courses</th>
+                        <th class="sortable text-center" data-sort="isActive" style="width:130px">Status <i class="sort-icon fas fa-sort"></i></th>
+                        <th class="text-center" style="width:130px">Quick Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+            <div id="empty-state" class="text-center py-5 d-none" style="color: var(--text-secondary);">
+                <i class="fas fa-inbox d-block mb-2" style="font-size: 28px; color: var(--border-color);"></i>
+                No categories found.
+            </div>
+        </div>
+        <div class="panel-footer d-flex align-items-center justify-content-between px-3 py-2" style="border-top: 1px solid var(--border-color); font-size: var(--font-size-sm); color: var(--text-secondary);">
+            <span id="page-info"></span>
+            <div class="d-flex align-items-center gap-1">
+                <button id="btn-prev" class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-chevron-left"></i></button>
+                <span id="page-numbers" class="d-flex gap-1"></span>
+                <button id="btn-next" class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Edit Modal ── -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="editModalTitle">Edit Category</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Category Name <span class="text-danger">*</span></label>
+                    <input type="text" id="edit-name" class="form-control" placeholder="Enter category name...">
+                    <div class="invalid-feedback">Name is required.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Division</label>
+                    <select id="edit-division" class="form-select">
+                        <option value="">Select a division</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="edit-active" checked>
+                        <label class="form-check-label fw-semibold" for="edit-active">Status (Active)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" id="btn-save" onclick="saveCategory()">Save</button>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <style>
+        .admin-table .sortable { cursor: pointer; user-select: none; }
+        .admin-table .sortable:hover { background: var(--bg-light); }
+        .admin-table .sort-icon { margin-left: 4px; font-size: 10px; color: var(--text-tertiary); }
+        .admin-table .sortable.active .sort-icon { color: var(--brand-color); }
+        .admin-table tbody tr { cursor: pointer; }
+        .admin-table tbody tr:hover { background: var(--bg-light); }
+        .panel-footer .page-btn { min-width: 28px; height: 28px; padding: 0 6px; font-size: 12px; border: 1px solid var(--border-color); background: var(--surface-base); color: var(--text-secondary); border-radius: var(--radius-xs); cursor: pointer; }
+        .panel-footer .page-btn:hover { background: var(--bg-light); }
+        .panel-footer .page-btn.active { background: var(--brand-color); color: #fff; border-color: var(--brand-color); }
+    </style>
     <script>
-        let gridInstance;
-
-        const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
-            key: 'id',
-            loadUrl: `${serviceUrl}/Divisions`
-        });
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD');
+        const CATEGORIES_API_URL = `${serviceUrl}/admin/CategoriesCRUD`;
+        const DIVISIONS_API_URL = `${serviceUrl}/Divisions`;
         const DETAIL_URL = '@Url.Action("Detail", "Categories")';
+        const EMPTY_TEXT = "—";
+        const PAGE_SIZE = 20;
 
-        const dsDivisionsSelect = { store: divisionsStore, paginate: true, pageSize: 20 };
+        let allDivisions = [];
+        let sortBy = "id";
+        let sortDesc = true;
+        let searchText = "";
+        let searchTimer = null;
+        let currentPage = 1;
+        let totalCount = 0;
+        let loading = false;
+        let editingId = null;
+        let editModal;
 
-        $(() => {
-
-            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search by category name or division...", {
-                dataSource: categoriesStore,
-                remoteOperations: true,
-
-                editing: {
-                    mode: "popup",
-                    allowUpdating: true,
-                    allowAdding: true,
-                    allowDeleting: true,
-                    useIcons: true,
-                    texts: { confirmDeleteMessage: "Delete this category? You can only delete categories that are inactive and unused." },
-                    popup: {
-                        title: "Edit Category",
-                        showTitle: true,
-                        width: 450,
-                        height: "auto",
-                        position: { my: "center", at: "center", of: window },
-                        dragEnabled: true,
-                        hideOnOutsideClick: true
-                    },
-                    form: {
-                        labelLocation: "top",
-                        colCount: 1,
-                        items: [
-                            {
-                                itemType: "group",
-                                caption: "Category Information",
-                                items: [
-                                    {
-                                        dataField: "name",
-                                        label: { text: "Category Name" },
-                                        editorOptions: { placeholder: "Enter category name..." },
-                                        validationRules: [{ type: "required", message: "Name is required" }]
-                                    },
-                                    {
-                                        dataField: "divisionId",
-                                        label: { text: "Division" },
-                                        editorType: "dxSelectBox",
-                                        editorOptions: {
-                                            dataSource: dsDivisionsSelect,
-                                            displayExpr: "name",
-                                            valueExpr: "id",
-                                            showClearButton: true,
-                                            searchEnabled: true,
-                                            placeholder: "Select a division"
-                                        }
-                                    },
-                                    {
-                                        itemType: "empty"
-                                    },
-                                    {
-                                        dataField: "isActive",
-                                        editorType: "dxSwitch",
-                                        label: { text: "Status (Active)" },
-                                        editorOptions: {
-                                            switchedOnText: "Yes",
-                                            switchedOffText: "No"
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                },
-                columns: [
-                    {
-                        dataField: "id",
-                        caption: "ID",
-                        width: 70,
-                        alignment: "center",
-                        allowEditing: false,
-                        sortOrder: 'desc',
-                        cssClass: "text-muted"
-                    },
-                    {
-                        dataField: "name",
-                        caption: "Category Name",
-                        minWidth: 200,
-                        cellTemplate: function(container, options) {
-                            $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<i>").addClass("fas fa-layer-group").css({ color: "var(--accent-color)", opacity: ".75" }))
-                                .append(
-                                    $("<a>").attr("href", `${DETAIL_URL}?id=${options.row.data.id}`)
-                                        .addClass("fw-bold text-dark text-decoration-none")
-                                        .text(options.value)
-                                )
-                                .appendTo(container);
-                        }
-                    },
-                    {
-                        dataField: "divisionName",
-                        caption: "Division",
-                        width: 180,
-                        allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            const name = options.value;
-                            if (name) {
-                                $("<span>").addClass("tag-pill pill-info").text(name).appendTo(container);
-                            } else {
-                                $("<span>").addClass("text-muted fst-italic").text("—").appendTo(container);
-                            }
-                        }
-                    },
-                    {
-                        dataField: "courseCount",
-                        caption: "Courses",
-                        width: 120,
-                        alignment: "center",
-                        allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            const count = options.value || 0;
-                            if (count === 0) {
-                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
-                            } else {
-                                $("<span>").addClass("tag-pill pill-success")
-                                    .text(count + " course" + (count > 1 ? "s" : "")).appendTo(container);
-                            }
-                        }
-                    },
-                    {
-                        dataField: "isActive",
-                        caption: "Status",
-                        width: 130,
-                        alignment: "center",
-                        lookup: {
-                            dataSource: [{ id: true, name: 'Active' }, { id: false, name: 'Inactive' }],
-                            displayExpr: 'name', valueExpr: 'id'
-                        },
-                        cellTemplate: function(container, options) {
-                            if (options.value) {
-                                $("<span>").addClass("tag-pill pill-success")
-                                    .html('<i class="fas fa-check me-1"></i> Active')
-                                    .appendTo(container);
-                            } else {
-                                $("<span>").addClass("tag-pill pill-default")
-                                    .html('<i class="fas fa-times me-1"></i> Inactive')
-                                    .appendTo(container);
-                            }
-                        }
-                    },
-                    {
-                        type: "buttons",
-                                caption: "Quick Actions",
-                        width: 130,
-                        alignment: "center",
-                        fixed: true,
-                        fixedPosition: "right",
-                        buttons: [
-                            {
-                                hint: "Open Category Details",
-                                icon: "fas fa-eye",
-                                onClick: function(e) {
-                                    window.location.href = `${DETAIL_URL}?id=${e.row.data.id}`;
-                                }
-                            },
-                            "edit",
-                            {
-                                name: "delete",
-                                visible: function(e) {
-                                    return e.row.data.isActive === false && (e.row.data.courseCount || 0) === 0;
-                                }
-                            }
-                        ]
-                    }
-                ],
-            }));
-        });
-
-        function addNewCategory() {
-            if (gridInstance) gridInstance.addRow();
+        function escHtml(str) {
+            return window.escapeAdminHtml ? window.escapeAdminHtml(str) : $('<span>').text(str).html();
         }
 
+        // ── Build row ──
+        function buildRow(d) {
+            const courseCount = d.courseCount || 0;
+            const coursePill = courseCount === 0
+                ? '<span class="tag-pill pill-default">None</span>'
+                : `<span class="tag-pill pill-success">${courseCount} course${courseCount > 1 ? "s" : ""}</span>`;
+
+            const statusPill = d.isActive
+                ? '<span class="tag-pill pill-success"><i class="fas fa-check me-1"></i> Active</span>'
+                : '<span class="tag-pill pill-default"><i class="fas fa-times me-1"></i> Inactive</span>';
+
+            const divisionHtml = d.divisionName
+                ? `<span class="tag-pill pill-info">${escHtml(d.divisionName)}</span>`
+                : `<span class="text-muted fst-italic">${EMPTY_TEXT}</span>`;
+
+            const canDelete = !d.isActive && courseCount === 0;
+            let actions = `<button class="btn btn-sm btn-link p-0 me-2 view-btn" title="Open Category Details" data-id="${d.id}"><i class="fas fa-eye" style="color:var(--brand-color)"></i></button>`;
+            actions += `<button class="btn btn-sm btn-link p-0 me-2 edit-btn" title="Edit Category" data-id="${d.id}" data-name="${escHtml(d.name)}" data-division="${d.divisionId || ''}" data-active="${d.isActive}"><i class="fas fa-pencil-alt" style="color:var(--text-secondary)"></i></button>`;
+            if (canDelete) {
+                actions += `<button class="btn btn-sm btn-link p-0 delete-btn" title="Delete Category" data-id="${d.id}" data-name="${escHtml(d.name)}"><i class="fas fa-trash" style="color:var(--danger-color)"></i></button>`;
+            }
+
+            return `<tr data-id="${d.id}">
+                <td class="text-center text-muted">${d.id}</td>
+                <td><div class="d-flex align-items-center gap-2"><i class="fas fa-layer-group" style="color:var(--accent-color);opacity:.75"></i><a href="${DETAIL_URL}?id=${d.id}" class="fw-bold text-dark text-decoration-none">${escHtml(d.name)}</a></div></td>
+                <td>${divisionHtml}</td>
+                <td class="text-center">${coursePill}</td>
+                <td class="text-center">${statusPill}</td>
+                <td class="text-center">${actions}</td>
+            </tr>`;
+        }
+
+        // ── Render table ──
+        function renderTable(data) {
+            const $body = $("#table-body");
+            const $empty = $("#empty-state");
+            if (!data.length) {
+                $body.empty();
+                $empty.removeClass("d-none");
+            } else {
+                $empty.addClass("d-none");
+                $body.html(data.map(buildRow).join(""));
+            }
+        }
+
+        function totalPages() { return Math.max(1, Math.ceil(totalCount / PAGE_SIZE)); }
+
+        function renderPagination() {
+            const pages = totalPages();
+            const start = (currentPage - 1) * PAGE_SIZE + 1;
+            const end = Math.min(currentPage * PAGE_SIZE, totalCount);
+            $("#page-info").text(totalCount > 0 ? `${start}\u2013${end} of ${totalCount}` : "No results");
+            $("#btn-prev").prop("disabled", currentPage <= 1);
+            $("#btn-next").prop("disabled", currentPage >= pages);
+            const $nums = $("#page-numbers").empty();
+            let from = Math.max(1, currentPage - 2);
+            let to = Math.min(pages, from + 4);
+            from = Math.max(1, to - 4);
+            for (let i = from; i <= to; i++) {
+                $nums.append(`<button class="page-btn${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`);
+            }
+        }
+
+        // ── Sort icons ──
+        function updateSortIcons() {
+            $(".sortable .sort-icon").removeClass("fa-sort-up fa-sort-down").addClass("fa-sort");
+            $(".sortable").removeClass("active");
+            const $active = $(`.sortable[data-sort="${sortBy}"]`);
+            $active.addClass("active");
+            $active.find(".sort-icon").removeClass("fa-sort").addClass(sortDesc ? "fa-sort-down" : "fa-sort-up");
+        }
+
+        // ── Load data (server-side) ──
+        function loadCategories() {
+            if (loading) return;
+            loading = true;
+            $("#table-body").css("opacity", "0.5");
+
+            $.ajax({
+                url: `${CATEGORIES_API_URL}/GetPaged`,
+                method: "GET",
+                data: {
+                    page: currentPage,
+                    pageSize: PAGE_SIZE,
+                    search: searchText || null,
+                    sortBy: sortBy,
+                    sortDescending: sortDesc
+                },
+                xhrFields: { withCredentials: true }
+            }).done(function (res) {
+                totalCount = res.totalCount || 0;
+                renderTable(res.data || []);
+                renderPagination();
+            }).fail(function () {
+                showToast("Couldn't load categories. Please refresh and try again.", "error");
+                renderTable([]);
+                totalCount = 0;
+                renderPagination();
+            }).always(function () {
+                loading = false;
+                $("#table-body").css("opacity", "1");
+            });
+        }
+
+        function loadDivisions() {
+            $.ajax({
+                url: DIVISIONS_API_URL,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            }).done(function (res) {
+                allDivisions = Array.isArray(res) ? res : (res.data || []);
+                const $sel = $("#edit-division");
+                $sel.find("option:not(:first)").remove();
+                allDivisions.forEach(d => {
+                    $sel.append(`<option value="${d.id}">${escHtml(d.name)}</option>`);
+                });
+            });
+        }
+
+        // ── Modal ──
+        function openAddModal() {
+            editingId = null;
+            $("#editModalTitle").text("Create Category");
+            $("#edit-name").val("").removeClass("is-invalid");
+            $("#edit-division").val("");
+            $("#edit-active").prop("checked", true);
+            editModal.show();
+        }
+
+        function openEditModal(id, name, divisionId, isActive) {
+            editingId = id;
+            $("#editModalTitle").text("Edit Category");
+            $("#edit-name").val(name).removeClass("is-invalid");
+            $("#edit-division").val(divisionId || "");
+            $("#edit-active").prop("checked", isActive === true || isActive === "true");
+            editModal.show();
+        }
+
+        function saveCategory() {
+            const name = $("#edit-name").val().trim();
+            if (!name) {
+                $("#edit-name").addClass("is-invalid");
+                return;
+            }
+            const divVal = $("#edit-division").val();
+            const divisionId = divVal ? parseInt(divVal) : null;
+            const isActive = $("#edit-active").is(":checked");
+            const payload = { name, divisionId, isActive };
+
+            if (editingId) {
+                $.ajax({
+                    url: `${CATEGORIES_API_URL}/Put`,
+                    method: "PUT",
+                    data: { key: editingId, values: JSON.stringify(payload) },
+                    xhrFields: { withCredentials: true }
+                }).done(function () {
+                    editModal.hide();
+                    showToast("Category updated.", "success");
+                    loadCategories();
+                }).fail(function (err) {
+                    showToast(getApiErrorMessage(err, "Couldn't update category."), "error");
+                });
+            } else {
+                $.ajax({
+                    url: `${CATEGORIES_API_URL}/Post`,
+                    method: "POST",
+                    data: { values: JSON.stringify(payload) },
+                    xhrFields: { withCredentials: true }
+                }).done(function () {
+                    editModal.hide();
+                    showToast("Category created.", "success");
+                    loadCategories();
+                }).fail(function (err) {
+                    showToast(getApiErrorMessage(err, "Couldn't create category."), "error");
+                });
+            }
+        }
+
+        function deleteCategory(id, name) {
+            DevExpress.ui.dialog.confirm(
+                `Delete category "<b>${escHtml(name)}</b>"? You can only delete categories that are inactive and unused.`,
+                "Delete Category"
+            ).then(function (confirmed) {
+                if (!confirmed) return;
+                $.ajax({
+                    url: `${CATEGORIES_API_URL}/Delete`,
+                    method: "DELETE",
+                    data: { key: id },
+                    xhrFields: { withCredentials: true }
+                }).done(function () {
+                    showToast("Category deleted.", "success");
+                    loadCategories();
+                }).fail(function (err) {
+                    showToast(getApiErrorMessage(err, "Couldn't delete category."), "error");
+                });
+            });
+        }
+
+        // ── Init ──
+        $(() => {
+            editModal = new bootstrap.Modal(document.getElementById("editModal"));
+            loadDivisions();
+            loadCategories();
+            updateSortIcons();
+
+            // Sort
+            $(".sortable").on("click", function () {
+                const col = $(this).data("sort");
+                if (sortBy === col) sortDesc = !sortDesc;
+                else { sortBy = col; sortDesc = true; }
+                currentPage = 1;
+                updateSortIcons();
+                loadCategories();
+            });
+
+            // Search (debounced)
+            $("#search-input").on("input", function () {
+                clearTimeout(searchTimer);
+                const val = $(this).val().trim();
+                searchTimer = setTimeout(function () {
+                    searchText = val;
+                    currentPage = 1;
+                    loadCategories();
+                }, 300);
+            });
+
+            // Pagination
+            $("#btn-prev").on("click", function () { if (currentPage > 1) { currentPage--; loadCategories(); } });
+            $("#btn-next").on("click", function () { if (currentPage < totalPages()) { currentPage++; loadCategories(); } });
+            $("#page-numbers").on("click", ".page-btn", function () { currentPage = +$(this).data("page"); loadCategories(); });
+
+            // Row actions (delegated)
+            $("#table-body").on("click", ".view-btn", function (e) {
+                e.stopPropagation();
+                window.location.href = `${DETAIL_URL}?id=${$(this).data("id")}`;
+            });
+            $("#table-body").on("click", ".edit-btn", function (e) {
+                e.stopPropagation();
+                const $btn = $(this);
+                openEditModal(
+                    $btn.data("id"),
+                    $btn.data("name"),
+                    $btn.data("division"),
+                    $btn.data("active")
+                );
+            });
+            $("#table-body").on("click", ".delete-btn", function (e) {
+                e.stopPropagation();
+                const $btn = $(this);
+                deleteCategory($btn.data("id"), $btn.data("name"));
+            });
+            $("#table-body").on("dblclick", "tr[data-id]", function () {
+                window.location.href = `${DETAIL_URL}?id=${$(this).data("id")}`;
+            });
+
+            // Validate name on input
+            $("#edit-name").on("input", function () {
+                if ($(this).val().trim()) $(this).removeClass("is-invalid");
+            });
+        });
+
+        function addNewCategory() { openAddModal(); }
         window.addNewCategory = addNewCategory;
     </script>
 }

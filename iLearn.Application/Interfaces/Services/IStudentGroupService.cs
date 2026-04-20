@@ -7,6 +7,7 @@ namespace iLearn.Application.Interfaces.Services
     public interface IStudentGroupService
     {
         Task<List<StudentGroupDto>> GetAllAsync();
+        Task<PagedResult<StudentGroupDto>> GetPagedAsync(PaginationParams p);
         Task<StudentGroupDetailDto?> GetByIdAsync(int id);
         Task<StudentGroupDto> CreateAsync(CreateStudentGroupDto dto);
         Task UpdateAsync(int id, UpdateStudentGroupDto dto);

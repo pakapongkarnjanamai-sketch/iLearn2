@@ -1,6 +1,7 @@
 using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using iLearn.API.Services;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -94,6 +95,55 @@ namespace iLearn.API.Controllers.Base
             }
 
             return Ok(loadResult);
+        }
+
+        [HttpGet("GetPaged")]
+        public async Task<IActionResult> GetPaged([FromQuery] PaginationParams p)
+        {
+            IQueryable<Category> query = _repository.GetQuery()
+                .Include(c => c.Division)
+                .AsNoTracking();
+
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
+
+            if (!string.IsNullOrWhiteSpace(p.Search))
+            {
+                var term = p.Search.Trim().ToLower();
+                query = query.Where(c =>
+                    c.Name.ToLower().Contains(term) ||
+                    (c.Division != null && c.Division.Name.ToLower().Contains(term)));
+            }
+
+            query = (p.SortBy?.ToLower(), p.SortDescending) switch
+            {
+                ("name",     true)  => query.OrderByDescending(c => c.Name),
+                ("name",     false) => query.OrderBy(c => c.Name),
+                ("isactive", true)  => query.OrderByDescending(c => c.IsActive),
+                ("isactive", false) => query.OrderBy(c => c.IsActive),
+                (_,          false) => query.OrderBy(c => c.Id),
+                _                   => query.OrderByDescending(c => c.Id),
+            };
+
+            var totalCount = await query.CountAsync();
+            var page = Math.Max(1, p.Page);
+            var pageSize = Math.Clamp(p.PageSize, 1, 100);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    c.DivisionId,
+                    divisionName = c.Division != null ? c.Division.Name : null,
+                    c.IsActive,
+                    courseCount = c.Courses.Count()
+                })
+                .ToListAsync();
+
+            return Ok(new { totalCount, data = items });
         }
 
         [HttpGet("GetSummaryStats")]
