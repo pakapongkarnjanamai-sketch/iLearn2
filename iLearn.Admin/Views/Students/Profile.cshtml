@@ -20,10 +20,19 @@
             font-family: var(--font-stack);
             background: var(--surface-base);
             color: var(--text-primary);
-            font-size: var(--font-size-md);
+            font-size: var(--text-body-size);
+            line-height: var(--text-body-line-height);
+            font-kerning: normal;
             padding-top: 50px;
             height: auto;
             overflow: auto;
+        }
+
+        #report-content {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding-left: clamp(12px, 2vw, 24px);
+            padding-right: clamp(12px, 2vw, 24px);
         }
 
         /* ── Toolbar ── */
@@ -31,7 +40,7 @@
             position: fixed;
             top: 0; left: 0; right: 0;
             z-index: 999;
-            background: var(--surface-base);
+            background: color-mix(in srgb, var(--surface-brand-subtle) 28%, var(--surface-base));
             border-bottom: 1px solid var(--border-color);
             padding: var(--space-sm) var(--space-2xl);
         }
@@ -40,17 +49,172 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);
             padding: var(--space-2xs) var(--space-lg);
-            font-size: var(--font-size-sm);
+            min-height: 2.5rem;
+            font-size: var(--text-secondary-size);
             font-weight: 500;
+            line-height: 1.2;
             cursor: pointer;
             background: var(--surface-base);
             color: var(--text-secondary);
-            transition: 0.2s;
+            transition: background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                        color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                        border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .toolbar-btn:hover {
-            background: var(--bg-light);
+            background: color-mix(in srgb, var(--surface-brand-subtle) 44%, var(--surface-base));
+            border-color: color-mix(in srgb, var(--brand-color) 32%, var(--border-color));
+            color: var(--brand-dark);
+        }
+
+        .toolbar-btn:focus-visible {
+            outline: 2px solid color-mix(in srgb, var(--brand-color) 70%, var(--surface-base));
+            outline-offset: 1px;
+            border-color: color-mix(in srgb, var(--brand-color) 40%, var(--border-color));
+            color: var(--brand-dark);
+        }
+
+        .toolbar-btn:active {
+            background: color-mix(in srgb, var(--surface-brand-subtle) 52%, var(--surface-base));
+            border-color: color-mix(in srgb, var(--brand-color) 36%, var(--border-color));
+        }
+
+        .toolbar-btn:disabled,
+        .toolbar-btn[aria-disabled="true"] {
+            opacity: 0.55;
+            cursor: not-allowed;
+            color: var(--text-muted);
+            background: var(--surface-subtle);
+        }
+
+        .toolbar .fw-bold {
+            font-size: var(--text-subheading-size) !important;
+            line-height: var(--text-subheading-line-height);
+        }
+
+        .report-top-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+            gap: clamp(16px, 2.2vw, 28px);
+            margin-bottom: clamp(28px, 4vw, 44px);
+        }
+
+        .report-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid color-mix(in srgb, var(--brand-color) 18%, var(--border-color));
+            padding-bottom: 8px;
+        }
+
+        .section-title {
+            font-size: var(--text-subheading-size);
+            font-weight: 700;
+            color: var(--brand-dark);
+            line-height: var(--text-subheading-line-height);
+            letter-spacing: 0.01em;
+            margin: 0;
+        }
+
+        .profile-card,
+        .summary-card,
+        .history-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--surface-base);
+        }
+
+        .profile-card {
+            background: color-mix(in srgb, var(--surface-brand-subtle) 36%, var(--surface-base));
+            border-color: color-mix(in srgb, var(--brand-color) 20%, var(--border-color));
+        }
+
+        .summary-card {
+            background: linear-gradient(
+                180deg,
+                color-mix(in srgb, var(--surface-info-subtle) 72%, var(--surface-base)) 0%,
+                var(--surface-base) 100%
+            );
+            border-color: color-mix(in srgb, var(--brand-color) 14%, var(--border-color));
+        }
+
+        .history-card {
+            background: color-mix(in srgb, var(--surface-subtle) 70%, var(--surface-base));
+        }
+
+        .profile-card,
+        .summary-card {
+            padding: clamp(14px, 1.8vw, 22px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-block {
+            background: var(--surface-base);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 10px 8px;
+        }
+
+        .stat-block--total {
+            border-color: color-mix(in srgb, var(--brand-color) 22%, var(--border-color));
+            background: color-mix(in srgb, var(--surface-brand-subtle) 40%, var(--surface-base));
+        }
+
+        .stat-block--completed {
+            border-color: var(--border-success);
+            background: var(--surface-success-subtle);
+        }
+
+        .stat-block--inprogress {
+            border-color: var(--border-warning);
+            background: var(--surface-warning-subtle);
+        }
+
+        .stat-block--overdue {
+            border-color: var(--border-danger);
+            background: var(--surface-danger-subtle);
+        }
+
+        .stat-block--cancelled {
+            border-color: var(--border-strong);
+            background: var(--surface-subtle);
+        }
+
+        .stat-block--total .stat-num { color: var(--brand-dark); }
+        .stat-block--completed .stat-num { color: var(--success-color); }
+        .stat-block--inprogress .stat-num { color: var(--warning-color); }
+        .stat-block--overdue .stat-num { color: var(--danger-color); }
+        .stat-block--cancelled .stat-num { color: var(--text-secondary); }
+
+        .history-card {
+            overflow: auto;
+        }
+
+        .history-table {
+            min-width: 930px;
+        }
+
+        .profile-name {
+            font-size: var(--text-heading-size);
+            font-weight: 700;
+            line-height: var(--text-heading-line-height);
             color: var(--text-primary);
+            max-width: 26ch;
         }
 
         /* ── Profile Avatar ── */
@@ -72,31 +236,38 @@
             align-items: center;
             gap: 8px;
             padding: 6px 0;
-            font-size: 12px;
+            font-size: var(--text-secondary-size);
+            line-height: var(--text-secondary-line-height);
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border-color);
         }
 
         .info-row:last-child { border-bottom: none; }
-        .info-row i { width: 16px; text-align: center; color: var(--text-secondary); opacity: 0.6; }
+        .info-row i { width: 16px; text-align: center; color: var(--brand-mid); opacity: 0.9; }
         .info-row .info-label { min-width: 70px; font-weight: 500; }
         .info-row .info-value { font-weight: 600; color: var(--text-primary); }
 
         /* ── Table ── */
         .table {
-            font-size: 12px;
+            font-size: var(--font-size-grid-cell);
+            line-height: 1.45;
             border-color: var(--border-color) !important;
             margin-bottom: 0;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: var(--font-feature-data);
         }
 
         .table th {
-            background: var(--bg-light);
+            background: color-mix(in srgb, var(--surface-brand-subtle) 46%, var(--surface-subtle));
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--brand-dark);
+            font-size: var(--font-size-grid-header);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
         }
 
         .table-hover tbody tr:hover {
-            background-color: var(--bg-light);
+            background-color: color-mix(in srgb, var(--surface-brand-subtle) 40%, var(--surface-base));
         }
 
         /* ── Progress Bar ── */
@@ -129,8 +300,38 @@
 
         /* ── KPI Stat Block ── */
         .stat-block { text-align: center; }
-        .stat-block .stat-num { font-size: 22px; font-weight: 700; line-height: 1.2; }
-        .stat-block .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .stat-block .stat-num { font-size: 1.5rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: var(--font-feature-data); }
+        .stat-block .stat-label { font-size: var(--text-caption-size); line-height: var(--text-caption-line-height); color: var(--text-secondary); margin-top: 2px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+        @@media (max-width: 991.98px) {
+            .report-top-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 767.98px) {
+            .toolbar {
+                padding: var(--space-sm) var(--space-md);
+            }
+
+            .toolbar .toolbar-btn {
+                min-height: 2.75rem;
+            }
+
+            .section-head {
+                flex-wrap: wrap;
+            }
+
+            .history-table {
+                min-width: 860px;
+            }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .toolbar-btn {
+                transition: none;
+            }
+        }
 
         /* ── Print ── */
         @@media print {
@@ -169,9 +370,6 @@
     <script src="~/js/devextreme/dx.all.js"></script>
     <script src="~/src/devextreme-license.js"></script>
     <script src="~/js/admin-layout.js"></script>
-    <script src="~/lib/html2canvas/html2canvas.min.js"></script>
-    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
-    <script src="~/js/devextreme/filesaver.min.js"></script>
     <script>
         const STUDENT_CODE = '@studentCode';
         const serviceUrl = "@apiBaseUrl";
@@ -282,22 +480,21 @@
 
             // Inject layout
             document.getElementById("report-content").innerHTML = `
-                <div class="row g-4 mb-5">
+                <div class="report-top-grid">
 
-                    <!-- ── Student Info (Left) ── -->
-                    <div class="col-md-4">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                            <h2 class="fs-6 fw-bold m-0 text-dark">Student Information</h2>
+                    <section class="report-section">
+                        <div class="section-head">
+                            <h2 class="section-title">Student Information</h2>
                             <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportProfileImage()">
                                 <i class="fas fa-download"></i> Save Image
                             </button>
                         </div>
 
-                        <div id="export-target" class="bg-white p-4 border rounded">
+                        <div id="export-target" class="profile-card">
                             <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
                                 <div class="profile-avatar">${initial}</div>
                                 <div>
-                                    <div class="fw-bold text-dark" style="font-size:16px;">${esc(d.name || d.code)}</div>
+                                    <div class="profile-name">${esc(d.name || d.code)}</div>
                                     <div class="text-muted u-fs-12">
                                         ${[d.division, d.department, d.section].filter(Boolean).map(v => esc(v)).join(" · ") || "—"}
                                     </div>
@@ -305,59 +502,56 @@
                             </div>
                             ${infoItems}
                         </div>
-                    </div>
+                    </section>
 
-                    <!-- ── Completion Summary (Right) ── -->
-                    <div class="col-md-8">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                            <h2 class="fs-6 fw-bold m-0 text-dark">Completion Summary</h2>
+                    <section class="report-section">
+                        <div class="section-head">
+                            <h2 class="section-title">Completion Summary</h2>
                         </div>
 
-                        <div class="border rounded bg-white p-4">
-                            <!-- KPI Stats -->
-                            <div class="d-flex justify-content-around text-center border-bottom pb-4 mb-4">
-                                <div class="stat-block">
+                        <div class="summary-card">
+                            <div class="stats-grid text-center">
+                                <div class="stat-block stat-block--total">
                                     <div class="stat-num">${k.totalCourses}</div>
                                     <div class="stat-label">Total</div>
                                 </div>
-                                <div class="stat-block">
-                                    <div class="stat-num" style="color:var(--success-color);">${k.completedCourses}</div>
+                                <div class="stat-block stat-block--completed">
+                                    <div class="stat-num">${k.completedCourses}</div>
                                     <div class="stat-label">Completed</div>
                                 </div>
-                                <div class="stat-block">
-                                    <div class="stat-num" style="color:var(--warning-color);">${k.inProgressCourses}</div>
+                                <div class="stat-block stat-block--inprogress">
+                                    <div class="stat-num">${k.inProgressCourses}</div>
                                     <div class="stat-label">In Progress</div>
                                 </div>
                                 <div class="stat-block">
                                     <div class="stat-num">${notStarted}</div>
                                     <div class="stat-label">Not Started</div>
                                 </div>
-                                <div class="stat-block">
-                                    <div class="stat-num" style="color:var(--danger-color);">${overdue}</div>
+                                <div class="stat-block stat-block--overdue">
+                                    <div class="stat-num">${overdue}</div>
                                     <div class="stat-label">Overdue</div>
                                 </div>
-                                ${cancelled > 0 ? `<div class="stat-block">
-                                    <div class="stat-num text-secondary">${cancelled}</div>
+                                ${cancelled > 0 ? `<div class="stat-block stat-block--cancelled">
+                                    <div class="stat-num">${cancelled}</div>
                                     <div class="stat-label">Cancelled</div>
                                 </div>` : ""}
                             </div>
 
-                            <!-- Pie Chart -->
                             <div id="profile-pie-chart" style="height:220px;"></div>
                         </div>
-                    </div>
+                    </section>
                 </div>
 
-                <!-- ── Learning History ── -->
-                <div class="mb-5">
-                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                        <h2 class="fs-6 fw-bold m-0 text-dark">Learning History</h2>
+                <section class="report-section mb-5">
+                    <div class="section-head">
+                        <h2 class="section-title">Learning History</h2>
                         <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportToExcel()">
                             <i class="fas fa-file-excel"></i> Export
                         </button>
                     </div>
-                    <div class="border rounded overflow-hidden bg-white">
-                        <table class="table table-hover m-0">
+
+                    <div class="history-card">
+                        <table class="table table-hover m-0 history-table">
                             <thead>
                                 <tr>
                                     <th>Code</th>
@@ -376,7 +570,7 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
             `;
 
             // Render Pie Chart
@@ -442,8 +636,9 @@
             row.eachCell(cell => cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } });
         }
 
-        function exportToExcel() {
+        async function exportToExcel() {
             if (!_profileData) return;
+            await window.ensureExportDependencies();
             const d = _profileData;
             const wb = new ExcelJS.Workbook();
             const now = new Date();
@@ -501,16 +696,18 @@
         }
 
         // ─── Export Summary Image ───
-        function exportProfileImage() {
+        async function exportProfileImage() {
             const target = document.getElementById("export-target");
-            html2canvas(target, { scale: 2, backgroundColor: window.getAdminExportBackgroundColor(), logging: false })
-                .then(canvas => {
-                    const link = document.createElement("a");
-                    link.download = `Student_Profile_${STUDENT_CODE}.png`;
-                    link.href = canvas.toDataURL("image/png");
-                    link.click();
-                })
-                .catch(() => alert("Could not save the image."));
+            try {
+                const html2canvasLib = await window.ensureHtml2Canvas();
+                const canvas = await html2canvasLib(target, { scale: 2, backgroundColor: window.getAdminExportBackgroundColor(), logging: false });
+                const link = document.createElement("a");
+                link.download = `Student_Profile_${STUDENT_CODE}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            } catch {
+                alert("Could not save the image.");
+            }
         }
     </script>
 </body>

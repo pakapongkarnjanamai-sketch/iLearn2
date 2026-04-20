@@ -218,7 +218,7 @@
     .course-table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 760px;
+        min-width: min(760px, 100%);
     }
 
     .course-table th,
@@ -280,6 +280,11 @@
     @@media (max-width: 767.98px) {
         .course-page-shell {
             padding-bottom: var(--course-page-bottom-padding-mobile) !important;
+        }
+
+        .course-table th,
+        .course-table td {
+            padding: 8px 10px;
         }
     }
 </style>
@@ -1362,11 +1367,11 @@ else
                 <table class="course-table">
                     <thead>
                         <tr>
-                            <th style="width: 72px;">Order</th>
+                            <th>Order</th>
                             <th>Content Name</th>
-                            <th style="width: 140px;">Source</th>
-                            <th style="width: 120px;">Type</th>
-                            <th style="width: 180px;">Status</th>
+                            <th>Source</th>
+                            <th>Type</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>

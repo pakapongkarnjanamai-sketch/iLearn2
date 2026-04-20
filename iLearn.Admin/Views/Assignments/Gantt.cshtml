@@ -23,34 +23,34 @@
     <!-- KPI Bar -->
     <div class="row g-2 mb-3" id="kpi-bar">
     <div class="col-6 col-md">
-        <div class="kpi-card kpi-all active" data-status="" onclick="filterByStatus(null, this)">
+        <button type="button" class="kpi-card kpi-all active" data-status="" aria-pressed="true" onclick="filterByStatus(null, this)">
             <div class="kpi-label">All</div>
             <div class="kpi-number" id="kpi-all">&mdash;</div>
-        </div>
+        </button>
     </div>
     <div class="col-6 col-md">
-        <div class="kpi-card kpi-inprogress" data-status="InProgress" onclick="filterByStatus('InProgress', this)">
+        <button type="button" class="kpi-card kpi-inprogress" data-status="InProgress" aria-pressed="false" onclick="filterByStatus('InProgress', this)">
             <div class="kpi-label">In Progress</div>
             <div class="kpi-number" id="kpi-inprogress">&mdash;</div>
-        </div>
+        </button>
     </div>
     <div class="col-6 col-md">
-        <div class="kpi-card kpi-upcoming" data-status="Upcoming" onclick="filterByStatus('Upcoming', this)">
+        <button type="button" class="kpi-card kpi-upcoming" data-status="Upcoming" aria-pressed="false" onclick="filterByStatus('Upcoming', this)">
             <div class="kpi-label">Upcoming</div>
             <div class="kpi-number" id="kpi-upcoming">&mdash;</div>
-        </div>
+        </button>
     </div>
     <div class="col-6 col-md">
-        <div class="kpi-card kpi-expired" data-status="Expired" onclick="filterByStatus('Expired', this)">
+        <button type="button" class="kpi-card kpi-expired" data-status="Expired" aria-pressed="false" onclick="filterByStatus('Expired', this)">
             <div class="kpi-label">Expired</div>
             <div class="kpi-number" id="kpi-expired">&mdash;</div>
-        </div>
+        </button>
     </div>
     <div class="col-6 col-md">
-        <div class="kpi-card kpi-completed" data-status="Completed" onclick="filterByStatus('Completed', this)">
+        <button type="button" class="kpi-card kpi-completed" data-status="Completed" aria-pressed="false" onclick="filterByStatus('Completed', this)">
             <div class="kpi-label">Completed</div>
             <div class="kpi-number" id="kpi-completed">&mdash;</div>
-        </div>
+        </button>
     </div>
 </div>
 
@@ -157,8 +157,8 @@
         /* ── filter ───────────────────────────────────── */
         window.filterByStatus = function (status, el) {
             currentFilter = status;
-            $(".kpi-card").removeClass("active");
-            $(el).addClass("active");
+            $(".kpi-card").removeClass("active").attr("aria-pressed", "false");
+            $(el).addClass("active").attr("aria-pressed", "true");
             filteredTasks = status ? allTasks.filter(t => t.status === status) : [...allTasks];
             render();
         };

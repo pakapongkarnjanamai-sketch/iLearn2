@@ -366,32 +366,34 @@
             styleHeaderRow(ws);
         }
 
-        function exportCourseOverview() {
+        async function exportCourseOverview() {
+            await window.ensureExportDependencies();
             var wb = new ExcelJS.Workbook();
             addCourseOverviewSheet(wb);
             saveWorkbook(wb, getExportFileName('CategoryCourses'));
         }
 
-        function exportAllToExcel() {
+        async function exportAllToExcel() {
+            await window.ensureExportDependencies();
             var wb = new ExcelJS.Workbook();
             addSummarySheet(wb);
             addCourseOverviewSheet(wb);
             saveWorkbook(wb, getExportFileName('CategoryReport'));
         }
 
-        function exportSummaryImage() {
+        async function exportSummaryImage() {
             const target = document.getElementById("export-target");
-            const exportBg = window.getAdminExportBackgroundColor();
-            html2canvas(target, { scale: 2, backgroundColor: exportBg, logging: false })
-                .then(function(canvas) {
-                    const link = document.createElement("a");
-                    link.download = `Category_Summary_${CATEGORY_ID}.png`;
-                    link.href = canvas.toDataURL("image/png");
-                    link.click();
-                })
-                .catch(function() {
-                    alert("Could not save the image.");
-                });
+            try {
+                const html2canvasLib = await window.ensureHtml2Canvas();
+                const exportBg = window.getAdminExportBackgroundColor();
+                const canvas = await html2canvasLib(target, { scale: 2, backgroundColor: exportBg, logging: false });
+                const link = document.createElement("a");
+                link.download = `Category_Summary_${CATEGORY_ID}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            } catch {
+                alert("Could not save the image.");
+            }
         }
     </script>
 }

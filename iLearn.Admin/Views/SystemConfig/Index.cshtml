@@ -329,6 +329,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
+        table-layout: fixed;
     }
     .config-table th,
     .config-table td {
@@ -336,6 +337,7 @@
         border-bottom: 1px solid var(--border-color);
         vertical-align: top;
         line-height: 1.5;
+        word-break: break-word;
     }
     .config-table tr:last-child td {
         border-bottom: none;
@@ -351,8 +353,9 @@
     }
     .config-key {
         color: var(--text-secondary);
-        width: 170px;
-        white-space: nowrap;
+        width: 32%;
+        min-width: 130px;
+        white-space: normal;
         font-weight: 500;
         background: var(--surface-subtle); /* Minimal sidebar feel */
         border-right: 1px solid var(--border-color);
@@ -388,6 +391,18 @@
         color: var(--brand-color) !important; 
         background: var(--surface-brand-subtle);
         border-color: var(--border-brand);
+    }
+
+    @@media (max-width: 767.98px) {
+        .config-table th,
+        .config-table td {
+            padding: 8px 10px;
+        }
+
+        .config-key {
+            width: 40%;
+            min-width: 100px;
+        }
     }
 
 </style>

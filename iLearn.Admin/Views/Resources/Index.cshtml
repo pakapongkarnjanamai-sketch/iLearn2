@@ -13,13 +13,13 @@
     </div>
     <div class="d-flex gap-2">
    
-            <a href="javascript:void(0);" class="action-link" onclick="openOptimizePopup()">
+            <button type="button" class="action-link" onclick="openOptimizePopup()">
                 <i class="fas fa-magic text-secondary"></i> Optimize
-            </a>
+            </button>
     
-        <a href="javascript:void(0);" class="action-link primary" onclick="openUploadPopup()">
+        <button type="button" class="action-link primary" onclick="openUploadPopup()">
             <i class="fas fa-cloud-upload-alt"></i> Upload Resource
-        </a>
+        </button>
     </div>
 </div>
 
@@ -81,9 +81,9 @@
                 <div id="filterAssignment"></div>
             </div>
             <div class="col-auto ms-auto">
-                <a href="javascript:void(0);" class="action-link action-link-sm" id="btnClearFilters">
+                <button type="button" class="action-link action-link-sm" id="btnClearFilters">
                     <i class="fas fa-times"></i> Clear Filters
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -707,9 +707,9 @@
                                 </div>
 
                                 <div class="d-flex justify-content-end mb-3">
-                                    <a href="javascript:void(0);" class="action-link" id="btnUnpublishAllPublished">
+                                    <button type="button" class="action-link" id="btnUnpublishAllPublished">
                                         <i class="fas fa-box-archive text-secondary"></i> Unpublish All Published
-                                    </a>
+                                    </button>
                                 </div>
 
                                 <div class="d-flex gap-2 mb-3" id="opt-summary">
@@ -731,9 +731,9 @@
                                     <div class="optimize-section-title u-text-danger">
                                         <i class="fas fa-box-archive me-1"></i> Unused Published Resources
                                     </div>
-                                    <a href="javascript:void(0);" class="action-link action-link-sm" id="btnBulkUnpublish">
+                                    <button type="button" class="action-link action-link-sm" id="btnBulkUnpublish">
                                         <i class="fas fa-box-archive"></i> Unpublish Selected
-                                    </a>
+                                    </button>
                                 </div>
                                 <div id="unusedGrid" class="mb-4"></div>
 
@@ -741,9 +741,9 @@
                                     <div class="optimize-section-title u-text-success">
                                         <i class="fas fa-upload me-1"></i> Draft Resources Needed by Active Courses
                                     </div>
-                                    <a href="javascript:void(0);" class="action-link primary action-link-sm" id="btnBulkPublish">
+                                    <button type="button" class="action-link primary action-link-sm" id="btnBulkPublish">
                                         <i class="fas fa-upload"></i> Publish Selected
-                                    </a>
+                                    </button>
                                 </div>
                                 <div id="shouldPublishGrid"></div>
                             </div>

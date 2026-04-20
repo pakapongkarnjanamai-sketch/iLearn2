@@ -16,7 +16,9 @@
         '/js/devextreme/dx-exceljs-fork.min.js',
         '/js/devextreme/filesaver.min.js'
     ];
+    const html2CanvasScriptPath = '/lib/html2canvas/html2canvas.min.js';
     let exportDependenciesPromise = null;
+    let html2CanvasPromise = null;
     const adminDialogDefaults = {
         dragEnabled: false,
         closeOnOutsideClick: false
@@ -740,6 +742,31 @@
         return exportDependenciesPromise;
     }
 
+    function ensureHtml2Canvas() {
+        if (window.html2canvas) {
+            return Promise.resolve(window.html2canvas);
+        }
+
+        if (html2CanvasPromise) {
+            return html2CanvasPromise;
+        }
+
+        html2CanvasPromise = loadScriptOnce(html2CanvasScriptPath)
+            .then(function () {
+                if (!window.html2canvas) {
+                    throw new Error('html2canvas is unavailable after loading script.');
+                }
+
+                return window.html2canvas;
+            })
+            .catch(function (error) {
+                html2CanvasPromise = null;
+                throw error;
+            });
+
+        return html2CanvasPromise;
+    }
+
     function exportComponentToWorkbook(exporter, component, fileName, worksheetName, options) {
         return ensureExportDependencies().then(function () {
             const workbook = new ExcelJS.Workbook();
@@ -1000,17 +1027,6 @@
         const displayTime = duration || defaultToastDisplayTime;
         const icon = toastIconMap[toastType] || toastIconMap.info;
 
-        // Log toast details to console
-        console.log('[showToast]', {
-            message: message,
-            type: type,
-            duration: duration,
-            resolvedType: toastType,
-            displayTime: displayTime,
-            icon: icon,
-            position: toastPosition
-        });
-
         DevExpress.ui.notify({
             type: toastType,
             height: 45,
@@ -1172,6 +1188,7 @@
     window.ADMIN_DATETIME_DISPLAY_FORMAT = adminDateTimeDisplayFormat;
     window.ADMIN_NUMBER_LOCALE = adminNumberLocale;
     window.createDataStore = createDataStore;
+    window.ensureExportDependencies = ensureExportDependencies;
     window.handleExporting = handleExporting;
     window.handlePivotExporting = handlePivotExporting;
     window.dxGridDefaults = dxGridDefaults;
@@ -1188,6 +1205,7 @@
     window.createAdminDialogController = createAdminDialogController;
     window.showAdminConfirmDialog = showAdminConfirmDialog;
     window.showToast = showToast;
+    window.ensureHtml2Canvas = ensureHtml2Canvas;
     window.showStatSkeleton = showStatSkeleton;
     window.hideStatSkeleton = hideStatSkeleton;
     window.showCardsSkeleton = showCardsSkeleton;

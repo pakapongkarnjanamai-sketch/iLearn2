@@ -446,12 +446,33 @@
             styleHeaderRow(ws);
         }
 
-        function exportCourseOverview()  { if (!_reportData) return; const wb = new ExcelJS.Workbook(); addCourseOverviewSheet(wb);  saveWorkbook(wb, getExportFileName('Course_Overview')); }
-        function exportPivotMatrix()     { if (!_reportData) return; const wb = new ExcelJS.Workbook(); addMatrixSheet(wb);          saveWorkbook(wb, getExportFileName('Student_Course_Matrix')); }
-        function exportStudentTracking() { if (!_reportData) return; const wb = new ExcelJS.Workbook(); addStudentTrackingSheet(wb); saveWorkbook(wb, getExportFileName('Student_Tracking')); }
-
-        function exportAllToExcel() {
+        async function exportCourseOverview()  {
             if (!_reportData) return;
+            await window.ensureExportDependencies();
+            const wb = new ExcelJS.Workbook();
+            addCourseOverviewSheet(wb);
+            saveWorkbook(wb, getExportFileName('Course_Overview'));
+        }
+
+        async function exportPivotMatrix() {
+            if (!_reportData) return;
+            await window.ensureExportDependencies();
+            const wb = new ExcelJS.Workbook();
+            addMatrixSheet(wb);
+            saveWorkbook(wb, getExportFileName('Student_Course_Matrix'));
+        }
+
+        async function exportStudentTracking() {
+            if (!_reportData) return;
+            await window.ensureExportDependencies();
+            const wb = new ExcelJS.Workbook();
+            addStudentTrackingSheet(wb);
+            saveWorkbook(wb, getExportFileName('Student_Tracking'));
+        }
+
+        async function exportAllToExcel() {
+            if (!_reportData) return;
+            await window.ensureExportDependencies();
             const wb = new ExcelJS.Workbook();
             addCourseOverviewSheet(wb);
             addMatrixSheet(wb);
@@ -460,21 +481,23 @@
         }
 
         // ─── Export Summary Image ───
-        function exportSummaryImage() {
+        async function exportSummaryImage() {
             const targetDiv = document.getElementById("export-target");
-            html2canvas(targetDiv, {
-                scale: 2,
-                backgroundColor: window.getAdminExportBackgroundColor(),
-                logging: false
-            }).then(canvas => {
+            try {
+                const html2canvasLib = await window.ensureHtml2Canvas();
+                const canvas = await html2canvasLib(targetDiv, {
+                    scale: 2,
+                    backgroundColor: window.getAdminExportBackgroundColor(),
+                    logging: false
+                });
                 const link = document.createElement("a");
                 link.download = `Assignment_Summary_${ASSIGNMENT_ID}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-            }).catch(err => {
+            } catch (err) {
                 console.error("Error generating image:", err);
                 alert("Could not save the image. Please try again.");
-            });
+            }
         }
     </script>
 }

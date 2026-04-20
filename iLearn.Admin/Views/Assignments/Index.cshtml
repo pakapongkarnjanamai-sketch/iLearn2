@@ -18,39 +18,39 @@
     </div>
 </div>
 
-<div class="container-fluid page-shell-lg px-4 py-3 pb-4 d-flex flex-column gap-3">
+<div class="container page-shell-lg px-4 py-3 pb-4 d-flex flex-column gap-3">
 
     <!-- ── KPI Bar ── -->
     <div class="row g-2" id="kpi-bar">
         <div class="col-6 col-md">
-            <div class="kpi-card active" onclick="filterByStatus(null, this)">
+            <button type="button" class="kpi-card active" aria-pressed="true" onclick="filterByStatus(null, this)">
                 <div class="kpi-label">All</div>
                 <div class="kpi-number" id="kpi-all">—</div>
-            </div>
+            </button>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card" onclick="filterByStatus('InProgress', this)">
+            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('InProgress', this)">
                 <div class="kpi-label">In Progress</div>
                 <div class="kpi-number" id="kpi-inprogress">—</div>
-            </div>
+            </button>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card" onclick="filterByStatus('Upcoming', this)">
+            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('Upcoming', this)">
                 <div class="kpi-label">Upcoming</div>
                 <div class="kpi-number" id="kpi-upcoming">—</div>
-            </div>
+            </button>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card" onclick="filterByStatus('Expired', this)">
+            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('Expired', this)">
                 <div class="kpi-label">Expired</div>
                 <div class="kpi-number" id="kpi-expired">—</div>
-            </div>
+            </button>
         </div>
         <div class="col-6 col-md">
-            <div class="kpi-card" onclick="filterByStatus('Completed', this)">
+            <button type="button" class="kpi-card" aria-pressed="false" onclick="filterByStatus('Completed', this)">
                 <div class="kpi-label">Completed</div>
                 <div class="kpi-number" id="kpi-completed">—</div>
-            </div>
+            </button>
         </div>
     </div>
 
@@ -94,8 +94,8 @@
         }
 
         function updateActiveKpiCard(element) {
-            $(".kpi-card").removeClass("active");
-            $(element).addClass("active");
+            $(".kpi-card").removeClass("active").attr("aria-pressed", "false");
+            $(element).addClass("active").attr("aria-pressed", "true");
         }
 
         function calculateStudentCount(data) {
