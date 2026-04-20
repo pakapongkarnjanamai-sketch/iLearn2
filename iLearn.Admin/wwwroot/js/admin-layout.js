@@ -441,6 +441,37 @@
         container.appendChild(svg);
     }
 
+    function createAdminChartCenterTemplateCallback(options) {
+        const settings = options || {};
+
+        return function (container, size) {
+            window.appendAdminCenterTemplateText(container, {
+                labelText: settings.labelText || '',
+                valueText: settings.valueText || '',
+                labelY: settings.labelY,
+                valueY: settings.valueY,
+                styles: settings.styles
+            });
+        };
+    }
+
+    function createAdminPieChartConfig(options) {
+        const config = options || {};
+        const palettePreset = config.palettePreset || 'status3';
+        const baseChartConfig = config.baseConfig || {};
+
+        return $.extend(true, {}, baseChartConfig, {
+            palette: getAdminChartPalette(palettePreset),
+            centerTemplate: createAdminChartCenterTemplateCallback({
+                labelText: config.centerLabel || '',
+                valueText: config.centerValue || '',
+                labelY: config.centerLabelY,
+                valueY: config.centerValueY,
+                styles: config.centerStyles
+            })
+        });
+    }
+
     function getDataGridInstance(element) {
         if (!element) {
             return null;
@@ -1074,4 +1105,6 @@
     window.getAdminChartPalette = getAdminChartPalette;
     window.getAdminExportBackgroundColor = getAdminExportBackgroundColor;
     window.appendAdminCenterTemplateText = appendAdminCenterTemplateText;
+    window.createAdminChartCenterTemplateCallback = createAdminChartCenterTemplateCallback;
+    window.createAdminPieChartConfig = createAdminPieChartConfig;
 })(window, window.jQuery);

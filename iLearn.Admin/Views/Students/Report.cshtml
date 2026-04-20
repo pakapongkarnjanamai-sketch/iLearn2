@@ -279,37 +279,38 @@
             `;
 
             // Render Pie Chart
-            $("#profile-pie-chart").dxPieChart({
-                type: "doughnut", innerRadius: 0.65,
-                palette: window.getAdminChartPalette("status4"),
-                dataSource: [
-                    { status: "Completed",   count: k.completedCourses },
-                    { status: "In Progress", count: k.inProgressCourses },
-                    { status: "Not Started", count: notStarted - overdue },
-                    { status: "Overdue",     count: overdue }
-                ].filter(i => i.count > 0),
-                centerTemplate: function(pieChart, container) {
-                    window.appendAdminCenterTemplateText(container, {
-                        labelText: 'Completion',
-                        valueText: completionPct + '%'
-                    });
-                },
-                series: [{
-                    argumentField: "status", valueField: "count",
-                    label: {
-                        visible: true,
-                        position: "outside",
-                        customizeText: p => `${p.valueText} (${p.percentText})`,
-                        font: { size: 11, color: "var(--text-secondary)" },
-                        connector: { visible: true, width: 1 }
+            $("#profile-pie-chart").dxPieChart(
+                window.createAdminPieChartConfig({
+                    palettePreset: "status4",
+                    centerLabel: 'Completion',
+                    centerValue: completionPct + '%',
+                    baseConfig: {
+                        type: "doughnut",
+                        innerRadius: 0.65,
+                        dataSource: [
+                            { status: "Completed",   count: k.completedCourses },
+                            { status: "In Progress", count: k.inProgressCourses },
+                            { status: "Not Started", count: notStarted - overdue },
+                            { status: "Overdue",     count: overdue }
+                        ].filter(i => i.count > 0),
+                        series: [{
+                            argumentField: "status", valueField: "count",
+                            label: {
+                                visible: true,
+                                position: "outside",
+                                customizeText: p => `${p.valueText} (${p.percentText})`,
+                                font: { size: 11, color: "var(--text-secondary)" },
+                                connector: { visible: true, width: 1 }
+                            }
+                        }],
+                        legend: {
+                            horizontalAlignment: "right", verticalAlignment: "center",
+                            margin: 0, font: { size: 12, color: "var(--text-secondary)" }
+                        },
+                        tooltip: { enabled: true }
                     }
-                }],
-                legend: {
-                    horizontalAlignment: "right", verticalAlignment: "center",
-                    margin: 0, font: { size: 12, color: "var(--text-secondary)" }
-                },
-                tooltip: { enabled: true }
-            });
+                })
+            );
         }
 
         // ─── Excel Export ───

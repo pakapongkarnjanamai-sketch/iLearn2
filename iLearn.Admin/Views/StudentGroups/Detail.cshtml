@@ -551,44 +551,44 @@
         const avgCompletion = total > 0
             ? Math.round(assignments.reduce(function(sum, a) { return sum + (a.completionPct || 0); }, 0) / total)
             : 0;
-        $("#status-pie-chart").dxPieChart({
-            type: "doughnut",
-            innerRadius: 0.65,
-            palette: window.getAdminChartPalette("status4Brand"),
-            dataSource: [
-                { status: "Completed", count: completed },
-                { status: "In Progress", count: inProgress },
-                { status: "Upcoming", count: upcoming },
-                { status: "Expired", count: expired }
-            ],
-            centerTemplate: function(pieChart, container) {
-                window.appendAdminCenterTemplateText(container, {
-                    labelText: 'Completion',
-                    valueText: window.formatAdminPercentage(avgCompletion, '0%')
-                });
-            },
-            series: [{
-                argumentField: "status",
-                valueField: "count",
-                label: {
-                    visible: true,
-                    position: "outside",
-                    connector: { visible: true },
-                    format: { type: "fixedPoint", precision: 0 },
-                    font: { size: 11, color: "var(--text-secondary)" },
-                    customizeText: function(point) {
-                        return point.value > 0 ? `${point.valueText} (${point.percentText})` : "";
-                    }
+        $("#status-pie-chart").dxPieChart(
+            window.createAdminPieChartConfig({
+                palettePreset: "status4Brand",
+                centerLabel: 'Completion',
+                centerValue: window.formatAdminPercentage(avgCompletion, '0%'),
+                baseConfig: {
+                    type: "doughnut",
+                    innerRadius: 0.65,
+                    dataSource: [
+                        { status: "Completed", count: completed },
+                        { status: "In Progress", count: inProgress },
+                        { status: "Upcoming", count: upcoming },
+                        { status: "Expired", count: expired }
+                    ],
+                    series: [{
+                        argumentField: "status",
+                        valueField: "count",
+                        label: {
+                            visible: true,
+                            position: "outside",
+                            connector: { visible: true },
+                            format: { type: "fixedPoint", precision: 0 },
+                            font: { size: 11, color: "var(--text-secondary)" },
+                            customizeText: function(point) {
+                                return point.value > 0 ? `${point.valueText} (${point.percentText})` : "";
+                            }
+                        }
+                    }],
+                    legend: {
+                        horizontalAlignment: "right",
+                        verticalAlignment: "bottom",
+                        margin: 12,
+                        font: { size: 11, color: "var(--text-secondary)" }
+                    },
+                    tooltip: { enabled: true }
                 }
-            }],
-            legend: {
-                horizontalAlignment: "right",
-                verticalAlignment: "bottom",
-                margin: 12,
-                font: { size: 11, color: "var(--text-secondary)" }
-            },
-            tooltip: { enabled: true }
-        });
+            })
+        );
     }
 
     function appendText(container, text, styles) {

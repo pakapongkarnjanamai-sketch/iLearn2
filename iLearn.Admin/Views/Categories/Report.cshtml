@@ -266,34 +266,38 @@
                 + '</div>';
 
             // Render Donut Chart
-            $("#report-pie-chart").dxPieChart({
-                type: "doughnut",
-                innerRadius: 0.7,
-                palette: window.getAdminChartPalette("status3"),
-                dataSource: [
-                    { status: "Completed",   count: s.completedEnrollments },
-                    { status: "In Progress", count: s.inProgressEnrollments },
-                    { status: "Not Started", count: s.notStartedEnrollments }
-                ],
-                series: [{
-                    argumentField: "status",
-                    valueField: "count",
-                    label: {
-                        visible: true,
-                        position: "outside",
-                        customizeText: function(p) { return p.valueText + " (" + p.percentText + ")"; },
-                        font: { size: 11, color: "var(--text-secondary)" },
-                        connector: { visible: true, width: 1 }
+            $("#report-pie-chart").dxPieChart(
+                window.createAdminPieChartConfig({
+                    palettePreset: "status3",
+                    baseConfig: {
+                        type: "doughnut",
+                        innerRadius: 0.7,
+                        dataSource: [
+                            { status: "Completed",   count: s.completedEnrollments },
+                            { status: "In Progress", count: s.inProgressEnrollments },
+                            { status: "Not Started", count: s.notStartedEnrollments }
+                        ],
+                        series: [{
+                            argumentField: "status",
+                            valueField: "count",
+                            label: {
+                                visible: true,
+                                position: "outside",
+                                customizeText: function(p) { return p.valueText + " (" + p.percentText + ")"; },
+                                font: { size: 11, color: "var(--text-secondary)" },
+                                connector: { visible: true, width: 1 }
+                            }
+                        }],
+                        legend: {
+                            horizontalAlignment: "right",
+                            verticalAlignment: "center",
+                            margin: 0,
+                            font: { size: 12, color: "var(--text-secondary)" }
+                        },
+                        tooltip: { enabled: true }
                     }
-                }],
-                legend: {
-                    horizontalAlignment: "right",
-                    verticalAlignment: "center",
-                    margin: 0,
-                    font: { size: 12, color: "var(--text-secondary)" }
-                },
-                tooltip: { enabled: true }
-            });
+                })
+            );
         }
 
         // ─── Excel Export Helpers ───
