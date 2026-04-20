@@ -16,7 +16,7 @@
     /* ✅ Deleted course banner */
     .deleted-course-banner {
         background: var(--surface-danger-subtle);
-        border: 1px solid var(--border-danger-medium);
+        border: 1px solid var(--border-danger);
         border-radius: var(--radius-sm);
         padding: 8px 12px;
         font-size: 12px;
@@ -553,12 +553,26 @@
 
             loadPanel.hide();
         } catch (error) {
+            console.error('[initializeDashboard] API Error:', {
+                status: error?.status,
+                statusText: error?.statusText,
+                responseText: error?.responseText,
+                responseJSON: error?.responseJSON,
+                message: error?.message,
+                name: error?.name,
+                stack: error?.stack,
+                url: ASSIGNMENT_DASHBOARD_URL,
+                assignmentId: ASSIGNMENT_ID
+            });
+
             if (error?.status === 404) {
                 showToast("Assignment no longer exists. Redirecting...", "info", 2000);
                 window.setTimeout(() => window.location.href = ASSIGNMENT_INDEX_URL, 1500);
                 return;
             }
-            showApiError("Error loading dashboard data.");
+
+            const errorMsg = window.getApiErrorMessage(error, "Error loading dashboard data.");
+            showApiError(errorMsg);
         }
     }
 
@@ -614,6 +628,7 @@
     }
 
     function initializeStatusChart(chartData, completionRate) {
+        const safeChartData = chartData || {};
         const rate = completionRate ?? 0;
         $("#status-pie-chart").dxPieChart(
             window.createAdminPieChartConfig({
@@ -624,9 +639,9 @@
                     type: "doughnut",
                     innerRadius: 0.65,
                     dataSource: [
-                        { status: "Completed", count: chartData.completed ?? 0 },
-                        { status: "In Progress", count: chartData.inProgress ?? 0 },
-                        { status: "Not Started", count: chartData.notStarted ?? 0 }
+                        { status: "Completed", count: safeChartData.completed ?? 0 },
+                        { status: "In Progress", count: safeChartData.inProgress ?? 0 },
+                        { status: "Not Started", count: safeChartData.notStarted ?? 0 }
                     ],
                     series: [{
                         argumentField: "status",
@@ -685,7 +700,7 @@
         const percent = getCourseCompletionPercent(course);
         const remaining = course.totalStudents - course.completedStudents;
         const leftColor = course.isCourseDeleted
-            ? "var(--border-danger-medium)"
+            ? "var(--border-danger)"
             : getProgressColor(percent);
         const deletedBadge = course.isCourseDeleted
             ? `<span class="tag-pill tag-pill-xs pill-danger ms-1"><i class="fas fa-ban me-1"></i>Deleted</span>`

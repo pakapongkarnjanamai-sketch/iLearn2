@@ -438,7 +438,24 @@
 
         svg.appendChild(label);
         svg.appendChild(value);
-        container.appendChild(svg);
+
+        // DevExtreme may provide an SVG renderer wrapper instead of a raw DOM node.
+        const hostElement = container && container.nodeType
+            ? container
+            : container && container.jquery
+                ? container.get(0)
+                : container && container[0] && container[0].nodeType
+                    ? container[0]
+                    : null;
+
+        if (hostElement && typeof hostElement.appendChild === 'function') {
+            hostElement.appendChild(svg);
+            return;
+        }
+
+        if (container && typeof container.append === 'function') {
+            container.append(svg);
+        }
     }
 
     function createAdminChartCenterTemplateCallback(options) {
@@ -907,6 +924,17 @@
         const toastType = type || 'info';
         const displayTime = duration || defaultToastDisplayTime;
         const icon = toastIconMap[toastType] || toastIconMap.info;
+
+        // Log toast details to console
+        console.log('[showToast]', {
+            message: message,
+            type: type,
+            duration: duration,
+            resolvedType: toastType,
+            displayTime: displayTime,
+            icon: icon,
+            position: toastPosition
+        });
 
         DevExpress.ui.notify({
             type: toastType,

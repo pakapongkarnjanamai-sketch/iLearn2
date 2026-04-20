@@ -435,9 +435,19 @@
             setActionPanelState(false);
             membersGrid.option("dataSource", members);
             loadAssignmentHistory();
-        } catch {
+        } catch (error) {
+            console.error('[loadGroupDetail] API Error:', {
+                status: error?.status,
+                statusText: error?.statusText,
+                responseText: error?.responseText,
+                responseJSON: error?.responseJSON,
+                url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                groupId: GROUP_ID
+            });
+
             setActionPanelState(true);
-            showToast("Error loading group detail.", "error");
+            const errorMsg = getApiErrorMessage(error, "Error loading group detail.");
+            showToast(errorMsg, "error");
         }
     }
 
@@ -522,8 +532,17 @@
             assignmentGrid.option("dataSource", data);
 
             updateAssignmentStats(data);
-        } catch {
-            showToast("Error loading assignment history.", "error");
+        } catch (error) {
+            console.error('[loadAssignmentHistory] API Error:', {
+                status: error?.status,
+                statusText: error?.statusText,
+                responseText: error?.responseText,
+                responseJSON: error?.responseJSON,
+                url: `${ASSIGNMENTS_API_URL}/group/${GROUP_ID}/history`,
+                groupId: GROUP_ID
+            });
+
+            showToast(getApiErrorMessage(error, "Error loading assignment history."), "error");
         }
     }
 

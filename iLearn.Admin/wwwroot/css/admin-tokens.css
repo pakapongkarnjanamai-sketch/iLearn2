@@ -10,9 +10,9 @@
     --color-brand-500: #0050b3;
     --color-brand-600: #003a8c;
     --color-brand-400: #1677ff;
-   --color-brand-300: #2f54eb;
+    --color-brand-300: #2f54eb;
     --color-brand-100: #e6f4ff;
-   --color-brand-050: #f0f5ff;
+    --color-brand-050: #f0f5ff;
 
     --color-success-500: #52c41a;
     --color-success-600: #389e0d;
@@ -20,32 +20,32 @@
     --color-success-200: #b7eb8f;
 
     --color-warning-500: #faad14;
-   --color-warning-600: #d48806;
+    --color-warning-600: #d48806;
     --color-warning-100: #fff7e6;
-   --color-warning-050: #fffbe6;
+    --color-warning-050: #fffbe6;
     --color-warning-200: #ffe58f;
-   --color-warning-300: #ffd591;
+    --color-warning-300: #ffd591;
 
     --color-danger-500: #ff4d4f;
     --color-danger-100: #fff1f0;
-   --color-danger-050: #fff2f0;
+    --color-danger-050: #fff2f0;
     --color-danger-200: #ffccc7;
-   --color-danger-300: #ffa39e;
+    --color-danger-300: #ffa39e;
 
-   --color-purple-500: #722ed1;
-   --color-purple-700: #531dab;
-   --color-purple-100: #f9f0ff;
-   --color-purple-200: #d3adf7;
+    --color-purple-500: #722ed1;
+    --color-purple-700: #531dab;
+    --color-purple-100: #f9f0ff;
+    --color-purple-200: #d3adf7;
 
     --color-neutral-0: #fff;
     --color-neutral-50: #fafafa;
     --color-neutral-100: #f0f0f0;
     --color-neutral-300: #d9d9d9;
-   --color-neutral-500: #8c8c8c;
-   --color-neutral-600: #666;
+    --color-neutral-500: #8c8c8c;
+    --color-neutral-600: #666;
     --color-neutral-700: #595959;
     --color-neutral-900: #262626;
-   --color-neutral-950: #1a1a2e;
+    --color-neutral-950: #1a1a2e;
 
     --color-info-100: #f4f8ff;
     --color-info-200: #91caff;
@@ -56,33 +56,26 @@
     --surface-base: var(--color-neutral-0);
     --surface-subtle: var(--color-neutral-50);
     --surface-brand-subtle: var(--color-brand-100);
-   --surface-brand-soft: #e8f0fe;
-   --surface-brand-tint: var(--color-brand-050);
     --surface-info-subtle: var(--color-info-100);
     --surface-success-subtle: var(--color-success-100);
-   --surface-warning-subtle: var(--color-warning-100);
-   --surface-warning-soft: var(--color-warning-050);
-   --surface-danger-subtle: var(--color-danger-050);
-   --surface-purple-subtle: var(--color-purple-100);
-   --surface-gold-soft: var(--color-warning-050);
+    --surface-warning-subtle: var(--color-warning-100);
+    --surface-danger-subtle: var(--color-danger-050);
+    --surface-purple-subtle: var(--color-purple-100);
 
     --text-primary: var(--color-neutral-900);
     --text-secondary: var(--color-neutral-700);
     --text-inverse: var(--color-neutral-0);
-   --text-tertiary: var(--color-neutral-500);
-   --text-muted: var(--color-neutral-600);
-   --text-disabled: #bfbfbf;
-   --text-warning-strong: #ad6800;
+    --text-tertiary: var(--color-neutral-500);
+    --text-muted: var(--color-neutral-600);
+    --text-disabled: #bfbfbf;
 
     --border-color: var(--color-neutral-100);
     --border-strong: var(--color-neutral-300);
-    --border-brand-soft: var(--color-info-200);
-    --border-success-soft: var(--color-success-200);
-    --border-warning-soft: var(--color-warning-200);
-    --border-danger-soft: var(--color-danger-200);
-   --border-danger-medium: var(--color-danger-300);
-   --border-purple-soft: var(--color-purple-200);
-   --border-gold-soft: var(--color-warning-200);
+    --border-brand: var(--color-info-200);
+    --border-success: var(--color-success-200);
+    --border-warning: var(--color-warning-200);
+    --border-danger: var(--color-danger-200);
+    --border-purple: var(--color-purple-200);
 
     --brand-color: var(--color-brand-500);
     --brand-dark: var(--color-brand-600);
@@ -94,19 +87,13 @@
     --warning-color: var(--color-warning-500);
     --danger-color: var(--color-danger-500);
     --bg-light: var(--surface-subtle);
-   --accent-purple: var(--color-purple-500);
-   --accent-purple-strong: var(--color-purple-700);
-   --accent-warning-strong: var(--color-warning-600);
-   --accent-brand-deep: var(--color-brand-300);
-   --accent-gold-bg: #ffd700;
-   --accent-gold-text: #000;
 
-   --overlay-inverse-12: rgba(255, 255, 255, 0.12);
-   --overlay-inverse-20: rgba(255, 255, 255, 0.2);
-   --overlay-inverse-80: rgba(255, 255, 255, 0.8);
-   --overlay-inverse-90: rgba(255, 255, 255, 0.9);
-   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08);
-   --shadow-overlay: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --overlay-inverse-12: rgba(255, 255, 255, 0.12);
+    --overlay-inverse-20: rgba(255, 255, 255, 0.2);
+    --overlay-inverse-80: rgba(255, 255, 255, 0.8);
+    --overlay-inverse-90: rgba(255, 255, 255, 0.9);
+    --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-overlay: 0 2px 8px rgba(0, 0, 0, 0.12);
 
     /* -------------------------------------------------------------
        3. Typography
@@ -153,35 +140,13 @@
     --space-6xl: 96px;
 
     /* -------------------------------------------------------------
-       6. Component Spacing Tokens
+       6. Component Layout Tokens
        ------------------------------------------------------------- */
-    --panel-padding-y: var(--space-md);
-    --panel-padding-x: var(--space-lg);
-    --panel-padding-compact: var(--space-md);
-    --panel-gap: var(--space-md);
-    --panel-gap-tight: var(--space-sm);
-    --stack-gap-sm: var(--space-md);
-    --stack-gap-md: var(--space-xl);
-
-    --grid-header-spacing-x: var(--space-lg);
-    --grid-header-spacing-y: var(--space-md);
-    --grid-header-spacing-compact-x: var(--space-md);
-    --grid-header-spacing-compact-y: var(--space-sm);
-    --grid-toolbar-spacing-x: var(--space-lg);
-    --grid-toolbar-spacing-y: var(--space-sm);
-    --grid-toolbar-spacing-compact-x: var(--space-md);
-    --grid-toolbar-spacing-compact-y: var(--space-xs);
-    --grid-pager-spacing-x: var(--space-lg);
-    --grid-pager-spacing-y: var(--space-sm);
-    --grid-pager-spacing-compact-x: var(--space-md);
-    --grid-pager-spacing-compact-y: var(--space-xs);
-
     --grid-row-height: 34px;
     --grid-header-row-height: 38px;
-
-   --layout-navbar-height: 48px;
-   --layout-header-padding-y: 11px;
-   --layout-header-padding-x: 24px;
+    --layout-navbar-height: 48px;
+    --layout-header-padding-y: 11px;
+    --layout-header-padding-x: 24px;
 
     /* -------------------------------------------------------------
        7. State Tokens
@@ -189,6 +154,6 @@
     --state-step-active-bg: var(--surface-info-subtle);
     --state-step-active-border: var(--primary-color);
     --state-step-complete-bg: var(--surface-success-subtle);
-    --state-step-complete-border: var(--border-success-soft);
+    --state-step-complete-border: var(--border-success);
     --state-empty-icon: var(--color-neutral-300);
 }

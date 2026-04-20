@@ -267,7 +267,7 @@ img[loading="lazy"] {
 }
 
 .u-text-warning-strong {
-    color: var(--text-warning-strong) !important;
+    color: #ad6800 !important;
 }
 
 .u-text-accent {
@@ -287,7 +287,7 @@ img[loading="lazy"] {
 }
 
 .u-text-purple {
-    color: var(--accent-purple) !important;
+    color: var(--color-purple-500) !important;
 }
 
 .u-text-secondary-60 {
@@ -418,7 +418,7 @@ img[loading="lazy"] {
 }
 
 .u-progress-track-warning {
-    background: var(--border-warning-soft) !important;
+    background: var(--border-warning) !important;
 }
 
 .u-progress-fill-warning {
@@ -443,7 +443,7 @@ img[loading="lazy"] {
 }
 
 .qa-icon-warning {
-    --qa-icon-bg: var(--surface-warning-soft);
+    --qa-icon-bg: var(--surface-warning-subtle);
     --qa-icon-color: var(--warning-color);
 }
 
@@ -459,7 +459,7 @@ img[loading="lazy"] {
 
 .qa-icon-purple {
     --qa-icon-bg: var(--surface-purple-subtle);
-    --qa-icon-color: var(--accent-purple);
+    --qa-icon-color: var(--color-purple-500);
 }
 
 .qa-icon-muted {
@@ -469,15 +469,15 @@ img[loading="lazy"] {
 
 .maintenance-card {
     background: var(--surface-base);
-    border: 1px solid var(--border-warning-soft) !important;
+    border: 1px solid var(--border-warning) !important;
 }
 
 .optimize-banner {
-    background: var(--surface-warning-soft);
+    background: var(--surface-warning-subtle);
 }
 
 .optimize-banner-icon {
-    color: var(--accent-warning-strong);
+    color: var(--color-warning-600);
     font-size: 18px;
 }
 
@@ -490,7 +490,7 @@ img[loading="lazy"] {
 }
 
 .optimize-summary-card-accent {
-    background: var(--surface-brand-tint);
+    background: var(--surface-brand-subtle);
 }
 
 .optimize-summary-label {
@@ -593,7 +593,7 @@ img[loading="lazy"] {
 .admin-profile-avatar-lg {
     width: 36px;
     height: 36px;
-    background: var(--surface-brand-soft);
+    background: var(--surface-brand-subtle);
 }
 
 .admin-profile-avatar-icon {
@@ -655,14 +655,14 @@ img[loading="lazy"] {
 }
 
 .admin-role-pill {
-    background: var(--surface-brand-soft);
+    background: var(--surface-brand-subtle);
     color: var(--brand-color);
     font-size: 0.68rem;
 }
 
 .admin-role-pill-highlight {
-    background: var(--accent-gold-bg);
-    color: var(--accent-gold-text);
+    background: #ffd700;
+    color: #000;
 }
 
 .admin-role-pill-icon {
@@ -670,14 +670,14 @@ img[loading="lazy"] {
 }
 
 .admin-division-pill {
-    background: var(--surface-brand-tint);
-    color: var(--accent-brand-deep);
+    background: var(--surface-brand-subtle);
+    color: var(--color-brand-300);
     font-size: 0.68rem;
 }
 
 .admin-division-pill-global {
-    background: var(--surface-warning-soft);
-    color: var(--accent-warning-strong);
+    background: var(--surface-warning-subtle);
+    color: var(--color-warning-600);
 }
 
 .admin-refresh-link {
@@ -944,7 +944,7 @@ main > .container {
 .tag-pill.green {
     background: var(--surface-success-subtle);
     color: var(--success-color);
-    border-color: var(--border-success-soft);
+    border-color: var(--border-success);
 }
 
 .pill-info,
@@ -953,16 +953,16 @@ main > .container {
 .tag-pill.blue {
     background: var(--surface-brand-subtle);
     color: var(--brand-color);
-    border-color: var(--border-brand-soft);
+    border-color: var(--border-brand);
 }
 
 .pill-warning,
 .status-pill.warning,
 .tag-pill.warning,
 .tag-pill.yellow {
-    background: var(--surface-warning-soft);
+    background: var(--surface-warning-subtle);
     color: var(--warning-color);
-    border-color: var(--border-warning-soft);
+    border-color: var(--border-warning);
 }
 
 .pill-danger,
@@ -971,7 +971,7 @@ main > .container {
 .tag-pill.red {
     background: var(--surface-danger-subtle);
     color: var(--danger-color);
-    border-color: var(--border-danger-soft);
+    border-color: var(--border-danger);
 }
 
 .pill-default,
@@ -985,27 +985,27 @@ main > .container {
 .pill-purple,
 .tag-pill.purple {
     background: var(--surface-purple-subtle);
-    color: var(--accent-purple-strong);
-    border-color: var(--border-purple-soft);
+    color: var(--color-purple-700);
+    border-color: var(--border-purple);
 }
 
 .pill-alert,
 .tag-pill.alert {
     background: var(--surface-warning-subtle);
-    color: var(--accent-warning-strong);
+    color: var(--color-warning-600);
     border-color: var(--color-warning-300);
 }
 
 .pill-learn {
     background: var(--surface-brand-subtle);
     color: var(--brand-color);
-    border-color: var(--border-brand-soft);
+    border-color: var(--border-brand);
 }
 
 .pill-exam {
-    background: var(--surface-warning-soft);
+    background: var(--surface-warning-subtle);
     color: var(--warning-color);
-    border-color: var(--border-warning-soft);
+    border-color: var(--border-warning);
 }
 
 .status-dot {
@@ -1035,7 +1035,7 @@ main > .container {
 
 .badge-inactive,
 .badge-pending {
-    background: var(--surface-warning-soft);
+    background: var(--surface-warning-subtle);
     color: var(--warning-color);
 }
 
@@ -1157,7 +1157,7 @@ main > .container {
 }
 
 .dash-stat-card.purple {
-    --dash-stat-color: var(--accent-purple-strong);
+    --dash-stat-color: var(--color-purple-700);
 }
 
 .dash-stat-card .ds-val {
@@ -1261,7 +1261,7 @@ main > .container {
 }
 
 .kpi-card.kpi-purple {
-    border-left-color: var(--accent-purple);
+    border-left-color: var(--color-purple-500);
 }
 
 .kpi-card.kpi-all .kpi-label,
@@ -1299,7 +1299,7 @@ main > .container {
 
 .kpi-card.kpi-purple .kpi-label,
 .kpi-card.kpi-purple .kpi-number {
-    color: var(--accent-purple);
+    color: var(--color-purple-500);
 }
 
 .kpi-number {
@@ -1359,7 +1359,7 @@ main > .container {
     text-decoration: line-through;
     color: var(--danger-color);
     background: var(--surface-danger-subtle);
-    border-color: var(--border-danger-medium);
+    border-color: var(--border-danger);
 }
 .course-item-title {
     font-size: 12px;
@@ -1711,12 +1711,12 @@ iframe#scormFrame {
 }
 
 .admin-grid {
-    --grid-current-header-spacing-x: var(--grid-header-spacing-x);
-    --grid-current-header-spacing-y: var(--grid-header-spacing-y);
-    --grid-current-toolbar-spacing-x: var(--grid-toolbar-spacing-x);
-    --grid-current-toolbar-spacing-y: var(--grid-toolbar-spacing-y);
-    --grid-current-pager-spacing-x: var(--grid-pager-spacing-x);
-    --grid-current-pager-spacing-y: var(--grid-pager-spacing-y);
+    --grid-current-header-spacing-x: var(--space-lg);
+    --grid-current-header-spacing-y: var(--space-md);
+    --grid-current-toolbar-spacing-x: var(--space-lg);
+    --grid-current-toolbar-spacing-y: var(--space-sm);
+    --grid-current-pager-spacing-x: var(--space-lg);
+    --grid-current-pager-spacing-y: var(--space-sm);
     border-radius: 0;
     overflow: hidden;
     background: var(--surface-base);
@@ -1724,12 +1724,12 @@ iframe#scormFrame {
 
 .admin-grid--compact,
 .admin-grid--selection {
-    --grid-current-header-spacing-x: var(--grid-header-spacing-compact-x);
-    --grid-current-header-spacing-y: var(--grid-header-spacing-compact-y);
-    --grid-current-toolbar-spacing-x: var(--grid-toolbar-spacing-compact-x);
-    --grid-current-toolbar-spacing-y: var(--grid-toolbar-spacing-compact-y);
-    --grid-current-pager-spacing-x: var(--grid-pager-spacing-compact-x);
-    --grid-current-pager-spacing-y: var(--grid-pager-spacing-compact-y);
+    --grid-current-header-spacing-x: var(--space-md);
+    --grid-current-header-spacing-y: var(--space-sm);
+    --grid-current-toolbar-spacing-x: var(--space-md);
+    --grid-current-toolbar-spacing-y: var(--space-xs);
+    --grid-current-pager-spacing-x: var(--space-md);
+    --grid-current-pager-spacing-y: var(--space-xs);
 }
 
 .admin-grid .dx-datagrid-headers {
