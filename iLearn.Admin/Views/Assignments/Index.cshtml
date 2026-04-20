@@ -191,11 +191,11 @@
                 onExporting: (e) => handleExporting(e, 'Assignments_History'),
                 onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.data.status === "Expired") {
-                        $(e.rowElement).css("background-color", "#fff2f0");
+                        $(e.rowElement).css("background-color", "var(--surface-danger-subtle)");
                     }
 
                     if (e.rowType === "data" && e.data.status === "Completed") {
-                        $(e.rowElement).css("background-color", "#f6ffed");
+                        $(e.rowElement).css("background-color", "var(--surface-success-subtle)");
                     }
                 },
                 columns: [

@@ -333,7 +333,7 @@
     .config-table th,
     .config-table td {
         padding: 10px 12px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--border-color);
         vertical-align: top;
         line-height: 1.5;
     }
@@ -344,22 +344,22 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #8c8c8c;
+        color: var(--text-tertiary);
         font-weight: 600;
-        background: #fafafa;
-        border-bottom: 1px solid #f0f0f0;
+        background: var(--surface-subtle);
+        border-bottom: 1px solid var(--border-color);
     }
     .config-key {
-        color: #595959;
+        color: var(--text-secondary);
         width: 170px;
         white-space: nowrap;
         font-weight: 500;
-        background: #fafafa; /* Minimal sidebar feel */
-        border-right: 1px solid #f0f0f0;
+        background: var(--surface-subtle); /* Minimal sidebar feel */
+        border-right: 1px solid var(--border-color);
     }
     .config-computed {
         font-size: 10px;
-        color: #bfbfbf;
+        color: var(--text-disabled);
         font-style: italic;
         margin-left: 4px;
         font-weight: normal;
@@ -369,25 +369,25 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #8c8c8c;
+        color: var(--text-tertiary);
         margin-bottom: 8px;
         padding-left: 4px;
-        border-left: 3px solid #0050b3; /* Brand Primary */
+        border-left: 3px solid var(--brand-color); /* Brand Primary */
     }
     .config-table code {
         font-family: 'Consolas', 'Courier New', monospace;
         font-size: 12px;
-        color: #262626;
-        background: #fafafa;
+        color: var(--text-primary);
+        background: var(--surface-subtle);
         padding: 3px 6px;
-        border-radius: 4px;
-        border: 1px solid #d9d9d9;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-strong);
         word-break: break-all;
     }
     .config-table code.text-primary { 
-        color: #0050b3 !important; 
-        background: #e6f4ff;
-        border-color: #91caff;
+        color: var(--brand-color) !important; 
+        background: var(--surface-brand-subtle);
+        border-color: var(--border-brand-soft);
     }
 
 </style>

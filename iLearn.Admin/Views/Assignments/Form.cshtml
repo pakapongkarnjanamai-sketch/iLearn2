@@ -34,33 +34,33 @@
 
     .assign-step-card {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fff;
-        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-base);
+        padding: var(--space-md) var(--space-lg);
         transition: border-color 0.2s ease, background-color 0.2s ease;
     }
 
     .assign-step-card.active {
         border-color: var(--primary-color);
-        background: #f4f8ff;
+        background: var(--surface-info-subtle);
     }
 
     .assign-step-card.complete {
-        border-color: #b7eb8f;
-        background: #f6ffed;
+        border-color: var(--border-success-soft);
+        background: var(--surface-success-subtle);
     }
 
     .assign-step-index {
-        width: 24px;
-        height: 24px;
+        width: var(--space-2xl);
+        height: var(--space-2xl);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         border: 1px solid currentColor;
         font-size: 11px;
         font-weight: 700;
-        margin-right: 8px;
+        margin-right: var(--space-xs);
     }
 
     .assign-step-title {
@@ -82,16 +82,16 @@
     .assign-review-card,
     .assign-conflict-card {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fff;
-        padding: 12px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-base);
+        padding: var(--space-md);
     }
 
     .assign-meta-card {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fff;
-        padding: 12px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-base);
+        padding: var(--space-md);
     }
 
     /* ── Panels ── */
@@ -136,16 +136,16 @@
 
     .assign-filter-shell {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fafafa;
-        padding: 12px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-subtle);
+        padding: var(--space-md);
         height: 100%;
     }
 
     .assign-grid-shell {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fff;
+        border-radius: var(--radius-sm);
+        background: var(--surface-base);
         overflow: hidden;
     }
 
@@ -154,9 +154,9 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 10px 12px;
+        padding: var(--space-sm) var(--space-md);
         border-bottom: 1px solid var(--border-color);
-        background: #fafafa;
+        background: var(--surface-subtle);
     }
 
     .assign-grid-title {
@@ -174,9 +174,9 @@
 
     /* ── Inline ── */
     .assign-inline-actions {
-        padding: 10px 12px;
+        padding: var(--space-sm) var(--space-md);
         border-top: 1px solid var(--border-color);
-        background: #fff;
+        background: var(--surface-base);
     }
 
     /* ── Target Mode ── */
@@ -194,23 +194,23 @@
     }
 
     .target-mode-btn {
-        background: var(--bg-secondary, #fafafa);
-        border: 1px solid var(--border-color, #f0f0f0);
-        color: var(--text-secondary, #8c8c8c);
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
         font-size: 11px;
         font-weight: 500;
-        padding: 2px 10px;
+        padding: 2px var(--space-sm);
         transition: all 0.15s;
     }
 
     .target-mode-btn:hover {
-        border-color: var(--primary-color, #0050b3);
-        color: var(--primary-color, #0050b3);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
     }
 
     .target-mode-btn.active {
-        background: var(--primary-color, #0050b3);
-        color: #fff;
+        background: var(--primary-color);
+        color: var(--text-inverse);
     }
 
     /* ── Summary Grid (Review Step) ── */
@@ -222,9 +222,9 @@
 
     .assign-summary-item {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fafafa;
-        padding: 10px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-subtle);
+        padding: var(--space-sm);
     }
 
     .assign-summary-value {
@@ -251,9 +251,9 @@
 
     .assign-detail-item {
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: #fafafa;
-        padding: 10px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-subtle);
+        padding: var(--space-sm);
     }
 
     .assign-detail-label {

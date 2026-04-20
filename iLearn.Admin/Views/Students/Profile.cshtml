@@ -62,7 +62,7 @@
             font-size: 24px; font-weight: 700;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
-            border: 2px solid #fff;
+            border: 2px solid var(--surface-base);
             outline: 1px solid var(--border-color);
         }
 
@@ -121,11 +121,11 @@
         .status-active { color: var(--warning-color); }
         .status-active .status-dot { background: var(--warning-color); }
         .status-pending { color: var(--text-secondary); }
-        .status-pending .status-dot { background: #d9d9d9; }
+        .status-pending .status-dot { background: var(--border-strong); }
         .status-overdue { color: var(--danger-color); }
         .status-overdue .status-dot { background: var(--danger-color); }
         .status-cancelled { color: var(--text-secondary); opacity: 0.6; }
-        .status-cancelled .status-dot { background: #d9d9d9; }
+        .status-cancelled .status-dot { background: var(--border-strong); }
 
         /* ── KPI Stat Block ── */
         .stat-block { text-align: center; }
@@ -382,7 +382,7 @@
             // Render Pie Chart
             $("#profile-pie-chart").dxPieChart({
                 type: "doughnut", innerRadius: 0.65,
-                palette: ["#52c41a", "#faad14", "#d9d9d9", "#ff4d4f"],
+                palette: window.getAdminChartPalette("status4"),
                 dataSource: [
                     { status: "Completed",   count: k.completedCourses },
                     { status: "In Progress", count: k.inProgressCourses },
@@ -390,23 +390,10 @@
                     { status: "Overdue",     count: overdue }
                 ].filter(i => i.count > 0),
                 centerTemplate: function(pieChart, container) {
-                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
-                    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    label.setAttribute("text-anchor", "middle");
-                    label.setAttribute("y", "-6");
-                    label.setAttribute("style", "font-size:11px;fill:#8c8c8c;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;");
-                    label.textContent = "Completion";
-
-                    const value = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    value.setAttribute("text-anchor", "middle");
-                    value.setAttribute("y", "18");
-                    value.setAttribute("style", "font-size:22px;fill:#52c41a;font-weight:700;");
-                    value.textContent = completionPct + "%";
-
-                    svg.appendChild(label);
-                    svg.appendChild(value);
-                    container.appendChild(svg);
+                    window.appendAdminCenterTemplateText(container, {
+                        labelText: 'Completion',
+                        valueText: completionPct + '%'
+                    });
                 },
                 series: [{
                     argumentField: "status", valueField: "count",
@@ -414,13 +401,13 @@
                         visible: true,
                         position: "outside",
                         customizeText: p => `${p.valueText} (${p.percentText})`,
-                        font: { size: 11, color: "#595959" },
+                        font: { size: 11, color: "var(--text-secondary)" },
                         connector: { visible: true, width: 1 }
                     }
                 }],
                 legend: {
                     horizontalAlignment: "right", verticalAlignment: "center",
-                    margin: 0, font: { size: 12, color: "#595959" }
+                    margin: 0, font: { size: 12, color: "var(--text-secondary)" }
                 },
                 tooltip: { enabled: true }
             });
@@ -515,7 +502,7 @@
         // ─── Export Summary Image ───
         function exportProfileImage() {
             const target = document.getElementById("export-target");
-            html2canvas(target, { scale: 2, backgroundColor: "#ffffff", logging: false })
+            html2canvas(target, { scale: 2, backgroundColor: window.getAdminExportBackgroundColor(), logging: false })
                 .then(canvas => {
                     const link = document.createElement("a");
                     link.download = `Student_Profile_${STUDENT_CODE}.png`;

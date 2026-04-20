@@ -478,15 +478,15 @@
                     valueField: "sessions",
                     name: "Sessions",
                     type: "bar",
-                    color: "#1890ff",
+                    color: window.getAdminCssToken('--brand-mid'),
                     cornerRadius: 2
                 },
                 argumentAxis: {
-                    label: { font: { color: "#595959", size: 11 } }
+                    label: { font: { color: window.getAdminCssToken('--text-secondary'), size: 11 } }
                 },
                 valueAxis: {
-                    grid: { visible: true, color: "#f0f0f0" },
-                    label: { format: "#,##0", font: { color: "#595959", size: 11 } }
+                    grid: { visible: true, color: window.getAdminCssToken('--border-color') },
+                    label: { format: "#,##0", font: { color: window.getAdminCssToken('--text-secondary'), size: 11 } }
                 },
                 legend: { visible: false },
                 margin: { top: 10, bottom: 0, left: 0, right: 0 },

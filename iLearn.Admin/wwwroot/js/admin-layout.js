@@ -107,6 +107,22 @@
             bold: 700
         }
     };
+    const adminTokenFallbackMap = {
+        '--surface-base': '#ffffff',
+        '--success-color': '#52c41a',
+        '--warning-color': '#faad14',
+        '--danger-color': '#ff4d4f',
+        '--brand-mid': '#1677ff',
+        '--border-strong': '#d9d9d9',
+        '--text-secondary': '#595959',
+        '--text-tertiary': '#8c8c8c'
+    };
+    const adminChartPalettePresets = {
+        status3: ['--success-color', '--warning-color', '--border-strong'],
+        status3Brand: ['--success-color', '--brand-mid', '--border-strong'],
+        status4: ['--success-color', '--warning-color', '--border-strong', '--danger-color'],
+        status4Brand: ['--success-color', '--brand-mid', '--warning-color', '--danger-color']
+    };
     const adminDateLocale = 'en-GB';
     const adminDateDisplayFormat = 'dd/MM/yyyy';
     const adminDateTimeDisplayFormat = 'dd/MM/yyyy HH:mm';
@@ -338,6 +354,91 @@
         }
 
         return `${formatAdminDate(date)} ${formatAdminTime(date, '')}`.trim();
+    }
+
+    function getAdminCssToken(tokenName, fallback) {
+        if (!tokenName) {
+            return fallback || '';
+        }
+
+        const normalizedTokenName = tokenName.startsWith('--') ? tokenName : `--${tokenName}`;
+        const computedValue = window.getComputedStyle(document.documentElement)
+            .getPropertyValue(normalizedTokenName)
+            .trim();
+
+        if (computedValue) {
+            return computedValue;
+        }
+
+        if (fallback !== undefined) {
+            return fallback;
+        }
+
+        return adminTokenFallbackMap[normalizedTokenName] || '';
+    }
+
+    function getAdminChartPalette(presetName) {
+        const resolvedPresetName = adminChartPalettePresets[presetName] ? presetName : 'status3';
+        const paletteTokens = adminChartPalettePresets[resolvedPresetName];
+
+        return paletteTokens.map(function (tokenName) {
+            return getAdminCssToken(tokenName, adminTokenFallbackMap[tokenName]);
+        });
+    }
+
+    function getAdminExportBackgroundColor() {
+        return getAdminCssToken('--surface-base', adminTokenFallbackMap['--surface-base']);
+    }
+
+    function buildAdminCenterTemplateStyles(overrides) {
+        const options = overrides || {};
+
+        return {
+            label: {
+                fontSize: options.labelFontSize || '11px',
+                fill: options.labelFill || 'var(--text-tertiary)',
+                fontWeight: options.labelFontWeight || 600,
+                textTransform: options.labelTextTransform || 'uppercase',
+                letterSpacing: options.labelLetterSpacing || '0.4px'
+            },
+            value: {
+                fontSize: options.valueFontSize || '22px',
+                fill: options.valueFill || 'var(--success-color)',
+                fontWeight: options.valueFontWeight || 700
+            }
+        };
+    }
+
+    function buildAdminSvgTextStyle(styleOptions) {
+        return [
+            `font-size:${styleOptions.fontSize}`,
+            `fill:${styleOptions.fill}`,
+            `font-weight:${styleOptions.fontWeight}`,
+            styleOptions.textTransform ? `text-transform:${styleOptions.textTransform}` : '',
+            styleOptions.letterSpacing ? `letter-spacing:${styleOptions.letterSpacing}` : ''
+        ].filter(Boolean).join(';') + ';';
+    }
+
+    function appendAdminCenterTemplateText(container, options) {
+        const settings = options || {};
+        const styles = buildAdminCenterTemplateStyles(settings.styles);
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('y', settings.labelY || '-6');
+        label.setAttribute('style', buildAdminSvgTextStyle(styles.label));
+        label.textContent = settings.labelText || '';
+
+        const value = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        value.setAttribute('text-anchor', 'middle');
+        value.setAttribute('y', settings.valueY || '18');
+        value.setAttribute('style', buildAdminSvgTextStyle(styles.value));
+        value.textContent = settings.valueText || '';
+
+        svg.appendChild(label);
+        svg.appendChild(value);
+        container.appendChild(svg);
     }
 
     function getDataGridInstance(element) {
@@ -969,4 +1070,8 @@
     window.formatAdminCountLabel = formatAdminCountLabel;
     window.formatAdminDuration = formatAdminDuration;
     window.formatAdminRelativeTime = formatAdminRelativeTime;
+    window.getAdminCssToken = getAdminCssToken;
+    window.getAdminChartPalette = getAdminChartPalette;
+    window.getAdminExportBackgroundColor = getAdminExportBackgroundColor;
+    window.appendAdminCenterTemplateText = appendAdminCenterTemplateText;
 })(window, window.jQuery);

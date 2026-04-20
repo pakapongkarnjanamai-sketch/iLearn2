@@ -247,7 +247,7 @@
             if (progress.latestResult) {
                 const latest = progress.latestResult;
                 const icon = latest.success ? 'fa-circle-check' : 'fa-circle-xmark';
-                const color = latest.success ? '#389e0d' : '#cf1322';
+                const color = latest.success ? 'var(--color-success-600)' : 'var(--danger-color)';
                 const detail = latest.errorMessage || latest.details || progress.currentStep || '';
                 $('#batchPublishLatestLog').prepend(
                     `<div style="margin-bottom:6px; color:${color};">
@@ -359,7 +359,7 @@
                 const win = window.open('about:blank', '_blank');
                 if (win) {
                     win.document.title = "Loading...";
-                    win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'>Processing content...</div>";
+                    win.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'>Processing content...</div>";
                 }
                 $.ajax({ url: apiUrl, method: "GET", xhrFields: { withCredentials: true } })
                     .done(res => { if (res?.url && win) win.location.href = res.url; else { if (win) win.close(); showToast("Content URL not found.", "error"); } })
