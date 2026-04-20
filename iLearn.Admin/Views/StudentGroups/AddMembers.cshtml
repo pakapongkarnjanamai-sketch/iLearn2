@@ -4,30 +4,7 @@
 }
 
 <style>
-    /* ── Page Shell (height settings specific to this page) ── */
-    .sg-page-shell {
-        --sg-page-min-height-offset: 120px;
-        --sg-page-bottom-padding: 64px;
-        --sg-page-bottom-padding-tablet: 128px;
-        --sg-page-bottom-padding-mobile: 156px;
-        --sg-review-table-min-height: 200px;
-        --sg-review-table-viewport-offset: 520px;
-        --sg-review-table-max-height: 320px;
-        --admin-review-content-max-width: 1120px;
-
-        min-height: calc(100vh - var(--sg-page-min-height-offset));
-        padding-top: 16px !important;
-        padding-bottom: var(--sg-page-bottom-padding) !important;
-    }
-
-    /* ── Step grid (3 columns, this page only) ── */
-    .sg-wizard-steps {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    /* ── Assignment status option cards ── */
+    /* ── Unique: Assignment status option cards ── */
     .sg-status-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -71,42 +48,14 @@
         margin-top: 4px;
     }
 
-    /* ── Review overview/summary grids (4 columns) ── */
-    .sg-overview-grid,
-    .sg-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    /* ── Scrollable review table ── */
-    .sg-table-wrap {
-        overflow: auto;
-        max-height: clamp(
-            var(--sg-review-table-min-height),
-            calc(100vh - var(--sg-review-table-viewport-offset)),
-            var(--sg-review-table-max-height)
-        );
+    /* ── Unique: Review table scroll height ── */
+    .sg-review-table-wrap {
+        --admin-table-wrap-max-height: clamp(200px, calc(100vh - 520px), 320px);
     }
 
     @@media (max-width: 991.98px) {
-        .sg-page-shell {
-            min-height: auto;
-            padding-bottom: var(--sg-page-bottom-padding-tablet) !important;
-        }
-
-        .sg-selection-layout,
-        .sg-wizard-steps,
-        .sg-overview-grid,
-        .sg-summary-grid,
         .sg-status-grid {
             grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 767.98px) {
-        .sg-page-shell {
-            padding-bottom: var(--sg-page-bottom-padding-mobile) !important;
         }
     }
 </style>
@@ -121,67 +70,64 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 sg-page-shell admin-review-flow">
-    <div class="sg-wizard-steps">
-        <div class="sg-step-card active" data-step-card="1">
-            <div class="sg-step-title"><span class="sg-step-index">1</span>Select Students</div>
-            <div class="sg-step-text">Choose which learners should be added to this group.</div>
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
+    <div class="admin-wizard-steps">
+        <div class="admin-step-card active" data-step-card="1">
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Select Students</div>
         </div>
-        <div class="sg-step-card" data-step-card="2">
-            <div class="sg-step-title"><span class="sg-step-index">2</span>Assignment Options</div>
-            <div class="sg-step-text">Decide whether selected learners should be enrolled in related assignments.</div>
+        <div class="admin-step-card" data-step-card="2">
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Assignment Options</div>
         </div>
-        <div class="sg-step-card" data-step-card="3">
-            <div class="sg-step-title"><span class="sg-step-index">3</span>Review And Confirm</div>
-            <div class="sg-step-text">Review the final impact before applying changes.</div>
+        <div class="admin-step-card" data-step-card="3">
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Review And Confirm</div>
         </div>
     </div>
 
-    <div class="row g-3 sg-layout-row admin-review-layout-row">
-        <div class="col-xl-3 sg-sidebar-col admin-review-sidebar-col">
-            <div class="sg-selection-card h-100">
+    <div class="row g-3 admin-review-layout-row">
+        <div class="col-xl-3 admin-review-sidebar-col">
+            <div class="admin-sidebar-card h-100">
                 <div class="section-title">Group Snapshot</div>
-                <div class="sg-meta-item">
-                    <div class="sg-meta-label">Group Name</div>
-                    <div class="sg-meta-value fw-bold" id="group-name">Loading...</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Group Name</div>
+                    <div class="admin-meta-value fw-bold" id="group-name">Loading...</div>
                 </div>
-                <div class="sg-meta-item">
-                    <div class="sg-meta-label">Description</div>
-                    <div class="sg-meta-value" id="group-description">Loading...</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Description</div>
+                    <div class="admin-meta-value" id="group-description">Loading...</div>
                 </div>
-                <div class="sg-meta-item">
-                    <div class="sg-meta-label">Current Members</div>
-                    <div class="sg-meta-value"><span class="tag-pill pill-info" id="group-member-count">0 members</span></div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Current Members</div>
+                    <div class="admin-meta-value"><span class="tag-pill pill-info" id="group-member-count">0 members</span></div>
                 </div>
-                <div class="sg-meta-item">
-                    <div class="sg-meta-label">Related Assignments</div>
-                    <div class="sg-meta-value"><span class="tag-pill pill-default" id="group-assignment-count">0 batches</span></div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Related Assignments</div>
+                    <div class="admin-meta-value"><span class="tag-pill pill-default" id="group-assignment-count">0 batches</span></div>
                 </div>
-                <div class="sg-meta-item">
-                    <div class="sg-meta-label">Status Mix</div>
-                    <div class="sg-meta-value" id="assignment-status-overview">Loading...</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Status Mix</div>
+                    <div class="admin-meta-value" id="assignment-status-overview">Loading...</div>
                 </div>
-                <div class="sg-meta-item">
-                    <div class="sg-meta-label">Current Selection</div>
-                    <div class="sg-meta-value" id="selected-summary">0 students selected</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Current Selection</div>
+                    <div class="admin-meta-value" id="selected-summary">0 students selected</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-9 sg-main-col admin-review-main-col">
+        <div class="col-xl-9 admin-review-main-col">
             <div class="border rounded bg-white p-2 sg-main-card">
-                <div id="step-panel-1" class="sg-panel active">
+                <div id="step-panel-1" class="admin-wizard-panel active">
                     <div class="admin-section-header mb-2">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Select Students</div>
                         </div>
                         <div class="admin-section-divider"></div>
                     </div>
-                    <div class="sg-selection-layout">
-                        <div class="sg-filter-shell d-flex flex-column gap-3">
+                    <div class="admin-selection-layout">
+                        <div class="admin-filter-shell d-flex flex-column gap-3">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
-                                <div class="sg-inline-note">Use division, department, and section filters to narrow the student list.</div>
+                                <div class="admin-inline-note">Use division, department, and section filters to narrow the student list.</div>
                             </div>
                             <div>
                                 <label class="small fw-bold text-muted mb-1 d-block">Division</label>
@@ -199,13 +145,13 @@
                                 <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                             </button>
                         </div>
-                        <div class="sg-grid-shell">
-                            <div class="sg-grid-head">
+                        <div class="admin-grid-shell">
+                            <div class="admin-grid-head">
                                 <div>
-                                    <div class="sg-grid-title">Learner Selection</div>
-                                    <div class="sg-inline-note">Choose one or more learners to add to this student group.</div>
+                                    <div class="admin-grid-title">Learner Selection</div>
+                                    <div class="admin-inline-note">Choose one or more learners to add to this student group.</div>
                                 </div>
-                                <div id="selection-hint" class="sg-grid-note">
+                                <div id="selection-hint" class="admin-grid-note">
                                     <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to continue.
                                 </div>
                             </div>
@@ -214,7 +160,7 @@
                     </div>
                 </div>
 
-                <div id="step-panel-2" class="sg-panel">
+                <div id="step-panel-2" class="admin-wizard-panel">
                     <div class="admin-section-header mb-2">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Assignment Options</div>
@@ -222,11 +168,11 @@
                         <div class="admin-section-divider"></div>
                     </div>
 
-                    <div class="sg-option-card mb-2">
+                    <div class="admin-option-card mb-2">
                         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark">Related Assignment Enrollment</div>
-                                <div class="sg-inline-note">When enabled, the selected learners will be enrolled into existing assignment batches that belong to this student group.</div>
+                                <div class="admin-inline-note">When enabled, the selected learners will be enrolled into existing assignment batches that belong to this student group.</div>
                             </div>
                             <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" id="chk-enroll-related">
@@ -235,11 +181,11 @@
                         </div>
                     </div>
 
-                    <div id="status-options-card" class="sg-option-card is-disabled mb-2">
+                    <div id="status-options-card" class="admin-option-card is-disabled mb-2">
                         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark">Assignment Status Filters</div>
-                                <div class="sg-inline-note">Choose which current assignment statuses should receive the new learners.</div>
+                                <div class="admin-inline-note">Choose which current assignment statuses should receive the new learners.</div>
                             </div>
                             <div class="tag-pill pill-default" id="selected-status-count">0 statuses selected</div>
                         </div>
@@ -284,14 +230,14 @@
                         </div>
                     </div>
 
-                    <div class="sg-option-card">
+                    <div class="admin-option-card">
                         <div class="u-fs-12 u-fw-semibold text-dark mb-3">Current Related Assignment Overview</div>
-                        <div id="assignment-overview-grid" class="sg-overview-grid mb-3"></div>
-                        <div id="assignment-overview-note" class="sg-inline-note"></div>
+                        <div id="assignment-overview-grid" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
+                        <div id="assignment-overview-note" class="admin-inline-note mt-3"></div>
                     </div>
                 </div>
 
-                <div id="step-panel-3" class="sg-panel">
+                <div id="step-panel-3" class="admin-wizard-panel">
                     <div class="admin-section-header admin-review-header">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -300,22 +246,22 @@
                     </div>
 
                     <div class="admin-review-stack">
-                        <div id="summary-cards" class="sg-summary-grid"></div>
+                        <div id="summary-cards" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
 
-                        <div class="sg-table-shell">
-                            <div class="sg-table-head">
-                                <div class="sg-table-title">Selected Learners</div>
-                                <div class="sg-inline-note" id="student-summary-note"></div>
+                        <div class="admin-table-shell">
+                            <div class="admin-table-head">
+                                <div class="admin-table-title">Selected Learners</div>
+                                <div class="admin-inline-note" id="student-summary-note"></div>
                             </div>
-                            <div class="sg-table-wrap" id="student-summary-table"></div>
+                            <div class="admin-table-wrap sg-review-table-wrap" id="student-summary-table"></div>
                         </div>
 
-                        <div class="sg-table-shell">
-                            <div class="sg-table-head">
-                                <div class="sg-table-title">Assignment Enrollment Impact</div>
-                                <div class="sg-inline-note" id="assignment-summary-note"></div>
+                        <div class="admin-table-shell">
+                            <div class="admin-table-head">
+                                <div class="admin-table-title">Assignment Enrollment Impact</div>
+                                <div class="admin-inline-note" id="assignment-summary-note"></div>
                             </div>
-                            <div class="sg-table-wrap" id="assignment-summary-table"></div>
+                            <div class="admin-table-wrap sg-review-table-wrap" id="assignment-summary-table"></div>
                         </div>
                     </div>
                 </div>
@@ -567,9 +513,9 @@
     }
 
     function updateWizardUi() {
-        $(".sg-panel").removeClass("active");
+        $(".admin-wizard-panel").removeClass("active");
         $(`#step-panel-${wizardState.currentStep}`).addClass("active");
-        $(".sg-page-shell").toggleClass("is-review-step", wizardState.currentStep === 3);
+        $(".admin-wizard-shell").toggleClass("is-review-step", wizardState.currentStep === 3);
 
         $("[data-step-card]").each(function() {
             const step = Number($(this).attr("data-step-card"));
@@ -606,9 +552,9 @@
 
         $("#assignment-overview-grid").html(items.map(function(item) {
             return `
-                <div class="sg-overview-item">
-                    <div class="sg-overview-value ${item.className}">${item.value}</div>
-                    <div class="sg-overview-label">${item.label}</div>
+                <div class="admin-summary-item">
+                    <div class="admin-summary-value ${item.className}">${item.value}</div>
+                    <div class="admin-summary-label">${item.label}</div>
                 </div>`;
         }).join(""));
 
@@ -658,8 +604,8 @@
                         <div class="tag-pill pill-default fw-bold">${escapeHtml(student.studentCode || EMPTY_TEXT)}</div>
                     </td>
                     <td>
-                        <div class="sg-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
-                        <div class="sg-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
+                        <div class="admin-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
+                        <div class="admin-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
                     </td>
                     <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
                     <td>${memberState}</td>
@@ -667,7 +613,7 @@
         }).join("");
 
         return `
-            <table class="sg-table">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th>Employee ID</th>
@@ -690,11 +636,11 @@
                 <tr>
                     <td>
                         <div class="fw-semibold text-dark">${escapeHtml(assignment.assignmentNo || EMPTY_TEXT)}</div>
-                        <div class="sg-assignment-note">${escapeHtml(assignment.description || "No description")}</div>
+                        <div class="admin-student-note">${escapeHtml(assignment.description || "No description")}</div>
                     </td>
                     <td>
                         <div>${escapeHtml(assignment.courseNames || EMPTY_TEXT)}</div>
-                        <div class="sg-assignment-note">${window.formatAdminCountLabel(assignment.courseCount || 0, "course")}</div>
+                        <div class="admin-student-note">${window.formatAdminCountLabel(assignment.courseCount || 0, "course")}</div>
                     </td>
                     <td>${renderStatusPill(assignment.status)}</td>
                     <td>${window.formatAdminDate(assignment.startDate, EMPTY_TEXT)}</td>
@@ -705,7 +651,7 @@
         }).join("");
 
         return `
-            <table class="sg-table">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th>Assignment</th>
@@ -727,7 +673,7 @@
 
     function buildEmptyState(iconClass, message) {
         return `
-            <div class="sg-empty-state">
+            <div class="admin-wizard-empty-state">
                 <i class="${iconClass}"></i>
                 <div>${message}</div>
             </div>`;

@@ -7,179 +7,7 @@
 }
 
 <style>
-    /* ── Height Settings ── */
-    .assign-page-shell {
-        --assign-page-min-height-offset: 120px;
-        --assign-page-bottom-padding: 64px;
-        --assign-page-bottom-padding-tablet: 128px;
-        --assign-page-bottom-padding-mobile: 156px;
-        --assign-conflict-list-min-height: 120px;
-        --assign-conflict-list-viewport-offset: 520px;
-        --assign-conflict-list-max-height: 200px;
-        --admin-review-content-max-width: 1120px;
-
-        min-height: calc(100vh - var(--assign-page-min-height-offset));
-        padding-top: 16px !important;
-        padding-bottom: var(--assign-page-bottom-padding) !important;
-    }
-
-    /* ── Shell & Layout ── */
-
-    /* ── Wizard Steps ── */
-    .assign-wizard-steps {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .assign-step-card {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-        padding: var(--space-md) var(--space-lg);
-        transition: border-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .assign-step-card.active {
-        border-color: var(--primary-color);
-        background: var(--surface-info-subtle);
-    }
-
-    .assign-step-card.complete {
-        border-color: var(--border-success);
-        background: var(--surface-success-subtle);
-    }
-
-    .assign-step-index {
-        width: var(--space-2xl);
-        height: var(--space-2xl);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-pill);
-        border: 1px solid currentColor;
-        font-size: 11px;
-        font-weight: 700;
-        margin-right: var(--space-xs);
-    }
-
-    .assign-step-title {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-    }
-
-    .assign-step-text {
-        font-size: 11px;
-        color: var(--text-secondary);
-        margin-top: 2px;
-    }
-
-    /* ── Cards ── */
-    .assign-summary-card,
-    .assign-review-card,
-    .assign-conflict-card {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-        padding: var(--space-md);
-    }
-
-    .assign-meta-card {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-        padding: var(--space-md);
-    }
-
-    /* ── Panels ── */
-    .assign-panel {
-        display: none;
-    }
-
-    .assign-panel.active {
-        display: block;
-    }
-
-    /* ── Snapshot Meta ── */
-    .assign-meta-item {
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .assign-meta-item:last-child {
-        border-bottom: none;
-    }
-
-    .assign-meta-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-bottom: 3px;
-    }
-
-    .assign-meta-value {
-        font-size: 13px;
-        color: var(--text-primary);
-    }
-
-    /* ── Selection Layout (Filter + Grid) ── */
-    .assign-selection-layout {
-        display: grid;
-        grid-template-columns: 240px minmax(0, 1fr);
-        gap: 12px;
-    }
-
-    .assign-filter-shell {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-subtle);
-        padding: var(--space-md);
-        height: 100%;
-    }
-
-    .assign-grid-shell {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-        overflow: hidden;
-    }
-
-    .assign-grid-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: var(--space-sm) var(--space-md);
-        border-bottom: 1px solid var(--border-color);
-        background: var(--surface-subtle);
-    }
-
-    .assign-grid-title {
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-    }
-
-    .assign-grid-note {
-        font-size: 12px;
-        color: var(--text-secondary);
-    }
-
-    /* ── Inline ── */
-    .assign-inline-actions {
-        padding: var(--space-sm) var(--space-md);
-        border-top: 1px solid var(--border-color);
-        background: var(--surface-base);
-    }
-
-    /* ── Target Mode ── */
+    /* ── Unique: Target Mode ── */
     .assign-target-mode-bar {
         display: flex;
         align-items: center;
@@ -213,64 +41,15 @@
         color: var(--text-inverse);
     }
 
-    /* ── Summary Grid (Review Step) ── */
-    .assign-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .assign-summary-item {
+    /* ── Unique: Conflict Lists ── */
+    .assign-review-card,
+    .assign-conflict-card {
         border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
-        background: var(--surface-subtle);
-        padding: var(--space-sm);
+        background: var(--surface-base);
+        padding: var(--space-md);
     }
 
-    .assign-summary-value {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-primary);
-        line-height: 1.1;
-    }
-
-    .assign-summary-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-top: 6px;
-    }
-
-    /* ── Detail Grid (Review Step) ── */
-    .assign-detail-grid {
-        display: grid;
-        grid-template-columns: 1.4fr 1fr;
-        gap: 12px;
-    }
-
-    .assign-detail-item {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-subtle);
-        padding: var(--space-sm);
-    }
-
-    .assign-detail-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-bottom: 6px;
-        font-weight: 600;
-    }
-
-    .assign-detail-value {
-        font-size: 13px;
-        color: var(--text-primary);
-    }
-
-    /* ── Conflict Lists ── */
     .assign-conflict-card + .assign-conflict-card {
         margin-top: 12px;
     }
@@ -279,11 +58,7 @@
         list-style: none;
         margin: 0;
         padding: 0;
-        max-height: clamp(
-            var(--assign-conflict-list-min-height),
-            calc(100vh - var(--assign-conflict-list-viewport-offset)),
-            var(--assign-conflict-list-max-height)
-        );
+        max-height: clamp(120px, calc(100vh - 520px), 200px);
         overflow-y: auto;
     }
 
@@ -311,30 +86,10 @@
 
     /* ── Responsive ── */
     @@media (max-width: 991.98px) {
-        .assign-page-shell {
-            min-height: auto;
-            padding-bottom: var(--assign-page-bottom-padding-tablet) !important;
-        }
-
-        .assign-wizard-steps,
-        .assign-selection-layout,
-        .assign-summary-grid,
-        .assign-detail-grid {
-            grid-template-columns: 1fr;
-        }
-
         .assign-target-mode-bar {
             flex-direction: column;
             align-items: stretch;
         }
-    }
-
-    @@media (max-width: 767.98px) {
-        .assign-page-shell {
-            padding-bottom: var(--assign-page-bottom-padding-mobile) !important;
-        }
-
-
     }
 </style>
 
@@ -349,62 +104,58 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 assign-page-shell admin-review-flow">
-    <div class="assign-wizard-steps">
-        <div class="assign-step-card active" data-step-card="1">
-            <div class="assign-step-title"><span class="assign-step-index">1</span>Course Selection</div>
-            <div class="assign-step-text">Choose one or more courses for this assignment batch.</div>
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow" style="--admin-wizard-steps-cols: repeat(4, minmax(0, 1fr))">
+    <div class="admin-wizard-steps">
+        <div class="admin-step-card active" data-step-card="1">
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Course Selection</div>
         </div>
-        <div class="assign-step-card" data-step-card="2">
-            <div class="assign-step-title"><span class="assign-step-index">2</span>Learner Selection</div>
-            <div class="assign-step-text">Select individual students or choose an existing student group.</div>
+        <div class="admin-step-card" data-step-card="2">
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Learner Selection</div>
         </div>
-        <div class="assign-step-card" data-step-card="3">
-            <div class="assign-step-title"><span class="assign-step-index">3</span>Assignment Criteria</div>
-            <div class="assign-step-text">Define the description and the schedule for this batch.</div>
+        <div class="admin-step-card" data-step-card="3">
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Assignment Criteria</div>
         </div>
-        <div class="assign-step-card" data-step-card="4">
-            <div class="assign-step-title"><span class="assign-step-index">4</span>Review And Confirm</div>
-            <div class="assign-step-text">Validate conflicts and confirm the assignment run.</div>
+        <div class="admin-step-card" data-step-card="4">
+            <div class="admin-step-title"><span class="admin-step-index">4</span>Review And Confirm</div>
         </div>
     </div>
 
     <div id="load-panel"></div>
 
-    <div class="row g-3 assign-layout-row admin-review-layout-row">
-        <div class="col-xl-3 assign-sidebar-col admin-review-sidebar-col">
-            <div class="assign-meta-card h-100">
+    <div class="row g-3 admin-review-layout-row">
+        <div class="col-xl-3 admin-review-sidebar-col">
+            <div class="admin-sidebar-card h-100">
                 <div class="section-title">Selection Snapshot</div>
-                <div class="assign-meta-item">
-                    <div class="assign-meta-label">Description</div>
-                    <div class="assign-meta-value" id="snapshot-description">No description</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Description</div>
+                    <div class="admin-meta-value" id="snapshot-description">No description</div>
                 </div>
-                <div class="assign-meta-item">
-                    <div class="assign-meta-label">Schedule</div>
-                    <div class="assign-meta-value" id="snapshot-period">Not set</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Schedule</div>
+                    <div class="admin-meta-value" id="snapshot-period">Not set</div>
                 </div>
-                <div class="assign-meta-item">
-                    <div class="assign-meta-label">Courses</div>
-                    <div class="assign-meta-value"><span class="tag-pill pill-default" id="snapshot-course-count">0 courses</span></div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Courses</div>
+                    <div class="admin-meta-value"><span class="tag-pill pill-default" id="snapshot-course-count">0 courses</span></div>
                 </div>
-                <div class="assign-meta-item">
-                    <div class="assign-meta-label">Target Mode</div>
-                    <div class="assign-meta-value" id="snapshot-target-mode">Individual students</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Target Mode</div>
+                    <div class="admin-meta-value" id="snapshot-target-mode">Individual students</div>
                 </div>
-                <div class="assign-meta-item">
-                    <div class="assign-meta-label">Selected Learners</div>
-                    <div class="assign-meta-value"><span class="tag-pill pill-info" id="snapshot-target-count">0 students</span></div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Selected Learners</div>
+                    <div class="admin-meta-value"><span class="tag-pill pill-info" id="snapshot-target-count">0 students</span></div>
                 </div>
-                <div class="assign-meta-item">
-                    <div class="assign-meta-label">Target Name</div>
-                    <div class="assign-meta-value" id="snapshot-target-name">No target selected</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Target Name</div>
+                    <div class="admin-meta-value" id="snapshot-target-name">No target selected</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-9 assign-main-col admin-review-main-col">
-            <div class="border rounded bg-white p-2 assign-main-card" id="wizard-main-card">
-        <div id="step-panel-1" class="assign-panel active">
+        <div class="col-xl-9 admin-review-main-col">
+            <div class="border rounded bg-white p-2" id="wizard-main-card">
+        <div id="step-panel-1" class="admin-wizard-panel active">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Course Selection</div>
@@ -412,8 +163,8 @@
                 <div class="admin-section-divider"></div>
             </div>
 
-            <div class="assign-selection-layout">
-                <div class="assign-filter-shell d-flex flex-column gap-3">
+            <div class="admin-selection-layout">
+                <div class="admin-filter-shell d-flex flex-column gap-3">
                     <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
                     <div>
                         <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
@@ -431,17 +182,17 @@
                         <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                     </button>
                 </div>
-                <div class="assign-grid-shell">
-                    <div class="assign-grid-head">
-                        <div class="assign-grid-title">Course Catalog</div>
-                        <div class="assign-grid-note" id="course-selection-note">No course selected</div>
+                <div class="admin-grid-shell">
+                    <div class="admin-grid-head">
+                        <div class="admin-grid-title">Course Catalog</div>
+                        <div class="admin-grid-note" id="course-selection-note">No course selected</div>
                     </div>
                     <div id="grid-courses-inline" class="assign-inline-grid"></div>
                 </div>
             </div>
         </div>
 
-        <div id="step-panel-2" class="assign-panel">
+        <div id="step-panel-2" class="admin-wizard-panel">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Learner Selection</div>
@@ -462,8 +213,8 @@
             </div>
 
             <div id="target-panel-individual">
-                <div class="assign-selection-layout">
-                    <div class="assign-filter-shell d-flex flex-column gap-3">
+                <div class="admin-selection-layout">
+                    <div class="admin-filter-shell d-flex flex-column gap-3">
                         <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
                         <div>
                             <label class="small fw-bold text-muted mb-1 d-block">Division</label>
@@ -485,10 +236,10 @@
                             <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                         </button>
                     </div>
-                    <div class="assign-grid-shell">
-                        <div class="assign-grid-head">
-                            <div class="assign-grid-title">Student Directory</div>
-                            <div class="assign-grid-note" id="student-selection-note">No student selected</div>
+                    <div class="admin-grid-shell">
+                        <div class="admin-grid-head">
+                            <div class="admin-grid-title">Student Directory</div>
+                            <div class="admin-grid-note" id="student-selection-note">No student selected</div>
                         </div>
                         <div id="grid-students-inline" class="assign-inline-grid"></div>
                     </div>
@@ -496,13 +247,13 @@
             </div>
 
             <div id="target-panel-group" class="d-none">
-                <div class="assign-grid-shell">
-                    <div class="assign-grid-head">
-                        <div class="assign-grid-title">Student Groups</div>
-                        <div class="assign-grid-note" id="group-selection-note">No group selected</div>
+                <div class="admin-grid-shell">
+                    <div class="admin-grid-head">
+                        <div class="admin-grid-title">Student Groups</div>
+                        <div class="admin-grid-note" id="group-selection-note">No group selected</div>
                     </div>
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
-                    <div class="assign-inline-actions d-none" id="group-reset-row">
+                    <div class="admin-inline-actions d-none" id="group-reset-row">
                         <a href="javascript:void(0);" class="action-link text-danger small" id="btn-reset-group">
                             <i class="fas fa-times me-1" aria-hidden="true"></i> Clear selection
                         </a>
@@ -511,7 +262,7 @@
             </div>
         </div>
 
-        <div id="step-panel-3" class="assign-panel">
+        <div id="step-panel-3" class="admin-wizard-panel">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Assignment Criteria</div>
@@ -521,7 +272,7 @@
             <div id="form-assignment"></div>
         </div>
 
-        <div id="step-panel-4" class="assign-panel">
+        <div id="step-panel-4" class="admin-wizard-panel">
             <div class="admin-section-header admin-review-header">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -530,8 +281,8 @@
             </div>
 
             <div class="admin-review-stack">
-                <div id="review-summary-cards" class="assign-summary-grid"></div>
-                <div id="review-details" class="assign-detail-grid"></div>
+                <div id="review-summary-cards" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
+                <div id="review-details" class="admin-detail-grid" style="--admin-detail-grid-cols: 1.4fr 1fr"></div>
                 <div id="review-conflicts"></div>
             </div>
         </div>
@@ -974,15 +725,15 @@
                 ].join(""));
 
                 $("#review-details").html(`
-                    <div class="assign-detail-item">
-                        <div class="assign-detail-label">Description</div>
-                        <div class="assign-detail-value">${payload.description || '<span class="text-muted fst-italic">—</span>'}</div>
+                    <div class="admin-detail-item">
+                        <div class="admin-detail-label">Description</div>
+                        <div class="admin-detail-value">${payload.description || '<span class="text-muted fst-italic">—</span>'}</div>
                     </div>
-                    <div class="assign-detail-item">
-                        <div class="assign-detail-label">Period</div>
-                        <div class="assign-detail-value"><i class="fas fa-calendar-alt text-muted me-1"></i>${fmtDate(payload.startDate)} — ${fmtDate(payload.dueDate)}</div>
-                        <div class="assign-detail-label mt-3">Target</div>
-                        <div class="assign-detail-value">${payload.groupId ? (selectedGroupName || 'Selected group') : window.formatAdminCountLabel(resolvedCount, 'student')}</div>
+                    <div class="admin-detail-item">
+                        <div class="admin-detail-label">Period</div>
+                        <div class="admin-detail-value"><i class="fas fa-calendar-alt text-muted me-1"></i>${fmtDate(payload.startDate)} — ${fmtDate(payload.dueDate)}</div>
+                        <div class="admin-detail-label mt-3">Target</div>
+                        <div class="admin-detail-value">${payload.groupId ? (selectedGroupName || 'Selected group') : window.formatAdminCountLabel(resolvedCount, 'student')}</div>
                     </div>
                 `);
 
@@ -1112,13 +863,13 @@
             }
 
             function getCurrentStep() {
-                return Number($(".assign-step-card.active").attr("data-step-card") || 1);
+                return Number($(".admin-step-card.active").attr("data-step-card") || 1);
             }
 
             function updateWizardUi(step) {
-                $(".assign-panel").removeClass("active");
+                $(".admin-wizard-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
-                $(".assign-page-shell").toggleClass("is-review-step", step === 4);
+                $(".admin-wizard-shell").toggleClass("is-review-step", step === 4);
 
                 if (step === 2) {
                     if (!studentGridInitialized) {

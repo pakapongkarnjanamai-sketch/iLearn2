@@ -4,92 +4,9 @@
 }
 
 <style>
-    /* ── Page Shell (height settings specific to this page) ── */
-    .sg-page-shell {
-        --sg-page-min-height-offset: 120px;
-        --sg-page-bottom-padding: 64px;
-        --sg-page-bottom-padding-tablet: 128px;
-        --sg-page-bottom-padding-mobile: 156px;
-        --sg-review-table-min-height: 200px;
-        --sg-review-table-viewport-offset: 520px;
-        --sg-review-table-max-height: 320px;
-        --admin-review-content-max-width: 1120px;
-
-        min-height: calc(100vh - var(--sg-page-min-height-offset));
-        padding-top: 16px !important;
-        padding-bottom: var(--sg-page-bottom-padding) !important;
-    }
-
-    /* ── Step grid (3 columns, this page only) ── */
-    .sg-wizard-steps {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    /* ── Review step summary/detail grids ── */
-    .sg-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .sg-detail-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .sg-detail-item {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-subtle);
-        padding: 10px;
-    }
-
-    .sg-detail-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-bottom: 6px;
-        font-weight: 600;
-    }
-
-    .sg-detail-value {
-        font-size: 13px;
-        color: var(--text-primary);
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
-
-    /* ── Scrollable review table ── */
-    .sg-table-wrap {
-        overflow: auto;
-        max-height: clamp(
-            var(--sg-review-table-min-height),
-            calc(100vh - var(--sg-review-table-viewport-offset)),
-            var(--sg-review-table-max-height)
-        );
-    }
-
-    @@media (max-width: 991.98px) {
-        .sg-page-shell {
-            min-height: auto;
-            padding-bottom: var(--sg-page-bottom-padding-tablet) !important;
-        }
-
-        .sg-wizard-steps,
-        .sg-summary-grid,
-        .sg-detail-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 767.98px) {
-        .sg-page-shell {
-            padding-bottom: var(--sg-page-bottom-padding-mobile) !important;
-        }
+    /* ── Unique: Review table scroll height ── */
+    .sg-review-table-wrap {
+        --admin-table-wrap-max-height: clamp(200px, calc(100vh - 520px), 320px);
     }
 </style>
 
@@ -136,63 +53,60 @@
 }
 else
 {
-    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 sg-page-shell admin-review-flow">
+    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
         <div id="load-panel"></div>
 
-        <div class="sg-wizard-steps">
-            <div class="sg-step-card active" data-step-card="1">
-                <div class="sg-step-title"><span class="sg-step-index">1</span>Group Information</div>
-                <div class="sg-step-text">Define the reusable student group name and description.</div>
+        <div class="admin-wizard-steps">
+            <div class="admin-step-card active" data-step-card="1">
+                <div class="admin-step-title"><span class="admin-step-index">1</span>Group Information</div>
             </div>
-            <div class="sg-step-card" data-step-card="2">
-                <div class="sg-step-title"><span class="sg-step-index">2</span>Initial Members</div>
-                <div class="sg-step-text">Optionally select the first learners to include in this new group.</div>
+            <div class="admin-step-card" data-step-card="2">
+                <div class="admin-step-title"><span class="admin-step-index">2</span>Initial Members</div>
             </div>
-            <div class="sg-step-card" data-step-card="3">
-                <div class="sg-step-title"><span class="sg-step-index">3</span>Review And Confirm</div>
-                <div class="sg-step-text">Review the group details and initial members before creating it.</div>
+            <div class="admin-step-card" data-step-card="3">
+                <div class="admin-step-title"><span class="admin-step-index">3</span>Review And Confirm</div>
             </div>
         </div>
 
-        <div class="row g-3 sg-layout-row admin-review-layout-row">
-            <div class="col-xl-3 sg-sidebar-col admin-review-sidebar-col">
-                <div class="sg-selection-card h-100">
+        <div class="row g-3 admin-review-layout-row">
+            <div class="col-xl-3 admin-review-sidebar-col">
+                <div class="admin-sidebar-card h-100">
                     <div class="section-title">Group Snapshot</div>
-                    <div class="sg-meta-item">
-                        <div class="sg-meta-label">Group Name</div>
-                        <div class="sg-meta-value fw-bold" id="snapshot-name">Not set</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Group Name</div>
+                        <div class="admin-meta-value fw-bold" id="snapshot-name">Not set</div>
                     </div>
-                    <div class="sg-meta-item">
-                        <div class="sg-meta-label">Description</div>
-                        <div class="sg-meta-value" id="snapshot-description">No description</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Description</div>
+                        <div class="admin-meta-value" id="snapshot-description">No description</div>
                     </div>
-                    <div class="sg-meta-item">
-                        <div class="sg-meta-label">Initial Members</div>
-                        <div class="sg-meta-value"><span class="tag-pill pill-info" id="snapshot-member-count">0 students selected</span></div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Initial Members</div>
+                        <div class="admin-meta-value"><span class="tag-pill pill-info" id="snapshot-member-count">0 students selected</span></div>
                     </div>
-                    <div class="sg-meta-item">
-                        <div class="sg-meta-label">Selection Preview</div>
-                        <div class="sg-meta-value" id="snapshot-member-preview">No initial members selected</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Selection Preview</div>
+                        <div class="admin-meta-value" id="snapshot-member-preview">No initial members selected</div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-xl-9 sg-main-col admin-review-main-col">
+            <div class="col-xl-9 admin-review-main-col">
                 <div class="border rounded bg-white p-2">
-                    <div id="step-panel-1" class="sg-panel active">
+                    <div id="step-panel-1" class="admin-wizard-panel active">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
                             </div>
                             <div class="admin-section-divider"></div>
                         </div>
-                        <div class="sg-detail-card">
-                            <div class="sg-inline-note mb-3">Create the reusable group first, then choose whether you want to seed it with members immediately.</div>
+                        <div class="admin-detail-card">
+                            <div class="admin-inline-note mb-3">Create the reusable group first, then choose whether you want to seed it with members immediately.</div>
                             <div id="form-container"></div>
                         </div>
                     </div>
 
-                    <div id="step-panel-2" class="sg-panel">
+                    <div id="step-panel-2" class="admin-wizard-panel">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Initial Members</div>
@@ -200,11 +114,11 @@ else
                             <div class="admin-section-divider"></div>
                         </div>
 
-                        <div class="sg-selection-layout">
-                            <div class="sg-filter-shell d-flex flex-column gap-3">
+                        <div class="admin-selection-layout">
+                            <div class="admin-filter-shell d-flex flex-column gap-3">
                                 <div>
                                     <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
-                                    <div class="sg-inline-note">Use division, department, and section filters to narrow the learner list.</div>
+                                    <div class="admin-inline-note">Use division, department, and section filters to narrow the learner list.</div>
                                 </div>
                                 <div>
                                     <label class="small fw-bold text-muted mb-1 d-block">Division</label>
@@ -223,13 +137,13 @@ else
                                 </button>
                             </div>
 
-                            <div class="sg-grid-shell">
-                                <div class="sg-grid-head">
+                            <div class="admin-grid-shell">
+                                <div class="admin-grid-head">
                                     <div>
-                                        <div class="sg-grid-title">Learner Selection</div>
-                                        <div class="sg-inline-note">Select the first learners to attach to this group. This step is optional.</div>
+                                        <div class="admin-grid-title">Learner Selection</div>
+                                        <div class="admin-inline-note">Select the first learners to attach to this group. This step is optional.</div>
                                     </div>
-                                    <div id="selection-hint" class="sg-grid-note">
+                                    <div id="selection-hint" class="admin-grid-note">
                                         <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to include initial members.
                                     </div>
                                 </div>
@@ -238,7 +152,7 @@ else
                         </div>
                     </div>
 
-                    <div id="step-panel-3" class="sg-panel">
+                    <div id="step-panel-3" class="admin-wizard-panel">
                         <div class="admin-section-header admin-review-header">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -247,15 +161,15 @@ else
                         </div>
 
                             <div class="admin-review-stack">
-                                <div id="summary-cards" class="sg-summary-grid"></div>
-                                <div id="review-details" class="sg-detail-grid"></div>
+                                <div id="summary-cards" class="admin-summary-grid"></div>
+                                <div id="review-details" class="admin-detail-grid"></div>
 
-                                <div class="sg-table-shell">
-                                    <div class="sg-table-head">
-                                        <div class="sg-table-title">Initial Members</div>
-                                        <div class="sg-inline-note" id="member-review-note"></div>
+                                <div class="admin-table-shell">
+                                    <div class="admin-table-head">
+                                        <div class="admin-table-title">Initial Members</div>
+                                        <div class="admin-inline-note" id="member-review-note"></div>
                                     </div>
-                                    <div class="sg-table-wrap" id="selected-members-review"></div>
+                                    <div class="admin-table-wrap sg-review-table-wrap" id="selected-members-review"></div>
                                 </div>
                         </div>
                     </div>
@@ -572,9 +486,9 @@ else
     }
 
     function updateCreateWizardUi() {
-        $(".sg-panel").removeClass("active");
+        $(".admin-wizard-panel").removeClass("active");
         $(`#step-panel-${createState.currentStep}`).addClass("active");
-        $(".sg-page-shell").toggleClass("is-review-step", createState.currentStep === 3);
+        $(".admin-wizard-shell").toggleClass("is-review-step", createState.currentStep === 3);
 
         $("[data-step-card]").each(function() {
             const step = Number($(this).attr("data-step-card"));
@@ -730,13 +644,13 @@ else
         ].join(""));
 
         $("#review-details").html(`
-            <div class="sg-detail-item">
-                <div class="sg-detail-label">Group Name</div>
-                <div class="sg-detail-value">${escapeHtml(formData.name || EMPTY_TEXT)}</div>
+            <div class="admin-detail-item">
+                <div class="admin-detail-label">Group Name</div>
+                <div class="admin-detail-value">${escapeHtml(formData.name || EMPTY_TEXT)}</div>
             </div>
-            <div class="sg-detail-item">
-                <div class="sg-detail-label">Description</div>
-                <div class="sg-detail-value">${escapeHtml(formData.description || "No description")}</div>
+            <div class="admin-detail-item">
+                <div class="admin-detail-label">Description</div>
+                <div class="admin-detail-value">${escapeHtml(formData.description || "No description")}</div>
             </div>
         `);
 
@@ -753,7 +667,7 @@ else
     function buildMembersReviewTable(students) {
         if (!students.length) {
             return `
-                <div class="sg-empty-state">
+                <div class="admin-wizard-empty-state">
                     <i class="fas fa-user-plus" aria-hidden="true"></i>
                     <div>No initial members selected yet.</div>
                 </div>`;
@@ -764,15 +678,15 @@ else
                 <tr>
                     <td><div class="tag-pill pill-default fw-bold">${escapeHtml(student.studentCode || EMPTY_TEXT)}</div></td>
                     <td>
-                        <div class="sg-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
-                        <div class="sg-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
+                        <div class="admin-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
+                        <div class="admin-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
                     </td>
                     <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
                 </tr>`;
         }).join("");
 
         return `
-            <table class="sg-table">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th>Employee ID</th>

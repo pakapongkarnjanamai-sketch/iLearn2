@@ -4,288 +4,15 @@
 }
 
 <style>
-    /* ── Height Settings ── */
-    .course-page-shell {
-        --course-page-min-height-offset: 120px;
-        --course-page-bottom-padding: 64px;
-        --course-page-bottom-padding-tablet: 128px;
-        --course-page-bottom-padding-mobile: 156px;
-        --course-review-table-min-height: 220px;
-        --course-review-table-viewport-offset: 520px;
-        --course-review-table-max-height: 360px;
-        --admin-review-content-max-width: 1120px;
-
-        min-height: calc(100vh - var(--course-page-min-height-offset));
-        padding-top: 16px !important;
-        padding-bottom: var(--course-page-bottom-padding) !important;
-    }
-
-    .course-wizard-steps {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .course-step-card {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-        padding: var(--space-md) var(--space-lg);
-        transition: border-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .course-step-card.active {
-        border-color: var(--primary-color);
-        background: var(--surface-info-subtle);
-    }
-
-    .course-step-card.complete {
-        border-color: var(--border-success);
-        background: var(--surface-success-subtle);
-    }
-
-    .course-step-index {
-        width: var(--space-2xl);
-        height: var(--space-2xl);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-pill);
-        border: 1px solid currentColor;
-        font-size: 11px;
-        font-weight: 700;
-        margin-right: var(--space-xs);
-    }
-
-    .course-step-title {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-    }
-
-    .course-step-text {
-        font-size: 11px;
-        color: var(--text-secondary);
-        margin-top: 2px;
-    }
-
-    .course-panel {
-        display: none;
-    }
-
-    .course-panel.active {
-        display: block;
-    }
-
-    .course-sidebar-card,
-    .course-section-card,
-    .course-summary-card,
-    .course-detail-card,
-    .course-table-shell,
-    .course-grid-shell {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-    }
-
-    .course-sidebar-card,
-    .course-section-card,
-    .course-detail-card {
-        padding: 12px;
-    }
-
-    .course-meta-item {
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .course-meta-item:last-child {
-        border-bottom: none;
-    }
-
-    .course-meta-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-bottom: 3px;
-    }
-
-    .course-meta-value {
-        font-size: 13px;
-        color: var(--text-primary);
-        word-break: break-word;
-    }
-
-    .course-grid-head,
-    .course-table-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: var(--space-sm) var(--space-md);
-        border-bottom: 1px solid var(--border-color);
-        background: var(--surface-subtle);
-    }
-
-    .course-grid-title,
-    .course-table-title {
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-    }
-
-    .course-grid-note,
-    .course-inline-note,
+    /* ── Unique: Content preview note ── */
     .course-content-preview {
         font-size: 12px;
         color: var(--text-secondary);
     }
 
-    .course-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .course-summary-card {
-        padding: var(--space-sm);
-        background: var(--surface-subtle);
-    }
-
-    .course-summary-value {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-primary);
-        line-height: 1.1;
-    }
-
-    .course-summary-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-top: 6px;
-    }
-
-    .course-detail-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .course-detail-item {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-subtle);
-        padding: var(--space-sm);
-    }
-
-    .course-detail-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-bottom: 6px;
-        font-weight: 600;
-    }
-
-    .course-detail-value {
-        font-size: 13px;
-        color: var(--text-primary);
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
-
-    .course-table-shell {
-        overflow: hidden;
-    }
-
-    .course-table-wrap {
-        overflow: auto;
-        max-height: clamp(
-            var(--course-review-table-min-height),
-            calc(100vh - var(--course-review-table-viewport-offset)),
-            var(--course-review-table-max-height)
-        );
-    }
-
-    .course-table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: min(760px, 100%);
-    }
-
-    .course-table th,
-    .course-table td {
-        padding: 8px 14px;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 12px;
-        vertical-align: top;
-    }
-
-    .course-table thead th {
-        font-size: 11px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        background: var(--surface-subtle);
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .course-empty-state {
-        padding: 32px 16px;
-        text-align: center;
-        color: var(--text-secondary);
-    }
-
-    .course-empty-state i {
-        font-size: 28px;
-        color: var(--state-empty-icon);
-        margin-bottom: 10px;
-        display: block;
-    }
-
-    .course-resource-name {
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-
-    .course-resource-note {
-        font-size: 11px;
-        color: var(--text-secondary);
-        margin-top: 4px;
-    }
-
-    @@media (max-width: 991.98px) {
-        .course-page-shell {
-            min-height: auto;
-            padding-bottom: var(--course-page-bottom-padding-tablet) !important;
-        }
-
-        .course-wizard-steps,
-        .course-summary-grid,
-        .course-detail-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 767.98px) {
-        .course-page-shell {
-            padding-bottom: var(--course-page-bottom-padding-mobile) !important;
-        }
-
-        .course-table th,
-        .course-table td {
-            padding: 8px 10px;
-        }
+    /* ── Unique: Review table scroll height ── */
+    .course-review-table-wrap {
+        --admin-table-wrap-max-height: clamp(220px, calc(100vh - 520px), 360px);
     }
 </style>
 
@@ -373,71 +100,68 @@
 }
 else
 {
-    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 course-page-shell admin-review-flow">
+    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
         <div id="load-panel"></div>
 
-        <div class="course-wizard-steps">
-            <div class="course-step-card active" data-step-card="1">
-                <div class="course-step-title"><span class="course-step-index">1</span>Course Information</div>
-                <div class="course-step-text">Define the course identity, ownership, and description.</div>
+        <div class="admin-wizard-steps">
+            <div class="admin-step-card active" data-step-card="1">
+                <div class="admin-step-title"><span class="admin-step-index">1</span>Course Information</div>
             </div>
-            <div class="course-step-card" data-step-card="2">
-                <div class="course-step-title"><span class="course-step-index">2</span>Course Content</div>
-                <div class="course-step-text">Select existing resources or upload new SCORM packages in order.</div>
+            <div class="admin-step-card" data-step-card="2">
+                <div class="admin-step-title"><span class="admin-step-index">2</span>Course Content</div>
             </div>
-            <div class="course-step-card" data-step-card="3">
-                <div class="course-step-title"><span class="course-step-index">3</span>Review And Confirm</div>
-                <div class="course-step-text">Review the course summary and content sequence before creating it.</div>
+            <div class="admin-step-card" data-step-card="3">
+                <div class="admin-step-title"><span class="admin-step-index">3</span>Review And Confirm</div>
             </div>
         </div>
 
-        <div class="row g-3 course-layout-row admin-review-layout-row">
-            <div class="col-xl-3 course-sidebar-col admin-review-sidebar-col">
-                <div class="course-sidebar-card h-100">
+        <div class="row g-3 admin-review-layout-row">
+            <div class="col-xl-3 admin-review-sidebar-col">
+                <div class="admin-sidebar-card h-100">
                     <div class="section-title">Course Snapshot</div>
-                    <div class="course-meta-item">
-                        <div class="course-meta-label">Course Type</div>
-                        <div class="course-meta-value fw-bold" id="snapshot-course-type">Not selected</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Course Type</div>
+                        <div class="admin-meta-value fw-bold" id="snapshot-course-type">Not selected</div>
                     </div>
-                    <div class="course-meta-item">
-                        <div class="course-meta-label">Course Code</div>
-                        <div class="course-meta-value" id="snapshot-course-code">Not set</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Course Code</div>
+                        <div class="admin-meta-value" id="snapshot-course-code">Not set</div>
                     </div>
-                    <div class="course-meta-item">
-                        <div class="course-meta-label">Course Title</div>
-                        <div class="course-meta-value" id="snapshot-course-name">Not set</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Course Title</div>
+                        <div class="admin-meta-value" id="snapshot-course-name">Not set</div>
                     </div>
-                    <div class="course-meta-item">
-                        <div class="course-meta-label">Division / Category</div>
-                        <div class="course-meta-value" id="snapshot-course-scope">No division or category selected</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Division / Category</div>
+                        <div class="admin-meta-value" id="snapshot-course-scope">No division or category selected</div>
                     </div>
-                    <div class="course-meta-item">
-                        <div class="course-meta-label">Content Queue</div>
-                        <div class="course-meta-value"><span class="tag-pill pill-info" id="snapshot-resource-count">0 items queued</span></div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Content Queue</div>
+                        <div class="admin-meta-value"><span class="tag-pill pill-info" id="snapshot-resource-count">0 items queued</span></div>
                     </div>
-                    <div class="course-meta-item">
-                        <div class="course-meta-label">Content Preview</div>
-                        <div class="course-meta-value course-content-preview" id="snapshot-resource-preview">No content added yet</div>
+                    <div class="admin-meta-item">
+                        <div class="admin-meta-label">Content Preview</div>
+                        <div class="admin-meta-value course-content-preview" id="snapshot-resource-preview">No content added yet</div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-xl-9 course-main-col admin-review-main-col">
+            <div class="col-xl-9 admin-review-main-col">
                 <div class="border rounded bg-white p-2">
-                    <div id="step-panel-1" class="course-panel active">
+                    <div id="step-panel-1" class="admin-wizard-panel active">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Course Information</div>
                             </div>
                             <div class="admin-section-divider"></div>
                         </div>
-                        <div class="course-detail-card">
-                            <div class="course-inline-note mb-3">Set the course identity first. You can refine the content sequence in the next step.</div>
+                        <div class="admin-detail-card">
+                            <div class="admin-inline-note mb-3">Set the course identity first. You can refine the content sequence in the next step.</div>
                             <div id="form-container"></div>
                         </div>
                     </div>
 
-                    <div id="step-panel-2" class="course-panel">
+                    <div id="step-panel-2" class="admin-wizard-panel">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Course Content</div>
@@ -445,7 +169,7 @@ else
                             <div class="admin-section-divider"></div>
                         </div>
 
-                        <div class="course-section-card">
+                        <div class="admin-detail-card">
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing" role="button" tabindex="0">
@@ -464,16 +188,16 @@ else
                                 </div>
                             </div>
 
-                            <div class="course-inline-note mb-3">
+                            <div class="admin-inline-note mb-3">
                                 <i class="fas fa-info-circle u-text-accent"></i>
                                 You can drag &amp; drop rows to reorder the content, and click on Type to change it for new files.
                             </div>
 
-                            <div class="course-grid-shell overflow-hidden">
-                                <div class="course-grid-head">
-                                    <div class="course-grid-title">Selected Content</div>
+                            <div class="admin-grid-shell overflow-hidden">
+                                <div class="admin-grid-head">
+                                    <div class="admin-grid-title">Selected Content</div>
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="course-grid-note">Keep the queue in the intended learning order.</span>
+                                        <span class="admin-grid-note">Keep the queue in the intended learning order.</span>
                                         <span class="tag-pill pill-default" id="total-count-badge">0 Items</span>
                                     </div>
                                 </div>
@@ -482,7 +206,7 @@ else
                         </div>
                     </div>
 
-                    <div id="step-panel-3" class="course-panel">
+                    <div id="step-panel-3" class="admin-wizard-panel">
                         <div class="admin-section-header admin-review-header">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -491,32 +215,32 @@ else
                         </div>
 
                         <div class="admin-review-stack">
-                            <div class="course-summary-grid">
-                                <div class="course-summary-card">
-                                    <div class="course-summary-value" id="review-total-resources">0</div>
-                                    <div class="course-summary-label">Total Content Items</div>
+                            <div class="admin-summary-grid">
+                                <div class="admin-summary-item">
+                                    <div class="admin-summary-value" id="review-total-resources">0</div>
+                                    <div class="admin-summary-label">Total Content Items</div>
                                 </div>
-                                <div class="course-summary-card">
-                                    <div class="course-summary-value" id="review-existing-resources">0</div>
-                                    <div class="course-summary-label">Existing Resources</div>
+                                <div class="admin-summary-item">
+                                    <div class="admin-summary-value" id="review-existing-resources">0</div>
+                                    <div class="admin-summary-label">Existing Resources</div>
                                 </div>
-                                <div class="course-summary-card">
-                                    <div class="course-summary-value" id="review-new-resources">0</div>
-                                    <div class="course-summary-label">New Uploads</div>
+                                <div class="admin-summary-item">
+                                    <div class="admin-summary-value" id="review-new-resources">0</div>
+                                    <div class="admin-summary-label">New Uploads</div>
                                 </div>
                             </div>
 
-                            <div class="course-detail-card">
+                            <div class="admin-detail-card">
                                 <div class="section-title mb-2">Course Details</div>
-                                <div class="course-detail-grid" id="review-course-details"></div>
+                                <div class="admin-detail-grid" id="review-course-details"></div>
                             </div>
 
-                            <div class="course-table-shell">
-                                <div class="course-table-head">
-                                    <div class="course-table-title">Content Review</div>
-                                    <div class="course-grid-note">Confirm order, type, and source before creating the course.</div>
+                            <div class="admin-table-shell">
+                                <div class="admin-table-head">
+                                    <div class="admin-table-title">Content Review</div>
+                                    <div class="admin-grid-note">Confirm order, type, and source before creating the course.</div>
                                 </div>
-                                <div class="course-table-wrap" id="review-content-table"></div>
+                                <div class="admin-table-wrap course-review-table-wrap" id="review-content-table"></div>
                             </div>
                         </div>
                     </div>
@@ -979,9 +703,9 @@ else
                 $(this).toggleClass("complete", step < createState.currentStep);
             });
 
-            $(".course-panel").removeClass("active");
+            $(".admin-wizard-panel").removeClass("active");
             $(`#step-panel-${createState.currentStep}`).addClass("active");
-            $(".course-page-shell").toggleClass("is-review-step", createState.currentStep === 3);
+            $(".admin-wizard-shell").toggleClass("is-review-step", createState.currentStep === 3);
 
             $("#btn-previous-step").toggleClass("d-none", createState.currentStep <= 1);
             $("#btn-next-step").toggleClass("d-none", createState.currentStep >= TOTAL_WIZARD_STEPS);
@@ -1308,9 +1032,9 @@ else
                 { label: "Description", value: description }
             ].map(function(detail) {
                 return `
-                    <div class="course-detail-item">
-                        <div class="course-detail-label">${window.escapeHtml(detail.label)}</div>
-                        <div class="course-detail-value">${window.escapeHtml(detail.value)}</div>
+                    <div class="admin-detail-item">
+                        <div class="admin-detail-label">${window.escapeHtml(detail.label)}</div>
+                        <div class="admin-detail-value">${window.escapeHtml(detail.value)}</div>
                     </div>`;
             }).join('');
 
@@ -1338,7 +1062,7 @@ else
         function buildReviewContentTable() {
             if (unifiedResources.length === 0) {
                 return `
-                    <div class="course-empty-state">
+                    <div class="admin-wizard-empty-state">
                         <i class="fas fa-folder-open"></i>
                         <div>No content has been added yet.</div>
                     </div>`;
@@ -1352,8 +1076,8 @@ else
                     <tr>
                         <td>${index + 1}</td>
                         <td>
-                            <div class="course-resource-name">${window.escapeHtml(resource.name)}</div>
-                            <div class="course-resource-note">${window.escapeHtml(sourceText)}</div>
+                            <div class="admin-student-name">${window.escapeHtml(resource.name)}</div>
+                            <div class="admin-student-note">${window.escapeHtml(sourceText)}</div>
                         </td>
                         <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
                         <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>
@@ -1362,7 +1086,7 @@ else
             }).join('');
 
             return `
-                <table class="course-table">
+                <table class="admin-table">
                     <thead>
                         <tr>
                             <th>Order</th>
