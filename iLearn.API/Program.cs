@@ -1,98 +1,49 @@
-﻿using iLearn.Application;
-using iLearn.API.Middleware;
+﻿using iLearn.API.Extensions;
 using iLearn.API.Hubs;
-using iLearn.API.Services;
-using iLearn.Application.Interfaces.Services;
+using iLearn.API.Middleware;
+using iLearn.Application;
 using iLearn.Infrastructure;
-using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ── Presentation (controllers, JSON, SignalR, realtime notifier) ──
+builder.Services.AddPresentation();
 
-builder.Services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    // เพิ่มบรรทัดนี้เพื่อตัดวงจร Loop Reference
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-});
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-    .AddNegotiate();
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = options.DefaultPolicy;
+// ── Authentication & Authorization ──
+builder.Services.AddApiAuthentication();
+builder.Services.AddApiAuthorization(builder.Configuration);
 
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("Admin", "SuperAdmin"));
-
-    options.AddPolicy("SuperAdminOnly", policy =>
-        policy.RequireRole("SuperAdmin"));
-
-    options.AddPolicy("ManagerOrAbove", policy =>
-        policy.RequireRole("Manager", "Admin", "SuperAdmin"));
-
-    options.AddPolicy("UserOrAbove", policy =>
-        policy.RequireRole("User", "Manager", "Admin", "SuperAdmin"));
-
-    options.AddPolicy("DomainUser", policy =>
-        policy.RequireAssertion(context =>
-            context.User.Identity?.Name?.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase) == true));
-});
-
+// ── OpenAPI / Swagger ──
 builder.Services.AddOpenApi();
+builder.Services.AddApiSwagger();
+
+// ── Cross-cutting infrastructure ──
 builder.Services.AddMemoryCache();
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<IMaintenanceStatusService, MaintenanceStatusService>();
-builder.Services.AddSingleton<IAdminActivityRealtimeNotifier, SignalRAdminActivityNotifier>();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "iLearn API", Version = "v1" });
-});
 builder.Services.AddHttpContextAccessor();
 
 // ── Clean Architecture: Register layers via extension methods ──
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// ── Development-only CORS ──
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigin",
-        builder =>
-        {
-            builder.WithOrigins(
-                    "https://localhost:7270",
-                    "https://localhost:7078",
-                    "http://localhost:5126",
-                    "http://localhost:5182"
-
-                )
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials();
-        });
-});
+    builder.Services.AddApiCors(builder.Configuration);
 }
-
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ── HTTP pipeline ──
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "iLearn API V1");
-    });
-
-
+    app.UseApiSwagger();
+    app.UseCors(CorsExtensions.DevelopmentPolicyName);
 }
-app.UseCors("AllowSpecificOrigin");
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseMiddleware<ApiClaimsEnrichMiddleware>();
@@ -102,3 +53,4 @@ app.MapControllers();
 app.MapHub<AdminActivityHub>("/hubs/admin-activity");
 
 app.Run();
+
