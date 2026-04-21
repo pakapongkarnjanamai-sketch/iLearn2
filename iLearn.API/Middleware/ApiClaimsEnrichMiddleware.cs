@@ -1,4 +1,4 @@
-using iLearn.Application.DTOs;
+ï»¿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +8,13 @@ using SC = System.Security.Claims;
 namespace iLearn.API.Middleware
 {
     /// <summary>
-    /// Middleware ?????? iLearn.API — ????? Claims ??? Windows Auth token
-    /// ??? resolve DivisionId + Roles ??? DB ??? NID ??? Windows user
-    /// ???????? ICurrentUserService.DivisionId ?????????? API controllers
+    /// Enriches the Windows-authenticated <see cref="System.Security.Claims.ClaimsPrincipal"/>
+    /// with iLearn-specific claims (UserId, Roles, DivisionId) resolved from the database
+    /// using the NID portion of the Windows account name. Results are cached per identity
+    /// so subsequent requests do not re-query the user/role tables.
+    ///
+    /// The enriched principal exposes <c>DivisionId</c> via <see cref="iLearn.Application.Interfaces.Services.ICurrentUserService"/>,
+    /// which API controllers rely on for division-level data isolation.
     /// </summary>
     public class ApiClaimsEnrichMiddleware
     {
@@ -18,7 +22,8 @@ namespace iLearn.API.Middleware
         private readonly ILogger<ApiClaimsEnrichMiddleware> _logger;
         private readonly IMemoryCache _cache;
 
-        // Cache TTL ??????? Admin middleware ????????????????????
+        // Cache TTL kept aligned with the Admin-side middleware to avoid
+        // divergent permission decisions between API and Admin layers.
         private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
 
         public ApiClaimsEnrichMiddleware(
@@ -35,8 +40,8 @@ namespace iLearn.API.Middleware
             HttpContext context,
             IGenericRepository<User> userRepo)
         {
-            // ?? Skip static / non-authenticated ??
-            if (!context.User.Identity?.IsAuthenticated == true ||
+            // Skip swagger/health/static and any unauthenticated request.
+            if (context.User.Identity?.IsAuthenticated != true ||
                 ShouldSkip(context.Request.Path))
             {
                 await _next(context);
@@ -51,10 +56,15 @@ namespace iLearn.API.Middleware
                 return;
             }
 
-            var cacheKey     = $"api_claims_{windowsName}";
-            var forceRefresh = context.Request.Query.ContainsKey("_refresh");
+            var cacheKey = $"api_claims_{windowsName}";
 
-            // ?? Cache hit ? inject ????????????? ??
+            // The "?_refresh" query toggle is intentionally restricted to administrators
+            // so an arbitrary authenticated client cannot force repeated DB look-ups.
+            // Non-admin callers always read the cached principal.
+            var forceRefresh = context.Request.Query.ContainsKey("_refresh")
+                && IsAdminPrincipal(context.User);
+
+            // Cache hit: replace the principal and short-circuit.
             if (!forceRefresh && _cache.TryGetValue(cacheKey, out SC.ClaimsPrincipal? cached) && cached != null)
             {
                 context.User = cached;
@@ -62,7 +72,7 @@ namespace iLearn.API.Middleware
                 return;
             }
 
-            // ?? Cache miss ? query DB ??
+            // Cache miss: build claims from the database.
             try
             {
                 var nid = windowsName.Split('\\')[1];
@@ -80,7 +90,7 @@ namespace iLearn.API.Middleware
                             DivisionId = ur.Role.DivisionId
                         }).ToList()
                     })
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(context.RequestAborted);
 
                 if (userRecord == null)
                 {
@@ -104,7 +114,7 @@ namespace iLearn.API.Middleware
                         claims.Add(new SC.Claim(SC.ClaimTypes.Role, roleValue));
                 }
 
-                // DivisionId claim ??? Role ???????????
+                // DivisionId claim â€” taken from the first role that carries one.
                 var primaryDivisionId = userRecord.Roles
                     .Where(r => r.DivisionId.HasValue)
                     .Select(r => r.DivisionId!.Value)
@@ -123,7 +133,7 @@ namespace iLearn.API.Middleware
                     "ApiClaimsEnrich: enriched {Identity} with {RoleCount} role(s), DivisionId={DivId}",
                     windowsName,
                     userRecord.Roles.Count,
-                    primaryDivisionId > 0 ? primaryDivisionId.ToString() : "—");
+                    primaryDivisionId > 0 ? primaryDivisionId.ToString() : "(none)");
             }
             catch (Exception ex)
             {
@@ -132,6 +142,9 @@ namespace iLearn.API.Middleware
 
             await _next(context);
         }
+
+        private static bool IsAdminPrincipal(SC.ClaimsPrincipal user) =>
+            user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
 
         private static bool ShouldSkip(PathString path)
         {

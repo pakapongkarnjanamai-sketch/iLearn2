@@ -4,7 +4,6 @@ using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
-using iLearn.API.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -256,7 +255,7 @@ namespace iLearn.API.Controllers
         /// Analyze resources for optimization — find unused published and unpublished-but-needed resources.
         /// </summary>
         [HttpGet("Admin/OptimizeAnalysis")]
-        public async Task<IActionResult> OptimizeAnalysis()
+        public async Task<IActionResult> OptimizeAnalysis(CancellationToken cancellationToken)
         {
             // 1) Published resources NOT linked to any active CourseVersion
             var unusedPublished = await _resourceRepo.GetQuery()
@@ -271,7 +270,7 @@ namespace iLearn.API.Controllers
                     fileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
                     totalCourseCount = r.CourseResources.Count()
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var unusedList = unusedPublished.Select(r =>
             {
@@ -301,7 +300,7 @@ namespace iLearn.API.Controllers
                     r.TypeId,
                     fileLength = r.FileStorage != null ? r.FileStorage.Length : 0
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             // Load active course version details for the matched resources
             var shouldPublishIds = shouldPublishRaw.Select(r => r.Id).ToList();
@@ -317,7 +316,7 @@ namespace iLearn.API.Controllers
                             courseCode = cr.CourseVersion.Course != null ? cr.CourseVersion.Course.Code : "",
                             versionNumber = cr.CourseVersion.VersionNumber
                         }))
-                    .ToListAsync()
+                    .ToListAsync(cancellationToken)
                 : [];
 
             var courseDetailsGrouped = courseDetails
@@ -446,14 +445,14 @@ namespace iLearn.API.Controllers
         }
 
         [HttpPost("Admin/BatchPublishStream")]
-        public async Task BatchPublishStream([FromBody] List<int> ids)
+        public async Task BatchPublishStream([FromBody] List<int> ids, CancellationToken cancellationToken)
         {
             HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
-            Response.Headers.Append("Content-Type", "text/event-stream; charset=utf-8");
+            Response.ContentType = "text/event-stream; charset=utf-8";
             Response.Headers.Append("Cache-Control", "no-cache");
             Response.Headers.Append("Connection", "keep-alive");
-            await Response.StartAsync();
+            await Response.StartAsync(cancellationToken);
 
             var stopwatch = Stopwatch.StartNew();
             var success = 0;
@@ -493,6 +492,7 @@ namespace iLearn.API.Controllers
 
             for (var index = 0; index < ids.Count; index++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var resourceId = ids[index];
                 var progress = new BulkOperationProgressDto
                 {
@@ -687,11 +687,13 @@ namespace iLearn.API.Controllers
         /// </summary>
         [HttpPost("Admin/BulkSetPublic")]
         //[Authorize(Roles = "Admin")]
-        public async Task BulkSetPublicStreaming()
+        public async Task BulkSetPublicStreaming(CancellationToken cancellationToken)
         {
-            Response.Headers.Add("Content-Type", "text/event-stream");
-            Response.Headers.Add("Cache-Control", "no-cache");
-            Response.Headers.Add("Connection", "keep-alive");
+            // SSE response. Use ContentType for the media type and Append for
+            // additional headers — Headers.Add throws on duplicate keys.
+            Response.ContentType = "text/event-stream";
+            Response.Headers.Append("Cache-Control", "no-cache");
+            Response.Headers.Append("Connection", "keep-alive");
 
             var stopwatch = Stopwatch.StartNew();
             int currentItem = 0;
@@ -723,9 +725,10 @@ namespace iLearn.API.Controllers
                     selector: r => r.Id
                 );
 
-                // ✅ ประมวลผลทีละไฟล์
+                // Process one file at a time
                 foreach (var resourceId in resourceIds)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     currentItem++;
 
                     // โหลดเฉพาะไฟล์ที่กำลังประมวลผล
@@ -850,13 +853,6 @@ namespace iLearn.API.Controllers
 
                         _logger.LogError(ex, $"❌ [{currentItem}/{totalCount}] Error processing {resource.Name}");
                     }
-
-                    // ✅ ให้ GC ทำงาน (ลด memory)
-                    if (currentItem % 10 == 0)
-                    {
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
-                    }
                 }
 
                 // ส่งสถานะสุดท้าย
@@ -893,12 +889,12 @@ namespace iLearn.API.Controllers
             }
         }
 
-        private async Task WriteProgressAsync(BulkOperationProgressDto progress)
+        private async Task WriteProgressAsync(BulkOperationProgressDto progress, CancellationToken cancellationToken = default)
         {
             var json = System.Text.Json.JsonSerializer.Serialize(progress);
-            await Response.WriteAsync($"data: {json}\n\n");
-            await Response.BodyWriter.FlushAsync();
-            await Response.Body.FlushAsync();
+            await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
+            await Response.BodyWriter.FlushAsync(cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
         }
 
         /// <summary>
