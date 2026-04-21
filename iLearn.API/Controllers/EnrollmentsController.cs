@@ -1,11 +1,11 @@
 ﻿using iLearn.Application.Common;
 using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
-using iLearn.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -31,7 +31,7 @@ namespace iLearn.API.Controllers
         private readonly IStudentGroupService _studentGroupService;
         private readonly IAssignmentNoGenerator _assignmentNoGen;
         private readonly IDateTime _dateTime;
-        private readonly AppDbContext _dbContext;
+        private readonly IUnitOfWork _unitOfWork;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -45,7 +45,7 @@ namespace iLearn.API.Controllers
             IStudentGroupService studentGroupService,
             IAssignmentNoGenerator assignmentNoGen,
             IDateTime dateTime,
-            AppDbContext dbContext)
+            IUnitOfWork unitOfWork)
         {
             _enrollmentRepo      = enrollmentRepo;
             _enrollmentService   = enrollmentService;
@@ -58,7 +58,7 @@ namespace iLearn.API.Controllers
             _studentGroupService = studentGroupService;
             _assignmentNoGen     = assignmentNoGen;
             _dateTime            = dateTime;
-            _dbContext           = dbContext;
+            _unitOfWork          = unitOfWork;
         }
 
         [HttpPost("ResetStatus")]
@@ -291,7 +291,7 @@ namespace iLearn.API.Controllers
                     validation));
             }
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 string assignmentNo = await _assignmentNoGen.NextAsync();
@@ -310,8 +310,8 @@ namespace iLearn.API.Controllers
                     DivisionId     = _currentUser.DivisionId
                 }).ToList();
 
-                await _dbContext.Set<Assignment>().AddRangeAsync(rules);
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.AddRangeAsync(rules);
+                await _unitOfWork.SaveChangesAsync();
 
                 var assignmentRuleIdsByCourseId = rules
                     .Where(rule => rule.CourseId.HasValue)

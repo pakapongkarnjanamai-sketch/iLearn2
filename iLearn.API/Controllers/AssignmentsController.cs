@@ -1,9 +1,9 @@
 ﻿using iLearn.Application.DTOs;
+using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
-using iLearn.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,36 +16,39 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Assignment> _repo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
+        private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly IAssignmentDashboardService _dashboardService;
         private readonly ICourseAssignmentService _courseAssignmentService;
         private readonly IStudentApiService _studentApiService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
-        private readonly AppDbContext _dbContext;
+        private readonly IUnitOfWork _unitOfWork;
 
         public AssignmentsController(
             IGenericRepository<Assignment> repo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
+            IGenericRepository<Enrollment> enrollmentRepo,
             IAssignmentBatchService assignmentBatchService,
             IAssignmentDashboardService dashboardService,
             ICourseAssignmentService courseAssignmentService,
             IStudentApiService studentApiService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
-            AppDbContext dbContext)
+            IUnitOfWork unitOfWork)
         {
             _repo = repo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
+            _enrollmentRepo = enrollmentRepo;
             _assignmentBatchService = assignmentBatchService;
             _dashboardService = dashboardService;
             _courseAssignmentService = courseAssignmentService;
             _studentApiService = studentApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
-            _dbContext = dbContext;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet("history")]
@@ -106,7 +109,7 @@ namespace iLearn.API.Controllers
             var relatedRules = await _assignmentBatchService.LoadBatchAsync(rule);
             var relatedIds = relatedRules.Select(r => r.Id).ToList();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var links = await _enrollmentAssignmentRepo.GetAsync(
@@ -124,7 +127,7 @@ namespace iLearn.API.Controllers
                     relatedRule.DeletedAt = _dateTime.Now;
                 }
 
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
             catch
@@ -147,7 +150,7 @@ namespace iLearn.API.Controllers
         [HttpGet("resolve/{assignmentNo}")]
         public async Task<IActionResult> ResolveByNo(string assignmentNo)
         {
-            var assignment = await _dbContext.Assignments
+            var assignment = await _repo.GetQuery()
                 .Where(a => !a.IsDeleted && a.AssignmentNo == assignmentNo)
                 .Select(a => new { a.Id })
                 .FirstOrDefaultAsync();
@@ -163,7 +166,7 @@ namespace iLearn.API.Controllers
         {
             var divisionId = _currentUser.DivisionId;
 
-            var mainAssignment = await _dbContext.Assignments
+            var mainAssignment = await _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => a.Id == id && (!divisionId.HasValue || a.DivisionId == divisionId.Value))
                 .Select(a => new { a.AssignmentNo, a.StudentGroupId })
@@ -172,14 +175,14 @@ namespace iLearn.API.Controllers
             if (mainAssignment == null)
                 return NotFound(new { message = "Assignment not found" });
 
-            var courseIds = await _dbContext.Assignments
+            var courseIds = await _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => (!divisionId.HasValue || a.DivisionId == divisionId.Value)
                     && (string.IsNullOrWhiteSpace(mainAssignment.AssignmentNo)
                         ? a.Id == id
                         : a.AssignmentNo == mainAssignment.AssignmentNo)
                     && a.CourseId.HasValue)
-                .Join(_dbContext.Courses.Where(c => !c.IsDeleted),
+                .Join(_courseRepo.GetQuery().Where(c => !c.IsDeleted),
                     a => a.CourseId, c => c.Id,
                     (a, c) => c.Id)
                 .Distinct()
@@ -221,7 +224,7 @@ namespace iLearn.API.Controllers
                 : null;
 
             // Find enrollment IDs via EnrollmentAssignment links
-            var linksQuery = _dbContext.EnrollmentAssignments
+            var linksQuery = _enrollmentAssignmentRepo.GetQuery()
                 .Where(ea => targetRuleIds.Contains(ea.AssignmentId)
                     && !ea.IsDeleted
                     && ea.Enrollment != null);
@@ -243,7 +246,7 @@ namespace iLearn.API.Controllers
                 .Select(r => r.CourseId!.Value)
                 .ToList();
 
-            var enrollments = await _dbContext.Enrollments
+            var enrollments = await _enrollmentRepo.GetQuery()
                 .Where(e => enrollmentIds.Contains(e.Id)
                     && !e.IsDeleted
                     && (courseIds.Count == 0 || courseIds.Contains(e.CourseId ?? 0)))
@@ -255,12 +258,12 @@ namespace iLearn.API.Controllers
             var now = _dateTime.Now;
             var resetCount = 0;
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // Snapshot current completion state in EnrollmentAssignment links
                 var enrollmentIdsToReset = enrollments.Select(e => e.Id).ToList();
-                var links = await _dbContext.EnrollmentAssignments
+                var links = await _enrollmentAssignmentRepo.GetQuery()
                     .Where(ea => targetRuleIds.Contains(ea.AssignmentId)
                         && enrollmentIdsToReset.Contains(ea.EnrollmentId)
                         && !ea.IsDeleted)
@@ -284,7 +287,7 @@ namespace iLearn.API.Controllers
                     resetCount++;
                 }
 
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
             catch
@@ -334,7 +337,7 @@ namespace iLearn.API.Controllers
 
             var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 foreach (var rule in allRules)
@@ -353,7 +356,7 @@ namespace iLearn.API.Controllers
                     link.DueDate = dto.NewDueDate;
                 }
 
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
             catch
@@ -410,7 +413,7 @@ namespace iLearn.API.Controllers
             var studentCodes = await GetBatchStudentCodesAsync(batchRules.Select(rule => rule.Id).ToList(), batchRules);
             var employeeCodesText = string.Join(",", studentCodes);
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var newRules = newCourseIds.Select(courseId => new Assignment
@@ -426,8 +429,8 @@ namespace iLearn.API.Controllers
                     DivisionId = mainRule.DivisionId
                 }).ToList();
 
-                await _dbContext.Assignments.AddRangeAsync(newRules);
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.AddRangeAsync(newRules);
+                await _unitOfWork.SaveChangesAsync();
 
                 if (studentCodes.Count > 0)
                 {
@@ -471,7 +474,7 @@ namespace iLearn.API.Controllers
                 return NotFound(new { message = "Assigned course not found." });
             }
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var links = await _enrollmentAssignmentRepo.GetAsync(link => link.AssignmentId == targetRule.Id, includeProperties: "Enrollment");
@@ -484,7 +487,7 @@ namespace iLearn.API.Controllers
                 targetRule.IsDeleted = true;
                 targetRule.DeletedAt = _dateTime.Now;
 
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 var remainingRules = batchRules.Count(rule => rule.Id != targetRule.Id);
@@ -535,7 +538,7 @@ namespace iLearn.API.Controllers
                 .Union(newStudentCodes, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 foreach (var rule in batchRules)
@@ -557,7 +560,7 @@ namespace iLearn.API.Controllers
                         forceReset: false);
                 }
 
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return Ok(new { success = true, message = "Students added successfully.", addedCount = newStudentCodes.Count });
             }
@@ -597,7 +600,7 @@ namespace iLearn.API.Controllers
                 .Where(code => !string.Equals(code, normalizedStudentCode, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var links = await _enrollmentAssignmentRepo.GetAsync(
@@ -618,7 +621,7 @@ namespace iLearn.API.Controllers
                     rule.EmployeeCodes = employeeCodesText;
                 }
 
-                await _dbContext.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return Ok(new { success = true, message = "Student removed successfully." });
             }
@@ -685,7 +688,7 @@ namespace iLearn.API.Controllers
 
         private async Task<List<string>> GetBatchStudentCodesAsync(List<int> ruleIds, IEnumerable<Assignment> batchRules)
         {
-            var studentCodesFromLinks = await _dbContext.EnrollmentAssignments
+            var studentCodesFromLinks = await _enrollmentAssignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(link => ruleIds.Contains(link.AssignmentId) && !link.IsDeleted && link.Enrollment != null)
                 .Select(link => link.Enrollment!.StudentCode)
@@ -718,7 +721,7 @@ namespace iLearn.API.Controllers
             var divisionId = _currentUser.DivisionId;
             var currentDate = _dateTime.Now;
 
-            var assignmentQuery = _dbContext.Assignments
+            var assignmentQuery = _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value);
 
@@ -750,7 +753,7 @@ namespace iLearn.API.Controllers
 
             var courseMap = courseIds.Count == 0
                 ? new Dictionary<int, AssignmentHistoryCourseRow>()
-                : await _dbContext.Courses
+                : await _courseRepo.GetQuery()
                     .IgnoreQueryFilters()
                     .AsNoTracking()
                     .Where(c => courseIds.Contains(c.Id))
@@ -764,7 +767,7 @@ namespace iLearn.API.Controllers
 
             var assignmentIdsQuery = assignmentQuery.Select(a => a.Id);
 
-            var linkRows = await _dbContext.EnrollmentAssignments
+            var linkRows = await _enrollmentAssignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(ea => assignmentIdsQuery.Contains(ea.AssignmentId))
                 .Select(ea => new AssignmentHistoryLinkRow
@@ -788,7 +791,7 @@ namespace iLearn.API.Controllers
         {
             var divisionId = _currentUser.DivisionId;
 
-            var mainAssignment = await _dbContext.Assignments
+            var mainAssignment = await _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => a.Id == assignmentId && (!divisionId.HasValue || a.DivisionId == divisionId.Value))
                 .Select(a => new DashboardAssignmentRow
@@ -812,7 +815,7 @@ namespace iLearn.API.Controllers
                 return null;
             }
 
-            var assignmentRows = await _dbContext.Assignments
+            var assignmentRows = await _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => (!divisionId.HasValue || a.DivisionId == divisionId.Value)
                     && (string.IsNullOrWhiteSpace(mainAssignment.AssignmentNo)
@@ -847,7 +850,7 @@ namespace iLearn.API.Controllers
 
             var courseMap = courseIds.Count == 0
                 ? new Dictionary<int, AssignmentHistoryCourseRow>()
-                : await _dbContext.Courses
+                : await _courseRepo.GetQuery()
                     .IgnoreQueryFilters()
                     .AsNoTracking()
                     .Where(course => courseIds.Contains(course.Id))
@@ -862,7 +865,7 @@ namespace iLearn.API.Controllers
 
             var ruleIds = assignmentRows.Select(row => row.Id).ToList();
 
-            var studentRows = await _dbContext.EnrollmentAssignments
+            var studentRows = await _enrollmentAssignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(link => ruleIds.Contains(link.AssignmentId) && link.Enrollment != null)
                 .Select(link => new DashboardStudentRow
@@ -993,7 +996,7 @@ namespace iLearn.API.Controllers
             var divisionId = _currentUser.DivisionId;
             var currentDate = _dateTime.Now;
 
-            var assignmentRows = await _dbContext.Assignments
+            var assignmentRows = await _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value)
                 .Select(a => new AssignmentHistoryAssignmentRow
@@ -1014,7 +1017,7 @@ namespace iLearn.API.Controllers
 
             var assignmentIds = assignmentRows.Select(item => item.Id).ToList();
 
-            var linkRows = await _dbContext.EnrollmentAssignments
+            var linkRows = await _enrollmentAssignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(ea => assignmentIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
                 .Select(ea => new GanttLinkRow

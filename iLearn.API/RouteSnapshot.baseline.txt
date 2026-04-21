@@ -7,6 +7,14 @@
 #
 # Source: grep -nP '^\s*\[(Route|Http(Get|Post|Put|Delete|Patch))' on every
 # controller file at the time of branching from main.
+#
+# Phase 1–3 refactor (PR): the original `Controllers/Base/CRUDController.cs`
+# god file (1,225 LOC, 15 classes) was split into 15 per-resource files
+# under `Controllers/Base/` (e.g. `CategoriesCRUDController.cs`).
+# All routes, controller class names, and HTTP verbs are preserved verbatim.
+# `AssignmentsController` and `EnrollmentsController` no longer inject
+# `AppDbContext`; the same routes/responses are produced via repositories +
+# `IUnitOfWork`.
 
 # --- Base / Generic CRUD (api/admin/[controller]) ---
 # api/admin/<Controller> derives the route segment from the C# class name
