@@ -1,0 +1,97 @@
+# iLearn.API route snapshot — baseline (Phase 0)
+#
+# Captured manually from `[Route] + [Http*]` attributes because the sandbox
+# cannot run `dotnet build` (DevExpress local NuGet feed is Windows-only).
+# Use this file as a regression checklist after each refactor phase: any
+# additions/removals/renames here represent a public-contract change.
+#
+# Source: grep -nP '^\s*\[(Route|Http(Get|Post|Put|Delete|Patch))' on every
+# controller file at the time of branching from main.
+
+# --- Base / Generic CRUD (api/admin/[controller]) ---
+# api/admin/<Controller> derives the route segment from the C# class name
+# minus "Controller" — e.g. CategoriesCRUDController -> api/admin/CategoriesCRUD
+GenericController<T>          [Route("api/admin/[controller]")]
+  GET    Get
+  GET    Get/{id}
+  POST   Post
+  PUT    Put
+  DELETE Delete
+
+# --- CRUDController.cs (15 derived controllers) ---
+CategoriesCRUDController       overrides Get, Get/{id}; adds GetPaged, GetSummaryStats, GetDashboard/{id}, Post, Put, Delete
+AssignmentsCRUDController      overrides Get
+CoursesCRUDController          overrides Get; adds GetForLookup, GetActive
+CourseTypesCRUDController      [Authorize SuperAdminOnly] inherits all
+DivisionsCRUDController        [Authorize SuperAdminOnly] overrides Get; adds GetSummaryStats, GetDashboard/{id}
+EnrollmentsCRUDController      [Authorize SuperAdminOnly] inherits all
+FileStoragesCRUDController     inherits all
+LearningLogsCRUDController     [Authorize SuperAdminOnly] inherits + custom (see Get)
+ResourcesCRUDController        overrides Get; adds GetByCourse, GetServerStats, GetSummaryStats; overrides Put, Delete
+RolesCRUDController            [Authorize SuperAdminOnly] inherits all
+UsersCRUDController            [Authorize SuperAdminOnly] inherits + custom Put
+UserRolesCRUDController        inherits all
+CourseVersionsCRUDController   inherits all
+CourseResourcesCRUDController  inherits all
+StudentGroupsCRUDController    inherits all
+
+# --- Regular controllers (api/[controller]) ---
+RolesController                /api/Roles            GET (list)
+StudentGroupsController        /api/StudentGroups    GET (...) — see file
+AssignmentsController          /api/Assignments
+  GET    history
+  GET    gantt
+  GET    course/{courseId}
+  DELETE {id}
+  GET    dashboard/{id}
+  GET    resolve/{assignmentNo}
+  GET    reassign-data/{id}
+  POST   {id}/reset-enrollments
+  POST   validate-before-assign
+  POST/PUT extend-due-date  (line 327, verb depends on attribute)
+  POST   {id}/courses
+  DELETE {id}/courses/{ruleId}
+  POST   {id}/students
+  DELETE {id}/students/{studentCode}
+  GET    lookup-courses
+  GET    group/{groupId}/history
+ResourcesController            /api/Resources
+  GET    /                                (GetAll)
+  GET    {id}
+  GET    {id}/content
+  POST   upload                            (IFormFile + typeId)
+  POST   SetPublic        ?key=
+  POST   Unpublish        ?key=
+  DELETE {id}
+  GET    Admin/OptimizeAnalysis
+  POST   Admin/BatchUnpublish
+  POST   Admin/BatchPublish
+  POST   Admin/BatchPublishStream
+  POST   Admin/BulkSetPublic                  (SSE stream, returns Task)
+  DELETE Admin/BulkDeletePublished     ?confirmDelete=
+DivisionsController            /api/Divisions          (CRUD-style)
+StudentsController             /api/Students
+  GET    GetStudentbyEID/{employeeCode}
+  GET    divisions       ?divisions=&skip=&take=
+  ...    (other endpoints — see file)
+LearningLogsController         /api/LearningLogs       (multiple actions)
+EnrollmentsController          /api/Enrollments        (multiple actions, [Authorize])
+UsersController                /api/Users              (multiple actions)
+DashboardController            /api/Dashboard
+CoursesController              /api/Courses
+  GET    course-types-lookup
+  GET    /                            ?isActive=&divisionName=
+  ...    (other actions — see file)
+SystemConfigController         /api/SystemConfig
+
+# --- Hubs ---
+SignalR Hub      /hubs/admin-activity     [Authorize Policy="AdminOnly"]
+
+# --- Cross-cutting ---
+Negotiate (Windows) authentication, FallbackPolicy = DefaultPolicy
+Authorization policies: AdminOnly, SuperAdminOnly, ManagerOrAbove, UserOrAbove, DomainUser
+CORS policy "AllowSpecificOrigin" registered Development-only,
+            but applied unconditionally in pipeline (known bug — Phase 5)
+Middleware order: UseCors → UseHttpsRedirection → UseAuthentication
+                  → UseMiddleware<ApiClaimsEnrichMiddleware> → UseAuthorization
+                  → MapControllers → MapHub

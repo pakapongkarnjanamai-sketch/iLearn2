@@ -49,9 +49,9 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet("history")]
-        public async Task<IActionResult> GetHistory([FromQuery] PaginationParams p)
+        public async Task<IActionResult> GetHistory([FromQuery] PaginationParams p, CancellationToken cancellationToken)
         {
-            var history = await BuildAssignmentHistoryAsync();
+            var history = await BuildAssignmentHistoryAsync(cancellationToken);
             var summary = BuildHistorySummary(history);
 
             var filtered = ApplyHistoryFilters(history, p.Search, p.Status);
@@ -76,9 +76,9 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet("gantt")]
-        public async Task<IActionResult> GetGanttTasks()
+        public async Task<IActionResult> GetGanttTasks(CancellationToken cancellationToken)
         {
-            var tasks = await BuildGanttTasksAsync();
+            var tasks = await BuildGanttTasksAsync(cancellationToken);
             return Ok(tasks);
         }
 
@@ -137,9 +137,9 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet("dashboard/{id}")]
-        public async Task<IActionResult> GetDashboardData(int id)
+        public async Task<IActionResult> GetDashboardData(int id, CancellationToken cancellationToken)
         {
-            var result = await BuildAssignmentDashboardAsync(id);
+            var result = await BuildAssignmentDashboardAsync(id, cancellationToken);
             if (result == null) return NotFound(new { message = "Assignment not found" });
             return Ok(new { success = true, data = result });
         }
@@ -713,7 +713,7 @@ namespace iLearn.API.Controllers
                 .ToList() ?? [];
         }
 
-        private async Task<List<AssignmentHistoryDto>> BuildAssignmentHistoryAsync()
+        private async Task<List<AssignmentHistoryDto>> BuildAssignmentHistoryAsync(CancellationToken cancellationToken = default)
         {
             var divisionId = _currentUser.DivisionId;
             var currentDate = _dateTime.Now;
@@ -735,7 +735,7 @@ namespace iLearn.API.Controllers
                     CreatedBy = a.CreatedBy,
                     CreatedAt = a.CreatedAt
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (assignmentRows.Count == 0)
             {
@@ -760,7 +760,7 @@ namespace iLearn.API.Controllers
                         Title = c.Title,
                         IsDeleted = c.IsDeleted
                     })
-                    .ToDictionaryAsync(c => c.Id);
+                    .ToDictionaryAsync(c => c.Id, cancellationToken);
 
             var assignmentIdsQuery = assignmentQuery.Select(a => a.Id);
 
@@ -774,7 +774,7 @@ namespace iLearn.API.Controllers
                     IsCompleted = ea.SnapshotCompleted || (ea.Enrollment != null && ea.Enrollment.IsCompleted)
                 })
                 .Where(ea => ea.StudentCode != null)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var linksByAssignmentId = linkRows.ToLookup(link => link.AssignmentId);
 
@@ -784,7 +784,7 @@ namespace iLearn.API.Controllers
                 .ToList();
         }
 
-        private async Task<AssignmentDashboardDto?> BuildAssignmentDashboardAsync(int assignmentId)
+        private async Task<AssignmentDashboardDto?> BuildAssignmentDashboardAsync(int assignmentId, CancellationToken cancellationToken = default)
         {
             var divisionId = _currentUser.DivisionId;
 
@@ -805,7 +805,7 @@ namespace iLearn.API.Controllers
                     StudentGroupId = a.StudentGroupId,
                     StudentGroupName = a.StudentGroup != null ? a.StudentGroup.Name : null
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (mainAssignment == null)
             {
@@ -832,7 +832,7 @@ namespace iLearn.API.Controllers
                     StudentGroupId = a.StudentGroupId,
                     StudentGroupName = a.StudentGroup != null ? a.StudentGroup.Name : null
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (assignmentRows.Count == 0)
             {
@@ -858,7 +858,7 @@ namespace iLearn.API.Controllers
                         IsDeleted = course.IsDeleted,
                         Code = course.Code
                     })
-                    .ToDictionaryAsync(course => course.Id);
+                    .ToDictionaryAsync(course => course.Id, cancellationToken);
 
             var ruleIds = assignmentRows.Select(row => row.Id).ToList();
 
@@ -875,7 +875,7 @@ namespace iLearn.API.Controllers
                     StartDate = link.StartDate,
                     DueDate = link.DueDate
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var uniqueStudentCodes = studentRows
                 .Select(row => row.StudentCode)
@@ -988,7 +988,7 @@ namespace iLearn.API.Controllers
             };
         }
 
-        private async Task<List<GanttTaskRow>> BuildGanttTasksAsync()
+        private async Task<List<GanttTaskRow>> BuildGanttTasksAsync(CancellationToken cancellationToken = default)
         {
             var divisionId = _currentUser.DivisionId;
             var currentDate = _dateTime.Now;
@@ -1005,7 +1005,7 @@ namespace iLearn.API.Controllers
                     DueDate = a.DueDate,
                     CreatedAt = a.CreatedAt
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (assignmentRows.Count == 0)
             {
@@ -1022,7 +1022,7 @@ namespace iLearn.API.Controllers
                     AssignmentId = ea.AssignmentId,
                     IsCompleted = ea.SnapshotCompleted || ea.Enrollment!.IsCompleted
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var linksByAssignmentId = linkRows.ToLookup(link => link.AssignmentId);
 

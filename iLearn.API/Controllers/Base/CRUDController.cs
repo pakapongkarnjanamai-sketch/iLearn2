@@ -778,6 +778,7 @@ namespace iLearn.API.Controllers.Base
         private readonly IGenericRepository<FileStorage> _fileRepo;
         private readonly IScormService _scormService;
         private readonly IMemoryCache _cache;
+        private readonly ILogger<ResourcesCRUDController> _logger;
 
         public ResourcesCRUDController(
             IGenericRepository<Resource> repository,
@@ -786,13 +787,15 @@ namespace iLearn.API.Controllers.Base
             IGenericRepository<Course> courseRepo,
             IGenericRepository<FileStorage> fileRepo,
             IScormService scormService,
-            IMemoryCache cache) : base(repository, currentUser)
+            IMemoryCache cache,
+            ILogger<ResourcesCRUDController> logger) : base(repository, currentUser)
         {
             _courseResourceRepo = courseResourceRepo;
             _courseRepo         = courseRepo;
             _fileRepo           = fileRepo;
             _scormService       = scormService;
             _cache              = cache;
+            _logger             = logger;
         }
 
         [HttpGet("Get")]
@@ -835,7 +838,7 @@ namespace iLearn.API.Controllers.Base
         }
 
         [HttpGet("GetServerStats")]
-        public async Task<IActionResult> GetServerStats()
+        public async Task<IActionResult> GetServerStats(CancellationToken cancellationToken)
         {
             if (_cache.TryGetValue(ResourceStatsCache.ServerStatsKey, out object? cachedStats) && cachedStats != null)
                 return Ok(cachedStats);
@@ -843,7 +846,7 @@ namespace iLearn.API.Controllers.Base
             var publishedResources = await _repository.GetQuery()
                 .Where(r => r.IsActive && r.URL != null)
                 .Select(r => new { r.Id, r.URL })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var stats = publishedResources.Select(r =>
             {
@@ -857,7 +860,7 @@ namespace iLearn.API.Controllers.Base
         }
 
         [HttpGet("GetSummaryStats")]
-        public async Task<IActionResult> GetSummaryStats()
+        public async Task<IActionResult> GetSummaryStats(CancellationToken cancellationToken)
         {
             if (_cache.TryGetValue(ResourceStatsCache.SummaryStatsKey, out object? cachedSummary) && cachedSummary != null)
                 return Ok(cachedSummary);
@@ -871,7 +874,7 @@ namespace iLearn.API.Controllers.Base
                     r.URL,
                     dbSize = r.FileStorage != null ? r.FileStorage.Length : 0
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             int totalCount = allResources.Count;
             int publishedCount = allResources.Count(r => r.IsActive);
@@ -979,7 +982,16 @@ namespace iLearn.API.Controllers.Base
                         await _fileRepo.HardDeleteAsync(file);
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // SCORM/file cleanup is best-effort. The DB row will still be deleted
+                // below — log the failure so orphaned files can be reconciled later.
+                _logger.LogWarning(
+                    ex,
+                    "ResourcesCRUDController.Delete: cleanup failed for resource {ResourceId} ({ResourceName})",
+                    resource.Id,
+                    resource.Name);
+            }
 
             await _repository.DeleteAsync(resource);
             return Ok();

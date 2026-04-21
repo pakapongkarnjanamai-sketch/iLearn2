@@ -1,0 +1,50 @@
+steps:
+  - name: Restore DevExpress packages from GitHub Release cache
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      # nuget.devexpress.com is DNS-blocked in the Copilot agent sandbox.
+      # Instead, we download the pre-packaged DevExpress NuGet cache that was
+      # created by the "Cache DevExpress NuGet Packages" Actions workflow and
+      # stored as a GitHub Release asset (api.github.com is in the allow-list).
+
+      REPO="${GITHUB_REPOSITORY:-pakapongkarnjanamai-sketch/iLearn2}"
+      RELEASE_TAG="devexpress-nuget-cache"
+      API_URL="https://api.github.com/repos/${REPO}/releases/tags/${RELEASE_TAG}"
+
+      # Fetch asset metadata
+      ASSET_ID=$(curl -fsSL \
+        -H "Authorization: Bearer $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "$API_URL" \
+        | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+assets = data.get('assets', [])
+for a in assets:
+    if a['name'].endswith('.tar.gz'):
+        print(a['id'])
+        break
+" 2>/dev/null)
+
+      if [ -n "$ASSET_ID" ]; then
+        echo "Downloading DevExpress package cache (asset $ASSET_ID)..."
+        curl -fsSL \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/octet-stream" \
+          "https://api.github.com/repos/${REPO}/releases/assets/${ASSET_ID}" \
+          -o /tmp/devexpress-nuget-cache.tar.gz
+
+        mkdir -p ~/.nuget/packages
+        tar -xzf /tmp/devexpress-nuget-cache.tar.gz -C ~/.nuget/packages
+        echo "DevExpress packages extracted to ~/.nuget/packages"
+      else
+        echo "WARNING: devexpress-nuget-cache release not found."
+        echo "Run the 'Cache DevExpress NuGet Packages' workflow once to create it."
+      fi
+
+  - name: Restore solution packages
+    run: |
+      # Restore all packages from nuget.org; DevExpress packages come from the
+      # global cache populated in the previous step.
+      dotnet restore "${GITHUB_WORKSPACE}/iLearn.sln" --ignore-failed-sources

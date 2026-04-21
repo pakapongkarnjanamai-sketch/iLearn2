@@ -1,0 +1,72 @@
+name: Cache DevExpress NuGet Packages
+
+# Run manually whenever the DevExpress version in *.csproj files changes,
+# or on the first setup after adding the DEVEXPRESS_NUGET_KEY secret.
+# This creates a GitHub Release asset that copilot-setup-steps.yml downloads
+# so the Copilot agent can restore the solution without accessing the
+# firewall-blocked nuget.devexpress.com endpoint.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.csproj'
+      - 'NuGet.config'
+
+jobs:
+  cache-packages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create/update the GitHub Release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Restore solution (including DevExpress packages)
+        env:
+          DEVEXPRESS_NUGET_KEY: ${{ secrets.DEVEXPRESS_NUGET_KEY }}
+        run: |
+          # Register the DevExpress feed using the API key embedded in the URL.
+          dotnet nuget add source \
+            "https://nuget.devexpress.com/${DEVEXPRESS_NUGET_KEY}/api" \
+            --name devexpress-ci
+
+          dotnet restore iLearn.sln --no-cache
+
+      - name: Archive DevExpress packages
+        run: |
+          # Collect only the DevExpress/DevExtreme packages (not the entire global cache)
+          # to keep the release asset small.
+          mkdir -p /tmp/dx-pkg-cache
+          for pkg in devextreme.aspnet.core; do
+            src="${HOME}/.nuget/packages/${pkg}"
+            if [ -d "$src" ]; then
+              cp -r "$src" /tmp/dx-pkg-cache/
+            fi
+          done
+
+          tar -czf /tmp/devexpress-nuget-cache.tar.gz -C /tmp/dx-pkg-cache .
+
+          echo "Archive size: $(du -sh /tmp/devexpress-nuget-cache.tar.gz | cut -f1)"
+
+      - name: Publish to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="devexpress-nuget-cache"
+
+          # Delete existing release and tag so we can recreate it with fresh packages.
+          gh release delete "$RELEASE_TAG" --yes 2>/dev/null || true
+          git push --delete origin "refs/tags/$RELEASE_TAG" 2>/dev/null || true
+
+          gh release create "$RELEASE_TAG" \
+            --title "DevExpress NuGet Package Cache" \
+            --notes "Auto-generated cache of DevExpress NuGet packages (DevExtreme.AspNet.Core) for the Copilot coding agent. The agent sandbox cannot reach nuget.devexpress.com, so copilot-setup-steps.yml downloads this asset instead. **Do not delete this release manually.**" \
+            --prerelease \
+            /tmp/devexpress-nuget-cache.tar.gz
