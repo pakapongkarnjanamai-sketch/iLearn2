@@ -1,0 +1,22 @@
+steps:
+  - name: Register DevExpress NuGet feed and pre-restore packages
+    env:
+      DEVEXPRESS_NUGET_KEY: ${{ secrets.DEVEXPRESS_NUGET_KEY }}
+    run: |
+      # Register (or update) the DevExpress feed with credentials from the secret.
+      # This step runs in the pre-setup phase before the agent firewall is applied,
+      # so nuget.devexpress.com is reachable here.
+      dotnet nuget add source "https://nuget.devexpress.com/api" \
+        --name devexpress \
+        --username License \
+        --password "$DEVEXPRESS_NUGET_KEY" \
+        --store-password-in-clear-text \
+        2>/dev/null \
+      || dotnet nuget update source devexpress \
+          --username License \
+          --password "$DEVEXPRESS_NUGET_KEY" \
+          --store-password-in-clear-text
+
+      # Restore the full solution so all packages are cached in ~/.nuget/packages.
+      # The agent session can then build/test offline without hitting the firewall.
+      dotnet restore iLearn.sln --no-cache
