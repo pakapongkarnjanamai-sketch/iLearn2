@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewBag.Title = "User Accounts";
 }
 
@@ -88,8 +88,8 @@
                                 $('<span>')
                                     .addClass('badge rounded-pill me-1')
                                     .css({
-                                        background: isSuper ? '#ffd700' : 'var(--surface-brand-subtle)',
-                                        color:      isSuper ? '#000' : 'var(--brand-color)',
+                                        background: isSuper ? 'var(--warning-color)' : 'var(--surface-brand-subtle)',
+                                        color:      isSuper ? 'var(--text-primary)' : 'var(--brand-color)',
                                         fontSize:   '.75rem'
                                     })
                                     .html((isSuper ? '<i class="fas fa-star me-1"></i>' : '') + name)

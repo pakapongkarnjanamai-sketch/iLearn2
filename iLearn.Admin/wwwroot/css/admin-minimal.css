@@ -412,8 +412,6 @@ img[loading="lazy"] {
 .progress-fill-brand {
     height: 100%;
     background: var(--brand-color);
-    transition: width .2s ease;
-    will-change: width;
 }
 
 .log-panel-soft {
@@ -439,8 +437,6 @@ img[loading="lazy"] {
 .u-progress-fill-warning {
     height: 100%;
     background: var(--warning-color);
-    transition: width .2s ease;
-    will-change: width;
 }
 
 .qa-icon-accent,
@@ -677,8 +673,8 @@ img[loading="lazy"] {
 }
 
 .admin-role-pill-highlight {
-    background: #ffd700;
-    color: #000;
+    background: var(--warning-color);
+    color: var(--text-primary);
 }
 
 .admin-role-pill-icon {
@@ -2337,5 +2333,52 @@ footer.footer {
     main > .container-fluid,
     main > .container {
         overflow: visible;
+    }
+}
+
+/* -------------------------------------------------------------
+   Touch & Responsive Adaptation
+   ------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    .sidebar-240 {
+        width: 100% !important;
+        margin-bottom: 16px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .u-w-160,
+    .u-w-220,
+    .u-minw-80,
+    .u-minw-120,
+    .u-minw-150,
+    .u-minw-160,
+    .u-minw-180,
+    .u-minw-200,
+    .u-minw-220,
+    .u-minw-240,
+    .u-minw-260,
+    .u-minw-280,
+    .u-minw-44 {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (pointer: coarse) {
+    .action-link,
+    .action-link-xs,
+    .action-link-sm,
+    .navbar-custom .nav-link,
+    .admin-profile-trigger {
+        min-height: 44px;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        padding-left: 14px;
+        padding-right: 14px;
     }
 }
