@@ -28,7 +28,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // ── Development-only CORS ──
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.AddApiCors(builder.Configuration);
+    using var bootstrapLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
+    builder.Services.AddApiCors(
+        builder.Configuration,
+        bootstrapLoggerFactory.CreateLogger("Cors"));
 }
 
 var app = builder.Build();

@@ -48,11 +48,17 @@ namespace iLearn.API.Middleware
 
             var (status, title) = MapException(ex);
 
+            // Sanitize request method/path before logging to neutralize potential
+            // log-forging via CR/LF or other control characters in the URL or
+            // (extremely unlikely) the verb.
+            var safeMethod = SanitizeForLog(context.Request.Method);
+            var safePath   = SanitizeForLog(context.Request.Path.Value);
+
             // Always log full exception server-side; never include in client payload outside Development.
             if (status >= 500)
-                _logger.LogError(ex, "Unhandled exception processing {Method} {Path}", context.Request.Method, context.Request.Path);
+                _logger.LogError(ex, "Unhandled exception processing {Method} {Path}", safeMethod, safePath);
             else
-                _logger.LogWarning(ex, "Handled exception processing {Method} {Path}", context.Request.Method, context.Request.Path);
+                _logger.LogWarning(ex, "Handled exception processing {Method} {Path}", safeMethod, safePath);
 
             var problem = new ProblemDetails
             {
@@ -88,5 +94,23 @@ namespace iLearn.API.Middleware
             OperationCanceledException       => (499 /* client closed request */, "Request cancelled."),
             _                                => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
+
+        private static string SanitizeForLog(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return string.Empty;
+
+            // Strip CR/LF/tab and other control characters that could be used to
+            // forge fake log entries (CWE-117).
+            var buffer = new char[value.Length];
+            var written = 0;
+            foreach (var ch in value)
+            {
+                if (ch == '\r' || ch == '\n' || char.IsControl(ch))
+                    continue;
+                buffer[written++] = ch;
+            }
+            return new string(buffer, 0, written);
+        }
     }
 }

@@ -22,11 +22,17 @@ namespace iLearn.API.Extensions
 
         public static IServiceCollection AddApiCors(
             this IServiceCollection services,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ILogger? logger = null)
         {
             var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
             if (origins is null || origins.Length == 0)
+            {
+                logger?.LogWarning(
+                    "Cors:AllowedOrigins is not configured; falling back to built-in development origins. " +
+                    "Set Cors:AllowedOrigins in configuration for non-default deployments.");
                 origins = DefaultDevelopmentOrigins;
+            }
 
             services.AddCors(options =>
             {
