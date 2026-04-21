@@ -1,4 +1,7 @@
 ﻿
+using iLearn.Domain.Common;
+using Microsoft.EntityFrameworkCore.Storage;
+
 namespace iLearn.Application.Interfaces
 {
     /// <summary>
@@ -7,6 +10,18 @@ namespace iLearn.Application.Interfaces
     /// </summary>
     public interface IUnitOfWork : IDisposable
     {
+        /// <summary>Persist all pending repository changes in a single round-trip.</summary>
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>Begin an explicit database transaction. The caller must dispose / commit it.</summary>
+        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Bulk-add a set of entities to the change tracker without saving. Useful where
+        /// callers previously reached into <c>AppDbContext.Set&lt;T&gt;().AddRangeAsync</c>.
+        /// </summary>
+        Task AddRangeAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+            where T : BaseEntity;
     }
 }
+

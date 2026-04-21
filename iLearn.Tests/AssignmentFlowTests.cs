@@ -268,6 +268,13 @@ namespace iLearn.Tests
                 return Task.FromResult(0);
             }
 
+            public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+                => throw new NotSupportedException("Transactions are not exercised by these unit tests.");
+
+            public Task AddRangeAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+                where T : iLearn.Domain.Common.BaseEntity
+                => Task.CompletedTask;
+
             public void Dispose()
             {
             }
