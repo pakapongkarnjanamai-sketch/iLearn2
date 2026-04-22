@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
+using System.Text.RegularExpressions;
 using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -90,7 +91,17 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx =>
     {
         var headers = ctx.Context.Response.Headers;
-        headers.CacheControl = "public, max-age=604800, immutable";
+        if (HasCacheFingerprint(ctx.Context.Request.Path))
+        {
+            headers.CacheControl = "public, max-age=31536000, immutable";
+            headers.Remove("Pragma");
+            headers.Remove("Expires");
+            return;
+        }
+
+        headers.CacheControl = "no-cache, no-store, must-revalidate";
+        headers.Pragma = "no-cache";
+        headers.Expires = "0";
     }
 });
 
@@ -123,4 +134,11 @@ static AuthorizationPolicy CreateAdminOnlyPolicy()
         .RequireAuthenticatedUser()
         .RequireRole("Admin", "SuperAdmin")
         .Build();
+}
+
+static bool HasCacheFingerprint(PathString requestPath)
+{
+    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(requestPath.Value);
+    return !string.IsNullOrWhiteSpace(fileNameWithoutExtension)
+        && Regex.IsMatch(fileNameWithoutExtension, @"\.[a-z0-9]{10}$", RegexOptions.IgnoreCase);
 }

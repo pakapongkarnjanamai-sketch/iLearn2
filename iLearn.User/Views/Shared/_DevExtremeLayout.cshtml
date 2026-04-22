@@ -1,5 +1,7 @@
 ﻿@using Microsoft.Extensions.Configuration
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @inject IConfiguration Configuration
+@inject IFileVersionProvider FileVersionProvider
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,30 +9,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>iLearn</title>
 
-    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" asp-append-version="true" />
 
-    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
-    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
-    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" asp-append-version="true" />
 
     <style>
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 300; font-display: swap; src: url('@Url.Content("~/fonts/sarabun/Sarabun-Light.ttf")') format('truetype'); }
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 400; font-display: swap; src: url('@Url.Content("~/fonts/sarabun/Sarabun-Regular.ttf")') format('truetype'); }
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 500; font-display: swap; src: url('@Url.Content("~/fonts/sarabun/Sarabun-Medium.ttf")') format('truetype'); }
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('@Url.Content("~/fonts/sarabun/Sarabun-Bold.ttf")') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 300; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Light.ttf")') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 400; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Regular.ttf")') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 500; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Medium.ttf")') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Bold.ttf")') format('truetype'); }
     </style>
 
-    <script src="~/js/devextreme/jquery.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/devextreme/filesaver.min.js"></script>
-    <script src="~/js/devextreme/dx-exceljs-fork.min.js"></script>
-    <script src="~/js/devextreme/dx.all.js"></script>
-    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
-    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
-    <script src="~/src/devextreme-license.js"></script>
+    <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/filesaver.min.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/dx-exceljs-fork.min.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/dx.all.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js" asp-append-version="true"></script>
+    <script src="~/src/devextreme-license.js" asp-append-version="true"></script>
 
-    <script src="~/js/site.js"></script>
-    <script src="~/lib/font-awesome/js/all.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/lib/font-awesome/js/all.min.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("ExternalDependencies", required: false)
 

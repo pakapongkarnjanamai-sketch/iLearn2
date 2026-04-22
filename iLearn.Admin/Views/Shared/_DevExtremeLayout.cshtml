@@ -47,13 +47,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>iLearn Admin - @ViewData["Title"]</title>
 
-    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" asp-append-version="true" />
 
-    <link rel="preload" href="~/lib/font-awesome/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="~/lib/font-awesome/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin asp-append-version="true" />
 
-    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" />
-    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
-    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" asp-append-version="true" />
     <style>
         @@font-face { font-family: "Font Awesome 7 Free"; font-display: swap; }
         @@font-face { font-family: "Font Awesome 7 Brands"; font-display: swap; }
@@ -62,8 +62,8 @@
         @@font-face { font-family: "FontAwesome"; font-display: swap; }
     </style>
     @* <link href="~/css/admin-site.css" rel="stylesheet" /> *@
-    <link href="~/css/admin-tokens.css" rel="stylesheet" />
-    <link href="~/css/admin-minimal.css" rel="stylesheet" />
+    <link href="~/css/admin-tokens.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/admin-minimal.css" rel="stylesheet" asp-append-version="true" />
     @await RenderSectionAsync("WizardStyles", required: false)
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -245,16 +245,16 @@
             apiBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseUrl"] ?? string.Empty))
         };
     </script>
-    <script src="~/js/devextreme/jquery.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     @await RenderSectionAsync("PreDxScripts", required: false)
-    <script src="~/js/devextreme/dx.all.js"></script>
-    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
-    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
-    <script src="~/src/devextreme-license.js"></script>
+    <script src="~/js/devextreme/dx.all.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js" asp-append-version="true"></script>
+    <script src="~/src/devextreme-license.js" asp-append-version="true"></script>
     @await RenderSectionAsync("ExternalDependencies", required: false)
-    <script src="~/js/admin-layout.js"></script>
-    <script src="~/js/admin-view-utils.js"></script>
+    <script src="~/js/admin-layout.js" asp-append-version="true"></script>
+    <script src="~/js/admin-view-utils.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
