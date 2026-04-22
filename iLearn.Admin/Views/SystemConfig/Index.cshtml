@@ -328,7 +328,7 @@
     .config-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+        font-size: var(--font-size-sm);
         table-layout: fixed;
     }
     .config-table th,
@@ -343,7 +343,7 @@
         border-bottom: none;
     }
     .config-table th {
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--text-tertiary);
@@ -361,14 +361,14 @@
         border-right: 1px solid var(--border-color);
     }
     .config-computed {
-        font-size: 10px;
+        font-size: var(--font-size-micro);
         color: var(--text-disabled);
         font-style: italic;
         margin-left: 4px;
         font-weight: normal;
     }
     .config-section-label {
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -379,7 +379,7 @@
     }
     .config-table code {
         font-family: 'Consolas', 'Courier New', monospace;
-        font-size: 12px;
+        font-size: var(--font-size-caption);
         color: var(--text-primary);
         background: var(--surface-subtle);
         padding: 3px 6px;

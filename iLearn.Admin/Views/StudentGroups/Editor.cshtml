@@ -87,88 +87,81 @@ else
         <div id="load-panel"></div>
 
         <div class="admin-review-main-col">
-            <div class="border rounded bg-white p-3">
-                    <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
-                        <div class="admin-section-header mb-2">
-                            <div class="admin-section-header-main">
-                                <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
-                            </div>
-                            <div class="admin-section-divider"></div>
+            <div class="border rounded bg-white p-3" id="wizard-main-card">
+                <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
+                    <div class="admin-section-header mb-2">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
                         </div>
-                        <div class="admin-detail-card">
-                            <div id="form-container"></div>
+                        <div class="admin-section-divider"></div>
+                    </div>
+                    <div class="admin-detail-card" style="max-width: 640px;">
+                        <div id="form-container"></div>
+                    </div>
+                </div>
+
+                <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
+                    <div class="admin-section-header mb-2">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Initial Members</div>
                         </div>
+                        <div class="admin-section-divider"></div>
                     </div>
 
-                    <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
-                        <div class="admin-section-header mb-2">
-                            <div class="admin-section-header-main">
-                                <div class="section-title mb-0 admin-section-title-fill">Initial Members</div>
+                    <div class="admin-selection-layout">
+                        <div class="admin-filter-shell d-flex flex-column gap-3">
+                            <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
+                            <div>
+                                <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                <div id="filter-div"></div>
                             </div>
-                            <div class="admin-section-divider"></div>
+                            <div>
+                                <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                <div id="filter-dept"></div>
+                            </div>
+                            <div>
+                                <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                <div id="filter-section"></div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-filter" type="button">
+                                <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
+                            </button>
                         </div>
-
-                        <div class="admin-selection-layout">
-                            <div class="admin-filter-shell d-flex flex-column gap-3">
-                                <div>
-                                    <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
-                                    <div class="admin-inline-note">Use division, department, and section filters to narrow the learner list.</div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
-                                    <div id="filter-div"></div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
-                                    <div id="filter-dept"></div>
-                                </div>
-                                <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
-                                    <div id="filter-section"></div>
-                                </div>
-                                <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
-                                    <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
+                        <div class="admin-grid-shell">
+                            <div class="admin-grid-head">
+                                <div class="admin-grid-title">Learner Selection</div>
+                                <span class="tag-pill pill-default" id="member-selection-note">0 student</span>
+                            </div>
+                            <div id="grid-initial-members"></div>
+                            <div class="admin-selection-tray" id="initial-members-tray">
+                                <div class="admin-selection-tray-label">Selected</div>
+                                <div class="admin-selection-tray-chips" id="initial-members-chips"></div>
+                                <button type="button" class="admin-selection-tray-clear is-disabled" id="initial-members-clear">
+                                    <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="admin-grid-shell">
-                                <div class="admin-grid-head">
-                                    <div>
-                                        <div class="admin-grid-title">Learner Selection</div>
-                                    </div>
-                                    <div id="selection-hint" class="admin-grid-meta">
-                                        <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to include initial members.
-                                    </div>
-                                </div>
-                                <div id="grid-initial-members"></div>
-                            </div>
-                            <div class="admin-selection-tray" id="initial-members-tray">
-                                    <div class="admin-selection-tray-label">Selected</div>
-                                    <div class="admin-selection-tray-chips" id="initial-members-chips"></div>
-                                    <button type="button" class="admin-selection-tray-clear is-disabled" id="initial-members-clear">
-                                        <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
-                                    </button>
-                            </div>
+                <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
+                    <div class="admin-section-header admin-review-header">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
+                        </div>
+                        <div class="admin-section-divider"></div>
                     </div>
 
-                    <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
-                        <div class="admin-section-header admin-review-header">
-                            <div class="admin-section-header-main">
-                                <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
-                            </div>
-                            <div class="admin-section-divider"></div>
+                    <div class="admin-review-stack">
+                        <div id="summary-cards" class="admin-summary-grid"></div>
+                        <div id="form-review-details"></div>
 
-                            <div class="admin-review-stack">
-                                <div id="summary-cards" class="admin-summary-grid"></div>
-                                <div id="form-review-details"></div>
-
-                                <div class="admin-table-shell">
-                                    <div class="admin-table-head">
-                                        <div class="admin-table-title">Initial Members</div>
-                                    </div>
-                                    <div class="admin-table-wrap sg-review-table-wrap" id="selected-members-review"></div>
-                                </div>
+                        <div class="admin-table-shell">
+                            <div class="admin-table-head">
+                                <div class="admin-table-title">Initial Members</div>
+                                <span class="tag-pill pill-default" id="review-members-note"></span>
                             </div>
+                            <div class="admin-table-wrap sg-review-table-wrap" id="selected-members-review"></div>
                         </div>
                     </div>
                 </div>
@@ -181,6 +174,7 @@ else
 @section Scripts {
 <script>
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const GROUP_ID = @(ViewBag.Id ?? "null");
     const IS_EDIT = @(isEdit ? "true" : "false");
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
@@ -348,7 +342,6 @@ else
             onSelectionChanged: function(event) {
                 createState.selectedStudentCodes = (event.selectedRowKeys || []).map(String);
                 syncSelectedStudentCache(event);
-                window.setAllPagesSelectionHint("#selection-hint", createState.selectedStudentCodes.length, "student", "to include initial members");
                 renderInitialMembersTray(createState.selectedStudentCodes);
                 updateSelectionSummary();
                 updateCreateSnapshot();
@@ -560,7 +553,7 @@ else
 
         $("#snapshot-name").text(formData.name || "Not set");
         $("#snapshot-description").text(formData.description || "No description");
-        $("#snapshot-member-count").text(window.formatAdminCountLabel(selectedCodes.length, "student", "students", "0 students selected"));
+        $("#snapshot-member-count").text(window.formatAdminCountLabel(selectedCodes.length, "learner", "learners", "0 learners selected"));
         $("#snapshot-member-preview").text(previewCodes.length > 0
             ? `${previewCodes.join(", ")}${remainingCount > 0 ? ` +${remainingCount} more` : ""}`
             : "No initial members selected");
@@ -571,7 +564,8 @@ else
             return;
         }
 
-        setSelectionHint("#selection-hint", getSelectedStudentCodes().length, "student", "to include initial members");
+        const count = getSelectedStudentCodes().length;
+        $("#member-selection-note").text(count > 0 ? window.formatAdminCountLabel(count, "learner") : "0 learner");
     }
 
     function syncSelectedStudentCache(event) {
@@ -731,9 +725,7 @@ else
             });
         }
 
-        $("#member-review-note").text(students.length > 0
-            ? `${window.formatAdminCountLabel(students.length, "student")} will be added immediately after the group is created.`
-            : "The group will be created without initial members.");
+        $("#review-members-note").text(window.formatAdminCountLabel(students.length, "learner"));
         $("#selected-members-review").html(buildMembersReviewTable(students));
     }
 
@@ -756,7 +748,6 @@ else
                     <td><div class="tag-pill pill-default fw-bold">${escapeHtml(student.studentCode || EMPTY_TEXT)}</div></td>
                     <td>
                         <div class="admin-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
-                        <div class="admin-subtext">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
                     </td>
                     <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
                 </tr>`;

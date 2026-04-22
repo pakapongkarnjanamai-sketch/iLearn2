@@ -49,6 +49,11 @@
 
     <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" asp-append-version="true" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href="https://fonts.gstatic.com/s/hankengrotesk/v12/ieVn2YZDLWuGJpnzaiwFXS9tYtpd59A.woff2" as="font" type="font/woff2" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
+
     <link rel="preload" href="~/lib/font-awesome/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin asp-append-version="true" />
 
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
@@ -69,6 +74,7 @@
 </head>
 
 <body class="d-flex flex-column vh-100">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom">
         <div class="container-fluid px-4">
             <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
@@ -90,7 +96,7 @@
                         <a class="nav-link dropdown-toggle" href="#" id="courseDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-book me-1" aria-hidden="true"></i> Course Management
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="courseDropdown">
+                        <ul class="dropdown-menu" aria-label="Course management">
                             @foreach (var item in courseMenuItems)
                             {
                                 if (item.Divider)
@@ -109,7 +115,7 @@
                         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-users me-1" aria-hidden="true"></i> Admin
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                        <ul class="dropdown-menu" aria-label="Admin">
                             @foreach (var item in adminMenuItems)
                             {
                                 if (item.Divider)
@@ -136,7 +142,8 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link d-flex align-items-center gap-2 py-1 px-2 admin-profile-trigger"
                            href="#" id="profileDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                           data-bs-toggle="dropdown" aria-expanded="false"
+                           aria-label="User menu for @displayName">
                             <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0 admin-profile-avatar">
                                 <i class="fas fa-user admin-profile-avatar-icon" aria-hidden="true"></i>
                             </div>
@@ -150,7 +157,7 @@
                         </a>
 
                         <ul class="dropdown-menu dropdown-menu-end admin-profile-menu"
-                            aria-labelledby="profileDropdown">
+                            aria-label="User account">
 
                             <li class="px-3 py-2 admin-profile-menu-header">
                                 <div class="d-flex align-items-center gap-2">
@@ -234,7 +241,7 @@
         </div>
     </nav>
 
-    <main class="w-100">
+    <main id="main-content" class="w-100" aria-label="Page content" tabindex="-1">
         @RenderBody()
     </main>
 

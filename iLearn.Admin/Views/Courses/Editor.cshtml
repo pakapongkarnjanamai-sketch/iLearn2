@@ -10,7 +10,7 @@
 <style>
     /* ── Unique: Content preview note ── */
     .course-content-preview {
-        font-size: 12px;
+        font-size: var(--font-size-caption);
         color: var(--text-secondary);
     }
 
@@ -209,7 +209,6 @@ else
                             <div class="admin-table-shell">
                                 <div class="admin-table-head">
                                     <div class="admin-table-title">Content Review</div>
-                                    <div class="admin-grid-meta">Confirm order, type, and source before creating the course.</div>
                                 </div>
                                 <div class="admin-table-wrap course-review-table-wrap" id="review-content-table"></div>
                             </div>
@@ -1082,7 +1081,6 @@ else
                         <td>${index + 1}</td>
                         <td>
                             <div class="admin-student-name">${window.escapeHtml(resource.name)}</div>
-                            <div class="admin-subtext">${window.escapeHtml(sourceText)}</div>
                         </td>
                         <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
                         <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>

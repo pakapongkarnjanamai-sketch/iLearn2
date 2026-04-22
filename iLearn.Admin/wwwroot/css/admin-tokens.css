@@ -88,17 +88,21 @@
     --danger-color: var(--color-danger-500);
     --bg-light: var(--surface-subtle);
 
+    --overlay-inverse-08: rgba(255, 255, 255, 0.08);
     --overlay-inverse-12: rgba(255, 255, 255, 0.12);
+    --overlay-inverse-15: rgba(255, 255, 255, 0.15);
     --overlay-inverse-20: rgba(255, 255, 255, 0.2);
+    --overlay-inverse-74: rgba(255, 255, 255, 0.74);
     --overlay-inverse-80: rgba(255, 255, 255, 0.8);
     --overlay-inverse-90: rgba(255, 255, 255, 0.9);
     --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08);
     --shadow-overlay: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --shadow-text-readability: 0 1px 2px rgba(0, 0, 0, 0.2);
 
     /* -------------------------------------------------------------
        3. Typography
        ------------------------------------------------------------- */
-    --font-family-base: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --font-family-base: "Hanken Grotesk", "HankenGrotesk-Fallback", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
     --font-stack: var(--font-family-base);
 
     /* ---- Size scale ----
@@ -130,6 +134,7 @@
     --text-body-size: var(--font-size-md);
     --text-subheading-size: var(--font-size-lg);
     --text-heading-size: var(--font-size-xl);
+    --text-display-size: var(--font-size-display);
 
     /* ---- Line-height ---- */
     --text-micro-line-height: 1.4;
@@ -195,4 +200,17 @@
     --state-step-complete-bg: var(--surface-success-subtle);
     --state-step-complete-border: var(--border-success);
     --state-empty-icon: var(--color-neutral-300);
+}
+
+/*
+ * Metric-matched fallback for Hanken Grotesk to minimise layout shift during font-display: swap.
+ * Tuned against Segoe UI (Windows) as the most likely pre-swap render.
+ */
+@font-face {
+    font-family: "HankenGrotesk-Fallback";
+    src: local("Segoe UI");
+    size-adjust: 103%;
+    ascent-override: 91%;
+    descent-override: 22%;
+    line-gap-override: 0%;
 }

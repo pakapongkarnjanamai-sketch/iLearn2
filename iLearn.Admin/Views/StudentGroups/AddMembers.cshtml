@@ -41,13 +41,13 @@
     }
 
     .sg-status-title {
-        font-size: 12px;
+        font-size: var(--font-size-caption);
         font-weight: 600;
         color: var(--text-primary);
     }
 
     .sg-status-note {
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         color: var(--text-secondary);
         margin-top: 4px;
     }
@@ -97,20 +97,20 @@
 </div>
 
 <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
+    <div id="load-panel"></div>
+
     <div class="admin-review-main-col">
-        <div class="border rounded bg-white p-3 sg-main-card">
+        <div class="border rounded bg-white p-3" id="wizard-main-card">
                 <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="wide">
                     <div class="admin-section-header mb-2">
                         <div class="admin-section-header-main">
-                            <div class="section-title mb-0 admin-section-title-fill">Select Students</div>
+                            <div class="section-title mb-0 admin-section-title-fill">Select Learners</div>
                         </div>
                         <div class="admin-section-divider"></div>
                     </div>
                     <div class="admin-selection-layout">
                         <div class="admin-filter-shell d-flex flex-column gap-3">
-                            <div>
-                                <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
-                            </div>
+                            <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
                             <div>
                                 <label class="small fw-bold text-muted mb-1 d-block">Division</label>
                                 <div id="filter-div"></div>
@@ -123,27 +123,23 @@
                                 <label class="small fw-bold text-muted mb-1 d-block">Section</label>
                                 <div id="filter-section"></div>
                             </div>
-                            <button class="btn btn-sm btn-outline-secondary mt-auto" id="btn-clear-filter" type="button">
+                            <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-filter" type="button">
                                 <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                             </button>
                         </div>
                         <div class="admin-grid-shell">
                             <div class="admin-grid-head">
-                                <div>
-                                    <div class="admin-grid-title">Learner Selection</div>
-                                </div>
-                                <div id="selection-hint" class="admin-grid-meta">
-                                    <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to continue.
-                                </div>
+                                <div class="admin-grid-title">Learner Selection</div>
+                                <span class="tag-pill pill-default" id="member-selection-note">0 student</span>
                             </div>
-                            <div id="grid-add-students" class="sg-student-grid"></div>
-                        </div>
-                        <div class="admin-selection-tray" id="selected-students-tray">
-                            <div class="admin-selection-tray-label">Selected</div>
-                            <div class="admin-selection-tray-chips" id="selected-students-chips"></div>
-                            <button type="button" class="admin-selection-tray-clear is-disabled" id="selected-students-clear">
-                                <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
-                            </button>
+                            <div id="grid-add-students"></div>
+                            <div class="admin-selection-tray" id="selected-students-tray">
+                                <div class="admin-selection-tray-label">Selected</div>
+                                <div class="admin-selection-tray-chips" id="selected-students-chips"></div>
+                                <button type="button" class="admin-selection-tray-clear is-disabled" id="selected-students-clear">
+                                    <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -236,6 +232,7 @@
                         <div class="admin-table-shell">
                             <div class="admin-table-head">
                                 <div class="admin-table-title">Selected Learners</div>
+                                <span class="tag-pill pill-default" id="student-summary-note"></span>
                             </div>
                             <div class="admin-table-wrap sg-review-table-wrap" id="student-summary-table"></div>
                         </div>
@@ -243,6 +240,7 @@
                         <div class="admin-table-shell">
                             <div class="admin-table-head">
                                 <div class="admin-table-title">Assignment Enrollment Impact</div>
+                                <span class="tag-pill pill-default" id="assignment-summary-note"></span>
                             </div>
                             <div class="admin-table-wrap sg-review-table-wrap" id="assignment-summary-table"></div>
                         </div>
@@ -353,7 +351,7 @@
                 }
             ],
             onSelectionChanged: function(event) {
-                const selectedKeys = (event.selectedRowKeys || []).map(String);
+                const selectedStudentCodes = (event.selectedRowKeys || []).map(String);
                 (event.selectedRowsData || []).forEach(function(row) {
                     if (!row || !row.EId) {
                         return;
@@ -363,34 +361,33 @@
                 });
 
                 selectedStudentCache.forEach(function(_, key) {
-                    if (selectedKeys.indexOf(key) === -1) {
+                    if (selectedStudentCodes.indexOf(key) === -1) {
                         selectedStudentCache.delete(key);
                     }
                 });
 
-                window.setAllPagesSelectionHint("#selection-hint", selectedKeys.length, "student", "to add into this group");
-                renderSelectedStudentsTray(selectedKeys);
+                renderSelectedStudentsTray(selectedStudentCodes);
                 updateSelectionSummary();
                 invalidatePreview();
             }
         });
     }
 
-    function renderSelectedStudentsTray(selectedKeys) {
-        const keys = selectedKeys || [];
+    function renderSelectedStudentsTray(selectedStudentCodes) {
+        const codes = selectedStudentCodes || [];
         const $chips = $("#selected-students-chips");
         const $clearBtn = $("#selected-students-clear");
 
-        if (keys.length === 0) {
+        if (codes.length === 0) {
             $chips.html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
             $clearBtn.addClass("is-disabled").prop("disabled", true);
             return;
         }
 
         $clearBtn.removeClass("is-disabled").prop("disabled", false);
-        const visibleKeys = keys.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
-        const overflowCount = Math.max(keys.length - visibleKeys.length, 0);
-        const chips = visibleKeys.map(function(code) {
+        const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
+        const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
+        const chips = visibleCodes.map(function(code) {
             const row = selectedStudentCache.get(String(code));
             const normalizedCode = String(code || "");
             const safeCode = escapeHtml(normalizedCode || EMPTY_TEXT);
@@ -445,7 +442,7 @@
         $("#btn-next-step").on("click", function() {
             if (wizardState.currentStep === 1) {
                 if (getSelectedStudentCodes().length === 0) {
-                    showToast("Please select at least one student.", "warning");
+                    showToast("Please select at least one learner.", "warning");
                     return;
                 }
 
@@ -474,7 +471,7 @@
     async function previewSummary() {
         const payload = getPayload();
         if (!payload.studentCodes.length) {
-            showToast("Please select at least one student.", "warning");
+            showToast("Please select at least one learner.", "warning");
             wizardState.currentStep = 1;
             updateWizardUi();
             return;
@@ -609,10 +606,6 @@
                 </div>`;
         }).join(""));
 
-        const total = wizardState.relatedAssignments.length;
-        $("#assignment-overview-note").text(total > 0
-            ? `${window.formatAdminCountLabel(total, "related assignment batch")} currently belong to this student group.`
-            : "No related assignment batches were found for this student group yet.");
     }
 
     function renderPreviewSummary() {
@@ -622,7 +615,7 @@
         }
 
         $("#summary-cards").html([
-            buildSummaryCard(preview.selectedStudentCount, "Selected Students", "text-dark"),
+            buildSummaryCard(preview.selectedStudentCount, "Selected Learners", "text-dark"),
             buildSummaryCard(preview.newMemberCount, "New Members", "u-text-success"),
             buildSummaryCard(preview.existingMemberCount, "Already In Group", "u-text-warning"),
             buildSummaryCard(preview.selectedAssignmentCount, "Assignment Batches", "u-text-info"),
@@ -630,10 +623,10 @@
             buildSummaryCard(preview.estimatedEnrollmentCount, "Estimated Enrollments", "u-text-info")
         ].join(""));
 
-        $("#student-summary-note").text(`${window.formatAdminCountLabel(preview.selectedStudentCount, "student")} included in this action.`);
+        $("#student-summary-note").text(window.formatAdminCountLabel(preview.selectedStudentCount, "learner"));
         $("#assignment-summary-note").text(preview.enrollToRelatedAssignments
-            ? `${window.formatAdminCountLabel(preview.selectedAssignmentCount, "assignment batch")} will receive the selected learners.`
-            : "Related assignment enrollment is disabled for this run.");
+            ? window.formatAdminCountLabel(preview.selectedAssignmentCount, "batch")
+            : "Not enrolled");
 
         $("#student-summary-table").html(buildStudentsSummaryTable(preview.students || []));
         $("#assignment-summary-table").html(buildAssignmentsSummaryTable(preview.assignments || []));
@@ -656,7 +649,6 @@
                     </td>
                     <td>
                         <div class="admin-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
-                        <div class="admin-subtext">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
                     </td>
                     <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
                     <td>${memberState}</td>
@@ -687,11 +679,9 @@
                 <tr>
                     <td>
                         <div class="fw-semibold text-dark">${escapeHtml(assignment.assignmentNo || EMPTY_TEXT)}</div>
-                        <div class="admin-subtext">${escapeHtml(assignment.description || "No description")}</div>
                     </td>
                     <td>
                         <div>${escapeHtml(assignment.courseNames || EMPTY_TEXT)}</div>
-                        <div class="admin-subtext">${window.formatAdminCountLabel(assignment.courseCount || 0, "course")}</div>
                     </td>
                     <td>${renderStatusPill(assignment.status)}</td>
                     <td>${window.formatAdminDate(assignment.startDate, EMPTY_TEXT)}</td>
@@ -778,7 +768,7 @@
 
     function updateSelectionSummary() {
         const count = getSelectedStudentCodes().length;
-        $("#selected-summary").text(window.formatAdminCountLabel(count, "student", "students", "0 students selected"));
+        $("#member-selection-note").text(count > 0 ? window.formatAdminCountLabel(count, "learner") : "0 learner");
     }
 
     function invalidatePreview() {

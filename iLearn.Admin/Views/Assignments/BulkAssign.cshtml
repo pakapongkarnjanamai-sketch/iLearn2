@@ -20,18 +20,13 @@
         margin-bottom: 12px;
     }
 
-    .assign-target-mode-note {
-        font-size: 12px;
-        color: var(--text-secondary);
-    }
-
     .target-mode-btn {
         background: var(--surface-subtle);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         color: var(--text-secondary);
         cursor: pointer;
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         font-weight: 500;
         padding: 2px var(--space-sm);
         transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
@@ -96,7 +91,7 @@
     }
 
     .assign-tray-label {
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         font-weight: 600;
         color: var(--text-secondary);
         text-transform: uppercase;
@@ -124,7 +119,7 @@
         color: var(--primary-dark, #003a8c);
         border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
         border-radius: var(--radius-sm);
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         font-weight: 500;
         padding: 2px 3px 2px 6px;
         max-width: 220px;
@@ -153,10 +148,12 @@
         cursor: pointer;
         color: inherit;
         opacity: 0.55;
-        padding: 0 2px;
-        font-size: 9px;
+        padding: 2px 4px;
+        font-size: var(--font-size-micro);
         line-height: 1;
         border-radius: 2px;
+        min-width: 20px;
+        min-height: 20px;
         transition: opacity 0.1s, background 0.1s;
         flex-shrink: 0;
     }
@@ -180,16 +177,11 @@
 
     .dx-texteditor-input,
     .dx-texteditor-input-container {
-        font-size: 13px;
+        font-size: var(--font-size-sm);
     }
 
     /* ── Responsive ── */
-    @@media (max-width: 991.98px) {
-        .assign-target-mode-bar {
-            flex-direction: column;
-            align-items: stretch;
-        }
-    }
+
 </style>
 
 <!-- ── Page Header ── -->
@@ -263,7 +255,7 @@
                 <div class="admin-grid-shell">
                     <div class="admin-grid-head">
                         <div class="admin-grid-title">Course Catalog</div>
-                        <div class="admin-grid-meta" id="course-selection-note">No course selected</div>
+                        <span class="tag-pill pill-default" id="course-selection-note">0 course</span>
                     </div>
                     <div id="grid-courses-inline" class="assign-inline-grid"></div>
                     <div class="assign-selection-tray" id="course-selection-tray">
@@ -285,9 +277,7 @@
                 <div class="admin-section-divider"></div>
             </div>
 
-            <div class="assign-target-mode-bar">
-                <div class="assign-target-mode-note" id="target-selection-note">Select individual students or switch to student group mode.</div>
-                <div class="d-flex gap-1">
+            <div class="d-flex gap-1 mb-2">
                     <button type="button" class="target-mode-btn active" id="mode-individual">
                         <i class="fas fa-user-graduate me-1" aria-hidden="true"></i> Individual
                     </button>
@@ -295,7 +285,6 @@
                         <i class="fas fa-users me-1" aria-hidden="true"></i> Group
                     </button>
                 </div>
-            </div>
 
             <div id="target-panel-individual">
                 <div class="admin-selection-layout">
@@ -324,7 +313,7 @@
                     <div class="admin-grid-shell">
                         <div class="admin-grid-head">
                             <div class="admin-grid-title">Student Directory</div>
-                            <div class="admin-grid-meta" id="student-selection-note">No student selected</div>
+                            <span class="tag-pill pill-default" id="student-selection-note">0 student</span>
                         </div>
                         <div id="grid-students-inline" class="assign-inline-grid"></div>
                     <div class="assign-selection-tray" id="student-selection-tray">
@@ -342,7 +331,7 @@
                 <div class="admin-grid-shell">
                     <div class="admin-grid-head">
                         <div class="admin-grid-title">Student Groups</div>
-                        <div class="admin-grid-meta" id="group-selection-note">No group selected</div>
+                        <span class="tag-pill pill-default" id="group-selection-note">0 group</span>
                     </div>
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
                     <div class="admin-inline-actions d-none" id="group-reset-row">
@@ -379,7 +368,7 @@
                 <div class="admin-table-shell">
                     <div class="admin-table-head">
                         <div class="admin-table-title">Selected Courses</div>
-                        <div class="admin-grid-meta" id="review-courses-note"></div>
+                        <span class="tag-pill pill-default" id="review-courses-note"></span>
                     </div>
                     <div class="admin-table-wrap assign-review-table-wrap" id="review-courses-table"></div>
                 </div>
@@ -387,7 +376,7 @@
                 <div class="admin-table-shell">
                     <div class="admin-table-head">
                         <div class="admin-table-title" id="review-learners-title">Selected Learners</div>
-                        <div class="admin-grid-meta" id="review-learners-note"></div>
+                        <span class="tag-pill pill-default" id="review-learners-note"></span>
                     </div>
                     <div class="admin-table-wrap assign-review-table-wrap" id="review-learners-table"></div>
                 </div>
@@ -777,8 +766,8 @@
             function updateCourseSelectionUi() {
                 const count = selectedCourseIds.length;
                 $("#course-selection-note").text(count > 0
-                    ? `${window.formatAdminCountLabel(count, 'course')} selected across all pages`
-                    : "No course selected");
+                    ? window.formatAdminCountLabel(count, 'course')
+                    : "0 course");
                 $("#snapshot-course-count").text(window.formatAdminCountLabel(count, 'course'));
                 updateTargetSnapshot();
             }
@@ -786,15 +775,15 @@
             function updateStudentSelectionUi() {
                 const count = selectedStudentCodes.length;
                 $("#student-selection-note").text(count > 0
-                    ? `${window.formatAdminCountLabel(count, 'student')} selected across all pages`
-                    : "No student selected");
+                    ? window.formatAdminCountLabel(count, 'student')
+                    : "0 student");
                 updateTargetSnapshot();
             }
 
             function updateGroupSelectionUi() {
                 $("#group-selection-note").text(selectedGroupId
-                    ? `${selectedGroupName} (${window.formatAdminCountLabel(selectedGroupMemberCount, 'member')})`
-                    : "No group selected");
+                    ? window.formatAdminCountLabel(selectedGroupMemberCount, 'member')
+                    : "0 group");
                 $("#group-reset-row").toggleClass("d-none", !selectedGroupId);
                 updateTargetSnapshot();
             }
@@ -862,11 +851,7 @@
                 // Courses table
                 const courseRows = courseGrid ? (courseGrid.getSelectedRowsData() || []) : [];
                 const courseCount = selectedCourseIds.length;
-                $("#review-courses-note").text(
-                    courseRows.length < courseCount
-                        ? `Showing ${courseRows.length} of ${window.formatAdminCountLabel(courseCount, "course")}`
-                        : window.formatAdminCountLabel(courseCount, "course")
-                );
+                $("#review-courses-note").text(window.formatAdminCountLabel(courseCount, "course"));
                 $("#review-courses-table").html(buildCoursesReviewTable(courseRows));
 
                 // Learners table
@@ -878,11 +863,7 @@
                     const studentRows = studentGrid ? (studentGrid.getSelectedRowsData() || []) : [];
                     const totalStudents = selectedStudentCodes.length;
                     $("#review-learners-title").text("Selected Learners");
-                    $("#review-learners-note").text(
-                        studentRows.length < totalStudents
-                            ? `Showing ${studentRows.length} of ${window.formatAdminCountLabel(totalStudents, "student")}`
-                            : window.formatAdminCountLabel(totalStudents, "student")
-                    );
+                    $("#review-learners-note").text(window.formatAdminCountLabel(totalStudents, "student"));
                     $("#review-learners-table").html(buildLearnersReviewTable(studentRows, totalStudents));
                 }
 
@@ -1181,7 +1162,6 @@
                         <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.EId || EMPTY_TEXT)}</span></td>
                         <td>
                             <div class="admin-student-name">${window.escapeHtml(name)}</div>
-                            <div class="admin-subtext">${window.escapeHtml(org)}</div>
                         </td>
                         <td>${window.escapeHtml(row.Position || EMPTY_TEXT)}</td>
                     </tr>`;
@@ -1198,7 +1178,6 @@
                     <i class="fas fa-users fa-2x text-primary" aria-hidden="true"></i>
                     <div>
                         <div class="fw-semibold text-dark">${window.escapeHtml(groupName || EMPTY_TEXT)}</div>
-                        <div class="admin-subtext">${window.formatAdminCountLabel(memberCount, "member")} in this group</div>
                     </div>
                 </div>`;
             }
