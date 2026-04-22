@@ -33,7 +33,7 @@ namespace iLearn.Admin.Controllers
         }
     
         [HttpGet]
-        public IActionResult Form(int? id)
+        public IActionResult Editor(int? id)
         {
             ViewBag.Id = id; // ถ้าเป็น null คือ Create, ถ้ามีค่าคือ Edit
             return View();

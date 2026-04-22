@@ -107,8 +107,8 @@ else
     <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
         <div id="load-panel"></div>
 
-        <div class="admin-wizard-steps">
-            <div class="admin-step-card active" data-step-card="1">
+        <div class="admin-wizard-steps" role="group" aria-label="Progress steps">
+            <div class="admin-step-card active" data-step-card="1" aria-current="step">
                 <div class="admin-step-title"><span class="admin-step-index">1</span>Course Information</div>
             </div>
             <div class="admin-step-card" data-step-card="2">
@@ -119,40 +119,9 @@ else
             </div>
         </div>
 
-        <div class="row g-3 admin-review-layout-row">
-            <div class="col-xl-3 admin-review-sidebar-col">
-                <div class="admin-sidebar-card h-100">
-                    <div class="section-title">Course Snapshot</div>
-                    <div class="admin-meta-item">
-                        <div class="admin-meta-label">Course Type</div>
-                        <div class="admin-meta-value fw-bold" id="snapshot-course-type">Not selected</div>
-                    </div>
-                    <div class="admin-meta-item">
-                        <div class="admin-meta-label">Course Code</div>
-                        <div class="admin-meta-value" id="snapshot-course-code">Not set</div>
-                    </div>
-                    <div class="admin-meta-item">
-                        <div class="admin-meta-label">Course Title</div>
-                        <div class="admin-meta-value" id="snapshot-course-name">Not set</div>
-                    </div>
-                    <div class="admin-meta-item">
-                        <div class="admin-meta-label">Division / Category</div>
-                        <div class="admin-meta-value" id="snapshot-course-scope">No division or category selected</div>
-                    </div>
-                    <div class="admin-meta-item">
-                        <div class="admin-meta-label">Content Queue</div>
-                        <div class="admin-meta-value"><span class="tag-pill pill-info" id="snapshot-resource-count">0 items queued</span></div>
-                    </div>
-                    <div class="admin-meta-item">
-                        <div class="admin-meta-label">Content Preview</div>
-                        <div class="admin-meta-value course-content-preview" id="snapshot-resource-preview">No content added yet</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-9 admin-review-main-col">
-                <div class="border rounded bg-white p-2">
-                    <div id="step-panel-1" class="admin-wizard-panel active">
+        <div class="admin-review-main-col">
+            <div class="border rounded bg-white p-3">
+                    <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Course Information</div>
@@ -165,7 +134,7 @@ else
                         </div>
                     </div>
 
-                    <div id="step-panel-2" class="admin-wizard-panel">
+                    <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Course Content</div>
@@ -210,7 +179,7 @@ else
                         </div>
                     </div>
 
-                    <div id="step-panel-3" class="admin-wizard-panel">
+                    <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
                         <div class="admin-section-header admin-review-header">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -249,24 +218,20 @@ else
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 
     <div class="bottom-toolbar">
-        <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-            <i class="fas fa-check-circle u-text-success"></i>
-            Complete each step, then review the content queue before creating the course.
-        </span>
-        <a href="javascript:void(0);" id="btn-previous-step" class="action-link d-none">
+        <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note"></span>
+        <button type="button" id="btn-previous-step" class="action-link d-none">
             <i class="fas fa-arrow-left"></i> Previous
-        </a>
-        <a href="javascript:void(0);" id="btn-next-step" class="action-link primary">
+        </button>
+        <button type="button" id="btn-next-step" class="action-link primary">
             <i class="fas fa-arrow-right"></i> Continue
-        </a>
-        <a href="javascript:void(0);" id="btn-create-course" class="action-link primary d-none">
+        </button>
+        <button type="button" id="btn-create-course" class="action-link primary d-none">
             <i class="fas fa-save"></i> Create Course
-        </a>
+        </button>
     </div>
 }
 
@@ -700,20 +665,43 @@ else
             }
         }
 
+        function getCourseStepNote(step) {
+            switch (step) {
+                case 1:
+                    return 'Enter course details before continuing.';
+                case 2:
+                    return 'Add content resources to the course queue.';
+                case 3:
+                    return 'Review course details and content before creating.';
+                default:
+                    return '';
+            }
+        }
+
         function updateCreateWizardUi() {
             $("[data-step-card]").each(function() {
                 const step = Number($(this).data("stepCard"));
                 $(this).toggleClass("active", step === createState.currentStep);
                 $(this).toggleClass("complete", step < createState.currentStep);
+                if (step === createState.currentStep) {
+                    $(this).attr("aria-current", "step");
+                } else {
+                    $(this).removeAttr("aria-current");
+                }
             });
 
             $(".admin-wizard-panel").removeClass("active");
             $(`#step-panel-${createState.currentStep}`).addClass("active");
-            $(".admin-wizard-shell").toggleClass("is-review-step", createState.currentStep === 3);
+            const layout = $(`#step-panel-${createState.currentStep}`).attr("data-step-layout") || "wide";
+            $(".admin-wizard-shell")
+                .toggleClass("is-form-step", layout === "form")
+                .toggleClass("is-review-step", layout === "review");
 
             $("#btn-previous-step").toggleClass("d-none", createState.currentStep <= 1);
             $("#btn-next-step").toggleClass("d-none", createState.currentStep >= TOTAL_WIZARD_STEPS);
             $("#btn-create-course").toggleClass("d-none", createState.currentStep !== TOTAL_WIZARD_STEPS);
+
+            $(".bottom-toolbar-note").html(`<i class="fas fa-info-circle text-muted me-1" aria-hidden="true"></i> ${getCourseStepNote(createState.currentStep)}`);
 
             if (createState.currentStep === 2 && masterGrid) {
                 masterGrid.updateDimensions();

@@ -75,8 +75,8 @@
 </div>
 
 <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
-    <div class="admin-wizard-steps">
-        <div class="admin-step-card active" data-step-card="1">
+    <div class="admin-wizard-steps" role="group" aria-label="Progress steps">
+        <div class="admin-step-card active" data-step-card="1" aria-current="step">
             <div class="admin-step-title"><span class="admin-step-index">1</span>Select Students</div>
         </div>
         <div class="admin-step-card" data-step-card="2">
@@ -87,40 +87,9 @@
         </div>
     </div>
 
-    <div class="row g-3 admin-review-layout-row">
-        <div class="col-xl-3 admin-review-sidebar-col">
-            <div class="admin-sidebar-card h-100">
-                <div class="section-title">Group Snapshot</div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Group Name</div>
-                    <div class="admin-meta-value fw-bold" id="group-name">Loading...</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Description</div>
-                    <div class="admin-meta-value" id="group-description">Loading...</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Current Members</div>
-                    <div class="admin-meta-value"><span class="tag-pill pill-info" id="group-member-count">0 members</span></div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Related Assignments</div>
-                    <div class="admin-meta-value"><span class="tag-pill pill-default" id="group-assignment-count">0 batches</span></div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Status Mix</div>
-                    <div class="admin-meta-value" id="assignment-status-overview">Loading...</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Current Selection</div>
-                    <div class="admin-meta-value" id="selected-summary">0 students selected</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-9 admin-review-main-col">
-            <div class="border rounded bg-white p-2 sg-main-card">
-                <div id="step-panel-1" class="admin-wizard-panel active">
+    <div class="admin-review-main-col">
+        <div class="border rounded bg-white p-3 sg-main-card">
+                <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="wide">
                     <div class="admin-section-header mb-2">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Select Students</div>
@@ -164,7 +133,7 @@
                     </div>
                 </div>
 
-                <div id="step-panel-2" class="admin-wizard-panel">
+                <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="form">
                     <div class="admin-section-header mb-2">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Assignment Options</div>
@@ -241,7 +210,7 @@
                     </div>
                 </div>
 
-                <div id="step-panel-3" class="admin-wizard-panel">
+                <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
                     <div class="admin-section-header admin-review-header">
                         <div class="admin-section-header-main">
                             <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -269,28 +238,24 @@
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 </div>
 
 <div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-        <i class="fas fa-user-plus text-primary" aria-hidden="true"></i>
-        Review the summary before applying changes.
-    </span>
-    <a href="javascript:void(0);" id="btn-prev-step" class="action-link d-none">
+    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note"></span>
+    <button type="button" id="btn-prev-step" class="action-link d-none">
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
-    </a>
-    <a href="javascript:void(0);" id="btn-next-step" class="action-link primary">
+    </button>
+    <button type="button" id="btn-next-step" class="action-link primary">
         <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
-    </a>
-    <a href="javascript:void(0);" id="btn-preview-summary" class="action-link primary d-none">
+    </button>
+    <button type="button" id="btn-preview-summary" class="action-link primary d-none">
         <i class="fas fa-file-alt" aria-hidden="true"></i> Preview Summary
-    </a>
-    <a href="javascript:void(0);" id="btn-confirm" class="action-link primary d-none">
+    </button>
+    <button type="button" id="btn-confirm" class="action-link primary d-none">
         <i class="fas fa-check-circle" aria-hidden="true"></i> Confirm Changes
-    </a>
+    </button>
 </div>
 
 @section Scripts {
@@ -516,18 +481,40 @@
         }
     }
 
+    function getAddMembersStepNote(step) {
+        switch (step) {
+            case 1:
+                return 'Select learners to add to this student group.';
+            case 2:
+                return 'Set related assignment enrollment options.';
+            case 3:
+                return 'Review the summary before applying changes.';
+            default:
+                return '';
+        }
+    }
+
     function updateWizardUi() {
         $(".admin-wizard-panel").removeClass("active");
         $(`#step-panel-${wizardState.currentStep}`).addClass("active");
-        $(".admin-wizard-shell").toggleClass("is-review-step", wizardState.currentStep === 3);
+        const layout = $(`#step-panel-${wizardState.currentStep}`).attr("data-step-layout") || "wide";
+        $(".admin-wizard-shell")
+            .toggleClass("is-form-step", layout === "form")
+            .toggleClass("is-review-step", layout === "review");
 
         $("[data-step-card]").each(function() {
             const step = Number($(this).attr("data-step-card"));
             $(this)
                 .toggleClass("active", step === wizardState.currentStep)
                 .toggleClass("complete", step < wizardState.currentStep);
+            if (step === wizardState.currentStep) {
+                $(this).attr("aria-current", "step");
+            } else {
+                $(this).removeAttr("aria-current");
+            }
         });
 
+        $(".bottom-toolbar-note").html(`<i class="fas fa-info-circle text-muted me-1" aria-hidden="true"></i> ${getAddMembersStepNote(wizardState.currentStep)}`);
         $("#btn-prev-step").toggleClass("d-none", wizardState.currentStep === 1);
         $("#btn-next-step").toggleClass("d-none", wizardState.currentStep !== 1);
         $("#btn-preview-summary").toggleClass("d-none", wizardState.currentStep !== 2);

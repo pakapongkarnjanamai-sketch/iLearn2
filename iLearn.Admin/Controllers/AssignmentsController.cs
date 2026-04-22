@@ -10,7 +10,7 @@ namespace iLearn.Admin.Controllers
             return View();
         }
 
-        public IActionResult Form(int? id, int? courseId, int? groupId)
+        public IActionResult BulkAssign(int? id, int? courseId, int? groupId)
         {
             ViewBag.Id = id;
             ViewBag.CourseId = courseId;

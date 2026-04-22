@@ -40,6 +40,18 @@
     border-color: var(--state-step-complete-border);
     background: var(--state-step-complete-bg);
 }
+.admin-step-card.complete .admin-step-index {
+    background: var(--color-success-500);
+    border-color: var(--color-success-500);
+    font-size: 0;
+}
+.admin-step-card.complete .admin-step-index::after {
+    content: "\2713";
+    color: #fff;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
 .admin-step-index {
     width: var(--space-2xl);
     height: var(--space-2xl);
@@ -54,10 +66,8 @@
 }
 .admin-step-title {
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
 }
 
 /* ── Wizard Panel Visibility ──────────────────────────────────────── */

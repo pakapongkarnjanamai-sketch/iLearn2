@@ -103,7 +103,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Form", "Assignments")?groupId=@groupId" id="btn-assign-course" class="quick-action disabled" aria-disabled="true" tabindex="-1">
+                    <a href="@Url.Action("BulkAssign", "Assignments")?groupId=@groupId" id="btn-assign-course" class="quick-action disabled" aria-disabled="true" tabindex="-1">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-book-open" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Assign Course</div>
@@ -111,7 +111,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Form", "StudentGroups")?id=@groupId" id="btn-edit-group" class="quick-action disabled" aria-disabled="true" tabindex="-1">
+                    <a href="@Url.Action("Editor", "StudentGroups")?id=@groupId" id="btn-edit-group" class="quick-action disabled" aria-disabled="true" tabindex="-1">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-edit" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Edit Student Group</div>

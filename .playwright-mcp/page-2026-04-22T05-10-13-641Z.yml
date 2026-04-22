@@ -1,0 +1,112 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "iLearn Admin" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - text: iLearn Admin
+      - button "Toggle navigation" [ref=e6] [cursor=pointer]
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - heading "Bulk Course Assignments" [level=1] [ref=e11]: Bulk Course Assignments
+        - generic [ref=e13]: Assign training courses to multiple students
+      - link "Back" [ref=e14] [cursor=pointer]:
+        - /url: javascript:history.back();
+        - text: Back
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: "1"
+          - text: Course Selection
+        - generic [ref=e22]:
+          - generic [ref=e23]: "2"
+          - text: Learner Selection
+        - generic [ref=e25]:
+          - generic [ref=e26]: "3"
+          - text: Assignment Criteria
+        - generic [ref=e28]:
+          - generic [ref=e29]: "4"
+          - text: Review And Confirm
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - generic [ref=e33]: Selection Snapshot
+          - generic [ref=e34]:
+            - generic [ref=e35]: Description
+            - generic [ref=e36]: No description
+          - generic [ref=e37]:
+            - generic [ref=e38]: Schedule
+            - generic [ref=e39]: Not set
+          - generic [ref=e40]:
+            - generic [ref=e41]: Courses
+            - generic [ref=e43]: 0 course
+          - generic [ref=e44]:
+            - generic [ref=e45]: Target Mode
+            - generic [ref=e46]: Individual students
+          - generic [ref=e47]:
+            - generic [ref=e48]: Selected Learners
+            - generic [ref=e50]: 0 student
+          - generic [ref=e51]:
+            - generic [ref=e52]: Target Name
+            - generic [ref=e53]: No target selected
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e59]: Course Selection
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - heading "Filters" [level=6] [ref=e63]: Filters
+                - generic [ref=e65]:
+                  - generic [ref=e66]: Course Type
+                  - generic [ref=e69] [cursor=pointer]:
+                    - generic [ref=e70]:
+                      - combobox "All Types" [ref=e71]
+                      - generic: All Types
+                    - generic [ref=e72]:
+                      - text: 
+                      - button "Select" [ref=e73]:
+                        - generic [ref=e75]: 
+                - generic [ref=e76]:
+                  - generic [ref=e77]: Division
+                  - generic [ref=e80] [cursor=pointer]:
+                    - generic [ref=e81]:
+                      - combobox "All Divisions" [ref=e82]
+                      - generic: All Divisions
+                    - generic [ref=e83]:
+                      - text: 
+                      - button "Select" [ref=e84]:
+                        - generic [ref=e86]: 
+                - generic [ref=e87]:
+                  - generic [ref=e88]: Category
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - combobox "All Categories" [disabled]
+                          - generic: All Categories
+                        - generic:
+                          - text: 
+                          - button "Select":
+                            - generic:
+                              - generic: 
+                - button "Clear Filters" [ref=e89] [cursor=pointer]: Clear Filters
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - generic [ref=e93]: Course Catalog
+                  - generic [ref=e94]: No course selected
+                - group [ref=e95]:
+                  - status
+                  - navigation "Page navigation" [ref=e103]:
+                    - generic [ref=e104]:
+                      - generic [ref=e105]: Page 1 of 1 (-1 items)
+                      - generic [ref=e106]:
+                        - button "Previous page" [ref=e107]: 
+                        - button "Page 1" [ref=e108]: "1"
+                        - button "Next page" [ref=e109] [cursor=pointer]: 
+                  - generic [ref=e112]:
+                    - alert "Loading data..." [ref=e113]
+                    - generic [ref=e125]: Loading data...
+          - text: "*  "
+    - generic [ref=e126]:
+      - generic [ref=e127]: Review the summary before confirming the assignment batch.
+      - link "Continue" [ref=e129] [cursor=pointer]:
+        - /url: javascript:void(0);
+        - text: Continue

@@ -80,31 +80,31 @@ img[loading="lazy"] {
 
 .admin-review-flow {
     --admin-review-content-max-width: 1120px;
+    --admin-form-content-max-width: 760px;
 }
 
 .admin-review-header {
     margin-bottom: 16px;
 }
 
-.admin-review-layout-row {
-    margin-top: 0;
-}
-
-.admin-review-flow.is-review-step .admin-review-layout-row {
-    justify-content: center;
-}
-
-.admin-review-flow.is-review-step .admin-review-sidebar-col {
-    display: none;
-}
-
-.admin-review-flow.is-review-step .admin-review-main-col {
-    flex: 0 0 100%;
+.admin-review-main-col {
     width: 100%;
-    min-width: 0;
+    transition: max-width 0.18s ease-out;
+}
+
+/* Form-style step: narrow centered container for focused field entry */
+.admin-review-flow.is-form-step .admin-review-main-col {
+    max-width: min(100%, var(--admin-form-content-max-width));
+    margin: 0 auto;
+}
+
+/* Review step: wide centered container for full-detail confirmation */
+.admin-review-flow.is-review-step .admin-review-main-col {
     max-width: min(100%, var(--admin-review-content-max-width));
     margin: 0 auto;
 }
+
+/* Wide-step (default, no class) keeps full container-fluid width for data grids */
 
 .admin-review-stack {
     display: flex;

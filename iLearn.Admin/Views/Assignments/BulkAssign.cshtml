@@ -28,11 +28,13 @@
     .target-mode-btn {
         background: var(--surface-subtle);
         border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
         color: var(--text-secondary);
+        cursor: pointer;
         font-size: 11px;
         font-weight: 500;
         padding: 2px var(--space-sm);
-        transition: all 0.15s;
+        transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
     }
 
     .target-mode-btn:hover {
@@ -109,15 +111,15 @@
 </div>
 
 <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow" style="--admin-wizard-steps-cols: repeat(4, minmax(0, 1fr))">
-    <div class="admin-wizard-steps">
-        <div class="admin-step-card active" data-step-card="1">
+    <div class="admin-wizard-steps" role="group" aria-label="Progress steps">
+        <div class="admin-step-card active" data-step-card="1" aria-current="step">
             <div class="admin-step-title"><span class="admin-step-index">1</span>Course Selection</div>
         </div>
         <div class="admin-step-card" data-step-card="2">
             <div class="admin-step-title"><span class="admin-step-index">2</span>Learner Selection</div>
         </div>
         <div class="admin-step-card" data-step-card="3">
-            <div class="admin-step-title"><span class="admin-step-index">3</span>Assignment Criteria</div>
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Dates &amp; Details</div>
         </div>
         <div class="admin-step-card" data-step-card="4">
             <div class="admin-step-title"><span class="admin-step-index">4</span>Review And Confirm</div>
@@ -126,40 +128,9 @@
 
     <div id="load-panel"></div>
 
-    <div class="row g-3 admin-review-layout-row">
-        <div class="col-xl-3 admin-review-sidebar-col">
-            <div class="admin-sidebar-card h-100">
-                <div class="section-title">Selection Snapshot</div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Description</div>
-                    <div class="admin-meta-value" id="snapshot-description">No description</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Schedule</div>
-                    <div class="admin-meta-value" id="snapshot-period">Not set</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Courses</div>
-                    <div class="admin-meta-value"><span class="tag-pill pill-default" id="snapshot-course-count">0 courses</span></div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Target Mode</div>
-                    <div class="admin-meta-value" id="snapshot-target-mode">Individual students</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Selected Learners</div>
-                    <div class="admin-meta-value"><span class="tag-pill pill-info" id="snapshot-target-count">0 students</span></div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Target Name</div>
-                    <div class="admin-meta-value" id="snapshot-target-name">No target selected</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-9 admin-review-main-col">
-            <div class="border rounded bg-white p-2" id="wizard-main-card">
-        <div id="step-panel-1" class="admin-wizard-panel active">
+    <div class="admin-review-main-col">
+        <div class="border rounded bg-white p-3" id="wizard-main-card">
+        <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Course Selection</div>
@@ -196,7 +167,7 @@
             </div>
         </div>
 
-        <div id="step-panel-2" class="admin-wizard-panel">
+        <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Learner Selection</div>
@@ -207,10 +178,10 @@
             <div class="assign-target-mode-bar">
                 <div class="assign-target-mode-note" id="target-selection-note">Select individual students or switch to student group mode.</div>
                 <div class="d-flex gap-1">
-                    <button type="button" class="btn btn-sm rounded-pill target-mode-btn active" id="mode-individual" onclick="switchTargetMode('individual')">
+                    <button type="button" class="target-mode-btn active" id="mode-individual">
                         <i class="fas fa-user-graduate me-1" aria-hidden="true"></i> Individual
                     </button>
-                    <button type="button" class="btn btn-sm rounded-pill target-mode-btn" id="mode-group" onclick="switchTargetMode('group')">
+                    <button type="button" class="target-mode-btn" id="mode-group">
                         <i class="fas fa-users me-1" aria-hidden="true"></i> Group
                     </button>
                 </div>
@@ -266,17 +237,17 @@
             </div>
         </div>
 
-        <div id="step-panel-3" class="admin-wizard-panel">
+        <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="form">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
-                    <div class="section-title mb-0 admin-section-title-fill">Assignment Criteria</div>
+                    <div class="section-title mb-0 admin-section-title-fill">Dates &amp; Details</div>
                 </div>
                 <div class="admin-section-divider"></div>
             </div>
             <div id="form-assignment"></div>
         </div>
 
-        <div id="step-panel-4" class="admin-wizard-panel">
+        <div id="step-panel-4" class="admin-wizard-panel" data-step-layout="review">
             <div class="admin-section-header admin-review-header">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -291,28 +262,24 @@
             </div>
         </div>
     </div>
-        </div>
     </div>
 </div>
 
 <!-- ── Fixed Bottom Toolbar ── -->
 <div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-        <i class="fas fa-check-circle u-text-success" aria-hidden="true"></i>
-        Review the summary before confirming the assignment batch.
-    </span>
-    <a href="javascript:void(0);" class="action-link d-none" id="btn-prev-step">
+    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note"></span>
+    <button type="button" class="action-link d-none" id="btn-prev-step">
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
-    </a>
-    <a href="javascript:void(0);" class="action-link primary" id="btn-next-step">
+    </button>
+    <button type="button" class="action-link primary" id="btn-next-step">
         <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
-    </a>
-    <a href="javascript:void(0);" class="action-link primary d-none" id="btn-review-step">
+    </button>
+    <button type="button" class="action-link primary d-none" id="btn-review-step">
         <i class="fas fa-file-alt" aria-hidden="true"></i> Review Assignment
-    </a>
-    <a href="javascript:void(0);" class="action-link primary d-none" id="btn-confirm-assign">
+    </button>
+    <button type="button" class="action-link primary d-none" id="btn-confirm-assign">
         <i class="fas fa-save" aria-hidden="true"></i> Confirm &amp; Assign
-    </a>
+    </button>
 </div>
 
 @section Scripts {
@@ -603,6 +570,8 @@
             }
 
             window.switchTargetMode = switchTargetMode;
+            $("#mode-individual").on("click", function() { switchTargetMode("individual"); });
+            $("#mode-group").on("click", function() { switchTargetMode("group"); });
 
             function refreshGridInstance(gridInstance) {
                 if (!gridInstance) {
@@ -870,10 +839,28 @@
                 return Number($(".admin-step-card.active").attr("data-step-card") || 1);
             }
 
+            function getStepNote(step) {
+                switch (step) {
+                    case 1:
+                        return 'Select the courses to include in this assignment.';
+                    case 2:
+                        return 'Choose the target learners for this assignment.';
+                    case 3:
+                        return 'Set the schedule and description for this batch.';
+                    case 4:
+                        return 'Review the summary before confirming the assignment batch.';
+                    default:
+                        return '';
+                }
+            }
+
             function updateWizardUi(step) {
                 $(".admin-wizard-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
-                $(".admin-wizard-shell").toggleClass("is-review-step", step === 4);
+                const layout = $(`#step-panel-${step}`).attr("data-step-layout") || "wide";
+                $(".admin-wizard-shell")
+                    .toggleClass("is-form-step", layout === "form")
+                    .toggleClass("is-review-step", layout === "review");
 
                 if (step === 2) {
                     if (!studentGridInitialized) {
@@ -891,8 +878,14 @@
                     $(this)
                         .toggleClass("active", cardStep === step)
                         .toggleClass("complete", cardStep < step);
+                    if (cardStep === step) {
+                        $(this).attr("aria-current", "step");
+                    } else {
+                        $(this).removeAttr("aria-current");
+                    }
                 });
 
+                $(".bottom-toolbar-note").html(`<i class="fas fa-info-circle text-muted me-1" aria-hidden="true"></i> ${getStepNote(step)}`);
                 $("#btn-prev-step").toggleClass("d-none", step === 1);
                 $("#btn-next-step").toggleClass("d-none", !(step === 1 || step === 2));
                 $("#btn-review-step").toggleClass("d-none", step !== 3);

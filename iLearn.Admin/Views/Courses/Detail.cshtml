@@ -116,7 +116,7 @@
         const courseApiUrl = `${serviceUrl}/courses`;
         const courseIndexUrl = '@Url.Action("Index", "Courses")';
         const newVersionUrl = '@Url.Action("VersionForm", "Courses")';
-        const assignmentFormUrl = '@Url.Action("Form", "Assignments")';
+        const assignmentFormUrl = '@Url.Action("BulkAssign", "Assignments")';
 
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
