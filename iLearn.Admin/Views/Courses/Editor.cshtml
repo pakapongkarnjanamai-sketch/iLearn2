@@ -205,7 +205,7 @@ else
 
                             <div class="admin-detail-card">
                                 <div class="section-title mb-2">Course Details</div>
-                                <div class="admin-detail-grid" id="review-course-details"></div>
+                                <div id="form-review-details"></div>
                             </div>
 
                             <div class="admin-table-shell">
@@ -267,6 +267,7 @@ else
         let unifiedResources = [];
         let popupExisting;
         let loadPanel;
+        let reviewForm;
         const createState = {
             currentStep: 1
         };
@@ -293,6 +294,7 @@ else
             initializeMasterGrid();
             initializeExistingResourcesPopup();
             initializeFileUploader();
+            initializeReviewForm();
 
             if (IS_EDIT) {
                 initializeSaveButton();
@@ -305,6 +307,34 @@ else
             updateCourseSnapshot();
             renderCourseReview();
         });
+
+        function initializeReviewForm() {
+            if (IS_EDIT) {
+                return;
+            }
+
+            reviewForm = $("#form-review-details").dxForm({
+                readOnly: true,
+                labelMode: "floating",
+                stylingMode: "outlined",
+                colCount: 2,
+                formData: { courseType: "", courseCode: "", courseName: "", division: "", category: "", description: "" },
+                items: [
+                    { dataField: "courseType", label: { text: "Course Type" } },
+                    { dataField: "courseCode", label: { text: "Course Code" } },
+                    { dataField: "courseName", label: { text: "Course Title" }, colSpan: 2 },
+                    { dataField: "division", label: { text: "Division" } },
+                    { dataField: "category", label: { text: "Category" } },
+                    {
+                        dataField: "description",
+                        label: { text: "Description" },
+                        colSpan: 2,
+                        editorType: "dxTextArea",
+                        editorOptions: { height: DESCRIPTION_FIELD_HEIGHT }
+                    }
+                ]
+            }).dxForm("instance");
+        }
 
         function initializeCourseForm(formData) {
             formWidget = $("#form-container").dxForm({
@@ -1016,21 +1046,16 @@ else
                 ? `${previewNames.join(', ')}${unifiedResources.length > 3 ? ' ...' : ''}`
                 : "No content added yet");
 
-            const detailsMarkup = [
-                { label: "Course Type", value: courseType },
-                { label: "Course Code", value: courseCode },
-                { label: "Course Title", value: courseName },
-                { label: "Division / Category", value: `${division} / ${category}` },
-                { label: "Description", value: description }
-            ].map(function(detail) {
-                return `
-                    <div class="admin-detail-item">
-                        <div class="admin-detail-label">${window.escapeHtml(detail.label)}</div>
-                        <div class="admin-detail-value">${window.escapeHtml(detail.value)}</div>
-                    </div>`;
-            }).join('');
-
-            $("#review-course-details").html(detailsMarkup);
+            if (reviewForm) {
+                reviewForm.option("formData", {
+                    courseType: courseType,
+                    courseCode: courseCode,
+                    courseName: courseName,
+                    division: division,
+                    category: category,
+                    description: description
+                });
+            }
         }
 
         function renderCourseReview() {

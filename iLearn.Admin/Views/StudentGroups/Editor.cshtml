@@ -143,7 +143,7 @@ else
 
                             <div class="admin-review-stack">
                                 <div id="summary-cards" class="admin-summary-grid"></div>
-                                <div id="review-details" class="admin-detail-grid"></div>
+                                <div id="form-review-details"></div>
 
                                 <div class="admin-table-shell">
                                     <div class="admin-table-head">
@@ -196,6 +196,7 @@ else
     let formInstance;
     let loadPanel;
     let studentsGrid = null;
+    let reviewForm;
 
     $(() => {
         loadPanel = $("#load-panel").dxLoadPanel({
@@ -218,10 +219,30 @@ else
         initializeStudentGrid();
         initializeFilters();
         initializeCreateActions();
+        initializeReviewForm();
         updateSelectionSummary();
         updateCreateSnapshot();
         updateCreateWizardUi();
     });
+
+    function initializeReviewForm() {
+        reviewForm = $("#form-review-details").dxForm({
+            readOnly: true,
+            labelMode: "floating",
+            stylingMode: "outlined",
+            colCount: 1,
+            formData: { name: "", description: "" },
+            items: [
+                { dataField: "name", label: { text: "Group Name" } },
+                {
+                    dataField: "description",
+                    label: { text: "Description" },
+                    editorType: "dxTextArea",
+                    editorOptions: { height: DESCRIPTION_FIELD_HEIGHT }
+                }
+            ]
+        }).dxForm("instance");
+    }
 
     function initializeForm() {
         formInstance = $("#form-container").dxForm({
@@ -643,16 +664,12 @@ else
             buildSummaryCard(distinctDepartments, "Departments", distinctDepartments > 0 ? "u-text-success" : "text-dark")
         ].join(""));
 
-        $("#review-details").html(`
-            <div class="admin-detail-item">
-                <div class="admin-detail-label">Group Name</div>
-                <div class="admin-detail-value">${escapeHtml(formData.name || EMPTY_TEXT)}</div>
-            </div>
-            <div class="admin-detail-item">
-                <div class="admin-detail-label">Description</div>
-                <div class="admin-detail-value">${escapeHtml(formData.description || "No description")}</div>
-            </div>
-        `);
+        if (reviewForm) {
+            reviewForm.option("formData", {
+                name: formData.name || "",
+                description: formData.description || ""
+            });
+        }
 
         $("#member-review-note").text(students.length > 0
             ? `${window.formatAdminCountLabel(students.length, "student")} will be added immediately after the group is created.`
