@@ -205,6 +205,7 @@
         var secSel = opts.sectionSelector || '#filter-section';
         var posSel = opts.positionSelector || null;
         var clearSel = opts.clearSelector || '#btn-clear-filter';
+        var filterInputWidth = '100%';
         function makeLookup(endpoint, queryText) {
             return new DevExpress.data.CustomStore({
                 key: 'Name',
@@ -242,25 +243,35 @@
             displayExpr: 'Name',
             valueExpr: 'Name',
             placeholder: 'All Divisions',
+            searchEnabled: true,
             showClearButton: true,
+            width: filterInputWidth,
             onValueChanged: function (e) {
                 var deptBox = $(deptSel).dxSelectBox('instance');
                 deptBox.option({
                     value: null,
                     disabled: !e.value,
+                    placeholder: e.value ? 'All Departments' : 'Select Division first',
                     dataSource: e.value
                         ? makeLookup('GetDepartments', '?filter=["Division","=","' + e.value + '"]')
                         : []
                 });
-                $(secSel).dxSelectBox('instance').option({ value: null, disabled: true, dataSource: [] });
+                $(secSel).dxSelectBox('instance').option({
+                    value: null,
+                    disabled: true,
+                    placeholder: 'Select Department first',
+                    dataSource: []
+                });
                 applyFilters();
             }
         }).dxSelectBox('instance');
         $(deptSel).dxSelectBox({
             displayExpr: 'Name',
             valueExpr: 'Name',
-            placeholder: 'All Departments',
+            placeholder: 'Select Division first',
             showClearButton: true,
+            searchEnabled: true,
+            width: filterInputWidth,
             disabled: true,
             onValueChanged: function (e) {
                 var secBox = $(secSel).dxSelectBox('instance');
@@ -271,6 +282,7 @@
                 secBox.option({
                     value: null,
                     disabled: !e.value,
+                    placeholder: e.value ? 'All Sections' : 'Select Department first',
                     dataSource: e.value ? makeLookup('GetSections', q) : []
                 });
                 applyFilters();
@@ -279,8 +291,10 @@
         $(secSel).dxSelectBox({
             displayExpr: 'Name',
             valueExpr: 'Name',
-            placeholder: 'All Sections',
+            placeholder: 'Select Department first',
             showClearButton: true,
+            searchEnabled: true,
+            width: filterInputWidth,
             disabled: true,
             onValueChanged: applyFilters
         });
@@ -290,9 +304,11 @@
                 displayExpr: 'Name',
                 valueExpr: 'Name',
                 placeholder: 'All Positions',
+                searchEnabled: true,
                 showClearButton: true,
                 showSelectionControls: true,
                 applyValueMode: 'useButtons',
+                width: filterInputWidth,
                 onValueChanged: applyFilters
             });
         }
@@ -325,6 +341,7 @@
         var divSel = opts.divSel || '#filter-course-div';
         var catSel = opts.catSel || '#filter-course-cat';
         var clearSel = opts.clearSel || '#btn-clear-course-filter';
+        var filterInputWidth = '100%';
         function applyCourseFilters() {
             var typeVal = $(typeSel).dxSelectBox('instance').option('value');
             var divVal = $(divSel).dxSelectBox('instance').option('value');
@@ -340,7 +357,9 @@
             displayExpr: 'name',
             valueExpr: 'id',
             placeholder: 'All Types',
+            searchEnabled: true,
             showClearButton: true,
+            width: filterInputWidth,
             onValueChanged: applyCourseFilters
         });
         $(divSel).dxSelectBox({
@@ -348,7 +367,9 @@
             displayExpr: 'name',
             valueExpr: 'id',
             placeholder: 'All Divisions',
+            searchEnabled: true,
             showClearButton: true,
+            width: filterInputWidth,
             onValueChanged: function (e) {
                 var catBox = $(catSel).dxSelectBox('instance');
                 catBox.option('value', null);
@@ -359,8 +380,9 @@
                         filter: ['divisionId', '=', e.value]
                     }));
                     catBox.option('disabled', false);
+                    catBox.option('placeholder', 'All Categories');
                 } else {
-                    catBox.option({ dataSource: [], disabled: true });
+                    catBox.option({ dataSource: [], disabled: true, placeholder: 'Select Division first' });
                 }
                 applyCourseFilters();
             }
@@ -368,8 +390,10 @@
         $(catSel).dxSelectBox({
             displayExpr: 'name',
             valueExpr: 'id',
-            placeholder: 'All Categories',
+            placeholder: 'Select Division first',
             showClearButton: true,
+            searchEnabled: true,
+            width: filterInputWidth,
             disabled: true,
             onValueChanged: applyCourseFilters
         });

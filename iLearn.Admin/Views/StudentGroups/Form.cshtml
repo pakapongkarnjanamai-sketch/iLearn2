@@ -74,7 +74,7 @@ else
 
         <div class="admin-review-main-col">
             <div class="border rounded bg-white p-3">
-                    <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
+                    <div id="step-panel-1" class="admin-wizard-panel active">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Group Information</div>
@@ -87,7 +87,7 @@ else
                         </div>
                     </div>
 
-                    <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
+                    <div id="step-panel-2" class="admin-wizard-panel">
                         <div class="admin-section-header mb-2">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Initial Members</div>
@@ -129,15 +129,11 @@ else
                                     </div>
                                 </div>
                                 <div id="grid-initial-members"></div>
-                                <div class="admin-selection-tray d-none" id="initial-members-tray">
-                                    <div class="admin-selection-tray-label">Selected</div>
-                                    <div class="admin-selection-tray-chips" id="initial-members-chips"></div>
-                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
+                    <div id="step-panel-3" class="admin-wizard-panel">
                         <div class="admin-section-header admin-review-header">
                             <div class="admin-section-header-main">
                                 <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -147,7 +143,7 @@ else
 
                             <div class="admin-review-stack">
                                 <div id="summary-cards" class="admin-summary-grid"></div>
-                                <div id="form-review-details"></div>
+                                <div id="review-details" class="admin-detail-grid"></div>
 
                                 <div class="admin-table-shell">
                                     <div class="admin-table-head">
@@ -185,7 +181,6 @@ else
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
     const DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
     const EMPTY_TEXT = "—";
-    const MAX_VISIBLE_SELECTION_CHIPS = 12;
 
     // Height Settings
     const DESCRIPTION_FIELD_HEIGHT = 120;
@@ -201,7 +196,6 @@ else
     let formInstance;
     let loadPanel;
     let studentsGrid = null;
-    let reviewForm;
 
     $(() => {
         loadPanel = $("#load-panel").dxLoadPanel({
@@ -224,30 +218,10 @@ else
         initializeStudentGrid();
         initializeFilters();
         initializeCreateActions();
-        initializeReviewForm();
         updateSelectionSummary();
         updateCreateSnapshot();
         updateCreateWizardUi();
     });
-
-    function initializeReviewForm() {
-        reviewForm = $("#form-review-details").dxForm({
-            readOnly: true,
-            labelMode: "floating",
-            stylingMode: "outlined",
-            colCount: 1,
-            formData: { name: "", description: "" },
-            items: [
-                { dataField: "name", label: { text: "Group Name" } },
-                {
-                    dataField: "description",
-                    label: { text: "Description" },
-                    editorType: "dxTextArea",
-                    editorOptions: { height: DESCRIPTION_FIELD_HEIGHT }
-                }
-            ]
-        }).dxForm("instance");
-    }
 
     function initializeForm() {
         formInstance = $("#form-container").dxForm({
@@ -320,6 +294,12 @@ else
                     options.xhrFields = { withCredentials: true };
                 }
             }),
+            remoteOperations: true,
+            headerFilter: { visible: false },
+            filterRow: { visible: true },
+            searchPanel: { visible: false },
+            scrolling: { mode: "standard" },
+            selection: { selectAllMode: "allPages" },
             noDataText: getNoDataText("students"),
             columns: [
                 {
@@ -347,8 +327,7 @@ else
             onSelectionChanged: function(event) {
                 createState.selectedStudentCodes = (event.selectedRowKeys || []).map(String);
                 syncSelectedStudentCache(event);
-                window.setAllPagesSelectionHint("#selection-hint", createState.selectedStudentCodes.length, "student", "to include initial members");
-                renderInitialMembersTray(createState.selectedStudentCodes);
+                setSelectionHint("#selection-hint", createState.selectedStudentCodes.length, "student", "to include initial members");
                 updateSelectionSummary();
                 updateCreateSnapshot();
             }
@@ -497,10 +476,7 @@ else
     function updateCreateWizardUi() {
         $(".admin-wizard-panel").removeClass("active");
         $(`#step-panel-${createState.currentStep}`).addClass("active");
-        const layout = $(`#step-panel-${createState.currentStep}`).attr("data-step-layout") || "wide";
-        $(".admin-wizard-shell")
-            .toggleClass("is-form-step", layout === "form")
-            .toggleClass("is-review-step", layout === "review");
+        $(".admin-wizard-shell").toggleClass("is-review-step", createState.currentStep === 3);
 
         $("[data-step-card]").each(function() {
             const step = Number($(this).attr("data-step-card"));
@@ -521,10 +497,6 @@ else
         $(".bottom-toolbar-note").html(`<i class="fas fa-info-circle text-muted me-1" aria-hidden="true"></i> ${getGroupStepNote(createState.currentStep)}`);
 
         refreshCreateGrid();
-
-        if (createState.currentStep === 2) {
-            renderInitialMembersTray(getSelectedStudentCodes());
-        }
     }
 
     function refreshCreateGrid() {
@@ -582,53 +554,6 @@ else
             if (!activeCodes.has(code)) {
                 createState.selectedStudents.delete(code);
             }
-        });
-    }
-
-    function renderInitialMembersTray(selectedCodes) {
-        const codes = selectedCodes || [];
-        const $tray = $("#initial-members-tray");
-        if (!codes.length) {
-            $tray.addClass("d-none");
-            $("#initial-members-chips").empty();
-            return;
-        }
-
-        $tray.removeClass("d-none");
-        const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
-        const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
-        const chips = visibleCodes.map(function(code) {
-            const normalizedCode = String(code);
-            const student = createState.selectedStudents.get(normalizedCode);
-            const safeCode = escapeHtml(normalizedCode || EMPTY_TEXT);
-            const encodedCode = encodeURIComponent(normalizedCode);
-            const safeName = student
-                ? escapeHtml(student.studentName || "")
-                : "";
-            const namePart = safeName
-                ? `<span class="admin-selection-chip-sep">·</span><span class="admin-selection-chip-name" title="${safeName}">${safeName}</span>`
-                : "";
-
-            return `<span class="admin-selection-chip">
-                <span class="admin-selection-chip-key">${safeCode}</span>
-                ${namePart}
-                <button type="button" class="admin-selection-chip-remove" data-code="${encodedCode}" aria-label="Remove ${safeCode}"><i class="fas fa-times" aria-hidden="true"></i></button>
-            </span>`;
-        });
-
-        if (overflowCount > 0) {
-            chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
-        }
-
-        const $chips = $("#initial-members-chips");
-        $chips.html(chips.join(""));
-        $chips.off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
-            const code = decodeURIComponent(String($(this).attr("data-code") || ""));
-            if (!code || !studentsGrid) {
-                return;
-            }
-
-            studentsGrid.deselectRows([code]);
         });
     }
 
@@ -713,12 +638,16 @@ else
             buildSummaryCard(distinctDepartments, "Departments", distinctDepartments > 0 ? "u-text-success" : "text-dark")
         ].join(""));
 
-        if (reviewForm) {
-            reviewForm.option("formData", {
-                name: formData.name || "",
-                description: formData.description || ""
-            });
-        }
+        $("#review-details").html(`
+            <div class="admin-detail-item">
+                <div class="admin-detail-label">Group Name</div>
+                <div class="admin-detail-value">${escapeHtml(formData.name || EMPTY_TEXT)}</div>
+            </div>
+            <div class="admin-detail-item">
+                <div class="admin-detail-label">Description</div>
+                <div class="admin-detail-value">${escapeHtml(formData.description || "No description")}</div>
+            </div>
+        `);
 
         $("#member-review-note").text(students.length > 0
             ? `${window.formatAdminCountLabel(students.length, "student")} will be added immediately after the group is created.`

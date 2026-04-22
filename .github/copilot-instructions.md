@@ -98,6 +98,16 @@ The Learner experience should feel welcoming, approachable, and motivating, with
 6. **Minimal motion.** No non-essential animation. Transitions (0.2s ease) only for state changes (active/complete steps, hover feedback). Respect `prefers-reduced-motion`.
 7. **Accessibility as baseline.** WCAG AA is the quality bar, not a follow-up task. High contrast, keyboard navigation, focus rings, semantic markup.
 
+### Current UX Priorities (April 2026)
+
+- **Primary redesign scope**: `Assignments/BulkAssign` (Course Selection + Learner Selection), `StudentGroups/AddMembers`, and `StudentGroups/Editor` (Initial Members).
+- **Critical pain point #1**: Users lose confidence about what is currently selected when moving across paged DataGrid results.
+- **Critical pain point #2**: Cascading filters are not clear enough in behavior and state, especially after value changes and resets.
+- **Selection policy**: Keep `allPages` selection behavior, but always expose a visible, immediately scannable list of selected items.
+- **Data scale target**: Typical usage is mid-size datasets (~500 to 5,000 rows), so configuration should balance density, scan speed, and responsiveness.
+- **Layout success criteria**: Keep key task context within one screen whenever possible and avoid stacked/nested scroll areas that force users to track state in multiple places.
+- **Outcome metric**: Users should not lose track of current selections during assignment workflows.
+
 ---
 
 ## Existing Design System (Admin)

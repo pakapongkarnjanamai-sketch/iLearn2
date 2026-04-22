@@ -151,7 +151,8 @@
     const dxGridPresetCssClassMap = {
         defaultGrid: 'admin-grid admin-grid--default',
         compactGrid: 'admin-grid admin-grid--compact',
-        selectionGrid: 'admin-grid admin-grid--selection'
+        selectionGrid: 'admin-grid admin-grid--selection',
+        wizardSelectionGrid: 'admin-grid admin-grid--selection'
     };
 
     const dxGridPresets = {
@@ -179,6 +180,33 @@
             mode: 'multiple',
             showCheckBoxesMode: 'always',
             selectAllMode: 'page'
+        }
+    });
+
+    dxGridPresets.wizardSelectionGrid = $.extend(true, {}, dxGridPresets.selectionGrid, {
+        columnAutoWidth: false,
+        rowAlternationEnabled: false,
+        headerFilter: { visible: false },
+        filterRow: { visible: true },
+        searchPanel: { visible: false },
+        remoteOperations: true,
+        scrolling: {
+            mode: 'standard'
+        },
+        paging: {
+            enabled: true,
+            pageSize: 12
+        },
+        pager: {
+            visible: true,
+            showPageSizeSelector: false,
+            showInfo: true,
+            showNavigationButtons: true
+        },
+        selection: {
+            mode: 'multiple',
+            showCheckBoxesMode: 'always',
+            selectAllMode: 'allPages'
         }
     });
 
@@ -529,6 +557,15 @@
         return `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows ${actionText}.`;
     }
 
+    function getAllPagesSelectionHintMarkup(count, itemLabel, emptyActionText) {
+        if (count > 0) {
+            return `<i class="fas fa-check-circle text-success me-1"></i> <b>${formatAdminCountLabel(count, itemLabel)}</b> selected across all pages.`;
+        }
+
+        const actionText = emptyActionText || 'to continue';
+        return `<i class="fas fa-info-circle text-primary me-1"></i> Check the rows ${actionText}.`;
+    }
+
     function createSelectionHintElement(id, itemLabel, actionText) {
         return $('<div>')
             .attr('id', id)
@@ -538,6 +575,10 @@
 
     function setSelectionHint(selector, count, itemLabel, actionText) {
         $(selector).html(getSelectionHintMarkup(count, itemLabel, actionText));
+    }
+
+    function setAllPagesSelectionHint(selector, count, itemLabel, emptyActionText) {
+        $(selector).html(getAllPagesSelectionHintMarkup(count, itemLabel, emptyActionText));
     }
 
     function getRouteExportFileName(fallbackName) {
@@ -823,7 +864,7 @@
 
         // Allow callers to opt out of virtual scrolling by providing their own scrolling.mode
         // (e.g. wizard selection grids that use pager instead).
-        const callerScrollMode = normalizedPageOptions.scrolling?.mode;
+        const callerScrollMode = normalizedPageOptions.scrolling?.mode || resolvedOptions.scrolling?.mode;
         if (!callerScrollMode) {
             resolvedOptions.scrolling = $.extend(true, {}, resolvedOptions.scrolling, {
                 mode: 'virtual',
@@ -832,7 +873,7 @@
         }
 
         // Allow callers to override paging (e.g. pageSize: 15 for wizard grids).
-        const callerPaging = normalizedPageOptions.paging;
+        const callerPaging = normalizedPageOptions.paging || resolvedOptions.paging;
         if (!callerPaging) {
             resolvedOptions.paging = { enabled: true, pageSize: defaultGridPageSize };
             delete resolvedOptions.pager;
@@ -1201,6 +1242,7 @@
     window.getNoDataText = getNoDataText;
     window.createSelectionHintElement = createSelectionHintElement;
     window.setSelectionHint = setSelectionHint;
+    window.setAllPagesSelectionHint = setAllPagesSelectionHint;
     window.adminTypography = adminTypography;
     window.getDxGridOptions = getDxGridOptions;
     window.initDxGrid = initDxGrid;

@@ -80,99 +80,6 @@
         border-bottom: none;
     }
 
-    /* ── Unique: Scrollable review tables ── */
-    .assign-review-table-wrap {
-        --admin-table-wrap-max-height: clamp(160px, calc(100vh - 600px), 260px);
-    }
-
-    /* ── Unique: Selection tray ── */
-    .assign-selection-tray {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 8px 0 2px;
-        border-top: 1px solid var(--border-color);
-        margin-top: 6px;
-    }
-
-    .assign-tray-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        padding-top: 3px;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-
-    .assign-tray-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        flex: 1;
-        min-width: 0;
-        max-height: 80px;
-        overflow-y: auto;
-    }
-
-    .assign-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        background: var(--primary-subtle, #e6f0fb);
-        color: var(--primary-dark, #003a8c);
-        border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
-        border-radius: var(--radius-sm);
-        font-size: 11px;
-        font-weight: 500;
-        padding: 2px 3px 2px 6px;
-        max-width: 220px;
-    }
-
-    .assign-chip-code {
-        font-weight: 700;
-        flex-shrink: 0;
-    }
-
-    .assign-chip-sep {
-        opacity: 0.5;
-        flex-shrink: 0;
-    }
-
-    .assign-chip-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 130px;
-    }
-
-    .assign-chip-remove {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: inherit;
-        opacity: 0.55;
-        padding: 0 2px;
-        font-size: 9px;
-        line-height: 1;
-        border-radius: 2px;
-        transition: opacity 0.1s, background 0.1s;
-        flex-shrink: 0;
-    }
-
-    .assign-chip-remove:hover {
-        opacity: 1;
-        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    }
-
-    .assign-chip.is-overflow {
-        border-style: dashed;
-        background: var(--surface-subtle);
-        color: var(--text-secondary);
-        font-weight: 600;
-    }
-
     /* ── Form Overrides ── */
     .dx-layout-manager .dx-field-item {
         padding-bottom: 12px;
@@ -223,7 +130,7 @@
 
     <div class="admin-review-main-col">
         <div class="border rounded bg-white p-3" id="wizard-main-card">
-        <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="wide">
+        <div id="step-panel-1" class="admin-wizard-panel active">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Course Selection</div>
@@ -256,15 +163,11 @@
                         <div class="admin-grid-note" id="course-selection-note">No course selected</div>
                     </div>
                     <div id="grid-courses-inline" class="assign-inline-grid"></div>
-                    <div class="assign-selection-tray d-none" id="course-selection-tray">
-                        <div class="assign-tray-label">Selected:</div>
-                        <div class="assign-tray-chips" id="course-tray-chips"></div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
+        <div id="step-panel-2" class="admin-wizard-panel">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Learner Selection</div>
@@ -314,10 +217,6 @@
                             <div class="admin-grid-note" id="student-selection-note">No student selected</div>
                         </div>
                         <div id="grid-students-inline" class="assign-inline-grid"></div>
-                    <div class="assign-selection-tray d-none" id="student-selection-tray">
-                        <div class="assign-tray-label">Selected:</div>
-                        <div class="assign-tray-chips" id="student-tray-chips"></div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -338,7 +237,7 @@
             </div>
         </div>
 
-        <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="form">
+        <div id="step-panel-3" class="admin-wizard-panel">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Dates &amp; Details</div>
@@ -348,7 +247,7 @@
             <div id="form-assignment"></div>
         </div>
 
-        <div id="step-panel-4" class="admin-wizard-panel" data-step-layout="review">
+        <div id="step-panel-4" class="admin-wizard-panel">
             <div class="admin-section-header admin-review-header">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -358,24 +257,7 @@
 
             <div class="admin-review-stack">
                 <div id="review-summary-cards" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
-                <div id="form-review-details"></div>
-
-                <div class="admin-table-shell">
-                    <div class="admin-table-head">
-                        <div class="admin-table-title">Selected Courses</div>
-                        <div class="admin-grid-note" id="review-courses-note"></div>
-                    </div>
-                    <div class="admin-table-wrap assign-review-table-wrap" id="review-courses-table"></div>
-                </div>
-
-                <div class="admin-table-shell">
-                    <div class="admin-table-head">
-                        <div class="admin-table-title" id="review-learners-title">Selected Learners</div>
-                        <div class="admin-grid-note" id="review-learners-note"></div>
-                    </div>
-                    <div class="admin-table-wrap assign-review-table-wrap" id="review-learners-table"></div>
-                </div>
-
+                <div id="review-details" class="admin-detail-grid" style="--admin-detail-grid-cols: 1.4fr 1fr"></div>
                 <div id="review-conflicts"></div>
             </div>
         </div>
@@ -410,7 +292,6 @@
         const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
         const EMPTY_TEXT = "—";
-        const MAX_VISIBLE_SELECTION_CHIPS = 12;
 
         // Height Settings
         const DESCRIPTION_FIELD_HEIGHT = 96;
@@ -434,11 +315,8 @@
         let courseGrid;
         let studentGrid;
         let groupGrid;
-        const courseDataCache = new Map();
-        const studentDataCache = new Map();
         let studentGridInitialized = false;
         let groupGridInitialized = false;
-        let reviewForm;
 
         $(() => {
             loadPanel = $("#load-panel").dxLoadPanel({
@@ -472,7 +350,6 @@
             }).dxForm("instance");
 
             initializeCourseSelection();
-            initializeReviewForm();
             updateSnapshotFromForm();
             updateCourseSelectionUi();
             updateStudentSelectionUi();
@@ -498,29 +375,6 @@
                         updateGroupSelectionUi();
                     }
                 });
-            }
-
-            function initializeReviewForm() {
-                reviewForm = $("#form-review-details").dxForm({
-                    readOnly: true,
-                    labelMode: "floating",
-                    stylingMode: "outlined",
-                    colCount: 2,
-                    formData: { description: "", startDate: EMPTY_TEXT, dueDate: EMPTY_TEXT, targetMode: "", target: "" },
-                    items: [
-                        {
-                            dataField: "description",
-                            label: { text: "Description" },
-                            colSpan: 2,
-                            editorType: "dxTextArea",
-                            editorOptions: { height: DESCRIPTION_FIELD_HEIGHT }
-                        },
-                        { dataField: "startDate", label: { text: "Start Date" } },
-                        { dataField: "dueDate", label: { text: "Due Date" } },
-                        { dataField: "targetMode", label: { text: "Target Type" } },
-                        { dataField: "target", label: { text: "Target" } }
-                    ]
-                }).dxForm("instance");
             }
 
             function initializeCourseSelection() {
@@ -563,9 +417,7 @@
                     selectedRowKeys: selectedCourseIds,
                     onSelectionChanged: function(e) {
                         selectedCourseIds = e.selectedRowKeys;
-                        (e.selectedRowsData || []).forEach(function(row) { courseDataCache.set(row.id, row); });
                         updateCourseSelectionUi();
-                        renderCourseSelectionTray();
                     }
                 });
 
@@ -624,9 +476,7 @@
                     selectedRowKeys: selectedStudentCodes,
                     onSelectionChanged: function(e) {
                         selectedStudentCodes = e.selectedRowKeys;
-                        (e.selectedRowsData || []).forEach(function(row) { studentDataCache.set(String(row.EId), row); });
                         updateStudentSelectionUi();
-                        renderStudentSelectionTray();
                     }
                 });
 
@@ -760,18 +610,16 @@
 
             function clearCourseSelection() {
                 selectedCourseIds = [];
-                courseDataCache.clear();
                 if (courseGrid) {
                     courseGrid.clearSelection();
                 }
                 updateCourseSelectionUi();
-                renderCourseSelectionTray();
             }
 
             function updateCourseSelectionUi() {
                 const count = selectedCourseIds.length;
                 $("#course-selection-note").text(count > 0
-                    ? `${window.formatAdminCountLabel(count, 'course')} selected across all pages`
+                    ? `${window.formatAdminCountLabel(count, 'course')} selected`
                     : "No course selected");
                 $("#snapshot-course-count").text(window.formatAdminCountLabel(count, 'course'));
                 updateTargetSnapshot();
@@ -780,7 +628,7 @@
             function updateStudentSelectionUi() {
                 const count = selectedStudentCodes.length;
                 $("#student-selection-note").text(count > 0
-                    ? `${window.formatAdminCountLabel(count, 'student')} selected across all pages`
+                    ? `${window.formatAdminCountLabel(count, 'student')} selected`
                     : "No student selected");
                 updateTargetSnapshot();
             }
@@ -843,42 +691,18 @@
                     buildSummaryCard(inProgress.length + completed.length, "Conflicts", (inProgress.length + completed.length) > 0 ? "u-text-warning" : "u-text-success")
                 ].join(""));
 
-                reviewForm.option("formData", {
-                    description: payload.description || "",
-                    startDate: fmtDate(payload.startDate),
-                    dueDate: fmtDate(payload.dueDate),
-                    targetMode: payload.groupId ? "Student Group" : "Individual Students",
-                    target: payload.groupId
-                        ? (selectedGroupName || "Selected group")
-                        : window.formatAdminCountLabel(resolvedCount, "student")
-                });
-
-                // Courses table
-                const courseRows = courseGrid ? (courseGrid.getSelectedRowsData() || []) : [];
-                const courseCount = selectedCourseIds.length;
-                $("#review-courses-note").text(
-                    courseRows.length < courseCount
-                        ? `Showing ${courseRows.length} of ${window.formatAdminCountLabel(courseCount, "course")}`
-                        : window.formatAdminCountLabel(courseCount, "course")
-                );
-                $("#review-courses-table").html(buildCoursesReviewTable(courseRows));
-
-                // Learners table
-                if (payload.groupId) {
-                    $("#review-learners-title").text("Target Group");
-                    $("#review-learners-note").text(window.formatAdminCountLabel(resolvedCount, "member"));
-                    $("#review-learners-table").html(buildGroupReviewPanel(selectedGroupName, resolvedCount));
-                } else {
-                    const studentRows = studentGrid ? (studentGrid.getSelectedRowsData() || []) : [];
-                    const totalStudents = selectedStudentCodes.length;
-                    $("#review-learners-title").text("Selected Learners");
-                    $("#review-learners-note").text(
-                        studentRows.length < totalStudents
-                            ? `Showing ${studentRows.length} of ${window.formatAdminCountLabel(totalStudents, "student")}`
-                            : window.formatAdminCountLabel(totalStudents, "student")
-                    );
-                    $("#review-learners-table").html(buildLearnersReviewTable(studentRows, totalStudents));
-                }
+                $("#review-details").html(`
+                    <div class="admin-detail-item">
+                        <div class="admin-detail-label">Description</div>
+                        <div class="admin-detail-value">${payload.description || '<span class="text-muted fst-italic">—</span>'}</div>
+                    </div>
+                    <div class="admin-detail-item">
+                        <div class="admin-detail-label">Period</div>
+                        <div class="admin-detail-value"><i class="fas fa-calendar-alt text-muted me-1"></i>${fmtDate(payload.startDate)} — ${fmtDate(payload.dueDate)}</div>
+                        <div class="admin-detail-label mt-3">Target</div>
+                        <div class="admin-detail-value">${payload.groupId ? (selectedGroupName || 'Selected group') : window.formatAdminCountLabel(resolvedCount, 'student')}</div>
+                    </div>
+                `);
 
                 $("#review-conflicts").html(buildConflictSections(inProgress, completed));
             }
@@ -1027,10 +851,7 @@
             function updateWizardUi(step) {
                 $(".admin-wizard-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
-                const layout = $(`#step-panel-${step}`).attr("data-step-layout") || "wide";
-                $(".admin-wizard-shell")
-                    .toggleClass("is-form-step", layout === "form")
-                    .toggleClass("is-review-step", layout === "review");
+                $(".admin-wizard-shell").toggleClass("is-review-step", step === 4);
 
                 if (step === 2) {
                     if (!studentGridInitialized) {
@@ -1063,134 +884,8 @@
                 refreshVisibleSelectionGrids();
             }
 
-            function renderCourseSelectionTray() {
-                const ids = selectedCourseIds;
-                if (!ids.length) {
-                    $("#course-selection-tray").addClass("d-none");
-                    return;
-                }
-                $("#course-selection-tray").removeClass("d-none");
-                const visibleIds = ids.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
-                const overflowCount = Math.max(ids.length - visibleIds.length, 0);
-                const chips = visibleIds.map(function(id) {
-                    const row = courseDataCache.get(id);
-                    const code = row ? window.escapeHtml(row.code || String(id)) : String(id);
-                    const name = row ? window.escapeHtml(row.title || "") : "";
-                    const namePart = name
-                        ? `<span class="assign-chip-sep">·</span><span class="assign-chip-name" title="${name}">${name}</span>`
-                        : "";
-                    return `<span class="assign-chip">
-                        <span class="assign-chip-code">${code}</span>${namePart}
-                        <button type="button" class="assign-chip-remove" data-id="${id}" aria-label="Remove ${code}"><i class="fas fa-times" aria-hidden="true"></i></button>
-                    </span>`;
-                });
-
-                if (overflowCount > 0) {
-                    chips.push(`<span class="assign-chip is-overflow">+${overflowCount} more</span>`);
-                }
-
-                $("#course-tray-chips").html(chips.join(""));
-                $("#course-tray-chips").off("click", ".assign-chip-remove").on("click", ".assign-chip-remove", function() {
-                    const id = parseInt($(this).data("id"), 10);
-                    if (courseGrid) { courseGrid.deselectRows([id]); }
-                });
-            }
-
-            function renderStudentSelectionTray() {
-                const codes = selectedStudentCodes;
-                if (!codes.length) {
-                    $("#student-selection-tray").addClass("d-none");
-                    return;
-                }
-                $("#student-selection-tray").removeClass("d-none");
-                const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
-                const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
-                const chips = visibleCodes.map(function(code) {
-                    const row = studentDataCache.get(String(code));
-                    const normalizedCode = String(code || "");
-                    const displayCode = window.escapeHtml(normalizedCode);
-                    const encodedCode = encodeURIComponent(normalizedCode);
-                    const name = row
-                        ? window.escapeHtml([row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(" ") || "")
-                        : "";
-                    const namePart = name
-                        ? `<span class="assign-chip-sep">·</span><span class="assign-chip-name" title="${name}">${name}</span>`
-                        : "";
-                    return `<span class="assign-chip">
-                        <span class="assign-chip-code">${displayCode}</span>${namePart}
-                        <button type="button" class="assign-chip-remove" data-code="${encodedCode}" aria-label="Remove ${displayCode}"><i class="fas fa-times" aria-hidden="true"></i></button>
-                    </span>`;
-                });
-
-                if (overflowCount > 0) {
-                    chips.push(`<span class="assign-chip is-overflow">+${overflowCount} more</span>`);
-                }
-
-                $("#student-tray-chips").html(chips.join(""));
-                $("#student-tray-chips").off("click", ".assign-chip-remove").on("click", ".assign-chip-remove", function() {
-                    const code = decodeURIComponent(String($(this).attr("data-code") || ""));
-                    if (studentGrid) { studentGrid.deselectRows([String(code)]); }
-                });
-            }
-
             function buildSummaryCard(value, label, className) {
                 return buildAdminSummaryCard(value, label, className);
-            }
-
-            function buildCoursesReviewTable(rows) {
-                if (!rows.length) {
-                    return `<div class="admin-wizard-empty-state"><i class="fas fa-book" aria-hidden="true"></i><div>Course details not available for this view.</div></div>`;
-                }
-
-                const tableRows = rows.map(function(row, i) {
-                    return `<tr>
-                        <td>${i + 1}</td>
-                        <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.code || EMPTY_TEXT)}</span></td>
-                        <td class="fw-medium text-dark">${window.escapeHtml(row.title || EMPTY_TEXT)}</td>
-                        <td><span class="tag-pill pill-info">${window.escapeHtml(row.courseTypeName || EMPTY_TEXT)}</span></td>
-                    </tr>`;
-                }).join('');
-
-                return `<table class="admin-table">
-                    <thead><tr><th>#</th><th>Code</th><th>Course Title</th><th>Type</th></tr></thead>
-                    <tbody>${tableRows}</tbody>
-                </table>`;
-            }
-
-            function buildLearnersReviewTable(rows, totalCount) {
-                if (!rows.length) {
-                    return totalCount > 0
-                        ? `<div class="admin-wizard-empty-state"><i class="fas fa-users" aria-hidden="true"></i><div>${window.formatAdminCountLabel(totalCount, "student")} selected — detail view requires current page data.</div></div>`
-                        : `<div class="admin-wizard-empty-state"><i class="fas fa-user" aria-hidden="true"></i><div>No learners selected.</div></div>`;
-                }
-
-                const tableRows = rows.map(function(row) {
-                    const name = [row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(' ') || EMPTY_TEXT;
-                    const org = [row.Department, row.Section].filter(Boolean).join(' / ') || EMPTY_TEXT;
-                    return `<tr>
-                        <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.EId || EMPTY_TEXT)}</span></td>
-                        <td>
-                            <div class="admin-student-name">${window.escapeHtml(name)}</div>
-                            <div class="admin-student-note">${window.escapeHtml(org)}</div>
-                        </td>
-                        <td>${window.escapeHtml(row.Position || EMPTY_TEXT)}</td>
-                    </tr>`;
-                }).join('');
-
-                return `<table class="admin-table">
-                    <thead><tr><th>ID</th><th>Learner</th><th>Position</th></tr></thead>
-                    <tbody>${tableRows}</tbody>
-                </table>`;
-            }
-
-            function buildGroupReviewPanel(groupName, memberCount) {
-                return `<div class="p-3 d-flex align-items-center gap-3">
-                    <i class="fas fa-users fa-2x text-primary" aria-hidden="true"></i>
-                    <div>
-                        <div class="fw-semibold text-dark">${window.escapeHtml(groupName || EMPTY_TEXT)}</div>
-                        <div class="admin-student-note">${window.formatAdminCountLabel(memberCount, "member")} in this group</div>
-                    </div>
-                </div>`;
             }
 
             function buildConflictSections(inProgress, completed) {
