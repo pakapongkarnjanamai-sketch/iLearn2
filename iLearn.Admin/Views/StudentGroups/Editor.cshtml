@@ -15,14 +15,50 @@
 </style>
 
 <!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
-    <div>
-        <h1 class="page-title"><i class="fas fa-users text-primary me-2" aria-hidden="true"></i>@ViewBag.Title</h1>
-        <div class="page-subtitle">@(isEdit ? "Update reusable group information for course assignments." : "Create a reusable group and optionally add initial members in one flow.")</div>
-    </div>
-    <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
-        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
-    </a>
+<div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
+    <h1 class="page-title"><i class="fas fa-users text-primary me-2" aria-hidden="true"></i>@ViewBag.Title</h1>
+    @if (!isEdit)
+    {
+        <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
+            <div class="admin-step-card active" data-step-card="1" aria-current="step">
+                <div class="admin-step-title"><span class="admin-step-index">1</span>Information</div>
+            </div>
+            <div class="admin-step-card" data-step-card="2">
+                <div class="admin-step-title"><span class="admin-step-index">2</span>Members</div>
+            </div>
+            <div class="admin-step-card" data-step-card="3">
+                <div class="admin-step-title"><span class="admin-step-index">3</span>Review</div>
+            </div>
+        </div>
+    }
+    @if (isEdit)
+    {
+        <div class="admin-page-header-actions">
+            <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
+                <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+            </a>
+            <a href="javascript:void(0);" id="btn-save" class="action-link primary">
+                <i class="fas fa-save" aria-hidden="true"></i> Save Changes
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="admin-page-header-actions">
+            <a href="@Url.Action("Index", "StudentGroups")" class="action-link">
+                <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+            </a>
+            <button type="button" id="btn-prev-step" class="action-link d-none">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
+            </button>
+            <button type="button" id="btn-next-step" class="action-link primary">
+                <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
+            </button>
+            <button type="button" id="btn-save" class="action-link primary d-none">
+                <i class="fas fa-save" aria-hidden="true"></i> Create Group
+            </button>
+        </div>
+    }
 </div>
 
 @if (isEdit)
@@ -44,33 +80,11 @@
             </div>
         </div>
     </div>
-
-    <div class="bottom-toolbar">
-        <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-            <i class="fas fa-check-circle u-text-success" aria-hidden="true"></i>
-            Review group information before saving.
-        </span>
-        <a href="javascript:void(0);" id="btn-save" class="action-link primary">
-            <i class="fas fa-save" aria-hidden="true"></i> Save Changes
-        </a>
-    </div>
 }
 else
 {
-    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
+    <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
         <div id="load-panel"></div>
-
-        <div class="admin-wizard-steps" role="group" aria-label="Progress steps">
-            <div class="admin-step-card active" data-step-card="1" aria-current="step">
-                <div class="admin-step-title"><span class="admin-step-index">1</span>Group Information</div>
-            </div>
-            <div class="admin-step-card" data-step-card="2">
-                <div class="admin-step-title"><span class="admin-step-index">2</span>Initial Members</div>
-            </div>
-            <div class="admin-step-card" data-step-card="3">
-                <div class="admin-step-title"><span class="admin-step-index">3</span>Review And Confirm</div>
-            </div>
-        </div>
 
         <div class="admin-review-main-col">
             <div class="border rounded bg-white p-3">
@@ -82,7 +96,6 @@ else
                             <div class="admin-section-divider"></div>
                         </div>
                         <div class="admin-detail-card">
-                            <div class="admin-inline-note mb-3">Create the reusable group first, then choose whether you want to seed it with members immediately.</div>
                             <div id="form-container"></div>
                         </div>
                     </div>
@@ -122,19 +135,20 @@ else
                                 <div class="admin-grid-head">
                                     <div>
                                         <div class="admin-grid-title">Learner Selection</div>
-                                        <div class="admin-inline-note">Select the first learners to attach to this group. This step is optional.</div>
                                     </div>
-                                    <div id="selection-hint" class="admin-grid-note">
+                                    <div id="selection-hint" class="admin-grid-meta">
                                         <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to include initial members.
                                     </div>
                                 </div>
                                 <div id="grid-initial-members"></div>
-                                <div class="admin-selection-tray d-none" id="initial-members-tray">
+                            </div>
+                            <div class="admin-selection-tray" id="initial-members-tray">
                                     <div class="admin-selection-tray-label">Selected</div>
                                     <div class="admin-selection-tray-chips" id="initial-members-chips"></div>
-                                </div>
+                                    <button type="button" class="admin-selection-tray-clear is-disabled" id="initial-members-clear">
+                                        <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                                    </button>
                             </div>
-                        </div>
                     </div>
 
                     <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
@@ -143,7 +157,6 @@ else
                                 <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
                             </div>
                             <div class="admin-section-divider"></div>
-                        </div>
 
                             <div class="admin-review-stack">
                                 <div id="summary-cards" class="admin-summary-grid"></div>
@@ -152,34 +165,22 @@ else
                                 <div class="admin-table-shell">
                                     <div class="admin-table-head">
                                         <div class="admin-table-title">Initial Members</div>
-                                        <div class="admin-inline-note" id="member-review-note"></div>
                                     </div>
                                     <div class="admin-table-wrap sg-review-table-wrap" id="selected-members-review"></div>
                                 </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
         </div>
     </div>
 
-    <div class="bottom-toolbar">
-        <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note"></span>
-        <button type="button" id="btn-prev-step" class="action-link d-none">
-            <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
-        </button>
-        <button type="button" id="btn-next-step" class="action-link primary">
-            <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
-        </button>
-        <button type="button" id="btn-save" class="action-link primary d-none">
-            <i class="fas fa-save" aria-hidden="true"></i> Create Group
-        </button>
-    </div>
 }
 
 @section Scripts {
 <script>
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
-    const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const GROUP_ID = @(ViewBag.Id ?? "null");
     const IS_EDIT = @(isEdit ? "true" : "false");
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
@@ -311,7 +312,7 @@ else
 
     function initializeStudentGrid() {
         studentsGrid = initDxGrid("#grid-initial-members", {
-            preset: "wizardSelectionGrid",
+            preset: "wizardSelectionContinuousGrid",
             height: INITIAL_MEMBER_GRID_HEIGHT,
             dataSource: DevExpress.data.AspNet.createStore({
                 key: "EId",
@@ -401,6 +402,15 @@ else
         });
 
         $("#btn-save").on("click", createGroup);
+
+        $(document).on("click", "#initial-members-clear", function() {
+            if (!studentsGrid) {
+                return;
+            }
+            studentsGrid.clearSelection();
+        });
+
+        renderInitialMembersTray([]);
     }
 
     async function createGroup() {
@@ -587,14 +597,16 @@ else
 
     function renderInitialMembersTray(selectedCodes) {
         const codes = selectedCodes || [];
-        const $tray = $("#initial-members-tray");
+        const $chips = $("#initial-members-chips");
+        const $clearBtn = $("#initial-members-clear");
+
         if (!codes.length) {
-            $tray.addClass("d-none");
-            $("#initial-members-chips").empty();
+            $chips.html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
+            $clearBtn.addClass("is-disabled").prop("disabled", true);
             return;
         }
 
-        $tray.removeClass("d-none");
+        $clearBtn.removeClass("is-disabled").prop("disabled", false);
         const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
         const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
         const chips = visibleCodes.map(function(code) {
@@ -620,7 +632,6 @@ else
             chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
         }
 
-        const $chips = $("#initial-members-chips");
         $chips.html(chips.join(""));
         $chips.off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
             const code = decodeURIComponent(String($(this).attr("data-code") || ""));
@@ -745,7 +756,7 @@ else
                     <td><div class="tag-pill pill-default fw-bold">${escapeHtml(student.studentCode || EMPTY_TEXT)}</div></td>
                     <td>
                         <div class="admin-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
-                        <div class="admin-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
+                        <div class="admin-subtext">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
                     </td>
                     <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
                 </tr>`;

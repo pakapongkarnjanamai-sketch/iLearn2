@@ -142,10 +142,14 @@
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-normal);
 }
-.admin-grid-note,
-.admin-inline-note {
-    font-size: var(--font-size-sm);
+.admin-grid-meta {
+    font-size: var(--font-size-caption);
     color: var(--text-secondary);
+}
+.admin-subtext {
+    font-size: var(--font-size-caption);
+    color: var(--text-secondary);
+    margin-top: var(--space-3xs);
 }
 
 /* ── Inline Actions ──────────────────────────────────────────────── */
@@ -346,9 +350,6 @@
 
 /* ── Detail Card ─────────────────────────────────────────────────── */
 .admin-detail-card {
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background: var(--surface-base);
     padding: var(--space-md);
 }
 
@@ -356,11 +357,6 @@
 .admin-student-name {
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-}
-.admin-student-note {
-    font-size: var(--font-size-caption);
-    color: var(--text-secondary);
-    margin-top: var(--space-3xs);
 }
 
 /* ── Option Card (wizard options) ────────────────────────────────── */
@@ -374,11 +370,125 @@
     opacity: 0.55;
 }
 
+/* ── Page Header Actions (replaces fixed bottom-toolbar) ─────────── */
+.admin-page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+.admin-page-header-actions > .action-link:first-child {
+    margin-right: auto;
+}
+
+/* ── Wizard Page Header (title + inline steps + actions) ─────────── */
+.page-header.admin-page-header--wizard {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+.page-header.admin-page-header--wizard .page-title {
+    font-size: var(--font-size-md, 14px);
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.admin-wizard-steps.admin-wizard-steps--inline {
+    display: inline-flex;
+    grid-template-columns: none;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.admin-wizard-steps--inline .admin-step-card {
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-subtle);
+    display: inline-flex;
+    align-items: center;
+}
+.admin-wizard-steps--inline .admin-step-card .admin-step-title {
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.admin-wizard-steps--inline .admin-step-index {
+    width: 18px;
+    height: 18px;
+    margin-right: 0;
+    font-size: 10px;
+}
+
+/* ── Fill-height Wizard Shell (disabled — page handles scroll) ──── */
+.admin-wizard-shell.admin-wizard-shell--fill {
+    min-height: 0;
+    height: auto;
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+}
+.admin-wizard-shell--fill .admin-review-main-col,
+.admin-wizard-shell--fill .admin-review-main-col > .border,
+.admin-wizard-shell--fill .admin-wizard-panel,
+.admin-wizard-shell--fill .admin-wizard-panel.active {
+    overflow: visible;
+    min-height: 0;
+}
+
+/* No internal scroll inside wizard cards — page handles scroll only */
+.admin-wizard-shell .admin-table-wrap {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* ── Always-visible Selection Tray + Clear ───────────────────────── */
+.admin-selection-tray {
+    flex-wrap: wrap;
+}
+.admin-selection-tray-clear {
+    border: 1px solid var(--border-color);
+    background: var(--surface-base);
+    color: var(--text-secondary);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius-sm);
+    padding: 3px 10px;
+    cursor: pointer;
+    align-self: flex-start;
+    margin-left: auto;
+    flex-shrink: 0;
+    line-height: 1.6;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+.admin-selection-tray-clear:hover {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+.admin-selection-tray-clear[disabled],
+.admin-selection-tray-clear.is-disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+.admin-selection-tray-empty {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-caption);
+    font-style: italic;
+    padding: 4px 0;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
     .admin-wizard-shell {
         min-height: auto;
         padding-bottom: 128px !important;
+    }
+    .admin-wizard-shell.admin-wizard-shell--fill {
+        height: auto;
+        padding-bottom: 16px !important;
     }
     .admin-wizard-steps,
     .admin-selection-layout,
@@ -390,5 +500,8 @@
 @media (max-width: 767.98px) {
     .admin-wizard-shell {
         padding-bottom: 156px !important;
+    }
+    .admin-wizard-shell.admin-wizard-shell--fill {
+        padding-bottom: 16px !important;
     }
 }

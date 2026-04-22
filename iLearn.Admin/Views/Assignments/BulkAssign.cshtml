@@ -193,32 +193,42 @@
 </style>
 
 <!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
-    <div>
-        <h1 class="page-title"><i class="fas fa-tasks text-primary me-2" aria-hidden="true"></i>Bulk Course Assignments</h1>
-        <div class="page-subtitle">Assign training courses to multiple students</div>
-    </div>
-    <a href="javascript:history.back();" class="action-link">
-        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
-    </a>
-</div>
-
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow" style="--admin-wizard-steps-cols: repeat(4, minmax(0, 1fr))">
-    <div class="admin-wizard-steps" role="group" aria-label="Progress steps">
+<div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
+    <h1 class="page-title"><i class="fas fa-tasks text-primary me-2" aria-hidden="true"></i>Bulk Course Assignments</h1>
+    <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
         <div class="admin-step-card active" data-step-card="1" aria-current="step">
-            <div class="admin-step-title"><span class="admin-step-index">1</span>Course Selection</div>
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Course</div>
         </div>
         <div class="admin-step-card" data-step-card="2">
-            <div class="admin-step-title"><span class="admin-step-index">2</span>Learner Selection</div>
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Learner</div>
         </div>
         <div class="admin-step-card" data-step-card="3">
-            <div class="admin-step-title"><span class="admin-step-index">3</span>Dates &amp; Details</div>
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Dates</div>
         </div>
         <div class="admin-step-card" data-step-card="4">
-            <div class="admin-step-title"><span class="admin-step-index">4</span>Review And Confirm</div>
+            <div class="admin-step-title"><span class="admin-step-index">4</span>Review</div>
         </div>
     </div>
+    <div class="admin-page-header-actions">
+        <a href="javascript:history.back();" class="action-link">
+            <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+        </a>
+        <button type="button" class="action-link d-none" id="btn-prev-step">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
+        </button>
+        <button type="button" class="action-link primary" id="btn-next-step">
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
+        </button>
+        <button type="button" class="action-link primary d-none" id="btn-review-step">
+            <i class="fas fa-file-alt" aria-hidden="true"></i> Review Assignment
+        </button>
+        <button type="button" class="action-link primary d-none" id="btn-confirm-assign">
+            <i class="fas fa-save" aria-hidden="true"></i> Confirm &amp; Assign
+        </button>
+    </div>
+</div>
 
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
     <div id="load-panel"></div>
 
     <div class="admin-review-main-col">
@@ -253,12 +263,15 @@
                 <div class="admin-grid-shell">
                     <div class="admin-grid-head">
                         <div class="admin-grid-title">Course Catalog</div>
-                        <div class="admin-grid-note" id="course-selection-note">No course selected</div>
+                        <div class="admin-grid-meta" id="course-selection-note">No course selected</div>
                     </div>
                     <div id="grid-courses-inline" class="assign-inline-grid"></div>
-                    <div class="assign-selection-tray d-none" id="course-selection-tray">
+                    <div class="assign-selection-tray" id="course-selection-tray">
                         <div class="assign-tray-label">Selected:</div>
                         <div class="assign-tray-chips" id="course-tray-chips"></div>
+                        <button type="button" class="admin-selection-tray-clear is-disabled" id="course-tray-clear">
+                            <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                        </button>
                     </div>
                 </div>
             </div>
@@ -311,12 +324,15 @@
                     <div class="admin-grid-shell">
                         <div class="admin-grid-head">
                             <div class="admin-grid-title">Student Directory</div>
-                            <div class="admin-grid-note" id="student-selection-note">No student selected</div>
+                            <div class="admin-grid-meta" id="student-selection-note">No student selected</div>
                         </div>
                         <div id="grid-students-inline" class="assign-inline-grid"></div>
-                    <div class="assign-selection-tray d-none" id="student-selection-tray">
+                    <div class="assign-selection-tray" id="student-selection-tray">
                         <div class="assign-tray-label">Selected:</div>
                         <div class="assign-tray-chips" id="student-tray-chips"></div>
+                        <button type="button" class="admin-selection-tray-clear is-disabled" id="student-tray-clear">
+                            <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                        </button>
                     </div>
                     </div>
                 </div>
@@ -326,7 +342,7 @@
                 <div class="admin-grid-shell">
                     <div class="admin-grid-head">
                         <div class="admin-grid-title">Student Groups</div>
-                        <div class="admin-grid-note" id="group-selection-note">No group selected</div>
+                        <div class="admin-grid-meta" id="group-selection-note">No group selected</div>
                     </div>
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
                     <div class="admin-inline-actions d-none" id="group-reset-row">
@@ -363,7 +379,7 @@
                 <div class="admin-table-shell">
                     <div class="admin-table-head">
                         <div class="admin-table-title">Selected Courses</div>
-                        <div class="admin-grid-note" id="review-courses-note"></div>
+                        <div class="admin-grid-meta" id="review-courses-note"></div>
                     </div>
                     <div class="admin-table-wrap assign-review-table-wrap" id="review-courses-table"></div>
                 </div>
@@ -371,7 +387,7 @@
                 <div class="admin-table-shell">
                     <div class="admin-table-head">
                         <div class="admin-table-title" id="review-learners-title">Selected Learners</div>
-                        <div class="admin-grid-note" id="review-learners-note"></div>
+                        <div class="admin-grid-meta" id="review-learners-note"></div>
                     </div>
                     <div class="admin-table-wrap assign-review-table-wrap" id="review-learners-table"></div>
                 </div>
@@ -383,22 +399,7 @@
     </div>
 </div>
 
-<!-- ── Fixed Bottom Toolbar ── -->
-<div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note"></span>
-    <button type="button" class="action-link d-none" id="btn-prev-step">
-        <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
-    </button>
-    <button type="button" class="action-link primary" id="btn-next-step">
-        <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
-    </button>
-    <button type="button" class="action-link primary d-none" id="btn-review-step">
-        <i class="fas fa-file-alt" aria-hidden="true"></i> Review Assignment
-    </button>
-    <button type="button" class="action-link primary d-none" id="btn-confirm-assign">
-        <i class="fas fa-save" aria-hidden="true"></i> Confirm &amp; Assign
-    </button>
-</div>
+<!-- ── Wizard buttons moved to page-header above. ── -->
 
 @section Scripts {
     <script>
@@ -477,9 +478,17 @@
             updateCourseSelectionUi();
             updateStudentSelectionUi();
             updateGroupSelectionUi();
+            renderCourseSelectionTray();
+            renderStudentSelectionTray();
             updateWizardUi(1);
 
             $("#btn-reset-group").click(() => clearGroupSelection(true));
+            $("#course-tray-clear").on("click", function() {
+                if (courseGrid) { courseGrid.clearSelection(); }
+            });
+            $("#student-tray-clear").on("click", function() {
+                if (studentGrid) { studentGrid.clearSelection(); }
+            });
 
             if (initialGroupId) {
                 switchTargetMode('group');
@@ -525,7 +534,7 @@
 
             function initializeCourseSelection() {
                 courseGrid = initDxGrid("#grid-courses-inline", {
-                    preset: "wizardSelectionGrid",
+                    preset: "wizardSelectionContinuousGrid",
                     height: COURSE_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "id",
@@ -538,7 +547,6 @@
                     headerFilter: { visible: false },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
-                    scrolling: { mode: 'standard' },
                     selection: { selectAllMode: 'allPages' },
                     noDataText: getNoDataText("courses"),
                     columns: [
@@ -577,7 +585,7 @@
 
             function initializeStudentSelection() {
                 studentGrid = initDxGrid("#grid-students-inline", {
-                    preset: "wizardSelectionGrid",
+                    preset: "wizardSelectionContinuousGrid",
                     height: STUDENT_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
@@ -590,7 +598,6 @@
                     headerFilter: { visible: false },
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
-                    scrolling: { mode: 'standard' },
                     selection: { selectAllMode: 'allPages' },
                     noDataText: getNoDataText("students"),
                     columns: [
@@ -643,7 +650,7 @@
 
             function initializeGroupSelection() {
                 groupGrid = initDxGrid("#grid-groups-inline", {
-                    preset: "wizardSelectionGrid",
+                    preset: "wizardSelectionContinuousGrid",
                     height: GROUP_GRID_HEIGHT,
                     dataSource: new DevExpress.data.CustomStore({
                         key: "id",
@@ -659,7 +666,6 @@
                     remoteOperations: false,
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
-                    scrolling: { mode: 'standard' },
                     noDataText: getNoDataText("student groups"),
                     export: { enabled: false },
                     selection: {
@@ -1065,11 +1071,13 @@
 
             function renderCourseSelectionTray() {
                 const ids = selectedCourseIds;
+                const $clearBtn = $("#course-tray-clear");
                 if (!ids.length) {
-                    $("#course-selection-tray").addClass("d-none");
+                    $("#course-tray-chips").html('<span class="admin-selection-tray-empty">No courses selected yet.</span>');
+                    $clearBtn.addClass("is-disabled").prop("disabled", true);
                     return;
                 }
-                $("#course-selection-tray").removeClass("d-none");
+                $clearBtn.removeClass("is-disabled").prop("disabled", false);
                 const visibleIds = ids.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
                 const overflowCount = Math.max(ids.length - visibleIds.length, 0);
                 const chips = visibleIds.map(function(id) {
@@ -1098,11 +1106,13 @@
 
             function renderStudentSelectionTray() {
                 const codes = selectedStudentCodes;
+                const $clearBtn = $("#student-tray-clear");
                 if (!codes.length) {
-                    $("#student-selection-tray").addClass("d-none");
+                    $("#student-tray-chips").html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
+                    $clearBtn.addClass("is-disabled").prop("disabled", true);
                     return;
                 }
-                $("#student-selection-tray").removeClass("d-none");
+                $clearBtn.removeClass("is-disabled").prop("disabled", false);
                 const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
                 const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
                 const chips = visibleCodes.map(function(code) {
@@ -1171,7 +1181,7 @@
                         <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.EId || EMPTY_TEXT)}</span></td>
                         <td>
                             <div class="admin-student-name">${window.escapeHtml(name)}</div>
-                            <div class="admin-student-note">${window.escapeHtml(org)}</div>
+                            <div class="admin-subtext">${window.escapeHtml(org)}</div>
                         </td>
                         <td>${window.escapeHtml(row.Position || EMPTY_TEXT)}</td>
                     </tr>`;
@@ -1188,7 +1198,7 @@
                     <i class="fas fa-users fa-2x text-primary" aria-hidden="true"></i>
                     <div>
                         <div class="fw-semibold text-dark">${window.escapeHtml(groupName || EMPTY_TEXT)}</div>
-                        <div class="admin-student-note">${window.formatAdminCountLabel(memberCount, "member")} in this group</div>
+                        <div class="admin-subtext">${window.formatAdminCountLabel(memberCount, "member")} in this group</div>
                     </div>
                 </div>`;
             }

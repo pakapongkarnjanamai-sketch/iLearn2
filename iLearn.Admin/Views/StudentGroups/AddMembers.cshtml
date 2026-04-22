@@ -64,29 +64,39 @@
     }
 </style>
 
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
-    <div>
-        <h1 class="page-title"><i class="fas fa-user-plus text-primary me-2" aria-hidden="true"></i>Add Members</h1>
-        <div class="page-subtitle">Add learners to this student group and optionally enroll them into related assignments.</div>
-    </div>
-    <a href="@Url.Action("Detail", "StudentGroups", new { id = groupId })" class="action-link">
-        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back to Group
-    </a>
-</div>
-
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-review-flow">
-    <div class="admin-wizard-steps" role="group" aria-label="Progress steps">
+<div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
+    <h1 class="page-title"><i class="fas fa-user-plus text-primary me-2" aria-hidden="true"></i>Add Members</h1>
+    <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
         <div class="admin-step-card active" data-step-card="1" aria-current="step">
-            <div class="admin-step-title"><span class="admin-step-index">1</span>Select Students</div>
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Select</div>
         </div>
         <div class="admin-step-card" data-step-card="2">
-            <div class="admin-step-title"><span class="admin-step-index">2</span>Assignment Options</div>
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Options</div>
         </div>
         <div class="admin-step-card" data-step-card="3">
-            <div class="admin-step-title"><span class="admin-step-index">3</span>Review And Confirm</div>
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Review</div>
         </div>
     </div>
+    <div class="admin-page-header-actions">
+        <a href="@Url.Action("Detail", "StudentGroups", new { id = groupId })" class="action-link">
+            <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+        </a>
+        <button type="button" id="btn-prev-step" class="action-link d-none">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
+        </button>
+        <button type="button" id="btn-next-step" class="action-link primary">
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
+        </button>
+        <button type="button" id="btn-preview-summary" class="action-link primary d-none">
+            <i class="fas fa-file-alt" aria-hidden="true"></i> Preview Summary
+        </button>
+        <button type="button" id="btn-confirm" class="action-link primary d-none">
+            <i class="fas fa-check-circle" aria-hidden="true"></i> Confirm Changes
+        </button>
+    </div>
+</div>
 
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
     <div class="admin-review-main-col">
         <div class="border rounded bg-white p-3 sg-main-card">
                 <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="wide">
@@ -100,7 +110,6 @@
                         <div class="admin-filter-shell d-flex flex-column gap-3">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark mb-2"><i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filters</div>
-                                <div class="admin-inline-note">Use division, department, and section filters to narrow the student list.</div>
                             </div>
                             <div>
                                 <label class="small fw-bold text-muted mb-1 d-block">Division</label>
@@ -122,17 +131,19 @@
                             <div class="admin-grid-head">
                                 <div>
                                     <div class="admin-grid-title">Learner Selection</div>
-                                    <div class="admin-inline-note">Choose one or more learners to add to this student group.</div>
                                 </div>
-                                <div id="selection-hint" class="admin-grid-note">
+                                <div id="selection-hint" class="admin-grid-meta">
                                     <i class="fas fa-info-circle text-primary me-1" aria-hidden="true"></i> Check the rows to continue.
                                 </div>
                             </div>
                             <div id="grid-add-students" class="sg-student-grid"></div>
-                            <div class="admin-selection-tray d-none" id="selected-students-tray">
-                                <div class="admin-selection-tray-label">Selected</div>
-                                <div class="admin-selection-tray-chips" id="selected-students-chips"></div>
-                            </div>
+                        </div>
+                        <div class="admin-selection-tray" id="selected-students-tray">
+                            <div class="admin-selection-tray-label">Selected</div>
+                            <div class="admin-selection-tray-chips" id="selected-students-chips"></div>
+                            <button type="button" class="admin-selection-tray-clear is-disabled" id="selected-students-clear">
+                                <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -149,7 +160,6 @@
                         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark">Related Assignment Enrollment</div>
-                                <div class="admin-inline-note">When enabled, the selected learners will be enrolled into existing assignment batches that belong to this student group.</div>
                             </div>
                             <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" id="chk-enroll-related">
@@ -162,7 +172,6 @@
                         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark">Assignment Status Filters</div>
-                                <div class="admin-inline-note">Choose which current assignment statuses should receive the new learners.</div>
                             </div>
                             <div class="tag-pill pill-default" id="selected-status-count">0 statuses selected</div>
                         </div>
@@ -210,7 +219,6 @@
                     <div class="admin-option-card">
                         <div class="u-fs-12 u-fw-semibold text-dark mb-3">Current Related Assignment Overview</div>
                         <div id="assignment-overview-grid" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
-                        <div id="assignment-overview-note" class="admin-inline-note mt-3"></div>
                     </div>
                 </div>
 
@@ -228,7 +236,6 @@
                         <div class="admin-table-shell">
                             <div class="admin-table-head">
                                 <div class="admin-table-title">Selected Learners</div>
-                                <div class="admin-inline-note" id="student-summary-note"></div>
                             </div>
                             <div class="admin-table-wrap sg-review-table-wrap" id="student-summary-table"></div>
                         </div>
@@ -236,7 +243,6 @@
                         <div class="admin-table-shell">
                             <div class="admin-table-head">
                                 <div class="admin-table-title">Assignment Enrollment Impact</div>
-                                <div class="admin-inline-note" id="assignment-summary-note"></div>
                             </div>
                             <div class="admin-table-wrap sg-review-table-wrap" id="assignment-summary-table"></div>
                         </div>
@@ -246,21 +252,7 @@
     </div>
 </div>
 
-<div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note"></span>
-    <button type="button" id="btn-prev-step" class="action-link d-none">
-        <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
-    </button>
-    <button type="button" id="btn-next-step" class="action-link primary">
-        <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
-    </button>
-    <button type="button" id="btn-preview-summary" class="action-link primary d-none">
-        <i class="fas fa-file-alt" aria-hidden="true"></i> Preview Summary
-    </button>
-    <button type="button" id="btn-confirm" class="action-link primary d-none">
-        <i class="fas fa-check-circle" aria-hidden="true"></i> Confirm Changes
-    </button>
-</div>
+<!-- Wizard buttons moved to page-header above. -->
 
 @section Scripts {
 <script>
@@ -327,7 +319,7 @@
 
     function initializeStudentGrid() {
         studentsGrid = initDxGrid("#grid-add-students", {
-            preset: "wizardSelectionGrid",
+            preset: "wizardSelectionContinuousGrid",
             height: STUDENT_SELECTION_GRID_HEIGHT,
             dataSource: DevExpress.data.AspNet.createStore({
                 key: "EId",
@@ -386,14 +378,16 @@
 
     function renderSelectedStudentsTray(selectedKeys) {
         const keys = selectedKeys || [];
-        const $tray = $("#selected-students-tray");
+        const $chips = $("#selected-students-chips");
+        const $clearBtn = $("#selected-students-clear");
+
         if (keys.length === 0) {
-            $tray.addClass("d-none");
-            $("#selected-students-chips").empty();
+            $chips.html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
+            $clearBtn.addClass("is-disabled").prop("disabled", true);
             return;
         }
 
-        $tray.removeClass("d-none");
+        $clearBtn.removeClass("is-disabled").prop("disabled", false);
         const visibleKeys = keys.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
         const overflowCount = Math.max(keys.length - visibleKeys.length, 0);
         const chips = visibleKeys.map(function(code) {
@@ -419,7 +413,6 @@
             chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
         }
 
-        const $chips = $("#selected-students-chips");
         $chips.html(chips.join(""));
         $chips.off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
             const code = decodeURIComponent(String($(this).attr("data-code") || ""));
@@ -470,6 +463,12 @@
 
         $("#btn-preview-summary").on("click", previewSummary);
         $("#btn-confirm").on("click", confirmChanges);
+
+        $("#selected-students-clear").on("click", function() {
+            if (studentsGrid) { studentsGrid.clearSelection(); }
+        });
+
+        renderSelectedStudentsTray([]);
     }
 
     async function previewSummary() {
@@ -657,7 +656,7 @@
                     </td>
                     <td>
                         <div class="admin-student-name">${escapeHtml(student.studentName || student.studentCode || EMPTY_TEXT)}</div>
-                        <div class="admin-student-note">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
+                        <div class="admin-subtext">${escapeHtml([student.division, student.department, student.section].filter(Boolean).join(" / ") || EMPTY_TEXT)}</div>
                     </td>
                     <td>${escapeHtml(student.position || EMPTY_TEXT)}</td>
                     <td>${memberState}</td>
@@ -688,11 +687,11 @@
                 <tr>
                     <td>
                         <div class="fw-semibold text-dark">${escapeHtml(assignment.assignmentNo || EMPTY_TEXT)}</div>
-                        <div class="admin-student-note">${escapeHtml(assignment.description || "No description")}</div>
+                        <div class="admin-subtext">${escapeHtml(assignment.description || "No description")}</div>
                     </td>
                     <td>
                         <div>${escapeHtml(assignment.courseNames || EMPTY_TEXT)}</div>
-                        <div class="admin-student-note">${window.formatAdminCountLabel(assignment.courseCount || 0, "course")}</div>
+                        <div class="admin-subtext">${window.formatAdminCountLabel(assignment.courseCount || 0, "course")}</div>
                     </td>
                     <td>${renderStatusPill(assignment.status)}</td>
                     <td>${window.formatAdminDate(assignment.startDate, EMPTY_TEXT)}</td>

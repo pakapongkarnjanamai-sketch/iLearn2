@@ -152,7 +152,8 @@
         defaultGrid: 'admin-grid admin-grid--default',
         compactGrid: 'admin-grid admin-grid--compact',
         selectionGrid: 'admin-grid admin-grid--selection',
-        wizardSelectionGrid: 'admin-grid admin-grid--selection'
+        wizardSelectionGrid: 'admin-grid admin-grid--selection',
+        wizardSelectionContinuousGrid: 'admin-grid admin-grid--selection'
     };
 
     const dxGridPresets = {
@@ -191,14 +192,15 @@
         searchPanel: { visible: false },
         remoteOperations: true,
         scrolling: {
-            mode: 'standard'
+            mode: 'virtual',
+            rowRenderingMode: 'virtual'
         },
         paging: {
             enabled: true,
-            pageSize: 12
+            pageSize: defaultGridPageSize
         },
         pager: {
-            visible: true,
+            visible: false,
             showPageSizeSelector: false,
             showInfo: true,
             showNavigationButtons: true
@@ -208,6 +210,10 @@
             showCheckBoxesMode: 'always',
             selectAllMode: 'allPages'
         }
+    });
+
+    dxGridPresets.wizardSelectionContinuousGrid = $.extend(true, {}, dxGridPresets.wizardSelectionGrid, {
+        // Backward-compatible alias for wizard pages already using this preset name.
     });
 
     const dxGridDefaults = dxGridPresets.defaultGrid;
