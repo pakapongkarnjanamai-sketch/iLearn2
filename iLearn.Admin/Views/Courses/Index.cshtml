@@ -65,33 +65,39 @@
                 onRowDblClick: function(e) {
                     navigateToCourseDetail(e.data?.id);
                 },
-                 groupPanel: {
+                groupPanel: {
                     emptyPanelText: '@ViewBag.Title',
                     visible: true,
                 },
                 columns: [
                     {
-                        dataField: "code",
-                        caption: "Code",
-                        width: 150,
-                        alignment: "center",
-                        cssClass: "cell-code",
-                        customizeText: function(e) { return e.value || "—"; }
+                        dataField: "title",
+                        caption: "Course",
+                        minWidth: 260,
+                        calculateFilterExpression: function(value, selectedFilterOperation, target) {
+                            if (target === "search" || !selectedFilterOperation || selectedFilterOperation === "contains") {
+                                return [["code", "contains", value], "or", ["title", "contains", value]];
+                            }
+                            return this.defaultCalculateFilterExpression.apply(this, arguments);
+                        },
+                        cellTemplate: function(container, options) {
+                            window.renderAdminCourseIdentityCell(container, {
+                                code: options.data.code,
+                                title: options.value,
+                                isActive: options.data.isActive
+                            });
+                        }
                     },
                     {
-                        dataField: "title",
-                        caption: "Course Name",
-                        minWidth: 200,
+                        dataField: "courseTypeName",
+                        caption: "Type",
+                        width: 140,
+                        alignment: "center",
                         cellTemplate: function(container, options) {
-                            const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
+                            const text = options.value || "—";
+                            const tone = window.getAdminCourseTypeTone(options.data.courseTypeId, options.value);
 
-                            if (options.data.isActive === false) {
-                                window.renderAdminGridTextCell(wrapper, "Draft", "captionMuted");
-                            }
-
-                            $("<span>").css(window.getAdminGridTextStyle("smStrong"))
-                                       .text(options.value).appendTo(wrapper);
-                            wrapper.appendTo(container);
+                            window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
                         }
                     },
                     {
@@ -100,22 +106,6 @@
                         width: 200,
                         cssClass: "cell-secondary",
                         customizeText: function(e) { return e.value || "—"; }
-                    },
-                    {
-                        dataField: "courseTypeName",
-                        caption: "Type",
-                        width: 140,
-                         alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const text = options.value || "—";
-                            const tone = options.data.courseTypeId === 1
-                                ? "primary"
-                                : options.data.courseTypeId === 2
-                                    ? "warning"
-                                    : "default";
-
-                            window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
-                        }
                     },
                     {
                         type: "buttons",

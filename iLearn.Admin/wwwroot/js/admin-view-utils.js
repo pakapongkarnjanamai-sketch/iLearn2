@@ -157,6 +157,56 @@
 
         return rendered;
     }
+    function getAdminCourseTypeTone(courseTypeId, courseTypeName) {
+        const normalizedId = Number(courseTypeId);
+        const normalizedName = String(courseTypeName || '').toLowerCase();
+
+        if (normalizedId === 1 || normalizedName === 'special') {
+            return 'primary';
+        }
+
+        if (normalizedId === 2 || normalizedName === 'general') {
+            return 'warning';
+        }
+
+        return normalizeAdminGridTone(normalizedName);
+    }
+    function renderAdminCourseIdentityCell(container, course, options) {
+        const opts = options || {};
+        const resolvedCourse = course || {};
+        const resolvedCode = resolvedCourse.code || '\u2014';
+        const resolvedTitle = resolvedCourse.title || '\u2014';
+        const wrapper = $('<div>').addClass('d-flex align-items-center gap-2').css('line-height', '1.35');
+
+        if (opts.showIcon !== false) {
+            $('<i>')
+                .addClass(opts.iconClass || 'fas fa-book')
+                .attr('aria-hidden', 'true')
+                .css({ fontSize: 'var(--font-size-caption)', color: 'var(--primary-color)', flexShrink: '0' })
+                .appendTo(wrapper);
+        }
+
+        if (resolvedCourse.isActive === false && opts.showDraft !== false) {
+            renderAdminGridTextCell(wrapper, 'Draft', 'smStrong', { color: 'var(--text-secondary)' });
+        }
+
+        if (opts.linkHref) {
+            $('<a>')
+                .attr('href', opts.linkHref)
+                .css(getAdminGridTextStyle('smStrong', {
+                    color: 'var(--primary-color)',
+                    textDecoration: 'none'
+                }))
+                .text(resolvedCode)
+                .appendTo(wrapper);
+        } else {
+            renderAdminGridTextCell(wrapper, resolvedCode, 'smStrong', { color: 'var(--primary-color)' });
+        }
+
+        renderAdminGridTextCell(wrapper, resolvedTitle, 'smStrong', { fontWeight: '400' });
+        wrapper.appendTo(container);
+        return wrapper;
+    }
     function renderAdminGridStatusCell(container, text, tone, options) {
         const opts = options || {};
         const resolvedTone = normalizeAdminGridTone(tone);
@@ -544,6 +594,8 @@
     window.getAdminGridTextStyle = getAdminGridTextStyle;
     window.renderAdminGridTextCell = renderAdminGridTextCell;
     window.renderAdminGridTruncatedTextCell = renderAdminGridTruncatedTextCell;
+    window.getAdminCourseTypeTone = getAdminCourseTypeTone;
+    window.renderAdminCourseIdentityCell = renderAdminCourseIdentityCell;
     window.renderAdminGridStatusCell = renderAdminGridStatusCell;
     window.truncateAdminText = truncateAdminText;
     window.renderAdminProgressCell = renderAdminProgressCell;

@@ -280,20 +280,20 @@
                     <div class="d-flex h-100 gap-3">
                         <div class="sidebar-260">
                             <div class="filter-panel h-100 d-flex flex-column gap-3">
-                                <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                                <h6 class="admin-filter-section-title"><i class="fas fa-filter"></i>Filters</h6>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
+                                    <label class="admin-filter-label">Course Type</label>
                                     <div id="add-filter-course-type"></div>
                                 </div>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <label class="admin-filter-label">Division</label>
                                     <div id="add-filter-course-div"></div>
                                 </div>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Category</label>
+                                    <label class="admin-filter-label">Category</label>
                                     <div id="add-filter-course-cat"></div>
                                 </div>
-                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="add-btn-clear-course-filter">
+                                <button type="button" id="add-btn-clear-course-filter" class="admin-filter-clear-btn">
                                     <i class="fas fa-times me-1"></i> Clear Filters
                                 </button>
                             </div>
@@ -326,9 +326,10 @@
                         {
                             dataField: "courseTypeName", caption: "Type", width: 140, alignment: "center",
                             cellTemplate: function(container, options) {
-                                if (options.value) {
-                                    window.renderAdminGridTextCell(container, options.value, "captionAccent");
-                                }
+                                const text = options.value || EMPTY_TEXT;
+                                const tone = window.getAdminCourseTypeTone(options.data.courseTypeId, options.value);
+
+                                window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
                             }
                         }
                     ]
@@ -397,24 +398,24 @@
                     <div class="d-flex h-100 gap-3">
                         <div class="sidebar-240">
                             <div class="filter-panel h-100 d-flex flex-column gap-3">
-                                <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2"></i>Filters</h6>
+                                <h6 class="admin-filter-section-title"><i class="fas fa-filter"></i>Filters</h6>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                    <label class="admin-filter-label">Division</label>
                                     <div id="add-filter-emp-div"></div>
                                 </div>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                    <label class="admin-filter-label">Department</label>
                                     <div id="add-filter-emp-dept"></div>
                                 </div>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                    <label class="admin-filter-label">Section</label>
                                     <div id="add-filter-emp-section"></div>
                                 </div>
                                 <div>
-                                    <label class="small fw-bold text-muted mb-1 d-block">Position</label>
+                                    <label class="admin-filter-label">Position</label>
                                     <div id="add-filter-emp-position"></div>
                                 </div>
-                                <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="add-btn-clear-emp-filter">
+                                <button type="button" id="add-btn-clear-emp-filter" class="admin-filter-clear-btn">
                                     <i class="fas fa-times me-1"></i> Clear Filters
                                 </button>
                             </div>

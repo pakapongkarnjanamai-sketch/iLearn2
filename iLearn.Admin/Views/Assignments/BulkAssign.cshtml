@@ -153,20 +153,20 @@
 
             <div class="admin-selection-layout">
                 <div class="admin-filter-shell d-flex flex-column gap-3">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
+                    <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
                     <div>
-                        <label class="small fw-bold text-muted mb-1 d-block">Course Type</label>
+                        <label class="admin-filter-label">Course Type</label>
                         <div id="filter-course-type"></div>
                     </div>
                     <div>
-                        <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                        <label class="admin-filter-label">Division</label>
                         <div id="filter-course-div"></div>
                     </div>
                     <div>
-                        <label class="small fw-bold text-muted mb-1 d-block">Category</label>
+                        <label class="admin-filter-label">Category</label>
                         <div id="filter-course-cat"></div>
                     </div>
-                    <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-course-filter">
+                    <button type="button" id="btn-clear-course-filter" class="admin-filter-clear-btn">
                         <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                     </button>
                 </div>
@@ -207,24 +207,24 @@
             <div id="target-panel-individual" class="admin-fill-pane">
                 <div class="admin-selection-layout">
                     <div class="admin-filter-shell d-flex flex-column gap-3">
-                        <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
+                        <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
                         <div>
-                            <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                            <label class="admin-filter-label">Division</label>
                             <div id="filter-emp-div"></div>
                         </div>
                         <div>
-                            <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                            <label class="admin-filter-label">Department</label>
                             <div id="filter-emp-dept"></div>
                         </div>
                         <div>
-                            <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                            <label class="admin-filter-label">Section</label>
                             <div id="filter-emp-section"></div>
                         </div>
                         <div>
-                            <label class="small fw-bold text-muted mb-1 d-block">Position</label>
+                            <label class="admin-filter-label">Position</label>
                             <div id="filter-emp-position"></div>
                         </div>
-                        <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-emp-filter">
+                        <button type="button" id="btn-clear-emp-filter" class="admin-filter-clear-btn">
                             <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                         </button>
                     </div>
@@ -282,7 +282,7 @@
             </div>
 
             <div class="admin-review-stack">
-                <div id="review-summary-cards" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
+                <div id="review-summary-cards" class="admin-summary-grid admin-summary-grid--cols-4"></div>
                 <div id="form-review-details"></div>
 
                 <div class="admin-table-shell">
@@ -470,11 +470,10 @@
                         {
                             dataField: "courseTypeName", caption: "Type", minWidth: 140, alignment: "center",
                             cellTemplate: function(container, options) {
-                                if (!options.value) {
-                                    return;
-                                }
+                                const text = options.value || EMPTY_TEXT;
+                                const tone = window.getAdminCourseTypeTone(options.data.courseTypeId, options.value);
 
-                                window.renderAdminGridTextCell(container, options.value, 'captionAccent');
+                                window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
                             }
                         }
                     ],
@@ -1081,11 +1080,22 @@
                 }
 
                 const tableRows = rows.map(function(row, i) {
+                    const tone = window.getAdminCourseTypeTone(row.courseTypeId, row.courseTypeName);
+                    const toneClass = tone === 'primary'
+                        ? 'pill-primary'
+                        : tone === 'warning'
+                            ? 'pill-warning'
+                            : tone === 'success'
+                                ? 'pill-success'
+                                : tone === 'danger'
+                                    ? 'pill-danger'
+                                    : 'pill-default';
+
                     return `<tr>
                         <td>${i + 1}</td>
                         <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.code || EMPTY_TEXT)}</span></td>
                         <td class="fw-medium text-dark">${window.escapeHtml(row.title || EMPTY_TEXT)}</td>
-                        <td><span class="tag-pill pill-primary">${window.escapeHtml(row.courseTypeName || EMPTY_TEXT)}</span></td>
+                        <td><span class="tag-pill ${toneClass}">${window.escapeHtml(row.courseTypeName || EMPTY_TEXT)}</span></td>
                     </tr>`;
                 }).join('');
 

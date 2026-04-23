@@ -324,11 +324,11 @@
                         }
                     },
                     {
-                        dataField: "typeId", caption: "Type (Click to edit)", width: 180, alignment: "center",
+                        dataField: "typeId", caption: "Resource Type", width: 180, alignment: "center",
                         lookup: {
                             dataSource: [
-                                { id: 1, name: "Learn" },
-                                { id: 2, name: "Exam" }
+                                { id: 1, name: "Learning" },
+                                { id: 2, name: "Assessment" }
                             ],
                             displayExpr: "name",
                             valueExpr: "id"
@@ -337,7 +337,7 @@
                             const data = options.data;
                             const typeName = getResourceTypeLabel(data.typeId);
                             const editHint = data.isNew ? '<i class="fas fa-caret-down ms-2 opacity-50"></i>' : '';
-                            const tooltip = data.isNew ? "Click to change type" : "Existing resource type cannot be changed here";
+                            const tooltip = data.isNew ? "Click to change resource type" : "Existing resource type cannot be changed here";
 
                             $('<div>').css(window.getAdminGridTextStyle(data.typeId === 1 ? 'captionAccent' : 'captionWarning', {
                                 cursor: data.isNew ? 'pointer' : 'default'
@@ -385,7 +385,7 @@
                         dataSource: resourcesStore,
                         remoteOperations: true,
                         height: EXISTING_RESOURCE_GRID_HEIGHT,
-                        searchPanel: { placeholder: "Search by name or type..." },
+                        searchPanel: { placeholder: "Search by name or resource type..." },
                         sorting: { mode: "multiple" },
                         columns: [
                             {
@@ -393,11 +393,11 @@
                                 cssClass: "fw-medium text-dark"
                             },
                             {
-                                dataField: "typeId", caption: "Type", width: 110, alignment: "center",
+                                dataField: "typeId", caption: "Resource Type", width: 110, alignment: "center",
                                 cellTemplate: function(container, options) {
-                                    const isLearn = options.value === 1;
-                                    const text = isLearn ? "Learn" : "Exam";
-                                    window.renderAdminGridStatusCell(container, text, isLearn ? 'primary' : 'warning', { showDot: false });
+                                    const isLearningType = options.value === 1;
+                                    const text = isLearningType ? "Learning" : "Assessment";
+                                    window.renderAdminGridStatusCell(container, text, isLearningType ? 'primary' : 'warning', { showDot: false });
                                 }
                             },
                             {
@@ -792,7 +792,7 @@
                             <th>Order</th>
                             <th>Content Name</th>
                             <th>Source</th>
-                            <th>Type</th>
+                            <th>Resource Type</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -801,7 +801,7 @@
         }
 
         function getResourceTypeLabel(typeId) {
-            return typeId === 2 ? "Exam" : "Learn";
+            return typeId === 2 ? "Assessment" : "Learning";
         }
 
         function getSubmitUrl() {

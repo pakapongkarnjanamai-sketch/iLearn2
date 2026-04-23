@@ -7,78 +7,6 @@
     <link href="~/css/admin-wizard.css" rel="stylesheet" asp-append-version="true" />
 }
 
-<style>
-    /* ── Unique: Assignment status option cards ── */
-    .sg-status-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-    }
-
-    .sg-assignment-grid-shell {
-        display: flex;
-        flex-direction: column;
-        min-height: 240px;
-    }
-
-    .sg-assignment-grid-shell .dx-datagrid {
-        border: 0;
-    }
-
-    .sg-status-option {
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        padding: 10px;
-        background: var(--surface-base);
-    }
-
-    .sg-status-option.disabled {
-        background: var(--surface-subtle);
-        color: var(--text-secondary);
-    }
-
-    .sg-status-option label {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .sg-status-option .form-check-input {
-        margin-top: 0;
-    }
-
-    .sg-status-title {
-        font-size: var(--font-size-caption);
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-
-    .sg-status-note {
-        font-size: var(--font-size-xs);
-        color: var(--text-secondary);
-        margin-top: 4px;
-    }
-
-    /* ── Unique: Widen form step to accommodate assignment grid ── */
-    .admin-review-flow.is-form-step .admin-review-main-col {
-        max-width: 1400px;
-    }
-
-    /* ── Unique: Review table scroll height ── */
-    .sg-review-table-wrap {
-        --admin-table-wrap-max-height: clamp(200px, calc(100vh - 520px), 320px);
-    }
-
-    @@media (max-width: 991.98px) {
-        .sg-status-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-
 <div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
     <h1 class="page-title"><i class="fas fa-user-plus text-primary me-2" aria-hidden="true"></i>Add Members</h1>
     <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
@@ -112,33 +40,27 @@
 </div>
 
 <div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow admin-viewport-layout">
-    <div id="load-panel"></div>
+    <div id="load-panel" class="d-none"></div>
 
     <div class="admin-review-main-col admin-responsive-content">
         <div class="border rounded bg-white p-3 admin-viewport-fill" id="wizard-main-card">
                 <div id="step-panel-1" class="admin-wizard-panel admin-wizard-panel--selection-fill active" data-step-layout="wide">
-                    <div class="admin-section-header mb-2">
-                        <div class="admin-section-header-main">
-                            <div class="section-title mb-0 admin-section-title-fill">Select Learners</div>
-                        </div>
-                        <div class="admin-section-divider"></div>
-                    </div>
                     <div class="admin-selection-layout">
                         <div class="admin-filter-shell d-flex flex-column gap-3">
-                            <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
+                            <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
                             <div>
-                                <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                <label class="admin-filter-label">Division</label>
                                 <div id="filter-div"></div>
                             </div>
                             <div>
-                                <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                <label class="admin-filter-label">Department</label>
                                 <div id="filter-dept"></div>
                             </div>
                             <div>
-                                <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                <label class="admin-filter-label">Section</label>
                                 <div id="filter-section"></div>
                             </div>
-                            <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-filter" type="button">
+                            <button type="button" id="btn-clear-filter" class="admin-filter-clear-btn">
                                 <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                             </button>
                         </div>
@@ -187,21 +109,21 @@
                             <div class="tag-pill pill-default" id="selected-status-count">0 statuses selected</div>
                         </div>
 
-                        <div class="sg-status-grid">
-                            <div class="sg-status-option" data-status-option="InProgress">
+                        <div class="admin-status-options">
+                            <div class="admin-status-option sg-status-option" data-status-option="InProgress">
                                 <label for="status-inprogress">
                                     <div>
-                                        <div class="sg-status-title">In Progress</div>
-                                        <div class="sg-status-note">Assignments that are currently active and not yet fully completed.</div>
+                                        <div class="admin-status-option-title">In Progress</div>
+                                        <div class="admin-status-option-note">Assignments that are currently active and not yet fully completed.</div>
                                     </div>
                                     <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-inprogress" value="InProgress" disabled>
                                 </label>
                             </div>
-                            <div class="sg-status-option" data-status-option="Upcoming">
+                            <div class="admin-status-option sg-status-option" data-status-option="Upcoming">
                                 <label for="status-upcoming">
                                     <div>
-                                        <div class="sg-status-title">Upcoming</div>
-                                        <div class="sg-status-note">Assignments with a start date in the future.</div>
+                                        <div class="admin-status-option-title">Upcoming</div>
+                                        <div class="admin-status-option-note">Assignments with a start date in the future.</div>
                                     </div>
                                     <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-upcoming" value="Upcoming" disabled>
                                 </label>
@@ -213,11 +135,11 @@
                         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
                             <div>
                                 <div class="u-fs-12 u-fw-semibold text-dark">Choose Assignments</div>
-                                <div class="sg-status-note">Pick the specific assignment batches that should receive these learners.</div>
+                                <div class="admin-status-option-note">Pick the specific assignment batches that should receive these learners.</div>
                             </div>
                             <span class="tag-pill pill-default" id="selected-assignment-count">0 assignment</span>
                         </div>
-                        <div class="sg-assignment-grid-shell">
+                        <div class="admin-assignment-grid-shell">
                             <div id="grid-related-assignments"></div>
                         </div>
                     </div>
@@ -232,14 +154,14 @@
                     </div>
 
                     <div class="admin-review-stack">
-                        <div id="summary-cards" class="admin-summary-grid" style="--admin-summary-grid-cols: repeat(4, minmax(0, 1fr))"></div>
+                        <div id="summary-cards" class="admin-summary-grid admin-summary-grid--cols-4"></div>
 
                         <div class="admin-table-shell">
                             <div class="admin-table-head">
                                 <div class="admin-table-title">Selected Learners</div>
                                 <span class="tag-pill pill-default" id="student-summary-note"></span>
                             </div>
-                            <div class="admin-table-wrap sg-review-table-wrap" id="student-summary-table"></div>
+                            <div class="admin-table-wrap admin-review-table-wrap" id="student-summary-table"></div>
                         </div>
 
                         <div class="admin-table-shell">
@@ -247,7 +169,7 @@
                                 <div class="admin-table-title">Assignment Enrollment Impact</div>
                                 <span class="tag-pill pill-default" id="assignment-summary-note"></span>
                             </div>
-                            <div class="admin-table-wrap sg-review-table-wrap" id="assignment-summary-table"></div>
+                            <div class="admin-table-wrap admin-review-table-wrap" id="assignment-summary-table"></div>
                         </div>
                     </div>
                 </div>

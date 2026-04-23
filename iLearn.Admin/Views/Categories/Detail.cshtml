@@ -187,43 +187,37 @@
             hoverStateEnabled: true,
             columns: [
                 {
-                    dataField: "code",
-                    caption: "Code",
-                    width: 130,
-                    cellTemplate: function(container, options) {
-                        $("<a>")
-                            .attr("href", `${COURSE_DETAIL_URL}?id=${options.row.data.id}`)
-                            .css(window.getAdminGridTextStyle("captionStrong"))
-                            .text(options.value || EMPTY_TEXT)
-                            .appendTo(container);
-                    }
-                },
-                {
                     dataField: "title",
-                    caption: "Course Name",
-                    minWidth: 200,
+                    caption: "Course",
+                    minWidth: 260,
+                    calculateFilterExpression: function(value, selectedFilterOperation, target) {
+                        if (target === "search" || !selectedFilterOperation || selectedFilterOperation === "contains") {
+                            return [["code", "contains", value], "or", ["title", "contains", value]];
+                        }
+                        return this.defaultCalculateFilterExpression.apply(this, arguments);
+                    },
                     cellTemplate: function(container, options) {
-                        $("<div>").addClass("d-flex align-items-center gap-2")
-                            .append($("<i>").addClass("fas fa-book").css({ color: "var(--primary-color)", opacity: ".75" }))
-                            .append($("<span>").addClass("fw-bold text-dark").text(options.value || EMPTY_TEXT))
-                            .appendTo(container);
+                        window.renderAdminCourseIdentityCell(container, {
+                            code: options.data.code,
+                            title: options.value,
+                            isActive: options.data.isActive
+                        }, {
+                            linkHref: `${COURSE_DETAIL_URL}?id=${options.row.data.id}`
+                        });
                     }
                 },
-                {
-                    dataField: "courseTypeName",
-                    caption: "Type",
-                    width: 120,
+              {
+                        dataField: "courseTypeName",
+                        caption: "Type",
+                        width: 140,
                     alignment: "center",
                     cellTemplate: function(container, options) {
-                        const typeName = options.value;
-                        if (typeName) {
-                            const tone = typeName === "Learn" ? "primary" : typeName === "Exam" ? "warning" : "default";
-                            window.renderAdminGridStatusCell(container, typeName, tone, { showDot: false });
-                        } else {
-                            $("<span>").addClass("text-muted").text(EMPTY_TEXT).appendTo(container);
-                        }
+                        const text = options.value || EMPTY_TEXT;
+                        const tone = window.getAdminCourseTypeTone(options.data.courseTypeId, options.value);
+
+                        window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
                     }
-                },
+                    },
                 {
                     dataField: "isActive",
                     caption: "Status",

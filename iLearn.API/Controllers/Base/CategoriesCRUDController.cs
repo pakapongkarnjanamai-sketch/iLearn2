@@ -195,6 +195,7 @@ namespace iLearn.API.Controllers.Base
                     c.Code,
                     c.Title,
                     c.IsActive,
+                    courseTypeId = c.CourseTypeId,
                     courseTypeName = c.CourseType != null ? c.CourseType.Name : null,
                     c.CreatedAt
                 })
@@ -238,6 +239,7 @@ namespace iLearn.API.Controllers.Base
                 c.Code,
                 c.Title,
                 c.IsActive,
+                c.courseTypeId,
                 c.courseTypeName,
                 c.CreatedAt,
                 enrollmentCount = enrollmentCountsByCourse.GetValueOrDefault(c.Id)?.total ?? 0,

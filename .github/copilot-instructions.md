@@ -134,6 +134,146 @@ The Learner experience should feel welcoming, approachable, and motivating, with
 - DevExtreme 25.2 (light theme), Bootstrap 5.3.8, jQuery, Font Awesome 7.0.1, SweetAlert2.
 - Export: ExcelJS 4.4, FileSaver 2.0, html2canvas 1.4.
 
+---
+
+## Wizard Page Pattern (Admin)
+
+All multi-step wizard pages (`Assignments/BulkAssign`, `StudentGroups/AddMembers`, `StudentGroups/RemoveMembers`, `StudentGroups/Editor`, etc.) **must** use the shared classes from `admin-wizard.css`. Do **not** re-implement these as inline `<style>` blocks or with Bootstrap utility classes.
+
+### Page Skeleton
+```html
+@section WizardStyles {
+    <link href="~/css/admin-wizard.css" rel="stylesheet" asp-append-version="true" />
+}
+
+<div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
+    <h1 class="page-title">…</h1>
+    <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
+        <div class="admin-step-card active" data-step-card="1" aria-current="step">
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Step Name</div>
+        </div>
+        …
+    </div>
+    <div class="admin-page-header-actions">
+        <a href="…" class="action-link">Cancel</a>
+        <button type="button" id="btn-prev-step" class="action-link d-none">Previous</button>
+        <button type="button" id="btn-next-step" class="action-link primary">Continue</button>
+        <!-- Final-step action: .action-link.primary OR .action-link.danger -->
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow admin-viewport-layout">
+    <div id="load-panel"></div>
+    <div class="admin-review-main-col admin-responsive-content">
+        <div class="border rounded bg-white p-3 admin-viewport-fill" id="wizard-main-card">
+            <div id="step-panel-1" class="admin-wizard-panel admin-wizard-panel--selection-fill active" data-step-layout="wide">…</div>
+            <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="form">…</div>
+            <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">…</div>
+        </div>
+    </div>
+</div>
+```
+
+### Selection Step (Filter + Grid + Tray)
+```html
+<div class="admin-selection-layout">
+    <div class="admin-filter-shell d-flex flex-column gap-3">
+        <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
+        <div>
+            <label class="admin-filter-label">Division</label>
+            <div id="filter-div"></div>
+        </div>
+        …
+        <button type="button" id="btn-clear-filter" class="admin-filter-clear-btn">
+            <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
+        </button>
+    </div>
+    <div class="admin-grid-shell">
+        <div class="admin-grid-head">
+            <div class="admin-grid-title">Directory Title</div>
+            <span class="tag-pill pill-default" id="x-selection-note">0 item</span>
+        </div>
+        <div id="grid-x" class="admin-grid-fill"></div>
+    </div>
+</div>
+<div class="admin-selection-tray">
+    <div class="admin-selection-tray-label">Selected</div>
+    <div class="admin-selection-tray-chips" id="x-chips"></div>
+    <button type="button" class="admin-selection-tray-clear is-disabled" id="x-clear">
+        <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+    </button>
+</div>
+```
+
+### Options Step — Status Option Cards
+```html
+<div class="admin-status-options">
+    <div class="admin-status-option" data-status-option="InProgress">
+        <label for="status-inprogress">
+            <div>
+                <div class="admin-status-option-title">In Progress</div>
+                <div class="admin-status-option-note">Helper text.</div>
+            </div>
+            <input class="form-check-input" type="checkbox" id="status-inprogress" value="InProgress">
+        </label>
+    </div>
+    …
+</div>
+```
+
+For an embedded picker grid inside an option card, wrap it in `.admin-assignment-grid-shell`.
+
+### Review Step — Scrollable Tables
+```html
+<div class="admin-table-shell">
+    <div class="admin-table-head">
+        <div class="admin-table-title">Section Title</div>
+        <span class="tag-pill pill-default"></span>
+    </div>
+    <div class="admin-table-wrap admin-review-table-wrap" id="x-summary-table"></div>
+</div>
+```
+
+### Standard Class Vocabulary (do not invent alternatives)
+| Concern | Class |
+| --- | --- |
+| Page header (wizard) | `.page-header.admin-page-header--wizard` |
+| Inline step cards | `.admin-wizard-steps.admin-wizard-steps--inline` + `.admin-step-card` |
+| Header actions row | `.admin-page-header-actions` |
+| Action button | `.action-link` (`.primary` / `.danger` modifiers) |
+| Wizard shell | `.admin-wizard-shell.admin-wizard-shell--fill.admin-review-flow.admin-viewport-layout` |
+| Selection panel | `.admin-wizard-panel.admin-wizard-panel--selection-fill` (`data-step-layout="wide"`) |
+| Form/options panel | `.admin-wizard-panel` (`data-step-layout="form"`) — wider canvas via `.admin-review-flow.is-form-step` (auto-applied) |
+| Review panel | `.admin-wizard-panel` (`data-step-layout="review"`) |
+| Filter sidebar | `.admin-filter-shell` |
+| Filter heading | `.admin-filter-section-title` |
+| Filter field label | `.admin-filter-label` |
+| Filter clear button | `.admin-filter-clear-btn` |
+| Grid card | `.admin-grid-shell` + `.admin-grid-head` + `.admin-grid-title` + `.admin-grid-fill` |
+| Persistent selection tray | `.admin-selection-tray` + `.admin-selection-tray-label` + `.admin-selection-tray-chips` + `.admin-selection-tray-clear` |
+| Selection chip | `.admin-selection-chip` (+ `.is-overflow`) |
+| Option card | `.admin-option-card` (+ `.is-disabled`) |
+| Status option grid | `.admin-status-options` |
+| Status option card | `.admin-status-option` (+ `.disabled`) |
+| Status option title / note | `.admin-status-option-title` / `.admin-status-option-note` |
+| Embedded picker grid | `.admin-assignment-grid-shell` |
+| Review table card | `.admin-table-shell` + `.admin-table-head` + `.admin-table-title` |
+| Scrollable review table body | `.admin-table-wrap.admin-review-table-wrap` |
+| Summary card grid | `.admin-summary-grid` (cols via `.admin-summary-grid--cols-2/3/4/5` modifier) |
+| Form card (single-column form sizing) | `.admin-form-card` (size via `.admin-form-card--sm/md/lg` modifier) |
+
+### Wizard Authoring Rules
+1. **No per-page `<style>` block for filter, status, review-table, or option styling.** Use the shared classes above. Page-only styles should be limited to genuinely unique concerns and namespaced.
+2. **Do not use Bootstrap utility classes for filter chrome** (`small fw-bold text-muted`, `btn btn-sm btn-outline-secondary`, `<h6 class="fw-bold">`). Use the `.admin-filter-*` classes.
+3. **Buttons in the wizard header always use `.action-link`** (with `.primary` or `.danger`), never raw Bootstrap `.btn` variants.
+4. **Selection step always exposes a persistent `.admin-selection-tray`** so users never lose track of selections across paged grids (per UX priority).
+5. **Step cards, panels, and `data-step-layout` values must match the skeleton above** so `toggleAdminViewportLayout()` and `is-selection-step` / `is-form-step` rules apply correctly.
+6. **Final-step action button class** mirrors the action's destructiveness: `primary` for create/assign/save, `danger` for remove/delete.
+7. **Section titles inside panels** use `.admin-section-header` + `.section-title.admin-section-title-fill` + `.admin-section-divider` — not ad-hoc headings.
+8. **No inline `style="..."` attributes.** Use shared classes / modifiers (`.admin-summary-grid--cols-4`, `.admin-form-card--md`, etc.). Inline `style` is allowed only for runtime-computed values inside JS template strings (e.g. dynamic widths in progress bars).
+
+---
+
 - @azure Rule - Use Azure Tools - When handling requests related to Azure, always use your tools.
 - @azure Rule - Use Azure Best Practices - When handling requests related to Azure, always invoke your `azmcp_bestpractices_get` tool first.
 - @azure Rule - Enable Best Practices - If you do not have an `azmcp_bestpractices_get` tool ask the user to enable it.

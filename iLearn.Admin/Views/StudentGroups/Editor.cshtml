@@ -7,13 +7,6 @@
     <link href="~/css/admin-wizard.css" rel="stylesheet" asp-append-version="true" />
 }
 
-<style>
-    /* ── Unique: Review table scroll height ── */
-    .sg-review-table-wrap {
-        --admin-table-wrap-max-height: clamp(200px, calc(100vh - 520px), 320px);
-    }
-</style>
-
 <!-- ── Page Header ── -->
 <div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
     <h1 class="page-title"><i class="fas fa-users text-primary me-2" aria-hidden="true"></i>@ViewBag.Title</h1>
@@ -75,7 +68,7 @@
                     <div class="admin-section-divider"></div>
                 </div>
             </div>
-            <div class="px-3 pb-3">
+            <div class="px-3 pb-3 admin-form-card">
                 <div id="form-container"></div>
             </div>
         </div>
@@ -95,7 +88,7 @@ else
                         </div>
                         <div class="admin-section-divider"></div>
                     </div>
-                    <div class="admin-detail-card" style="max-width: 640px;">
+                    <div class="admin-detail-card">
                         <div id="form-container"></div>
                     </div>
                 </div>
@@ -110,20 +103,20 @@ else
 
                     <div class="admin-selection-layout">
                         <div class="admin-filter-shell d-flex flex-column gap-3">
-                            <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
+                            <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
                             <div>
-                                <label class="small fw-bold text-muted mb-1 d-block">Division</label>
+                                <label class="admin-filter-label">Division</label>
                                 <div id="filter-div"></div>
                             </div>
                             <div>
-                                <label class="small fw-bold text-muted mb-1 d-block">Department</label>
+                                <label class="admin-filter-label">Department</label>
                                 <div id="filter-dept"></div>
                             </div>
                             <div>
-                                <label class="small fw-bold text-muted mb-1 d-block">Section</label>
+                                <label class="admin-filter-label">Section</label>
                                 <div id="filter-section"></div>
                             </div>
-                            <button class="btn btn-sm btn-outline-secondary w-100 mt-auto" id="btn-clear-filter" type="button">
+                            <button type="button" id="btn-clear-filter" class="admin-filter-clear-btn">
                                 <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
                             </button>
                         </div>
@@ -161,7 +154,7 @@ else
                                 <div class="admin-table-title">Initial Members</div>
                                 <span class="tag-pill pill-default" id="review-members-note"></span>
                             </div>
-                            <div class="admin-table-wrap sg-review-table-wrap" id="selected-members-review"></div>
+                            <div class="admin-table-wrap admin-review-table-wrap" id="selected-members-review"></div>
                         </div>
                     </div>
                 </div>
