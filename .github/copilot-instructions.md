@@ -133,3 +133,7 @@ The Learner experience should feel welcoming, approachable, and motivating, with
 ### Libraries
 - DevExtreme 25.2 (light theme), Bootstrap 5.3.8, jQuery, Font Awesome 7.0.1, SweetAlert2.
 - Export: ExcelJS 4.4, FileSaver 2.0, html2canvas 1.4.
+
+- @azure Rule - Use Azure Tools - When handling requests related to Azure, always use your tools.
+- @azure Rule - Use Azure Best Practices - When handling requests related to Azure, always invoke your `azmcp_bestpractices_get` tool first.
+- @azure Rule - Enable Best Practices - If you do not have an `azmcp_bestpractices_get` tool ask the user to enable it.

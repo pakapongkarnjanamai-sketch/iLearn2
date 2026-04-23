@@ -25,5 +25,12 @@ namespace iLearn.Admin.Controllers
             ViewBag.GroupId = id;
             return View();
         }
+
+        [HttpGet]
+        public IActionResult RemoveMembers(int id)
+        {
+            ViewBag.GroupId = id;
+            return View();
+        }
     }
 }

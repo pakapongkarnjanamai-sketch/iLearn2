@@ -164,5 +164,49 @@ namespace iLearn.API.Controllers
                 return NotFound(new { message = "Member not found in the group." });
             }
         }
+
+        [HttpPost("{id}/members/remove/preview")]
+        public async Task<IActionResult> PreviewRemoveMembers(int id, [FromBody] StudentGroupRemoveMembersOptionsDto dto)
+        {
+            try
+            {
+                var result = await _service.PreviewRemoveMembersAsync(id, dto);
+                return Ok(new { success = true, data = result });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
+        [HttpPost("{id}/members/remove/confirm")]
+        public async Task<IActionResult> ConfirmRemoveMembers(int id, [FromBody] StudentGroupRemoveMembersOptionsDto dto)
+        {
+            try
+            {
+                var result = await _service.RemoveMembersWithAssignmentsAsync(id, dto);
+                return Ok(new { success = true, data = result, message = "Members removed successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Student group with ID {id} was not found." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
     }
 }

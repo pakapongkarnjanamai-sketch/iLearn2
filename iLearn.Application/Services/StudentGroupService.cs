@@ -266,7 +266,7 @@ namespace iLearn.Application.Services
 
             var studentProfiles = await _studentApiService.GetStudentsByCodesAsync(normalizedCodes);
             var assignmentContexts = dto.EnrollToRelatedAssignments
-                ? await LoadRelatedAssignmentContextsAsync(groupId, dto.AssignmentStatuses)
+                ? await LoadRelatedAssignmentContextsAsync(groupId, dto.AssignmentStatuses, dto.AssignmentIds)
                 : [];
 
             return new StudentGroupAddMembersPreviewDto
@@ -328,7 +328,7 @@ namespace iLearn.Application.Services
             }
 
             var assignmentContexts = dto.EnrollToRelatedAssignments
-                ? await LoadRelatedAssignmentContextsAsync(groupId, dto.AssignmentStatuses)
+                ? await LoadRelatedAssignmentContextsAsync(groupId, dto.AssignmentStatuses, dto.AssignmentIds)
                 : [];
 
             if (assignmentContexts.Count == 0)
@@ -387,6 +387,181 @@ namespace iLearn.Application.Services
                 throw new UnauthorizedAccessException("Cannot modify a group from another division.");
 
             await _memberRepo.DeleteAsync(member);
+        }
+
+        public async Task<StudentGroupRemoveMembersPreviewDto> PreviewRemoveMembersAsync(int groupId, StudentGroupRemoveMembersOptionsDto dto)
+        {
+            var (group, selectedMembers) = await ResolveRemoveMembersScopeAsync(groupId, dto);
+
+            var assignmentContexts = dto.UnenrollFromRelatedAssignments
+                ? await LoadRelatedAssignmentContextsAsync(groupId, dto.AssignmentStatuses, dto.AssignmentIds)
+                : [];
+
+            var selectedCodes = selectedMembers
+                .Select(m => m.StudentCode)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var profiles = await _studentApiService.GetStudentsByCodesAsync(selectedCodes);
+
+            var memberPerStudentCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var totalUnenrollLinks = 0;
+
+            if (assignmentContexts.Count > 0)
+            {
+                var assignmentIds = assignmentContexts.SelectMany(c => c.Rules.Select(r => r.Id)).ToHashSet();
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    link => assignmentIds.Contains(link.AssignmentId) && link.Enrollment != null,
+                    includeProperties: "Enrollment");
+
+                foreach (var link in links)
+                {
+                    var code = link.Enrollment!.StudentCode;
+                    if (!selectedCodes.Contains(code))
+                    {
+                        continue;
+                    }
+
+                    totalUnenrollLinks++;
+                    memberPerStudentCounts.TryGetValue(code, out var current);
+                    memberPerStudentCounts[code] = current + 1;
+                }
+            }
+
+            return new StudentGroupRemoveMembersPreviewDto
+            {
+                GroupId = group.Id,
+                GroupName = group.Name,
+                GroupDescription = group.Description,
+                UnenrollFromRelatedAssignments = dto.UnenrollFromRelatedAssignments,
+                SelectedMemberCount = selectedMembers.Count,
+                SelectedAssignmentCount = assignmentContexts.Count,
+                SelectedCourseCount = assignmentContexts.Sum(c => c.CourseCount),
+                EstimatedUnenrollmentCount = totalUnenrollLinks,
+                Members = selectedMembers.Select(member =>
+                {
+                    profiles.TryGetValue(member.StudentCode, out var profile);
+                    memberPerStudentCounts.TryGetValue(member.StudentCode, out var unenrollCount);
+
+                    return new StudentGroupRemoveMembersStudentPreviewDto
+                    {
+                        MemberId = member.Id,
+                        StudentCode = member.StudentCode,
+                        StudentName = profile?.Name ?? member.StudentCode,
+                        Division = profile?.Division,
+                        Department = profile?.Department,
+                        Section = profile?.Section,
+                        Position = profile?.Position,
+                        CurrentAssignmentEnrollmentCount = unenrollCount
+                    };
+                }).ToList(),
+                Assignments = assignmentContexts.Select(context =>
+                {
+                    context.Preview.EstimatedEnrollmentCount = 0;
+                    return context.Preview;
+                }).ToList()
+            };
+        }
+
+        public async Task<StudentGroupRemoveMembersResultDto> RemoveMembersWithAssignmentsAsync(int groupId, StudentGroupRemoveMembersOptionsDto dto)
+        {
+            var (group, selectedMembers) = await ResolveRemoveMembersScopeAsync(groupId, dto);
+
+            var selectedCodes = selectedMembers
+                .Select(m => m.StudentCode)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var assignmentContexts = dto.UnenrollFromRelatedAssignments
+                ? await LoadRelatedAssignmentContextsAsync(groupId, dto.AssignmentStatuses, dto.AssignmentIds)
+                : [];
+
+            var unenrolledLinkCount = 0;
+
+            if (assignmentContexts.Count > 0)
+            {
+                var assignmentIds = assignmentContexts.SelectMany(c => c.Rules.Select(r => r.Id)).ToHashSet();
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    link => assignmentIds.Contains(link.AssignmentId) && link.Enrollment != null,
+                    includeProperties: "Enrollment");
+
+                foreach (var link in links)
+                {
+                    if (!selectedCodes.Contains(link.Enrollment!.StudentCode))
+                    {
+                        continue;
+                    }
+
+                    _enrollmentAssignmentRepo.DeleteWithoutSave(link);
+                    unenrolledLinkCount++;
+                }
+            }
+
+            foreach (var member in selectedMembers)
+            {
+                _memberRepo.DeleteWithoutSave(member);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return new StudentGroupRemoveMembersResultDto
+            {
+                GroupId = group.Id,
+                GroupName = group.Name,
+                SelectedMemberCount = selectedMembers.Count,
+                RemovedMemberCount = selectedMembers.Count,
+                AssignmentCount = assignmentContexts.Count,
+                UnenrolledLinkCount = unenrolledLinkCount,
+                RemovedStudentCodes = selectedMembers.Select(m => m.StudentCode).ToList()
+            };
+        }
+
+        private async Task<(StudentGroup group, List<StudentGroupMember> members)> ResolveRemoveMembersScopeAsync(int groupId, StudentGroupRemoveMembersOptionsDto dto)
+        {
+            var memberIdSet = dto.MemberIds?
+                .Where(id => id > 0)
+                .ToHashSet() ?? [];
+
+            if (memberIdSet.Count == 0)
+            {
+                throw new ArgumentException("At least one member is required.");
+            }
+
+            ValidateAssignmentStatuses(dto.UnenrollFromRelatedAssignments, dto.AssignmentStatuses);
+
+            var group = await GetAccessibleGroupAsync(groupId, includeProperties: "Members");
+
+            var selected = group.Members
+                .Where(m => memberIdSet.Contains(m.Id))
+                .ToList();
+
+            if (selected.Count == 0)
+            {
+                throw new ArgumentException("Selected members were not found in this group.");
+            }
+
+            return (group, selected);
+        }
+
+        private static void ValidateAssignmentStatuses(bool isEnabled, IEnumerable<string>? assignmentStatuses)
+        {
+            var statuses = assignmentStatuses?
+                .Where(status => !string.IsNullOrWhiteSpace(status))
+                .Select(status => status.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? [];
+
+            var invalid = statuses
+                .Where(status => !AllowedAssignmentStatuses.Contains(status))
+                .ToList();
+
+            if (invalid.Count > 0)
+            {
+                throw new ArgumentException($"Unsupported assignment status: {string.Join(", ", invalid)}.");
+            }
+
+            if (isEnabled && statuses.Count == 0)
+            {
+                throw new ArgumentException("Select at least one assignment status when this option is enabled.");
+            }
         }
 
         public async Task<List<string>> GetStudentCodesAsync(int groupId)
@@ -449,12 +624,16 @@ namespace iLearn.Application.Services
             }
         }
 
-        private async Task<List<RelatedAssignmentContext>> LoadRelatedAssignmentContextsAsync(int groupId, IEnumerable<string>? selectedStatuses)
+        private async Task<List<RelatedAssignmentContext>> LoadRelatedAssignmentContextsAsync(int groupId, IEnumerable<string>? selectedStatuses, IEnumerable<int>? selectedAssignmentIds = null)
         {
             var selectedStatusSet = selectedStatuses?
                 .Where(status => !string.IsNullOrWhiteSpace(status))
                 .Select(status => status.Trim())
                 .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+
+            var selectedIdSet = selectedAssignmentIds?
+                .Where(id => id > 0)
+                .ToHashSet() ?? [];
 
             var assignments = await _assignmentRepo.GetAsync(
                 assignment => assignment.StudentGroupId == groupId
@@ -521,6 +700,7 @@ namespace iLearn.Application.Services
                     };
                 })
                 .Where(context => selectedStatusSet.Contains(context.Status))
+                .Where(context => selectedIdSet.Count == 0 || context.Rules.Any(rule => selectedIdSet.Contains(rule.Id)))
                 .OrderByDescending(context => context.StartDate ?? DateTime.MinValue)
                 .ThenByDescending(context => context.Preview.AssignmentNo)
                 .ToList();

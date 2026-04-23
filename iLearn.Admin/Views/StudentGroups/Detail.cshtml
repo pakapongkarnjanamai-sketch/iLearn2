@@ -101,6 +101,14 @@
                         </div>
                     </a>
 
+                    <a href="@Url.Action("RemoveMembers", "StudentGroups", new { id = groupId })" id="btn-remove-members" class="quick-action disabled" aria-disabled="true" tabindex="-1">
+                        <div class="qa-icon qa-icon-danger"><i class="fas fa-user-minus" aria-hidden="true"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Remove Members</div>
+                            <div class="u-fs-11 text-secondary">Remove members and unlink from assignments</div>
+                        </div>
+                    </a>
+
                     <a href="@Url.Action("BulkAssign", "Assignments")?groupId=@groupId" id="btn-assign-course" class="quick-action disabled" aria-disabled="true" tabindex="-1">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-book-open" aria-hidden="true"></i></div>
                         <div>
@@ -445,6 +453,7 @@
 
     function setActionPanelState(disabled) {
         setQuickActionState($("#btn-add-members"), disabled);
+        setQuickActionState($("#btn-remove-members"), disabled);
         setQuickActionState($("#btn-assign-course"), disabled);
         setQuickActionState($("#btn-edit-group"), disabled);
         setQuickActionState($("#btn-delete-group"), disabled);

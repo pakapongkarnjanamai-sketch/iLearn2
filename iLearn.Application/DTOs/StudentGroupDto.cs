@@ -58,6 +58,52 @@ namespace iLearn.Application.DTOs
         public List<string> StudentCodes { get; set; } = new();
         public bool EnrollToRelatedAssignments { get; set; }
         public List<string> AssignmentStatuses { get; set; } = new();
+        public List<int> AssignmentIds { get; set; } = new();
+    }
+
+    public class StudentGroupRemoveMembersOptionsDto
+    {
+        public List<int> MemberIds { get; set; } = new();
+        public bool UnenrollFromRelatedAssignments { get; set; }
+        public List<string> AssignmentStatuses { get; set; } = new();
+        public List<int> AssignmentIds { get; set; } = new();
+    }
+
+    public class StudentGroupRemoveMembersPreviewDto
+    {
+        public int GroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+        public string? GroupDescription { get; set; }
+        public bool UnenrollFromRelatedAssignments { get; set; }
+        public int SelectedMemberCount { get; set; }
+        public int SelectedAssignmentCount { get; set; }
+        public int SelectedCourseCount { get; set; }
+        public int EstimatedUnenrollmentCount { get; set; }
+        public List<StudentGroupRemoveMembersStudentPreviewDto> Members { get; set; } = new();
+        public List<StudentGroupRelatedAssignmentPreviewDto> Assignments { get; set; } = new();
+    }
+
+    public class StudentGroupRemoveMembersStudentPreviewDto
+    {
+        public int MemberId { get; set; }
+        public string StudentCode { get; set; } = string.Empty;
+        public string StudentName { get; set; } = string.Empty;
+        public string? Division { get; set; }
+        public string? Department { get; set; }
+        public string? Section { get; set; }
+        public string? Position { get; set; }
+        public int CurrentAssignmentEnrollmentCount { get; set; }
+    }
+
+    public class StudentGroupRemoveMembersResultDto
+    {
+        public int GroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+        public int SelectedMemberCount { get; set; }
+        public int RemovedMemberCount { get; set; }
+        public int AssignmentCount { get; set; }
+        public int UnenrolledLinkCount { get; set; }
+        public List<string> RemovedStudentCodes { get; set; } = new();
     }
 
     public class StudentGroupAddMembersPreviewDto
