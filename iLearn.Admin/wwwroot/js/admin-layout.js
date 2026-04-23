@@ -26,6 +26,7 @@
     };
     const noDataMessages = {
         courses: 'No courses found.',
+        learners: 'No learners found.',
         students: 'No students found.',
         resources: 'No resources found.',
         content: 'No content added yet. Click buttons above to add.',
@@ -746,6 +747,23 @@
         };
     }
 
+    function toggleAdminViewportLayout(controller, isEnabled, options) {
+        if (isEnabled) {
+            if (!controller) {
+                return enableAdminViewportLayout(options);
+            }
+
+            controller.refresh();
+            return controller;
+        }
+
+        if (controller) {
+            controller.dispose();
+        }
+
+        return null;
+    }
+
     function refreshGridDimensions(gridInstance) {
         if (!gridInstance || typeof gridInstance.updateDimensions !== 'function') {
             return;
@@ -1388,6 +1406,7 @@
     window.refreshUserCache = refreshUserCache;
     window.refreshViewportGridHeights = refreshViewportGridHeights;
     window.enableAdminViewportLayout = enableAdminViewportLayout;
+    window.toggleAdminViewportLayout = toggleAdminViewportLayout;
     window.formatAdminDate = formatAdminDate;
     window.formatAdminTime = formatAdminTime;
     window.formatAdminDateTime = formatAdminDateTime;

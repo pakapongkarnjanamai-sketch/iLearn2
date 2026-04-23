@@ -82,12 +82,17 @@
 
     /* ── Unique: Selection tray ── */
     .assign-selection-tray {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 8px 0 2px;
-        border-top: 1px solid var(--border-color);
-        margin-top: 6px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: start;
+        column-gap: 8px;
+        row-gap: 6px;
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--surface-base);
+        margin-top: var(--space-md);
+        min-height: 104px;
     }
 
     .assign-tray-label {
@@ -96,7 +101,7 @@
         color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.4px;
-        padding-top: 3px;
+        padding-top: 6px;
         white-space: nowrap;
         flex-shrink: 0;
     }
@@ -105,10 +110,26 @@
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
-        flex: 1;
         min-width: 0;
-        max-height: 80px;
+        min-height: 56px;
+        max-height: 96px;
         overflow-y: auto;
+        align-content: flex-start;
+        padding-right: 2px;
+    }
+
+    .assign-tray-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        min-width: 0;
+        min-height: 56px;
+        align-content: flex-start;
+    }
+
+    .assign-selection-tray .admin-selection-tray-clear {
+        margin-left: 0;
+        margin-top: 2px;
     }
 
     .assign-chip {
@@ -170,6 +191,14 @@
         font-weight: 600;
     }
 
+    .assign-selection-tray--group {
+        min-height: 88px;
+    }
+
+    .assign-selection-tray--group .assign-tray-summary {
+        min-height: 40px;
+    }
+
     /* ── Form Overrides ── */
     .dx-layout-manager .dx-field-item {
         padding-bottom: 12px;
@@ -181,6 +210,73 @@
     }
 
     /* ── Responsive ── */
+    @@media (min-width: 768px) {
+        body .admin-review-flow.is-selection-step.admin-wizard-shell--fill {
+            min-height: calc(100vh - 120px);
+            min-height: calc(100dvh - 120px);
+        }
+
+        body .admin-review-flow.is-selection-step .admin-review-main-col,
+        body .admin-review-flow.is-selection-step #wizard-main-card,
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > .admin-selection-layout,
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-individual:not(.d-none),
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-group:not(.d-none) {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .admin-selection-layout {
+            display: grid;
+        }
+
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-individual:not(.d-none) > .admin-selection-layout,
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-group:not(.d-none) > .admin-grid-shell {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .admin-grid-shell,
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .assign-inline-grid,
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .assign-inline-grid > .dx-widget {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .assign-selection-tray {
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .assign-selection-tray {
+            grid-template-columns: 1fr;
+            min-height: 0;
+        }
+
+        .assign-tray-label {
+            padding-top: 0;
+        }
+
+        .assign-tray-chips,
+        .assign-tray-summary {
+            min-height: 0;
+            max-height: none;
+        }
+    }
 
 </style>
 
@@ -220,12 +316,12 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow admin-viewport-layout">
     <div id="load-panel"></div>
 
-    <div class="admin-review-main-col">
-        <div class="border rounded bg-white p-3" id="wizard-main-card">
-        <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="wide">
+    <div class="admin-review-main-col admin-responsive-content">
+        <div class="border rounded bg-white p-3 admin-viewport-fill" id="wizard-main-card">
+        <div id="step-panel-1" class="admin-wizard-panel assign-step-panel--fill active" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Course Selection</div>
@@ -258,21 +354,21 @@
                         <span class="tag-pill pill-default" id="course-selection-note">0 course</span>
                     </div>
                     <div id="grid-courses-inline" class="assign-inline-grid"></div>
-                    <div class="assign-selection-tray" id="course-selection-tray">
-                        <div class="assign-tray-label">Selected:</div>
-                        <div class="assign-tray-chips" id="course-tray-chips"></div>
-                        <button type="button" class="admin-selection-tray-clear is-disabled" id="course-tray-clear">
-                            <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
-                        </button>
-                    </div>
                 </div>
+            </div>
+            <div class="assign-selection-tray" id="course-selection-tray">
+                <div class="assign-tray-label">Selected:</div>
+                <div class="assign-tray-chips" id="course-tray-chips"></div>
+                <button type="button" class="admin-selection-tray-clear is-disabled" id="course-tray-clear">
+                    <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                </button>
             </div>
         </div>
 
-        <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
+        <div id="step-panel-2" class="admin-wizard-panel assign-step-panel--fill" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
-                    <div class="section-title mb-0 admin-section-title-fill">Learner Selection</div>
+                    <div class="section-title mb-0 admin-section-title-fill">Select Learners</div>
                 </div>
                 <div class="admin-section-divider"></div>
             </div>
@@ -312,18 +408,18 @@
                     </div>
                     <div class="admin-grid-shell">
                         <div class="admin-grid-head">
-                            <div class="admin-grid-title">Student Directory</div>
-                            <span class="tag-pill pill-default" id="student-selection-note">0 student</span>
+                            <div class="admin-grid-title">Learner Directory</div>
+                            <span class="tag-pill pill-default" id="student-selection-note">0 learner</span>
                         </div>
                         <div id="grid-students-inline" class="assign-inline-grid"></div>
-                    <div class="assign-selection-tray" id="student-selection-tray">
-                        <div class="assign-tray-label">Selected:</div>
-                        <div class="assign-tray-chips" id="student-tray-chips"></div>
-                        <button type="button" class="admin-selection-tray-clear is-disabled" id="student-tray-clear">
-                            <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
-                        </button>
                     </div>
-                    </div>
+                </div>
+                <div class="assign-selection-tray" id="student-selection-tray">
+                    <div class="assign-tray-label">Selected:</div>
+                    <div class="assign-tray-chips" id="student-tray-chips"></div>
+                    <button type="button" class="admin-selection-tray-clear is-disabled" id="student-tray-clear">
+                        <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                    </button>
                 </div>
             </div>
 
@@ -334,11 +430,13 @@
                         <span class="tag-pill pill-default" id="group-selection-note">0 group</span>
                     </div>
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
-                    <div class="admin-inline-actions d-none" id="group-reset-row">
-                        <a href="javascript:void(0);" class="action-link text-danger small" id="btn-reset-group">
-                            <i class="fas fa-times me-1" aria-hidden="true"></i> Clear selection
-                        </a>
-                    </div>
+                </div>
+                <div class="assign-selection-tray assign-selection-tray--group" id="group-selection-tray">
+                    <div class="assign-tray-label">Selected:</div>
+                    <div class="assign-tray-summary" id="group-tray-summary"></div>
+                    <button type="button" class="admin-selection-tray-clear is-disabled" id="group-tray-clear">
+                        <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                    </button>
                 </div>
             </div>
         </div>
@@ -404,9 +502,7 @@
 
         // Height Settings
         const DESCRIPTION_FIELD_HEIGHT = 96;
-        const COURSE_GRID_HEIGHT = 560;
-        const STUDENT_GRID_HEIGHT = 540;
-        const GROUP_GRID_HEIGHT = 540;
+        const SELECTION_GRID_HEIGHT = "100%";
 
         const hasPreselectedGroupId = Boolean(initialGroupId);
 
@@ -429,6 +525,7 @@
         let studentGridInitialized = false;
         let groupGridInitialized = false;
         let reviewForm;
+        let selectionViewportController = null;
 
         $(() => {
             loadPanel = $("#load-panel").dxLoadPanel({
@@ -471,7 +568,9 @@
             renderStudentSelectionTray();
             updateWizardUi(1);
 
-            $("#btn-reset-group").click(() => clearGroupSelection(true));
+            $("#group-tray-clear").on("click", function() {
+                if (groupGrid) { groupGrid.clearSelection(); }
+            });
             $("#course-tray-clear").on("click", function() {
                 if (courseGrid) { courseGrid.clearSelection(); }
             });
@@ -524,7 +623,7 @@
             function initializeCourseSelection() {
                 courseGrid = initDxGrid("#grid-courses-inline", {
                     preset: "wizardSelectionContinuousGrid",
-                    height: COURSE_GRID_HEIGHT,
+                    height: SELECTION_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "id",
                         loadUrl: `${serviceUrl}/admin/CoursesCRUD/Get`,
@@ -575,7 +674,7 @@
             function initializeStudentSelection() {
                 studentGrid = initDxGrid("#grid-students-inline", {
                     preset: "wizardSelectionContinuousGrid",
-                    height: STUDENT_GRID_HEIGHT,
+                    height: SELECTION_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
                         loadUrl: `${serviceUrl}/Students/Get`,
@@ -588,7 +687,7 @@
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
                     selection: { selectAllMode: 'allPages' },
-                    noDataText: getNoDataText("students"),
+                    noDataText: getNoDataText("learners"),
                     columns: [
                         {
                             dataField: "EId", caption: "ID", width: 95,
@@ -640,7 +739,7 @@
             function initializeGroupSelection() {
                 groupGrid = initDxGrid("#grid-groups-inline", {
                     preset: "wizardSelectionContinuousGrid",
-                    height: GROUP_GRID_HEIGHT,
+                    height: SELECTION_GRID_HEIGHT,
                     dataSource: new DevExpress.data.CustomStore({
                         key: "id",
                         loadMode: "raw",
@@ -704,6 +803,9 @@
                     $("#target-panel-individual").addClass("d-none");
                     $("#target-panel-group").removeClass("d-none");
                 }
+                if (selectionViewportController) {
+                    selectionViewportController.refresh();
+                }
                 updateTargetModeNote();
                 refreshVisibleSelectionGrids();
             }
@@ -719,6 +821,13 @@
 
                 gridInstance.repaint();
                 gridInstance.updateDimensions();
+            }
+
+            function toggleSelectionViewportLayout(isEnabled) {
+                selectionViewportController = window.toggleAdminViewportLayout(selectionViewportController, isEnabled, {
+                    layoutSelector: ".admin-wizard-shell.admin-viewport-layout",
+                    contentSelector: ".admin-review-main-col.admin-responsive-content"
+                });
             }
 
             function refreshVisibleSelectionGrids() {
@@ -775,8 +884,8 @@
             function updateStudentSelectionUi() {
                 const count = selectedStudentCodes.length;
                 $("#student-selection-note").text(count > 0
-                    ? window.formatAdminCountLabel(count, 'student')
-                    : "0 student");
+                    ? window.formatAdminCountLabel(count, 'learner')
+                    : "0 learner");
                 updateTargetSnapshot();
             }
 
@@ -784,14 +893,26 @@
                 $("#group-selection-note").text(selectedGroupId
                     ? window.formatAdminCountLabel(selectedGroupMemberCount, 'member')
                     : "0 group");
-                $("#group-reset-row").toggleClass("d-none", !selectedGroupId);
+                const $clearBtn = $("#group-tray-clear");
+                if (!selectedGroupId) {
+                    $("#group-tray-summary").html('<span class="admin-selection-tray-empty">No student group selected yet.</span>');
+                    $clearBtn.addClass("is-disabled").prop("disabled", true);
+                    updateTargetSnapshot();
+                    return;
+                }
+
+                $clearBtn.removeClass("is-disabled").prop("disabled", false);
+                $("#group-tray-summary").html([
+                    `<span class="assign-chip"><span class="assign-chip-code">${window.escapeHtml(selectedGroupName || EMPTY_TEXT)}</span></span>`,
+                    `<span class="assign-chip is-overflow">${window.formatAdminCountLabel(selectedGroupMemberCount, 'member')}</span>`
+                ].join(""));
                 updateTargetSnapshot();
             }
 
             function updateTargetModeNote() {
                 $("#target-selection-note").text(currentTargetMode === 'group'
                     ? "Choose one student group to assign the selected courses."
-                    : "Select one or more students for this assignment batch.");
+                    : "Select one or more learners for this assignment batch.");
                 updateTargetSnapshot();
             }
 
@@ -809,10 +930,10 @@
                 const targetCount = isGroupMode ? selectedGroupMemberCount : selectedStudentCodes.length;
                 const targetName = isGroupMode
                     ? (selectedGroupName || 'No group selected')
-                    : (targetCount > 0 ? `${window.formatAdminCountLabel(targetCount, 'student')} selected` : 'No target selected');
+                    : (targetCount > 0 ? `${window.formatAdminCountLabel(targetCount, 'learner')} selected` : 'No target selected');
 
-                $("#snapshot-target-mode").text(isGroupMode ? 'Student group' : 'Individual students');
-                $("#snapshot-target-count").text(window.formatAdminCountLabel(targetCount, 'student'));
+                $("#snapshot-target-mode").text(isGroupMode ? 'Student group' : 'Individual learners');
+                $("#snapshot-target-count").text(window.formatAdminCountLabel(targetCount, isGroupMode ? 'member' : 'learner'));
                 $("#snapshot-target-name").text(targetName);
             }
 
@@ -842,10 +963,10 @@
                     description: payload.description || "",
                     startDate: fmtDate(payload.startDate),
                     dueDate: fmtDate(payload.dueDate),
-                    targetMode: payload.groupId ? "Student Group" : "Individual Students",
+                    targetMode: payload.groupId ? "Student Group" : "Individual Learners",
                     target: payload.groupId
                         ? (selectedGroupName || "Selected group")
-                        : window.formatAdminCountLabel(resolvedCount, "student")
+                        : window.formatAdminCountLabel(resolvedCount, "learner")
                 });
 
                 // Courses table
@@ -863,7 +984,7 @@
                     const studentRows = studentGrid ? (studentGrid.getSelectedRowsData() || []) : [];
                     const totalStudents = selectedStudentCodes.length;
                     $("#review-learners-title").text("Selected Learners");
-                    $("#review-learners-note").text(window.formatAdminCountLabel(totalStudents, "student"));
+                    $("#review-learners-note").text(window.formatAdminCountLabel(totalStudents, "learner"));
                     $("#review-learners-table").html(buildLearnersReviewTable(studentRows, totalStudents));
                 }
 
@@ -885,7 +1006,7 @@
 
                 if (currentStep === 2) {
                     if (currentTargetMode === 'individual' && selectedStudentCodes.length === 0) {
-                        showToast("Please select at least one student.", "error");
+                        showToast("Please select at least one learner.", "error");
                         return;
                     }
 
@@ -916,7 +1037,7 @@
                 }
 
                 if (currentTargetMode === 'individual' && selectedStudentCodes.length === 0) {
-                    showToast("Please select at least one student.", "error");
+                    showToast("Please select at least one learner.", "error");
                     return;
                 }
 
@@ -1015,9 +1136,13 @@
                 $(".admin-wizard-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
                 const layout = $(`#step-panel-${step}`).attr("data-step-layout") || "wide";
+                const isSelectionStep = step === 1 || step === 2;
                 $(".admin-wizard-shell")
+                    .toggleClass("is-selection-step", isSelectionStep)
                     .toggleClass("is-form-step", layout === "form")
                     .toggleClass("is-review-step", layout === "review");
+
+                toggleSelectionViewportLayout(isSelectionStep);
 
                 if (step === 2) {
                     if (!studentGridInitialized) {
@@ -1151,7 +1276,7 @@
             function buildLearnersReviewTable(rows, totalCount) {
                 if (!rows.length) {
                     return totalCount > 0
-                        ? `<div class="admin-wizard-empty-state"><i class="fas fa-users" aria-hidden="true"></i><div>${window.formatAdminCountLabel(totalCount, "student")} selected — detail view requires current page data.</div></div>`
+                        ? `<div class="admin-wizard-empty-state"><i class="fas fa-users" aria-hidden="true"></i><div>${window.formatAdminCountLabel(totalCount, "learner")} selected — detail view requires current page data.</div></div>`
                         : `<div class="admin-wizard-empty-state"><i class="fas fa-user" aria-hidden="true"></i><div>No learners selected.</div></div>`;
                 }
 

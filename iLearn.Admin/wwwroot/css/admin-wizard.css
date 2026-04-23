@@ -350,6 +350,50 @@
     margin-right: auto;
 }
 
+@media (min-width: 768px) {
+    body .admin-review-flow.is-selection-step.admin-wizard-shell--fill,
+    body .admin-review-flow.is-grid-step.admin-wizard-shell--fill {
+        min-height: calc(100vh - 120px);
+        min-height: calc(100dvh - 120px);
+    }
+
+    body .admin-review-flow.is-selection-step .admin-review-main-col.admin-responsive-content,
+    body .admin-review-flow.is-selection-step .admin-viewport-fill,
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active,
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active > .admin-selection-layout,
+    body .admin-review-flow.is-grid-step .admin-review-main-col.admin-responsive-content,
+    body .admin-review-flow.is-grid-step .admin-viewport-fill,
+    body .admin-review-flow.is-grid-step .admin-wizard-panel--grid-fill.active,
+    body .admin-review-flow.is-grid-step .admin-wizard-panel--grid-fill.active > .admin-detail-card {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active > .admin-selection-layout {
+        display: grid;
+    }
+
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active .admin-grid-shell,
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active .admin-grid-fill,
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active .admin-grid-fill > .dx-widget,
+    body .admin-review-flow.is-grid-step .admin-wizard-panel--grid-fill.active .admin-grid-shell,
+    body .admin-review-flow.is-grid-step .admin-wizard-panel--grid-fill.active .admin-grid-fill,
+    body .admin-review-flow.is-grid-step .admin-wizard-panel--grid-fill.active .admin-grid-fill > .dx-widget {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active .admin-selection-tray {
+        margin-top: auto;
+        flex-shrink: 0;
+    }
+}
+
 /* ── Wizard Page Header (title + inline steps + actions) ─────────── */
 .page-header.admin-page-header--wizard {
     align-items: center;

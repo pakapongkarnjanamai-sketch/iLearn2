@@ -92,7 +92,7 @@
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
                             <div class="stat-value" id="stat-total-emp">0</div>
-                            <div class="stat-label">Students</div>
+                            <div class="stat-label">Learners</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
@@ -137,7 +137,7 @@
                     <a href="javascript:void(0);" id="btn-add-students" class="quick-action">
                         <div class="qa-icon qa-icon-success"><i class="fas fa-user-plus"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Add Students</div>
+                            <div class="u-fs-12 u-fw-semibold">Add Learners</div>
                             <div class="u-fs-11 text-secondary">Enroll learners to this plan</div>
                         </div>
                     </a>
@@ -199,7 +199,7 @@
             <div class="border rounded bg-white">
                 <div class="p-3 d-flex justify-content-between align-items-center">
                     <div class="section-title mb-0 assignment-panel-title">
-                        Students
+                        Learners
                         <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
                               class="u-fs-11 u-text-transform-none u-letter-spacing-0">— All</span>
                     </div>
@@ -380,7 +380,7 @@
         }).dxPopup("instance");
 
         addStudentsPopup = $("#add-students-popup").dxPopup({
-            title: "Add Students",
+            title: "Add Learners",
             width: "90vw",
             maxWidth: 1280,
             height: "85vh",
@@ -709,7 +709,7 @@
                     <div class="d-flex align-items-center gap-2">
                         <a href="javascript:void(0);" class="course-item-remove btn-reset-course"
                            data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}"
-                           title="Reset all students">
+                                    title="Reset all learners">
                             <i class="fas fa-sync-alt"></i>
                         </a>
                         <a href="javascript:void(0);" class="course-item-remove btn-remove-course"
@@ -760,7 +760,7 @@
             dataSource: students,
             rowAlternationEnabled: false,
             filterRow: { visible: false },
-            searchPanel: { placeholder: "Search student...", width: 160 },
+            searchPanel: { placeholder: "Search learner...", width: 160 },
             export: { enabled: false },
             onExporting: function(e) {
                 handleExporting(e, `Student_Tracking_${ASSIGNMENT_ID}`);
@@ -837,7 +837,7 @@
                             .appendTo($wrap);
                         $("<a>")
                             .attr("href", "javascript:void(0);")
-                            .attr("title", "Remove student")
+                            .attr("title", "Remove learner")
                             .addClass("action-link action-link-xs")
                             .html('<i class="fas fa-user-minus u-text-danger"></i>')
                             .on("click", function(e) {
@@ -883,11 +883,11 @@
         const grid = $("#add-students-grid").dxDataGrid("instance");
         const studentCodes = grid ? grid.getSelectedRowKeys() : [];
         if (!studentCodes.length) {
-            showToast("Please select at least one student.", "warning");
+            showToast("Please select at least one learner.", "warning");
             return;
         }
 
-        loadPanel.option("message", "Adding students...");
+        loadPanel.option("message", "Adding learners...");
         loadPanel.show();
 
         try {
@@ -900,10 +900,10 @@
             });
 
             addStudentsPopup.hide();
-            reloadDetail(response.message || "Students updated.");
+            reloadDetail(response.message || "Learners updated.");
         } catch (error) {
             loadPanel.hide();
-            showToast(window.getApiErrorMessage(error, "Error adding students."), "error", 4000);
+            showToast(window.getApiErrorMessage(error, "Error adding learners."), "error", 4000);
         }
     }
 
@@ -1041,7 +1041,7 @@
 
     function confirmRemoveStudent(studentCode, studentName) {
         showConfirmDialog({
-            title: "Remove student from assignment?",
+            title: "Remove learner from assignment?",
             html: `<b>${window.escapeHtml(studentCode || EMPTY_TEXT)}</b> ${window.escapeHtml(studentName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
             confirmButtonText: "Remove",
             confirmClass: "btn-danger",
@@ -1051,7 +1051,7 @@
                 return;
             }
 
-            loadPanel.option("message", "Removing student...");
+            loadPanel.option("message", "Removing learner...");
             loadPanel.show();
 
             try {
@@ -1061,10 +1061,10 @@
                     xhrFields: { withCredentials: true }
                 });
 
-                reloadDetail(response.message || "Student removed.");
+                reloadDetail(response.message || "Learner removed.");
             } catch (error) {
                 loadPanel.hide();
-                showToast(window.getApiErrorMessage(error, "Error removing student."), "error", 4000);
+                showToast(window.getApiErrorMessage(error, "Error removing learner."), "error", 4000);
             }
         });
     }
@@ -1123,8 +1123,8 @@
             || dashboardData?.totalEmployees
             || 0;
         const targetText = payload.groupId
-            ? `${window.escapeHtml(dashboardData?.studentGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'student')})`
-            : window.formatAdminCountLabel(resolvedCount, 'student');
+            ? `${window.escapeHtml(dashboardData?.studentGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'learner')})`
+            : window.formatAdminCountLabel(resolvedCount, 'learner');
         const inProgressConflicts = validationResult.inProgressConflicts || [];
         const completedConflicts = validationResult.completedConflicts || [];
 
@@ -1137,7 +1137,7 @@
                     <div class="u-fs-12 mb-1"><strong>Courses:</strong> ${payload.courseIds.length}</div>
                     <div class="u-fs-12"><strong>Target:</strong> ${targetText}</div>
                 </div>
-                <div class="u-fs-12 text-secondary">Courses and target students are copied from the current assignment. Only the criteria above will be changed.</div>
+                <div class="u-fs-12 text-secondary">Courses and target learners are copied from the current assignment. Only the criteria above will be changed.</div>
                 ${buildConflictPreviewHtml(inProgressConflicts, "In-progress enrollments will be reset", "border-warning-subtle bg-warning-subtle", "fa-rotate-right")}
                 ${buildConflictPreviewHtml(completedConflicts, "Completed enrollments will be re-assigned", "border-info-subtle bg-info-subtle", "fa-check-circle")}
             </div>`;
@@ -1212,14 +1212,14 @@
         const defaults = getDefaultReassignmentDates();
         const lockedTargetText = reassignData.studentGroupId
             ? window.escapeHtml(dashboardData.studentGroupName || "Selected group")
-            : window.formatAdminCountLabel(getReassignmentStudentCodes().length, 'student');
+            : window.formatAdminCountLabel(getReassignmentStudentCodes().length, 'learner');
 
         const dialog = DevExpress.ui.dialog.custom({
             title: "Reassignment",
             messageHtml: `
                 <div id="${dialogId}" class="pt-2 text-start">
                     <div class="u-fs-12 text-secondary mb-3">
-                        Courses and target students are copied from the current assignment. You can change only the assignment criteria below.
+                        Courses and target learners are copied from the current assignment. You can change only the assignment criteria below.
                     </div>
                     <div class="border rounded p-3 bg-light-subtle mb-3 u-fs-12">
                         <div class="mb-1"><strong>Courses:</strong> ${reassignData.courseIds.length}</div>
@@ -1306,7 +1306,7 @@
 
                     const employeeCodes = reassignData.studentGroupId ? [] : getReassignmentStudentCodes();
                     if (!reassignData.studentGroupId && employeeCodes.length === 0) {
-                        showToast("No students available for reassignment.", "warning", 3000);
+                        showToast("No learners available for reassignment.", "warning", 3000);
                         return;
                     }
 
@@ -1392,8 +1392,8 @@
 
     function confirmResetCourse(ruleId, title) {
         confirmResetEnrollment({
-            title: "Reset All Students",
-            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            title: "Reset All Learners",
+            messageHtml: `Reset enrollment progress for all learners in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: null,
             loadingMessage: "Resetting enrollments...",
@@ -1404,7 +1404,7 @@
 
     function confirmResetStudent(ruleId, studentCode, studentName) {
         confirmResetEnrollment({
-            title: "Reset Student Enrollment",
+            title: "Reset Learner Enrollment",
             messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: [studentCode],

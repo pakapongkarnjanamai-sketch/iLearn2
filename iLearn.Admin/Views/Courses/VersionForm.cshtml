@@ -50,11 +50,11 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow admin-viewport-layout">
     <div id="load-panel"></div>
 
-    <div class="admin-review-main-col">
-        <div class="border rounded bg-white p-3">
+    <div class="admin-review-main-col admin-responsive-content">
+        <div class="border rounded bg-white p-3 admin-viewport-fill">
             <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
                 <div class="admin-section-header mb-2">
                     <div class="admin-section-header-main">
@@ -67,7 +67,7 @@
                 </div>
             </div>
 
-            <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
+            <div id="step-panel-2" class="admin-wizard-panel admin-wizard-panel--grid-fill" data-step-layout="wide">
                 <div class="admin-section-header mb-2">
                     <div class="admin-section-header-main">
                         <div class="section-title mb-0 admin-section-title-fill">Version Content</div>
@@ -101,7 +101,7 @@
                                 <span class="tag-pill pill-default" id="total-count-badge">0 items</span>
                             </div>
                         </div>
-                        <div id="master-resources-grid"></div>
+                        <div id="master-resources-grid" class="admin-grid-fill"></div>
                     </div>
                 </div>
             </div>
@@ -158,7 +158,7 @@
         const VERSION_CANCEL_URL = '@detailUrl';
 
         const VERSION_NOTE_HEIGHT = 90;
-        const MASTER_RESOURCE_GRID_HEIGHT = 520;
+        const MASTER_RESOURCE_GRID_HEIGHT = "100%";
         const EXISTING_RESOURCE_GRID_HEIGHT = 520;
         const TOTAL_WIZARD_STEPS = 3;
 
@@ -171,6 +171,7 @@
         let popupExisting;
         let loadPanel;
         let reviewForm;
+        let gridViewportController = null;
         const createState = {
             currentStep: 1
         };
@@ -532,8 +533,15 @@
             $(`#step-panel-${createState.currentStep}`).addClass("active");
             const layout = $(`#step-panel-${createState.currentStep}`).attr("data-step-layout") || "wide";
             $(".admin-wizard-shell")
+                .toggleClass("is-grid-step", createState.currentStep === 2)
                 .toggleClass("is-form-step", layout === "form")
                 .toggleClass("is-review-step", layout === "review");
+
+            gridViewportController = window.toggleAdminViewportLayout(gridViewportController, createState.currentStep === 2, {
+                layoutSelector: ".admin-wizard-shell.admin-viewport-layout",
+                contentSelector: ".admin-review-main-col.admin-responsive-content",
+                refreshTargets: [masterGrid]
+            });
 
             $("#btn-previous-step").toggleClass("d-none", createState.currentStep <= 1);
             $("#btn-next-step").toggleClass("d-none", createState.currentStep >= TOTAL_WIZARD_STEPS);
