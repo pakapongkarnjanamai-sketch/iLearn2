@@ -463,7 +463,7 @@ else
                     {
                         caption: "Order", width: 80, alignment: "center", allowEditing: false,
                         cellTemplate: function(container, options) {
-                            $("<span>").addClass("text-muted fw-bold").text(options.rowIndex + 1).appendTo(container);
+                            window.renderAdminGridTextCell(container, options.rowIndex + 1, "captionMuted", { fontWeight: "700" });
                         }
                     },
                     {
@@ -478,7 +478,7 @@ else
                                 .append($("<span>").addClass("fw-medium text-dark text-truncate").text(data.name));
 
                             if (isNew) {
-                                wrapper.append($('<span>').addClass('tag-pill tag-pill-xs pill-info ms-2').text('New'));
+                                window.renderAdminGridTextCell(wrapper, 'New', 'xsAccent', { marginLeft: '8px' });
                             }
 
                             wrapper.appendTo(container);
@@ -502,8 +502,9 @@ else
                             const cursorStyle = data.isNew ? "cursor: pointer;" : "cursor: default;";
                             const tooltip = data.isNew ? "Click to change type" : "Existing resource type cannot be changed here";
 
-                            $('<div>').addClass(`tag-pill ${typeClass}`)
-                                .attr("style", cursorStyle)
+                            $('<div>').css(window.getAdminGridTextStyle(data.typeId === 1 ? 'captionAccent' : 'captionWarning', {
+                                cursor: data.isNew ? 'pointer' : 'default'
+                            }))
                                 .attr("title", tooltip)
                                 .html(`${typeName} ${editHint}`)
                                 .appendTo(container);
@@ -559,7 +560,7 @@ else
                                 cellTemplate: function(container, options) {
                                     const isLearn = options.value === 1;
                                     const text = isLearn ? "Learn" : "Exam";
-                                    $('<span>').addClass(`tag-pill ${isLearn ? 'pill-learn' : 'pill-exam'}`).text(text).appendTo(container);
+                                    window.renderAdminGridStatusCell(container, text, isLearn ? 'primary' : 'warning', { showDot: false });
                                 }
                             },
                             {
@@ -567,10 +568,7 @@ else
                                 calculateCellValue: function(d) { return (d.courseResources || []).length; },
                                 cellTemplate: function(container, options) {
                                     const count = options.value;
-                                    $('<span>')
-                                        .addClass(`tag-pill ${count > 0 ? 'pill-success' : 'pill-default'}`)
-                                        .html(`<i class="fas fa-book me-1"></i>${count}`)
-                                        .appendTo(container);
+                                    window.renderAdminGridTextCell(container, count, count > 0 ? 'captionSuccess' : 'captionMuted');
                                 }
                             },
                             {
@@ -1074,7 +1072,7 @@ else
 
             const rows = unifiedResources.map(function(resource, index) {
                 const sourceText = resource.isNew ? "New upload" : "Resource library";
-                const sourceBadge = resource.isNew ? "pill-info" : "pill-default";
+                const sourceBadge = resource.isNew ? "pill-primary" : "pill-default";
 
                 return `
                     <tr>

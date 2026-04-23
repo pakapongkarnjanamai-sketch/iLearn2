@@ -51,11 +51,7 @@
                         caption: "Description",
                         minWidth: 240,
                         cellTemplate: function (container, options) {
-                            const text = options.value || "—";
-                            const display = text.length > 70 ? text.slice(0, 70) + "\u2026" : text;
-                            const el = $("<span>").text(display).css({ fontSize: "12px", color: "var(--text-secondary)" });
-                            if (text.length > 70) el.attr("title", text);
-                            $(container).append(el);
+                            window.renderAdminGridTruncatedTextCell(container, options.value, 70, "captionMuted");
                         }
                     },
                     {
@@ -63,11 +59,8 @@
                         caption: "Members",
                         width: 120,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            const count = options.value || 0;
-                            const label = count + " member" + (count !== 1 ? "s" : "");
-                            $("<span>").addClass("tag-pill pill-info").text(label).appendTo(container);
-                        }
+                        cssClass: "cell-accent",
+                        customizeText: function(e) { return String(e.value ?? 0); }
                     },
                     {
                         dataField: "createdBy",

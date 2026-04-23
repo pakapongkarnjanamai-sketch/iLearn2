@@ -542,7 +542,7 @@
                         {
                             dataField: "code", caption: "Code", minWidth: 160,
                             cellTemplate: function(container, options) {
-                                $('<span>').addClass('tag-pill pill-default fw-bold').text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, 'captionStrong');
                             }
                         },
                         { dataField: "title", caption: "Course Title", minWidth: 180 },
@@ -553,7 +553,7 @@
                                     return;
                                 }
 
-                                $('<span>').addClass('tag-pill pill-info').text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, 'captionAccent');
                             }
                         }
                     ],
@@ -593,7 +593,7 @@
                         {
                             dataField: "EId", caption: "ID", width: 95,
                             cellTemplate: function(container, options) {
-                                $('<span>').addClass('tag-pill pill-default fw-bold').text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, 'captionStrong');
                             }
                         },
                         {
@@ -608,7 +608,7 @@
                                     return;
                                 }
 
-                                $('<span>').addClass('tag-pill pill-default').text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, 'captionMuted');
                             }
                         },
                         { dataField: "Department", caption: "Dept.", width: 90 },
@@ -672,7 +672,7 @@
                         },
                         { dataField: "memberCount", caption: "Members", width: 100, alignment: "center",
                             cellTemplate: function(container, options) {
-                                $('<span>').addClass('tag-pill pill-info fw-bold').text(options.value || 0).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value || 0, 'captionAccent');
                             }
                         }
                     ],
@@ -1138,7 +1138,7 @@
                         <td>${i + 1}</td>
                         <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.code || EMPTY_TEXT)}</span></td>
                         <td class="fw-medium text-dark">${window.escapeHtml(row.title || EMPTY_TEXT)}</td>
-                        <td><span class="tag-pill pill-info">${window.escapeHtml(row.courseTypeName || EMPTY_TEXT)}</span></td>
+                        <td><span class="tag-pill pill-primary">${window.escapeHtml(row.courseTypeName || EMPTY_TEXT)}</span></td>
                     </tr>`;
                 }).join('');
 

@@ -14,9 +14,9 @@
             width: 64px;
             height: 64px;
             background: var(--surface-brand-subtle);
-            color: var(--accent-color);
+            color: var(--primary-color);
             border-radius: 50%;
-            font-size: 24px;
+            font-size: var(--font-size-xl);
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -140,7 +140,7 @@
             var courseRows = courses.map(function(course) {
                 var pct = course.enrollmentCount > 0
                     ? Math.round((course.completedCount / course.enrollmentCount) * 100) : 0;
-                var colorClass = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
+                var colorClass = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--primary-color)" : "var(--border-color)";
                 return '<tr>'
                     + '<td class="fw-bold align-middle">' + esc(course.code || '—') + '</td>'
                     + '<td class="align-middle">' + esc(course.title || '—') + '</td>'
@@ -223,7 +223,7 @@
                 + '          <div class="stat-label">Not Started</div>'
                 + '        </div>'
                 + '        <div class="stat-block">'
-                + '          <div class="stat-num" style="color:var(--accent-color);">' + completionPct + '%</div>'
+                + '          <div class="stat-num" style="color:var(--primary-color);">' + completionPct + '%</div>'
                 + '          <div class="stat-label">Completion</div>'
                 + '        </div>'
                 + '      </div>'
@@ -284,7 +284,7 @@
                                 visible: true,
                                 position: "outside",
                                 customizeText: function(p) { return p.valueText + " (" + p.percentText + ")"; },
-                                font: { size: 11, color: "var(--text-secondary)" },
+                                font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
                                 connector: { visible: true, width: 1 }
                             }
                         }],
@@ -292,7 +292,7 @@
                             horizontalAlignment: "right",
                             verticalAlignment: "center",
                             margin: 0,
-                            font: { size: 12, color: "var(--text-secondary)" }
+                            font: { size: parseInt(window.adminTypography.size.caption, 10), color: "var(--text-secondary)" }
                         },
                         tooltip: { enabled: true }
                     }

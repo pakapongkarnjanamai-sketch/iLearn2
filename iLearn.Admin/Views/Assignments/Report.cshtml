@@ -161,7 +161,7 @@
             // Course Rows Data
             const courseRows = (data.courses || []).map(c => {
                 const pct = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
-                const colorClass = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--accent-color)" : "var(--border-color)";
+                const colorClass = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--primary-color)" : "var(--border-color)";
                 return `<tr>
                     <td class="fw-bold align-middle">${c.courseCode}</td>
                     <td class="align-middle">${c.courseTitle}</td>
@@ -197,7 +197,7 @@
                 const overallPct = Math.round(rows.reduce((a, r) => a + r.progress, 0) / rows.length);
 
                 // กำหนดสีของหลอด Progress
-                const colorClass = overallPct === 100 ? "var(--success-color)" : overallPct > 0 ? "var(--accent-color)" : "var(--border-color)";
+                const colorClass = overallPct === 100 ? "var(--success-color)" : overallPct > 0 ? "var(--primary-color)" : "var(--border-color)";
 
                 return `<tr>
                     <td class="align-middle">
@@ -343,13 +343,13 @@
                                 visible: true,
                                 position: "outside",
                                 customizeText: p => `${p.valueText} (${p.percentText})`,
-                                font: { size: 11, color: "var(--text-secondary)" },
+                                font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
                                 connector: { visible: true, width: 1 }
                             }
                         }],
                         legend: {
                             horizontalAlignment: "right", verticalAlignment: "center",
-                            margin: 0, font: { size: 12, color: "var(--text-secondary)" }
+                            margin: 0, font: { size: parseInt(window.adminTypography.size.caption, 10), color: "var(--text-secondary)" }
                         },
                         tooltip: { enabled: true }
                     }

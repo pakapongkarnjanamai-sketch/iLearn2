@@ -192,7 +192,7 @@
                     cellTemplate: function(container, options) {
                         $("<a>")
                             .attr("href", `${COURSE_DETAIL_URL}?id=${options.row.data.id}`)
-                            .addClass("tag-pill pill-default fw-bold")
+                            .css(window.getAdminGridTextStyle("captionStrong"))
                             .text(options.value || EMPTY_TEXT)
                             .appendTo(container);
                     }
@@ -203,7 +203,7 @@
                     minWidth: 200,
                     cellTemplate: function(container, options) {
                         $("<div>").addClass("d-flex align-items-center gap-2")
-                            .append($("<i>").addClass("fas fa-book").css({ color: "var(--accent-color)", opacity: ".75" }))
+                            .append($("<i>").addClass("fas fa-book").css({ color: "var(--primary-color)", opacity: ".75" }))
                             .append($("<span>").addClass("fw-bold text-dark").text(options.value || EMPTY_TEXT))
                             .appendTo(container);
                     }
@@ -216,8 +216,8 @@
                     cellTemplate: function(container, options) {
                         const typeName = options.value;
                         if (typeName) {
-                            const cls = typeName === "Learn" ? "pill-learn" : typeName === "Exam" ? "pill-exam" : "pill-default";
-                            $("<span>").addClass("tag-pill " + cls).text(typeName).appendTo(container);
+                            const tone = typeName === "Learn" ? "primary" : typeName === "Exam" ? "warning" : "default";
+                            window.renderAdminGridStatusCell(container, typeName, tone, { showDot: false });
                         } else {
                             $("<span>").addClass("text-muted").text(EMPTY_TEXT).appendTo(container);
                         }
@@ -229,15 +229,7 @@
                     width: 120,
                     alignment: "center",
                     cellTemplate: function(container, options) {
-                        if (options.value) {
-                            $("<span>").addClass("tag-pill pill-success")
-                                .html('<i class="fas fa-check me-1"></i> Active')
-                                .appendTo(container);
-                        } else {
-                            $("<span>").addClass("tag-pill pill-default")
-                                .html('<i class="fas fa-times me-1"></i> Inactive')
-                                .appendTo(container);
-                        }
+                        window.renderAdminGridStatusCell(container, options.value ? "Active" : "Inactive", options.value ? "success" : "default");
                     }
                 },
                 {
@@ -248,10 +240,9 @@
                     cellTemplate: function(container, options) {
                         const count = options.value || 0;
                         if (count === 0) {
-                            $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                            window.renderAdminGridTextCell(container, "None", "captionMuted");
                         } else {
-                            $("<span>").addClass("tag-pill pill-info")
-                                .text(count + " enrolled").appendTo(container);
+                            window.renderAdminGridTextCell(container, count + " enrolled", "captionAccent");
                         }
                     }
                 },
@@ -267,10 +258,8 @@
                             $("<span>").addClass("text-muted").text(EMPTY_TEXT).appendTo(container);
                         } else {
                             const pct = Math.round((completed / total) * 100);
-                            const cls = pct === 100 ? "pill-success" : pct >= 50 ? "pill-info" : "pill-warning";
-                            $("<span>").addClass("tag-pill " + cls)
-                                .text(completed + "/" + total + " (" + pct + "%)")
-                                .appendTo(container);
+                            const variant = pct === 100 ? "captionSuccess" : pct >= 50 ? "captionAccent" : "captionWarning";
+                            window.renderAdminGridTextCell(container, completed + "/" + total + " (" + pct + "%)", variant);
                         }
                     }
                 },
@@ -331,7 +320,7 @@
         $("#info-name").text(c.name);
         $("#info-division").html(
             c.divisionName
-                ? `<span class="tag-pill pill-info">${c.divisionName}</span>`
+                ? `<span class="tag-pill pill-primary">${c.divisionName}</span>`
                 : `<span class="text-muted fst-italic">${EMPTY_TEXT}</span>`
         );
         $("#info-status").html(
@@ -379,7 +368,7 @@
                             position: "outside",
                             connector: { visible: true },
                             format: { type: "fixedPoint", precision: 0 },
-                            font: { size: 11, color: "var(--text-secondary)" },
+                            font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
                             customizeText: function(point) {
                                 return point.argumentText + ": " + point.valueText;
                             }
@@ -389,7 +378,7 @@
                         horizontalAlignment: "right",
                         verticalAlignment: "bottom",
                         margin: 12,
-                        font: { size: 11, color: "var(--text-secondary)" }
+                        font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" }
                     },
                     tooltip: { enabled: true }
                 }

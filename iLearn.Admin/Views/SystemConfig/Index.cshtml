@@ -5,18 +5,18 @@
 
     string EnvBadge(string env) => env switch
     {
-        "Production"  => "tag-pill green",
-        "Staging"     => "tag-pill yellow",
-        _             => "tag-pill blue",
+        "Production"  => "tag-pill pill-success",
+        "Staging"     => "tag-pill pill-warning",
+        _             => "tag-pill pill-primary",
     };
     string LogLevelClass(string level) => level switch
     {
-        "Trace"       => "purple",
-        "Debug"       => "blue",
-        "Information" => "green",
-        "Warning"     => "yellow",
-        "Error"       => "red",
-        "Critical"    => "red",
+        "Trace"       => "pill-purple",
+        "Debug"       => "pill-primary",
+        "Information" => "pill-success",
+        "Warning"     => "pill-warning",
+        "Error"       => "pill-danger",
+        "Critical"    => "pill-danger",
         _             => ""
     };
 }
@@ -30,19 +30,19 @@
     <div class="d-flex align-items-center gap-2">
         @if (Model.ApiReachable)
         {
-            <span class="tag-pill green"><i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> API Online</span>
+            <span class="tag-pill pill-success"><i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> API Online</span>
         }
         else if (Model.ApiConfigFallbackUsed)
         {
-            <span class="tag-pill yellow"><i class="fas fa-triangle-exclamation tag-pill-icon-sm me-1" aria-hidden="true"></i> API Config Fallback</span>
+            <span class="tag-pill pill-warning"><i class="fas fa-triangle-exclamation tag-pill-icon-sm me-1" aria-hidden="true"></i> API Config Fallback</span>
         }
         else
         {
-            <span class="tag-pill red"><i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> API Unreachable</span>
+            <span class="tag-pill pill-danger"><i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> API Unreachable</span>
         }
         @if (!string.IsNullOrWhiteSpace(Model.ApiSource))
         {
-            <span class="tag-pill blue"><i class="fas fa-database tag-pill-icon-sm me-1" aria-hidden="true"></i> @Model.ApiSource</span>
+            <span class="tag-pill pill-primary"><i class="fas fa-database tag-pill-icon-sm me-1" aria-hidden="true"></i> @Model.ApiSource</span>
         }
         <span class="@EnvBadge(Model.AdminEnvironment)">
             <i class="fas fa-circle tag-pill-icon-xs me-1" aria-hidden="true"></i> @Model.AdminEnvironment
@@ -83,11 +83,11 @@
                                     <td>
                                         @if (Model.Database.TrustCert.Equals("true", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <span class="tag-pill green">True</span>
+                                            <span class="tag-pill pill-success">True</span>
                                         }
                                         else
                                         {
-                                            <span class="tag-pill yellow">False</span>
+                                            <span class="tag-pill pill-warning">False</span>
                                         }
                                     </td>
                                 </tr>
@@ -375,7 +375,7 @@
         color: var(--text-tertiary);
         margin-bottom: 8px;
         padding-left: 4px;
-        border-left: 3px solid var(--brand-color); /* Brand Primary */
+        border-left: 3px solid var(--primary-color); /* Brand Primary */
     }
     .config-table code {
         font-family: 'Consolas', 'Courier New', monospace;
@@ -388,7 +388,7 @@
         word-break: break-all;
     }
     .config-table code.text-primary { 
-        color: var(--brand-color) !important; 
+        color: var(--primary-color) !important; 
         background: var(--surface-brand-subtle);
         border-color: var(--border-brand);
     }

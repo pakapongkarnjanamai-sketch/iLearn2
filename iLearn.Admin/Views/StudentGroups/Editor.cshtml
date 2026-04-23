@@ -320,7 +320,7 @@ else
                 {
                     dataField: "EId", caption: "ID", width: 120,
                     cellTemplate: function(container, options) {
-                        $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value || EMPTY_TEXT).appendTo(container);
+                        window.renderAdminGridTextCell(container, options.value || EMPTY_TEXT, "captionStrong");
                     }
                 },
                 {

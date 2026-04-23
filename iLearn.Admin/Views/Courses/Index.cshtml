@@ -85,11 +85,10 @@
                             const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
 
                             if (options.data.isActive === false) {
-                                $("<span>").addClass("tag-pill pill-default")
-                                           .text("Draft").appendTo(wrapper);
+                                window.renderAdminGridTextCell(wrapper, "Draft", "captionMuted");
                             }
 
-                            $("<span>").css({ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" })
+                            $("<span>").css(window.getAdminGridTextStyle("smStrong"))
                                        .text(options.value).appendTo(wrapper);
                             wrapper.appendTo(container);
                         }
@@ -108,16 +107,13 @@
                          alignment: "center",
                         cellTemplate: function(container, options) {
                             const text = options.value || "—";
-                            const pillClass = options.data.courseTypeId === 1
-                                ? "tag-pill pill-learn"
+                            const tone = options.data.courseTypeId === 1
+                                ? "primary"
                                 : options.data.courseTypeId === 2
-                                    ? "tag-pill pill-exam"
-                                    : "tag-pill pill-default";
+                                    ? "warning"
+                                    : "default";
 
-                            $("<span>")
-                                .addClass(pillClass)
-                                .text(text)
-                                .appendTo(container);
+                            window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
                         }
                     },
                     {

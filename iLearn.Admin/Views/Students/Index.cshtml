@@ -36,7 +36,7 @@
                         cellTemplate: (c, o) => {
                             $("<a>").attr("href", `@studentReportUrlTemplate`.replace("__STUDENT_CODE__", encodeURIComponent(o.value || "")))
                                    .attr("target", "_blank")
-                                   .addClass("tag-pill pill-default fw-bold")
+                                   .css(window.getAdminGridTextStyle("captionStrong"))
                                    .text(o.value || "—").appendTo(c);
                         }
                     },

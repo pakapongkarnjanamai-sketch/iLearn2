@@ -141,7 +141,7 @@
                             <div class="u-fs-12 u-fw-semibold">Database Connection</div>
                             <div class="u-fs-11 text-secondary">API Server Status</div>
                         </div>
-                        <span class="tag-pill active"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Active</span>
+                        <span class="tag-pill pill-success"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Active</span>
                     </div>
 
                     <div class="d-flex align-items-center pb-3 mb-3 u-border-bottom">
@@ -149,7 +149,7 @@
                             <div class="u-fs-12 u-fw-semibold">Authentication Service</div>
                             <div class="u-fs-11 text-secondary">User Login System</div>
                         </div>
-                        <span class="tag-pill active"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Running</span>
+                        <span class="tag-pill pill-success"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Running</span>
                     </div>
 
                     <div class="d-flex align-items-center">
@@ -157,7 +157,7 @@
                             <div class="u-fs-12 u-fw-semibold">File Storage Service</div>
                             <div class="u-fs-11 text-secondary">Resource Upload System</div>
                         </div>
-                        <span class="tag-pill active"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Operational</span>
+                        <span class="tag-pill pill-success"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Operational</span>
                     </div>
 
                 </div>
@@ -478,15 +478,15 @@
                     valueField: "sessions",
                     name: "Sessions",
                     type: "bar",
-                    color: window.getAdminCssToken('--brand-mid'),
+                    color: window.getAdminCssToken('--primary-mid'),
                     cornerRadius: 2
                 },
                 argumentAxis: {
-                    label: { font: { color: window.getAdminCssToken('--text-secondary'), size: 11 } }
+                    label: { font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
                 },
                 valueAxis: {
                     grid: { visible: true, color: window.getAdminCssToken('--border-color') },
-                    label: { format: "#,##0", font: { color: window.getAdminCssToken('--text-secondary'), size: 11 } }
+                    label: { format: "#,##0", font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
                 },
                 legend: { visible: false },
                 margin: { top: 10, bottom: 0, left: 0, right: 0 },

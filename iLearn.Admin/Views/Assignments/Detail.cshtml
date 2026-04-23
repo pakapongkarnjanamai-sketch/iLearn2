@@ -326,7 +326,7 @@
                         {
                             dataField: "code", caption: "Code", width: 120,
                             cellTemplate: function(container, options) {
-                                $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, "captionStrong");
                             }
                         },
                         { dataField: "title", caption: "Course Title", minWidth: 220 },
@@ -334,7 +334,7 @@
                             dataField: "courseTypeName", caption: "Type", width: 140, alignment: "center",
                             cellTemplate: function(container, options) {
                                 if (options.value) {
-                                    $("<span>").addClass("tag-pill pill-info").text(options.value).appendTo(container);
+                                    window.renderAdminGridTextCell(container, options.value, "captionAccent");
                                 }
                             }
                         }
@@ -449,7 +449,7 @@
                         {
                             dataField: "EId", caption: "ID", width: 110,
                             cellTemplate: function(container, options) {
-                                $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, "captionStrong");
                             }
                         },
                         {
@@ -463,7 +463,7 @@
                             dataField: "Position", caption: "Position", width: 120, alignment: "center",
                             cellTemplate: function(container, options) {
                                 if (options.value) {
-                                    $("<span>").addClass("tag-pill pill-default").text(options.value).appendTo(container);
+                                    window.renderAdminGridTextCell(container, options.value, "captionMuted");
                                 }
                             }
                         },
@@ -647,7 +647,7 @@
                             visible: true,
                             position: "outside",
                             customizeText: point => `${point.valueText} (${point.percentText})`,
-                            font: { size: 11, color: "var(--text-secondary)" },
+                            font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
                             connector: { visible: true, width: 1 }
                         }
                     }],
@@ -655,7 +655,7 @@
                         horizontalAlignment: "right",
                         verticalAlignment: "bottom",
                         margin: 12,
-                        font: { size: 11, color: "var(--text-secondary)" }
+                        font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" }
                     },
                     tooltip: { enabled: true }
                 }
@@ -789,8 +789,7 @@
                         $("<a>")
                             .attr("href", STUDENT_REPORT_URL_TEMPLATE.replace("__STUDENT_CODE__", encodeURIComponent(options.value || "")))
                             .attr("target", "_blank")
-                            .css({ fontSize: "11px", fontWeight: "600" })
-                            .addClass("tag-pill pill-default")
+                            .css(window.getAdminGridTextStyle("captionStrong"))
                             .text(options.value)
                             .appendTo(container);
                     }
@@ -990,7 +989,7 @@
         }
 
         if (progress > 0) {
-            return "var(--accent-color)";
+            return "var(--primary-color)";
         }
 
         return "var(--border-color)";
@@ -1008,7 +1007,7 @@
             label = "In Progress";
         }
 
-        $("<span>").css({ fontSize: "12px" })
+        $("<span>").css(window.getAdminGridTextStyle("captionMuted"))
             .append($("<span>").addClass(`status-dot ${dotClass}`))
             .append(label)
             .appendTo(container);
@@ -1404,7 +1403,7 @@
     function confirmResetCourse(ruleId, title) {
         confirmResetEnrollment({
             title: "Reset All Students",
-            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span style="color:var(--danger-color);font-size:var(--font-size-xs);"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: null,
             loadingMessage: "Resetting enrollments...",
@@ -1416,7 +1415,7 @@
     function confirmResetStudent(ruleId, studentCode, studentName) {
         confirmResetEnrollment({
             title: "Reset Student Enrollment",
-            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span style="color:var(--danger-color);font-size:11px;"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span style="color:var(--danger-color);font-size:var(--font-size-xs);"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: [studentCode],
             loadingMessage: "Resetting enrollment...",
@@ -1469,7 +1468,7 @@
             messageHtml: `
                 <div id="${dialogId}" class="pt-2">
                     <div class="mb-3">
-                        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                        <div style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
                             New Due Date
                         </div>
                         <div id="${pickerId}"></div>

@@ -221,16 +221,16 @@
                         dataField: "status", caption: "Status", width: 120, alignment: "center",
                         cellTemplate: function(container, options) {
                             const val = (options.value || "").toLowerCase();
-                            const map = {
-                                "completed":   "tag-pill pill-success",
-                                "passed":      "tag-pill pill-success",
-                                "failed":      "tag-pill pill-danger",
-                                "incomplete":  "tag-pill pill-warning",
-                                "in_progress": "tag-pill pill-info",
-                                "not_started": "tag-pill pill-default"
-                            };
-                            $("<span>").addClass(map[val] || "tag-pill pill-default")
-                                .text(options.value || "—").appendTo(container);
+                            const tone = val === "completed" || val === "passed"
+                                ? "success"
+                                : val === "failed"
+                                    ? "danger"
+                                    : val === "incomplete"
+                                        ? "warning"
+                                        : val === "in_progress"
+                                            ? "primary"
+                                            : "default";
+                            window.renderAdminGridStatusCell(container, options.value || "—", tone);
                         }
                     },
                     {
@@ -245,13 +245,13 @@
                     {
                         dataField: "score", caption: "Score", width: 80, alignment: "center",
                         cellTemplate: function(container, options) {
-                            const v = options.value;
-                            if (v !== null && v !== undefined) {
-                                $("<span>").css({ fontWeight: "600", color: v >= 50 ? "var(--success-color)" : "var(--danger-color)" })
-                                    .text(v).appendTo(container);
-                            } else {
-                                $("<span>").css({ color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
+                            const value = options.value;
+                            if (value === null || value === undefined) {
+                                window.renderAdminGridTextCell(container, "—", "captionMuted", { opacity: ".4" });
+                                return;
                             }
+
+                            window.renderAdminGridTextCell(container, value, value >= 50 ? "captionSuccess" : "captionDanger");
                         }
                     },
                     {

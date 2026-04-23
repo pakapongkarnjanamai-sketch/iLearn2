@@ -158,7 +158,7 @@
                 messageHtml: `
                     <div class="text-start dialog-body-sm">
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <i class="fas fa-spinner fa-spin" style="color:var(--accent-color);"></i>
+                            <i class="fas fa-spinner fa-spin" style="color:var(--primary-color);"></i>
                             <span class="u-fw-semibold">Processing</span>
                         </div>
                         <div class="u-text-secondary-60">${escapeAdminHtml(text)}</div>
@@ -552,8 +552,12 @@
                         lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
                         alignment: "center", width: 120,
                         cellTemplate: function(container, options) {
-                            const cls = options.value === 1 ? "tag-pill pill-learn" : "tag-pill pill-exam";
-                            $("<span>").addClass(cls).text(options.displayValue || "—").appendTo(container);
+                            window.renderAdminGridStatusCell(
+                                container,
+                                options.displayValue || "—",
+                                options.value === 1 ? "primary" : "warning",
+                                { showDot: false }
+                            );
                         }
                     },
                     { dataField: "fileLength", caption: "DB Size", dataType: "number", alignment: "center", width: 100,
@@ -566,9 +570,9 @@
                         cellTemplate: function(container, options) {
                             const stats = serverStatsMap[options.data.id];
                             if (!options.data.isActive || !stats) {
-                                $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
+                                $("<span>").css(window.getAdminGridTextStyle("xsMutedFaint")).text("—").appendTo(container);
                             } else {
-                                $("<span>").css({ fontSize: "11px", fontWeight: "600", color: "var(--text-primary)" })
+                                $("<span>").css(window.getAdminGridTextStyle("xsStrong"))
                                     .text(window.formatAdminInteger(stats.fileCount, '0')).appendTo(container);
                             }
                         }
@@ -578,9 +582,9 @@
                         cellTemplate: function(container, options) {
                             const stats = serverStatsMap[options.data.id];
                             if (!options.data.isActive || !stats) {
-                                $("<span>").css({ fontSize: "11px", color: "var(--text-secondary)", opacity: ".4" }).text("—").appendTo(container);
+                                $("<span>").css(window.getAdminGridTextStyle("xsMutedFaint")).text("—").appendTo(container);
                             } else {
-                                $("<span>").css({ fontSize: "11px", fontWeight: "600", color: "var(--accent-color)" })
+                                $("<span>").css(window.getAdminGridTextStyle("xsAccent"))
                                     .text(window.formatAdminFileSize(stats.totalSize, '—')).appendTo(container);
                             }
                         }
@@ -590,9 +594,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                                window.renderAdminGridTextCell(container, "None", "captionMuted");
                             } else {
-                                $("<span>").addClass("tag-pill pill-success").text(window.formatAdminCountLabel(count, 'course')).appendTo(container);
+                                window.renderAdminGridTextCell(container, window.formatAdminCountLabel(count, 'course'), "captionSuccess");
                             }
                         }
                     },
@@ -609,9 +613,8 @@
                     { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center", width: 100,
                         allowEditing: false,
                         cellTemplate: function(container, options) {
-                            const cls = options.value ? "tag-pill pill-success" : "tag-pill pill-default";
                             const label = options.value ? "Active" : "Draft";
-                            $("<span>").addClass(cls).text(label).appendTo(container);
+                            window.renderAdminGridStatusCell(container, label, options.value ? "success" : "default");
                         }
                     },
                     {
@@ -796,8 +799,11 @@
                             { dataField: "totalCourseCount", caption: "Courses", width: 80, alignment: "center",
                                 cellTemplate: function(c, o) {
                                     const v = o.value || 0;
-                                    const cls = v > 0 ? "tag-pill pill-default" : "tag-pill pill-default";
-                                    $("<span>").addClass(cls).text(v === 0 ? "None" : window.formatAdminCountLabel(v, 'inactive course')).appendTo(c);
+                                    window.renderAdminGridTextCell(
+                                        c,
+                                        v === 0 ? "None" : window.formatAdminCountLabel(v, 'inactive course'),
+                                        v === 0 ? "captionMuted" : "captionStrong"
+                                    );
                                 }
                             }
                         ],
@@ -829,8 +835,10 @@
                                 cellTemplate: function(c, o) {
                                     const courses = o.data.activeCourseVersions || [];
                                     courses.forEach(cv => {
-                                        $("<span>").addClass("tag-pill tag-pill-xs pill-success me-1")
-                                            .text(`${cv.courseCode} v${cv.versionNumber}`).appendTo(c);
+                                        window.renderAdminGridTextCell(c, `${cv.courseCode} v${cv.versionNumber}`, "xsStrong", {
+                                            color: "var(--success-color)",
+                                            marginRight: "8px"
+                                        });
                                     });
                                 }
                             }

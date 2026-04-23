@@ -2,98 +2,166 @@
     ViewBag.Title = ViewBag.Id == null ? "Create New Version" : "Edit Version";
     var isEdit = ViewBag.Id != null;
     var courseId = ViewBag.CourseId;
+    var detailUrl = Url.Action("Detail", "Courses", new { id = courseId });
 }
 
+@section WizardStyles {
+    <link href="~/css/admin-wizard.css" rel="stylesheet" asp-append-version="true" />
+}
+
+<style>
+    .version-content-note {
+        font-size: var(--font-size-caption);
+        color: var(--text-secondary);
+    }
+
+    .version-review-table-wrap {
+        --admin-table-wrap-max-height: clamp(220px, calc(100vh - 540px), 320px);
+    }
+</style>
+
 <!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
-    <div>
-        <h1 class="page-title">@ViewBag.Title</h1>
-        <div class="page-subtitle">@(isEdit ? "Update version details and content order." : "Create a version and add learning content.")</div>
+<div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
+    <h1 class="page-title"><i class="fas fa-code-branch text-primary me-2" aria-hidden="true"></i>@ViewBag.Title</h1>
+    <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
+        <div class="admin-step-card active" data-step-card="1" aria-current="step">
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Details</div>
+        </div>
+        <div class="admin-step-card" data-step-card="2">
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Content</div>
+        </div>
+        <div class="admin-step-card" data-step-card="3">
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Review</div>
+        </div>
     </div>
-    <a href="javascript:history.back();" class="action-link">
-        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
-    </a>
+    <div class="admin-page-header-actions">
+        <a href="@detailUrl" class="action-link">
+            <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+        </a>
+        <button type="button" id="btn-previous-step" class="action-link d-none">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
+        </button>
+        <button type="button" id="btn-next-step" class="action-link primary">
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
+        </button>
+        <button type="button" id="btn-submit-version" class="action-link primary d-none">
+            <i class="fas fa-save" aria-hidden="true"></i> @(isEdit ? "Save Changes" : "Create Version")
+        </button>
+    </div>
 </div>
 
-<div class="container page-shell-md px-4 py-4">
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow">
     <div id="load-panel"></div>
 
-    <!-- Version Details -->
-    <div class="border rounded bg-white d-flex flex-column mb-3">
-        <div class="p-3">
-            <div class="admin-section-header">
-                <div class="admin-section-header-main">
-                    <div class="section-title mb-0 admin-section-title-fill">Version Details</div>
+    <div class="admin-review-main-col">
+        <div class="border rounded bg-white p-3">
+            <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
+                <div class="admin-section-header mb-2">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Version Details</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
                 </div>
-                <div class="admin-section-divider"></div>
-            </div>
-        </div>
-        <div class="px-3 pb-3">
-            <div id="form-container"></div>
-        </div>
-    </div>
-
-    <!-- Version Content -->
-    <div class="border rounded bg-white d-flex flex-column">
-        <div class="p-3">
-            <div class="admin-section-header">
-                <div class="admin-section-header-main">
-                    <div class="section-title mb-0 admin-section-title-fill">Version Content</div>
-                    <span class="tag-pill pill-default admin-section-meta" id="total-count-badge">0 Items</span>
+                <div class="admin-detail-card">
+                    <div id="form-container"></div>
                 </div>
-                <div class="admin-section-divider"></div>
             </div>
-        </div>
 
-        <div class="px-3 pb-3">
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing">
-                        <i class="fas fa-search fa-lg mb-3 target-card-icon"></i>
-                        <div class="fw-bold text-dark mb-1 target-card-title">Select Existing Resources</div>
-                        <div class="text-secondary target-card-subtitle">Choose files from the central library.</div>
+            <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="wide">
+                <div class="admin-section-header mb-2">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Version Content</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+
+                <div class="admin-detail-card">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing" role="button" tabindex="0">
+                                <i class="fas fa-search fa-lg target-card-icon"></i>
+                                <div class="fw-bold text-dark target-card-title">Select Existing Resources</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload" role="button" tabindex="0">
+                                <i class="fas fa-cloud-upload-alt fa-lg target-card-icon"></i>
+                                <div class="fw-bold text-dark target-card-title">Upload New SCORM</div>
+                            </div>
+                            <div id="file-uploader-container"></div>
+                        </div>
+                    </div>
+
+                    <div class="version-content-note mb-3">You can drag and drop rows to reorder the content, and click on Type to change it for new files.</div>
+
+                    <div class="admin-grid-shell overflow-hidden">
+                        <div class="admin-grid-head">
+                            <div class="admin-grid-title">Selected Content</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="tag-pill pill-default" id="total-count-badge">0 items</span>
+                            </div>
+                        </div>
+                        <div id="master-resources-grid"></div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-trigger-upload">
-                        <i class="fas fa-cloud-upload-alt fa-lg mb-3 target-card-icon"></i>
-                        <div class="fw-bold text-dark mb-1 target-card-title">Upload New SCORM</div>
-                        <div class="text-secondary target-card-subtitle">Drag &amp; drop or click to browse .zip</div>
+            </div>
+
+            <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
+                <div class="admin-section-header admin-review-header">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
                     </div>
-                    <div id="file-uploader-container"></div>
+                    <div class="admin-section-divider"></div>
                 </div>
-            </div>
 
-            <div class="inline-note mb-3">
-                <i class="fas fa-info-circle u-text-accent"></i>
-                You can drag &amp; drop rows to reorder the content, and click on Type to change it for new files.
-            </div>
+                <div class="admin-review-stack">
+                    <div class="admin-summary-grid">
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="review-total-resources">0</div>
+                            <div class="admin-summary-label">Total Content Items</div>
+                        </div>
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="review-existing-resources">0</div>
+                            <div class="admin-summary-label">Existing Resources</div>
+                        </div>
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="review-new-resources">0</div>
+                            <div class="admin-summary-label">New Uploads</div>
+                        </div>
+                    </div>
 
-            <div class="border rounded overflow-hidden">
-                <div id="master-resources-grid"></div>
+                    <div class="admin-detail-card">
+                        <div class="section-title mb-2">Version Details</div>
+                        <div id="form-review-details"></div>
+                    </div>
+
+                    <div class="admin-table-shell">
+                        <div class="admin-table-head">
+                            <div class="admin-table-title">Content Review</div>
+                        </div>
+                        <div class="admin-table-wrap version-review-table-wrap" id="review-content-table"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- ── Fixed Bottom Toolbar ── -->
-<div class="bottom-toolbar">
-    <span class="me-auto text-secondary d-none d-md-inline bottom-toolbar-note">
-        <i class="fas fa-check-circle u-text-success"></i>
-        Verify content order before saving.
-    </span>
-    <a href="javascript:history.back();" class="action-link">Cancel</a>
-    <div id="btn-save"></div>
 </div>
 
 <div id="popup-existing"></div>
 
 @section Scripts {
     <script>
-        const COURSE_ID = parseInt('@courseId');
+        const COURSE_ID = Number('@courseId');
         const VERSION_ID = @(ViewBag.Id != null ? ViewBag.Id : "null");
         const IS_EDIT = VERSION_ID !== null;
         const COURSE_DETAIL_URL = '@Url.Action("Detail", "Courses")';
+        const VERSION_CANCEL_URL = '@detailUrl';
+
+        const VERSION_NOTE_HEIGHT = 90;
+        const MASTER_RESOURCE_GRID_HEIGHT = 520;
+        const EXISTING_RESOURCE_GRID_HEIGHT = 520;
+        const TOTAL_WIZARD_STEPS = 3;
+
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
         let formWidget;
@@ -102,6 +170,10 @@
         let unifiedResources = [];
         let popupExisting;
         let loadPanel;
+        let reviewForm;
+        const createState = {
+            currentStep: 1
+        };
 
         $(async () => {
             loadPanel = $("#load-panel").dxLoadPanel({
@@ -110,21 +182,48 @@
                 visible: false,
                 showIndicator: true,
                 showPane: true,
-                shading: true
+                shading: true,
+                message: "Loading data..."
             }).dxLoadPanel("instance");
 
+            initializeVersionForm({ courseId: COURSE_ID, isActive: true });
+            initializeMasterGrid();
+            initializeExistingResourcesPopup();
+            initializeFileUploader();
+            initializeReviewForm();
+
+            if (IS_EDIT) {
+                await loadVersionData();
+            }
+
+            initializeCreateWizard();
+            updateCreateWizardUi();
+
+            refreshMasterGrid();
+            updateVersionReview();
+            renderVersionReview();
+        });
+
+        function initializeVersionForm(formData) {
             formWidget = $("#form-container").dxForm({
-                formData: { courseId: COURSE_ID, isActive: true },
+                formData: formData,
                 colCount: 1,
                 labelMode: "floating",
                 stylingMode: "outlined",
+                onFieldDataChanged: function() {
+                    updateVersionReview();
+                    renderVersionReview();
+                },
                 items: [
                     {
                         dataField: "note",
                         editorType: "dxTextArea",
                         label: { text: "Version Name / Note" },
-                        editorOptions: { height: 90, placeholder: "e.g. Added new V2 materials" },
-                        validationRules: [{ type: "required", message: "Required" }]
+                        editorOptions: {
+                            height: VERSION_NOTE_HEIGHT,
+                            placeholder: "e.g. Added new V2 materials"
+                        },
+                        validationRules: [{ type: "required", message: "Version note is required" }]
                     },
                     {
                         dataField: "isActive",
@@ -134,11 +233,37 @@
                     }
                 ]
             }).dxForm("instance");
+        }
 
+        function initializeReviewForm() {
+            reviewForm = $("#form-review-details").dxForm({
+                readOnly: true,
+                labelMode: "floating",
+                stylingMode: "outlined",
+                colCount: 2,
+                formData: { note: "", status: "" },
+                items: [
+                    {
+                        dataField: "note",
+                        label: { text: "Version Note" },
+                        colSpan: 2,
+                        editorType: "dxTextArea",
+                        editorOptions: { height: VERSION_NOTE_HEIGHT }
+                    },
+                    {
+                        dataField: "status",
+                        label: { text: "Status On Save" },
+                        colSpan: 2
+                    }
+                ]
+            }).dxForm("instance");
+        }
+
+        function initializeMasterGrid() {
             masterGrid = initDxGrid("#master-resources-grid", {
                 dataSource: unifiedResources,
                 keyExpr: "uid",
-                height: 520,
+                height: MASTER_RESOURCE_GRID_HEIGHT,
                 rowAlternationEnabled: false,
                 hoverStateEnabled: true,
                 showRowLines: true,
@@ -160,34 +285,40 @@
                     showDragIcons: true,
                     onReorder: function(e) {
                         const visibleRows = e.component.getVisibleRows();
-                        const toIndex = unifiedResources.findIndex(item => item.uid === visibleRows[e.toIndex].data.uid);
-                        const fromIndex = unifiedResources.findIndex(item => item.uid === e.itemData.uid);
+                        const toIndex = unifiedResources.findIndex(function(item) {
+                            return item.uid === visibleRows[e.toIndex].data.uid;
+                        });
+                        const fromIndex = unifiedResources.findIndex(function(item) {
+                            return item.uid === e.itemData.uid;
+                        });
+
                         unifiedResources.splice(fromIndex, 1);
                         unifiedResources.splice(toIndex, 0, e.itemData);
                         e.component.refresh();
+                        refreshMasterGrid();
                     }
                 },
                 columns: [
                     {
                         caption: "Order", width: 80, alignment: "center", allowEditing: false,
                         cellTemplate: function(container, options) {
-                            $("<span>").addClass("text-muted fw-bold").text(options.rowIndex + 1).appendTo(container);
+                            window.renderAdminGridTextCell(container, options.rowIndex + 1, "captionMuted", { fontWeight: "700" });
                         }
                     },
                     {
                         dataField: "name", caption: "Content Name", allowEditing: false,
                         cellTemplate: function(container, options) {
                             const data = options.data;
-                            const isNew = data.isNew;
-                            const iconClass = isNew ? "fa-file-upload text-primary" : "fa-file-archive text-secondary";
+                            const iconClass = data.isNew ? "fa-file-upload text-primary" : "fa-file-archive text-secondary";
 
                             const wrapper = $("<div>").addClass("d-flex align-items-center gap-2")
                                 .append($("<i>").addClass(`fas ${iconClass} opacity-75`))
                                 .append($("<span>").addClass("fw-medium text-dark text-truncate").text(data.name));
 
-                            if (isNew) {
-                                wrapper.append($("<span>").addClass("tag-pill tag-pill-xs pill-info ms-2").text("New"));
+                            if (data.isNew) {
+                                window.renderAdminGridTextCell(wrapper, "New", "xsAccent", { marginLeft: "8px" });
                             }
+
                             wrapper.appendTo(container);
                         }
                     },
@@ -203,17 +334,15 @@
                         },
                         cellTemplate: function(container, options) {
                             const data = options.data;
-                            const tName = data.typeId === 1 ? "Learn" : (data.typeId === 2 ? "Exam" : "Unknown");
-                            const typeCls = data.typeId === 1 ? "pill-learn" : "pill-exam";
-
+                            const typeName = getResourceTypeLabel(data.typeId);
                             const editHint = data.isNew ? '<i class="fas fa-caret-down ms-2 opacity-50"></i>' : '';
-                            const cursorStyle = data.isNew ? "cursor: pointer;" : "cursor: default;";
                             const tooltip = data.isNew ? "Click to change type" : "Existing resource type cannot be changed here";
 
-                            $('<div>').addClass(`tag-pill ${typeCls}`)
-                                .attr("style", cursorStyle)
+                            $('<div>').css(window.getAdminGridTextStyle(data.typeId === 1 ? 'captionAccent' : 'captionWarning', {
+                                cursor: data.isNew ? 'pointer' : 'default'
+                            }))
                                 .attr("title", tooltip)
-                                .html(`${tName} ${editHint}`)
+                                .html(`${typeName} ${editHint}`)
                                 .appendTo(container);
                         }
                     },
@@ -229,28 +358,32 @@
                     }
                 ]
             });
+        }
 
-            function refreshMasterGrid() {
-                masterGrid.option("dataSource", unifiedResources);
-                $("#total-count-badge").text(window.formatAdminCountLabel(unifiedResources.length, 'item'));
-            }
-
+        function initializeExistingResourcesPopup() {
             popupExisting = $("#popup-existing").dxPopup({
                 title: "Select Existing Resources",
-                width: "90vw", maxWidth: 1100,
+                width: "90vw",
+                maxWidth: 1080,
+                height: "auto",
+                maxHeight: "90vh",
                 disableGlobalHeightSizing: true,
-                showCloseButton: true, dragEnabled: true,
+                showCloseButton: true,
+                dragEnabled: true,
                 deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 onShown: function() {
-                    if (gridExisting) gridExisting.updateDimensions();
+                    if (gridExisting) {
+                        gridExisting.updateDimensions();
+                    }
                 },
                 contentTemplate: function(contentElement) {
-                    const gridContainer = $("<div id='grid-existing-pick' style='height:100%;'>").appendTo(contentElement);
+                    const gridContainer = $("<div id='grid-existing-pick'>").appendTo(contentElement);
                     gridExisting = initDxGrid(gridContainer, {
                         preset: "selectionGrid",
                         dataSource: resourcesStore,
                         remoteOperations: true,
+                        height: EXISTING_RESOURCE_GRID_HEIGHT,
                         searchPanel: { placeholder: "Search by name or type..." },
                         sorting: { mode: "multiple" },
                         columns: [
@@ -263,18 +396,17 @@
                                 cellTemplate: function(container, options) {
                                     const isLearn = options.value === 1;
                                     const text = isLearn ? "Learn" : "Exam";
-                                    $('<span>').addClass(`tag-pill ${isLearn ? 'pill-learn' : 'pill-exam'}`).text(text).appendTo(container);
+                                    window.renderAdminGridStatusCell(container, text, isLearn ? 'primary' : 'warning', { showDot: false });
                                 }
                             },
                             {
                                 caption: "Used In", width: 100, alignment: "center", allowSorting: true,
-                                calculateCellValue: function(d) { return (d.courseResources || []).length; },
+                                calculateCellValue: function(data) {
+                                    return (data.courseResources || []).length;
+                                },
                                 cellTemplate: function(container, options) {
                                     const count = options.value;
-                                    $('<span>')
-                                        .addClass(`tag-pill ${count > 0 ? 'pill-success' : 'pill-default'}`)
-                                        .html(`<i class="fas fa-book me-1"></i>${count}`)
-                                        .appendTo(container);
+                                    window.renderAdminGridTextCell(container, count, count > 0 ? 'captionSuccess' : 'captionMuted');
                                 }
                             },
                             {
@@ -306,12 +438,22 @@
 
             $("#btn-show-existing").on("click", function() {
                 popupExisting.show();
+            }).on("keydown", function(e) {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    $(this).click();
+                }
             });
+        }
 
+        function initializeFileUploader() {
             $("#file-uploader-container").dxFileUploader({
                 dialogTrigger: "#btn-trigger-upload",
                 dropZone: "#btn-trigger-upload",
-                visible: false, accept: ".zip", uploadMode: "useForm", multiple: true,
+                visible: false,
+                accept: ".zip",
+                uploadMode: "useForm",
+                multiple: true,
                 onValueChanged: function(e) {
                     if (!e.value || e.value.length === 0) {
                         return;
@@ -324,184 +466,344 @@
                 }
             });
 
-            if (IS_EDIT) {
-                await loadVersionData();
-            }
+            $("#btn-trigger-upload").on("keydown", function(e) {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    $(this).click();
+                }
+            });
+        }
 
-            refreshMasterGrid();
+        function initializeCreateWizard() {
+            $("#btn-previous-step").on("click", function() {
+                if (createState.currentStep <= 1) {
+                    return;
+                }
 
-            $("#btn-save").dxButton({
-                text: IS_EDIT ? "Save Changes" : "Create Version",
-                icon: "save", type: "default", stylingMode: "contained",
-                elementAttr: { class: "shadow-sm px-4 py-1 btn-primary rounded-3 fw-medium" },
-                onClick: () => submitData()
+                createState.currentStep -= 1;
+                updateCreateWizardUi();
             });
 
-            async function submitData() {
-                if (!formWidget.validate().isValid) {
-                    showToast("Please fill in required fields.", "warning");
-                    return;
-                }
+            $("#btn-next-step").on("click", function() {
+                handleNextStep();
+            });
 
-                if (unifiedResources.length === 0) {
-                    showToast("Please add at least one resource.", "error");
-                    return;
-                }
+            $("#btn-submit-version").on("click", function() {
+                submitData();
+            });
+        }
 
-                loadPanel.option("message", "Saving version & processing files...");
-                loadPanel.show();
+        function refreshMasterGrid() {
+            masterGrid.option("dataSource", unifiedResources);
+            $("#total-count-badge").text(window.formatAdminCountLabel(unifiedResources.length, 'item'));
+            updateVersionReview();
+            renderVersionReview();
+        }
 
-                try {
-                    await $.ajax({
-                        url: getSubmitUrl(),
-                        method: getSubmitMethod(),
-                        data: buildVersionFormData(),
-                        processData: false,
-                        contentType: false,
-                        xhrFields: { withCredentials: true }
-                    });
-
-                    showToast("Saved successfully!", "success", 2000);
-                    setTimeout(() => window.location.href = `${COURSE_DETAIL_URL}?id=${COURSE_ID}`, 1200);
-                } catch (xhr) {
-                    showToast(`Error: ${window.getApiErrorMessage(xhr, "Failed to save")}`, "error", 4000);
-                } finally {
-                    loadPanel.hide();
-                }
+        function handleNextStep() {
+            if (createState.currentStep === 1 && !validateVersionDetailsStep()) {
+                return;
             }
 
-            async function loadVersionData() {
-                loadPanel.show();
+            if (createState.currentStep === 2 && !validateVersionContentStep()) {
+                return;
+            }
 
-                try {
-                    const response = await $.ajax({
-                        url: `${serviceUrl}/courses/versions/${VERSION_ID}`,
-                        method: "GET",
-                        xhrFields: { withCredentials: true }
-                    });
+            if (createState.currentStep < TOTAL_WIZARD_STEPS) {
+                createState.currentStep += 1;
+                updateCreateWizardUi();
+            }
+        }
 
-                    const detailData = response.data || response;
-                    formWidget.option("formData", {
-                        note: detailData.note,
-                        isActive: detailData.isActive
-                    });
+        function updateCreateWizardUi() {
+            $("[data-step-card]").each(function() {
+                const step = Number($(this).data("stepCard"));
+                $(this).toggleClass("active", step === createState.currentStep);
+                $(this).toggleClass("complete", step < createState.currentStep);
 
-                    await loadExistingResources(detailData.resourceIds || []);
-                } catch (xhr) {
-                    showToast(window.getApiErrorMessage(xhr, "Error loading version"), "error");
-                } finally {
-                    loadPanel.hide();
+                if (step === createState.currentStep) {
+                    $(this).attr("aria-current", "step");
+                } else {
+                    $(this).removeAttr("aria-current");
                 }
+            });
+
+            $(".admin-wizard-panel").removeClass("active");
+            $(`#step-panel-${createState.currentStep}`).addClass("active");
+            const layout = $(`#step-panel-${createState.currentStep}`).attr("data-step-layout") || "wide";
+            $(".admin-wizard-shell")
+                .toggleClass("is-form-step", layout === "form")
+                .toggleClass("is-review-step", layout === "review");
+
+            $("#btn-previous-step").toggleClass("d-none", createState.currentStep <= 1);
+            $("#btn-next-step").toggleClass("d-none", createState.currentStep >= TOTAL_WIZARD_STEPS);
+            $("#btn-submit-version").toggleClass("d-none", createState.currentStep !== TOTAL_WIZARD_STEPS);
+
+            if (createState.currentStep === 2 && masterGrid) {
+                masterGrid.updateDimensions();
             }
 
-            async function loadExistingResources(resourceIds) {
-                if (!resourceIds.length) {
-                    return;
-                }
+            if (createState.currentStep === 3) {
+                updateVersionReview();
+                renderVersionReview();
+            }
+        }
 
-                try {
-                    const response = await resourcesStore.load();
-                    const allResources = response.data || response || [];
+        function validateVersionDetailsStep() {
+            const validation = formWidget.validate();
+            if (!validation.isValid) {
+                showToast("Please complete the required version details before continuing.", "warning", 2500);
+                return false;
+            }
 
-                    resourceIds.forEach(function(resourceId) {
-                        const resource = allResources.find(function(item) {
-                            return item.id === resourceId;
-                        });
+            return true;
+        }
 
-                        if (resource) {
-                            addExistingResources([resource]);
-                        }
+        function validateVersionContentStep() {
+            if (unifiedResources.length === 0) {
+                showToast("Please add at least one resource before reviewing the version.", "warning", 3000);
+                return false;
+            }
+
+            return true;
+        }
+
+        async function submitData() {
+            if (!formWidget.validate().isValid) {
+                showToast("Please fill in the required version details.", "warning", 2000);
+                return;
+            }
+
+            if (unifiedResources.length === 0) {
+                showToast("Please add at least one resource.", "error", 4000);
+                return;
+            }
+
+            const submitButtonSelector = "#btn-submit-version";
+            setButtonLoading(submitButtonSelector, true, IS_EDIT ? "Saving..." : "Creating...");
+            loadPanel.option("message", "Saving version and processing files...");
+            loadPanel.show();
+
+            try {
+                await $.ajax({
+                    url: getSubmitUrl(),
+                    method: getSubmitMethod(),
+                    data: buildVersionFormData(),
+                    processData: false,
+                    contentType: false,
+                    xhrFields: { withCredentials: true }
+                });
+
+                showToast("Version saved successfully!", "success", 2000);
+                setTimeout(function() {
+                    window.location.href = VERSION_CANCEL_URL;
+                }, 1200);
+            } catch (xhr) {
+                showToast(`Error: ${window.getApiErrorMessage(xhr, "Failed to save")}`, "error", 4000);
+            } finally {
+                loadPanel.hide();
+                setButtonLoading(submitButtonSelector, false);
+            }
+        }
+
+        async function loadVersionData() {
+            loadPanel.show();
+
+            try {
+                const response = await $.ajax({
+                    url: `${serviceUrl}/courses/versions/${VERSION_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                });
+
+                const detailData = response.data || response;
+                formWidget.option("formData", {
+                    courseId: COURSE_ID,
+                    note: detailData.note,
+                    isActive: detailData.isActive
+                });
+
+                await loadExistingResources(detailData.resourceIds || []);
+            } catch (xhr) {
+                showToast(window.getApiErrorMessage(xhr, "Error loading version"), "error");
+            } finally {
+                loadPanel.hide();
+            }
+        }
+
+        async function loadExistingResources(resourceIds) {
+            if (!resourceIds.length) {
+                return;
+            }
+
+            try {
+                const response = await resourcesStore.load();
+                const allResources = response.data || response || [];
+
+                resourceIds.forEach(function(resourceId) {
+                    const resource = allResources.find(function(item) {
+                        return item.id === resourceId;
                     });
 
-                    refreshMasterGrid();
-                } catch {
-                    showToast("Error loading resource details", "error");
-                }
-            }
-
-            function createExistingResource(resource) {
-                return {
-                    uid: `EXISTING_${resource.id}`,
-                    realId: resource.id,
-                    name: resource.name,
-                    typeId: resource.typeId,
-                    isNew: false
-                };
-            }
-
-            function createNewResource(file, suffix) {
-                return {
-                    uid: `NEW_${Date.now()}_${suffix}`,
-                    name: file.name,
-                    isNew: true,
-                    typeId: 1,
-                    fileRef: file
-                };
-            }
-
-            function addExistingResources(resources) {
-                resources.forEach(function(resource) {
-                    const resourceId = resource.realId ?? resource.id;
-                    const exists = unifiedResources.some(function(item) {
-                        return !item.isNew && item.realId === resourceId;
-                    });
-
-                    if (!exists) {
-                        unifiedResources.push(createExistingResource({
-                            id: resourceId,
-                            name: resource.name,
-                            typeId: resource.typeId
-                        }));
+                    if (resource) {
+                        addExistingResources([resource]);
                     }
                 });
-            }
 
-            function addNewFiles(files) {
-                files.forEach(function(file, index) {
-                    unifiedResources.push(createNewResource(file, index));
+                refreshMasterGrid();
+            } catch {
+                showToast("Error loading resource details", "error");
+            }
+        }
+
+        function createExistingResource(resource) {
+            return {
+                uid: `EXISTING_${resource.id}`,
+                realId: resource.id,
+                name: resource.name,
+                typeId: resource.typeId,
+                isNew: false
+            };
+        }
+
+        function createNewResource(file, suffix) {
+            return {
+                uid: `NEW_${Date.now()}_${suffix}`,
+                name: file.name,
+                isNew: true,
+                typeId: 1,
+                fileRef: file
+            };
+        }
+
+        function addExistingResources(resources) {
+            resources.forEach(function(resource) {
+                const resourceId = resource.realId ?? resource.id;
+                const exists = unifiedResources.some(function(item) {
+                    return !item.isNew && item.realId === resourceId;
                 });
+
+                if (!exists) {
+                    unifiedResources.push(createExistingResource({
+                        id: resourceId,
+                        name: resource.name,
+                        typeId: resource.typeId
+                    }));
+                }
+            });
+        }
+
+        function addNewFiles(files) {
+            Array.from(files).forEach(function(file, index) {
+                unifiedResources.push(createNewResource(file, index));
+            });
+        }
+
+        function removeResource(uid) {
+            unifiedResources = unifiedResources.filter(function(resource) {
+                return resource.uid !== uid;
+            });
+        }
+
+        function buildVersionFormData() {
+            const formData = formWidget.option("formData");
+            const versionFormData = new FormData();
+            versionFormData.append("courseId", COURSE_ID);
+            versionFormData.append("note", formData.note);
+            versionFormData.append("isActive", formData.isActive || false);
+
+            unifiedResources.forEach(function(resource) {
+                if (resource.isNew) {
+                    versionFormData.append("Files", resource.fileRef);
+                    versionFormData.append("ResourceIds", 0);
+                } else {
+                    versionFormData.append("ResourceIds", resource.realId);
+                }
+
+                versionFormData.append("ResourceTypes", resource.typeId);
+            });
+
+            return versionFormData;
+        }
+
+        function updateVersionReview() {
+            if (!formWidget || !reviewForm) {
+                return;
             }
 
-            function removeResource(uid) {
-                unifiedResources = unifiedResources.filter(function(resource) {
-                    return resource.uid !== uid;
-                });
+            const formData = formWidget.option("formData") || {};
+            reviewForm.option("formData", {
+                note: formData.note || "Not set",
+                status: formData.isActive ? "Set as active version" : "Saved as inactive version"
+            });
+        }
+
+        function renderVersionReview() {
+            const existingCount = unifiedResources.filter(function(resource) {
+                return !resource.isNew;
+            }).length;
+            const newCount = unifiedResources.filter(function(resource) {
+                return resource.isNew;
+            }).length;
+
+            $("#review-total-resources").text(unifiedResources.length);
+            $("#review-existing-resources").text(existingCount);
+            $("#review-new-resources").text(newCount);
+            $("#review-content-table").html(buildReviewContentTable());
+        }
+
+        function buildReviewContentTable() {
+            if (unifiedResources.length === 0) {
+                return `
+                    <div class="admin-wizard-empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <div>No content has been added yet.</div>
+                    </div>`;
             }
 
-            function buildVersionFormData() {
-                const formData = formWidget.option("formData");
-                const versionFormData = new FormData();
-                versionFormData.append("courseId", COURSE_ID);
-                versionFormData.append("note", formData.note);
-                versionFormData.append("isActive", formData.isActive || false);
+            const rows = unifiedResources.map(function(resource, index) {
+                const sourceText = resource.isNew ? "New upload" : "Resource library";
+                const sourceBadge = resource.isNew ? "pill-primary" : "pill-default";
 
-                unifiedResources.forEach(function(resource) {
-                    if (resource.isNew) {
-                        versionFormData.append("Files", resource.fileRef);
-                        versionFormData.append("ResourceIds", 0);
-                    } else {
-                        versionFormData.append("ResourceIds", resource.realId);
-                    }
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>
+                            <div class="admin-student-name">${window.escapeHtml(resource.name)}</div>
+                        </td>
+                        <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
+                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>
+                        <td>${resource.isNew ? "Queued for upload" : "Linked from library"}</td>
+                    </tr>`;
+            }).join('');
 
-                    versionFormData.append("ResourceTypes", resource.typeId);
-                });
+            return `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Content Name</th>
+                            <th>Source</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
 
-                return versionFormData;
-            }
+        function getResourceTypeLabel(typeId) {
+            return typeId === 2 ? "Exam" : "Learn";
+        }
 
-            function getSubmitUrl() {
-                return IS_EDIT
-                    ? `${serviceUrl}/courses/versions/${VERSION_ID}`
-                    : `${serviceUrl}/courses/${COURSE_ID}/versions`;
-            }
+        function getSubmitUrl() {
+            return IS_EDIT
+                ? `${serviceUrl}/courses/versions/${VERSION_ID}`
+                : `${serviceUrl}/courses/${COURSE_ID}/versions`;
+        }
 
-            function getSubmitMethod() {
-                return IS_EDIT ? "PUT" : "POST";
-            }
-
-            function formatDateTime(value) {
-                return window.formatAdminDateTime(value, '—');
-            }
-        });
+        function getSubmitMethod() {
+            return IS_EDIT ? "PUT" : "POST";
+        }
     </script>
 }

@@ -43,7 +43,7 @@
                 <div class="meta-item">
                     <div class="meta-label">Members</div>
                     <div class="meta-value">
-                        <span class="tag-pill pill-info" id="summary-member-count">0 members</span>
+                        <span class="tag-pill pill-primary" id="summary-member-count">0 members</span>
                     </div>
                 </div>
                 <div class="meta-item">
@@ -111,13 +111,13 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Editor", "StudentGroups")?id=@groupId" id="btn-edit-group" class="quick-action disabled" aria-disabled="true" tabindex="-1">
+                    <button type="button" id="btn-edit-group" class="quick-action disabled" aria-disabled="true" tabindex="-1" disabled>
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-edit" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Edit Student Group</div>
                             <div class="u-fs-11 text-secondary">Change name or description</div>
                         </div>
-                    </a>
+                    </button>
 
                     <a href="javascript:void(0);" id="btn-delete-group" class="quick-action danger disabled" aria-disabled="true" tabindex="-1">
                         <div class="qa-icon qa-icon-danger"><i id="delete-group-icon" class="fas fa-trash-alt" aria-hidden="true"></i></div>
@@ -166,9 +166,11 @@
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
     const EMPTY_TEXT = "—";
     const HAS_VALID_GROUP_ID = GROUP_ID > 0;
+    const DESCRIPTION_FIELD_HEIGHT = 120;
 
     let membersGrid;
     let assignmentGrid;
+    let currentGroup = null;
 
     $(() => {
         membersGrid = initDxGrid("#grid-members", {
@@ -182,7 +184,7 @@
                         $("<a>")
                             .attr("href", STUDENT_REPORT_URL_TEMPLATE.replace("__STUDENT_CODE__", encodeURIComponent(options.value || "")))
                             .attr("target", "_blank")
-                            .addClass("tag-pill pill-default fw-bold")
+                            .css(window.getAdminGridTextStyle("captionStrong"))
                             .text(options.value || EMPTY_TEXT)
                             .appendTo(container);
                     }
@@ -209,14 +211,8 @@
                 },
                 {
                     dataField: "position", caption: "Position", width: 110, alignment: "center",
-                    cellTemplate: function(container, options) {
-                        if (!options.value) {
-                            appendText(container, EMPTY_TEXT, { color: "var(--text-secondary)" });
-                            return;
-                        }
-
-                        $("<span>").addClass("tag-pill pill-default").text(options.value).appendTo(container);
-                    }
+                    cssClass: "cell-muted",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
                 },
                 {
                     type: "buttons", caption: "Actions", width: 90,
@@ -262,11 +258,7 @@
                 {
                     dataField: "description", caption: "Description", minWidth: 160,
                     cellTemplate: function(container, options) {
-                        const description = options.value || EMPTY_TEXT;
-                        appendText(container, truncateText(description, 50), {
-                            fontSize: "12px",
-                            color: "var(--text-secondary)"
-                        }).attr("title", description);
+                        window.renderAdminGridTruncatedTextCell(container, options.value, 50, "captionMuted");
                     }
                 },
                 {
@@ -279,10 +271,10 @@
                     dataField: "status", caption: "Status", width: 120, alignment: "center",
                     cellTemplate: function(container, options) {
                         renderStatusCell(container, options.value, {
-                            Completed: { cls: "pill-success", text: "Completed" },
-                            Upcoming: { cls: "pill-warning", text: "Upcoming" },
-                            Expired: { cls: "pill-danger", text: "Expired" },
-                            InProgress: { cls: "pill-info", text: "In Progress" }
+                            Completed: { tone: "success", text: "Completed" },
+                            Upcoming: { tone: "warning", text: "Upcoming" },
+                            Expired: { tone: "danger", text: "Expired" },
+                            InProgress: { tone: "primary", text: "In Progress" }
                         });
                     }
                 },
@@ -325,6 +317,15 @@
         $("#btn-add-members").click(function(event) {
             event.preventDefault();
             window.location.href = ADD_MEMBERS_URL;
+        });
+
+        $("#btn-edit-group").click(function(event) {
+            event.preventDefault();
+            if ($(this).hasClass("disabled")) {
+                return;
+            }
+
+            openEditGroupDialog();
         });
 
         window.confirmRemoveMember = function (data) {
@@ -408,6 +409,8 @@
                 return;
             }
 
+            currentGroup = g;
+
             const members = g.members || [];
 
             $("#page-title").text(g.name);
@@ -453,7 +456,124 @@
         $element
             .toggleClass("disabled", disabled)
             .attr("aria-disabled", disabled ? "true" : "false")
-            .attr("tabindex", disabled ? "-1" : "0");
+            .attr("tabindex", disabled ? "-1" : "0")
+            .prop("disabled", disabled);
+    }
+
+    function openEditGroupDialog() {
+        if (!currentGroup) {
+            showToast("Student group details are still loading.", "warning", 2500);
+            return;
+        }
+
+        const dialogId = `edit-student-group-dialog-${Date.now()}`;
+        const formId = `${dialogId}-form`;
+        const cancelId = `${dialogId}-cancel`;
+        const confirmId = `${dialogId}-confirm`;
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Edit Student Group",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2 text-start">
+              
+                    <div id="${formId}"></div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${confirmId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: true,
+            width: 520
+        });
+
+        dialog.show();
+
+        window.setTimeout(function() {
+            const $formHost = $("#" + formId);
+            if (!$formHost.length) {
+                return;
+            }
+
+            const groupForm = $formHost.dxForm({
+                labelMode: "floating",
+                stylingMode: "outlined",
+                colCount: 1,
+                formData: {
+                    name: currentGroup.name || "",
+                    description: currentGroup.description || ""
+                },
+                items: [
+                    {
+                        dataField: "name",
+                        label: { text: "Group Name" },
+                        editorOptions: {
+                            placeholder: "e.g. New Hires 2026 Q1"
+                        },
+                        validationRules: [
+                            { type: "required", message: "Group name is required" },
+                            { type: "stringLength", max: 200, message: "Max 200 characters" }
+                        ]
+                    },
+                    {
+                        dataField: "description",
+                        label: { text: "Description (optional)" },
+                        editorType: "dxTextArea",
+                        editorOptions: {
+                            height: DESCRIPTION_FIELD_HEIGHT,
+                            placeholder: "Brief description of this group's purpose"
+                        }
+                    }
+                ]
+            }).dxForm("instance");
+
+            const cancelButton = $("#" + cancelId).dxButton({
+                text: "Cancel",
+                stylingMode: "outlined",
+                onClick: function() {
+                    dialog.hide();
+                }
+            }).dxButton("instance");
+
+            const confirmButton = $("#" + confirmId).dxButton({
+                text: "Save Changes",
+                type: "default",
+                stylingMode: "contained",
+                onClick: async function() {
+                    if (!groupForm.validate().isValid) {
+                        return;
+                    }
+
+                    const formData = groupForm.option("formData");
+                    confirmButton.option({ text: "Saving...", disabled: true });
+                    cancelButton.option("disabled", true);
+
+                    try {
+                        await $.ajax({
+                            url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                            method: "PUT",
+                            contentType: "application/json",
+                            data: JSON.stringify(formData),
+                            xhrFields: { withCredentials: true }
+                        });
+
+                        currentGroup = {
+                            ...currentGroup,
+                            ...formData
+                        };
+                        dialog.hide();
+                        showToast("Student group updated successfully.", "success");
+                        await loadGroupDetail();
+                    } catch (error) {
+                        confirmButton.option({ text: "Save Changes", disabled: false });
+                        cancelButton.option("disabled", false);
+                        showToast(getApiErrorMessage(error, "Failed to save student group."), "error");
+                    }
+                }
+            }).dxButton("instance");
+        }, 0);
     }
 
     function showStudentGroupConfirmDialog(options) {
@@ -583,7 +703,7 @@
                             position: "outside",
                             connector: { visible: true },
                             format: { type: "fixedPoint", precision: 0 },
-                            font: { size: 11, color: "var(--text-secondary)" },
+                            font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
                             customizeText: function(point) {
                                 return point.value > 0 ? `${point.valueText} (${point.percentText})` : "";
                             }
@@ -593,7 +713,7 @@
                         horizontalAlignment: "right",
                         verticalAlignment: "bottom",
                         margin: 12,
-                        font: { size: 11, color: "var(--text-secondary)" }
+                        font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" }
                     },
                     tooltip: { enabled: true }
                 }

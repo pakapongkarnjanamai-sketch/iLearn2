@@ -282,7 +282,7 @@
 
         /* ── tooltip ──────────────────────────────────── */
         function showTooltip(ev, task) {
-            const pillMap = { Completed: "pill-success", InProgress: "pill-info", Upcoming: "pill-warning", Expired: "pill-danger" };
+            const pillMap = { Completed: "pill-success", InProgress: "pill-primary", Upcoming: "pill-warning", Expired: "pill-danger" };
             const pill = pillMap[task.status] || "pill-default";
 
             const html = `

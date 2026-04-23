@@ -141,7 +141,7 @@
                         minWidth: 200,
                         cellTemplate: function(container, options) {
                             $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<i>").addClass("fas fa-tag").css({ color: "var(--accent-color)", opacity: ".75" }))
+                                .append($("<i>").addClass("fas fa-tag").css({ color: "var(--primary-color)", opacity: ".75" }))
                                 .append($("<span>").addClass("fw-bold text-dark").text(options.value))
                                 .appendTo(container);
                         }
@@ -163,10 +163,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                                window.renderAdminGridTextCell(container, "None", "captionMuted");
                             } else {
-                                $("<span>").addClass("tag-pill pill-success")
-                                    .text(window.formatAdminCountLabel(count, 'course')).appendTo(container);
+                                window.renderAdminGridTextCell(container, window.formatAdminCountLabel(count, 'course'), "captionSuccess");
                             }
                         }
                     },

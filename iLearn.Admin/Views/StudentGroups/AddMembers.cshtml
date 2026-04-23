@@ -331,7 +331,7 @@
                 {
                     dataField: "EId", caption: "ID", width: 120,
                     cellTemplate: function(container, options) {
-                        $("<span>").addClass("tag-pill pill-default fw-bold").text(options.value || EMPTY_TEXT).appendTo(container);
+                        window.renderAdminGridTextCell(container, options.value || EMPTY_TEXT, "captionStrong");
                     }
                 },
                 {
@@ -727,7 +727,7 @@
 
         const parts = [
             { status: "Completed", label: "Completed", cls: "pill-success" },
-            { status: "InProgress", label: "In Progress", cls: "pill-info" },
+            { status: "InProgress", label: "In Progress", cls: "pill-primary" },
             { status: "Upcoming", label: "Upcoming", cls: "pill-warning" },
             { status: "Expired", label: "Expired", cls: "pill-danger" }
         ].map(function(item) {
@@ -740,7 +740,7 @@
     function renderStatusPill(status) {
         const map = {
             Completed: { cls: "pill-success", text: "Completed" },
-            InProgress: { cls: "pill-info", text: "In Progress" },
+            InProgress: { cls: "pill-primary", text: "In Progress" },
             Upcoming: { cls: "pill-warning", text: "Upcoming" },
             Expired: { cls: "pill-danger", text: "Expired" }
         };

@@ -30,10 +30,10 @@
         const assignmentsStore = createDataStore(serviceUrl, 'admin/AssignmentsCRUD', { key: 'id' });
 
         const STATUS_MAP = {
-            "Completed":  { cls: "pill-success", text: "Completed" },
-            "Upcoming":   { cls: "pill-warning",  text: "Upcoming" },
-            "Expired":    { cls: "pill-danger",   text: "Expired" },
-            "InProgress": { cls: "pill-info",     text: "In Progress" }
+            "Completed":  { tone: "success", text: "Completed" },
+            "Upcoming":   { tone: "warning", text: "Upcoming" },
+            "Expired":    { tone: "danger", text: "Expired" },
+            "InProgress": { tone: "primary", text: "In Progress" }
         };
 
         $(function () {

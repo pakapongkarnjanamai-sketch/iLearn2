@@ -10,9 +10,7 @@
     --color-brand-500: #0050b3;
     --color-brand-600: #003a8c;
     --color-brand-400: #1677ff;
-    --color-brand-300: #2f54eb;
     --color-brand-100: #e6f4ff;
-    --color-brand-050: #f0f5ff;
 
     --color-success-500: #52c41a;
     --color-success-600: #389e0d;
@@ -22,18 +20,14 @@
     --color-warning-500: #faad14;
     --color-warning-600: #d48806;
     --color-warning-100: #fff7e6;
-    --color-warning-050: #fffbe6;
     --color-warning-200: #ffe58f;
-    --color-warning-300: #ffd591;
 
     --color-danger-500: #ff4d4f;
     --color-danger-100: #fff1f0;
     --color-danger-050: #fff2f0;
     --color-danger-200: #ffccc7;
-    --color-danger-300: #ffa39e;
 
     --color-purple-500: #722ed1;
-    --color-purple-700: #531dab;
     --color-purple-100: #f9f0ff;
     --color-purple-200: #d3adf7;
 
@@ -45,7 +39,6 @@
     --color-neutral-600: #666;
     --color-neutral-700: #595959;
     --color-neutral-900: #262626;
-    --color-neutral-950: #1a1a2e;
 
     --color-info-100: #f4f8ff;
     --color-info-200: #91caff;
@@ -77,22 +70,18 @@
     --border-danger: var(--color-danger-200);
     --border-purple: var(--color-purple-200);
 
-    --brand-color: var(--color-brand-500);
-    --brand-dark: var(--color-brand-600);
-    --brand-mid: var(--color-brand-400);
-    --brand-light: var(--color-brand-100);
-    --primary-color: var(--brand-color);
-    --accent-color: var(--brand-color);
+   --primary-color: var(--color-brand-500);
+   --primary-dark: var(--color-brand-600);
+   --primary-mid: var(--color-brand-400);
+   --primary-light: var(--color-brand-100);
     --success-color: var(--color-success-500);
     --warning-color: var(--color-warning-500);
     --danger-color: var(--color-danger-500);
     --bg-light: var(--surface-subtle);
 
-    --overlay-inverse-08: rgba(255, 255, 255, 0.08);
     --overlay-inverse-12: rgba(255, 255, 255, 0.12);
     --overlay-inverse-15: rgba(255, 255, 255, 0.15);
     --overlay-inverse-20: rgba(255, 255, 255, 0.2);
-    --overlay-inverse-74: rgba(255, 255, 255, 0.74);
     --overlay-inverse-80: rgba(255, 255, 255, 0.8);
     --overlay-inverse-90: rgba(255, 255, 255, 0.9);
     --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -102,8 +91,7 @@
     /* -------------------------------------------------------------
        3. Typography
        ------------------------------------------------------------- */
-    --font-family-base: "Hanken Grotesk", "HankenGrotesk-Fallback", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    --font-stack: var(--font-family-base);
+   --font-stack: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
 
     /* ---- Size scale ----
        micro  0.625rem   10px   extreme-small labels
@@ -125,16 +113,6 @@
     --font-size-display: 1.75rem;
     --font-size-grid-header: var(--font-size-caption);
     --font-size-grid-cell: var(--font-size-sm);
-
-    /* ---- Semantic size aliases ---- */
-    --text-micro-size: var(--font-size-micro);
-    --text-xs-size: var(--font-size-xs);
-    --text-caption-size: var(--font-size-caption);
-    --text-secondary-size: var(--font-size-sm);
-    --text-body-size: var(--font-size-md);
-    --text-subheading-size: var(--font-size-lg);
-    --text-heading-size: var(--font-size-xl);
-    --text-display-size: var(--font-size-display);
 
     /* ---- Line-height ---- */
     --text-micro-line-height: 1.4;
@@ -161,10 +139,8 @@
     /* -------------------------------------------------------------
        4. Radius
        ------------------------------------------------------------- */
-    --radius-xs: 3px;
     --radius-sm: 4px;
     --radius-md: 6px;
-    --radius-lg: 8px;
     --radius-pill: 999px;
 
     /* -------------------------------------------------------------
@@ -189,8 +165,6 @@
     --grid-row-height: 34px;
     --grid-header-row-height: 38px;
     --layout-navbar-height: 48px;
-    --layout-header-padding-y: 11px;
-    --layout-header-padding-x: 24px;
 
     /* -------------------------------------------------------------
        7. State Tokens
@@ -202,15 +176,3 @@
     --state-empty-icon: var(--color-neutral-300);
 }
 
-/*
- * Metric-matched fallback for Hanken Grotesk to minimise layout shift during font-display: swap.
- * Tuned against Segoe UI (Windows) as the most likely pre-swap render.
- */
-@font-face {
-    font-family: "HankenGrotesk-Fallback";
-    src: local("Segoe UI");
-    size-adjust: 103%;
-    ascent-override: 91%;
-    descent-override: 22%;
-    line-gap-override: 0%;
-}

@@ -183,9 +183,8 @@
                         caption: "ID",
                         width: 70,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            appendAdminText(container, options.value, { fontSize: "12px", color: "var(--text-secondary)" });
-                        }
+                        cssClass: "cell-caption",
+                        customizeText: function(e) { return e.value === null || e.value === undefined ? "—" : String(e.value); }
                     },
                     {
                         dataField: "name",
@@ -193,7 +192,7 @@
                         minWidth: 200,
                         cellTemplate: function (container, options) {
                             const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
-                            $("<i>").addClass("fas fa-layer-group").css({ color: "var(--accent-color)", opacity: .75 }).appendTo(wrapper);
+                            $("<i>").addClass("fas fa-layer-group").css({ color: "var(--primary-color)", opacity: .75 }).appendTo(wrapper);
                             $("<a>").attr("href", `${DETAIL_URL}?id=${options.data.id}`)
                                     .addClass("fw-bold text-dark text-decoration-none")
                                     .text(options.value).appendTo(wrapper);
@@ -204,9 +203,10 @@
                         dataField: "divisionName",
                         caption: "Division",
                         width: 180,
+                        alignment: "center",
                         cellTemplate: function (container, options) {
                             if (options.value) {
-                                $("<span>").addClass("tag-pill pill-info").text(options.value).appendTo(container);
+                                window.renderAdminGridTextCell(container, options.value, "captionAccent");
                             } else {
                                 appendAdminText(container, "—", { color: "var(--text-secondary)", fontStyle: "italic" });
                             }
@@ -217,12 +217,8 @@
                         caption: "Courses",
                         width: 120,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            const count = options.value || 0;
-                            const cls = count === 0 ? "tag-pill pill-default" : "tag-pill pill-success";
-                            const text = count === 0 ? "None" : count + " course" + (count > 1 ? "s" : "");
-                            $("<span>").addClass(cls).text(text).appendTo(container);
-                        }
+                        cssClass: "cell-accent",
+                        customizeText: function(e) { return String(e.value ?? 0); }
                     },
                     {
                         dataField: "isActive",
@@ -230,11 +226,7 @@
                         width: 130,
                         alignment: "center",
                         cellTemplate: function (container, options) {
-                            if (options.value) {
-                                $("<span>").addClass("tag-pill pill-success").html('<i class="fas fa-check me-1"></i> Active').appendTo(container);
-                            } else {
-                                $("<span>").addClass("tag-pill pill-default").html('<i class="fas fa-times me-1"></i> Inactive').appendTo(container);
-                            }
+                            window.renderAdminGridStatusCell(container, options.value ? "Active" : "Inactive", options.value ? "success" : "default");
                         }
                     },
                     {

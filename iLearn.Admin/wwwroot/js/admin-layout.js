@@ -45,11 +45,11 @@
         info: 'fa-circle-info'
     };
     const dialogIconColorMap = {
-        question: 'var(--accent-color)',
+        question: 'var(--primary-color)',
         warning: 'var(--warning-color)',
         error: 'var(--danger-color)',
         success: 'var(--success-color)',
-        info: 'var(--accent-color)'
+        info: 'var(--primary-color)'
     };
     const sharedGridPreset = {
         width: '100%',
@@ -127,16 +127,16 @@
         '--success-color': '#52c41a',
         '--warning-color': '#faad14',
         '--danger-color': '#ff4d4f',
-        '--brand-mid': '#1677ff',
+        '--primary-mid': '#1677ff',
         '--border-strong': '#d9d9d9',
         '--text-secondary': '#595959',
         '--text-tertiary': '#8c8c8c'
     };
     const adminChartPalettePresets = {
         status3: ['--success-color', '--warning-color', '--border-strong'],
-        status3Brand: ['--success-color', '--brand-mid', '--border-strong'],
+        status3Brand: ['--success-color', '--primary-mid', '--border-strong'],
         status4: ['--success-color', '--warning-color', '--border-strong', '--danger-color'],
-        status4Brand: ['--success-color', '--brand-mid', '--warning-color', '--danger-color']
+        status4Brand: ['--success-color', '--primary-mid', '--warning-color', '--danger-color']
     };
     const adminDateLocale = 'en-GB';
     const adminDateDisplayFormat = 'dd/MM/yyyy';

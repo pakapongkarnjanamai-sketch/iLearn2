@@ -142,7 +142,7 @@
                         minWidth: 200,
                         cellTemplate: function(container, options) {
                             $("<div>").addClass("d-flex align-items-center gap-2")
-                                .append($("<i>").addClass("fas fa-building").css({ color: "var(--accent-color)", opacity: ".75" }))
+                                .append($("<i>").addClass("fas fa-building").css({ color: "var(--primary-color)", opacity: ".75" }))
                                 .append($("<span>").addClass("fw-bold text-dark").text(options.value))
                                 .appendTo(container);
                         }
@@ -160,15 +160,7 @@
                         },
                         cellTemplate: function(container, options) {
                             const isActive = options.value;
-                            if (isActive) {
-                                $("<span>").addClass("tag-pill pill-success")
-                                    .html('<i class="fas fa-check me-1"></i> Active')
-                                    .appendTo(container);
-                            } else {
-                                $("<span>").addClass("tag-pill pill-default")
-                                    .html('<i class="fas fa-times me-1"></i> Inactive')
-                                    .appendTo(container);
-                            }
+                            window.renderAdminGridStatusCell(container, isActive ? "Active" : "Inactive", isActive ? "success" : "default");
                         }
                     },
                     {
@@ -180,10 +172,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                                window.renderAdminGridTextCell(container, "None", "captionMuted");
                             } else {
-                                $("<span>").addClass("tag-pill pill-success")
-                                    .text(count + " categor" + (count > 1 ? "ies" : "y")).appendTo(container);
+                                window.renderAdminGridTextCell(container, count + " categor" + (count > 1 ? "ies" : "y"), "captionSuccess");
                             }
                         }
                     },
@@ -196,10 +187,9 @@
                         cellTemplate: function(container, options) {
                             const count = options.value || 0;
                             if (count === 0) {
-                                $("<span>").addClass("tag-pill pill-default").text("None").appendTo(container);
+                                window.renderAdminGridTextCell(container, "None", "captionMuted");
                             } else {
-                                $("<span>").addClass("tag-pill pill-info")
-                                    .text(count + " role" + (count > 1 ? "s" : "")).appendTo(container);
+                                window.renderAdminGridTextCell(container, count + " role" + (count > 1 ? "s" : ""), "captionAccent");
                             }
                         }
                     },

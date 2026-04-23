@@ -51,6 +51,136 @@
     function appendAdminText(container, text, styles) {
         return $('<span>').css(styles || {}).text(text).appendTo(container);
     }
+    const adminGridTextStyleMap = {
+        xsMuted: {
+            fontSize: 'var(--font-size-xs)',
+            color: 'var(--text-secondary)'
+        },
+        xsMutedFaint: {
+            fontSize: 'var(--font-size-xs)',
+            color: 'var(--text-secondary)',
+            opacity: '.4'
+        },
+        xsStrong: {
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: '600',
+            color: 'var(--text-primary)'
+        },
+        xsSemibold: {
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: '600'
+        },
+        xsAccent: {
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: '600',
+            color: 'var(--primary-color)'
+        },
+        captionMuted: {
+            fontSize: 'var(--font-size-caption)',
+            color: 'var(--text-secondary)'
+        },
+        captionStrong: {
+            fontSize: 'var(--font-size-caption)',
+            fontWeight: '600',
+            color: 'var(--text-primary)'
+        },
+        captionAccent: {
+            fontSize: 'var(--font-size-caption)',
+            fontWeight: '600',
+            color: 'var(--primary-color)'
+        },
+        captionSuccess: {
+            fontSize: 'var(--font-size-caption)',
+            fontWeight: '600',
+            color: 'var(--success-color)'
+        },
+        captionWarning: {
+            fontSize: 'var(--font-size-caption)',
+            fontWeight: '600',
+            color: 'var(--warning-color)'
+        },
+        captionDanger: {
+            fontSize: 'var(--font-size-caption)',
+            fontWeight: '600',
+            color: 'var(--danger-color)'
+        },
+        smStrong: {
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: '600',
+            color: 'var(--text-primary)'
+        }
+    };
+    const adminGridToneConfig = {
+        default: { variant: 'captionMuted', dotClass: 'dot-default' },
+        primary: { variant: 'captionAccent', dotClass: 'dot-primary' },
+        success: { variant: 'captionSuccess', dotClass: 'dot-success' },
+        warning: { variant: 'captionWarning', dotClass: 'dot-warning' },
+        danger: { variant: 'captionDanger', dotClass: 'dot-danger' }
+    };
+    function getAdminGridTextStyle(variant, overrides) {
+        return $.extend({}, adminGridTextStyleMap[variant] || {}, overrides || {});
+    }
+    function normalizeAdminGridTone(value) {
+        const tone = String(value || '').toLowerCase();
+        if (tone.indexOf('danger') >= 0 || tone.indexOf('failed') >= 0) {
+            return 'danger';
+        }
+        if (tone.indexOf('warning') >= 0 || tone.indexOf('incomplete') >= 0 || tone.indexOf('exam') >= 0) {
+            return 'warning';
+        }
+        if (tone.indexOf('success') >= 0 || tone.indexOf('active') >= 0 || tone.indexOf('completed') >= 0 || tone.indexOf('passed') >= 0) {
+            return 'success';
+        }
+        if (tone.indexOf('primary') >= 0 || tone.indexOf('progress') >= 0 || tone.indexOf('learn') >= 0) {
+            return 'primary';
+        }
+        return 'default';
+    }
+    function renderAdminGridTextCell(container, text, variant, overrides) {
+        const resolvedText = text === null || text === undefined || text === '' ? '\u2014' : text;
+        return appendAdminText(container, resolvedText, getAdminGridTextStyle(variant || 'captionMuted', overrides));
+    }
+    function renderAdminGridTruncatedTextCell(container, text, maxLength, variant, options) {
+        const opts = options || {};
+        const rawText = text === null || text === undefined ? '' : String(text);
+        const resolvedText = rawText === '' ? '\u2014' : rawText;
+        const rendered = renderAdminGridTextCell(
+            container,
+            truncateAdminText(resolvedText, maxLength),
+            variant,
+            opts.styleOverrides
+        );
+
+        if (opts.showTitle !== false && resolvedText !== '\u2014' && (opts.alwaysTitle || resolvedText.length > maxLength)) {
+            rendered.attr('title', resolvedText);
+        }
+
+        return rendered;
+    }
+    function renderAdminGridStatusCell(container, text, tone, options) {
+        const opts = options || {};
+        const resolvedTone = normalizeAdminGridTone(tone);
+        const toneConfig = adminGridToneConfig[resolvedTone] || adminGridToneConfig.default;
+        const resolvedText = text === null || text === undefined || text === '' ? '\u2014' : text;
+        const wrapper = $('<span>').addClass('d-inline-flex align-items-center');
+        wrapper.css(getAdminGridTextStyle(opts.variant || toneConfig.variant, opts.styleOverrides));
+        if (opts.showDot !== false) {
+            $('<span>').addClass('status-dot ' + toneConfig.dotClass).appendTo(wrapper);
+        }
+        if (opts.iconClass) {
+            $('<i>').addClass(opts.iconClass + ' me-1').attr('aria-hidden', 'true').appendTo(wrapper);
+        }
+        wrapper.append(document.createTextNode(resolvedText));
+        wrapper.appendTo(container);
+        return wrapper;
+    }
+    function getAdminTypographyPxSize(sizeName, fallback) {
+        var value = window.adminTypography && window.adminTypography.size
+            ? window.adminTypography.size[sizeName]
+            : null;
+        var parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
     function truncateAdminText(text, maxLength) {
         if (!text || text.length <= maxLength) {
             return text || '\u2014';
@@ -60,7 +190,7 @@
     // ─── Cell Renderers ───────────────────────────────────────────────────────────
     // Renders a thin progress bar with a percentage label.
     // options.useWarningForPartial {boolean} - when provided, controls color for non-zero
-    //   progress: true → warning, false → accent. When omitted the default threshold
+    //   progress: true → warning, false → primary. When omitted the default threshold
     //   of 50 % is used (below 50 % shows warning, at or above shows accent).
     function renderAdminProgressCell(container, value, options) {
         const progress = value || 0;
@@ -70,10 +200,10 @@
             color = 'var(--success-color)';
         } else if ('useWarningForPartial' in opts) {
             color = progress > 0
-                ? (opts.useWarningForPartial ? 'var(--warning-color)' : 'var(--accent-color)')
+                ? (opts.useWarningForPartial ? 'var(--warning-color)' : 'var(--primary-color)')
                 : 'var(--border-color)';
         } else {
-            color = progress >= 50 ? 'var(--accent-color)' : 'var(--warning-color)';
+            color = progress >= 50 ? 'var(--primary-color)' : 'var(--warning-color)';
         }
         $('<div>').addClass('d-flex align-items-center gap-2')
             .append(
@@ -92,29 +222,30 @@
                 )
             )
             .append(
-                $('<span>').css({
-                    fontSize: '11px',
+                $('<span>').css(getAdminGridTextStyle('xsMuted', {
                     fontWeight: '600',
-                    minWidth: '32px',
-                    color: 'var(--text-secondary)'
-                }).text(window.formatAdminPercentage(progress, '0%'))
+                    minWidth: '32px'
+                })).text(window.formatAdminPercentage(progress, '0%'))
             )
             .appendTo(container);
     }
-    // Renders a status pill using a status → { cls, text } map.
+    // Renders tagless status text using a status → { tone|cls, text } map.
     function renderAdminStatusCell(container, value, map) {
-        const status = (map && map[value]) || { cls: 'pill-default', text: value || '\u2014' };
-        $('<span class="tag-pill ' + status.cls + '">' + status.text + '</span>').appendTo(container);
+        const status = (map && map[value]) || { tone: 'default', text: value || '\u2014' };
+        renderAdminGridStatusCell(container, status.text, status.tone || status.cls || 'default', {
+            showDot: status.showDot !== false,
+            variant: status.variant
+        });
     }
     // Renders a date cell, highlighting overdue dates in danger color.
     function renderAdminDueDateCell(container, value) {
         if (!value) {
-            appendAdminText(container, '\u2014', { fontSize: '11px', color: 'var(--text-secondary)' });
+            appendAdminText(container, '\u2014', getAdminGridTextStyle('xsMuted'));
             return;
         }
         const isPast = new Date(value) < new Date();
         appendAdminText(container, window.formatAdminDate(value, '\u2014'), {
-            fontSize: '11px',
+            fontSize: 'var(--font-size-xs)',
             color: isPast ? 'var(--danger-color)' : 'var(--text-secondary)',
             fontWeight: isPast ? '600' : '400'
         });
@@ -137,7 +268,7 @@
             appendAdminText(
                 wrapper,
                 window.formatAdminCountLabel(courses.length - max, 'more', 'more', '0 more', { prefix: '+' }),
-                { fontSize: '11px', color: 'var(--text-secondary)' }
+                getAdminGridTextStyle('xsMuted')
             );
         }
     }
@@ -177,7 +308,7 @@
     // Applies the shared header row style to the first row of an ExcelJS worksheet.
     function styleAdminExcelHeaderRow(ws) {
         var row = ws.getRow(1);
-        row.font = { bold: true, size: 11 };
+        row.font = { bold: true, size: getAdminTypographyPxSize('xs', 11) };
         row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
         row.alignment = { vertical: 'middle' };
         row.eachCell(function (cell) {
@@ -410,6 +541,10 @@
     window.applyCombinedFilter = applyCombinedFilter;
     window.buildAdminGridOptions = buildAdminGridOptions;
     window.appendAdminText = appendAdminText;
+    window.getAdminGridTextStyle = getAdminGridTextStyle;
+    window.renderAdminGridTextCell = renderAdminGridTextCell;
+    window.renderAdminGridTruncatedTextCell = renderAdminGridTruncatedTextCell;
+    window.renderAdminGridStatusCell = renderAdminGridStatusCell;
     window.truncateAdminText = truncateAdminText;
     window.renderAdminProgressCell = renderAdminProgressCell;
     window.renderAdminStatusCell = renderAdminStatusCell;

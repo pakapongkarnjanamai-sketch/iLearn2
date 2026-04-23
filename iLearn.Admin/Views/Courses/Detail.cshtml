@@ -275,7 +275,7 @@
                     $publishIconBox.removeClass("qa-icon-muted").addClass("qa-icon-warning");
                     $publishBtnText.text("Close Course");
                     $publishBtnDesc.text("Deactivate — stop new learners");
-                    $statusBadge.removeClass("pill-default pill-warning pill-danger pill-info")
+                    $statusBadge.removeClass("pill-default pill-warning pill-danger pill-primary")
                                 .addClass("pill-success")
                                 .html('<i class="fas fa-check-circle me-1"></i> Active');
                     setActionLinkState($btnDelete, true);
@@ -286,7 +286,7 @@
                     $publishIconBox.removeClass("qa-icon-warning").addClass("qa-icon-muted");
                     $publishBtnText.text("Publish Course");
                     $publishBtnDesc.text("Make course available");
-                    $statusBadge.removeClass("pill-success pill-warning pill-danger pill-info")
+                    $statusBadge.removeClass("pill-success pill-warning pill-danger pill-primary")
                                 .addClass("pill-default")
                                 .html('<i class="fas fa-lock me-1"></i> Closed');
                     setActionLinkState($btnDelete, false);
@@ -401,18 +401,8 @@
                                         drawCards(e.value);
                                     }
                                 }
-                            },
-                            {
-                                location: "after",
-                                widget: "dxButton",
-                                options: {
-                                    icon: "plus",
-                                    text: "New Version",
-                                    type: "default",
-                                    stylingMode: "text",
-                                    onClick: goNewVersion
-                                }
                             }
+                            
                         ]
                     });
                 }
@@ -694,7 +684,7 @@
             function buildVersionCardHtml(version) {
                 const isActive = version.isActive;
                 const badge = isActive
-                    ? '<span class="tag-pill tag-pill-xs pill-info"><i class="fas fa-check-circle me-1"></i>Active</span>'
+                    ? '<span class="tag-pill tag-pill-xs pill-success"><i class="fas fa-check-circle me-1"></i>Active</span>'
                     : '<span class="tag-pill tag-pill-xs pill-default">Draft</span>';
                 const noteHtml = version.note
                     ? window.escapeHtml(version.note)

@@ -302,13 +302,12 @@
                             return "Enrolled";
                         },
                         cellTemplate: function(container, options) {
-                            const map = {
-                                "Completed":   "tag-pill pill-success",
-                                "In Progress": "tag-pill pill-info",
-                                "Enrolled":    "tag-pill pill-default"
-                            };
-                            $("<span>").addClass(map[options.value] || "tag-pill pill-default")
-                                .text(options.value).appendTo(container);
+                            const tone = options.value === "Completed"
+                                ? "success"
+                                : options.value === "In Progress"
+                                    ? "primary"
+                                    : "default";
+                            window.renderAdminGridStatusCell(container, options.value, tone);
                         }
                     },
                     {
@@ -325,9 +324,8 @@
                         dataField: "totalScore", caption: "Score", width: 80, alignment: "center",
                         allowEditing: false,
                         cellTemplate: function(container, options) {
-                            const v = options.value || 0;
-                            $("<span>").css({ fontWeight: v > 0 ? "600" : "400", color: v > 0 ? "var(--text-primary)" : "var(--text-secondary)" })
-                                .text(v > 0 ? v : '—').appendTo(container);
+                            const value = options.value || 0;
+                            window.renderAdminGridTextCell(container, value > 0 ? value : "—", value > 0 ? "captionStrong" : "captionMuted");
                         }
                     },
                     {
