@@ -18,9 +18,9 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
 </div>
 
@@ -37,7 +37,8 @@
         };
 
         $(function () {
-            initDxGrid("#grid", buildAdminGridOptions("Search by assignment no., course, or creator...", {
+            const grid = initDxGrid("#grid", buildAdminGridOptions("Search by assignment no., course, or creator...", {
+                height: "100%",
                 dataSource: assignmentsStore,
                 remoteOperations: true,
 
@@ -137,6 +138,10 @@
                     }
                 ]
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [grid]
+            });
 
             function navigateToDetail(id) {
                 if (id) window.location.href = `${assignmentDetailUrl}/${id}`;

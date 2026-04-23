@@ -15,7 +15,7 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
 
         <!-- Categories TreeView -->
@@ -26,7 +26,7 @@
                 </div>
 
                 <div class="panel-body p-2 flex-grow-1 overflow-hidden">
-                    <div id="categoryTreeView"></div>
+                    <div id="categoryTreeView" class="admin-viewport-fill"></div>
                 </div>
             </div>
         </div>
@@ -35,7 +35,7 @@
         <div class="col-md-8 col-lg-9 h-100">
        
 
-        <div id="grid" class="h-100"></div>
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
    
 
         </div>
@@ -52,6 +52,7 @@
 
         $(async () => {
             const grid = initDxGrid("#grid", buildAdminGridOptions("Search by code, name, category, or type...", {
+                height: "100%",
                 dataSource: coursesStore,
                 remoteOperations: true,
 
@@ -135,6 +136,9 @@
                     }
                 ]
             }));
+            const viewportLayoutController = window.enableAdminViewportLayout({
+                refreshTargets: [grid]
+            });
 
             try {
                 const treeData = await $.ajax({
@@ -144,6 +148,7 @@
                 });
 
                 $("#categoryTreeView").dxTreeView({
+                    height: '100%',
                     dataSource: treeData,
                     dataStructure: 'tree',
                     keyExpr: 'id',
@@ -157,6 +162,7 @@
                     },
                     onContentReady: function(e) {
                         e.component.selectItem('root');
+                        viewportLayoutController?.refresh();
                     }
                 });
             } catch (err) {

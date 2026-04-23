@@ -4,14 +4,6 @@
     var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
 }
 
-<style>
-    .meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
-    .meta-item:last-child { border-bottom: none; }
-    .meta-label { font-size: var(--font-size-xs); color: var(--text-secondary); font-weight: 600;
-                  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
-    .meta-value { font-size: var(--font-size-sm); color: var(--text-primary); }
-</style>
-
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
@@ -32,23 +24,23 @@
             <div class="border rounded bg-white h-100 p-3">
                 <div class="section-title">Info</div>
 
-                <div class="meta-item">
-                    <div class="meta-label">Group Name</div>
-                    <div class="meta-value fw-bold" id="summary-name">—</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Group Name</div>
+                    <div class="admin-meta-value fw-bold" id="summary-name">—</div>
                 </div>
-                <div class="meta-item">
-                    <div class="meta-label">Description</div>
-                    <div class="meta-value" id="summary-description">—</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Description</div>
+                    <div class="admin-meta-value" id="summary-description">—</div>
                 </div>
-                <div class="meta-item">
-                    <div class="meta-label">Members</div>
-                    <div class="meta-value">
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Members</div>
+                    <div class="admin-meta-value">
                         <span class="tag-pill pill-primary" id="summary-member-count">0 members</span>
                     </div>
                 </div>
-                <div class="meta-item">
-                    <div class="meta-label">Created By</div>
-                    <div class="meta-value" id="summary-created-by">—</div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Created By</div>
+                    <div class="admin-meta-value" id="summary-created-by">—</div>
                 </div>
             </div>
         </div>

@@ -12,6 +12,7 @@
     const gridPostRenderRefreshDelay = 120;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
+    let viewportLayoutCounter = 0;
     const exportDependencyScripts = [
         '/js/devextreme/dx-exceljs-fork.min.js',
         '/js/devextreme/filesaver.min.js'
@@ -621,6 +622,128 @@
 
         $target.css('height', '');
         $target.removeData('gridHostHeight');
+    }
+
+    function getViewportHeight() {
+        return window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
+    }
+
+    function refreshViewportLayoutTargets(targets) {
+        const normalizedTargets = Array.isArray(targets)
+            ? targets
+            : (targets ? [targets] : []);
+
+        normalizedTargets.forEach(function (target) {
+            if (!target) {
+                return;
+            }
+
+            if (typeof target === 'function') {
+                target();
+                return;
+            }
+
+            if (typeof target.updateDimensions === 'function') {
+                target.updateDimensions();
+            }
+        });
+    }
+
+    function enableAdminViewportLayout(options) {
+        const settings = $.extend(true, {
+            layoutSelector: '.admin-viewport-layout',
+            contentSelector: '.admin-responsive-content',
+            pageHeaderSelector: '.page-header',
+            minWidth: 768,
+            refreshTargets: []
+        }, options || {});
+
+        const layout = document.querySelector(settings.layoutSelector);
+        if (!layout) {
+            return null;
+        }
+
+        const content = layout.querySelector(settings.contentSelector);
+        const pageHeader = document.querySelector(settings.pageHeaderSelector);
+        const mediaQuery = window.matchMedia(`(min-width: ${settings.minWidth}px)`);
+        const namespace = `.ilearnViewportLayout${viewportLayoutCounter += 1}`;
+        let resizeObserver = null;
+
+        const refreshLayout = function () {
+            if (!mediaQuery.matches) {
+                document.body.classList.remove('admin-viewport-layout-active');
+                layout.style.removeProperty('--admin-viewport-layout-height');
+                layout.style.removeProperty('--admin-viewport-content-height');
+                refreshViewportLayoutTargets(settings.refreshTargets);
+                return;
+            }
+
+            document.body.classList.add('admin-viewport-layout-active');
+
+            const layoutRect = layout.getBoundingClientRect();
+            const viewportHeight = getViewportHeight();
+            const layoutStyles = window.getComputedStyle(layout);
+            const layoutPaddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
+            const availableHeight = Math.max(0, Math.floor(viewportHeight - layoutRect.top));
+
+            layout.style.setProperty('--admin-viewport-layout-height', `${availableHeight}px`);
+
+            if (content) {
+                const contentRect = content.getBoundingClientRect();
+                const contentHeight = Math.max(0, Math.floor(viewportHeight - contentRect.top - layoutPaddingBottom));
+                layout.style.setProperty('--admin-viewport-content-height', `${contentHeight}px`);
+            }
+
+            refreshViewportLayoutTargets(settings.refreshTargets);
+        };
+
+        const scheduleRefresh = function () {
+            window.requestAnimationFrame(refreshLayout);
+        };
+
+        $(window).on(`resize${namespace}`, scheduleRefresh);
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', scheduleRefresh);
+        }
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', scheduleRefresh);
+        } else if (typeof mediaQuery.addListener === 'function') {
+            mediaQuery.addListener(scheduleRefresh);
+        }
+
+        if (typeof ResizeObserver === 'function' && pageHeader) {
+            resizeObserver = new ResizeObserver(scheduleRefresh);
+            resizeObserver.observe(pageHeader);
+        }
+
+        refreshLayout();
+
+        return {
+            refresh: refreshLayout,
+            dispose: function () {
+                $(window).off(namespace);
+
+                if (window.visualViewport) {
+                    window.visualViewport.removeEventListener('resize', scheduleRefresh);
+                }
+
+                if (typeof mediaQuery.removeEventListener === 'function') {
+                    mediaQuery.removeEventListener('change', scheduleRefresh);
+                } else if (typeof mediaQuery.removeListener === 'function') {
+                    mediaQuery.removeListener(scheduleRefresh);
+                }
+
+                if (resizeObserver) {
+                    resizeObserver.disconnect();
+                }
+
+                layout.style.removeProperty('--admin-viewport-layout-height');
+                layout.style.removeProperty('--admin-viewport-content-height');
+                document.body.classList.remove('admin-viewport-layout-active');
+            }
+        };
     }
 
     function refreshGridDimensions(gridInstance) {
@@ -1264,6 +1387,7 @@
     window.hideCardsSkeleton = hideCardsSkeleton;
     window.refreshUserCache = refreshUserCache;
     window.refreshViewportGridHeights = refreshViewportGridHeights;
+    window.enableAdminViewportLayout = enableAdminViewportLayout;
     window.formatAdminDate = formatAdminDate;
     window.formatAdminTime = formatAdminTime;
     window.formatAdminDateTime = formatAdminDateTime;

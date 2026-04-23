@@ -86,27 +86,6 @@
     padding: var(--space-md);
 }
 
-/* ── Snapshot Meta (sidebar) ──────────────────────────────────────── */
-.admin-meta-item {
-    padding: var(--space-xs) 0;
-    border-bottom: 1px solid var(--border-color);
-}
-.admin-meta-item:last-child {
-    border-bottom: none;
-}
-.admin-meta-label {
-    font-size: var(--font-size-caption);
-    color: var(--text-secondary);
-    font-weight: var(--font-weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    margin-bottom: 3px;
-}
-.admin-meta-value {
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
-}
-
 /* ── Selection Layout (Filter + Grid) ────────────────────────────── */
 .admin-selection-layout {
     display: grid;

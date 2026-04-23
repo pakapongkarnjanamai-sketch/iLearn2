@@ -4,16 +4,6 @@
     var categoryReportUrl = Url.Content($"~/Categories/Report/{categoryId}");
 }
 
-<style>
-    .meta-item { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
-    .meta-item:last-child { border-bottom: none; }
-    .meta-label { font-size: var(--font-size-xs); color: var(--text-secondary); font-weight: 600;
-                  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
-    .meta-value { font-size: var(--font-size-sm); color: var(--text-primary); }
-    .chart-host { min-height: 240px; }
-    .chart-canvas { width: 100%; height: 100%; min-height: 240px; }
-</style>
-
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
@@ -25,44 +15,25 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid page-shell-lg px-4 py-4">
     <div id="load-panel"></div>
 
     <!-- ── Row 1: Info / Summary / Actions ── -->
     <div class="row g-3 mb-4">
 
-        <!-- Category Info -->
-        <div class="col-lg-3">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Info</div>
-
-                <div class="meta-item">
-                    <div class="meta-label">Category Name</div>
-                    <div class="meta-value fw-bold" id="info-name">—</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Division</div>
-                    <div class="meta-value" id="info-division">—</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Status</div>
-                    <div class="meta-value" id="info-status">—</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Created By</div>
-                    <div class="meta-value" id="info-created-by">—</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-label">Created At</div>
-                    <div class="meta-value" id="info-created-at">—</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary + Enrollment Distribution -->
-        <div class="col-lg-6">
+        <!-- Category Overview -->
+        <div class="col-lg-9">
             <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
-                <div class="section-title">Summary</div>
+                <div class="admin-section-header mb-3">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Info & Summary</div>
+                        <span id="category-status-badge" class="tag-pill pill-default admin-section-status">
+                            <i class="fas fa-circle-notch fa-spin me-1" aria-hidden="true"></i> Loading...
+                        </span>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+
                 <div class="row g-2 text-center mb-3">
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
@@ -89,8 +60,32 @@
                         </div>
                     </div>
                 </div>
-                <div class="d-flex align-items-stretch justify-content-center flex-grow-1 px-3 pt-3 pb-3 chart-host">
-                    <div id="status-pie-chart" class="chart-canvas"></div>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="admin-meta-item">
+                            <div class="admin-meta-label">Category Name</div>
+                            <div class="admin-meta-value fw-bold" id="info-name">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Division</div>
+                            <div class="admin-meta-value" id="info-division">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Created By</div>
+                            <div class="admin-meta-value" id="info-created-by">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Created At</div>
+                            <div class="admin-meta-value" id="info-created-at">—</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,13 +96,13 @@
                 <div class="section-title">Actions</div>
                 <div class="d-flex flex-column gap-2">
 
-                    <a href="javascript:void(0);" id="btn-edit-category" class="quick-action">
+                    <button type="button" id="btn-edit-category" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-edit"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Edit Category</div>
                             <div class="u-fs-11 text-secondary">Change name, division, or status</div>
                         </div>
-                    </a>
+                    </button>
 
                     <a href="@categoryReportUrl" target="_blank" class="quick-action">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-file-alt"></i></div>
@@ -117,21 +112,21 @@
                         </div>
                     </a>
 
-                    <a href="javascript:void(0);" id="btn-toggle-status" class="quick-action">
+                    <button type="button" id="btn-toggle-status" class="quick-action">
                         <div class="qa-icon qa-icon-success" id="toggle-icon-box"><i id="toggle-icon" class="fas fa-check-circle"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold" id="toggle-btn-text">Activate</div>
                             <div class="u-fs-11 text-secondary" id="toggle-btn-desc">Make category active</div>
                         </div>
-                    </a>
+                    </button>
 
-                    <a href="javascript:void(0);" id="btn-delete-category" class="quick-action danger">
+                    <button type="button" id="btn-delete-category" class="quick-action danger">
                         <div class="qa-icon qa-icon-danger"><i id="delete-icon" class="fas fa-trash-alt"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold" id="delete-btn-text">Delete Category</div>
                             <div class="u-fs-11 text-secondary">Remove permanently</div>
                         </div>
-                    </a>
+                    </button>
 
                 </div>
 
@@ -179,7 +174,13 @@
 
     $(() => {
         coursesGrid = initDxGrid("#grid-courses", {
+            preset: "compactGrid",
+            height: null,
             dataSource: [],
+            scrolling: {
+                mode: "standard",
+                rowRenderingMode: "standard"
+            },
             searchPanel: { placeholder: "Search courses..." },
             rowAlternationEnabled: true,
             showRowLines: true,
@@ -303,7 +304,6 @@
 
             renderCategoryInfo();
             renderStats();
-            renderChart();
             renderCoursesGrid();
             updateActions();
 
@@ -316,6 +316,15 @@
         const c = categoryData;
         $("#page-title").text(c.name);
         $("#page-subtitle").text(c.divisionName ? `Division: ${c.divisionName}` : "No division assigned");
+
+        $("#category-status-badge")
+            .removeClass("pill-default pill-success")
+            .addClass(c.isActive ? "pill-success" : "pill-default")
+            .html(
+                c.isActive
+                    ? '<i class="fas fa-check-circle me-1" aria-hidden="true"></i> Active'
+                    : '<i class="fas fa-times-circle me-1" aria-hidden="true"></i> Inactive'
+            );
 
         $("#info-name").text(c.name);
         $("#info-division").html(
@@ -338,52 +347,6 @@
         $("#stat-students").text(s.uniqueStudents);
         $("#stat-completed").text(s.completedEnrollments);
         $("#stat-inprogress").text(s.inProgressEnrollments);
-    }
-
-    function renderChart() {
-        const s = statsData;
-        const avgProgress = s.avgProgress || 0;
-        const valueText = window.formatAdminPercentage
-            ? window.formatAdminPercentage(avgProgress, '0%')
-            : avgProgress + '%';
-
-        $("#status-pie-chart").dxPieChart(
-            window.createAdminPieChartConfig({
-                palettePreset: "status3Brand",
-                centerLabel: 'Avg. Progress',
-                centerValue: valueText,
-                baseConfig: {
-                    type: "doughnut",
-                    innerRadius: 0.65,
-                    dataSource: [
-                        { status: "Completed", count: s.completedEnrollments },
-                        { status: "In Progress", count: s.inProgressEnrollments },
-                        { status: "Not Started", count: s.notStartedEnrollments }
-                    ],
-                    series: [{
-                        argumentField: "status",
-                        valueField: "count",
-                        label: {
-                            visible: true,
-                            position: "outside",
-                            connector: { visible: true },
-                            format: { type: "fixedPoint", precision: 0 },
-                            font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
-                            customizeText: function(point) {
-                                return point.argumentText + ": " + point.valueText;
-                            }
-                        }
-                    }],
-                    legend: {
-                        horizontalAlignment: "right",
-                        verticalAlignment: "bottom",
-                        margin: 12,
-                        font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" }
-                    },
-                    tooltip: { enabled: true }
-                }
-            })
-        );
     }
 
     function renderCoursesGrid() {

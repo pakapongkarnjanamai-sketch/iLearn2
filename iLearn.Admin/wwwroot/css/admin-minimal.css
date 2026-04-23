@@ -187,6 +187,29 @@ img[loading="lazy"] {
     letter-spacing: var(--letter-spacing-normal);
 }
 
+.admin-meta-item {
+    padding: var(--space-xs) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-meta-item:last-child {
+    border-bottom: none;
+}
+
+.admin-meta-label {
+    font-size: var(--font-size-caption);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
+    margin-bottom: 3px;
+}
+
+.admin-meta-value {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
 .table,
 .dx-datagrid,
 .dx-treeview,
@@ -737,7 +760,7 @@ img[loading="lazy"] {
    5. Layout Components
    ------------------------------------------------------------- */
 main {
-    flex: 1 1 0;
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -745,9 +768,47 @@ main {
 
 main > .container-fluid,
 main > .container {
-    flex: 1 1 0;
-    min-height: 0;
-    overflow-y: auto;
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+}
+
+@media (min-width: 768px) {
+    body.admin-viewport-layout-active {
+        overflow: hidden;
+    }
+
+    body.admin-viewport-layout-active main {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body.admin-viewport-layout-active .admin-viewport-layout {
+        flex: 1 1 0;
+        height: var(--admin-viewport-layout-height, auto);
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body.admin-viewport-layout-active .admin-viewport-layout .admin-responsive-content,
+    body.admin-viewport-layout-active .admin-viewport-layout .admin-responsive-content > [class*="col-"] {
+        min-height: 0;
+    }
+
+    body.admin-viewport-layout-active .admin-viewport-layout .admin-responsive-content {
+        height: var(--admin-viewport-content-height, auto) !important;
+    }
+
+    body.admin-viewport-layout-active .admin-viewport-layout .panel,
+    body.admin-viewport-layout-active .admin-viewport-layout .panel-body,
+    body.admin-viewport-layout-active .admin-viewport-layout .admin-viewport-fill {
+        min-height: 0;
+    }
+
+    body.admin-viewport-layout-active .admin-viewport-layout .admin-viewport-fill {
+        height: 100%;
+    }
 }
 
 .page-header {

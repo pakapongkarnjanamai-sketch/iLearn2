@@ -3,6 +3,35 @@
     int courseId = ViewBag.CourseId;
 }
 
+<style>
+    .course-description {
+        min-height: 96px;
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+    .version-resource-stack { min-width: 0; }
+    .version-resource-line { min-width: 0; }
+    .version-resource-line .tag-pill { flex-shrink: 0; }
+    .version-resource-preview-btn {
+        border: 0;
+        background: transparent;
+        color: var(--primary-color);
+        padding: 0;
+        line-height: 1;
+    }
+    .version-resource-preview-btn:hover,
+    .version-resource-preview-btn:focus-visible {
+        color: var(--primary-hover);
+        outline: none;
+    }
+    .version-resource-more {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+    }
+</style>
+
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <h1 class="page-title" id="pageTitle">Course Detail</h1>
@@ -17,34 +46,107 @@
 
     <div class="row g-3 mb-4">
 
-        <div class="col-lg-8">
-            <div class="border rounded bg-white h-100 d-flex flex-column">
-                <div class="p-3">
-                    <div class="admin-section-header">
-                        <div class="admin-section-header-main">
-                            <div class="section-title mb-0 admin-section-title-fill">Course Information</div>
-                            <span id="courseStatusBadge" class="tag-pill pill-default admin-section-status">
-                                <i class="fas fa-circle-notch fa-spin me-1" aria-hidden="true"></i> Loading...
-                            </span>
+        <div class="col-lg-3">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="admin-section-header mb-2">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Info</div>
+                        <span id="courseStatusBadge" class="tag-pill pill-default admin-section-status">
+                            <i class="fas fa-circle-notch fa-spin me-1" aria-hidden="true"></i> Loading...
+                        </span>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Course Name</div>
+                    <div class="admin-meta-value fw-bold" id="summary-course-name">—</div>
+                </div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Course Code</div>
+                    <div class="admin-meta-value" id="summary-course-code">—</div>
+                </div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Division</div>
+                    <div class="admin-meta-value" id="summary-division">—</div>
+                </div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Category</div>
+                    <div class="admin-meta-value" id="summary-category">—</div>
+                </div>
+                <div class="admin-meta-item">
+                    <div class="admin-meta-label">Course Type</div>
+                    <div class="admin-meta-value" id="summary-course-type">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
+                <div class="section-title">Summary</div>
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-version-count">0</div>
+                            <div class="stat-label">Versions</div>
                         </div>
-                        <div class="admin-section-divider"></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-assignment-count">0</div>
+                            <div class="stat-label">Assignments</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-learner-count">0</div>
+                            <div class="stat-label">Learners</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value u-text-success" id="stat-completed-count">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
                     </div>
                 </div>
-                <div class="px-3 pb-3 d-flex flex-column flex-grow-1">
-                    <div id="courseInfoForm"></div>
-                    <div class="text-end mt-3 pt-3 u-border-top">
-                        <a href="javascript:void(0);" id="btnSaveCourse" class="action-link primary">
-                            <i class="fas fa-save" aria-hidden="true"></i> Save Changes
-                        </a>
+                <div class="border rounded bg-white p-3 flex-grow-1 d-flex flex-column gap-3">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="admin-meta-label">Current Version</div>
+                            <div class="admin-meta-value" id="summary-active-version">—</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="admin-meta-label">Availability</div>
+                            <div class="admin-meta-value" id="summary-availability">—</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="admin-meta-label">Active Resources</div>
+                            <div class="admin-meta-value" id="summary-resource-count">—</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="admin-meta-label">Description</div>
+                        <div class="course-description" id="summary-description">—</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <div class="border rounded bg-white h-100 p-3">
                 <div class="section-title">Actions</div>
                 <div class="d-flex flex-column gap-2">
+
+                    <a href="javascript:void(0);" id="btnEditCourse" class="quick-action">
+                        <div class="qa-icon qa-icon-muted">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
+                        </div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold text-dark">Edit Course</div>
+                            <div class="u-fs-11 text-secondary">Change course information</div>
+                        </div>
+                    </a>
 
                     <a href="javascript:void(0);" id="btnNewVersion" class="quick-action">
                         <div class="qa-icon qa-icon-accent">
@@ -104,8 +206,7 @@
             </div>
             <div class="admin-section-divider"></div>
         </div>
-        <div id="versionsToolbar" class="mb-3"></div>
-        <div id="versionsCardContainer" class="row g-3"></div>
+        <div id="versionsGrid"></div>
     </div>
 
 </div>
@@ -129,136 +230,39 @@
         });
 
         let isCourseActive = false;
-        let courseForm;
+        let currentCourseData = null;
         let versionsData = [];
+        let versionsGrid;
+        let divisionOptions = [];
+        let categoryOptions = [];
+        let courseTypeOptions = [];
+        let dashboardKpi = {
+            versionCount: 0,
+            assignmentCount: 0,
+            learnerCount: 0,
+            completedCount: 0
+        };
+        const EMPTY_TEXT = '—';
 
         $(async () => {
-            const [divisionOptions, courseTypeOptions] = await Promise.all([
+            const lookupResults = await Promise.all([
                 loadLookupOptions(divisionsStore),
+                loadLookupOptions(categoriesStore),
                 loadLookupOptions(courseTypesStore)
             ]);
 
-            showCardsSkeleton('#versionsCardContainer', 3);
+            divisionOptions = lookupResults[0];
+            categoryOptions = lookupResults[1];
+            courseTypeOptions = lookupResults[2];
 
-            courseForm = $("#courseInfoForm").dxForm({
-                formData: {},
-                labelLocation: "top",
-                colCount: 1,
-                items: [
-                    {
-                        itemType: "group",
-                        colCount: 2,
-                        items: [
-                            {
-                                dataField: "divisionId",
-                                label: { text: "Division" },
-                                editorType: "dxSelectBox",
-                                editorOptions: {
-                                    dataSource: divisionOptions,
-                                    displayExpr: "name",
-                                    valueExpr: "id",
-                                    searchEnabled: true,
-                                    showClearButton: true,
-                                    placeholder: "Select Division",
-                                    onValueChanged: async function(e) {
-                                        if (e.event) {
-                                            getCategoryEditor().option("value", null);
-                                        }
+            initializeVersionsGrid();
 
-                                        await syncCategoryEditor(e.value);
-                                    }
-                                }
-                            },
-                            {
-                                dataField: "categoryId",
-                                label: { text: "Category" },
-                                editorType: "dxSelectBox",
-                                editorOptions: {
-                                    dataSource: categoriesStore,
-                                    displayExpr: "name",
-                                    valueExpr: "id",
-                                    searchEnabled: true,
-                                    disabled: true,
-                                    placeholder: "Select Category"
-                                },
-                                validationRules: [{ type: "required", message: "Category is required" }]
-                            }
-                        ]
-                    },
-                    {
-                        itemType: "group",
-                        colCount: 2,
-                        items: [
-                            {
-                                dataField: "courseCode",
-                                label: { text: "Course Code" },
-                                validationRules: [{ type: "required", message: "Course Code is required" }],
-                                editorOptions: { placeholder: "e.g. CS-101" }
-                            },
-                            {
-                                dataField: "courseType",
-                                label: { text: "Course Type" },
-                                editorType: "dxSelectBox",
-                                editorOptions: {
-                                    dataSource: courseTypeOptions,
-                                    displayExpr: "name",
-                                    valueExpr: "id",
-                                    placeholder: "Select Type"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        dataField: "courseName",
-                        label: { text: "Course Name" },
-                        validationRules: [{ type: "required", message: "Course Name is required" }],
-                        editorOptions: { placeholder: "e.g. Introduction to Cybersecurity" }
-                    },
-                    {
-                        dataField: "description",
-                        label: { text: "Description" },
-                        editorType: "dxTextArea",
-                        editorOptions: { height: 90, placeholder: "Course summary and objectives..." }
-                    }
-                ]
-            }).dxForm("instance");
+            $("#btnEditCourse").on("click", function(e) {
+                e.preventDefault();
+                openEditCourseDialog();
+            });
 
             await loadDashboardData();
-
-            $("#btnSaveCourse").on("click", async function() {
-                if (!courseForm.validate().isValid) {
-                    showToast("Please fill in all required fields.", "warning", 2000);
-                    return;
-                }
-
-                const formData = courseForm.option("formData");
-                const $button = $(this);
-
-                setSaveButtonLoading($button, true);
-
-                try {
-                    await $.ajax({
-                        url: `${courseApiUrl}/${courseId}`,
-                        type: 'PUT',
-                        contentType: 'application/json',
-                        xhrFields: { withCredentials: true },
-                        data: JSON.stringify({
-                            courseCode: formData.courseCode,
-                            courseName: formData.courseName,
-                            description: formData.description,
-                            categoryId: formData.categoryId,
-                            courseType: formData.courseType
-                        })
-                    });
-
-                    updateCourseHeader(formData.courseName, formData.courseCode);
-                    showToast("Course updated successfully.", "success", 2000);
-                } catch (xhr) {
-                    showToast(window.getApiErrorMessage(xhr, "Error updating course."), "error");
-                } finally {
-                    setSaveButtonLoading($button, false);
-                }
-            });
 
             function updateStatusUI(isActive) {
                 const $publishIcon = $("#publishIcon");
@@ -269,6 +273,7 @@
                 const $btnAssignment = $("#btnAssignment");
                 const $statusBadge = $("#courseStatusBadge");
                 const $warnMsg = $("#warningMsg");
+                const $availability = $("#summary-availability");
 
                 if (isActive) {
                     $publishIcon.removeClass("fa-globe").addClass("fa-lock");
@@ -280,6 +285,7 @@
                                 .html('<i class="fas fa-check-circle me-1"></i> Active');
                     setActionLinkState($btnDelete, true);
                     setActionLinkState($btnAssignment, false);
+                    $availability.html('<span class="tag-pill pill-success"><i class="fas fa-check-circle me-1"></i> Available for assignment</span>');
                     $warnMsg.removeClass("d-none");
                 } else {
                     $publishIcon.removeClass("fa-lock").addClass("fa-globe");
@@ -291,7 +297,12 @@
                                 .html('<i class="fas fa-lock me-1"></i> Closed');
                     setActionLinkState($btnDelete, false);
                     setActionLinkState($btnAssignment, true);
+                    $availability.html('<span class="tag-pill pill-default"><i class="fas fa-lock me-1"></i> Closed to new learners</span>');
                     $warnMsg.addClass("d-none");
+                }
+
+                if (currentCourseData) {
+                    currentCourseData.isActive = isActive;
                 }
             }
 
@@ -382,55 +393,119 @@
                 window.location.href = `${assignmentFormUrl}?courseId=${courseId}`;
             });
 
-            function renderVersionCards(versions) {
+            function initializeVersionsGrid() {
+                versionsGrid = initDxGrid("#versionsGrid", {
+                    preset: "compactGrid",
+                    dataSource: [],
+                    rowAlternationEnabled: true,
+                    searchPanel: { placeholder: "Search versions..." },
+                    columns: [
+                        {
+                            dataField: "versionNumber",
+                            caption: "Version",
+                            width: 110,
+                            alignment: "center",
+                            cssClass: "cell-bold",
+                            customizeText: function(e) {
+                                return e.value ? `v${e.value}` : EMPTY_TEXT;
+                            }
+                        },
+                        {
+                            dataField: "isActive",
+                            caption: "Status",
+                            width: 120,
+                            alignment: "center",
+                            cellTemplate: function(container, options) {
+                                window.renderAdminGridStatusCell(
+                                    container,
+                                    options.value ? "Active" : "Draft",
+                                    options.value ? "success" : "default"
+                                );
+                            }
+                        },
+                        {
+                            dataField: "note",
+                            caption: "Description",
+                            minWidth: 240,
+                            cellTemplate: function(container, options) {
+                                if (options.value) {
+                                    window.renderAdminGridTruncatedTextCell(container, options.value, 80, "captionMuted");
+                                    return;
+                                }
+
+                                $("<span>")
+                                    .addClass("text-muted u-fs-11")
+                                    .text("No description")
+                                    .appendTo(container);
+                            }
+                        },
+                        {
+                            dataField: "createdAt",
+                            caption: "Created",
+                            width: 120,
+                            alignment: "center",
+                            dataType: "date",
+                            format: ADMIN_DATE_DISPLAY_FORMAT,
+                            cssClass: "cell-caption"
+                        },
+                        {
+                            dataField: "resources",
+                            caption: "Resources",
+                            minWidth: 300,
+                            allowSorting: false,
+                            allowFiltering: false,
+                            cellTemplate: function(container, options) {
+                                renderVersionResourcesCell(container, options.value || []);
+                            }
+                        },
+                        {
+                            type: "buttons",
+                            caption: "Actions",
+                            width: 130,
+                            alignment: "center",
+                            fixed: true,
+                            fixedPosition: "right",
+                            buttons: [
+                                {
+                                    hint: "Edit Version",
+                                    icon: "edit",
+                                    onClick: function(e) {
+                                        window.location.href = `${newVersionUrl}?id=${e.row.data.id}&courseId=${courseId}`;
+                                    }
+                                },
+                                {
+                                    hint: "Set Active",
+                                    icon: "check",
+                                    visible: function(e) {
+                                        return !e.row.data.isActive;
+                                    },
+                                    onClick: function(e) {
+                                        window.setActiveVersion(e.row.data.id);
+                                    }
+                                },
+                                {
+                                    hint: "Delete Version",
+                                    icon: "trash",
+                                    visible: function(e) {
+                                        return !e.row.data.isActive;
+                                    },
+                                    onClick: function(e) {
+                                        window.deleteVersion(e.row.data.id);
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                });
+            }
+
+            function renderVersionsGrid(versions) {
                 versionsData = versions || [];
                 updateVersionsCountBadge(versionsData.length);
 
-                if (!$("#versionsToolbar").hasClass("dx-toolbar")) {
-                    $("#versionsToolbar").dxToolbar({
-                        items: [
-                            {
-                                location: "before",
-                                widget: "dxTextBox",
-                                options: {
-                                    placeholder: "Search versions...",
-                                    width: 250,
-                                    mode: "search",
-                                    valueChangeEvent: "keyup",
-                                    onValueChanged: function(e) {
-                                        drawCards(e.value);
-                                    }
-                                }
-                            }
-                            
-                        ]
-                    });
+                if (versionsGrid) {
+                    versionsGrid.option("dataSource", versionsData);
                 }
-
-                drawCards("");
-            }
-
-            function drawCards(searchText) {
-                const $container = $("#versionsCardContainer");
-                $container.empty();
-
-                const filteredVersions = versionsData.filter(version => matchesVersionSearch(version, searchText));
-                updateVersionsCountBadge(filteredVersions.length);
-
-                if (filteredVersions.length === 0) {
-                    $container.html('<div class="col-12 text-center text-secondary py-4">No versions found.</div>');
-                    return;
-                }
-
-                filteredVersions.forEach(version => {
-                    $container.append(buildVersionCardHtml(version));
-                });
-
-                setTimeout(() => {
-                    $container.find('[data-bs-toggle="dropdown"]').each(function() {
-                        new bootstrap.Dropdown(this);
-                    });
-                }, 0);
             }
 
             window.viewContent = async function(resourceId, resourceName) {
@@ -517,12 +592,12 @@
                 }
             }
 
-            function getCategoryEditor() {
-                return courseForm.getEditor('categoryId');
-            }
+            async function syncCategoryEditor(formInstance, divisionId) {
+                const categoryEditor = formInstance.getEditor('categoryId');
+                if (!categoryEditor) {
+                    return;
+                }
 
-            async function syncCategoryEditor(divisionId) {
-                const categoryEditor = getCategoryEditor();
                 if (!divisionId) {
                     categoryEditor.option('disabled', true);
                     categoryEditor.option('value', null);
@@ -578,28 +653,257 @@
                     const dashboardData = response.data || {};
                     const courseData = dashboardData.course || {};
                     const versions = dashboardData.versions || [];
+                    dashboardKpi = {
+                        versionCount: dashboardData.kpi?.versionCount ?? versions.length,
+                        assignmentCount: dashboardData.kpi?.assignmentCount ?? 0,
+                        learnerCount: dashboardData.kpi?.learnerCount ?? 0,
+                        completedCount: dashboardData.kpi?.completedCount ?? 0
+                    };
                     const divisionId = await resolveDivisionId(courseData);
 
-                    await syncCategoryEditor(divisionId);
-
-                    courseForm.option('formData', {
+                    currentCourseData = {
                         divisionId: divisionId,
                         courseCode: courseData.courseCode,
                         courseName: courseData.courseName,
                         description: courseData.description,
                         categoryId: courseData.categoryId,
-                        courseType: courseData.courseType
-                    });
+                        courseType: courseData.courseType,
+                        isActive: courseData.isActive
+                    };
 
                     isCourseActive = courseData.isActive;
                     updateCourseHeader(courseData.courseName, courseData.courseCode);
                     updateStatusUI(isCourseActive);
-                    renderVersionCards(versions);
+                    renderCourseSummary(currentCourseData, dashboardKpi, versions);
+                    renderVersionsGrid(versions);
                 } catch (xhr) {
-                    $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
                     showToast(`Error loading course: ${window.getApiErrorMessage(xhr, 'Unknown error')}`, 'error');
                     console.log(xhr);
                 }
+            }
+
+            function renderCourseSummary(courseData, kpi, versions) {
+                const activeVersion = (versions || []).find(function(version) {
+                    return version.isActive;
+                }) || null;
+
+                $("#summary-course-name").text(courseData.courseName || EMPTY_TEXT);
+                $("#summary-course-code").text(courseData.courseCode || EMPTY_TEXT);
+                $("#summary-division").text(getLookupText(divisionOptions, courseData.divisionId) || EMPTY_TEXT);
+                $("#summary-category").text(getLookupText(categoryOptions, courseData.categoryId) || EMPTY_TEXT);
+                $("#summary-course-type").text(getLookupText(courseTypeOptions, courseData.courseType) || EMPTY_TEXT);
+                $("#summary-description").text(courseData.description || 'No description');
+                $("#summary-active-version").html(
+                    activeVersion
+                        ? `<span class="tag-pill pill-success">Version ${activeVersion.versionNumber}</span>`
+                        : '<span class="tag-pill pill-default">No active version</span>'
+                );
+                $("#summary-resource-count").text(window.formatAdminCountLabel((activeVersion?.resources || []).length, 'resource'));
+
+                $("#stat-version-count").text(kpi.versionCount ?? (versions || []).length);
+                $("#stat-assignment-count").text(kpi.assignmentCount ?? 0);
+                $("#stat-learner-count").text(kpi.learnerCount ?? 0);
+                $("#stat-completed-count").text(kpi.completedCount ?? 0);
+            }
+
+            function getLookupText(options, value) {
+                if (!value) {
+                    return '';
+                }
+
+                const match = (options || []).find(function(item) {
+                    return item.id === value;
+                });
+
+                return match ? match.name : '';
+            }
+
+            function getCourseEditFormData() {
+                return {
+                    divisionId: currentCourseData?.divisionId || null,
+                    categoryId: currentCourseData?.categoryId || null,
+                    courseCode: currentCourseData?.courseCode || '',
+                    courseName: currentCourseData?.courseName || '',
+                    description: currentCourseData?.description || '',
+                    courseType: currentCourseData?.courseType || null
+                };
+            }
+
+            function openEditCourseDialog() {
+                if (!currentCourseData) {
+                    showToast('Course details are still loading.', 'warning', 2500);
+                    return;
+                }
+
+                const dialogId = `edit-course-dialog-${Date.now()}`;
+                const formId = `${dialogId}-form`;
+                const cancelId = `${dialogId}-cancel`;
+                const saveId = `${dialogId}-save`;
+
+                const dialog = DevExpress.ui.dialog.custom({
+                    title: 'Edit Course',
+                    messageHtml: `
+                        <div id="${dialogId}" class="pt-2 text-start">
+                            <div id="${formId}"></div>
+                            <div class="d-flex gap-2 justify-content-end mt-3">
+                                <div id="${cancelId}"></div>
+                                <div id="${saveId}"></div>
+                            </div>
+                        </div>`,
+                    buttons: [],
+                    dragEnabled: false,
+                    closeOnOutsideClick: false,
+                    showCloseButton: true,
+                    width: 640
+                });
+
+                dialog.show();
+
+                window.setTimeout(async function() {
+                    const $formHost = $("#" + formId);
+                    if (!$formHost.length) {
+                        return;
+                    }
+
+                    let editForm;
+                    editForm = $formHost.dxForm({
+                        formData: getCourseEditFormData(),
+                        labelLocation: 'top',
+                        colCount: 1,
+                        items: [
+                            {
+                                itemType: 'group',
+                                colCount: 2,
+                                items: [
+                                    {
+                                        dataField: 'divisionId',
+                                        label: { text: 'Division' },
+                                        editorType: 'dxSelectBox',
+                                        editorOptions: {
+                                            dataSource: divisionOptions,
+                                            displayExpr: 'name',
+                                            valueExpr: 'id',
+                                            searchEnabled: true,
+                                            showClearButton: true,
+                                            placeholder: 'Select Division',
+                                            onValueChanged: async function(e) {
+                                                if (e.event) {
+                                                    editForm.getEditor('categoryId').option('value', null);
+                                                }
+
+                                                await syncCategoryEditor(editForm, e.value);
+                                            }
+                                        }
+                                    },
+                                    {
+                                        dataField: 'categoryId',
+                                        label: { text: 'Category' },
+                                        editorType: 'dxSelectBox',
+                                        editorOptions: {
+                                            dataSource: categoriesStore,
+                                            displayExpr: 'name',
+                                            valueExpr: 'id',
+                                            searchEnabled: true,
+                                            disabled: true,
+                                            placeholder: 'Select Category'
+                                        },
+                                        validationRules: [{ type: 'required', message: 'Category is required' }]
+                                    }
+                                ]
+                            },
+                            {
+                                itemType: 'group',
+                                colCount: 2,
+                                items: [
+                                    {
+                                        dataField: 'courseCode',
+                                        label: { text: 'Course Code' },
+                                        validationRules: [{ type: 'required', message: 'Course Code is required' }],
+                                        editorOptions: { placeholder: 'e.g. CS-101' }
+                                    },
+                                    {
+                                        dataField: 'courseType',
+                                        label: { text: 'Course Type' },
+                                        editorType: 'dxSelectBox',
+                                        editorOptions: {
+                                            dataSource: courseTypeOptions,
+                                            displayExpr: 'name',
+                                            valueExpr: 'id',
+                                            placeholder: 'Select Type'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                dataField: 'courseName',
+                                label: { text: 'Course Name' },
+                                validationRules: [{ type: 'required', message: 'Course Name is required' }],
+                                editorOptions: { placeholder: 'e.g. Introduction to Cybersecurity' }
+                            },
+                            {
+                                dataField: 'description',
+                                label: { text: 'Description' },
+                                editorType: 'dxTextArea',
+                                editorOptions: { height: 110, placeholder: 'Course summary and objectives...' }
+                            }
+                        ]
+                    }).dxForm('instance');
+
+                    await syncCategoryEditor(editForm, currentCourseData.divisionId);
+
+                    const cancelButton = $("#" + cancelId).dxButton({
+                        text: 'Cancel',
+                        stylingMode: 'outlined',
+                        onClick: function() {
+                            dialog.hide();
+                        }
+                    }).dxButton('instance');
+
+                    const saveButton = $("#" + saveId).dxButton({
+                        text: 'Save Changes',
+                        type: 'default',
+                        stylingMode: 'contained',
+                        onClick: async function() {
+                            if (!editForm.validate().isValid) {
+                                showToast('Please fill in all required fields.', 'warning', 2000);
+                                return;
+                            }
+
+                            const formData = editForm.option('formData');
+                            setDialogSaveButtonState(saveButton, true);
+                            cancelButton.option('disabled', true);
+
+                            try {
+                                await $.ajax({
+                                    url: `${courseApiUrl}/${courseId}`,
+                                    type: 'PUT',
+                                    contentType: 'application/json',
+                                    xhrFields: { withCredentials: true },
+                                    data: JSON.stringify({
+                                        courseCode: formData.courseCode,
+                                        courseName: formData.courseName,
+                                        description: formData.description,
+                                        categoryId: formData.categoryId,
+                                        courseType: formData.courseType
+                                    })
+                                });
+
+                                currentCourseData = {
+                                    ...currentCourseData,
+                                    ...formData
+                                };
+                                updateCourseHeader(formData.courseName, formData.courseCode);
+                                renderCourseSummary(currentCourseData, dashboardKpi, versionsData);
+                                dialog.hide();
+                                showToast('Course updated successfully.', 'success', 2000);
+                            } catch (xhr) {
+                                setDialogSaveButtonState(saveButton, false);
+                                cancelButton.option('disabled', false);
+                                showToast(window.getApiErrorMessage(xhr, 'Error updating course.'), 'error');
+                            }
+                        }
+                    }).dxButton('instance');
+                }, 0);
             }
 
             function updateCourseHeader(courseName, courseCode) {
@@ -620,93 +924,78 @@
                 }
             }
 
-            function setSaveButtonLoading($button, isLoading) {
-                $button.css('opacity', isLoading ? 0.6 : 1)
-                    .html(isLoading
-                        ? '<i class="fas fa-spinner fa-spin"></i> Saving...'
-                        : '<i class="fas fa-save"></i> Save Changes');
+            function setDialogSaveButtonState(button, isLoading) {
+                if (!button) {
+                    return;
+                }
+
+                button.option({
+                    disabled: isLoading,
+                    text: isLoading ? 'Saving...' : 'Save Changes',
+                    icon: isLoading ? 'refresh' : undefined
+                });
             }
 
             function formatDate(value) {
-                return window.formatAdminDate(value, '—');
+                return window.formatAdminDate(value, EMPTY_TEXT);
             }
 
-            function escapeJsString(value) {
-                return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            }
+            function renderVersionResourcesCell(container, resources) {
+                const items = Array.isArray(resources) ? resources : [];
 
-            function matchesVersionSearch(version, searchText) {
-                if (!searchText) {
-                    return true;
+                if (!items.length) {
+                    $("<span>")
+                        .addClass('text-muted u-fs-11')
+                        .text('No files attached')
+                        .appendTo(container);
+                    return;
                 }
 
-                const term = searchText.toLowerCase();
-                return (version.note && version.note.toLowerCase().includes(term))
-                    || (version.versionNumber && version.versionNumber.toString().includes(term));
-            }
+                const $stack = $("<div>").addClass('d-flex flex-column gap-1 version-resource-stack');
 
-            function buildVersionActions(version) {
-                const editHref = `${newVersionUrl}?id=${version.id}&courseId=${courseId}`;
-                let actions = `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="${editHref}"><i class="fas fa-edit version-action-icon warning"></i><span class="u-fs-12">Edit</span></a>`;
+                items.slice(0, 2).forEach(function(resource, index) {
+                    const $row = $("<div>").addClass('d-flex align-items-center gap-2 version-resource-line');
+                    const typeTone = resource.typeId === 1 ? 'pill-primary' : 'pill-warning';
+                    const typeName = resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam');
 
-                if (!version.isActive) {
-                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2" href="javascript:void(0);" onclick="setActiveVersion(${version.id})"><i class="fas fa-check-circle version-action-icon accent"></i><span class="u-fs-12">Set Active</span></a>`;
-                    actions += '<hr class="dropdown-divider my-1">';
-                    actions += `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="javascript:void(0);" onclick="deleteVersion(${version.id})"><i class="fas fa-trash-alt version-action-icon"></i><span class="u-fs-12">Delete</span></a>`;
+                    $("<span>")
+                        .addClass('u-fs-11 text-secondary')
+                        .text(`${index + 1}.`)
+                        .appendTo($row);
+
+                    $("<span>")
+                        .addClass('text-truncate flex-grow-1 u-fs-11')
+                        .attr('title', resource.name || 'Unnamed resource')
+                        .text(resource.name || 'Unnamed resource')
+                        .appendTo($row);
+
+                    $("<span>")
+                        .addClass(`tag-pill tag-pill-xs ${typeTone}`)
+                        .text(typeName)
+                        .appendTo($row);
+
+                    if (resource.isActive) {
+                        $("<button>")
+                            .attr({ type: 'button', title: 'Preview' })
+                            .addClass('version-resource-preview-btn')
+                            .append($('<i>').addClass('fas fa-external-link-alt'))
+                            .on('click', function() {
+                                window.viewContent(resource.id, resource.name || '');
+                            })
+                            .appendTo($row);
+                    }
+
+                    $row.appendTo($stack);
+                });
+
+                if (items.length > 2) {
+                    $("<div>")
+                        .addClass('version-resource-more')
+                        .text(`+${items.length - 2} more`)
+                        .appendTo($stack);
                 }
 
-                return actions;
-            }
-
-            function buildVersionResourcesHtml(resources) {
-                if (!resources.length) {
-                    return '<span class="version-resource-empty">No files attached</span>';
-                }
-
-                return resources.map(function(resource, index) {
-                    const typeClass = resource.typeId === 1 ? 'pill-learn' : 'pill-exam';
-                    const typeName = window.escapeHtml(resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam'));
-                    const resourceName = window.escapeHtml(resource.name || 'Unnamed resource');
-                    const previewButton = resource.isActive
-                        ? `<a href="javascript:void(0);" onclick="window.viewContent(${resource.id},'${escapeJsString(resource.name)}')" class="version-resource-preview" title="Preview"><i class="fas fa-external-link-alt"></i></a>`
-                        : '';
-
-                    return `
-                        <div class="version-resource-item d-flex align-items-center gap-2 mb-1">
-                            <span class="version-resource-index">${index + 1}</span>
-                            <span class="version-resource-name text-truncate flex-grow-1" title="${resourceName}">${resourceName}</span>
-                            <span class="tag-pill tag-pill-xs tag-pill-static ${typeClass}">${typeName}</span>
-                            ${previewButton}
-                        </div>`;
-                }).join('');
-            }
-
-            function buildVersionCardHtml(version) {
-                const isActive = version.isActive;
-                const badge = isActive
-                    ? '<span class="tag-pill tag-pill-xs pill-success"><i class="fas fa-check-circle me-1"></i>Active</span>'
-                    : '<span class="tag-pill tag-pill-xs pill-default">Draft</span>';
-                const noteHtml = version.note
-                    ? window.escapeHtml(version.note)
-                    : '<span class="version-card-empty-note">No description</span>';
-
-                return `
-                    <div class="col-md-4 mb-2">
-                        <div class="version-card ${isActive ? 'active' : ''}">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <div class="version-card-title"> ${badge} Version ${version.versionNumber}</div>
-                                   
-                                </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm p-1 text-secondary version-card-menu" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v u-fs-11"></i></button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 version-card-dropdown">${buildVersionActions(version)}</ul>
-                                </div>
-                            </div>
-                            <div class="version-card-note u-fs-11 text-secondary u-border-bottom">${noteHtml}</div>
-                            <div class="cv-res">${buildVersionResourcesHtml(version.resources || [])}</div>
-                        </div>
-                    </div>`;
+                $stack.appendTo(container);
             }
 
             async function reloadVersions() {
@@ -717,9 +1006,11 @@
                         xhrFields: { withCredentials: true }
                     });
 
-                    renderVersionCards(response.data || []);
+                    renderVersionsGrid(response.data || []);
+                    dashboardKpi.versionCount = (response.data || []).length;
+                    renderCourseSummary(currentCourseData || {}, dashboardKpi, response.data || []);
                 } catch {
-                    $("#versionsCardContainer").html('<div class="col-12 text-center text-danger py-4">Error loading versions.</div>');
+                    showToast('Error loading versions.', 'error');
                 }
             }
 

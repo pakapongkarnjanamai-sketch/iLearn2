@@ -15,9 +15,9 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
     <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
 </div>
 
@@ -27,7 +27,8 @@
         const groupsStore = createDataStore(serviceUrl, 'admin/StudentGroupsCRUD', { key: 'id' });
 
         $(function () {
-            initDxGrid("#grid", buildAdminGridOptions("Search by group name, description, or owner...", {
+            const grid = initDxGrid("#grid", buildAdminGridOptions("Search by group name, description, or owner...", {
+                height: "100%",
                 dataSource: groupsStore,
                 remoteOperations: true,
 
@@ -88,6 +89,10 @@
                     }
                 ]
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [grid]
+            });
         });
     </script>
 }
