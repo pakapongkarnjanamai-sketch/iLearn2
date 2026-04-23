@@ -282,6 +282,39 @@ img[loading="lazy"] {
     margin-top: 2px !important;
 }
 
+.u-min-h-0 {
+    min-height: 0 !important;
+}
+
+.admin-chart-shell {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    flex-grow: 1;
+    padding: var(--space-md);
+    min-height: 240px;
+}
+
+.admin-chart-canvas {
+    width: 100%;
+    height: 100%;
+    min-height: 240px;
+}
+
+.admin-danger-note {
+    color: var(--danger-color);
+    font-size: var(--font-size-xs);
+}
+
+.admin-dialog-field-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
+    margin-bottom: 6px;
+}
+
 .u-mt-4px {
     margin-top: 4px !important;
 }
@@ -1459,6 +1492,22 @@ button.kpi-card {
     border-color: var(--border-brand);
 }
 
+.course-item--default {
+    border-left-color: var(--border-color);
+}
+
+.course-item--accent {
+    border-left-color: var(--primary-color);
+}
+
+.course-item--success {
+    border-left-color: var(--success-color);
+}
+
+.course-item--danger {
+    border-left-color: var(--border-danger);
+}
+
 .course-item.done,
 .course-item.active.done {
     border-color: var(--success-color);
@@ -1499,6 +1548,23 @@ button.kpi-card {
     text-align: right;
     flex-shrink: 0;
 }
+
+.course-item-pct--default {
+    color: var(--text-secondary);
+}
+
+.course-item-pct--accent {
+    color: var(--primary-color);
+}
+
+.course-item-pct--success {
+    color: var(--success-color);
+}
+
+.course-item-pct--danger {
+    color: var(--border-danger);
+}
+
 .course-item-remove {
     color: var(--text-secondary);
     opacity: 0.35;
@@ -1636,6 +1702,44 @@ button.kpi-card {
     background: var(--border-color);
     border-radius: 2px;
     overflow: hidden;
+}
+
+.progress-slim-native {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+}
+
+.progress-slim-native::-webkit-progress-bar {
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.progress-slim-native::-webkit-progress-value {
+    background: var(--progress-slim-color, var(--primary-color));
+    border-radius: 2px;
+}
+
+.progress-slim-native::-moz-progress-bar {
+    background: var(--progress-slim-color, var(--primary-color));
+    border-radius: 2px;
+}
+
+.progress-slim--default {
+    --progress-slim-color: var(--border-color);
+}
+
+.progress-slim--accent {
+    --progress-slim-color: var(--primary-color);
+}
+
+.progress-slim--success {
+    --progress-slim-color: var(--success-color);
+}
+
+.progress-slim--danger {
+    --progress-slim-color: var(--border-danger);
 }
 
 /* -------------------------------------------------------------

@@ -77,7 +77,7 @@
                     <div class="admin-meta-label">Created By</div>
                     <div class="admin-meta-value" id="lbl-created-by">-</div>
                 </div>
-                <div class="admin-meta-item" id="meta-student-group" style="display:none;">
+                <div class="admin-meta-item d-none" id="meta-student-group">
                     <div class="admin-meta-label">Student Group</div>
                     <div class="admin-meta-value" id="lbl-student-group">-</div>
                 </div>
@@ -114,8 +114,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="d-flex align-items-stretch justify-content-center flex-grow-1 px-3 pt-3 pb-3" style="min-height:240px;">
-                    <div id="status-pie-chart" style="width:100%;height:100%;min-height:240px;"></div>
+                <div class="admin-chart-shell px-3 pt-3 pb-3">
+                    <div id="status-pie-chart" class="admin-chart-canvas"></div>
                 </div>
             </div>
         </div>
@@ -592,7 +592,7 @@
                 `<a href="@Url.Action("Detail", "StudentGroups")?id=${data.studentGroupId}" class="action-link">${window.escapeHtml(data.studentGroupName || '-')}</a>` +
                 ` <span class="text-secondary u-fs-11">(ID: ${data.studentGroupId})</span>`
             );
-            $("#meta-student-group").show();
+            $("#meta-student-group").removeClass("d-none");
         }
 
         if (!data.hasDeletedCourse) {
@@ -689,17 +689,16 @@
     function buildCourseCardHtml(course, isActive) {
         const percent = getCourseCompletionPercent(course);
         const remaining = course.totalStudents - course.completedStudents;
-        const leftColor = course.isCourseDeleted
-            ? "var(--border-danger)"
-            : getProgressColor(percent);
+        const toneClass = course.isCourseDeleted
+            ? "danger"
+            : getProgressTone(percent);
         const deletedBadge = course.isCourseDeleted
             ? `<span class="tag-pill tag-pill-xs pill-danger ms-1"><i class="fas fa-ban me-1"></i>Deleted</span>`
             : "";
 
         return `
-            <div class="course-item ${percent === 100 ? "done" : ""} ${isActive ? "active" : ""} ${course.isCourseDeleted ? "opacity-75" : ""}"
-                 data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}"
-                 style="border-left-color:${leftColor};">
+            <div class="course-item course-item--${toneClass} ${percent === 100 ? "done" : ""} ${isActive ? "active" : ""} ${course.isCourseDeleted ? "opacity-75" : ""}"
+                 data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
 
                 <!-- Row 1: Code badge + remove button -->
                 <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
@@ -725,10 +724,8 @@
 
                 <!-- Row 3: Progress bar + percent -->
                 <div class="d-flex align-items-center gap-2 mb-2">
-                    <div class="progress-slim flex-grow-1">
-                        <div style="height:100%; width:${percent}%; background:${leftColor};"></div>
-                    </div>
-                    <span class="course-item-pct" style="color:${leftColor};">${window.formatAdminPercentage(percent, '0%')}</span>
+                    <progress class="progress-slim progress-slim-native progress-slim--${toneClass} flex-grow-1" value="${percent}" max="100"></progress>
+                    <span class="course-item-pct course-item-pct--${toneClass}">${window.formatAdminPercentage(percent, '0%')}</span>
                 </div>
 
                 <!-- Row 4: Stats -->
@@ -976,16 +973,16 @@
         return deferred.promise();
     }
 
-    function getProgressColor(progress) {
+    function getProgressTone(progress) {
         if (progress === 100) {
-            return "var(--success-color)";
+            return "success";
         }
 
         if (progress > 0) {
-            return "var(--primary-color)";
+            return "accent";
         }
 
-        return "var(--border-color)";
+        return "default";
     }
 
     function renderStudentStatusCell(container, isCompleted, progress) {
@@ -1396,7 +1393,7 @@
     function confirmResetCourse(ruleId, title) {
         confirmResetEnrollment({
             title: "Reset All Students",
-            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span style="color:var(--danger-color);font-size:var(--font-size-xs);"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for all students in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: null,
             loadingMessage: "Resetting enrollments...",
@@ -1408,7 +1405,7 @@
     function confirmResetStudent(ruleId, studentCode, studentName) {
         confirmResetEnrollment({
             title: "Reset Student Enrollment",
-            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span style="color:var(--danger-color);font-size:var(--font-size-xs);"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
             studentCodes: [studentCode],
             loadingMessage: "Resetting enrollment...",
@@ -1461,7 +1458,7 @@
             messageHtml: `
                 <div id="${dialogId}" class="pt-2">
                     <div class="mb-3">
-                        <div style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                        <div class="admin-dialog-field-label">
                             New Due Date
                         </div>
                         <div id="${pickerId}"></div>

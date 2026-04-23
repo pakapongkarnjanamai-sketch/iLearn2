@@ -517,8 +517,32 @@
 
                 const previewWindow = window.open('about:blank', '_blank');
                 if (previewWindow) {
-                    previewWindow.document.title = 'Loading...';
-                    previewWindow.document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'>Processing content...</div>";
+                    previewWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Loading...</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            color: #595959;
+            background: #ffffff;
+        }
+
+        .resource-preview-loading {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="resource-preview-loading">Processing content...</div>
+</body>
+</html>`);
+                    previewWindow.document.close();
                 }
 
                 try {
