@@ -15,40 +15,20 @@
     </a>
 </div>
 
-<div class="container-fluid px-4 py-4 d-flex flex-column">
+<div class="container-fluid page-shell-lg px-4 py-4">
 
     <div class="row g-3 mb-4 flex-shrink-0">
 
-        <!-- Group Info -->
-        <div class="col-lg-3">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Info</div>
-
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Group Name</div>
-                    <div class="admin-meta-value fw-bold" id="summary-name">—</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Description</div>
-                    <div class="admin-meta-value" id="summary-description">—</div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Members</div>
-                    <div class="admin-meta-value">
-                        <span class="tag-pill pill-primary" id="summary-member-count">0 members</span>
-                    </div>
-                </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Created By</div>
-                    <div class="admin-meta-value" id="summary-created-by">—</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary -->
-        <div class="col-lg-6">
+        <!-- Group Overview -->
+        <div class="col-lg-9">
             <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
-                <div class="section-title">Summary</div>
+                <div class="admin-section-header mb-3">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Info & Summary</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+
                 <div class="row g-2 text-center mb-3">
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-3 bg-white stat-block">
@@ -75,8 +55,34 @@
                         </div>
                     </div>
                 </div>
-                <div class="admin-chart-shell px-3 pt-3 pb-3">
-                    <div id="status-pie-chart" class="admin-chart-canvas"></div>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="admin-meta-item">
+                            <div class="admin-meta-label">Group Name</div>
+                            <div class="admin-meta-value fw-bold" id="summary-name">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-7">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Description</div>
+                            <div class="admin-meta-value u-whitespace-normal lh-base" id="summary-description">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-2">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Members</div>
+                            <div class="admin-meta-value">
+                                <span class="tag-pill pill-primary" id="summary-member-count">0 members</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Created By</div>
+                            <div class="admin-meta-value" id="summary-created-by">—</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -653,64 +659,16 @@
         const total = assignments.length;
         let completed = 0;
         let inProgress = 0;
-        let upcoming = 0;
-        let expired = 0;
-
         assignments.forEach(function(a) {
             switch (a.status) {
                 case "Completed": completed++; break;
                 case "InProgress": inProgress++; break;
-                case "Upcoming": upcoming++; break;
-                case "Expired": expired++; break;
             }
         });
 
         $("#stat-total-assignments").text(total);
         $("#stat-completed").text(completed);
         $("#stat-inprogress").text(inProgress);
-
-        // Average completion across all assignments
-        const avgCompletion = total > 0
-            ? Math.round(assignments.reduce(function(sum, a) { return sum + (a.completionPct || 0); }, 0) / total)
-            : 0;
-        $("#status-pie-chart").dxPieChart(
-            window.createAdminPieChartConfig({
-                palettePreset: "status4Brand",
-                centerLabel: 'Completion',
-                centerValue: window.formatAdminPercentage(avgCompletion, '0%'),
-                baseConfig: {
-                    type: "doughnut",
-                    innerRadius: 0.65,
-                    dataSource: [
-                        { status: "Completed", count: completed },
-                        { status: "In Progress", count: inProgress },
-                        { status: "Upcoming", count: upcoming },
-                        { status: "Expired", count: expired }
-                    ],
-                    series: [{
-                        argumentField: "status",
-                        valueField: "count",
-                        label: {
-                            visible: true,
-                            position: "outside",
-                            connector: { visible: true },
-                            format: { type: "fixedPoint", precision: 0 },
-                            font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
-                            customizeText: function(point) {
-                                return point.value > 0 ? `${point.valueText} (${point.percentText})` : "";
-                            }
-                        }
-                    }],
-                    legend: {
-                        horizontalAlignment: "right",
-                        verticalAlignment: "bottom",
-                        margin: 12,
-                        font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" }
-                    },
-                    tooltip: { enabled: true }
-                }
-            })
-        );
     }
 
     function appendText(container, text, styles) {
