@@ -125,7 +125,7 @@
                 { icon: "fa-building", label: "Division", value: c.divisionName || "No Division" },
                 { icon: "fa-toggle-on", label: "Status", value: c.isActive ? "Active" : "Inactive" },
                 { icon: "fa-book", label: "Courses", value: String(s.totalCourses) },
-                { icon: "fa-users", label: "Students", value: String(s.uniqueStudents) },
+                { icon: "fa-users", label: "Learners", value: String(s.uniqueStudents) },
                 { icon: "fa-user-edit", label: "Created By", value: c.createdBy || "—" },
                 { icon: "fa-calendar-alt", label: "Created At", value: formatDate(c.createdAt) }
             ].map(function(item) {
@@ -361,7 +361,7 @@
             ws.addRow({ metric: 'Completed', value: s.completedEnrollments });
             ws.addRow({ metric: 'In Progress', value: s.inProgressEnrollments });
             ws.addRow({ metric: 'Not Started', value: s.notStartedEnrollments });
-            ws.addRow({ metric: 'Unique Students', value: s.uniqueStudents });
+            ws.addRow({ metric: 'Unique Learners', value: s.uniqueStudents });
             ws.addRow({ metric: 'Avg. Progress', value: s.avgProgress + '%' });
             styleHeaderRow(ws);
         }

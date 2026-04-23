@@ -210,7 +210,7 @@
             });
 
             // ── DataGrid ──
-            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search student code...", {
+            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search learner ID...", {
                 dataSource: enrollmentsStore,
                 remoteOperations: true,
 
@@ -240,7 +240,7 @@
                                 items: [
                                     {
                                         dataField: "studentCode",
-                                        label: { text: "Student Code" },
+                                        label: { text: "Learner ID" },
                                         editorOptions: { readOnly: true }
                                     },
                                     {
@@ -288,7 +288,7 @@
                 },
 
                 columns: [
-                    { dataField: "studentCode", caption: "Student Code", width: 130 },
+                    { dataField: "studentCode", caption: "Learner ID", width: 130 },
                     {
                         dataField: "courseId", caption: "Course", minWidth: 180,
                         lookup: { dataSource: dsCoursesLookup, displayExpr: "code", valueExpr: "id" }

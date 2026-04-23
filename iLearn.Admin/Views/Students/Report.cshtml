@@ -1,8 +1,8 @@
 ﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     Layout = "_ReportLayout";
-    ViewData["Title"] = "Student Report";
-    ViewData["ReportTitle"] = "Student Report";
+    ViewData["Title"] = "Learner Report";
+    ViewData["ReportTitle"] = "Learner Report";
     ViewData["ReportIcon"] = "fa-file-alt";
     var apiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
     var studentCode = ViewBag.StudentCode as string ?? "";
@@ -334,7 +334,7 @@
 
                     <section class="report-section">
                         <div class="section-head">
-                            <h2 class="section-title">Student Information</h2>
+                            <h2 class="section-title">Learner Information</h2>
                             <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportProfileImage()">
                                 <i class="fas fa-download"></i> Save Image
                             </button>

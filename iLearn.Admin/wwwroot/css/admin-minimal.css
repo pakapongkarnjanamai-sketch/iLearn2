@@ -1566,7 +1566,10 @@ button.kpi-card {
 }
 
 .course-item-remove {
+    background: none;
+    border: none;
     color: var(--text-secondary);
+    cursor: pointer;
     opacity: 0.35;
     font-size: var(--font-size-xs);
     text-decoration: none !important;

@@ -80,125 +80,6 @@
         --admin-table-wrap-max-height: clamp(160px, calc(100vh - 600px), 260px);
     }
 
-    /* ── Unique: Selection tray ── */
-    .assign-selection-tray {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: start;
-        column-gap: 8px;
-        row-gap: 6px;
-        padding: var(--space-sm) var(--space-md);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background: var(--surface-base);
-        margin-top: var(--space-md);
-        min-height: 104px;
-    }
-
-    .assign-tray-label {
-        font-size: var(--font-size-xs);
-        font-weight: 600;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        padding-top: 6px;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-
-    .assign-tray-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        min-width: 0;
-        min-height: 56px;
-        max-height: 96px;
-        overflow-y: auto;
-        align-content: flex-start;
-        padding-right: 2px;
-    }
-
-    .assign-tray-summary {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        min-width: 0;
-        min-height: 56px;
-        align-content: flex-start;
-    }
-
-    .assign-selection-tray .admin-selection-tray-clear {
-        margin-left: 0;
-        margin-top: 2px;
-    }
-
-    .assign-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        background: var(--primary-subtle, #e6f0fb);
-        color: var(--primary-dark, #003a8c);
-        border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-xs);
-        font-weight: 500;
-        padding: 2px 3px 2px 6px;
-        max-width: 220px;
-    }
-
-    .assign-chip-code {
-        font-weight: 700;
-        flex-shrink: 0;
-    }
-
-    .assign-chip-sep {
-        opacity: 0.5;
-        flex-shrink: 0;
-    }
-
-    .assign-chip-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 130px;
-    }
-
-    .assign-chip-remove {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: inherit;
-        opacity: 0.55;
-        padding: 2px 4px;
-        font-size: var(--font-size-micro);
-        line-height: 1;
-        border-radius: 2px;
-        min-width: 20px;
-        min-height: 20px;
-        transition: opacity 0.1s, background 0.1s;
-        flex-shrink: 0;
-    }
-
-    .assign-chip-remove:hover {
-        opacity: 1;
-        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    }
-
-    .assign-chip.is-overflow {
-        border-style: dashed;
-        background: var(--surface-subtle);
-        color: var(--text-secondary);
-        font-weight: 600;
-    }
-
-    .assign-selection-tray--group {
-        min-height: 88px;
-    }
-
-    .assign-selection-tray--group .assign-tray-summary {
-        min-height: 40px;
-    }
-
     /* ── Form Overrides ── */
     .dx-layout-manager .dx-field-item {
         padding-bottom: 12px;
@@ -209,75 +90,16 @@
         font-size: var(--font-size-sm);
     }
 
-    /* ── Responsive ── */
+    /* Inline grid wrappers in selection panels — fill height when shared viewport rules apply. */
     @@media (min-width: 768px) {
-        body .admin-review-flow.is-selection-step.admin-wizard-shell--fill {
-            min-height: calc(100vh - 120px);
-            min-height: calc(100dvh - 120px);
-        }
-
-        body .admin-review-flow.is-selection-step .admin-review-main-col,
-        body .admin-review-flow.is-selection-step #wizard-main-card,
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active {
+        body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active .assign-inline-grid,
+        body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active .assign-inline-grid > .dx-widget {
             display: flex;
             flex: 1 1 auto;
             flex-direction: column;
             min-height: 0;
-            overflow: hidden;
-        }
-
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > .admin-selection-layout,
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-individual:not(.d-none),
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-group:not(.d-none) {
-            display: flex;
-            flex: 1 1 auto;
-            flex-direction: column;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .admin-selection-layout {
-            display: grid;
-        }
-
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-individual:not(.d-none) > .admin-selection-layout,
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active > #target-panel-group:not(.d-none) > .admin-grid-shell {
-            flex: 1 1 auto;
-            min-height: 0;
-        }
-
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .admin-grid-shell,
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .assign-inline-grid,
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .assign-inline-grid > .dx-widget {
-            display: flex;
-            flex: 1 1 auto;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        body .admin-review-flow.is-selection-step .assign-step-panel--fill.active .assign-selection-tray {
-            margin-top: auto;
-            flex-shrink: 0;
         }
     }
-
-    @@media (max-width: 767.98px) {
-        .assign-selection-tray {
-            grid-template-columns: 1fr;
-            min-height: 0;
-        }
-
-        .assign-tray-label {
-            padding-top: 0;
-        }
-
-        .assign-tray-chips,
-        .assign-tray-summary {
-            min-height: 0;
-            max-height: none;
-        }
-    }
-
 </style>
 
 <!-- ── Page Header ── -->
@@ -321,7 +143,7 @@
 
     <div class="admin-review-main-col admin-responsive-content">
         <div class="border rounded bg-white p-3 admin-viewport-fill" id="wizard-main-card">
-        <div id="step-panel-1" class="admin-wizard-panel assign-step-panel--fill active" data-step-layout="wide">
+        <div id="step-panel-1" class="admin-wizard-panel admin-wizard-panel--selection-fill active" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Course Selection</div>
@@ -356,16 +178,16 @@
                     <div id="grid-courses-inline" class="assign-inline-grid"></div>
                 </div>
             </div>
-            <div class="assign-selection-tray" id="course-selection-tray">
-                <div class="assign-tray-label">Selected:</div>
-                <div class="assign-tray-chips" id="course-tray-chips"></div>
+            <div class="admin-selection-tray" id="course-selection-tray">
+                <div class="admin-selection-tray-label">Selected</div>
+                <div class="admin-selection-tray-chips" id="course-tray-chips"></div>
                 <button type="button" class="admin-selection-tray-clear is-disabled" id="course-tray-clear">
                     <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
                 </button>
             </div>
         </div>
 
-        <div id="step-panel-2" class="admin-wizard-panel assign-step-panel--fill" data-step-layout="wide">
+        <div id="step-panel-2" class="admin-wizard-panel admin-wizard-panel--selection-fill" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Select Learners</div>
@@ -382,7 +204,7 @@
                     </button>
                 </div>
 
-            <div id="target-panel-individual">
+            <div id="target-panel-individual" class="admin-fill-pane">
                 <div class="admin-selection-layout">
                     <div class="admin-filter-shell d-flex flex-column gap-3">
                         <h6 class="fw-bold mb-0"><i class="fas fa-filter text-primary me-2" aria-hidden="true"></i>Filters</h6>
@@ -414,16 +236,16 @@
                         <div id="grid-students-inline" class="assign-inline-grid"></div>
                     </div>
                 </div>
-                <div class="assign-selection-tray" id="student-selection-tray">
-                    <div class="assign-tray-label">Selected:</div>
-                    <div class="assign-tray-chips" id="student-tray-chips"></div>
+                <div class="admin-selection-tray" id="student-selection-tray">
+                    <div class="admin-selection-tray-label">Selected</div>
+                    <div class="admin-selection-tray-chips" id="student-tray-chips"></div>
                     <button type="button" class="admin-selection-tray-clear is-disabled" id="student-tray-clear">
                         <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
                     </button>
                 </div>
             </div>
 
-            <div id="target-panel-group" class="d-none">
+            <div id="target-panel-group" class="admin-fill-pane d-none">
                 <div class="admin-grid-shell">
                     <div class="admin-grid-head">
                         <div class="admin-grid-title">Student Groups</div>
@@ -431,9 +253,9 @@
                     </div>
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
                 </div>
-                <div class="assign-selection-tray assign-selection-tray--group" id="group-selection-tray">
-                    <div class="assign-tray-label">Selected:</div>
-                    <div class="assign-tray-summary" id="group-tray-summary"></div>
+                <div class="admin-selection-tray" id="group-selection-tray">
+                    <div class="admin-selection-tray-label">Selected</div>
+                    <div class="admin-selection-tray-chips" id="group-tray-summary"></div>
                     <button type="button" class="admin-selection-tray-clear is-disabled" id="group-tray-clear">
                         <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
                     </button>
@@ -903,8 +725,8 @@
 
                 $clearBtn.removeClass("is-disabled").prop("disabled", false);
                 $("#group-tray-summary").html([
-                    `<span class="assign-chip"><span class="assign-chip-code">${window.escapeHtml(selectedGroupName || EMPTY_TEXT)}</span></span>`,
-                    `<span class="assign-chip is-overflow">${window.formatAdminCountLabel(selectedGroupMemberCount, 'member')}</span>`
+                    `<span class="admin-selection-chip"><span class="admin-selection-chip-key">${window.escapeHtml(selectedGroupName || EMPTY_TEXT)}</span></span>`,
+                    `<span class="admin-selection-chip is-overflow">${window.formatAdminCountLabel(selectedGroupMemberCount, 'member')}</span>`
                 ].join(""));
                 updateTargetSnapshot();
             }
@@ -1191,20 +1013,20 @@
                     const code = row ? window.escapeHtml(row.code || String(id)) : String(id);
                     const name = row ? window.escapeHtml(row.title || "") : "";
                     const namePart = name
-                        ? `<span class="assign-chip-sep">·</span><span class="assign-chip-name" title="${name}">${name}</span>`
+                        ? `<span class="admin-selection-chip-sep">·</span><span class="admin-selection-chip-name" title="${name}">${name}</span>`
                         : "";
-                    return `<span class="assign-chip">
-                        <span class="assign-chip-code">${code}</span>${namePart}
-                        <button type="button" class="assign-chip-remove" data-id="${id}" aria-label="Remove ${code}"><i class="fas fa-times" aria-hidden="true"></i></button>
+                    return `<span class="admin-selection-chip">
+                        <span class="admin-selection-chip-key">${code}</span>${namePart}
+                        <button type="button" class="admin-selection-chip-remove" data-id="${id}" aria-label="Remove ${code}"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </span>`;
                 });
 
                 if (overflowCount > 0) {
-                    chips.push(`<span class="assign-chip is-overflow">+${overflowCount} more</span>`);
+                    chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
                 }
 
                 $("#course-tray-chips").html(chips.join(""));
-                $("#course-tray-chips").off("click", ".assign-chip-remove").on("click", ".assign-chip-remove", function() {
+                $("#course-tray-chips").off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
                     const id = parseInt($(this).data("id"), 10);
                     if (courseGrid) { courseGrid.deselectRows([id]); }
                 });
@@ -1230,20 +1052,20 @@
                         ? window.escapeHtml([row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(" ") || "")
                         : "";
                     const namePart = name
-                        ? `<span class="assign-chip-sep">·</span><span class="assign-chip-name" title="${name}">${name}</span>`
+                        ? `<span class="admin-selection-chip-sep">·</span><span class="admin-selection-chip-name" title="${name}">${name}</span>`
                         : "";
-                    return `<span class="assign-chip">
-                        <span class="assign-chip-code">${displayCode}</span>${namePart}
-                        <button type="button" class="assign-chip-remove" data-code="${encodedCode}" aria-label="Remove ${displayCode}"><i class="fas fa-times" aria-hidden="true"></i></button>
+                    return `<span class="admin-selection-chip">
+                        <span class="admin-selection-chip-key">${displayCode}</span>${namePart}
+                        <button type="button" class="admin-selection-chip-remove" data-code="${encodedCode}" aria-label="Remove ${displayCode}"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </span>`;
                 });
 
                 if (overflowCount > 0) {
-                    chips.push(`<span class="assign-chip is-overflow">+${overflowCount} more</span>`);
+                    chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
                 }
 
                 $("#student-tray-chips").html(chips.join(""));
-                $("#student-tray-chips").off("click", ".assign-chip-remove").on("click", ".assign-chip-remove", function() {
+                $("#student-tray-chips").off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
                     const code = decodeURIComponent(String($(this).attr("data-code") || ""));
                     if (studentGrid) { studentGrid.deselectRows([String(code)]); }
                 });

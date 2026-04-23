@@ -126,21 +126,21 @@
                 <div class="section-title">Actions</div>
                 <div class="d-flex flex-column gap-2">
 
-                    <a href="javascript:void(0);" id="btn-add-course" class="quick-action">
+                    <button type="button" id="btn-add-course" class="quick-action">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-plus-circle"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Add Course</div>
                             <div class="u-fs-11 text-secondary">Assign course to this plan</div>
                         </div>
-                    </a>
+                    </button>
 
-                    <a href="javascript:void(0);" id="btn-add-students" class="quick-action">
+                    <button type="button" id="btn-add-students" class="quick-action">
                         <div class="qa-icon qa-icon-success"><i class="fas fa-user-plus"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Add Learners</div>
                             <div class="u-fs-11 text-secondary">Enroll learners to this plan</div>
                         </div>
-                    </a>
+                    </button>
 
                           <a href="@reportByIdUrl"
                        id="btn-report-link" target="_blank" class="quick-action">
@@ -151,29 +151,29 @@
                         </div>
                     </a>
 
-                    <a href="javascript:void(0);" id="btn-reassignment" class="quick-action">
+                    <button type="button" id="btn-reassignment" class="quick-action">
                         <div class="qa-icon qa-icon-accent"><i class="fas fa-redo-alt"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Reassignment</div>
                             <div class="u-fs-11 text-secondary">Create new assignment from this data</div>
                         </div>
-                    </a>
+                    </button>
 
-                    <a href="javascript:void(0);" id="btn-extend-due-date" class="quick-action">
+                    <button type="button" id="btn-extend-due-date" class="quick-action">
                         <div class="qa-icon qa-icon-warning"><i class="fas fa-calendar-plus"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Extend Due Date</div>
                             <div class="u-fs-11 text-secondary">Change submission deadline</div>
                         </div>
-                    </a>
+                    </button>
 
-                    <a href="javascript:void(0);" id="btn-delete-assignment" class="quick-action danger">
+                    <button type="button" id="btn-delete-assignment" class="quick-action danger">
                         <div class="qa-icon qa-icon-danger"><i class="fas fa-trash-alt"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Delete Assignment</div>
                             <div class="u-fs-11 text-secondary">Remove this plan permanently</div>
                         </div>
-                    </a>
+                    </button>
 
                 </div>
             </div>
@@ -707,15 +707,15 @@
                         ${deletedBadge}
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <a href="javascript:void(0);" class="course-item-remove btn-reset-course"
+                        <button type="button" class="course-item-remove btn-reset-course"
                            data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}"
                                     title="Reset all learners">
                             <i class="fas fa-sync-alt"></i>
-                        </a>
-                        <a href="javascript:void(0);" class="course-item-remove btn-remove-course"
+                        </button>
+                        <button type="button" class="course-item-remove btn-remove-course"
                            data-rule="${course.assignmentRuleId}" data-title="${course.courseTitle}">
                             <i class="fas fa-times"></i>
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -825,8 +825,8 @@
                     allowSorting: false,
                     cellTemplate: function(container, options) {
                         const $wrap = $("<div>").addClass("d-flex align-items-center justify-content-center gap-2").appendTo(container);
-                        $("<a>")
-                            .attr("href", "javascript:void(0);")
+                        $("<button>")
+                            .attr("type", "button")
                             .attr("title", "Reset enrollment")
                             .addClass("action-link action-link-xs")
                             .html('<i class="fas fa-sync-alt u-text-warning"></i>')
@@ -835,8 +835,8 @@
                                 confirmResetStudent(options.data.assignmentRuleId, options.data.studentCode, options.data.studentName || options.data.studentCode);
                             })
                             .appendTo($wrap);
-                        $("<a>")
-                            .attr("href", "javascript:void(0);")
+                        $("<button>")
+                            .attr("type", "button")
                             .attr("title", "Remove learner")
                             .addClass("action-link action-link-xs")
                             .html('<i class="fas fa-user-minus u-text-danger"></i>')

@@ -60,7 +60,7 @@
         <div class="panel-body p-2">
             <div class="row g-3 align-items-end">
                 <div class="col-auto u-minw-200">
-                    <label class="filter-label">Student Code</label>
+                    <label class="filter-label">Learner ID</label>
                     <div id="filterStudent"></div>
                 </div>
                 <div class="col-auto u-minw-240">
@@ -213,7 +213,7 @@
                 onExporting: (e) => handleExporting(e, 'LearningLogs_Report'),
 
                 columns: [
-                    { dataField: "studentCode", caption: "Student Code", width: 130 },
+                    { dataField: "studentCode", caption: "Learner ID", width: 130 },
                     { dataField: "courseCode", caption: "Course", minWidth: 120 },
                     { dataField: "courseTitle", caption: "Course Title", minWidth: 180, visible: false },
                     { dataField: "enrollmentId", caption: "Enroll ID", width: 100, alignment: "center" },

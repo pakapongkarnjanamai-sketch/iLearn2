@@ -392,6 +392,26 @@
         margin-top: auto;
         flex-shrink: 0;
     }
+
+    /* Optional intermediate pane wrapper inside a selection panel (e.g. mode-switching targets). */
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active > .admin-fill-pane:not(.d-none) {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active > .admin-fill-pane:not(.d-none) > .admin-selection-layout {
+        display: grid;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    body .admin-review-flow.is-selection-step .admin-wizard-panel--selection-fill.active > .admin-fill-pane:not(.d-none) > .admin-grid-shell {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
 }
 
 /* ── Wizard Page Header (title + inline steps + actions) ─────────── */
