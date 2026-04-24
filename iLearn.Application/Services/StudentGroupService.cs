@@ -233,7 +233,7 @@ namespace iLearn.Application.Services
                 throw new UnauthorizedAccessException("Cannot update a group from another division.");
 
             group.Name        = dto.Name;
-            group.Description = NormalizeRequiredDescription(dto.Description);
+            group.Description = dto.Description?.Trim() ?? string.Empty;
 
             if (group.CategoryId != dto.CategoryId)
             {

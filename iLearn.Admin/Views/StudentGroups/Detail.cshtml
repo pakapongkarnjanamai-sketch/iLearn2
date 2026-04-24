@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Student Group";
+    ViewBag.Title = "Student Group Detail";
     var groupId = ViewBag.GroupId is int gid ? gid : 0;
     var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
 }
@@ -112,6 +112,14 @@
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Edit Student Group</div>
                             <div class="u-fs-11 text-secondary">Change name or description</div>
+                        </div>
+                    </button>
+
+                    <button type="button" id="btn-change-category" class="quick-action disabled" aria-disabled="true" tabindex="-1" disabled>
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-folder-open" aria-hidden="true"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Change Category</div>
+                            <div class="u-fs-11 text-secondary">Move group to a different category</div>
                         </div>
                     </button>
 
@@ -321,8 +329,15 @@
             if ($(this).hasClass("disabled")) {
                 return;
             }
-
             openEditGroupDialog();
+        });
+
+        $("#btn-change-category").click(function(event) {
+            event.preventDefault();
+            if ($(this).hasClass("disabled")) {
+                return;
+            }
+            window.openChangeCategoryDialog();
         });
 
         window.confirmRemoveMember = function (data) {
@@ -448,6 +463,7 @@
         setQuickActionState($("#btn-remove-members"), disabled);
         setQuickActionState($("#btn-assign-course"), disabled);
         setQuickActionState($("#btn-edit-group"), disabled);
+        setQuickActionState($("#btn-change-category"), disabled);
         setQuickActionState($("#btn-delete-group"), disabled);
     }
 
@@ -533,8 +549,7 @@
                 colCount: 1,
                 formData: {
                     name: currentGroup.name || "",
-                    description: currentGroup.description || "",
-                    categoryId: currentGroup.categoryId == null ? null : currentGroup.categoryId
+                    description: currentGroup.description || ""
                 },
                 items: [
                     {
@@ -547,43 +562,6 @@
                             { type: "required", message: "Group name is required" },
                             { type: "stringLength", max: 200, message: "Max 200 characters" }
                         ]
-                    },
-                    {
-                        dataField: "categoryId",
-                        label: { text: "Category (optional)" },
-                        editorType: "dxSelectBox",
-                        editorOptions: {
-                            dataSource: new DevExpress.data.CustomStore({
-                                key: "id",
-                                load: async function () {
-                                    const res = await $.ajax({
-                                        url: CATEGORIES_API_URL,
-                                        method: "GET",
-                                        xhrFields: { withCredentials: true }
-                                    });
-                                    const all = (res && res.data) ? res.data : [];
-                                    return all.map(function (x) {
-                                        const depth = x.depth || 0;
-                                        return { id: x.id, displayName: "— ".repeat(depth) + (x.name || "") };
-                                    });
-                                },
-                                byKey: async function (key) {
-                                    if (key == null) return null;
-                                    const res = await $.ajax({
-                                        url: `${CATEGORIES_API_URL}/${key}`,
-                                        method: "GET",
-                                        xhrFields: { withCredentials: true }
-                                    });
-                                    const c = res && res.data;
-                                    return c ? { id: c.id, displayName: c.name } : null;
-                                }
-                            }),
-                            valueExpr: "id",
-                            displayExpr: "displayName",
-                            searchEnabled: true,
-                            showClearButton: true,
-                            placeholder: "None (uncategorized)"
-                        }
                     },
                     {
                         dataField: "description",
@@ -628,7 +606,7 @@
                     const payload = {
                         name: formData.name,
                         description: formData.description,
-                        categoryId: formData.categoryId == null ? null : formData.categoryId
+                        categoryId: currentGroup.categoryId == null ? null : currentGroup.categoryId
                     };
                     confirmButton.option({ text: "Saving...", disabled: true });
                     cancelButton.option("disabled", true);
@@ -658,6 +636,132 @@
             }).dxButton("instance");
         }, 0);
     }
+
+    window.openChangeCategoryDialog = function() {
+        if (!currentGroup) {
+            showToast("Student group details are still loading.", "warning", 2500);
+            return;
+        }
+
+        const dialogId = `change-category-dialog-${Date.now()}`;
+        const cancelId = `${dialogId}-cancel`;
+        const confirmId = `${dialogId}-confirm`;
+        const treeId = `${dialogId}-tree`;
+        const badgeId = `${dialogId}-badge`;
+        const clearId = `${dialogId}-clear`;
+
+        let pendingCategoryId = currentGroup.categoryId == null ? null : currentGroup.categoryId;
+        let pendingCategoryName = currentGroup.categoryName || null;
+
+        const initBadgeClass = pendingCategoryId != null ? "pill-primary" : "pill-default";
+        const initBadgeText = pendingCategoryId != null ? (pendingCategoryName || "Category " + pendingCategoryId) : "None (uncategorized)";
+        const initClearDisabled = pendingCategoryId == null;
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Change Category",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2 text-start">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span id="${badgeId}" class="tag-pill ${initBadgeClass}">${escapeHtml(initBadgeText)}</span>
+                        <button type="button" id="${clearId}" class="action-link" style="font-size:11px;padding:2px 8px;opacity:${initClearDisabled ? ".4" : "1"}" ${initClearDisabled ? "disabled" : ""}>
+                            <i class="fas fa-times me-1" aria-hidden="true"></i>Clear
+                        </button>
+                    </div>
+                    <div id="${treeId}" style="border:1px solid var(--border-default);border-radius:4px;overflow:hidden;"></div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${confirmId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: true,
+            width: 540
+        });
+
+        dialog.show();
+
+        window.setTimeout(function() {
+            let treeViewInst = $("#" + treeId).dxTreeView({
+                dataSource: [],
+                keyExpr: "id",
+                parentIdExpr: "parentId",
+                dataStructure: "plain",
+                rootValue: null,
+                searchEnabled: true,
+                selectionMode: "single",
+                selectByClick: true,
+                displayExpr: "name",
+                expandAllEnabled: true,
+                showCheckBoxesMode: "none",
+                height: 260,
+                onItemSelectionChanged: function(e) {
+                    if (e.node && e.node.selected && e.itemData) {
+                        pendingCategoryId = e.itemData.id;
+                        pendingCategoryName = e.itemData.name;
+                        $("#" + badgeId).text(e.itemData.name).removeClass("pill-default").addClass("pill-primary");
+                        $("#" + clearId).prop("disabled", false).css("opacity", "1");
+                    }
+                }
+            }).dxTreeView("instance");
+
+            $("#" + clearId).on("click", function() {
+                pendingCategoryId = null;
+                pendingCategoryName = null;
+                treeViewInst.unselectAll();
+                $("#" + badgeId).text("None (uncategorized)").removeClass("pill-primary").addClass("pill-default");
+                $(this).prop("disabled", true).css("opacity", "0.4");
+            });
+
+            $.ajax({ url: CATEGORIES_API_URL, method: "GET", xhrFields: { withCredentials: true } })
+                .done(function(res) {
+                    const cats = (res && res.data) ? res.data : [];
+                    treeViewInst.option("dataSource", cats);
+                    if (currentGroup.categoryId != null) {
+                        setTimeout(function() { treeViewInst.selectItem(currentGroup.categoryId); }, 100);
+                    }
+                });
+
+            const cancelButton = $("#" + cancelId).dxButton({
+                text: "Cancel",
+                stylingMode: "outlined",
+                onClick: function() { dialog.hide(); }
+            }).dxButton("instance");
+
+            const confirmButton = $("#" + confirmId).dxButton({
+                text: "Save",
+                type: "default",
+                stylingMode: "contained",
+                onClick: async function() {
+                    const payload = {
+                        name: currentGroup.name,
+                        description: currentGroup.description,
+                        categoryId: pendingCategoryId
+                    };
+                    confirmButton.option({ text: "Saving...", disabled: true });
+                    cancelButton.option("disabled", true);
+                    try {
+                        await $.ajax({
+                            url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                            method: "PUT",
+                            contentType: "application/json",
+                            data: JSON.stringify(payload),
+                            xhrFields: { withCredentials: true }
+                        });
+                        currentGroup = { ...currentGroup, categoryId: pendingCategoryId, categoryName: pendingCategoryName };
+                        dialog.hide();
+                        showToast("Category updated.", "success");
+                        await loadGroupDetail();
+                    } catch (error) {
+                        confirmButton.option({ text: "Save", disabled: false });
+                        cancelButton.option("disabled", false);
+                        showToast(getApiErrorMessage(error, "Failed to update category."), "error");
+                    }
+                }
+            }).dxButton("instance");
+        }, 0);
+    };
 
     function showStudentGroupConfirmDialog(options) {
         return showAdminConfirmDialog({
@@ -784,8 +888,6 @@
         renderAdminCoursesCell(container, value, { maxVisible: 2 });
     }
 
-    function getApiErrorMessage(error, fallbackMessage) {
-        return window.getApiErrorMessage(error, fallbackMessage);
-    }
+
 </script>
 }

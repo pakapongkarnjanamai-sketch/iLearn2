@@ -19,5 +19,14 @@ namespace iLearn.Admin.Controllers
             ViewBag.CategoryId = id;
             return View();
         }
+
+        [HttpGet]
+        public IActionResult SelectCategory(int? selectedId, string? returnUrl, string? returnField)
+        {
+            ViewBag.SelectedId = selectedId;
+            ViewBag.ReturnUrl = returnUrl;
+            ViewBag.ReturnField = returnField ?? "categoryId";
+            return View();
+        }
     }
 }

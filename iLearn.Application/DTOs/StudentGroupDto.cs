@@ -59,8 +59,7 @@ namespace iLearn.Application.DTOs
     public class UpdateStudentGroupDto
     {
         public string Name { get; set; } = string.Empty;
-        [Required(ErrorMessage = "Description is required.")]
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
         public int? CategoryId { get; set; }
     }
 

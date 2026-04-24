@@ -1,0 +1,205 @@
+@{
+    ViewBag.Title = "Select Category";
+    var selectedId = ViewBag.SelectedId is int sid ? sid : (int?)null;
+    var returnUrl  = ViewBag.ReturnUrl as string ?? "";
+    var returnField = ViewBag.ReturnField as string ?? "categoryId";
+}
+
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="page-title">Select Category</h1>
+        <div class="page-subtitle">Browse the category tree and choose one category.</div>
+    </div>
+    <div class="page-header-actions">
+        <a href="@(string.IsNullOrEmpty(returnUrl) ? Url.Action("Index", "StudentGroupCategories") : returnUrl)" class="action-link">
+            <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+        </a>
+        <button type="button" id="btn-confirm" class="action-link primary" disabled aria-disabled="true">
+            <i class="fas fa-check" aria-hidden="true"></i> Select Category
+        </button>
+    </div>
+</div>
+
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 d-flex flex-column gap-3">
+
+    <!-- Selection tray -->
+    <div class="admin-selection-tray flex-shrink-0" id="selection-tray" style="display:none!important;">
+        <div class="admin-selection-tray-label">Selected</div>
+        <div class="admin-selection-tray-chips" id="selection-chips"></div>
+        <button type="button" class="admin-selection-tray-clear" id="btn-clear-selection">
+            <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+        </button>
+    </div>
+
+    <!-- Tree -->
+    <div class="border rounded bg-white flex-grow-1 u-min-h-0 d-flex flex-column">
+        <div class="admin-grid-head px-3 py-2 flex-shrink-0">
+            <div class="admin-grid-title">Categories</div>
+            <span class="tag-pill pill-default" id="selection-note">None selected</span>
+        </div>
+        <div id="grid-categories" class="admin-grid-fill admin-viewport-fill"></div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    const CATEGORIES_API_URL = `${serviceUrl}/StudentGroupCategories`;
+    const INITIAL_SELECTED_ID = @(selectedId.HasValue ? selectedId.Value.ToString() : "null");
+    const RETURN_URL         = @Html.Raw(Json.Serialize(returnUrl));
+    const RETURN_FIELD       = @Html.Raw(Json.Serialize(returnField));
+    const INDEX_URL          = '@Url.Action("Index", "StudentGroupCategories")';
+
+    let treeList;
+    let allCategories = [];
+
+    $(() => {
+        treeList = $("#grid-categories").dxTreeList(buildAdminTreeListOptions("Search categories...", {
+            preset: "defaultGrid",
+            dataSource: [],
+            keyExpr: "id",
+            parentIdExpr: "parentId",
+            dataStructure: "plain",
+            rootValue: null,
+            autoExpandAll: true,
+            height: "100%",
+            selection: {
+                mode: "single"
+            },
+            onSelectionChanged: function (e) {
+                const rows = e.component.getSelectedRowsData();
+                updateSelectionState(rows.length > 0 ? rows[0] : null);
+            },
+            columns: [
+                {
+                    dataField: "name",
+                    caption: "Category",
+                    minWidth: 240,
+                    cssClass: "cell-label"
+                },
+                {
+                    dataField: "description",
+                    caption: "Description",
+                    minWidth: 200,
+                    cssClass: "cell-secondary",
+                    customizeText: function (e) { return e.value || "—"; }
+                },
+                {
+                    dataField: "studentGroupCount",
+                    caption: "Groups",
+                    width: 90,
+                    alignment: "center",
+                    cssClass: "tabular-nums",
+                    customizeText: function (e) { return String(e.value ?? 0); }
+                },
+                {
+                    dataField: "childCount",
+                    caption: "Sub-categories",
+                    width: 130,
+                    alignment: "center",
+                    cssClass: "tabular-nums",
+                    customizeText: function (e) { return String(e.value ?? 0); }
+                }
+            ]
+        })).dxTreeList("instance");
+
+        loadCategories();
+
+        $("#btn-clear-selection").on("click", function () {
+            treeList.deselectAll();
+            updateSelectionState(null);
+        });
+
+        $("#btn-confirm").on("click", function () {
+            const rows = treeList.getSelectedRowsData();
+            if (!rows.length) return;
+
+            const cat = rows[0];
+
+            if (RETURN_URL) {
+                const sep = RETURN_URL.includes("?") ? "&" : "?";
+                window.location.href = `${RETURN_URL}${sep}${encodeURIComponent(RETURN_FIELD)}=${encodeURIComponent(cat.id)}&categoryName=${encodeURIComponent(cat.name)}`;
+            } else {
+                // Opener window pattern (used when opened from a popup/tab)
+                if (window.opener && typeof window.opener.onCategorySelected === "function") {
+                    window.opener.onCategorySelected({ id: cat.id, name: cat.name });
+                    window.close();
+                } else {
+                    showToast("No return destination configured.", "warning");
+                }
+            }
+        });
+
+        window.enableAdminViewportLayout({
+            refreshTargets: [{ instance: treeList }]
+        });
+    });
+
+    async function loadCategories() {
+        try {
+            const res = await $.ajax({
+                url: CATEGORIES_API_URL,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+            allCategories = res?.data || [];
+            treeList.option("dataSource", allCategories);
+
+            if (INITIAL_SELECTED_ID != null) {
+                // Wait for the tree to render before selecting
+                setTimeout(function () {
+                    treeList.selectRows([INITIAL_SELECTED_ID], false);
+                    const cat = allCategories.find(function (c) { return c.id === INITIAL_SELECTED_ID; });
+                    if (cat) updateSelectionState(cat);
+                }, 150);
+            }
+        } catch (err) {
+            showToast(getApiErrorMessage(err, "Failed to load categories."), "error");
+        }
+    }
+
+    function updateSelectionState(cat) {
+        const hasSelection = cat != null;
+
+        // Header badge
+        $("#selection-note").text(hasSelection ? `1 selected` : "None selected");
+
+        // Tray chips
+        const $chips = $("#selection-chips").empty();
+        if (hasSelection) {
+            $("<div>")
+                .addClass("admin-selection-chip")
+                .html(`<span>${escapeHtml(cat.name)}</span>`)
+                .appendTo($chips);
+        }
+
+        // Tray visibility
+        if (hasSelection) {
+            $("#selection-tray").css("display", "").show();
+        } else {
+            $("#selection-tray").hide();
+        }
+
+        // Confirm button
+        const $btn = $("#btn-confirm");
+        $btn.prop("disabled", !hasSelection).attr("aria-disabled", hasSelection ? "false" : "true");
+        if (hasSelection) {
+            $btn.removeClass("disabled");
+        } else {
+            $btn.addClass("disabled");
+        }
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return "";
+        return String(s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function getApiErrorMessage(error, fallback) {
+        return window.getApiErrorMessage ? window.getApiErrorMessage(error, fallback) : fallback;
+    }
+</script>
+}
