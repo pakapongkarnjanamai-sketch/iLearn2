@@ -107,13 +107,13 @@
     <h1 class="page-title"><i class="fas fa-tasks text-primary me-2" aria-hidden="true"></i>Bulk Course Assignments</h1>
     <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
         <div class="admin-step-card active" data-step-card="1" aria-current="step">
-            <div class="admin-step-title"><span class="admin-step-index">1</span>Course</div>
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Dates</div>
         </div>
         <div class="admin-step-card" data-step-card="2">
-            <div class="admin-step-title"><span class="admin-step-index">2</span>Learner</div>
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Course</div>
         </div>
         <div class="admin-step-card" data-step-card="3">
-            <div class="admin-step-title"><span class="admin-step-index">3</span>Dates</div>
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Learner</div>
         </div>
         <div class="admin-step-card" data-step-card="4">
             <div class="admin-step-title"><span class="admin-step-index">4</span>Review</div>
@@ -143,7 +143,17 @@
 
     <div class="admin-review-main-col admin-responsive-content">
         <div class="border rounded bg-white p-3 admin-viewport-fill" id="wizard-main-card">
-        <div id="step-panel-1" class="admin-wizard-panel admin-wizard-panel--selection-fill active" data-step-layout="wide">
+        <div id="step-panel-1" class="admin-wizard-panel active" data-step-layout="form">
+            <div class="admin-section-header mb-2">
+                <div class="admin-section-header-main">
+                    <div class="section-title mb-0 admin-section-title-fill">Dates &amp; Details</div>
+                </div>
+                <div class="admin-section-divider"></div>
+            </div>
+            <div id="form-assignment"></div>
+        </div>
+
+        <div id="step-panel-2" class="admin-wizard-panel admin-wizard-panel--selection-fill" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Course Selection</div>
@@ -187,7 +197,7 @@
             </div>
         </div>
 
-        <div id="step-panel-2" class="admin-wizard-panel admin-wizard-panel--selection-fill" data-step-layout="wide">
+        <div id="step-panel-3" class="admin-wizard-panel admin-wizard-panel--selection-fill" data-step-layout="wide">
             <div class="admin-section-header mb-2">
                 <div class="admin-section-header-main">
                     <div class="section-title mb-0 admin-section-title-fill">Select Learners</div>
@@ -261,16 +271,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-
-        <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="form">
-            <div class="admin-section-header mb-2">
-                <div class="admin-section-header-main">
-                    <div class="section-title mb-0 admin-section-title-fill">Dates &amp; Details</div>
-                </div>
-                <div class="admin-section-divider"></div>
-            </div>
-            <div id="form-assignment"></div>
         </div>
 
         <div id="step-panel-4" class="admin-wizard-panel" data-step-layout="review">
@@ -655,12 +655,12 @@
                 window.requestAnimationFrame(function() {
                     const currentStep = getCurrentStep();
 
-                    if (currentStep === 1) {
+                    if (currentStep === 2) {
                         refreshGridInstance(courseGrid);
                         return;
                     }
 
-                    if (currentStep !== 2) {
+                    if (currentStep !== 3) {
                         return;
                     }
 
@@ -816,16 +816,25 @@
                 const currentStep = getCurrentStep();
 
                 if (currentStep === 1) {
+                    if (!form.validate().isValid) {
+                        return;
+                    }
+
+                    updateWizardUi(2);
+                    return;
+                }
+
+                if (currentStep === 2) {
                     if (selectedCourseIds.length === 0) {
                         showToast("Please select at least one course.", "error");
                         return;
                     }
 
-                    updateWizardUi(hasPreselectedGroupId ? 3 : 2);
+                    updateWizardUi(3);
                     return;
                 }
 
-                if (currentStep === 2) {
+                if (currentStep === 3) {
                     if (currentTargetMode === 'individual' && selectedStudentCodes.length === 0) {
                         showToast("Please select at least one learner.", "error");
                         return;
@@ -836,18 +845,13 @@
                         return;
                     }
 
-                    updateWizardUi(3);
+                    updateWizardUi(4);
                 }
             });
 
             $("#btn-prev-step").click(function () {
                 const currentStep = getCurrentStep();
                 if (currentStep > 1) {
-                    if (hasPreselectedGroupId && currentStep === 3) {
-                        updateWizardUi(1);
-                        return;
-                    }
-
                     updateWizardUi(currentStep - 1);
                 }
             });
@@ -896,9 +900,9 @@
                     loadPanel.hide();
                     renderReviewStep(response, payload);
                     updateWizardUi(4);
-                } catch {
+                } catch (err) {
                     loadPanel.hide();
-                    showToast("Error connecting to validation service.", "error");
+                    showToast(getApiErrorMessage(err, "Failed to validate assignment data."), "error", 4000);
                 }
             });
 
@@ -941,11 +945,11 @@
             function getStepNote(step) {
                 switch (step) {
                     case 1:
-                        return 'Select the courses to include in this assignment.';
+                        return 'Set the schedule and assignment details first.';
                     case 2:
-                        return 'Choose the target learners for this assignment.';
+                        return 'Select the courses to include in this assignment.';
                     case 3:
-                        return 'Set the schedule and description for this batch.';
+                        return 'Choose the target learners for this assignment.';
                     case 4:
                         return 'Review the summary before confirming the assignment batch.';
                     default:
@@ -957,7 +961,7 @@
                 $(".admin-wizard-panel").removeClass("active");
                 $(`#step-panel-${step}`).addClass("active");
                 const layout = $(`#step-panel-${step}`).attr("data-step-layout") || "wide";
-                const isSelectionStep = step === 1 || step === 2;
+                const isSelectionStep = step === 2 || step === 3;
                 $(".admin-wizard-shell")
                     .toggleClass("is-selection-step", isSelectionStep)
                     .toggleClass("is-form-step", layout === "form")
@@ -965,7 +969,7 @@
 
                 toggleSelectionViewportLayout(isSelectionStep);
 
-                if (step === 2) {
+                if (step === 3) {
                     if (!studentGridInitialized) {
                         initializeStudentSelection();
                         studentGridInitialized = true;

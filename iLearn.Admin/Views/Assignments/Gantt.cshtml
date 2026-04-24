@@ -8,9 +8,8 @@
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h1 class="page-title">Assignment Timeline</h1>
-        <div class="page-subtitle">Visual schedule of all assignments</div>
+     <div class="admin-monitor-bar mb-3">
+        <div class="admin-monitor-filters" id="timeline-filter-chips" role="group" aria-label="Assignment timeline quick filters"></div>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "Assignments")" class="action-link">
@@ -20,39 +19,7 @@
 </div>
 
 <div class="container-fluid px-4 py-3">
-    <!-- KPI Bar -->
-    <div class="row g-2 mb-3" id="kpi-bar">
-    <div class="col-6 col-md">
-        <button type="button" class="kpi-card kpi-all active" data-status="" aria-pressed="true" onclick="filterByStatus(null, this)">
-            <div class="kpi-label">All</div>
-            <div class="kpi-number" id="kpi-all">&mdash;</div>
-        </button>
-    </div>
-    <div class="col-6 col-md">
-        <button type="button" class="kpi-card kpi-inprogress" data-status="InProgress" aria-pressed="false" onclick="filterByStatus('InProgress', this)">
-            <div class="kpi-label">In Progress</div>
-            <div class="kpi-number" id="kpi-inprogress">&mdash;</div>
-        </button>
-    </div>
-    <div class="col-6 col-md">
-        <button type="button" class="kpi-card kpi-upcoming" data-status="Upcoming" aria-pressed="false" onclick="filterByStatus('Upcoming', this)">
-            <div class="kpi-label">Upcoming</div>
-            <div class="kpi-number" id="kpi-upcoming">&mdash;</div>
-        </button>
-    </div>
-    <div class="col-6 col-md">
-        <button type="button" class="kpi-card kpi-expired" data-status="Expired" aria-pressed="false" onclick="filterByStatus('Expired', this)">
-            <div class="kpi-label">Expired</div>
-            <div class="kpi-number" id="kpi-expired">&mdash;</div>
-        </button>
-    </div>
-    <div class="col-6 col-md">
-        <button type="button" class="kpi-card kpi-completed" data-status="Completed" aria-pressed="false" onclick="filterByStatus('Completed', this)">
-            <div class="kpi-label">Completed</div>
-            <div class="kpi-number" id="kpi-completed">&mdash;</div>
-        </button>
-    </div>
-</div>
+  
 
     <!-- Timeline Controls -->
     <div class="d-flex justify-content-end align-items-center mb-2 flex-wrap gap-2">
@@ -99,12 +66,27 @@
         const GANTT_URL = `${serviceUrl}/Assignments/gantt`;
         const DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
 
+        const QUICK_FILTER_ITEMS = [
+            { key: "InProgress", label: "In Progress" },
+            { key: "Upcoming", label: "Upcoming" },
+            { key: "Expired", label: "Expired" },
+            { key: "Completed", label: "Completed" },
+            { key: "dueSoon", label: "Due in 7 days" }
+        ];
+
         let allTasks = [];
         let filteredTasks = [];
-        let currentFilter = null;
+        let assignmentCounts = {};
+        let currentFilter = "InProgress";
 
         /* ── helpers ─────────────────────────────────── */
         function parseDate(v) { return v ? new Date(v) : null; }
+
+        function startOfDay(value) {
+            const date = new Date(value);
+            date.setHours(0, 0, 0, 0);
+            return date;
+        }
 
         function fmtDate(d) {
             if (!d) return "—";
@@ -143,25 +125,57 @@
             }));
         }
 
-        /* ── KPI ──────────────────────────────────────── */
-        function updateKpi(tasks) {
-            const counts = { all: tasks.length, InProgress: 0, Upcoming: 0, Expired: 0, Completed: 0 };
-            tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
-            $("#kpi-all").text(counts.all);
-            $("#kpi-inprogress").text(counts.InProgress);
-            $("#kpi-upcoming").text(counts.Upcoming);
-            $("#kpi-expired").text(counts.Expired);
-            $("#kpi-completed").text(counts.Completed);
+        /* ── quick filters ───────────────────────────── */
+        function computeAssignmentCounts(tasks) {
+            const today = startOfDay(new Date());
+            const next7 = startOfDay(new Date());
+            next7.setDate(next7.getDate() + 7);
+
+            const counts = { InProgress: 0, Upcoming: 0, Expired: 0, Completed: 0, dueSoon: 0 };
+            tasks.forEach(t => {
+                if (counts[t.status] !== undefined) counts[t.status] += 1;
+                const due = t._end ? startOfDay(new Date(t._end)) : null;
+                if (due && t.status !== "Completed" && due >= today && due <= next7) {
+                    counts.dueSoon += 1;
+                }
+            });
+            return counts;
         }
 
-        /* ── filter ───────────────────────────────────── */
-        window.filterByStatus = function (status, el) {
-            currentFilter = status;
-            $(".kpi-card").removeClass("active").attr("aria-pressed", "false");
-            $(el).addClass("active").attr("aria-pressed", "true");
-            filteredTasks = status ? allTasks.filter(t => t.status === status) : [...allTasks];
+        function applyQuickFilter(filterKey) {
+            currentFilter = filterKey || "InProgress";
+
+            const today = startOfDay(new Date());
+            const next7 = startOfDay(new Date());
+            next7.setDate(next7.getDate() + 7);
+
+            filteredTasks = currentFilter === "dueSoon"
+                ? allTasks.filter(t => {
+                    const due = t._end ? startOfDay(new Date(t._end)) : null;
+                    return due && t.status !== "Completed" && due >= today && due <= next7;
+                })
+                : allTasks.filter(t => t.status === currentFilter);
+
+            renderQuickFilters();
             render();
-        };
+        }
+
+        function bindQuickFilters() {
+            window.bindAdminFilterChips("#timeline-filter-chips", function (filterKey) {
+                applyQuickFilter(filterKey);
+            });
+        }
+
+        function renderQuickFilters() {
+            const itemsWithCounts = QUICK_FILTER_ITEMS.map(function (item) {
+                const count = assignmentCounts[item.key];
+                if (typeof count !== "number") return item;
+                return $.extend({}, item, { label: item.label + " (" + count + ")" });
+            });
+
+            window.renderAdminFilterChips("#timeline-filter-chips", itemsWithCounts, currentFilter);
+            window.updateAdminFilterChipState("#timeline-filter-chips", currentFilter);
+        }
 
         /* ── scale config (months only) ────────────── */
         const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -363,9 +377,9 @@
                 xhrFields: { withCredentials: true }
             }).done(function (res) {
                 allTasks = normalizeTasks(res);
-                filteredTasks = [...allTasks];
-                updateKpi(allTasks);
-                render();
+                assignmentCounts = computeAssignmentCounts(allTasks);
+                bindQuickFilters();
+                applyQuickFilter("InProgress");
                 setTimeout(scrollToToday, 200);
             }).fail(() => showToast("Error loading timeline data.", "error"));
         });

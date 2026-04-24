@@ -25,7 +25,7 @@
 
     <div class="page-header-actions">
         <a href="@Url.Action("Gantt", "Assignments")" class="action-link">
-            Timeline
+            <i class="fas fa-timeline" aria-hidden="true"></i> Timeline
         </a>
         <a href="@Url.Action("BulkAssign", "Assignments")" class="action-link primary">
             <i class="fas fa-plus" aria-hidden="true"></i> Create Assignment
@@ -44,15 +44,16 @@
         const assignmentDetailUrl = '@Url.Action("Detail", "Assignments")';
         const assignmentsStore = createDataStore(serviceUrl, 'admin/AssignmentsCRUD', { key: 'id' });
         const QUICK_FILTER_ITEMS = [
-            { key: "all", label: "All" },
             { key: "InProgress", label: "In Progress" },
             { key: "Upcoming", label: "Upcoming" },
             { key: "Expired", label: "Expired" },
             { key: "Completed", label: "Completed" },
-            { key: "dueSoon", label: "Due in 7 days" },
-            { key: "overdue", label: "Overdue" },
-            { key: "clear", label: "Clear filters", cssClass: "is-clear" }
+            { key: "dueSoon", label: "Due in 7 days" }
         ];
+
+        const COUNTABLE_FILTER_KEYS = ["InProgress", "Upcoming", "Expired", "Completed", "dueSoon"];
+        let assignmentCounts = {};
+        let activeFilterKey = "InProgress";
 
         const STATUS_MAP = {
             "Completed": { tone: "success", text: "Completed" },
@@ -62,13 +63,11 @@
         };
 
         const QUICK_FILTER_SUMMARY = {
-            all: "Showing all assignments",
             InProgress: "Showing assignments that are currently in progress",
             Upcoming: "Showing assignments that have not started yet",
             Expired: "Showing expired assignments",
             Completed: "Showing completed assignments",
-            dueSoon: "Showing assignments due in the next 7 days",
-            overdue: "Showing overdue assignments"
+            dueSoon: "Showing assignments due in the next 7 days"
         };
 
         $(function () {
@@ -175,10 +174,53 @@
             }));
 
             bindQuickFilters(grid);
+            applyQuickFilter(grid, "InProgress"); // default view
+            refreshAssignmentCounts();
+
+            grid.option("onContentReady", (function (originalHandler) {
+                return function (e) {
+                    if (typeof originalHandler === "function") originalHandler(e);
+                    // Refresh counts opportunistically when grid reloads (e.g. after navigation back)
+                    if (!grid.__countsBound) {
+                        grid.__countsBound = true;
+                        refreshAssignmentCounts();
+                    }
+                };
+            })(grid.option("onContentReady")));
 
             window.enableAdminViewportLayout({
                 refreshTargets: [grid]
             });
+
+            function refreshAssignmentCounts() {
+                const dataSource = grid.getDataSource();
+                const store = dataSource ? dataSource.store() : assignmentsStore;
+                $.when(store.load({})).then(function (response) {
+                    const rows = Array.isArray(response) ? response : (response && response.data) || [];
+                    assignmentCounts = computeAssignmentCounts(rows);
+                    renderQuickFilters();
+                    setActiveQuickFilter(activeFilterKey);
+                });
+            }
+
+            function computeAssignmentCounts(rows) {
+                const today = startOfDay(new Date());
+                const next7 = startOfDay(new Date());
+                next7.setDate(next7.getDate() + 7);
+
+                const counts = { InProgress: 0, Upcoming: 0, Expired: 0, Completed: 0, dueSoon: 0 };
+                rows.forEach(function (row) {
+                    if (row.status && Object.prototype.hasOwnProperty.call(counts, row.status)) {
+                        counts[row.status] += 1;
+                    }
+                    const due = row.dueDate ? startOfDay(new Date(row.dueDate)) : null;
+                    if (due && row.status !== "Completed" && due >= today && due <= next7) {
+                        counts.dueSoon += 1;
+                    }
+
+                });
+                return counts;
+            }
 
             function bindQuickFilters(gridInstance) {
                 renderQuickFilters();
@@ -195,10 +237,6 @@
 
                 const result = window.applyAdminQuickFilter(gridInstance, filterKey, {
                     resolve: function (selectedFilterKey) {
-                        if (selectedFilterKey === "clear" || selectedFilterKey === "all") {
-                            return { mode: "clear", activeKey: "all", summaryKey: "all" };
-                        }
-
                         if (selectedFilterKey === "dueSoon") {
                             return {
                                 mode: "filter",
@@ -214,19 +252,6 @@
                             };
                         }
 
-                        if (selectedFilterKey === "overdue") {
-                            return {
-                                mode: "filter",
-                                activeKey: selectedFilterKey,
-                                summaryKey: selectedFilterKey,
-                                filter: [
-                                    ["dueDate", "<", today],
-                                    "and",
-                                    ["status", "<>", "Completed"]
-                                ]
-                            };
-                        }
-
                         return {
                             mode: "filter",
                             activeKey: selectedFilterKey,
@@ -235,8 +260,9 @@
                         };
                     },
                     onApplied: function (activeKey, selectedFilterKey, quickFilterResult) {
+                        activeFilterKey = activeKey;
                         setActiveQuickFilter(activeKey);
-                        updateFilterSummary(QUICK_FILTER_SUMMARY[quickFilterResult.summaryKey || selectedFilterKey] || QUICK_FILTER_SUMMARY.all);
+                        updateFilterSummary(QUICK_FILTER_SUMMARY[quickFilterResult.summaryKey || selectedFilterKey] || QUICK_FILTER_SUMMARY.InProgress);
                     }
                 });
 
@@ -248,7 +274,13 @@
             }
 
             function renderQuickFilters() {
-                window.renderAdminFilterChips("#assignment-filter-chips", QUICK_FILTER_ITEMS, "all", {
+                const itemsWithCounts = QUICK_FILTER_ITEMS.map(function (item) {
+                    if (!item || COUNTABLE_FILTER_KEYS.indexOf(item.key) === -1) return item;
+                    const n = assignmentCounts[item.key];
+                    if (typeof n !== "number") return item;
+                    return $.extend({}, item, { label: item.label + " (" + n + ")" });
+                });
+                window.renderAdminFilterChips("#assignment-filter-chips", itemsWithCounts, activeFilterKey, {
                     getItemClasses: function (item) {
                         return item && item.cssClass;
                     }

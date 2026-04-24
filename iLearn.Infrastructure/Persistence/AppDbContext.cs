@@ -52,6 +52,9 @@ namespace iLearn.Infrastructure.Persistence
         // ── Normalized Assignment → Course detail ──
         public DbSet<AssignmentCourse> AssignmentCourses { get; set; }
 
+        // ── Read-only view for assignment list ──
+        public DbSet<AssignmentListRow> AssignmentList { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -160,6 +163,13 @@ namespace iLearn.Infrastructure.Persistence
             modelBuilder.Entity<AssignmentCourse>()
                 .HasIndex(ac => new { ac.AssignmentId, ac.CourseId })
                 .IsUnique();
+
+            // ── Read-only view: vw_AssignmentList (keyless — no soft-delete filter needed) ──
+            modelBuilder.Entity<AssignmentListRow>(entity =>
+            {
+                entity.HasNoKey();
+                entity.ToView("vw_AssignmentList");
+            });
 
             // ── DB Sequence for AssignmentNo running number ──
             modelBuilder.HasSequence<int>("AssignmentNoSeq")

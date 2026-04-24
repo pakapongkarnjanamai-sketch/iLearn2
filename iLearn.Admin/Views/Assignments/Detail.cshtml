@@ -1201,7 +1201,6 @@
             }
 
             reassignData = response.data;
-            loadPanel.hide();
         } catch (error) {
             loadPanel.hide();
             showToast(window.getApiErrorMessage(error, "Unable to prepare reassignment."), "error", 4000);
@@ -1246,6 +1245,7 @@
         window.setTimeout(function() {
             const $formHost = $("#" + formId);
             if (!$formHost.length) {
+                loadPanel.hide();
                 return;
             }
 
@@ -1253,8 +1253,7 @@
                 labelMode: "floating",
                 formData: {
                     description: dashboardData.description || "",
-                    startDate: defaults.startDate,
-                    dueDate: defaults.dueDate
+                    dateRange: [defaults.startDate, defaults.dueDate]
                 },
                 items: [
                     {
@@ -1264,22 +1263,16 @@
                         validationRules: [{ type: "required", message: "Required" }]
                     },
                     {
-                        itemType: "group",
-                        colCount: 2,
-                        items: [
-                            {
-                                dataField: "startDate",
-                                editorType: "dxDateBox",
-                                editorOptions: { width: "100%", displayFormat: ADMIN_DATE_DISPLAY_FORMAT },
-                                validationRules: [{ type: "required", message: "Required" }]
-                            },
-                            {
-                                dataField: "dueDate",
-                                editorType: "dxDateBox",
-                                editorOptions: { width: "100%", displayFormat: ADMIN_DATE_DISPLAY_FORMAT },
-                                validationRules: [{ type: "required", message: "Required" }]
-                            }
-                        ]
+                        dataField: "dateRange",
+                        label: { text: "Schedule" },
+                        editorType: "dxDateRangeBox",
+                        validationRules: [{ type: "required", message: "Required" }],
+                        editorOptions: {
+                            width: "100%",
+                            displayFormat: ADMIN_DATE_DISPLAY_FORMAT,
+                            startDateLabel: "Start Date",
+                            endDateLabel: "Due Date"
+                        }
                     }
                 ]
             }).dxForm("instance");
@@ -1302,7 +1295,13 @@
                     }
 
                     const formData = criteriaForm.option("formData");
-                    if (new Date(formData.dueDate) <= new Date(formData.startDate)) {
+                    const [startDate, dueDate] = formData.dateRange || [null, null];
+                    if (!startDate || !dueDate) {
+                        showToast("Please select both start and due dates.", "warning", 2500);
+                        return;
+                    }
+
+                    if (new Date(dueDate) <= new Date(startDate)) {
                         showToast("Due date must be after start date.", "warning", 2500);
                         return;
                     }
@@ -1317,8 +1316,8 @@
                         courseIds: reassignData.courseIds,
                         employeeCodes: employeeCodes,
                         groupId: reassignData.studentGroupId || null,
-                        startDate: formData.startDate,
-                        dueDate: formData.dueDate,
+                        startDate: startDate,
+                        dueDate: dueDate,
                         description: formData.description,
                         confirmReassignInProgress: false,
                         confirmReassignCompleted: false
@@ -1352,6 +1351,8 @@
                     }
                 }
             });
+
+            loadPanel.hide();
         }, 0);
     }
 
