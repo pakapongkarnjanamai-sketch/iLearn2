@@ -5,27 +5,25 @@
 @{
     var currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
 
-    var courseMenuItems = new (string? Controller, string Text, bool Divider)[]
+    var courseMenuItems = new (string Controller, string Text, string IconClass)[]
     {
-        ("Courses", "Courses", false),
-        ("Assignments", "Assignments", false),
-        ("StudentGroups", "Student Groups", false),
-        (null, string.Empty, true),
-        ("Categories", "Categories", false)
+        ("Courses", "Courses", "fas fa-book"),
+        ("Assignments", "Assignments", "fas fa-tasks"),
+        ("StudentGroups", "Student Groups", "fas fa-users-rectangle")
     };
 
-    var adminMenuItems = new (string? Controller, string Text, bool Divider)[]
+    var adminMenuItems = new (string? Controller, string Text, string IconClass, bool Divider)[]
     {
-        ("Users", "Users", false),
-        ("Roles", "Roles", false),
-        ("Divisions", "Divisions", false),
-        ("Students", "Learners (Employees)", false),
-        ("CourseTypes", "Course Types", false),
-        (null, string.Empty, true),
-        ("Resources", "Resources Library", false),
-        (null, string.Empty, true),
-        ("Enrollments", "Enrollments", false),
-        ("LearningLogs", "Learning Logs", false)
+        ("Users", "Users", "fas fa-user", false),
+        ("Roles", "Roles", "fas fa-user-shield", false),
+        ("Divisions", "Divisions", "fas fa-building", false),
+        ("Students", "Learners (Employees)", "fas fa-user-graduate", false),
+        ("CourseTypes", "Course Types", "fas fa-tags", false),
+        (null, string.Empty, string.Empty, true),
+        ("Resources", "Resources Library", "fas fa-folder-open", false),
+        (null, string.Empty, string.Empty, true),
+        ("Enrollments", "Enrollments", "fas fa-clipboard-check", false),
+        ("LearningLogs", "Learning Logs", "fas fa-clock-rotate-left", false)
     };
 
     var fullWindowsName = User.Identity?.Name ?? string.Empty;
@@ -38,7 +36,6 @@
     var hasSuperAdminRole = roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase);
     var showSuperAdminMenu = hasSuperAdminRole;
     var divisionId = User.FindFirst("DivisionId")?.Value;
-    var primaryRole = hasSuperAdminRole ? "SuperAdmin" : roles.FirstOrDefault() ?? "—";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -78,23 +75,17 @@
                             <i class="fas fa-chart-pie me-1" aria-hidden="true"></i> Dashboard
                         </a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="courseDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-book me-1" aria-hidden="true"></i> Course Management
-                        </a>
-                        <ul class="dropdown-menu" aria-label="Course management">
-                            @foreach (var item in courseMenuItems)
-                            {
-                                if (item.Divider)
-                                {
-                                    <li><hr class="dropdown-divider"></li>
-                                    continue;
-                                }
-
-                                <li><a class="dropdown-item" asp-controller="@item.Controller" asp-action="Index">@item.Text</a></li>
-                            }
-                        </ul>
-                    </li>
+                    @foreach (var item in courseMenuItems)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(currentController == item.Controller ? "active" : "")"
+                               asp-controller="@item.Controller" asp-action="Index"
+                               aria-current="@(currentController == item.Controller ? "page" : null)">
+                                <i class="@item.IconClass me-1" aria-hidden="true"></i>
+                                @item.Text
+                            </a>
+                        </li>
+                    }
                     @if (showSuperAdminMenu)
                     {
                     <li class="nav-item dropdown">
@@ -110,7 +101,11 @@
                                     continue;
                                 }
 
-                                <li><a class="dropdown-item" asp-controller="@item.Controller" asp-action="Index">@item.Text</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="@item.Controller" asp-action="Index">
+                                        <i class="@item.IconClass me-2" aria-hidden="true"></i>@item.Text
+                                    </a>
+                                </li>
                             }
                         </ul>
                     </li>

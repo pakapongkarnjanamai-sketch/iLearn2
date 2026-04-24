@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iLearn.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iLearn.Infrastructure.Persistence;
 namespace iLearn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424042002_SplitStudentGroupCategory")]
+    partial class SplitStudentGroupCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -101,8 +104,7 @@ namespace iLearn.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AssignmentNo")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("CourseId")
                         .HasColumnType("int");
@@ -162,10 +164,6 @@ namespace iLearn.Infrastructure.Migrations
                     b.HasIndex("DivisionId");
 
                     b.HasIndex("StudentGroupId");
-
-                    b.HasIndex("AssignmentNo", "CourseId")
-                        .IsUnique()
-                        .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL");
 
                     b.ToTable("Assignments");
                 });

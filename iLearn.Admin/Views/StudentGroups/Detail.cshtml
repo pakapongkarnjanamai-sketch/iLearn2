@@ -7,6 +7,9 @@
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
+        <nav aria-label="Group hierarchy" class="admin-meta-label mb-1" id="group-breadcrumb-nav" style="display:none;">
+            <span id="group-breadcrumb"></span>
+        </nav>
         <h1 class="page-title" id="page-title">Student Group</h1>
         <div class="page-subtitle" id="page-subtitle">Loading...</div>
     </div>
@@ -81,6 +84,12 @@
                         <div class="admin-meta-item h-100">
                             <div class="admin-meta-label">Created By</div>
                             <div class="admin-meta-value" id="summary-created-by">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-12">
+                        <div class="admin-meta-item h-100">
+                            <div class="admin-meta-label">Category</div>
+                            <div class="admin-meta-value" id="summary-category">—</div>
                         </div>
                     </div>
                 </div>
@@ -165,6 +174,7 @@
 <script>
     const GROUP_ID = @groupId;
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const CATEGORIES_API_URL = `${serviceUrl}/StudentGroupCategories`;
     const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
     const ASSIGNMENT_DETAIL_URL = '@Url.Action("Detail", "Assignments")';
     const STUDENT_REPORT_URL_TEMPLATE = '@studentReportUrlTemplate';
@@ -428,6 +438,7 @@
             $("#summary-description").text(g.description || "No description");
             $("#summary-member-count").text(window.formatAdminCountLabel(members.length, 'member'));
             $("#summary-created-by").text(g.createdBy || EMPTY_TEXT);
+            renderGroupHierarchyUi(g);
 
             // Stat: Members
             $("#stat-total-members").text(members.length);
@@ -465,6 +476,37 @@
             .attr("aria-disabled", disabled ? "true" : "false")
             .attr("tabindex", disabled ? "-1" : "0")
             .prop("disabled", disabled);
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function renderGroupHierarchyUi(g) {
+        const ancestors = Array.isArray(g.categoryAncestors) ? g.categoryAncestors : [];
+        const categoryDetailUrl = '@Url.Action("Detail", "StudentGroupCategories")';
+
+        if (ancestors.length > 0) {
+            const crumbs = ancestors.map(function (a) {
+                return `<a href="${categoryDetailUrl}?id=${a.id}" class="text-decoration-none">${escapeHtml(a.name)}</a>`;
+            }).join(' <i class="fas fa-angle-right text-muted mx-1" aria-hidden="true"></i> ');
+            $("#group-breadcrumb").html(crumbs);
+            $("#group-breadcrumb-nav").show();
+        } else {
+            $("#group-breadcrumb").empty();
+            $("#group-breadcrumb-nav").hide();
+        }
+
+        if (g.categoryId && g.categoryName) {
+            $("#summary-category").html(
+                `<a href="${categoryDetailUrl}?id=${g.categoryId}" class="text-decoration-none">${escapeHtml(g.categoryName)}</a>`
+            );
+        } else {
+            $("#summary-category").text("Uncategorized");
+        }
     }
 
     function openEditGroupDialog() {
@@ -510,7 +552,8 @@
                 colCount: 1,
                 formData: {
                     name: currentGroup.name || "",
-                    description: currentGroup.description || ""
+                    description: currentGroup.description || "",
+                    categoryId: currentGroup.categoryId == null ? null : currentGroup.categoryId
                 },
                 items: [
                     {
@@ -525,13 +568,60 @@
                         ]
                     },
                     {
+                        dataField: "categoryId",
+                        label: { text: "Category (optional)" },
+                        editorType: "dxSelectBox",
+                        editorOptions: {
+                            dataSource: new DevExpress.data.CustomStore({
+                                key: "id",
+                                load: async function () {
+                                    const res = await $.ajax({
+                                        url: CATEGORIES_API_URL,
+                                        method: "GET",
+                                        xhrFields: { withCredentials: true }
+                                    });
+                                    const all = (res && res.data) ? res.data : [];
+                                    return all.map(function (x) {
+                                        const depth = x.depth || 0;
+                                        return { id: x.id, displayName: "— ".repeat(depth) + (x.name || "") };
+                                    });
+                                },
+                                byKey: async function (key) {
+                                    if (key == null) return null;
+                                    const res = await $.ajax({
+                                        url: `${CATEGORIES_API_URL}/${key}`,
+                                        method: "GET",
+                                        xhrFields: { withCredentials: true }
+                                    });
+                                    const c = res && res.data;
+                                    return c ? { id: c.id, displayName: c.name } : null;
+                                }
+                            }),
+                            valueExpr: "id",
+                            displayExpr: "displayName",
+                            searchEnabled: true,
+                            showClearButton: true,
+                            placeholder: "None (uncategorized)"
+                        }
+                    },
+                    {
                         dataField: "description",
-                        label: { text: "Description (optional)" },
+                        label: { text: "Description" },
                         editorType: "dxTextArea",
                         editorOptions: {
                             height: DESCRIPTION_FIELD_HEIGHT,
                             placeholder: "Brief description of this group's purpose"
-                        }
+                        },
+                        validationRules: [
+                            { type: "required", message: "Description is required" },
+                            {
+                                type: "custom",
+                                message: "Description is required",
+                                validationCallback: function(e) {
+                                    return typeof e.value === "string" && e.value.trim().length > 0;
+                                }
+                            }
+                        ]
                     }
                 ]
             }).dxForm("instance");
@@ -554,6 +644,11 @@
                     }
 
                     const formData = groupForm.option("formData");
+                    const payload = {
+                        name: formData.name,
+                        description: formData.description,
+                        categoryId: formData.categoryId == null ? null : formData.categoryId
+                    };
                     confirmButton.option({ text: "Saving...", disabled: true });
                     cancelButton.option("disabled", true);
 
@@ -562,13 +657,13 @@
                             url: `${GROUPS_API_URL}/${GROUP_ID}`,
                             method: "PUT",
                             contentType: "application/json",
-                            data: JSON.stringify(formData),
+                            data: JSON.stringify(payload),
                             xhrFields: { withCredentials: true }
                         });
 
                         currentGroup = {
                             ...currentGroup,
-                            ...formData
+                            ...payload
                         };
                         dialog.hide();
                         showToast("Student group updated successfully.", "success");

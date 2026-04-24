@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iLearn.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iLearn.Infrastructure.Persistence;
 namespace iLearn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424033444_AddStudentGroupHierarchy")]
+    partial class AddStudentGroupHierarchy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -101,8 +104,7 @@ namespace iLearn.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AssignmentNo")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("CourseId")
                         .HasColumnType("int");
@@ -162,10 +164,6 @@ namespace iLearn.Infrastructure.Migrations
                     b.HasIndex("DivisionId");
 
                     b.HasIndex("StudentGroupId");
-
-                    b.HasIndex("AssignmentNo", "CourseId")
-                        .IsUnique()
-                        .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL");
 
                     b.ToTable("Assignments");
                 });
@@ -939,63 +937,6 @@ namespace iLearn.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DivisionId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("DivisionId");
-
-                    b.ToTable("StudentGroups");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1051,7 +992,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("Path");
 
-                    b.ToTable("StudentGroupCategories");
+                    b.ToTable("StudentGroups");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupMember", b =>
@@ -1359,27 +1300,11 @@ namespace iLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("iLearn.Domain.Entities.StudentGroup", b =>
                 {
-                    b.HasOne("iLearn.Domain.Entities.StudentGroupCategory", "Category")
-                        .WithMany("StudentGroups")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("iLearn.Domain.Entities.Division", "Division")
                         .WithMany()
                         .HasForeignKey("DivisionId");
 
-                    b.Navigation("Category");
-
-                    b.Navigation("Division");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupCategory", b =>
-                {
-                    b.HasOne("iLearn.Domain.Entities.Division", "Division")
-                        .WithMany()
-                        .HasForeignKey("DivisionId");
-
-                    b.HasOne("iLearn.Domain.Entities.StudentGroupCategory", "Parent")
+                    b.HasOne("iLearn.Domain.Entities.StudentGroup", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1469,14 +1394,9 @@ namespace iLearn.Infrastructure.Migrations
                 {
                     b.Navigation("Assignments");
 
-                    b.Navigation("Members");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupCategory", b =>
-                {
                     b.Navigation("Children");
 
-                    b.Navigation("StudentGroups");
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.User", b =>

@@ -3,6 +3,7 @@
     var reportByNoUrlTemplate = Url.Content("~/Assignments/Report/__ASSIGNMENT_NO__");
     var reportByIdUrl = Url.Content($"~/Assignments/Report/{ViewBag.AssignmentId}");
     var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
+    var assignmentDetailBaseUrl = Url.Content("~/Assignments/Detail");
 }
 
 <style>
@@ -230,6 +231,7 @@
     const ASSIGNMENT_VALIDATE_URL = `${ASSIGNMENTS_API_URL}/validate-before-assign`;
     const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
     const STUDENT_REPORT_URL_TEMPLATE = '@studentReportUrlTemplate';
+    const ASSIGNMENT_DETAIL_BASE_URL = '@assignmentDetailBaseUrl';
     const EMPTY_TEXT = "—";
 
     let loadPanel;
@@ -1168,7 +1170,7 @@
             });
 
             showToast("Reassignment created successfully.", "success", 2000);
-            window.setTimeout(() => window.location.href = `@Url.Action("Detail", "Assignments")/${response.assignmentId}`, 1500);
+            window.setTimeout(() => window.location.href = `${ASSIGNMENT_DETAIL_BASE_URL}/${response.assignmentId}`, 1500);
         } catch (error) {
             loadPanel.hide();
             showToast(window.getApiErrorMessage(error, "Failed to create reassignment."), "error", 4000);

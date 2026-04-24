@@ -1,0 +1,216 @@
+@{
+    ViewBag.Title = "Category";
+    var categoryId = ViewBag.CategoryId is int cid ? cid : 0;
+}
+
+<!-- ── Page Header ── -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <nav aria-label="Category hierarchy" class="admin-meta-label mb-1" id="cat-breadcrumb-nav" style="display:none;">
+            <span id="cat-breadcrumb"></span>
+        </nav>
+        <h1 class="page-title" id="page-title">Category</h1>
+        <div class="page-subtitle" id="page-subtitle">Loading...</div>
+    </div>
+    <div class="page-header-actions">
+        <a href="@Url.Action("Index", "StudentGroupCategories")" class="action-link">
+            <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
+        </a>
+        <a href="@Url.Action("Editor", "StudentGroupCategories", new { id = categoryId })" class="action-link">
+            <i class="fas fa-edit" aria-hidden="true"></i> Edit
+        </a>
+        <button type="button" id="btn-delete" class="action-link danger">
+            <i class="fas fa-trash-alt" aria-hidden="true"></i> Delete
+        </button>
+    </div>
+</div>
+
+<div class="container-fluid page-shell-lg px-4 py-4">
+
+    <div class="row g-3 mb-4 flex-shrink-0">
+        <div class="col-12">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="admin-section-header mb-3">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Info</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="admin-meta-item">
+                            <div class="admin-meta-label">Category Name</div>
+                            <div class="admin-meta-value fw-bold" id="summary-name">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="admin-meta-item">
+                            <div class="admin-meta-label">Parent</div>
+                            <div class="admin-meta-value" id="summary-parent">—</div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="admin-meta-item">
+                            <div class="admin-meta-label">Description</div>
+                            <div class="admin-meta-value u-whitespace-normal lh-base" id="summary-description">—</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value" id="stat-subcats">0</div>
+                            <div class="stat-label">Sub-categories</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-3 bg-white stat-block">
+                            <div class="stat-value u-text-info" id="stat-groups">0</div>
+                            <div class="stat-label">Student Groups</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="border rounded bg-white p-3">
+                <div class="admin-section-header mb-2">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Sub-categories</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+                <div id="children-list"></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="border rounded bg-white p-3">
+                <div class="admin-section-header mb-2">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Student Groups in this Category</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+                <div id="groups-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const CATEGORY_ID = @categoryId;
+    const CATEGORIES_API_URL = `${serviceUrl}/StudentGroupCategories`;
+    const CATEGORY_DETAIL_URL = '@Url.Action("Detail", "StudentGroupCategories")';
+    const GROUP_DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
+    const INDEX_URL = '@Url.Action("Index", "StudentGroupCategories")';
+    const EMPTY_TEXT = "—";
+
+    $(() => {
+        load();
+        $("#btn-delete").click(deleteCategory);
+    });
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    async function load() {
+        try {
+            const res = await $.ajax({
+                url: `${CATEGORIES_API_URL}/${CATEGORY_ID}`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+            const c = res.data;
+            if (!c) return;
+
+            $("#page-title").text(c.name);
+            $("#page-subtitle").text(c.description || "No description");
+            $("#summary-name").text(c.name || EMPTY_TEXT);
+            $("#summary-description").text(c.description || "No description");
+            $("#stat-subcats").text((c.children || []).length);
+            $("#stat-groups").text((c.studentGroups || []).length);
+
+            const ancestors = Array.isArray(c.ancestors) ? c.ancestors : [];
+            if (ancestors.length > 0) {
+                const crumbs = ancestors.map(a =>
+                    `<a href="${CATEGORY_DETAIL_URL}?id=${a.id}" class="text-decoration-none">${escapeHtml(a.name)}</a>`
+                ).join(' <i class="fas fa-angle-right text-muted mx-1" aria-hidden="true"></i> ');
+                $("#cat-breadcrumb").html(crumbs);
+                $("#cat-breadcrumb-nav").show();
+            }
+
+            if (c.parentId && c.parentName) {
+                $("#summary-parent").html(
+                    `<a href="${CATEGORY_DETAIL_URL}?id=${c.parentId}" class="text-decoration-none">${escapeHtml(c.parentName)}</a>`
+                );
+            } else {
+                $("#summary-parent").text("Root category");
+            }
+
+            renderChildren(c.children || []);
+            renderGroups(c.studentGroups || []);
+        } catch (err) {
+            showToast(getApiErrorMessage(err, "Error loading category."), "error");
+        }
+    }
+
+    function renderChildren(items) {
+        if (!items.length) {
+            $("#children-list").html('<div class="text-muted small">No sub-categories.</div>');
+            return;
+        }
+        const html = items.map(c =>
+            `<a href="${CATEGORY_DETAIL_URL}?id=${c.id}" class="tag-pill pill-default text-decoration-none me-1 mb-1 d-inline-flex align-items-center gap-1">
+                <i class="fas fa-folder text-muted" aria-hidden="true"></i>
+                <span>${escapeHtml(c.name)}</span>
+                <span class="text-muted u-fs-11">(${c.studentGroupCount || 0} groups)</span>
+            </a>`
+        ).join('');
+        $("#children-list").html(html);
+    }
+
+    function renderGroups(items) {
+        if (!items.length) {
+            $("#groups-list").html('<div class="text-muted small">No student groups in this category.</div>');
+            return;
+        }
+        const html = items.map(g =>
+            `<a href="${GROUP_DETAIL_URL}?id=${g.id}" class="tag-pill pill-primary text-decoration-none me-1 mb-1 d-inline-flex align-items-center gap-1">
+                <i class="fas fa-users" aria-hidden="true"></i>
+                <span>${escapeHtml(g.name)}</span>
+                <span class="u-fs-11">(${g.memberCount || 0} members)</span>
+            </a>`
+        ).join('');
+        $("#groups-list").html(html);
+    }
+
+    async function deleteCategory() {
+        const confirmed = await showAdminConfirmDialog({
+            title: "Delete Category",
+            messageHtml: "<b>Delete this category?</b><br><small class='text-muted'>This only works if it has no sub-categories or student groups.</small>",
+            confirmButtonText: "Delete",
+            confirmType: "danger",
+            icon: "warning"
+        });
+        if (!confirmed) return;
+        try {
+            await $.ajax({
+                url: `${CATEGORIES_API_URL}/${CATEGORY_ID}`,
+                method: "DELETE",
+                xhrFields: { withCredentials: true }
+            });
+            showToast("Category deleted.", "success");
+            window.location.href = INDEX_URL;
+        } catch (err) {
+            showToast(getApiErrorMessage(err, "Failed to delete category."), "error");
+        }
+    }
+</script>
+}

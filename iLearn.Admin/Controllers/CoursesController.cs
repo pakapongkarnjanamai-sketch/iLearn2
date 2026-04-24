@@ -49,7 +49,7 @@ namespace iLearn.Admin.Controllers
         }
         public IActionResult Drafts()
         {
-            ViewBag.Title = "จัดการแบบร่าง (Draft Courses)";
+            ViewBag.Title = "จัดการคอร์สปิด (Closed Courses)";
             return View();
         }
         [HttpGet]

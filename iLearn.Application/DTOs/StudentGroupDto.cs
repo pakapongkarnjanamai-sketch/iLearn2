@@ -10,7 +10,9 @@ namespace iLearn.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int MemberCount { get; set; }
-        public int? DivisionId { get; set; }          // 🆕 เพิ่ม
+        public int? DivisionId { get; set; }
+        public int? CategoryId { get; set; }
+        public string? CategoryName { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
     }
@@ -21,7 +23,17 @@ namespace iLearn.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? CreatedBy { get; set; }
+        public int? CategoryId { get; set; }
+        public string? CategoryName { get; set; }
+        /// <summary>Ancestor category chain from root to direct parent (empty when group sits at root).</summary>
+        public List<StudentGroupCategoryAncestorDto> CategoryAncestors { get; set; } = new();
         public List<StudentGroupMemberDto> Members { get; set; } = new();
+    }
+
+    public class StudentGroupCategoryAncestorDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     public class StudentGroupMemberDto
@@ -38,14 +50,18 @@ namespace iLearn.Application.DTOs
     public class CreateStudentGroupDto
     {
         public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
+        [Required(ErrorMessage = "Description is required.")]
+        public string Description { get; set; } = string.Empty;
+        public int? CategoryId { get; set; }
         public List<string> StudentCodes { get; set; } = new();
     }
 
     public class UpdateStudentGroupDto
     {
         public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
+        [Required(ErrorMessage = "Description is required.")]
+        public string Description { get; set; } = string.Empty;
+        public int? CategoryId { get; set; }
     }
 
     public class AddGroupMembersDto

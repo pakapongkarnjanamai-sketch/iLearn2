@@ -7,7 +7,6 @@ namespace iLearn.Domain.Entities
         public int StudentGroupId { get; set; }
         public StudentGroup StudentGroup { get; set; } = null!;
 
-        // StudentCode ???????????????????? (????? FK ? User)
         public string StudentCode { get; set; } = string.Empty;
     }
 }

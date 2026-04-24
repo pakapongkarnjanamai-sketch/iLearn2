@@ -44,6 +44,7 @@ namespace iLearn.Infrastructure.Persistence
         // ── กลุ่มผู้เรียน ──
         public DbSet<StudentGroup> StudentGroups { get; set; }
         public DbSet<StudentGroupMember> StudentGroupMembers { get; set; }
+        public DbSet<StudentGroupCategory> StudentGroupCategories { get; set; }
 
         // ── ตารางกลาง Enrollment <-> Assignment ──
         public DbSet<EnrollmentAssignment> EnrollmentAssignments { get; set; }
@@ -115,6 +116,33 @@ namespace iLearn.Infrastructure.Persistence
                 .HasForeignKey(m => m.StudentGroupId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Config StudentGroup -> StudentGroupCategory (folder)
+            modelBuilder.Entity<StudentGroup>()
+                .HasOne(g => g.Category)
+                .WithMany(c => c.StudentGroups)
+                .HasForeignKey(g => g.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentGroup>()
+                .HasIndex(g => g.CategoryId);
+
+            // Config StudentGroupCategory self-reference (tree hierarchy)
+            modelBuilder.Entity<StudentGroupCategory>()
+                .HasOne(c => c.Parent)
+                .WithMany(c => c.Children)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentGroupCategory>()
+                .HasIndex(c => c.ParentId);
+
+            modelBuilder.Entity<StudentGroupCategory>()
+                .HasIndex(c => c.Path);
+
+            modelBuilder.Entity<StudentGroupCategory>()
+                .Property(c => c.Path)
+                .HasMaxLength(450);
+
             // Config AssignmentCourse (normalized detail)
             modelBuilder.Entity<AssignmentCourse>()
                 .HasOne(ac => ac.Assignment)
@@ -144,6 +172,15 @@ namespace iLearn.Infrastructure.Persistence
                 .WithMany(g => g.Assignments)
                 .HasForeignKey(a => a.StudentGroupId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Assignment>()
+                .Property(a => a.AssignmentNo)
+                .HasMaxLength(32);
+
+            modelBuilder.Entity<Assignment>()
+                .HasIndex(a => new { a.AssignmentNo, a.CourseId })
+                .IsUnique()
+                .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL");
 
             // Config Course <-> CourseType
             modelBuilder.Entity<Course>()

@@ -2,13 +2,31 @@
     ViewBag.Title = "Category Management";
 }
 
+@section Styles {
+    <style>
+        @@media (max-width: 991.98px) {
+            .page-header {
+                align-items: flex-start !important;
+            }
+
+            .page-header-actions {
+                width: 100%;
+            }
+        }
+
+    </style>
+}
+
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h1 class="page-title">Category Management</h1>
-        <div class="page-subtitle">Manage categories by division.</div>
+    <div class="admin-monitor-bar">
+      
+        <div class="admin-monitor-filters" id="category-filter-chips" role="group" aria-label="Category status filters"></div>
     </div>
     <div class="page-header-actions">
+         <a href="@Url.Action("Index", "Courses")" class="action-link">
+            <i class="fas fa-book" aria-hidden="true"></i> Manage Course
+        </a>
         <button type="button" class="action-link primary" onclick="addNewCategory()">
             <i class="fas fa-plus" aria-hidden="true"></i> Create Category
         </button>
@@ -61,6 +79,11 @@
         const CATEGORIES_API_URL = `${serviceUrl}/admin/CategoriesCRUD`;
         const DIVISIONS_API_URL = `${serviceUrl}/Divisions`;
         const DETAIL_URL = '@Url.Action("Detail", "Categories")';
+        const CATEGORY_FILTER_ITEMS = [
+            { key: "all", label: "All" },
+            { key: "active", label: "Active" },
+            { key: "inactive", label: "Inactive" }
+        ];
 
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
 
@@ -68,6 +91,29 @@
         let editingId = null;
         let editModal;
         let gridInstance;
+
+        function applyQuickFilter(filterKey) {
+            if (!gridInstance) {
+                return;
+            }
+
+            window.applyAdminQuickFilter(gridInstance, filterKey, {
+                getConditions: function (activeFilterKey) {
+                    return [["isActive", "=", activeFilterKey === "active"]];
+                },
+                onApplied: function (activeKey) {
+                    setActiveQuickFilter(activeKey);
+                }
+            });
+        }
+
+        function setActiveQuickFilter(activeFilterKey) {
+            window.updateAdminFilterChipState("#category-filter-chips", activeFilterKey);
+        }
+
+        function renderQuickFilters() {
+            window.renderAdminFilterChips("#category-filter-chips", CATEGORY_FILTER_ITEMS, "all");
+        }
 
         function loadDivisions() {
             $.ajax({
@@ -165,6 +211,11 @@
         $(function () {
             editModal = new bootstrap.Modal(document.getElementById("editModal"));
             loadDivisions();
+            renderQuickFilters();
+
+            window.bindAdminFilterChips("#category-filter-chips", function (filterKey) {
+                applyQuickFilter(filterKey);
+            });
 
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search by category name or division...", {
                 height: "100%",
@@ -184,8 +235,7 @@
                         caption: "ID",
                         width: 70,
                         alignment: "center",
-                        cssClass: "cell-caption",
-                        customizeText: function(e) { return e.value === null || e.value === undefined ? "—" : String(e.value); }
+                     
                     },
                     {
                         dataField: "name",
@@ -218,7 +268,7 @@
                         caption: "Courses",
                         width: 120,
                         alignment: "center",
-                        cssClass: "cell-accent",
+                 
                         customizeText: function(e) { return String(e.value ?? 0); }
                     },
                     {
@@ -232,7 +282,7 @@
                     },
                     {
                         type: "buttons",
-                        caption: "Quick Actions",
+                        caption: "",
                         width: 130,
                         alignment: "center",
                         fixed: true,

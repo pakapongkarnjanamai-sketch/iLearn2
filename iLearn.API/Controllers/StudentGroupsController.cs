@@ -50,9 +50,19 @@ namespace iLearn.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest(new { message = "Group name is required." });
 
-            var result = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id },
-                new { success = true, data = result });
+            if (string.IsNullOrWhiteSpace(dto.Description))
+                return BadRequest(new { message = "Description is required." });
+
+            try
+            {
+                var result = await _service.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id },
+                    new { success = true, data = result });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // PUT: api/studentgroups/5
@@ -62,10 +72,17 @@ namespace iLearn.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest(new { message = "Group name is required." });
 
+            if (string.IsNullOrWhiteSpace(dto.Description))
+                return BadRequest(new { message = "Description is required." });
+
             try
             {
                 await _service.UpdateAsync(id, dto);
                 return Ok(new { success = true, message = "Student group updated successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (KeyNotFoundException)
             {

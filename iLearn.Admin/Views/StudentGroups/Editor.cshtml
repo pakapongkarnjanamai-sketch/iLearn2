@@ -167,6 +167,7 @@ else
 @section Scripts {
 <script>
     const GROUPS_API_URL = `${serviceUrl}/StudentGroups`;
+    const CATEGORIES_API_URL = `${serviceUrl}/StudentGroupCategories`;
     const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const GROUP_ID = @(ViewBag.Id ?? "null");
     const IS_EDIT = @(isEdit ? "true" : "false");
@@ -225,9 +226,10 @@ else
             labelMode: "floating",
             stylingMode: "outlined",
             colCount: 1,
-            formData: { name: "", description: "" },
+            formData: { name: "", description: "", categoryName: "" },
             items: [
                 { dataField: "name", label: { text: "Group Name" } },
+                { dataField: "categoryName", label: { text: "Category" } },
                 {
                     dataField: "description",
                     label: { text: "Description" },
@@ -238,11 +240,45 @@ else
         }).dxForm("instance");
     }
 
+    function buildCategorySelectorItem() {
+        return {
+            dataField: "categoryId",
+            label: { text: "Category (optional)" },
+            editorType: "dxSelectBox",
+            editorOptions: {
+                dataSource: new DevExpress.data.CustomStore({
+                    key: "id",
+                    loadMode: "raw",
+                    load: async function () {
+                        const res = await $.ajax({
+                            url: CATEGORIES_API_URL,
+                            method: "GET",
+                            xhrFields: { withCredentials: true }
+                        });
+                        const items = res?.data || [];
+                        return items.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            depth: c.depth || 0,
+                            label: `${"— ".repeat(c.depth || 0)}${c.name}`
+                        }));
+                    }
+                }),
+                displayExpr: "label",
+                valueExpr: "id",
+                searchEnabled: true,
+                showClearButton: true,
+                placeholder: "No category (root)",
+                onValueChanged: updateCreateSnapshot
+            }
+        };
+    }
+
     function initializeForm() {
         formInstance = $("#form-container").dxForm({
             labelMode: "floating",
             colCount: 1,
-            formData: { name: "", description: "" },
+            formData: { name: "", description: "", categoryId: null },
             items: [
                 {
                     dataField: "name",
@@ -256,15 +292,26 @@ else
                         { type: "stringLength", max: 200, message: "Max 200 characters" }
                     ]
                 },
+                buildCategorySelectorItem(),
                 {
                     dataField: "description",
-                    label: { text: "Description (optional)" },
+                    label: { text: "Description" },
                     editorType: "dxTextArea",
                     editorOptions: {
                         height: DESCRIPTION_FIELD_HEIGHT,
                         placeholder: "Brief description of this group's purpose",
                         onValueChanged: updateCreateSnapshot
-                    }
+                    },
+                    validationRules: [
+                        { type: "required", message: "Description is required" },
+                        {
+                            type: "custom",
+                            message: "Description is required",
+                            validationCallback: function(e) {
+                                return typeof e.value === "string" && e.value.trim().length > 0;
+                            }
+                        }
+                    ]
                 }
             ]
         }).dxForm("instance");
@@ -288,7 +335,8 @@ else
 
             formInstance.option("formData", {
                 name: group.name || "",
-                description: group.description || ""
+                description: group.description || "",
+                categoryId: group.categoryId ?? null
             });
         } catch {
             showToast("Error loading group.", "error");
@@ -416,6 +464,7 @@ else
         const payload = {
             name: data.name,
             description: data.description,
+            categoryId: data.categoryId ?? null,
             studentCodes: getSelectedStudentCodes()
         };
 
@@ -470,7 +519,11 @@ else
                 url: `${GROUPS_API_URL}/${GROUP_ID}`,
                 method: "PUT",
                 contentType: "application/json",
-                data: JSON.stringify(data),
+                data: JSON.stringify({
+                    name: data.name,
+                    description: data.description,
+                    categoryId: data.categoryId ?? null
+                }),
                 xhrFields: { withCredentials: true }
             });
 
@@ -726,9 +779,14 @@ else
         ].join(""));
 
         if (reviewForm) {
+            const categoryEditor = formInstance.getEditor("categoryId");
+            const categoryItem = categoryEditor && typeof categoryEditor.option === "function"
+                ? categoryEditor.option("selectedItem")
+                : null;
             reviewForm.option("formData", {
                 name: formData.name || "",
-                description: formData.description || ""
+                description: formData.description || "",
+                categoryName: categoryItem ? categoryItem.name : "—"
             });
         }
 

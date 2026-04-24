@@ -14,6 +14,7 @@ namespace iLearn.Application.Services
     public class StudentGroupService : IStudentGroupService
     {
         private readonly IGenericRepository<StudentGroup> _groupRepo;
+        private readonly IGenericRepository<StudentGroupCategory> _categoryRepo;
         private readonly IGenericRepository<StudentGroupMember> _memberRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
@@ -34,6 +35,7 @@ namespace iLearn.Application.Services
 
         public StudentGroupService(
             IGenericRepository<StudentGroup> groupRepo,
+            IGenericRepository<StudentGroupCategory> categoryRepo,
             IGenericRepository<StudentGroupMember> memberRepo,
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
@@ -45,6 +47,7 @@ namespace iLearn.Application.Services
             IUnitOfWork unitOfWork)
         {
             _groupRepo = groupRepo;
+            _categoryRepo = categoryRepo;
             _memberRepo = memberRepo;
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
@@ -58,23 +61,24 @@ namespace iLearn.Application.Services
 
         public async Task<List<StudentGroupDto>> GetAllAsync()
         {
-            // 💡 Data Isolation: กรอง DivisionId ตั้งแต่ระดับ Query
-            var groups = _currentUser.DivisionId.HasValue
-                ? await _groupRepo.GetAsync(
-                    filter: g => g.DivisionId == _currentUser.DivisionId.Value,
-                    includeProperties: "Members")
-                : await _groupRepo.GetAsync(includeProperties: "Members");
+            var query = _groupRepo.GetQuery().AsNoTracking();
+            if (_currentUser.DivisionId.HasValue)
+                query = query.Where(g => g.DivisionId == _currentUser.DivisionId.Value);
 
-            return groups.Select(g => new StudentGroupDto
+            var rows = await query.Select(g => new StudentGroupDto
             {
-                Id          = g.Id,
-                Name        = g.Name,
-                Description = g.Description,
-                MemberCount = g.Members.Count,
-                DivisionId  = g.DivisionId,    // 🆕 ส่ง DivisionId ออกไปด้วย
-                CreatedAt   = g.CreatedAt,
-                CreatedBy   = g.CreatedBy
-            }).ToList();
+                Id           = g.Id,
+                Name         = g.Name,
+                Description  = g.Description,
+                MemberCount  = g.Members.Count,
+                DivisionId   = g.DivisionId,
+                CategoryId   = g.CategoryId,
+                CategoryName = g.Category != null ? g.Category.Name : null,
+                CreatedAt    = g.CreatedAt,
+                CreatedBy    = g.CreatedBy
+            }).ToListAsync();
+
+            return rows;
         }
 
         public async Task<PagedResult<StudentGroupDto>> GetPagedAsync(PaginationParams p)
@@ -114,13 +118,15 @@ namespace iLearn.Application.Services
                 .Take(pageSize)
                 .Select(g => new StudentGroupDto
                 {
-                    Id          = g.Id,
-                    Name        = g.Name,
-                    Description = g.Description,
-                    MemberCount = g.Members.Count,
-                    DivisionId  = g.DivisionId,
-                    CreatedAt   = g.CreatedAt,
-                    CreatedBy   = g.CreatedBy
+                    Id           = g.Id,
+                    Name         = g.Name,
+                    Description  = g.Description,
+                    MemberCount  = g.Members.Count,
+                    DivisionId   = g.DivisionId,
+                    CategoryId   = g.CategoryId,
+                    CategoryName = g.Category != null ? g.Category.Name : null,
+                    CreatedAt    = g.CreatedAt,
+                    CreatedBy    = g.CreatedBy
                 })
                 .ToListAsync();
 
@@ -137,7 +143,7 @@ namespace iLearn.Application.Services
         {
             var groups = await _groupRepo.GetAsync(
                 filter: g => g.Id == id,
-                includeProperties: "Members"
+                includeProperties: "Members,Category"
             );
             var group = groups.FirstOrDefault();
             if (group == null) return null;
@@ -165,23 +171,32 @@ namespace iLearn.Application.Services
                 };
             }).ToList();
 
+            var categoryAncestors = await LoadCategoryAncestorsAsync(group.Category);
+
             return new StudentGroupDetailDto
             {
-                Id          = group.Id,
-                Name        = group.Name,
-                Description = group.Description,
-                CreatedBy   = group.CreatedBy,
-                Members     = memberDtos
+                Id                = group.Id,
+                Name              = group.Name,
+                Description       = group.Description,
+                CreatedBy         = group.CreatedBy,
+                CategoryId        = group.CategoryId,
+                CategoryName      = group.Category?.Name,
+                CategoryAncestors = categoryAncestors,
+                Members           = memberDtos
             };
         }
 
         public async Task<StudentGroupDto> CreateAsync(CreateStudentGroupDto dto)
         {
+            var normalizedDescription = NormalizeRequiredDescription(dto.Description);
+            var category = await ValidateCategoryAsync(dto.CategoryId);
+
             var group = new StudentGroup
             {
                 Name = dto.Name,
-                Description = dto.Description,
-                DivisionId = _currentUser.DivisionId
+                Description = normalizedDescription,
+                DivisionId = _currentUser.DivisionId,
+                CategoryId = category?.Id
             };
             var created = await _groupRepo.AddAsync(group);
 
@@ -196,13 +211,15 @@ namespace iLearn.Application.Services
 
             return new StudentGroupDto
             {
-                Id          = created.Id,
-                Name        = created.Name,
-                Description = created.Description,
-                MemberCount = dto.StudentCodes.Distinct().Count(),
-                DivisionId  = created.DivisionId,    // 🆕
-                CreatedAt   = created.CreatedAt,
-                CreatedBy   = created.CreatedBy
+                Id           = created.Id,
+                Name         = created.Name,
+                Description  = created.Description,
+                MemberCount  = dto.StudentCodes.Distinct().Count(),
+                DivisionId   = created.DivisionId,
+                CategoryId   = created.CategoryId,
+                CategoryName = category?.Name,
+                CreatedAt    = created.CreatedAt,
+                CreatedBy    = created.CreatedBy
             };
         }
 
@@ -216,7 +233,14 @@ namespace iLearn.Application.Services
                 throw new UnauthorizedAccessException("Cannot update a group from another division.");
 
             group.Name        = dto.Name;
-            group.Description = dto.Description;
+            group.Description = NormalizeRequiredDescription(dto.Description);
+
+            if (group.CategoryId != dto.CategoryId)
+            {
+                var category = await ValidateCategoryAsync(dto.CategoryId);
+                group.CategoryId = category?.Id;
+            }
+
             await _groupRepo.UpdateAsync(group);
         }
 
@@ -594,6 +618,57 @@ namespace iLearn.Application.Services
                 .Select(code => code.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList() ?? [];
+        }
+
+        private static string NormalizeRequiredDescription(string? description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                throw new ArgumentException("Description is required.");
+            }
+
+            return description.Trim();
+        }
+
+        // ── Category helpers ──────────────────────────────────────────
+        private async Task<StudentGroupCategory?> ValidateCategoryAsync(int? categoryId)
+        {
+            if (!categoryId.HasValue) return null;
+
+            var category = await _categoryRepo.GetByIdAsync(categoryId.Value)
+                ?? throw new ArgumentException("Category not found.");
+
+            if (_currentUser.DivisionId.HasValue && category.DivisionId != _currentUser.DivisionId.Value)
+                throw new ArgumentException("Category must belong to the same division.");
+
+            return category;
+        }
+
+        private async Task<List<StudentGroupCategoryAncestorDto>> LoadCategoryAncestorsAsync(StudentGroupCategory? category)
+        {
+            if (category == null) return new();
+
+            var ids = (category.Path ?? "/")
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.TryParse(s, out var n) ? n : 0)
+                .Where(n => n > 0)
+                .ToList();
+
+            ids.Add(category.Id);
+
+            if (ids.Count == 0) return new();
+
+            var loaded = await _categoryRepo.GetQuery()
+                .AsNoTracking()
+                .Where(c => ids.Contains(c.Id))
+                .Select(c => new { c.Id, c.Name })
+                .ToListAsync();
+
+            return ids
+                .Select(id => loaded.FirstOrDefault(a => a.Id == id))
+                .Where(a => a != null)
+                .Select(a => new StudentGroupCategoryAncestorDto { Id = a!.Id, Name = a.Name })
+                .ToList();
         }
 
         private static void ValidateAddMembersOptions(bool enrollToRelatedAssignments, IEnumerable<string>? assignmentStatuses, IReadOnlyCollection<string> normalizedCodes)

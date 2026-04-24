@@ -2,6 +2,12 @@
 // Provides cross-cutting, non-business helpers used across multiple Admin views.
 // Depends on: admin-layout.js (must be loaded first)
 (function (window, $) {
+    function toDataAttributeName(attributeName) {
+        return 'data-' + String(attributeName || 'filter').replace(/[A-Z]/g, function (match) {
+            return '-' + match.toLowerCase();
+        });
+    }
+
     // ─── HTML Escaping ───────────────────────────────────────────────────────────
     // Alias for window.escapeAdminHtml so pages can call escapeHtml() without a
     // local redefinition after removing their private copies.
@@ -29,6 +35,125 @@
         }
         gridInstance.filter(filter);
     }
+
+    function updateAdminFilterChipState(containerSelector, activeKey, options) {
+        var settings = $.extend({
+            chipSelector: '.admin-filter-chip',
+            dataAttribute: 'filter',
+            defaultKey: 'all'
+        }, options || {});
+
+        $(containerSelector).find(settings.chipSelector).each(function () {
+            var filterKey = String($(this).data(settings.dataAttribute) || settings.defaultKey);
+            var isActive = filterKey === activeKey;
+
+            $(this)
+                .toggleClass('is-active', isActive)
+                .attr('aria-pressed', isActive ? 'true' : 'false');
+        });
+    }
+
+    function bindAdminFilterChips(containerSelector, onChange, options) {
+        var settings = $.extend({
+            chipSelector: '.admin-filter-chip',
+            dataAttribute: 'filter',
+            defaultKey: 'all'
+        }, options || {});
+
+        $(containerSelector).on('click', settings.chipSelector, function () {
+            var filterKey = String($(this).data(settings.dataAttribute) || settings.defaultKey);
+
+            if (typeof onChange === 'function') {
+                onChange(filterKey, this);
+            }
+        });
+    }
+
+    function renderAdminFilterChips(containerSelector, items, activeKey, options) {
+        var settings = $.extend({
+            chipClass: 'admin-filter-chip',
+            dataAttribute: 'filter',
+            defaultKey: 'all',
+            getKey: function (item) { return item && item.key; },
+            getLabel: function (item) { return item && item.label; },
+            getItemClasses: function (item) { return item && item.cssClass; },
+            getItemAttributes: function () { return null; },
+            getIsActive: function (item, nextActiveKey) {
+                return String(settings.getKey(item) || settings.defaultKey) === nextActiveKey;
+            }
+        }, options || {});
+
+        var $container = $(containerSelector);
+        $container.empty();
+        var dataAttributeName = toDataAttributeName(settings.dataAttribute);
+
+        (items || []).forEach(function (item) {
+            var key = String(settings.getKey(item) || settings.defaultKey);
+            var label = String(settings.getLabel(item) || '');
+            var isActive = !!settings.getIsActive(item, activeKey, settings);
+            var itemClasses = String(settings.getItemClasses(item, isActive, settings) || '').trim();
+            var buttonClass = [settings.chipClass, itemClasses, isActive ? 'is-active' : ''].filter(Boolean).join(' ');
+            var extraAttributes = settings.getItemAttributes(item, isActive, settings) || {};
+            var attributes = $.extend({
+                type: 'button',
+                'class': buttonClass,
+                'aria-pressed': isActive ? 'true' : 'false'
+            }, extraAttributes);
+
+            attributes[dataAttributeName] = key;
+
+            $('<button>')
+                .attr(attributes)
+                .text(label)
+                .appendTo($container);
+        });
+    }
+
+    function applyAdminQuickFilter(gridInstance, filterKey, options) {
+        var settings = $.extend({
+            allKey: 'all',
+            activeAllKey: 'all',
+            getConditions: function () { return []; },
+            resolve: null,
+            onApplied: null
+        }, options || {});
+
+        var activeKey;
+        var result;
+
+        if (typeof settings.resolve === 'function') {
+            result = settings.resolve(filterKey, gridInstance, settings) || {};
+            activeKey = result.activeKey || filterKey;
+
+            if (result.mode === 'clear') {
+                gridInstance.clearFilter();
+            } else if (result.mode === 'filter') {
+                gridInstance.filter(result.filter);
+            } else {
+                applyCombinedFilter(gridInstance, result.conditions || []);
+            }
+        } else {
+            activeKey = filterKey;
+            if (filterKey === settings.allKey) {
+                gridInstance.clearFilter();
+                activeKey = settings.activeAllKey;
+            } else {
+                applyCombinedFilter(gridInstance, settings.getConditions(filterKey) || []);
+            }
+            result = {
+                mode: filterKey === settings.allKey ? 'clear' : 'combined',
+                activeKey: activeKey,
+                conditions: filterKey === settings.allKey ? [] : (settings.getConditions(filterKey) || [])
+            };
+        }
+
+        if (typeof settings.onApplied === 'function') {
+            settings.onApplied(activeKey, filterKey, result);
+        }
+
+        result.activeKey = activeKey;
+        return result;
+    }
     // ─── Standard Grid Options Builder ──────────────────────────────────────────
     // Returns consistent baseline options for admin DataGrid usage.
     // Pass page-specific settings through the overrides object.
@@ -46,6 +171,91 @@
         };
 
         return $.extend(true, {}, defaults, overrides || {});
+    }
+    const treeListPresetCssClassMap = {
+        defaultGrid: 'admin-grid admin-grid--default',
+        compactGrid: 'admin-grid admin-grid--compact',
+        selectionGrid: 'admin-grid admin-grid--selection'
+    };
+    const treeListPresetAliasMap = {
+        default: 'defaultGrid',
+        compact: 'compactGrid',
+        selection: 'selectionGrid'
+    };
+    const treeListSharedPreset = {
+        width: '100%',
+        columnAutoWidth: true,
+        showBorders: true,
+        rowAlternationEnabled: true,
+        showRowLines: true,
+        hoverStateEnabled: true,
+        remoteOperations: true,
+        headerFilter: { visible: true },
+        loadPanel: {
+            enabled: true,
+            text: 'Loading data...',
+            showPane: true,
+            showIndicator: true,
+            shadingColor: 'rgba(250,250,250,0.7)',
+            shading: true,
+            position: { of: 'window' }
+        },
+        searchPanel: { visible: true, width: 300, placeholder: 'Search...' }
+    };
+    const treeListPresets = {
+        defaultGrid: $.extend(true, {}, treeListSharedPreset),
+        compactGrid: $.extend(true, {}, treeListSharedPreset, {
+            searchPanel: { visible: true, width: 240, placeholder: 'Search...' }
+        }),
+        selectionGrid: $.extend(true, {}, treeListSharedPreset, {
+            searchPanel: { visible: true, width: 250, placeholder: 'Search...' },
+            selection: {
+                mode: 'multiple',
+                showCheckBoxesMode: 'always',
+                selectAllMode: 'page'
+            }
+        })
+    };
+
+    function normalizeTreeListPresetName(presetName) {
+        var raw = String(presetName || 'defaultGrid');
+        var normalized = treeListPresetAliasMap[raw] || raw;
+        return treeListPresets[normalized] ? normalized : 'defaultGrid';
+    }
+
+    function applyTreeListPresetClasses(options, presetName) {
+        var nextOptions = $.extend(true, {}, options || {});
+        nextOptions.elementAttr = $.extend(true, {}, nextOptions.elementAttr);
+
+        var existingClasses = String(nextOptions.elementAttr.class || '').trim();
+        var presetClasses = treeListPresetCssClassMap[presetName] || treeListPresetCssClassMap.defaultGrid;
+        nextOptions.elementAttr.class = `${existingClasses} ${presetClasses}`.trim();
+
+        return nextOptions;
+    }
+
+    function getAdminTreeListPreset(presetName) {
+        var normalizedPreset = normalizeTreeListPresetName(presetName);
+        return $.extend(true, {}, treeListPresets[normalizedPreset]);
+    }
+
+    // Returns consistent baseline options for admin TreeList usage.
+    // Supports DataGrid-aligned preset names: defaultGrid, compactGrid, selectionGrid.
+    // Also supports aliases: default, compact, selection.
+    function buildAdminTreeListOptions(searchPlaceholder, overrides) {
+        var normalizedOverrides = $.extend(true, {}, overrides || {});
+        var presetName = normalizeTreeListPresetName(normalizedOverrides.preset);
+
+        delete normalizedOverrides.preset;
+
+        var mergedOptions = $.extend(true, {}, getAdminTreeListPreset(presetName), normalizedOverrides);
+        if (searchPlaceholder) {
+            mergedOptions.searchPanel = $.extend(true, {}, mergedOptions.searchPanel, {
+                placeholder: searchPlaceholder
+            });
+        }
+
+        return applyTreeListPresetClasses(mergedOptions, presetName);
     }
     // ─── Generic DOM Helpers ──────────────────────────────────────────────────────
     function appendAdminText(container, text, styles) {
@@ -178,7 +388,7 @@
         const resolvedTitle = resolvedCourse.title || '\u2014';
         const wrapper = $('<div>').addClass('d-flex align-items-center gap-2').css('line-height', '1.35');
 
-        if (opts.showIcon !== false) {
+        if (opts.showIcon !== false && resolvedCourse.isActive === true) {
             $('<i>')
                 .addClass(opts.iconClass || 'fas fa-book')
                 .attr('aria-hidden', 'true')
@@ -186,8 +396,17 @@
                 .appendTo(wrapper);
         }
 
-        if (resolvedCourse.isActive === false && opts.showDraft !== false) {
-            renderAdminGridTextCell(wrapper, 'Draft', 'smStrong', { color: 'var(--text-secondary)' });
+        if (resolvedCourse.isActive === false && opts.showClosed !== false) {
+            $('<span>')
+                .addClass('d-inline-flex align-items-center')
+                .css(getAdminGridTextStyle('smStrong', { color: 'var(--text-secondary)' }))
+                .append(
+                    $('<i>')
+                        .addClass('fas fa-lock me-1')
+                        .attr('aria-hidden', 'true')
+                )
+                .append(document.createTextNode('Closed'))
+                .appendTo(wrapper);
         }
 
         if (opts.linkHref) {
@@ -589,7 +808,13 @@
     window.escapeHtml = escapeHtml;
     window.getApiErrorMessage = getApiErrorMessage;
     window.applyCombinedFilter = applyCombinedFilter;
+    window.updateAdminFilterChipState = updateAdminFilterChipState;
+    window.bindAdminFilterChips = bindAdminFilterChips;
+    window.renderAdminFilterChips = renderAdminFilterChips;
+    window.applyAdminQuickFilter = applyAdminQuickFilter;
     window.buildAdminGridOptions = buildAdminGridOptions;
+    window.getAdminTreeListPreset = getAdminTreeListPreset;
+    window.buildAdminTreeListOptions = buildAdminTreeListOptions;
     window.appendAdminText = appendAdminText;
     window.getAdminGridTextStyle = getAdminGridTextStyle;
     window.renderAdminGridTextCell = renderAdminGridTextCell;
