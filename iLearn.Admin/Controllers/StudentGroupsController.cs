@@ -7,9 +7,10 @@ namespace iLearn.Admin.Controllers
         public IActionResult Index() => View();
 
         [HttpGet]
-        public IActionResult Editor(int? id)
+        public IActionResult Editor(int? id, int? categoryId)
         {
             ViewBag.Id = id;
+            ViewBag.CategoryId = categoryId;
             return View();
         }
 

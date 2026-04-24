@@ -54,68 +54,67 @@
         Historical progress data is preserved for record-keeping.
     </div>
 
-    <!-- ── Row 1: Meta / Stats / Chart ──────────────────────────── -->
+    <!-- ── Row 1: Info / Summary / Actions ───────────────────────── -->
     <div class="row g-3 mb-4">
 
-        <!-- Meta Info -->
+        <!-- Info -->
         <div class="col-lg-3">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="section-title">Info</div>
-
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Assignment No.</div>
-                    <div class="admin-meta-value fw-bold" id="lbl-assignment-no-detail">-</div>
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column gap-2">
+                <div class="admin-section-header mb-1">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Info</div>
+                        <span id="assignment-status-badge" class="tag-pill pill-default admin-section-status">
+                            <i class="fas fa-circle-notch fa-spin me-1" aria-hidden="true"></i> Loading...
+                        </span>
+                    </div>
+                    <div class="admin-section-divider"></div>
                 </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Description</div>
-                    <div class="admin-meta-value" id="lbl-description">-</div>
+                <div>
+                    <div class="detail-info-label">Assignment No.</div>
+                    <div class="detail-info-value fw-bold" id="lbl-assignment-no-detail">—</div>
                 </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Schedule</div>
-                    <div class="admin-meta-value" id="lbl-schedule">-</div>
+                <div>
+                    <div class="detail-info-label">Description</div>
+                    <div class="detail-info-value" id="lbl-description">—</div>
                 </div>
-                <div class="admin-meta-item">
-                    <div class="admin-meta-label">Created By</div>
-                    <div class="admin-meta-value" id="lbl-created-by">-</div>
+                <div>
+                    <div class="detail-info-label">Schedule</div>
+                    <div class="detail-info-value" id="lbl-schedule">—</div>
                 </div>
-                <div class="admin-meta-item d-none" id="meta-student-group">
-                    <div class="admin-meta-label">Student Group</div>
-                    <div class="admin-meta-value" id="lbl-student-group">-</div>
+                <div>
+                    <div class="detail-info-label">Created By</div>
+                    <div class="detail-info-value" id="lbl-created-by">—</div>
+                </div>
+                <div id="meta-student-group" class="d-none">
+                    <div class="detail-info-label">Student Group</div>
+                    <div class="detail-info-value" id="lbl-student-group">—</div>
                 </div>
             </div>
         </div>
 
-        <!-- Summary + Status Distribution -->
+        <!-- Summary -->
         <div class="col-lg-6">
-            <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column gap-3">
                 <div class="section-title">Summary</div>
-                <div class="row g-2 text-center mb-3">
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-total-emp">0</div>
-                            <div class="stat-label">Learners</div>
-                        </div>
+                <div class="detail-stat-strip">
+                    <div class="detail-stat detail-stat--primary">
+                        <div class="detail-stat__num" id="stat-total-emp">0</div>
+                        <div class="detail-stat__lbl">Learners</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-total-courses">0</div>
-                            <div class="stat-label">Courses</div>
-                        </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat__num" id="stat-total-courses">0</div>
+                        <div class="detail-stat__lbl">Courses</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-success" id="stat-completed">0</div>
-                            <div class="stat-label">Completed</div>
-                        </div>
+                    <div class="detail-stat detail-stat--success">
+                        <div class="detail-stat__num" id="stat-completed">0</div>
+                        <div class="detail-stat__lbl">Completed</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
-                            <div class="stat-label">In Progress</div>
-                        </div>
+                    <div class="detail-stat detail-stat--warning">
+                        <div class="detail-stat__num" id="stat-inprogress">0</div>
+                        <div class="detail-stat__lbl">In Progress</div>
                     </div>
                 </div>
-                <div class="admin-chart-shell px-3 pt-3 pb-3">
+                <div class="admin-chart-shell px-3 pt-3 pb-3 flex-grow-1">
                     <div id="status-pie-chart" class="admin-chart-canvas"></div>
                 </div>
             </div>
@@ -577,6 +576,22 @@
 
         currentDueDate = data.dueDate ? new Date(data.dueDate) : null;
         currentStartDate = data.startDate ? new Date(data.startDate) : null;
+
+        // ── Status badge ──────────────────────────────────────────────
+        const now = new Date();
+        const isPastDue = data.dueDate && new Date(data.dueDate) < now;
+        const isFullyDone = (data.completionRate ?? 0) >= 1 && (data.totalStudents ?? data.totalEmployees ?? 0) > 0;
+        let badgeClass, badgeIcon, badgeText;
+        if (isFullyDone) {
+            badgeClass = "pill-success";  badgeIcon = "fa-check-circle"; badgeText = "Completed";
+        } else if (isPastDue) {
+            badgeClass = "pill-warning";  badgeIcon = "fa-clock";        badgeText = "Expired";
+        } else {
+            badgeClass = "pill-primary";  badgeIcon = "fa-circle-check"; badgeText = "Active";
+        }
+        $("#assignment-status-badge")
+            .attr("class", `tag-pill ${badgeClass} admin-section-status`)
+            .html(`<i class="fas ${badgeIcon} me-1" aria-hidden="true"></i>${badgeText}`);
 
         $("#lbl-assignment-no").text(`No: ${refNo}`);
         $("#lbl-assignment-no-detail").text(refNo);

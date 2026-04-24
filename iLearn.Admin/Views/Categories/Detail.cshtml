@@ -4,6 +4,8 @@
     var categoryReportUrl = Url.Content($"~/Categories/Report/{categoryId}");
 }
 
+
+
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
@@ -21,70 +23,47 @@
     <!-- ── Row 1: Info / Summary / Actions ── -->
     <div class="row g-3 mb-4">
 
-        <!-- Category Overview -->
+        <!-- Info + Summary -->
         <div class="col-lg-9">
-            <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
-                <div class="admin-section-header mb-3">
-                    <div class="admin-section-header-main">
-                        <div class="section-title mb-0 admin-section-title-fill">Info & Summary</div>
-                        <span id="category-status-badge" class="tag-pill pill-default admin-section-status">
-                            <i class="fas fa-circle-notch fa-spin me-1" aria-hidden="true"></i> Loading...
-                        </span>
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column gap-3">
+                <div class="detail-stat-strip">
+                    <div class="detail-stat detail-stat--primary">
+                        <div class="detail-stat__num" id="stat-courses">—</div>
+                        <div class="detail-stat__lbl">Courses</div>
                     </div>
-                    <div class="admin-section-divider"></div>
-                </div>
-
-                <div class="row g-2 text-center mb-3">
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-courses">0</div>
-                            <div class="stat-label">Courses</div>
-                        </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat__num" id="stat-students">—</div>
+                        <div class="detail-stat__lbl">Learners</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-students">0</div>
-                            <div class="stat-label">Learners</div>
-                        </div>
+                    <div class="detail-stat detail-stat--success">
+                        <div class="detail-stat__num" id="stat-completed">—</div>
+                        <div class="detail-stat__lbl">Completed</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-success" id="stat-completed">0</div>
-                            <div class="stat-label">Completed</div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
-                            <div class="stat-label">In Progress</div>
-                        </div>
+                    <div class="detail-stat detail-stat--warning">
+                        <div class="detail-stat__num" id="stat-inprogress">—</div>
+                        <div class="detail-stat__lbl">In Progress</div>
                     </div>
                 </div>
-
-                <div class="row g-3">
-                    <div class="col-12">
-                        <div class="admin-meta-item">
-                            <div class="admin-meta-label">Category Name</div>
-                            <div class="admin-meta-value fw-bold" id="info-name">—</div>
-                        </div>
+                <div class="detail-info-grid">
+                    <div>
+                        <div class="detail-info-label">Name</div>
+                        <div class="detail-info-value" id="info-name">—</div>
                     </div>
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Division</div>
-                            <div class="admin-meta-value" id="info-division">—</div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Status</div>
+                        <div class="detail-info-value" id="category-status-badge">—</div>
                     </div>
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Created By</div>
-                            <div class="admin-meta-value" id="info-created-by">—</div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Division</div>
+                        <div class="detail-info-value" id="info-division">—</div>
                     </div>
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Created At</div>
-                            <div class="admin-meta-value" id="info-created-at">—</div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Created By</div>
+                        <div class="detail-info-value" id="info-created-by">—</div>
+                    </div>
+                    <div>
+                        <div class="detail-info-label">Created At</div>
+                        <div class="detail-info-value" id="info-created-at">—</div>
                     </div>
                 </div>
             </div>
@@ -311,26 +290,10 @@
         $("#page-title").text(c.name);
         $("#page-subtitle").text(c.divisionName ? `Division: ${c.divisionName}` : "No division assigned");
 
-        $("#category-status-badge")
-            .removeClass("pill-default pill-success")
-            .addClass(c.isActive ? "pill-success" : "pill-default")
-            .html(
-                c.isActive
-                    ? '<i class="fas fa-check-circle me-1" aria-hidden="true"></i> Active'
-                    : '<i class="fas fa-times-circle me-1" aria-hidden="true"></i> Inactive'
-            );
-
         $("#info-name").text(c.name);
-        $("#info-division").html(
-            c.divisionName
-                ? `<span class="tag-pill pill-primary">${c.divisionName}</span>`
-                : `<span class="text-muted fst-italic">${EMPTY_TEXT}</span>`
-        );
-        $("#info-status").html(
-            c.isActive
-                ? '<span class="tag-pill pill-success"><i class="fas fa-check me-1"></i> Active</span>'
-                : '<span class="tag-pill pill-default"><i class="fas fa-times me-1"></i> Inactive</span>'
-        );
+        $("#category-status-badge").text(c.isActive ? "Active" : "Inactive")
+            .css("color", c.isActive ? "var(--success-color)" : "var(--text-secondary)");
+        $("#info-division").text(c.divisionName || EMPTY_TEXT);
         $("#info-created-by").text(c.createdBy || EMPTY_TEXT);
         $("#info-created-at").text(window.formatAdminDate ? window.formatAdminDate(c.createdAt, EMPTY_TEXT) : EMPTY_TEXT);
     }

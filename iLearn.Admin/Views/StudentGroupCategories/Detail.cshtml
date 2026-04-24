@@ -12,65 +12,93 @@
         <h1 class="page-title" id="page-title">Category</h1>
         <div class="page-subtitle" id="page-subtitle">Loading...</div>
     </div>
-    <div class="page-header-actions">
-        <a href="@Url.Action("Index", "StudentGroupCategories")" class="action-link">
-            <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
-        </a>
-        <a href="@Url.Action("Editor", "StudentGroupCategories", new { id = categoryId })" class="action-link">
-            <i class="fas fa-edit" aria-hidden="true"></i> Edit
-        </a>
-        <button type="button" id="btn-delete" class="action-link danger">
-            <i class="fas fa-trash-alt" aria-hidden="true"></i> Delete
-        </button>
-    </div>
+    <a href="@Url.Action("Index", "StudentGroupCategories")" class="action-link">
+        <i class="fas fa-arrow-left text-secondary" aria-hidden="true"></i> Back
+    </a>
 </div>
 
 <div class="container-fluid page-shell-lg px-4 py-4">
 
     <div class="row g-3 mb-4 flex-shrink-0">
-        <div class="col-12">
-            <div class="border rounded bg-white h-100 p-3">
-                <div class="admin-section-header mb-3">
+
+        <!-- Info -->
+        <div class="col-lg-9">
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column gap-3">
+                <div class="admin-section-header mb-1">
                     <div class="admin-section-header-main">
                         <div class="section-title mb-0 admin-section-title-fill">Info</div>
                     </div>
                     <div class="admin-section-divider"></div>
                 </div>
-
-                <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                        <div class="admin-meta-item">
-                            <div class="admin-meta-label">Category Name</div>
-                            <div class="admin-meta-value fw-bold" id="summary-name">—</div>
-                        </div>
+                <div class="detail-stat-strip detail-stat-strip--cols-2">
+                    <div class="detail-stat">
+                        <div class="detail-stat__num" id="stat-subcats">0</div>
+                        <div class="detail-stat__lbl">Sub-categories</div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <div class="admin-meta-item">
-                            <div class="admin-meta-label">Parent</div>
-                            <div class="admin-meta-value" id="summary-parent">—</div>
-                        </div>
+                    <div class="detail-stat detail-stat--primary">
+                        <div class="detail-stat__num" id="stat-groups">0</div>
+                        <div class="detail-stat__lbl">Student Groups</div>
                     </div>
-                    <div class="col-12">
-                        <div class="admin-meta-item">
-                            <div class="admin-meta-label">Description</div>
-                            <div class="admin-meta-value u-whitespace-normal lh-base" id="summary-description">—</div>
-                        </div>
+                </div>
+                <div class="detail-info-grid">
+                    <div>
+                        <div class="detail-info-label">Category Name</div>
+                        <div class="detail-info-value fw-bold" id="summary-name">—</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-subcats">0</div>
-                            <div class="stat-label">Sub-categories</div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Parent</div>
+                        <div class="detail-info-value" id="summary-parent">—</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-info" id="stat-groups">0</div>
-                            <div class="stat-label">Student Groups</div>
-                        </div>
+                    <div class="col-span-2">
+                        <div class="detail-info-label">Description</div>
+                        <div class="detail-info-value u-whitespace-normal lh-base" id="summary-description">—</div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Actions -->
+        <div class="col-lg-3">
+            <div class="border rounded bg-white h-100 p-3">
+                <div class="section-title">Actions</div>
+                <div class="d-flex flex-column gap-2">
+
+                    <button type="button" id="btn-edit" class="quick-action">
+                        <div class="qa-icon qa-icon-muted"><i class="fas fa-edit"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Edit Category</div>
+                            <div class="u-fs-11 text-secondary">Change name or description</div>
+                        </div>
+                    </button>
+
+                    <button type="button" id="btn-add-subcategory" class="quick-action">
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-folder-plus"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Add Sub-category</div>
+                            <div class="u-fs-11 text-secondary">Create a child category</div>
+                        </div>
+                    </button>
+
+                    <a href="@Url.Action("Editor", "StudentGroups", new { categoryId = categoryId })" class="quick-action">
+                        <div class="qa-icon qa-icon-accent"><i class="fas fa-users"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Add Student Group</div>
+                            <div class="u-fs-11 text-secondary">Create a group in this category</div>
+                        </div>
+                    </a>
+
+                    <button type="button" id="btn-delete" class="quick-action danger">
+                        <div class="qa-icon qa-icon-danger"><i id="delete-icon" class="fas fa-trash-alt"></i></div>
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold">Delete Category</div>
+                            <div class="u-fs-11 text-secondary">Remove permanently</div>
+                        </div>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div class="row g-3">
@@ -107,10 +135,13 @@
     const GROUP_DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
     const INDEX_URL = '@Url.Action("Index", "StudentGroupCategories")';
     const EMPTY_TEXT = "—";
+    const DESCRIPTION_FIELD_HEIGHT = 100;
 
     $(() => {
         load();
+        $("#btn-edit").click(openEditCategoryDialog);
         $("#btn-delete").click(deleteCategory);
+        $("#btn-add-subcategory").click(openAddSubcategoryDialog);
     });
 
     function escapeHtml(s) {
@@ -189,6 +220,202 @@
             </a>`
         ).join('');
         $("#groups-list").html(html);
+    }
+
+    function openEditCategoryDialog() {
+        const dialogId = `edit-cat-dialog-${Date.now()}`;
+        const formId = `${dialogId}-form`;
+        const cancelId = `${dialogId}-cancel`;
+        const confirmId = `${dialogId}-confirm`;
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Edit Category",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2 text-start">
+                    <div id="${formId}"></div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${confirmId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: true,
+            width: 480
+        });
+
+        dialog.show();
+
+        window.setTimeout(async function() {
+            const $formHost = $("#" + formId);
+            if (!$formHost.length) return;
+
+            // Load current data first
+            let current = { name: "", description: "", parentId: null };
+            try {
+                const res = await $.ajax({
+                    url: `${CATEGORIES_API_URL}/${CATEGORY_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                });
+                const c = res.data;
+                if (c) current = { name: c.name || "", description: c.description || "", parentId: c.parentId ?? null };
+            } catch {
+                dialog.hide();
+                showToast("Failed to load category data.", "error", 3000);
+                return;
+            }
+
+            const editForm = $formHost.dxForm({
+                labelMode: "floating",
+                colCount: 1,
+                formData: current,
+                items: [
+                    {
+                        dataField: "name",
+                        label: { text: "Category Name" },
+                        validationRules: [
+                            { type: "required", message: "Name is required" },
+                            { type: "stringLength", max: 200, message: "Max 200 characters" }
+                        ]
+                    },
+                    {
+                        dataField: "description",
+                        label: { text: "Description" },
+                        editorType: "dxTextArea",
+                        editorOptions: {
+                            height: DESCRIPTION_FIELD_HEIGHT,
+                            placeholder: "Short description (optional)"
+                        }
+                    }
+                ]
+            }).dxForm("instance");
+
+            const cancelBtn = $("#" + cancelId).dxButton({
+                text: "Cancel", stylingMode: "outlined",
+                onClick: function() { dialog.hide(); }
+            }).dxButton("instance");
+
+            const confirmBtn = $("#" + confirmId).dxButton({
+                text: "Save Changes", type: "default", stylingMode: "contained",
+                onClick: async function() {
+                    if (!editForm.validate().isValid) return;
+                    const data = editForm.option("formData");
+                    confirmBtn.option({ text: "Saving...", disabled: true });
+                    cancelBtn.option("disabled", true);
+                    try {
+                        await $.ajax({
+                            url: `${CATEGORIES_API_URL}/${CATEGORY_ID}`,
+                            method: "PUT",
+                            contentType: "application/json",
+                            data: JSON.stringify({ name: data.name, description: data.description, parentId: current.parentId }),
+                            xhrFields: { withCredentials: true }
+                        });
+                        dialog.hide();
+                        showToast("Category updated.", "success");
+                        window.setTimeout(() => window.location.reload(), 600);
+                    } catch (err) {
+                        confirmBtn.option({ text: "Save Changes", disabled: false });
+                        cancelBtn.option("disabled", false);
+                        showToast(getApiErrorMessage(err, "Failed to update category."), "error", 4000);
+                    }
+                }
+            }).dxButton("instance");
+        }, 0);
+    }
+
+    function openAddSubcategoryDialog() {
+        const dialogId = `add-subcat-dialog-${Date.now()}`;
+        const formId = `${dialogId}-form`;
+        const cancelId = `${dialogId}-cancel`;
+        const confirmId = `${dialogId}-confirm`;
+
+        const dialog = DevExpress.ui.dialog.custom({
+            title: "Add Sub-category",
+            messageHtml: `
+                <div id="${dialogId}" class="pt-2 text-start">
+                    <div id="${formId}"></div>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div id="${cancelId}"></div>
+                        <div id="${confirmId}"></div>
+                    </div>
+                </div>`,
+            buttons: [],
+            dragEnabled: false,
+            closeOnOutsideClick: false,
+            showCloseButton: true,
+            width: 480
+        });
+
+        dialog.show();
+
+        window.setTimeout(function() {
+            const $formHost = $("#" + formId);
+            if (!$formHost.length) return;
+
+            const subcatForm = $formHost.dxForm({
+                labelMode: "floating",
+                colCount: 1,
+                formData: { name: "", description: "", parentId: CATEGORY_ID },
+                items: [
+                    {
+                        dataField: "name",
+                        label: { text: "Category Name" },
+                        editorOptions: { placeholder: "e.g. Field Services" },
+                        validationRules: [
+                            { type: "required", message: "Name is required" },
+                            { type: "stringLength", max: 200, message: "Max 200 characters" }
+                        ]
+                    },
+                    {
+                        dataField: "description",
+                        label: { text: "Description" },
+                        editorType: "dxTextArea",
+                        editorOptions: {
+                            height: DESCRIPTION_FIELD_HEIGHT,
+                            placeholder: "Short description (optional)"
+                        }
+                    }
+                ]
+            }).dxForm("instance");
+
+            const cancelBtn = $("#" + cancelId).dxButton({
+                text: "Cancel", stylingMode: "outlined",
+                onClick: function() { dialog.hide(); }
+            }).dxButton("instance");
+
+            const confirmBtn = $("#" + confirmId).dxButton({
+                text: "Create Sub-category", type: "default", stylingMode: "contained",
+                onClick: async function() {
+                    if (!subcatForm.validate().isValid) return;
+                    const data = subcatForm.option("formData");
+                    confirmBtn.option({ text: "Creating...", disabled: true });
+                    cancelBtn.option("disabled", true);
+                    try {
+                        const res = await $.ajax({
+                            url: CATEGORIES_API_URL,
+                            method: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify({ name: data.name, description: data.description, parentId: CATEGORY_ID }),
+                            xhrFields: { withCredentials: true }
+                        });
+                        dialog.hide();
+                        showToast("Sub-category created.", "success");
+                        const newId = res?.data?.id;
+                        if (newId) {
+                            window.setTimeout(() => window.location.href = `${CATEGORY_DETAIL_URL}?id=${newId}`, 600);
+                        } else {
+                            window.setTimeout(() => window.location.reload(), 600);
+                        }
+                    } catch (err) {
+                        confirmBtn.option({ text: "Create Sub-category", disabled: false });
+                        cancelBtn.option("disabled", false);
+                        showToast(getApiErrorMessage(err, "Failed to create sub-category."), "error", 4000);
+                    }
+                }
+            }).dxButton("instance");
+        }, 0);
     }
 
     async function deleteCategory() {

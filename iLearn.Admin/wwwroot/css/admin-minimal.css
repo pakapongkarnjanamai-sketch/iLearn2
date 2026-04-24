@@ -2251,6 +2251,66 @@ iframe#scormFrame {
     flex-shrink: 0;
 }
 
+/* ── Detail page shared components ── */
+.detail-stat-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-xs);
+}
+.detail-stat-strip--cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+@media (max-width: 575.98px) {
+    .detail-stat-strip { grid-template-columns: repeat(2, 1fr); }
+}
+.detail-stat {
+    border-left: 2px solid var(--border-strong);
+    padding: 8px 10px;
+    background: var(--surface-subtle);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.detail-stat--primary { border-left-color: var(--primary-color); }
+.detail-stat--success  { border-left-color: var(--success-color); }
+.detail-stat--warning  { border-left-color: var(--warning-color); }
+.detail-stat__num {
+    font-size: 22px;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.detail-stat--primary .detail-stat__num { color: var(--primary-color); }
+.detail-stat--success  .detail-stat__num { color: var(--success-color); }
+.detail-stat--warning  .detail-stat__num { color: var(--warning-color); }
+.detail-stat__lbl {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: var(--font-weight-semibold);
+}
+.detail-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm) var(--space-lg);
+}
+.detail-info-grid .col-span-2 {
+    grid-column: 1 / -1;
+}
+.detail-info-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+}
+.detail-info-value {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
 /* Status colors */
 .tl-bar--completed  { background: var(--success-color); }
 .tl-bar--inprogress { background: var(--primary-color); }

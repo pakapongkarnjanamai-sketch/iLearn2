@@ -40,6 +40,7 @@
 <script>
     const CATEGORIES_API_URL = `${serviceUrl}/StudentGroupCategories`;
     const CATEGORY_ID = @(ViewBag.Id ?? "null");
+    const INITIAL_PARENT_ID = @(ViewBag.ParentId ?? "null");
     const IS_EDIT = @(isEdit ? "true" : "false");
     const INDEX_URL = '@Url.Action("Index", "StudentGroupCategories")';
     const DESCRIPTION_FIELD_HEIGHT = 120;
@@ -60,7 +61,7 @@
         formInstance = $("#form-container").dxForm({
             labelMode: "floating",
             colCount: 1,
-            formData: { name: "", description: "", parentId: null },
+            formData: { name: "", description: "", parentId: INITIAL_PARENT_ID },
             items: [
                 {
                     dataField: "name",
@@ -118,7 +119,8 @@
                 displayExpr: "label",
                 valueExpr: "id",
                 searchEnabled: true,
-                showClearButton: true,
+                showClearButton: !INITIAL_PARENT_ID,
+                readOnly: !!INITIAL_PARENT_ID,
                 placeholder: "No parent (root category)"
             }
         };

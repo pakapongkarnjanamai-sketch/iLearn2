@@ -82,16 +82,9 @@
                         customizeText: function (e) { return e.value || "—"; }
                     },
                     {
-                        type: "buttons", caption: "", width: 90,
+                        type: "buttons", caption: "", width: 60,
                         alignment: "center", fixed: true, fixedPosition: "right",
                         buttons: [
-                            {
-                                hint: "Edit",
-                                icon: "edit",
-                                onClick: function (e) {
-                                    if (e.row.data.id) window.location.href = `${editorUrl}?id=${e.row.data.id}`;
-                                }
-                            },
                             {
                                 hint: "Open Details",
                                 icon: "info",

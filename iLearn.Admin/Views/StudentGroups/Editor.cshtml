@@ -170,6 +170,7 @@ else
     const CATEGORIES_API_URL = `${serviceUrl}/StudentGroupCategories`;
     const STUDENTS_API_URL = `${serviceUrl}/Students`;
     const GROUP_ID = @(ViewBag.Id ?? "null");
+    const INITIAL_CATEGORY_ID = @(ViewBag.CategoryId ?? "null");
     const IS_EDIT = @(isEdit ? "true" : "false");
     const INDEX_URL = '@Url.Action("Index", "StudentGroups")';
     const DETAIL_URL = '@Url.Action("Detail", "StudentGroups")';
@@ -267,7 +268,8 @@ else
                 displayExpr: "label",
                 valueExpr: "id",
                 searchEnabled: true,
-                showClearButton: true,
+                showClearButton: !INITIAL_CATEGORY_ID,
+                readOnly: !!INITIAL_CATEGORY_ID,
                 placeholder: "No category (root)",
                 onValueChanged: updateCreateSnapshot
             }
@@ -278,7 +280,7 @@ else
         formInstance = $("#form-container").dxForm({
             labelMode: "floating",
             colCount: 1,
-            formData: { name: "", description: "", categoryId: null },
+            formData: { name: "", description: "", categoryId: INITIAL_CATEGORY_ID },
             items: [
                 {
                     dataField: "name",

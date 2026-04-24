@@ -22,77 +22,58 @@
 
     <div class="row g-3 mb-4 flex-shrink-0">
 
-        <!-- Group Overview -->
         <div class="col-lg-9">
-            <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
-                <div class="admin-section-header mb-3">
+            <div class="border rounded bg-white h-100 p-3 d-flex flex-column gap-3">
+
+                <div class="admin-section-header mb-1">
                     <div class="admin-section-header-main">
-                        <div class="section-title mb-0 admin-section-title-fill">Info & Summary</div>
+                        <div class="section-title mb-0 admin-section-title-fill">Info</div>
                     </div>
                     <div class="admin-section-divider"></div>
                 </div>
 
-                <div class="row g-2 text-center mb-3">
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-total-members">0</div>
-                            <div class="stat-label">Members</div>
-                        </div>
+                <div class="detail-stat-strip">
+                    <div class="detail-stat detail-stat--primary">
+                        <div class="detail-stat__num" id="stat-total-members">0</div>
+                        <div class="detail-stat__lbl">Members</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-total-assignments">0</div>
-                            <div class="stat-label">Assignments</div>
-                        </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat__num" id="stat-total-assignments">0</div>
+                        <div class="detail-stat__lbl">Assignments</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-success" id="stat-completed">0</div>
-                            <div class="stat-label">Completed</div>
-                        </div>
+                    <div class="detail-stat detail-stat--success">
+                        <div class="detail-stat__num" id="stat-completed">0</div>
+                        <div class="detail-stat__lbl">Completed</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-warning" id="stat-inprogress">0</div>
-                            <div class="stat-label">In Progress</div>
-                        </div>
+                    <div class="detail-stat detail-stat--warning">
+                        <div class="detail-stat__num" id="stat-inprogress">0</div>
+                        <div class="detail-stat__lbl">In Progress</div>
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-12">
-                        <div class="admin-meta-item">
-                            <div class="admin-meta-label">Group Name</div>
-                            <div class="admin-meta-value fw-bold" id="summary-name">—</div>
-                        </div>
+                <div class="detail-info-grid">
+                    <div>
+                        <div class="detail-info-label">Group Name</div>
+                        <div class="detail-info-value fw-bold" id="summary-name">—</div>
                     </div>
-                    <div class="col-12 col-xl-7">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Description</div>
-                            <div class="admin-meta-value u-whitespace-normal lh-base" id="summary-description">—</div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Category</div>
+                        <div class="detail-info-value" id="summary-category">—</div>
                     </div>
-                    <div class="col-12 col-md-6 col-xl-2">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Members</div>
-                            <div class="admin-meta-value">
-                                <span class="tag-pill pill-primary" id="summary-member-count">0 members</span>
-                            </div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Created By</div>
+                        <div class="detail-info-value" id="summary-created-by">—</div>
                     </div>
-                    <div class="col-12 col-md-6 col-xl-3">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Created By</div>
-                            <div class="admin-meta-value" id="summary-created-by">—</div>
-                        </div>
+                    <div>
+                        <div class="detail-info-label">Members</div>
+                        <div class="detail-info-value"><span class="tag-pill pill-primary" id="summary-member-count">0 members</span></div>
                     </div>
-                    <div class="col-12 col-md-6 col-xl-12">
-                        <div class="admin-meta-item h-100">
-                            <div class="admin-meta-label">Category</div>
-                            <div class="admin-meta-value" id="summary-category">—</div>
-                        </div>
+                    <div class="col-span-2">
+                        <div class="detail-info-label">Description</div>
+                        <div class="detail-info-value u-whitespace-normal lh-base" id="summary-description">—</div>
                     </div>
                 </div>
+
             </div>
         </div>
 

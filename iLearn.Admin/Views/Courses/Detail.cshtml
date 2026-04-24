@@ -84,45 +84,33 @@
         <div class="col-lg-6">
             <div class="border rounded bg-white h-100 p-3 d-flex flex-column">
                 <div class="section-title">Summary</div>
-                <div class="row g-2 text-center mb-3">
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-version-count">0</div>
-                            <div class="stat-label">Versions</div>
-                        </div>
+                <div class="detail-stat-strip mb-3">
+                    <div class="detail-stat detail-stat--primary">
+                        <div class="detail-stat__num" id="stat-version-count">—</div>
+                        <div class="detail-stat__lbl">Versions</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-assignment-count">0</div>
-                            <div class="stat-label">Assignments</div>
-                        </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat__num" id="stat-assignment-count">—</div>
+                        <div class="detail-stat__lbl">Assignments</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value" id="stat-learner-count">0</div>
-                            <div class="stat-label">Learners</div>
-                        </div>
+                    <div class="detail-stat">
+                        <div class="detail-stat__num" id="stat-learner-count">—</div>
+                        <div class="detail-stat__lbl">Learners</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border rounded p-3 bg-white stat-block">
-                            <div class="stat-value u-text-success" id="stat-completed-count">0</div>
-                            <div class="stat-label">Completed</div>
-                        </div>
+                    <div class="detail-stat detail-stat--success">
+                        <div class="detail-stat__num" id="stat-completed-count">—</div>
+                        <div class="detail-stat__lbl">Completed</div>
                     </div>
                 </div>
                 <div class="border rounded bg-white p-3 flex-grow-1 d-flex flex-column gap-3">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="admin-meta-label">Current Version</div>
                             <div class="admin-meta-value" id="summary-active-version">—</div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="admin-meta-label">Availability</div>
                             <div class="admin-meta-value" id="summary-availability">—</div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="admin-meta-label">Active Resources</div>
-                            <div class="admin-meta-value" id="summary-resource-count">—</div>
                         </div>
                     </div>
                     <div>
