@@ -489,8 +489,8 @@ else
                         dataField: "typeId", caption: "Resource Type", width: 180, alignment: "center",
                         lookup: {
                             dataSource: [
-                                { id: 1, name: "Learning" },
-                                { id: 2, name: "Assessment" }
+                                { id: 1, name: "Learn" },
+                                { id: 2, name: "Exam" }
                             ],
                             displayExpr: "name",
                             valueExpr: "id"
@@ -558,7 +558,7 @@ else
                                 dataField: "typeId", caption: "Resource Type", width: 110, alignment: "center",
                                 cellTemplate: function(container, options) {
                                     const isLearningType = options.value === 1;
-                                    const text = isLearningType ? "Learning" : "Assessment";
+                                    const text = isLearningType ? "Learn" : "Exam";
                                     window.renderAdminGridStatusCell(container, text, isLearningType ? 'primary' : 'warning', { showDot: false });
                                 }
                             },
@@ -1123,7 +1123,7 @@ else
         }
 
         function getResourceTypeLabel(typeId) {
-            return typeId === 2 ? "Assessment" : "Learning";
+            return typeId === 2 ? "Exam" : "Learn";
         }
 
         function formatDateTime(value) {

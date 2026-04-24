@@ -2,12 +2,101 @@
     ViewBag.Title = "Course Management";
 }
 
+@section Styles {
+    <style>
+        .course-monitor-bar {
+            display: flex;
+            flex: 1 1 640px;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 320px;
+        }
+
+        .course-monitor-filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 14px;
+        }
+
+        .course-filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .course-filter-group-label {
+            font-size: var(--font-size-caption);
+            line-height: var(--text-caption-line-height);
+            font-weight: var(--font-weight-semibold);
+            letter-spacing: var(--letter-spacing-normal);
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .course-filter-chip {
+            appearance: none;
+            border: 1px solid var(--border-color);
+            background: var(--surface-panel);
+            color: var(--text-primary);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: var(--font-size-caption);
+            line-height: 1.2;
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: background-color 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out;
+        }
+
+        .course-filter-chip:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .course-filter-chip:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .course-filter-chip.is-active {
+            background: var(--primary-subtle);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        @@media (max-width: 991.98px) {
+            .page-header {
+                align-items: flex-start !important;
+            }
+
+            .page-header-actions {
+                width: 100%;
+            }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .course-filter-chip {
+                transition: none;
+            }
+        }
+    </style>
+}
+
 <!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h1 class="page-title">@ViewBag.Title</h1>
-        <div class="page-subtitle">Manage courses and versions.</div>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="course-monitor-bar">
+      
+        <div class="course-monitor-filters">
+            <div class="course-filter-group" role="group" aria-label="Course type filters">
+                <span class="course-filter-group-label">Course Type</span>
+                <div class="course-filter-group" id="course-type-filter-chips"></div>
+            </div>
+        </div>
     </div>
+
     <div class="page-header-actions">
         <a href="@Url.Action("Editor", "Courses")" class="action-link primary">
             <i class="fas fa-plus" aria-hidden="true"></i> Create Course
@@ -47,10 +136,20 @@
     <script>
         const courseDetailUrl = '@Url.Action("Detail", "Courses")';
         const divisionsTreeUrl = `${serviceUrl}/Divisions/GetTree`;
+        const courseQuickFilterState = {
+            typeKey: "all"
+        };
+        let courseTypeFilters = [
+            { key: "all", courseTypeId: null, label: "All Types" },
+            { key: "type-1", courseTypeId: 1, label: "Special" },
+            { key: "type-2", courseTypeId: 2, label: "General" }
+        ];
 
         const coursesStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { key: 'id' });
 
         $(async () => {
+            let categoryTreeView = null;
+            let currentTreeFilter = null;
             const grid = initDxGrid("#grid", buildAdminGridOptions("Search by code, name, category, or type...", {
                 height: "100%",
                 dataSource: coursesStore,
@@ -90,7 +189,7 @@
                     },
                     {
                         dataField: "courseTypeName",
-                        caption: "Type",
+                        caption: "Course Type",
                         width: 140,
                         alignment: "center",
                         cellTemplate: function(container, options) {
@@ -109,8 +208,8 @@
                     },
                     {
                         type: "buttons",
-                        caption: "Quick Actions",
-                        width: 130,
+                        caption: "",
+                        width: 60,
                         alignment: "center",
                         fixed: true,
                         fixedPosition: "right",
@@ -126,6 +225,9 @@
                     }
                 ]
             }));
+
+            bindQuickFilters(grid);
+            await loadCourseTypeFilters();
             const viewportLayoutController = window.enableAdminViewportLayout({
                 refreshTargets: [grid]
             });
@@ -137,7 +239,7 @@
                     xhrFields: { withCredentials: true }
                 });
 
-                $("#categoryTreeView").dxTreeView({
+                categoryTreeView = $("#categoryTreeView").dxTreeView({
                     height: '100%',
                     dataSource: treeData,
                     dataStructure: 'tree',
@@ -154,7 +256,7 @@
                         e.component.selectItem('root');
                         viewportLayoutController?.refresh();
                     }
-                });
+                }).dxTreeView("instance");
             } catch (err) {
                 console.error("Error loading treeview data", err);
             }
@@ -167,24 +269,127 @@
                 window.location.href = `${courseDetailUrl}?id=${courseId}`;
             }
 
-            function appendText(container, text, styles) {
-                return appendAdminText(container, text, styles);
+            function bindQuickFilters(gridInstance) {
+                $("#course-type-filter-chips").on("click", ".course-filter-chip", function() {
+                    const filterKey = String($(this).data("filterKey") || "");
+
+                    if (getCourseTypeFilterByKey(filterKey)) {
+                        courseQuickFilterState.typeKey = filterKey;
+                    }
+
+                    applyActiveFilters(gridInstance);
+                });
+
+                renderCourseTypeFilters();
+                updateQuickFilterUi();
             }
 
-            function applyTreeFilter(gridInstance, node) {
-                if (node.isRoot) {
-                    gridInstance.clearFilter();
-                    return;
+            function applyActiveFilters(gridInstance) {
+                const conditions = [];
+
+                if (currentTreeFilter) {
+                    conditions.push(currentTreeFilter);
+                }
+
+                const selectedType = getCourseTypeFilterByKey(courseQuickFilterState.typeKey);
+                if (selectedType && selectedType.courseTypeId) {
+                    conditions.push(["courseTypeId", "=", selectedType.courseTypeId]);
+                }
+
+                window.applyCombinedFilter(gridInstance, conditions);
+                updateQuickFilterUi();
+            }
+
+            function updateQuickFilterUi() {
+                $("#course-type-filter-chips .course-filter-chip").each(function() {
+                    const filterKey = String($(this).data("filterKey") || "all");
+                    const isActive = filterKey === courseQuickFilterState.typeKey;
+
+                    $(this)
+                        .toggleClass("is-active", isActive)
+                        .attr("aria-pressed", isActive ? "true" : "false");
+                });
+            }
+
+                function renderCourseTypeFilters() {
+                const container = $("#course-type-filter-chips");
+                container.empty();
+
+                courseTypeFilters.forEach(function(filterItem) {
+                    $("<button>")
+                        .attr({
+                            type: "button",
+                            "class": "course-filter-chip",
+                            "data-filter-key": filterItem.key,
+                            "aria-pressed": filterItem.key === courseQuickFilterState.typeKey ? "true" : "false"
+                        })
+                        .text(filterItem.label)
+                        .toggleClass("is-active", filterItem.key === courseQuickFilterState.typeKey)
+                        .appendTo(container);
+                });
+            }
+
+            async function loadCourseTypeFilters() {
+                try {
+                    const response = await $.ajax({
+                        url: `${serviceUrl}/admin/CourseTypesCRUD/Get`,
+                        type: "GET",
+                        xhrFields: { withCredentials: true }
+                    });
+
+                    const loadedTypes = Array.isArray(response?.data) ? response.data : [];
+                    const availableTypes = loadedTypes.filter(function(item) {
+                        return item && item.id && item.name;
+                    });
+
+                    if (availableTypes.length > 0) {
+                        courseTypeFilters = [{ key: "all", courseTypeId: null, label: "All Types" }].concat(
+                            availableTypes.map(function(item) {
+                                return {
+                                    key: `type-${item.id}`,
+                                    courseTypeId: item.id,
+                                    label: item.name
+                                };
+                            })
+                        );
+
+                        if (!getCourseTypeFilterByKey(courseQuickFilterState.typeKey)) {
+                            courseQuickFilterState.typeKey = "all";
+                        }
+                    }
+                } catch (error) {
+                    // Keep fallback labels when course type lookup is unavailable.
+                }
+
+                renderCourseTypeFilters();
+                updateQuickFilterUi();
+            }
+
+            function getCourseTypeFilterByKey(filterKey) {
+                return courseTypeFilters.find(function(item) {
+                    return item.key === filterKey;
+                }) || null;
+            }
+
+            function buildTreeFilter(node) {
+                if (!node || node.isRoot) {
+                    return null;
                 }
 
                 if (node.categoryId) {
-                    gridInstance.filter(["categoryId", "=", node.categoryId]);
-                    return;
+                    return ["categoryId", "=", node.categoryId];
                 }
 
                 if (node.isDivision) {
-                    gridInstance.filter(["divisionId", "=", node.divisionId]);
+                    return ["divisionId", "=", node.divisionId];
                 }
+
+                return null;
+            }
+
+            function applyTreeFilter(gridInstance, node) {
+                currentTreeFilter = buildTreeFilter(node);
+                applyActiveFilters(gridInstance);
             }
         });
     </script>

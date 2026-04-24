@@ -2,12 +2,118 @@
     ViewBag.Title = "Assignment Management";
 }
 
-<!-- ── Page Header ── -->
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h1 class="page-title">@ViewBag.Title</h1>
-        <div class="page-subtitle">Track assignment progress and completion.</div>
+@section Styles {
+    <style>
+        .assignment-monitor-bar {
+            display: flex;
+            flex: 1 1 640px;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 320px;
+        }
+
+        .assignment-monitor-head {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .assignment-monitor-kicker {
+            font-size: var(--font-size-caption);
+            line-height: var(--text-caption-line-height);
+            font-weight: var(--font-weight-semibold);
+            letter-spacing: var(--letter-spacing-normal);
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .assignment-monitor-note {
+            font-size: var(--font-size-sm);
+            line-height: var(--text-secondary-line-height);
+            color: var(--text-primary);
+        }
+
+        .assignment-monitor-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .assignment-filter-chip {
+            appearance: none;
+            border: 1px solid var(--border-color);
+            background: var(--surface-panel);
+            color: var(--text-primary);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: var(--font-size-caption);
+            line-height: 1.2;
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: background-color 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out;
+        }
+
+        .assignment-filter-chip:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .assignment-filter-chip:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .assignment-filter-chip.is-active {
+            background: var(--primary-subtle);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .assignment-filter-chip.is-clear {
+            color: var(--text-secondary);
+        }
+
+        .assignment-filter-chip.is-clear:hover,
+        .assignment-filter-chip.is-clear:focus-visible {
+            color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        @@media (max-width: 991.98px) {
+            .page-header {
+                align-items: flex-start !important;
+            }
+
+            .page-header-actions {
+                width: 100%;
+            }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .assignment-filter-chip {
+                transition: none;
+            }
+        }
+    </style>
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="assignment-monitor-bar">
+      
+        <div class="assignment-monitor-filters" role="group" aria-label="Assignment quick filters">
+            <button type="button" class="assignment-filter-chip is-active" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="assignment-filter-chip" data-filter="InProgress" aria-pressed="false">In Progress</button>
+            <button type="button" class="assignment-filter-chip" data-filter="Upcoming" aria-pressed="false">Upcoming</button>
+            <button type="button" class="assignment-filter-chip" data-filter="Expired" aria-pressed="false">Expired</button>
+            <button type="button" class="assignment-filter-chip" data-filter="Completed" aria-pressed="false">Completed</button>
+            <button type="button" class="assignment-filter-chip" data-filter="dueSoon" aria-pressed="false">Due in 7 days</button>
+            <button type="button" class="assignment-filter-chip" data-filter="overdue" aria-pressed="false">Overdue</button>
+            <button type="button" class="assignment-filter-chip is-clear" data-filter="clear" aria-pressed="false">Clear filters</button>
+        </div>
     </div>
+
     <div class="page-header-actions">
         <a href="@Url.Action("Gantt", "Assignments")" class="action-link">
             Timeline
@@ -30,10 +136,20 @@
         const assignmentsStore = createDataStore(serviceUrl, 'admin/AssignmentsCRUD', { key: 'id' });
 
         const STATUS_MAP = {
-            "Completed":  { tone: "success", text: "Completed" },
-            "Upcoming":   { tone: "warning", text: "Upcoming" },
-            "Expired":    { tone: "danger", text: "Expired" },
+            "Completed": { tone: "success", text: "Completed" },
+            "Upcoming": { tone: "warning", text: "Upcoming" },
+            "Expired": { tone: "danger", text: "Expired" },
             "InProgress": { tone: "primary", text: "In Progress" }
+        };
+
+        const QUICK_FILTER_SUMMARY = {
+            all: "Showing all assignments",
+            InProgress: "Showing assignments that are currently in progress",
+            Upcoming: "Showing assignments that have not started yet",
+            Expired: "Showing expired assignments",
+            Completed: "Showing completed assignments",
+            dueSoon: "Showing assignments due in the next 7 days",
+            overdue: "Showing overdue assignments"
         };
 
         $(function () {
@@ -47,7 +163,7 @@
                 },
                 groupPanel: {
                     emptyPanelText: '@ViewBag.Title',
-                    visible: true,
+                    visible: true
                 },
                 columns: [
                     {
@@ -56,14 +172,14 @@
                         width: 150,
                         alignment: "center",
                         cssClass: "cell-code",
-                        customizeText: function(e) { return e.value || "—"; }
+                        customizeText: function (e) { return e.value || "—"; }
                     },
                     {
                         dataField: "createdBy",
                         caption: "Created By",
                         width: 140,
                         cssClass: "cell-secondary",
-                        customizeText: function(e) { return e.value || "—"; }
+                        customizeText: function (e) { return e.value || "—"; }
                     },
                     {
                         dataField: "courseNames",
@@ -78,7 +194,7 @@
                         caption: "Description",
                         minWidth: 180,
                         cssClass: "cell-secondary",
-                        customizeText: function(e) {
+                        customizeText: function (e) {
                             var text = e.value || "—";
                             return text.length > 55 ? text.slice(0, 55) + "\u2026" : text;
                         }
@@ -89,7 +205,7 @@
                         width: 90,
                         alignment: "center",
                         cssClass: "cell-accent",
-                        customizeText: function(e) { return String(e.value ?? 0); }
+                        customizeText: function (e) { return String(e.value ?? 0); }
                     },
                     {
                         dataField: "startDate",
@@ -139,9 +255,80 @@
                 ]
             }));
 
+            bindQuickFilters(grid);
+
             window.enableAdminViewportLayout({
                 refreshTargets: [grid]
             });
+
+            function bindQuickFilters(gridInstance) {
+                $(".assignment-filter-chip").on("click", function () {
+                    const filterKey = String($(this).data("filter") || "all");
+                    applyQuickFilter(gridInstance, filterKey);
+                });
+            }
+
+            function applyQuickFilter(gridInstance, filterKey) {
+                const today = startOfDay(new Date());
+                const next7Days = startOfDay(new Date());
+                next7Days.setDate(next7Days.getDate() + 7);
+
+                if (filterKey === "clear" || filterKey === "all") {
+                    gridInstance.clearFilter();
+                    setActiveQuickFilter("all");
+                    updateFilterSummary(QUICK_FILTER_SUMMARY.all);
+                    return;
+                }
+
+                if (filterKey === "dueSoon") {
+                    gridInstance.filter([
+                        ["dueDate", ">=", today],
+                        "and",
+                        ["dueDate", "<=", next7Days],
+                        "and",
+                        ["status", "<>", "Completed"]
+                    ]);
+                    setActiveQuickFilter(filterKey);
+                    updateFilterSummary(QUICK_FILTER_SUMMARY[filterKey]);
+                    return;
+                }
+
+                if (filterKey === "overdue") {
+                    gridInstance.filter([
+                        ["dueDate", "<", today],
+                        "and",
+                        ["status", "<>", "Completed"]
+                    ]);
+                    setActiveQuickFilter(filterKey);
+                    updateFilterSummary(QUICK_FILTER_SUMMARY[filterKey]);
+                    return;
+                }
+
+                gridInstance.filter(["status", "=", filterKey]);
+                setActiveQuickFilter(filterKey);
+                updateFilterSummary(QUICK_FILTER_SUMMARY[filterKey] || QUICK_FILTER_SUMMARY.all);
+            }
+
+            function setActiveQuickFilter(activeFilterKey) {
+                $(".assignment-filter-chip").each(function () {
+                    const filterKey = String($(this).data("filter") || "all");
+                    const isActive = filterKey === activeFilterKey;
+
+                    $(this)
+                        .toggleClass("is-active", isActive)
+                        .attr("aria-pressed", isActive ? "true" : "false");
+                });
+            }
+
+            function updateFilterSummary(text) {
+                $("#assignment-filter-summary").text(text || QUICK_FILTER_SUMMARY.all);
+            }
+
+            function startOfDay(value) {
+                const date = new Date(value);
+                date.setHours(0, 0, 0, 0);
+                return date;
+            }
 
             function navigateToDetail(id) {
                 if (id) window.location.href = `${assignmentDetailUrl}/${id}`;
