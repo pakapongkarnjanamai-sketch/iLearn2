@@ -1,225 +1,240 @@
-﻿@{
+@using System.Security.Claims
+@{
     ViewBag.Title = "Admin Dashboard";
-    var adminName = User.Identity?.Name ?? "Administrator";
+    var roles = User.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToList();
+    var hasSuperAdminRole = roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase);
+    var learnerProgressUrl = hasSuperAdminRole ? Url.Action("Index", "Students") : Url.Action("Index", "Assignments");
+    var learningActivityUrl = hasSuperAdminRole ? Url.Action("Index", "LearningLogs") : Url.Action("Gantt", "Assignments");
 }
 
-<!-- ── Page Header ── -->
+
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <h1 class="page-title">Admin Dashboard</h1>
-        <div class="page-subtitle">Welcome back, <strong>@adminName</strong></div>
+        <div class="page-subtitle">Operational summary for <strong id="dashboard-scope-name">your division</strong></div>
     </div>
-    <a href="@Url.Action("Editor", "Courses")" class="action-link primary">
-        <i class="fas fa-plus" aria-hidden="true"></i> New Course
-    </a>
+    <div class="page-header-actions">
+        <span class="tag-pill pill-default" id="dashboard-scope-pill">
+            <i class="fas fa-layer-group me-1" aria-hidden="true"></i>Loading scope
+        </span>
+        <a href="@Url.Action("BulkAssign", "Assignments")" class="action-link primary">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i> New Assignment
+        </a>
+        <a href="@Url.Action("Editor", "Courses")" class="action-link">
+            <i class="fas fa-plus" aria-hidden="true"></i> New Course
+        </a>
+    </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-
-    <div class="row g-3 mb-4" id="maintenance-banner-row" style="display:none;">
-        <div class="col-12">
-            <div class="dash-panel maintenance-card">
-                <div class="dash-panel-header u-text-warning-strong">Maintenance In Progress</div>
-                <div class="dash-panel-body">
-                    <div id="maintenance-status-list"></div>
-                </div>
+<div class="container-fluid px-4 py-3 pb-4 admin-dashboard-shell">
+    <div class="dashboard-maintenance-row is-hidden" id="maintenance-banner-row">
+        <div class="dash-panel maintenance-card">
+            <div class="dash-panel-header u-text-warning-strong">Maintenance In Progress</div>
+            <div class="dash-panel-body">
+                <div id="maintenance-status-list"></div>
             </div>
         </div>
     </div>
 
-    <!-- ── Stat Cards ── -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Courses")" class="dash-stat-card blue">
-                <div class="ds-lbl">Active Courses</div>
-                <div class="ds-val" id="count-active-courses">0</div>
-                <div class="ds-link">View All <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></div>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Courses")" class="dash-stat-card yellow">
-                <div class="ds-lbl">Draft Courses</div>
-                <div class="ds-val" id="count-draft-courses">0</div>
-                <div class="ds-link">Review <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></div>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Assignments")" class="dash-stat-card green">
-                <div class="ds-lbl">Total Assignments (In Progress)</div>
-                <div class="ds-val" id="count-inprogress-assignments">0</div>
-                <div class="ds-link">View <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></div>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <a href="@Url.Action("Index", "Resources")" class="dash-stat-card purple">
-                <div class="ds-lbl">Resources</div>
-                <div class="ds-val" id="count-resources">0</div>
-                <div class="ds-link">Library <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></div>
-            </a>
-        </div>
+    <section class="dashboard-kpi-grid" aria-label="Dashboard overview">
+        <a href="@Url.Action("Index", "Courses")" class="dashboard-kpi-card">
+            <div class="dashboard-kpi-head">
+                <div>
+                    <div class="dashboard-kpi-label">Course Portfolio</div>
+                    <div class="dashboard-kpi-value" id="kpi-active-courses">0</div>
+                </div>
+                <div class="dashboard-kpi-icon"><i class="fas fa-book" aria-hidden="true"></i></div>
+            </div>
+            <div class="dashboard-kpi-meta">
+                <span><strong id="kpi-draft-courses">0</strong> draft</span>
+                <span><strong id="kpi-resource-count">0</strong> resources</span>
+            </div>
+        </a>
+
+        <a href="@Url.Action("Index", "Assignments")" class="dashboard-kpi-card">
+            <div class="dashboard-kpi-head">
+                <div>
+                    <div class="dashboard-kpi-label">Active Assignments</div>
+                    <div class="dashboard-kpi-value" id="kpi-active-assignments">0</div>
+                </div>
+                <div class="dashboard-kpi-icon is-warning"><i class="fas fa-list-check" aria-hidden="true"></i></div>
+            </div>
+            <div class="dashboard-kpi-meta">
+                <span><strong id="kpi-due-soon-tasks">0</strong> due soon</span>
+                <span><strong id="kpi-overdue-tasks">0</strong> overdue</span>
+            </div>
+        </a>
+
+        <a href="@learnerProgressUrl" class="dashboard-kpi-card">
+            <div class="dashboard-kpi-head">
+                <div>
+                    <div class="dashboard-kpi-label">Learner Progress</div>
+                    <div class="dashboard-kpi-value" id="kpi-assigned-learners">0</div>
+                </div>
+                <div class="dashboard-kpi-icon is-success"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
+            </div>
+            <div class="dashboard-kpi-meta">
+                <span><strong id="kpi-completion-rate">0%</strong> completion</span>
+                <span><strong id="kpi-total-tasks">0</strong> tasks</span>
+            </div>
+        </a>
+
+        <a href="@learningActivityUrl" class="dashboard-kpi-card">
+            <div class="dashboard-kpi-head">
+                <div>
+                    <div class="dashboard-kpi-label">Learning Activity</div>
+                    <div class="dashboard-kpi-value" id="kpi-learning-sessions">0</div>
+                </div>
+                <div class="dashboard-kpi-icon is-danger"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
+            </div>
+            <div class="dashboard-kpi-meta">
+                <span>last 30 days</span>
+                <span><strong id="kpi-session-delta">0</strong> vs previous</span>
+            </div>
+        </a>
+    </section>
+
+    <div class="dashboard-layout-grid">
+        <section class="dash-panel">
+            <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                <span>Learning Activity Trends</span>
+                <span class="dashboard-panel-subtitle">sessions per month</span>
+            </div>
+            <div class="dash-panel-body">
+                <div id="learning-activity-chart" class="dashboard-chart is-loading">
+                    <span class="skeleton skeleton-block w-100 h-100"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="dash-panel">
+            <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                <span>Task Status</span>
+                <span class="dashboard-panel-subtitle">assignment learning tasks</span>
+            </div>
+            <div class="dash-panel-body">
+                <div id="task-status-chart" class="dashboard-chart-sm is-loading">
+                    <span class="skeleton skeleton-block w-100 h-100"></span>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <!-- ── Chart + Quick Actions ── -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-8">
-            <div class="dash-panel h-100">
-                <div class="dash-panel-header d-flex justify-content-between align-items-center">
-                    <span>Learning Activity Trends</span>
-                    <span class="u-fs-11 text-secondary u-fw-normal">learning sessions per month (last 6 months)</span>
-                </div>
-                <div class="dash-panel-body">
-                    <div id="learningActivityChartSkeleton" style="height:300px; padding:16px 0;">
-                        <div class="skeleton skeleton-block mb-2" style="height:200px; border-radius:4px;"></div>
-                        <div class="d-flex gap-2 justify-content-center">
-                            <div class="skeleton skeleton-line w-40" style="height:10px;"></div>
-                            <div class="skeleton skeleton-line w-40" style="height:10px;"></div>
-                        </div>
+    <div class="dashboard-layout-grid">
+        <section class="dash-panel">
+            <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                <span>Priority Assignment Reports</span>
+                <span class="dashboard-panel-subtitle">overdue and upcoming work</span>
+            </div>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Assignment</th>
+                            <th>Status</th>
+                            <th>Learners</th>
+                            <th>Due</th>
+                            <th>Completion</th>
+                            <th>Report</th>
+                        </tr>
+                    </thead>
+                    <tbody id="priority-assignment-rows">
+                        <tr><td colspan="6"><div class="dashboard-empty-state">Loading assignments...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="dash-panel">
+            <div class="dash-panel-header">Report Hub</div>
+            <div class="dash-panel-body dashboard-report-list">
+                <a href="@Url.Action("Index", "Assignments")" class="dashboard-report-link">
+                    <div class="qa-icon qa-icon-accent"><i class="fas fa-file-lines" aria-hidden="true"></i></div>
+                    <div>
+                        <div class="dashboard-report-title">Assignment Reports</div>
+                        <div class="dashboard-report-note">Progress, completion, and learner matrix</div>
                     </div>
-                    <div id="learningActivityChart" style="height:300px; display:none;"></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="dash-panel h-100">
-                <div class="dash-panel-header">Quick Actions</div>
-                <div class="dash-panel-body d-flex flex-column gap-2">
-
-                    <a href="@Url.Action("Index", "Courses")" class="quick-action">
-                        <div class="qa-icon qa-icon-accent"><i class="fas fa-book" aria-hidden="true"></i></div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">Course Manager</div>
-                            <div class="u-fs-11 text-secondary">Create &amp; manage courses</div>
-                        </div>
-                    </a>
-
-                    <a href="@Url.Action("Index", "Assignments")" class="quick-action">
-                        <div class="qa-icon qa-icon-warning"><i class="fas fa-tasks" aria-hidden="true"></i></div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">Assignments</div>
-                            <div class="u-fs-11 text-secondary">Bulk course assignment</div>
-                        </div>
-                    </a>
-
-                    <a href="@Url.Action("Index", "Students")" class="quick-action">
-                        <div class="qa-icon qa-icon-success"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">Learners</div>
-                            <div class="u-fs-11 text-secondary">Browse &amp; manage learners</div>
-                        </div>
-                    </a>
-
-                    <a href="@Url.Action("Index", "Resources")" class="quick-action">
-                        <div class="qa-icon qa-icon-purple"><i class="fas fa-folder-open" aria-hidden="true"></i></div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">Resources</div>
-                            <div class="u-fs-11 text-secondary">Manage learning materials</div>
-                        </div>
-                    </a>
-
-                    <a href="@Url.Action("Index", "StudentGroups")" class="quick-action">
+                </a>
+                <a href="@Url.Action("Gantt", "Assignments")" class="dashboard-report-link">
+                    <div class="qa-icon qa-icon-warning"><i class="fas fa-timeline" aria-hidden="true"></i></div>
+                    <div>
+                        <div class="dashboard-report-title">Assignment Timeline</div>
+                        <div class="dashboard-report-note">Schedule and due-date workload</div>
+                    </div>
+                </a>
+                <a href="@Url.Action("Index", "Courses")" class="dashboard-report-link">
+                    <div class="qa-icon qa-icon-success"><i class="fas fa-book-open" aria-hidden="true"></i></div>
+                    <div>
+                        <div class="dashboard-report-title">Course Catalog</div>
+                        <div class="dashboard-report-note">Course status and content ownership</div>
+                    </div>
+                </a>
+                <a href="@Url.Action("Index", "Categories")" class="dashboard-report-link">
+                    <div class="qa-icon qa-icon-purple"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+                    <div>
+                        <div class="dashboard-report-title">Category Reports</div>
+                        <div class="dashboard-report-note">Course groups by division scope</div>
+                    </div>
+                </a>
+                @if (hasSuperAdminRole)
+                {
+                    <a href="@Url.Action("Index", "Students")" class="dashboard-report-link">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-users" aria-hidden="true"></i></div>
                         <div>
-                            <div class="u-fs-12 u-fw-semibold">Student Groups</div>
-                            <div class="u-fs-11 text-secondary">Organise learner groups</div>
+                            <div class="dashboard-report-title">Learner Directory</div>
+                            <div class="dashboard-report-note">Employee lookup and individual reports</div>
                         </div>
                     </a>
-
-                </div>
+                }
             </div>
-        </div>
+        </section>
     </div>
 
-    <!-- ── System Status + Notices ── -->
-    <div class="row g-3">
-        <div class="col-lg-6">
-            <div class="dash-panel">
-                <div class="dash-panel-header">System Status</div>
-                <div class="dash-panel-body">
+    <div class="dashboard-layout-grid dashboard-layout-grid--equal">
+        <section class="dash-panel">
+            <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                <span>Courses Needing Attention</span>
+                <span class="dashboard-panel-subtitle">lowest progress and overdue tasks</span>
+            </div>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Tasks</th>
+                            <th>Overdue</th>
+                            <th>Completion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="course-attention-rows">
+                        <tr><td colspan="4"><div class="dashboard-empty-state">Loading courses...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-                    <div class="d-flex align-items-center pb-3 mb-3 u-border-bottom">
-                        <div class="flex-grow-1">
-                            <div class="u-fs-12 u-fw-semibold">Database Connection</div>
-                            <div class="u-fs-11 text-secondary">API Server Status</div>
-                        </div>
-                        <span class="tag-pill pill-success"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Active</span>
-                    </div>
-
-                    <div class="d-flex align-items-center pb-3 mb-3 u-border-bottom">
-                        <div class="flex-grow-1">
-                            <div class="u-fs-12 u-fw-semibold">Authentication Service</div>
-                            <div class="u-fs-11 text-secondary">User Login System</div>
-                        </div>
-                        <span class="tag-pill pill-success"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Running</span>
-                    </div>
-
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <div class="u-fs-12 u-fw-semibold">File Storage Service</div>
-                            <div class="u-fs-11 text-secondary">Resource Upload System</div>
-                        </div>
-                        <span class="tag-pill pill-success"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Operational</span>
-                    </div>
-
+        <section class="dash-panel">
+            <div class="dash-panel-header d-flex justify-content-between align-items-center">
+                <span>Course Categories</span>
+                <span class="dashboard-panel-subtitle">active courses by category</span>
+            </div>
+            <div class="dash-panel-body">
+                <div id="category-mix-chart" class="dashboard-chart-sm is-loading">
+                    <span class="skeleton skeleton-block w-100 h-100"></span>
                 </div>
             </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="dash-panel">
-                <div class="dash-panel-header">Important Notices</div>
-                <div class="dash-panel-body">
-
-                    <div class="d-flex align-items-start gap-3 pb-3 mb-3 u-border-bottom">
-                        <div class="qa-icon qa-icon-accent flex-shrink-0 u-mt-2px">
-                            <i class="fas fa-info-circle" aria-hidden="true"></i>
-                        </div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">Course Content Updated</div>
-                            <div class="u-fs-11 text-secondary">5 courses have been updated in the last 7 days</div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-start gap-3 pb-3 mb-3 u-border-bottom">
-                        <div class="qa-icon qa-icon-warning flex-shrink-0 u-mt-2px">
-                            <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-                        </div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">Pending Course Reviews</div>
-                            <div class="u-fs-11 text-secondary">
-                                <span id="pending-count" class="fw-bold">0</span> draft courses waiting for approval
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-start gap-3">
-                        <div class="qa-icon qa-icon-success flex-shrink-0 u-mt-2px">
-                            <i class="fas fa-check-circle" aria-hidden="true"></i>
-                        </div>
-                        <div>
-                            <div class="u-fs-12 u-fw-semibold">All Systems Operational</div>
-                            <div class="u-fs-11 text-secondary">Last backup completed 2 hours ago</div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
+        </section>
     </div>
 
-    <div class="row g-3 mt-1">
-        <div class="col-12">
-            <div class="dash-panel">
-                <div class="dash-panel-header d-flex justify-content-between align-items-center">
-                    <span>Recent Admin Activity</span>
-                    <span class="u-fs-11 text-secondary u-fw-normal">latest create / update actions</span>
-                </div>
-                <div class="dash-panel-body" id="recent-admin-activities">
-                    <div class="text-muted small">Loading recent activity...</div>
-                </div>
-            </div>
+    <section class="dash-panel">
+        <div class="dash-panel-header d-flex justify-content-between align-items-center">
+            <span>Recent Admin Activity</span>
+            <span class="dashboard-panel-subtitle">latest create and update actions</span>
         </div>
-    </div>
-
+        <div class="dash-panel-body" id="recent-admin-activities">
+            <div class="text-muted small">Loading recent activity...</div>
+        </div>
+    </section>
 </div>
 
 @section ExternalDependencies {
@@ -230,17 +245,329 @@
     <script>
         let adminActivityConnection;
 
+        const dashboardUrls = {
+            assignmentReport: '@Url.Content("~/Assignments/Report/__id__")',
+            courseDetail: '@Url.Action("Detail", "Courses", new { id = "__id__" })',
+            categoryReport: '@Url.Content("~/Categories/Report/__id__")'
+        };
+
+        const dashboardStatIds = [
+            'kpi-active-courses',
+            'kpi-draft-courses',
+            'kpi-resource-count',
+            'kpi-active-assignments',
+            'kpi-due-soon-tasks',
+            'kpi-overdue-tasks',
+            'kpi-assigned-learners',
+            'kpi-completion-rate',
+            'kpi-total-tasks',
+            'kpi-learning-sessions',
+            'kpi-session-delta'
+        ];
+
         $(() => {
-            loadDashboardStats();
-            loadLearningActivityTrends();
+            showStatSkeleton(dashboardStatIds);
+            loadDashboardOverview();
             loadMaintenanceStatus();
             loadRecentAdminActivities();
             initializeAdminActivitySignalR();
+
             setInterval(loadMaintenanceStatus, 5000);
             setInterval(loadRecentAdminActivities, 60000);
-
-            showStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
         });
+
+        function loadDashboardOverview() {
+            $.ajax({
+                url: `${serviceUrl}/admin/Dashboard/Overview`,
+                method: 'GET',
+                xhrFields: { withCredentials: true }
+            }).done(function(res) {
+                hideStatSkeleton(dashboardStatIds);
+
+                if (!res || !res.success || !res.data) {
+                    renderDashboardError();
+                    return;
+                }
+
+                renderDashboard(res.data);
+            }).fail(function() {
+                hideStatSkeleton(dashboardStatIds);
+                renderDashboardError();
+            });
+        }
+
+        function renderDashboard(data) {
+            const kpi = data.kpi || {};
+
+            updateScope(data.scope || {});
+            setText('kpi-active-courses', formatNumber(kpi.activeCourses));
+            setText('kpi-draft-courses', formatNumber(kpi.draftCourses));
+            setText('kpi-resource-count', formatNumber(kpi.resourceCount));
+            setText('kpi-active-assignments', formatNumber(kpi.activeAssignmentBatches));
+            setText('kpi-due-soon-tasks', formatNumber(kpi.dueSoonTasks));
+            setText('kpi-overdue-tasks', formatNumber(kpi.overdueTasks));
+            setText('kpi-assigned-learners', formatNumber(kpi.assignedLearners));
+            setText('kpi-completion-rate', formatPercent(kpi.completionRate));
+            setText('kpi-total-tasks', formatNumber(kpi.totalLearningTasks));
+            setText('kpi-learning-sessions', formatNumber(kpi.learningSessionsLast30));
+            setText('kpi-session-delta', formatDelta(kpi.learningSessionDelta));
+
+            renderLearningActivityChart(data.learningActivity || []);
+            renderTaskStatusChart(data.taskStatus || []);
+            renderPriorityAssignments(data.priorityAssignments || []);
+            renderCourseAttention(data.courseAttention || []);
+            renderCategoryMix(data.categoryMix || []);
+        }
+
+        function renderDashboardError() {
+            $('#learning-activity-chart, #task-status-chart, #category-mix-chart')
+                .removeClass('is-loading')
+                .html('<div class="dashboard-empty-state"><i class="fas fa-triangle-exclamation me-2" aria-hidden="true"></i>Failed to load dashboard data</div>');
+
+            $('#priority-assignment-rows').html('<tr><td colspan="6"><div class="dashboard-empty-state">Failed to load assignments</div></td></tr>');
+            $('#course-attention-rows').html('<tr><td colspan="4"><div class="dashboard-empty-state">Failed to load courses</div></td></tr>');
+        }
+
+        function updateScope(scope) {
+            const isGlobal = scope.isGlobal === true;
+            const divisionName = scope.divisionName || 'All divisions';
+            const label = isGlobal ? 'All divisions' : divisionName;
+            const icon = isGlobal ? 'fa-globe' : 'fa-building';
+
+            $('#dashboard-scope-name').text(label);
+            $('#dashboard-scope-pill').html(`<i class="fas ${icon} me-1" aria-hidden="true"></i>${escapeDashboardHtml(label)}`);
+        }
+
+        function renderLearningActivityChart(items) {
+            const $chart = $('#learning-activity-chart').removeClass('is-loading').empty();
+
+            $chart.dxChart({
+                dataSource: items || [],
+                series: {
+                    argumentField: 'month',
+                    valueField: 'sessions',
+                    name: 'Sessions',
+                    type: 'bar',
+                    color: window.getAdminCssToken('--primary-mid'),
+                    cornerRadius: 2
+                },
+                argumentAxis: {
+                    label: { font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
+                },
+                valueAxis: {
+                    grid: { visible: true, color: window.getAdminCssToken('--border-color') },
+                    label: { format: '#,##0', font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
+                },
+                legend: { visible: false },
+                margin: { top: 10, bottom: 0, left: 0, right: 0 },
+                tooltip: {
+                    enabled: true,
+                    customizeTooltip: args => ({ text: `${args.valueText} sessions` })
+                }
+            });
+        }
+
+        function renderTaskStatusChart(items) {
+            const data = (items || []).filter(item => Number(item.count || 0) > 0);
+            const total = data.reduce((sum, item) => sum + Number(item.count || 0), 0);
+            const $chart = $('#task-status-chart').removeClass('is-loading').empty();
+
+            if (!total) {
+                $chart.html('<div class="dashboard-empty-state">No assignment tasks in scope</div>');
+                return;
+            }
+
+            $chart.dxPieChart(
+                window.createAdminPieChartConfig({
+                    palettePreset: 'status4Brand',
+                    centerLabel: 'Tasks',
+                    centerValue: formatNumber(total),
+                    baseConfig: {
+                        type: 'doughnut',
+                        innerRadius: 0.66,
+                        dataSource: data,
+                        series: [{
+                            argumentField: 'status',
+                            valueField: 'count',
+                            label: {
+                                visible: true,
+                                position: 'outside',
+                                customizeText: point => `${point.valueText} (${point.percentText})`,
+                                font: { size: parseInt(window.adminTypography.size.xs, 10), color: 'var(--text-secondary)' },
+                                connector: { visible: true, width: 1 }
+                            }
+                        }],
+                        legend: {
+                            horizontalAlignment: 'center',
+                            verticalAlignment: 'bottom',
+                            margin: 8,
+                            font: { size: parseInt(window.adminTypography.size.xs, 10), color: 'var(--text-secondary)' }
+                        },
+                        tooltip: { enabled: true }
+                    }
+                })
+            );
+        }
+
+        function renderPriorityAssignments(items) {
+            if (!items.length) {
+                $('#priority-assignment-rows').html('<tr><td colspan="6"><div class="dashboard-empty-state">No active assignment reports in this scope</div></td></tr>');
+                return;
+            }
+
+            const rows = items.map(item => {
+                const reportUrl = dashboardUrls.assignmentReport.replace('__id__', encodeURIComponent(item.assignmentId));
+                const statusClass = getStatusClass(item.status);
+                const progressClass = getProgressClass(item.completionRate, item.overdueTasks);
+
+                return `<tr>
+                    <td>
+                        <span class="dashboard-table-title">${escapeDashboardHtml(item.assignmentNo)}</span>
+                        <span class="dashboard-table-note">${escapeDashboardHtml(item.description)}</span>
+                    </td>
+                    <td><span class="tag-pill ${statusClass}">${escapeDashboardHtml(item.status)}</span></td>
+                    <td>${formatNumber(item.learnerCount)}</td>
+                    <td>${formatDate(item.dueDate)}</td>
+                    <td>${renderProgress(item.completionRate, progressClass)}</td>
+                    <td>
+                        <a href="${reportUrl}" class="action-link action-link-xs" aria-label="Open report for ${escapeDashboardHtml(item.assignmentNo)}">
+                            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> Open
+                        </a>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            $('#priority-assignment-rows').html(rows);
+        }
+
+        function renderCourseAttention(items) {
+            if (!items.length) {
+                $('#course-attention-rows').html('<tr><td colspan="4"><div class="dashboard-empty-state">No course risk data in this scope</div></td></tr>');
+                return;
+            }
+
+            const rows = items.map(item => {
+                const courseUrl = dashboardUrls.courseDetail.replace('__id__', encodeURIComponent(item.courseId));
+                const progressClass = getProgressClass(item.completionRate, item.overdueTasks);
+
+                return `<tr>
+                    <td>
+                        <a href="${courseUrl}" class="dashboard-table-title">${escapeDashboardHtml(item.courseCode)} - ${escapeDashboardHtml(item.courseTitle)}</a>
+                        <span class="dashboard-table-note">${escapeDashboardHtml(item.categoryName)}</span>
+                    </td>
+                    <td>${formatNumber(item.learnerTasks)}</td>
+                    <td>${formatNumber(item.overdueTasks)}</td>
+                    <td>${renderProgress(item.completionRate, progressClass)}</td>
+                </tr>`;
+            }).join('');
+
+            $('#course-attention-rows').html(rows);
+        }
+
+        function renderCategoryMix(items) {
+            const data = items || [];
+            const $chart = $('#category-mix-chart').removeClass('is-loading').empty();
+
+            if (!data.length) {
+                $chart.html('<div class="dashboard-empty-state">No active course categories in scope</div>');
+                return;
+            }
+
+            $chart.dxChart({
+                rotated: true,
+                dataSource: data,
+                series: {
+                    argumentField: 'categoryName',
+                    valueField: 'courseCount',
+                    type: 'bar',
+                    color: window.getAdminCssToken('--primary-mid'),
+                    cornerRadius: 2
+                },
+                argumentAxis: {
+                    label: {
+                        wordWrap: 'normal',
+                        overlappingBehavior: 'stagger',
+                        font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) }
+                    }
+                },
+                valueAxis: {
+                    grid: { visible: true, color: window.getAdminCssToken('--border-color') },
+                    label: { format: '#,##0', font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
+                },
+                legend: { visible: false },
+                tooltip: {
+                    enabled: true,
+                    customizeTooltip: args => ({ text: `${args.valueText} active courses` })
+                },
+                onPointClick: function(e) {
+                    const categoryId = e.target.data.categoryId;
+                    if (categoryId) {
+                        window.location.href = dashboardUrls.categoryReport.replace('__id__', encodeURIComponent(categoryId));
+                    }
+                }
+            });
+        }
+
+        function renderProgress(value, fillClass) {
+            const percent = clampPercent(value);
+            return `<div class="dashboard-progress">
+                <div class="dashboard-progress-label">
+                    <span>Progress</span>
+                    <strong>${formatPercent(percent)}</strong>
+                </div>
+                <div class="dashboard-progress-track">
+                    <div class="dashboard-progress-fill ${fillClass}" style="width:${percent}%;"></div>
+                </div>
+            </div>`;
+        }
+
+        function getProgressClass(value, overdueTasks) {
+            if (Number(overdueTasks || 0) > 0) return 'is-danger';
+            if (Number(value || 0) >= 90) return 'is-success';
+            if (Number(value || 0) >= 50) return 'is-warning';
+            return '';
+        }
+
+        function getStatusClass(status) {
+            const key = String(status || '').toLowerCase().replace(/\s+/g, '-');
+            return `dashboard-status-${key}`;
+        }
+
+        function clampPercent(value) {
+            const number = Number(value || 0);
+            if (!Number.isFinite(number)) return 0;
+            return Math.max(0, Math.min(100, Math.round(number)));
+        }
+
+        function setText(id, value) {
+            $(`#${id}`).text(value);
+        }
+
+        function formatNumber(value) {
+            return window.formatAdminInteger(value, '0');
+        }
+
+        function formatPercent(value) {
+            return window.formatAdminPercentage(value, '0%', { precision: Number(value) % 1 === 0 ? 0 : 1 });
+        }
+
+        function formatDelta(value) {
+            const number = Number(value || 0);
+            if (number > 0) return `+${formatNumber(number)}`;
+            return formatNumber(number);
+        }
+
+        function formatDate(value) {
+            return window.formatAdminDate(value, '-');
+        }
+
+        function escapeDashboardHtml(value) {
+            if (typeof window.escapeAdminHtml === 'function') {
+                return window.escapeAdminHtml(value || '');
+            }
+
+            return $('<div>').text(value || '').html();
+        }
 
         function initializeAdminActivitySignalR() {
             if (typeof signalR === 'undefined') {
@@ -287,14 +614,14 @@
             return `
                 <div class="d-flex align-items-start gap-3 ${borderClass}" data-activity-id="${normalized.id || ''}">
                     <div class="qa-icon qa-icon-accent flex-shrink-0 u-mt-2px">
-                        <i class="fas fa-user-pen"></i>
+                        <i class="fas fa-user-pen" aria-hidden="true"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <div class="u-fs-12 u-fw-semibold">${escapeHtml(normalized.title)}</div>
-                        <div class="u-fs-11 text-secondary">${escapeHtml(normalized.description || '')}</div>
+                        <div class="u-fs-12 u-fw-semibold">${escapeDashboardHtml(normalized.title)}</div>
+                        <div class="u-fs-11 text-secondary">${escapeDashboardHtml(normalized.description || '')}</div>
                     </div>
                     <div class="text-end u-minw-120">
-                        <div class="u-fs-11 u-fw-semibold">${escapeHtml(normalized.createdBy || 'SYSTEM')}</div>
+                        <div class="u-fs-11 u-fw-semibold">${escapeDashboardHtml(normalized.createdBy || 'SYSTEM')}</div>
                         <div class="u-fs-11 text-secondary">${formatRelativeTime(normalized.createdAt)}</div>
                     </div>
                 </div>`;
@@ -341,7 +668,7 @@
                 const items = res && res.success ? (res.data || []) : [];
 
                 if (!items.length) {
-                    wrapper.html('<div class="text-muted small text-center py-3"><i class="fas fa-clock-rotate-left me-1"></i>No recent admin activity</div>');
+                    wrapper.html('<div class="text-muted small text-center py-3"><i class="fas fa-clock-rotate-left me-1" aria-hidden="true"></i>No recent admin activity</div>');
                     return;
                 }
 
@@ -349,7 +676,7 @@
                     return renderRecentAdminActivityItem(item, index, items.length);
                 }).join(''));
             }).fail(function() {
-                $('#recent-admin-activities').html('<div class="text-muted small text-center py-3"><i class="fas fa-triangle-exclamation me-1"></i>Failed to load activity</div>');
+                $('#recent-admin-activities').html('<div class="text-muted small text-center py-3"><i class="fas fa-triangle-exclamation me-1" aria-hidden="true"></i>Failed to load activity</div>');
             });
         }
 
@@ -363,7 +690,7 @@
                 const operations = res && res.success && res.data ? (res.data.operations || []) : [];
 
                 if (!operations.length) {
-                    $('#maintenance-banner-row').hide();
+                    $('#maintenance-banner-row').addClass('is-hidden');
                     wrapper.empty();
                     return;
                 }
@@ -373,19 +700,19 @@
                         ? Math.min(100, Math.round(((op.currentItem || 0) / op.totalItems) * 100))
                         : 0;
                     const currentItemName = op.currentItemName
-                        ? `<div class="u-fs-11 text-secondary u-mt-4px">Current: ${escapeHtml(op.currentItemName)}</div>`
+                        ? `<div class="u-fs-11 text-secondary u-mt-4px">Current: ${escapeDashboardHtml(op.currentItemName)}</div>`
                         : '';
 
                     return `
                         <div class="maintenance-card rounded p-3 mb-2">
                             <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                                 <div>
-                                    <div class="u-fs-12 fw-bold u-text-warning-strong">${escapeHtml(op.operationName)}</div>
-                                    <div class="u-fs-11 text-secondary">Step: ${escapeHtml(op.currentStep || 'Processing')}</div>
+                                    <div class="u-fs-12 fw-bold u-text-warning-strong">${escapeDashboardHtml(op.operationName)}</div>
+                                    <div class="u-fs-11 text-secondary">Step: ${escapeDashboardHtml(op.currentStep || 'Processing')}</div>
                                     ${currentItemName}
                                 </div>
                                 <span class="tag-pill alert">
-                                    <i class="fas fa-gears me-1"></i>${op.currentItem || 0} / ${op.totalItems || 0}
+                                    <i class="fas fa-gears me-1" aria-hidden="true"></i>${op.currentItem || 0} / ${op.totalItems || 0}
                                 </span>
                             </div>
                             <div class="progress u-progress-xs u-progress-track-warning">
@@ -393,108 +720,26 @@
                             </div>
                             <div class="d-flex justify-content-between mt-2 u-fs-11 text-secondary">
                                 <span>Success: ${op.successCount || 0} | Failed: ${op.failureCount || 0}</span>
-                                <span>By ${escapeHtml(op.initiatedBy || 'SYSTEM')}</span>
+                                <span>By ${escapeDashboardHtml(op.initiatedBy || 'SYSTEM')}</span>
                             </div>
                         </div>`;
                 }).join('');
 
                 wrapper.html(cards);
-                $('#maintenance-banner-row').show();
+                $('#maintenance-banner-row').removeClass('is-hidden');
             }).fail(function() {
-                $('#maintenance-banner-row').hide();
+                $('#maintenance-banner-row').addClass('is-hidden');
                 $('#maintenance-status-list').empty();
             });
         }
 
-        function escapeHtml(value) {
-            return $('<div>').text(value || '').html();
-        }
-
         function formatRelativeTime(value) {
-            if (!value) return '—';
+            if (!value) return '-';
 
             const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return '—';
+            if (Number.isNaN(date.getTime())) return '-';
 
-            return window.formatAdminRelativeTime(date, '—');
-        }
-
-        function loadDashboardStats() {
-            $.ajax({
-                url: `${serviceUrl}/admin/Dashboard/Stats`,
-                method: "GET",
-                xhrFields: { withCredentials: true },
-                success: function (res) {
-                    hideStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
-                    if (res.success && res.data) {
-                        animateCount('count-active-courses',        res.data.activeCourses          || 0);
-                        animateCount('count-draft-courses',          res.data.draftCourses            || 0);
-                        animateCount('count-inprogress-assignments', res.data.inProgressAssignments   || 0);
-                        animateCount('count-resources',              res.data.totalResources          || 0);
-                        $('#pending-count').text(res.data.draftCourses || 0);
-                    }
-                },
-                error: function (err) {
-                    hideStatSkeleton(['count-active-courses', 'count-draft-courses', 'count-inprogress-assignments', 'count-resources']);
-                    console.error("Failed to load dashboard stats", err);
-                    $('#count-active-courses, #count-draft-courses, #count-inprogress-assignments, #count-resources').text("0");
-                }
-            });
-        }
-
-        function loadLearningActivityTrends() {
-            $.ajax({
-                url: `${serviceUrl}/admin/Dashboard/LearningActivityTrends`,
-                method: "GET",
-                xhrFields: { withCredentials: true },
-                success: function (res) {
-                    initLearningActivityChart(res.success && res.data ? res.data : []);
-                },
-                error: function (err) {
-                    console.error("Failed to load learning activity trends", err);
-                    initLearningActivityChart([]);
-                }
-            });
-        }
-
-        function animateCount(elementId, value) {
-            const $el = $(`#${elementId}`);
-            if (value === 0) { $el.text("0"); return; }
-
-            $({ counter: 0 }).animate({ counter: value }, {
-                duration: 1200,
-                easing: 'swing',
-                step: function () { $el.text(Math.ceil(this.counter)); },
-                complete: function () { $el.text(value); }
-            });
-        }
-
-        function initLearningActivityChart(chartData) {
-            $('#learningActivityChartSkeleton').hide();
-            $('#learningActivityChart').show().dxChart({
-                dataSource: chartData,
-                series: {
-                    argumentField: "month",
-                    valueField: "sessions",
-                    name: "Sessions",
-                    type: "bar",
-                    color: window.getAdminCssToken('--primary-mid'),
-                    cornerRadius: 2
-                },
-                argumentAxis: {
-                    label: { font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
-                },
-                valueAxis: {
-                    grid: { visible: true, color: window.getAdminCssToken('--border-color') },
-                    label: { format: "#,##0", font: { color: window.getAdminCssToken('--text-secondary'), size: parseInt(window.adminTypography.size.xs, 10) } }
-                },
-                legend: { visible: false },
-                margin: { top: 10, bottom: 0, left: 0, right: 0 },
-                tooltip: {
-                    enabled: true,
-                    customizeTooltip: (args) => ({ text: args.valueText + " sessions" })
-                }
-            });
+            return window.formatAdminRelativeTime(date, '-');
         }
     </script>
 }
