@@ -16,10 +16,10 @@
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" asp-append-version="true" />
 
     <style>
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 300; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Light.ttf")') format('truetype'); }
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 400; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Regular.ttf")') format('truetype'); }
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 500; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Medium.ttf")') format('truetype'); }
-        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, "~/fonts/sarabun/Sarabun-Bold.ttf")') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 300; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/fonts/sarabun/Sarabun-Light.ttf"))') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 400; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/fonts/sarabun/Sarabun-Regular.ttf"))') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 500; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/fonts/sarabun/Sarabun-Medium.ttf"))') format('truetype'); }
+        @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/fonts/sarabun/Sarabun-Bold.ttf"))') format('truetype'); }
     </style>
 
     <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>

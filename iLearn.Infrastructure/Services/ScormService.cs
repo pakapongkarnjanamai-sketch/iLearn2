@@ -19,13 +19,31 @@ namespace iLearn.Infrastructure.Services
         }
         public string GetScormUrl(string folderName, string resourceHref)
         {
-            return Path.Combine(_settings.FileUrl, folderName, resourceHref);
+            if (!TryNormalizeRelativePath(folderName, out var safeFolderName))
+            {
+                return string.Empty;
+            }
+
+            (string FilePath, string Suffix) safeResourceHref;
+            try
+            {
+                safeResourceHref = NormalizeLaunchHrefOrThrow(resourceHref, "SCORM resource");
+            }
+            catch (InvalidScormPackageException)
+            {
+                return string.Empty;
+            }
+
+            return CombineUrlSegments(_settings.FileUrl, safeFolderName, safeResourceHref.FilePath) + safeResourceHref.Suffix;
         }
         public void DeleteScormFolder(string folderName)
         {
             if (string.IsNullOrEmpty(folderName)) return;
 
-            var directoryPath = Path.Combine(_settings.FileUnc, folderName);
+            if (!TryGetSafeDirectoryPath(folderName, out var directoryPath))
+            {
+                return;
+            }
 
             if (Directory.Exists(directoryPath))
             {
@@ -44,7 +62,11 @@ namespace iLearn.Infrastructure.Services
         {
             if (string.IsNullOrEmpty(folderName)) return (0, 0);
 
-            var directoryPath = Path.Combine(_settings.FileUnc, folderName);
+            if (!TryGetSafeDirectoryPath(folderName, out var directoryPath))
+            {
+                return (0, 0);
+            }
+
             if (!Directory.Exists(directoryPath)) return (0, 0);
 
             try
@@ -64,37 +86,35 @@ namespace iLearn.Infrastructure.Services
             if (fileContent == null || fileContent.Length == 0)
                 throw new ArgumentException("File content is empty.");
 
-            // 1. ????? Path ???????
-            var destinationPath = Path.Combine(_settings.FileUnc, folderName);
+            if (fileContent.LongLength > ScormPackageLimits.MaxCompressedPackageBytes)
+            {
+                throw new InvalidScormPackageException("SCORM package exceeds the maximum allowed upload size.");
+            }
 
-            // ???????????????????
+            var safeFolderName = NormalizeRelativePathOrThrow(folderName, "SCORM folder");
+            var destinationPath = GetSafePathUnderRoot(_settings.FileUnc, safeFolderName);
+
             if (Directory.Exists(destinationPath))
             {
                 Directory.Delete(destinationPath, true);
             }
             Directory.CreateDirectory(destinationPath);
 
-            // 2. ????????? Zip ????????
             var tempZipPath = Path.GetTempFileName();
             await File.WriteAllBytesAsync(tempZipPath, fileContent);
 
+            string manifestRelativePath;
+
             try
             {
-                // 3. ?????????????? Zip ??????????
                 if (!IsValidZipFile(tempZipPath))
                 {
-                    throw new InvalidScormPackageException("???????????????????????? ZIP ??????????");
+                    throw new InvalidScormPackageException("Uploaded file is not a valid ZIP archive.");
                 }
 
-                // 4. ???????????? imsmanifest.xml ?? root ??? zip
-                if (!ContainsManifestFile(tempZipPath))
-                {
-                    throw new InvalidScormPackageException(
-                        "???? ZIP ????? 'imsmanifest.xml' ??????? root - ????????????? SCORM ??????????"
-                    );
-                }
+                manifestRelativePath = FindManifestPath(tempZipPath);
 
-                // 5. ???????
+                EnsureArchiveEntriesStayUnderPackageRoot(tempZipPath);
                 ZipFile.ExtractToDirectory(tempZipPath, destinationPath);
             }
             finally
@@ -102,17 +122,16 @@ namespace iLearn.Infrastructure.Services
                 if (File.Exists(tempZipPath)) File.Delete(tempZipPath);
             }
 
-            // 6. ?????????????? Manifest
-            var manifestPath = Path.Combine(destinationPath, "imsmanifest.xml");
+            var manifestPath = GetSafePathUnderRoot(destinationPath, manifestRelativePath);
             var manifestInfo = ValidateAndParseManifest(manifestPath);
+            var launchHref = CombineManifestRelativeLaunchPath(manifestRelativePath, manifestInfo.ResourceHref);
 
-            // 7. ????? DTO ??????????????????
             return new ScormManifestDto
             {
-                ResourceHref = manifestInfo.ResourceHref,
+                ResourceHref = launchHref,
                 SchemaVersion = manifestInfo.SchemaVersion,
-                FolderName = folderName,
-                FullUrl = $"{_settings.FileUrl}/{folderName}/{manifestInfo.ResourceHref}"
+                FolderName = safeFolderName,
+                FullUrl = CombineUrlSegments(_settings.FileUrl, safeFolderName, launchHref)
             };
         }
 
@@ -132,22 +151,81 @@ namespace iLearn.Infrastructure.Services
             }
         }
 
-        /// <summary>
-        /// ???????????? imsmanifest.xml ?? root ??? zip
-        /// </summary>
-        private bool ContainsManifestFile(string zipPath)
+        private string FindManifestPath(string zipPath)
         {
             try
             {
                 using var archive = ZipFile.OpenRead(zipPath);
-                return archive.Entries.Any(e =>
-                    e.FullName.Equals("imsmanifest.xml", StringComparison.OrdinalIgnoreCase) &&
-                    !e.FullName.Contains("/") && !e.FullName.Contains("\\")
-                );
+
+                var manifestPaths = archive.Entries
+                    .Where(entry => !IsDirectoryEntry(entry))
+                    .Select(entry => TryNormalizeRelativePath(entry.FullName, out var normalizedPath)
+                        ? normalizedPath
+                        : string.Empty)
+                    .Where(path => IsManifestPath(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (manifestPaths.Count == 0)
+                {
+                    throw new InvalidScormPackageException("SCORM package must contain imsmanifest.xml.");
+                }
+
+                if (manifestPaths.Count > 1)
+                {
+                    throw new InvalidScormPackageException("SCORM package contains multiple imsmanifest.xml files.");
+                }
+
+                return manifestPaths[0];
+            }
+            catch (InvalidScormPackageException)
+            {
+                throw;
             }
             catch
             {
-                return false;
+                throw new InvalidScormPackageException("Unable to inspect SCORM package manifest.");
+            }
+        }
+
+        private void EnsureArchiveEntriesStayUnderPackageRoot(string zipPath)
+        {
+            using var archive = ZipFile.OpenRead(zipPath);
+
+            if (archive.Entries.Count > ScormPackageLimits.MaxArchiveEntries)
+            {
+                throw new InvalidScormPackageException("SCORM package contains too many archive entries.");
+            }
+
+            long totalUncompressedBytes = 0;
+
+            foreach (var entry in archive.Entries)
+            {
+                NormalizeRelativePathOrThrow(entry.FullName, "SCORM archive entry");
+
+                if (IsDirectoryEntry(entry))
+                {
+                    continue;
+                }
+
+                if (entry.Length > ScormPackageLimits.MaxSingleEntryUncompressedBytes)
+                {
+                    throw new InvalidScormPackageException("SCORM package contains an entry that exceeds the maximum allowed size.");
+                }
+
+                try
+                {
+                    totalUncompressedBytes = checked(totalUncompressedBytes + entry.Length);
+                }
+                catch (OverflowException)
+                {
+                    throw new InvalidScormPackageException("SCORM package reports an invalid entry size.");
+                }
+
+                if (totalUncompressedBytes > ScormPackageLimits.MaxTotalUncompressedBytes)
+                {
+                    throw new InvalidScormPackageException("SCORM package expands beyond the maximum allowed size.");
+                }
             }
         }
 
@@ -197,7 +275,8 @@ namespace iLearn.Infrastructure.Services
                 // ========================================
                 // ?? ?? Resource Href (Launch Page) - ??????
                 // ========================================
-                resourceHref = FindLaunchPage(xDocument, ns);
+                var launchHref = NormalizeLaunchHrefOrThrow(FindLaunchPage(xDocument, ns), "SCORM launch");
+                resourceHref = launchHref.FilePath + launchHref.Suffix;
 
                 if (string.IsNullOrEmpty(resourceHref))
                 {
@@ -206,9 +285,8 @@ namespace iLearn.Infrastructure.Services
                     );
                 }
 
-                // ?????????????? Launch Page ??????????
                 var manifestDir = Path.GetDirectoryName(manifestPath);
-                var launchFilePath = Path.Combine(manifestDir!, resourceHref.Replace("/", "\\"));
+                var launchFilePath = GetSafePathUnderRoot(manifestDir!, launchHref.FilePath);
 
                 if (!File.Exists(launchFilePath))
                 {
@@ -361,6 +439,170 @@ namespace iLearn.Infrastructure.Services
             }
 
             return string.Empty;
+        }
+
+        private bool TryGetSafeDirectoryPath(string folderName, out string directoryPath)
+        {
+            directoryPath = string.Empty;
+
+            if (!TryNormalizeRelativePath(folderName, out var safeFolderName))
+            {
+                return false;
+            }
+
+            try
+            {
+                directoryPath = GetSafePathUnderRoot(_settings.FileUnc, safeFolderName);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string NormalizeRelativePathOrThrow(string path, string description)
+        {
+            if (TryNormalizeRelativePath(path, out var normalizedPath))
+            {
+                return normalizedPath;
+            }
+
+            throw new InvalidScormPackageException($"Invalid {description} path.");
+        }
+
+        private static (string FilePath, string Suffix) NormalizeLaunchHrefOrThrow(string href, string description)
+        {
+            if (string.IsNullOrWhiteSpace(href) || href.IndexOfAny(['\r', '\n']) >= 0)
+            {
+                throw new InvalidScormPackageException($"Invalid {description} path.");
+            }
+
+            var candidate = href.Trim().Replace('\\', '/');
+            var suffixIndex = IndexOfLaunchHrefSuffix(candidate);
+            var pathPart = suffixIndex >= 0 ? candidate[..suffixIndex] : candidate;
+            var suffix = suffixIndex >= 0 ? candidate[suffixIndex..] : string.Empty;
+
+            return (NormalizeRelativePathOrThrow(pathPart, description), suffix);
+        }
+
+        private static int IndexOfLaunchHrefSuffix(string href)
+        {
+            var queryIndex = href.IndexOf('?');
+            var fragmentIndex = href.IndexOf('#');
+
+            if (queryIndex < 0)
+            {
+                return fragmentIndex;
+            }
+
+            if (fragmentIndex < 0)
+            {
+                return queryIndex;
+            }
+
+            return Math.Min(queryIndex, fragmentIndex);
+        }
+
+        private static bool TryNormalizeRelativePath(string path, out string normalizedPath)
+        {
+            normalizedPath = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            var candidate = path.Trim().Replace('\\', '/');
+            if (candidate.StartsWith("/", StringComparison.Ordinal) ||
+                candidate.StartsWith("//", StringComparison.Ordinal) ||
+                candidate.Contains(':', StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var segments = candidate.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length == 0 || segments.Any(segment => segment == "." || segment == ".."))
+            {
+                return false;
+            }
+
+            normalizedPath = string.Join('/', segments);
+            return true;
+        }
+
+        private static bool IsManifestPath(string normalizedPath)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedPath))
+            {
+                return false;
+            }
+
+            var fileName = normalizedPath.Split('/').LastOrDefault();
+            return string.Equals(fileName, "imsmanifest.xml", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string CombineManifestRelativeLaunchPath(string manifestRelativePath, string resourceHref)
+        {
+            var launchHref = NormalizeLaunchHrefOrThrow(resourceHref, "SCORM launch");
+            var manifestDirectory = string.Empty;
+            var lastSlashIndex = manifestRelativePath.LastIndexOf('/');
+            if (lastSlashIndex >= 0)
+            {
+                manifestDirectory = manifestRelativePath[..lastSlashIndex];
+            }
+
+            var combinedPath = string.IsNullOrWhiteSpace(manifestDirectory)
+                ? launchHref.FilePath
+                : CombineUrlSegments(manifestDirectory, launchHref.FilePath);
+
+            return NormalizeRelativePathOrThrow(combinedPath, "SCORM launch") + launchHref.Suffix;
+        }
+
+        private static string GetSafePathUnderRoot(string rootPath, string relativePath)
+        {
+            var fullRootPath = Path.GetFullPath(rootPath);
+            var fullCandidatePath = Path.GetFullPath(Path.Combine(
+                fullRootPath,
+                relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+            var rootWithTrailingSeparator = EnsureTrailingDirectorySeparator(fullRootPath);
+            if (!fullCandidatePath.StartsWith(rootWithTrailingSeparator, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(fullCandidatePath, fullRootPath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidScormPackageException("SCORM path escapes the configured package root.");
+            }
+
+            return fullCandidatePath;
+        }
+
+        private static string EnsureTrailingDirectorySeparator(string path)
+        {
+            return path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar)
+                ? path
+                : path + Path.DirectorySeparatorChar;
+        }
+
+        private static bool IsDirectoryEntry(ZipArchiveEntry entry)
+        {
+            return entry.FullName.EndsWith("/", StringComparison.Ordinal) ||
+                   entry.FullName.EndsWith("\\", StringComparison.Ordinal);
+        }
+
+        private static string CombineUrlSegments(string baseUrl, params string[] segments)
+        {
+            var cleanedSegments = new List<string>();
+            if (!string.IsNullOrWhiteSpace(baseUrl))
+            {
+                cleanedSegments.Add(baseUrl.TrimEnd('/', '\\'));
+            }
+
+            cleanedSegments.AddRange(
+                segments
+                    .Where(segment => !string.IsNullOrWhiteSpace(segment))
+                    .Select(segment => segment.Trim('/', '\\')));
+
+            return string.Join('/', cleanedSegments);
         }
     }
 }

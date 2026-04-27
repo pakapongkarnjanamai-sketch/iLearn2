@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
+using iLearn.API.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Services;
@@ -17,7 +18,6 @@ using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
-    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class EnrollmentsController : ControllerBase
@@ -35,6 +35,7 @@ namespace iLearn.API.Controllers
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMemoryCache _cache;
+        private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -49,7 +50,8 @@ namespace iLearn.API.Controllers
             IAssignmentNoGenerator assignmentNoGen,
             IDateTime dateTime,
             IUnitOfWork unitOfWork,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            ILearnerProxyIdentityResolver learnerProxyIdentityResolver)
         {
             _enrollmentRepo      = enrollmentRepo;
             _enrollmentService   = enrollmentService;
@@ -64,8 +66,10 @@ namespace iLearn.API.Controllers
             _dateTime            = dateTime;
             _unitOfWork          = unitOfWork;
             _cache               = cache;
+            _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("ResetStatus")]
         public async Task<IActionResult> ResetStatus([FromQuery] int key)
         {
@@ -84,12 +88,13 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true });
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpGet("my-courses")]
-        public async Task<IActionResult> GetMyCourses([FromQuery] string studentCode)
+        public async Task<IActionResult> GetMyCourses()
         {
-            if (string.IsNullOrEmpty(studentCode))
+            if (!TryGetTrustedLearnerStudentCode(out var studentCode, out var errorResult))
             {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "Student code is required." });
+                return errorResult;
             }
 
             var currentDate = _dateTime.Now;
@@ -126,23 +131,39 @@ namespace iLearn.API.Controllers
                 {
                     var dto = e.ToDto();
                     var schedule = GetEffectiveSchedule(e);
-                    dto.StartDate = schedule.StartDate;
-                    dto.DueDate = schedule.DisplayDueDate;
-
-                    return dto;
+                    return new LearnerEnrollmentDto
+                    {
+                        Id = dto.Id,
+                        CourseId = dto.CourseId,
+                        CourseCode = dto.CourseCode,
+                        CourseTitle = dto.CourseTitle,
+                        EnrolledCourseVersion = dto.EnrolledCourseVersion,
+                        IsCompleted = dto.IsCompleted,
+                        StartDate = schedule.StartDate,
+                        DueDate = schedule.DisplayDueDate,
+                        CompletedDate = dto.CompletedDate,
+                        Progress = dto.Progress,
+                        CourseTypeName = dto.CourseTypeName
+                    };
                 })
                 .ToList();
 
-            return Ok(new ApiResponse<IEnumerable<EnrollmentDto>>
+            return Ok(new ApiResponse<IEnumerable<LearnerEnrollmentDto>>
             {
                 Success = true,
                 Data    = dtos
             });
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpGet("player-info/{courseId}")]
-        public async Task<IActionResult> GetPlayerInfoByCourse(int courseId, [FromQuery] string studentCode)
+        public async Task<IActionResult> GetPlayerInfoByCourse(int courseId)
         {
+            if (!TryGetTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            {
+                return errorResult;
+            }
+
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.CourseId == courseId && e.StudentCode == studentCode,
                 includeProperties: "Course"
@@ -219,7 +240,6 @@ namespace iLearn.API.Controllers
             var dto = new PlayerInfoDto
             {
                 CourseVersionId = targetVersion.Id,
-                StudentCode = studentCode,
                 CourseTitle = targetVersion.Course?.Title ?? "Unknown Course",
                 IsCompleted = isCompleted,
                 IsReadOnly = isReadOnly,
@@ -230,6 +250,24 @@ namespace iLearn.API.Controllers
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
         }
 
+        private bool TryGetTrustedLearnerStudentCode(out string studentCode, out IActionResult errorResult)
+        {
+            if (_learnerProxyIdentityResolver.TryResolveStudentCode(HttpContext, out studentCode, out var statusCode, out var errorMessage))
+            {
+                errorResult = null!;
+                return true;
+            }
+
+            errorResult = StatusCode(statusCode, new ApiResponse<string>
+            {
+                Success = false,
+                Message = errorMessage
+            });
+
+            return false;
+        }
+
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -238,6 +276,7 @@ namespace iLearn.API.Controllers
             return Ok(new ApiResponse<EnrollmentDto> { Success = true, Data = enrollment.ToDto() });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPut("{id}/completion")]
         public async Task<IActionResult> UpdateCompletion(int id, [FromBody] bool isComplete)
         {
@@ -259,6 +298,7 @@ namespace iLearn.API.Controllers
             return Ok(new ApiResponse<EnrollmentDto> { Success = true, Data = enrollment.ToDto() });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("BulkAssign")]
         public async Task<IActionResult> BulkAssign([FromBody] BulkAssignDto dto)
         {

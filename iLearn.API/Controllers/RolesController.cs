@@ -3,10 +3,12 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace iLearn.API.Controllers
 {
+    [Authorize(Policy = "SuperAdminOnly")]
     [Route("api/[controller]")]
     [ApiController]
     public class RolesController : ControllerBase

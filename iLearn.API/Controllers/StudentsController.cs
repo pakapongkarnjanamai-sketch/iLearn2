@@ -1,6 +1,7 @@
 ﻿using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -28,6 +29,7 @@ namespace iLearn.API.Controllers
             _currentUser = currentUser;
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpGet("GetStudentbyEID/{employeeCode}")]
         public async Task<IActionResult> GetStudentbyEID(string employeeCode)
         {
@@ -50,6 +52,7 @@ namespace iLearn.API.Controllers
         }
 
         // Endpoint สำหรับดึงข้อมูลตามแผนก (Divisions)
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("divisions")]
         public async Task<IActionResult> GetStudentsByDivisions(
             [FromQuery] string[] divisions,
@@ -75,6 +78,7 @@ namespace iLearn.API.Controllers
         // 🚀 ปรับปรุง: เปลี่ยนจากการรับ DataSourceLoadOptions เป็นดึง Query String ตรงๆ
         // -------------------------------------------------------------------------
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("GetDivisions")]
         public async Task<IActionResult> GetDivisions()
         {
@@ -95,6 +99,7 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("GetDepartments")]
         public async Task<IActionResult> GetDepartments()
         {
@@ -109,6 +114,7 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("GetSections")]
         public async Task<IActionResult> GetSections()
         {
@@ -123,6 +129,7 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("GetPositions")]
         public async Task<IActionResult> GetPositions()
         {
@@ -137,6 +144,7 @@ namespace iLearn.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("Get")]
         public async Task<IActionResult> Get()
         {
@@ -159,6 +167,7 @@ namespace iLearn.API.Controllers
         }
 
         // ── Student Profile: ข้อมูลส่วนตัว + ประวัติการเรียน ────────────────────
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("profile/{code}")]
         public async Task<IActionResult> GetProfile(string code)
         {

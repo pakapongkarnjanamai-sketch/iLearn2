@@ -46,3 +46,30 @@ configuration. The following layering rules apply:
   The global `GlobalExceptionMiddleware` converts these into standard
   `ProblemDetails` responses; per-action `try/catch + StatusCode(500, ex.Message)`
   blocks are not allowed because they leak exception details.
+
+## Local Secret Bootstrap
+
+- Live secrets must not be committed to `appsettings.json` or `appsettings.Development.json`. Repository config now contains placeholders only.
+- `iLearn.API` requires `ConnectionStrings:DefaultConnection` and `LearnerProxyAuth:SharedSecret` from `dotnet user-secrets` or environment variables.
+- `iLearn.User` requires the same `LearnerProxyAuth:SharedSecret` value as `iLearn.API`.
+- Both apps fail fast during startup in `Development` when a required secret is missing or still uses a placeholder value.
+
+Use `dotnet user-secrets` for local development:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<sql-connection-string>" --project .\iLearn.API\iLearn.API.csproj
+dotnet user-secrets set "LearnerProxyAuth:SharedSecret" "<shared-secret>" --project .\iLearn.API\iLearn.API.csproj
+dotnet user-secrets set "LearnerProxyAuth:SharedSecret" "<same-shared-secret>" --project .\iLearn.User\iLearn.User.csproj
+```
+
+Equivalent environment variable names:
+
+- `ConnectionStrings_DefaultConnection`
+- `LearnerProxyAuth_SharedSecret`
+
+Typical local run commands after provisioning secrets:
+
+```powershell
+dotnet run --project .\iLearn.API\iLearn.API.csproj --launch-profile https
+dotnet run --project .\iLearn.User\iLearn.User.csproj --launch-profile https
+```

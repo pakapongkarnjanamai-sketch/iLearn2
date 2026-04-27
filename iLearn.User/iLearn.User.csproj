@@ -3,6 +3,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>5fc1e62d-ec4b-447c-a209-56304aee2d3b</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <None Include="wwwroot\src\devextreme-license.js" />

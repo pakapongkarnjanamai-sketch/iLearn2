@@ -1,10 +1,12 @@
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace iLearn.API.Controllers
 {
+    [Authorize(Policy = "AdminOnly")]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentGroupCategoriesController : ControllerBase

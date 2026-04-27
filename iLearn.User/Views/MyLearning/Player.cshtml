@@ -509,6 +509,8 @@
         const COURSE_ID = "@courseId"; // ใช้ Course ID แทน
         const currentStudentCode = '@studentCode';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
+        const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
+        const updateProgressUrl = '@Url.Action("UpdateProgress", "MyLearning")';
 
         // ========================================
         // State Management
@@ -583,7 +585,7 @@
 
             try {
                 // เรียก Endpoint ใหม่ที่ใช้ CourseID
-                const url = `${baseUrl}/enrollments/player-info/${COURSE_ID}?studentCode=${encodeURIComponent(currentStudentCode)}`;
+                const url = `${playerInfoUrl}?courseId=${encodeURIComponent(COURSE_ID)}`;
               
                 console.log("📡 Loading course data from:", url);
 
@@ -998,7 +1000,6 @@
 
             // ส่งข้อมูลกลับโดยใช้ EnrollmentId ที่ได้รับมาจาก API
             const payload = {
-                StudentCode: currentStudentCode,
                 EnrollmentId: currentData.enrollmentId,
                 Resources: resourcesPayload
             };
@@ -1009,7 +1010,7 @@
             btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
 
             $.ajax({
-                url: baseUrl + '/learninglogs/update-progress',
+                url: updateProgressUrl,
                 method: 'POST',
                 contentType: 'application/json',
                 xhrFields: { withCredentials: true },

@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ namespace iLearn.API.Controllers
             _currentUser = currentUser;
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -53,6 +55,7 @@ namespace iLearn.API.Controllers
             return Ok(dtos);
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -78,6 +81,7 @@ namespace iLearn.API.Controllers
         //    return CreatedAtAction(nameof(GetById), new { id = createdUser.Id }, createdUser.ToDto());
         //}
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -88,22 +92,33 @@ namespace iLearn.API.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpPost("windows-auth")]
         public async Task<ActionResult<ApiResponse<UserDto>>> GetOrCreateUserFromWindows([FromBody] CreateUserRequest request)
         {
             try
             {
-                // 1. Validate input และ extract NID
-                if (string.IsNullOrWhiteSpace(request?.WindowsIdentity))
+                var currentWindowsIdentity = User.Identity?.Name;
+                if (User.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(currentWindowsIdentity))
                 {
-                    return BadRequest(new ApiResponse<UserDto>
+                    return Unauthorized(new ApiResponse<UserDto>
                     {
                         Success = false,
-                        Message = "Windows identity is required"
+                        Message = "Authenticated Windows identity is required"
                     });
                 }
 
-                string nid = request.WindowsIdentity.Split('\\').LastOrDefault();
+                if (!string.IsNullOrWhiteSpace(request?.WindowsIdentity)
+                    && !string.Equals(request.WindowsIdentity, currentWindowsIdentity, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning(
+                        "Rejected windows-auth request because payload identity {PayloadIdentity} did not match current principal {CurrentIdentity}",
+                        request.WindowsIdentity,
+                        currentWindowsIdentity);
+                    return Forbid();
+                }
+
+                string nid = currentWindowsIdentity.Split('\\').LastOrDefault();
                 if (string.IsNullOrWhiteSpace(nid))
                 {
                     return BadRequest(new ApiResponse<UserDto>
@@ -127,6 +142,7 @@ namespace iLearn.API.Controllers
                             Name = ur.Role.Name,
                             RoleType = ur.Role.RoleType,
                             DivisionId = ur.Role.DivisionId,
+                            DivisionName = ur.Role.Division != null ? ur.Role.Division.Name : null,
                         }).ToList()
                     })
                     .FirstOrDefaultAsync();
@@ -169,7 +185,7 @@ namespace iLearn.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetOrCreateUserFromWindows for identity: {Identity}",
-                    request?.WindowsIdentity);
+                    User.Identity?.Name ?? request?.WindowsIdentity);
 
                 return StatusCode(500, new ApiResponse<UserDto>
                 {

@@ -380,6 +380,34 @@ img[loading="lazy"] {
     font-size: var(--font-size-xs);
 }
 
+.admin-compat-note {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+}
+
+.admin-compat-note-title {
+    margin-bottom: 4px;
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
+}
+
+.admin-compat-note-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.admin-compat-note-list li + li {
+    margin-top: 2px;
+}
+
 .admin-dialog-field-label {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);

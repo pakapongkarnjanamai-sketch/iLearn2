@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,6 +52,7 @@ namespace iLearn.API.Controllers
             _unitOfWork = unitOfWork;
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("history")]
         public async Task<IActionResult> GetHistory([FromQuery] PaginationParams p, CancellationToken cancellationToken)
         {
@@ -78,6 +80,7 @@ namespace iLearn.API.Controllers
             });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("gantt")]
         public async Task<IActionResult> GetGanttTasks(CancellationToken cancellationToken)
         {
@@ -85,6 +88,7 @@ namespace iLearn.API.Controllers
             return Ok(tasks);
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("course/{courseId}")]
         public async Task<IActionResult> GetByCourse(int courseId)
         {
@@ -95,6 +99,7 @@ namespace iLearn.API.Controllers
             return Ok(assignments.Select(r => new { r.Id, r.CourseId }));
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -139,6 +144,7 @@ namespace iLearn.API.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpGet("dashboard/{id}")]
         public async Task<IActionResult> GetDashboardData(int id, CancellationToken cancellationToken)
         {
@@ -147,6 +153,7 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = result });
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpGet("resolve/{assignmentNo}")]
         public async Task<IActionResult> ResolveByNo(string assignmentNo)
         {
@@ -161,6 +168,7 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = assignment.Id });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("reassign-data/{id}")]
         public async Task<IActionResult> GetReassignData(int id)
         {
@@ -199,6 +207,7 @@ namespace iLearn.API.Controllers
             });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("{id}/reset-enrollments")]
         public async Task<IActionResult> ResetEnrollments(int id, [FromBody] ResetEnrollmentsDto dto)
         {
@@ -304,6 +313,7 @@ namespace iLearn.API.Controllers
             });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("validate-before-assign")]
         public async Task<IActionResult> ValidateBeforeAssign([FromBody] BulkAssignDto dto)
         {
@@ -326,6 +336,7 @@ namespace iLearn.API.Controllers
             });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPatch("{id}/extend-due-date")]
         public async Task<IActionResult> ExtendDueDate(int id, [FromBody] ExtendDueDateDto dto)
         {
@@ -368,6 +379,7 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, message = "Due date extended successfully.", newDueDate = dto.NewDueDate });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("{id}/courses")]
         public async Task<IActionResult> AddCourses(int id, [FromBody] ManageAssignmentCoursesDto dto)
         {
@@ -456,6 +468,7 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id}/courses/{ruleId}")]
         public async Task<IActionResult> RemoveCourse(int id, int ruleId)
         {
@@ -505,6 +518,7 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("{id}/students")]
         public async Task<IActionResult> AddStudents(int id, [FromBody] ManageAssignmentStudentsDto dto)
         {
@@ -571,6 +585,7 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id}/students/{studentCode}")]
         public async Task<IActionResult> RemoveStudent(int id, string studentCode)
         {
@@ -632,6 +647,7 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("lookup-courses")]
         public async Task<IActionResult> GetLookupCourses()
         {
@@ -651,6 +667,7 @@ namespace iLearn.API.Controllers
             return Ok(new { data = result });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("group/{groupId}/history")]
         public async Task<IActionResult> GetGroupHistory(int groupId)
         {

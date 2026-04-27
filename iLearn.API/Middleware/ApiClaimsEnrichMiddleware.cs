@@ -1,6 +1,7 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Domain.Entities;
+using iLearn.API.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SC = System.Security.Claims;
@@ -21,6 +22,7 @@ namespace iLearn.API.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ApiClaimsEnrichMiddleware> _logger;
         private readonly IMemoryCache _cache;
+        private readonly string _domainPrefix;
 
         // Cache TTL kept aligned with the Admin-side middleware to avoid
         // divergent permission decisions between API and Admin layers.
@@ -29,11 +31,14 @@ namespace iLearn.API.Middleware
         public ApiClaimsEnrichMiddleware(
             RequestDelegate next,
             ILogger<ApiClaimsEnrichMiddleware> logger,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IConfiguration configuration)
         {
             _next   = next;
             _logger = logger;
             _cache  = cache;
+            _domainPrefix = configuration["Authentication:DomainPrefix"]
+                ?? AuthorizationExtensions.DefaultDomainPrefix;
         }
 
         public async Task InvokeAsync(
@@ -50,7 +55,7 @@ namespace iLearn.API.Middleware
 
             var windowsName = context.User.Identity?.Name ?? "";
             if (string.IsNullOrEmpty(windowsName) ||
-                !windowsName.StartsWith("NIKONOA\\", StringComparison.OrdinalIgnoreCase))
+                !windowsName.StartsWith(_domainPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;
@@ -84,10 +89,11 @@ namespace iLearn.API.Middleware
                         u.Id,
                         Roles = u.UserRoles.Select(ur => new RoleDto
                         {
-                            Id         = ur.Role.Id,
-                            Name       = ur.Role.Name,
-                            RoleType   = ur.Role.RoleType,
-                            DivisionId = ur.Role.DivisionId
+                            Id           = ur.Role.Id,
+                            Name         = ur.Role.Name,
+                            RoleType     = ur.Role.RoleType,
+                            DivisionId   = ur.Role.DivisionId,
+                            DivisionName = ur.Role.Division != null ? ur.Role.Division.Name : null
                         }).ToList()
                     })
                     .FirstOrDefaultAsync(context.RequestAborted);
@@ -120,8 +126,16 @@ namespace iLearn.API.Middleware
                     .Select(r => r.DivisionId!.Value)
                     .FirstOrDefault();
 
+                var primaryDivisionName = userRecord.Roles
+                    .Where(r => r.DivisionId.HasValue && !string.IsNullOrWhiteSpace(r.DivisionName))
+                    .Select(r => r.DivisionName)
+                    .FirstOrDefault();
+
                 if (primaryDivisionId > 0)
                     claims.Add(new SC.Claim("DivisionId", primaryDivisionId.ToString()));
+
+                if (!string.IsNullOrWhiteSpace(primaryDivisionName))
+                    claims.Add(new SC.Claim("Division", primaryDivisionName));
 
                 var identity  = new SC.ClaimsIdentity(claims, context.User.Identity!.AuthenticationType);
                 var principal = new SC.ClaimsPrincipal(identity);
@@ -130,10 +144,11 @@ namespace iLearn.API.Middleware
                 _cache.Set(cacheKey, principal, CacheTtl);
 
                 _logger.LogInformation(
-                    "ApiClaimsEnrich: enriched {Identity} with {RoleCount} role(s), DivisionId={DivId}",
+                    "ApiClaimsEnrich: enriched {Identity} with {RoleCount} role(s), DivisionId={DivId}, Division={Division}",
                     windowsName,
                     userRecord.Roles.Count,
-                    primaryDivisionId > 0 ? primaryDivisionId.ToString() : "(none)");
+                    primaryDivisionId > 0 ? primaryDivisionId.ToString() : "(none)",
+                    primaryDivisionName ?? "(none)");
             }
             catch (Exception ex)
             {

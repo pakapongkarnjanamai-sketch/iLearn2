@@ -1,3 +1,4 @@
+using iLearn.Application.Common;
 using iLearn.User.Interfaces;
 using iLearn.User.Services;
 
@@ -8,6 +9,8 @@ namespace iLearn.User.Extensions
         public static IServiceCollection AddUserServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddMemoryCache();
+            services.Configure<LearnerProxyAuthOptions>(
+                configuration.GetSection(LearnerProxyAuthOptions.SectionName));
 
             var apiBaseUrl = configuration["ApiSettings:BaseUrl"]
                 ?? throw new InvalidOperationException("ApiSettings:BaseUrl is not configured.");
@@ -16,6 +19,10 @@ namespace iLearn.User.Extensions
             {
                 client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                UseDefaultCredentials = true
             });
 
             services.AddScoped<IApiUserService, ApiUserService>();

@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq; // จำเป็นสำหรับการใช้ .Where และ .Select
@@ -29,6 +30,7 @@ namespace iLearn.API.Controllers
             _currentUser = currentUser;
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -43,6 +45,7 @@ namespace iLearn.API.Controllers
             return Ok(items.Select(x => x.ToDto()));
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] DivisionDto dto)
         {
@@ -54,6 +57,7 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// Resolve Division Name -> DivisionId สำหรับ iLearn.User ตอน Login
         /// </summary>
+        [Authorize(Policy = "DomainUser")]
         [HttpGet("resolve-id")]
         public async Task<IActionResult> ResolveId([FromQuery] string name)
         {
@@ -72,6 +76,7 @@ namespace iLearn.API.Controllers
         }
 
         // --- API GetTree สำหรับ TreeView ---
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("GetTree")]
         public async Task<IActionResult> GetTree()
         {

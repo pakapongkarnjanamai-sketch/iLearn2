@@ -2,6 +2,7 @@
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,6 +11,7 @@ using System.Linq;
 
 namespace iLearn.API.Controllers
 {
+    [Authorize(Policy = "AdminOnly")]
     [Route("api/admin/[controller]")]
     [ApiController]
     public class DashboardController : ControllerBase

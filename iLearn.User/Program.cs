@@ -1,8 +1,11 @@
 ﻿using iLearn.User.Extensions;
+using iLearn.Application.Common;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);
+
+ValidateRequiredSecrets(builder.Configuration, builder.Environment);
 
 // ── MVC / Razor Pages ──
 builder.Services.AddRazorPages()
@@ -70,4 +73,31 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+static void ValidateRequiredSecrets(IConfiguration configuration, IHostEnvironment environment)
+{
+    EnsureConfigured(
+        configuration,
+        $"{LearnerProxyAuthOptions.SectionName}:SharedSecret",
+        "learner proxy shared secret",
+        environment);
+}
+
+static void EnsureConfigured(
+    IConfiguration configuration,
+    string key,
+    string description,
+    IHostEnvironment environment)
+{
+    var value = configuration[key];
+    if (ConfigurationSecretGuard.HasRealValue(value))
+        return;
+
+    var scopeHint = environment.IsDevelopment()
+        ? "dotnet user-secrets or environment variables"
+        : "environment variables or your deployment secret store";
+
+    throw new InvalidOperationException(
+        $"Missing {description}. Configure '{key}' via {scopeHint}. Suggested environment variable name: '{ConfigurationSecretGuard.ToEnvironmentVariableName(key)}'.");
+}
 

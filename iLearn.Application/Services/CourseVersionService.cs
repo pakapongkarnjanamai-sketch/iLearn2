@@ -1,4 +1,5 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -481,12 +482,16 @@ namespace iLearn.Application.Services
         private async Task<Resource> ProcessNewResourceAsync(IFormFile file, int typeId)
         {
             if (file == null || file.Length == 0)
-                return null;
+                throw new InvalidScormPackageException("A SCORM package file is required.");
+
+            ScormUploadValidation.EnsureValidScormPackageUpload(file);
+
+            var safeFileName = ScormUploadValidation.NormalizeUploadedFileName(file.FileName);
 
             var fileStorage = new FileStorage
             {
-                Name = file.FileName,
-                ContentType = file.ContentType,
+                Name = safeFileName,
+                ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/zip" : file.ContentType,
                 Length = file.Length
             };
 
@@ -500,7 +505,7 @@ namespace iLearn.Application.Services
 
             var resource = new Resource
             {
-                Name = file.FileName,
+                Name = safeFileName,
                 TypeId = typeId,
                 IsActive = false,
                 FileStorageId = savedFile.Id
@@ -508,36 +513,27 @@ namespace iLearn.Application.Services
 
             var savedResource = await _resourceRepository.AddAsync(resource);
 
-            string extension = Path.GetExtension(file.FileName).ToLower();
-            if (extension == ".zip")
+            try
             {
-                try
-                {
-                    string folderName = Guid.NewGuid().ToString();
+                string folderName = Guid.NewGuid().ToString();
 
-                    var scormInfo = await _scormService.ExtractAndParseScormAsync(
-                        fileStorage.Data,
-                        folderName
-                    );
+                var scormInfo = await _scormService.ExtractAndParseScormAsync(
+                    fileStorage.Data,
+                    folderName
+                );
 
-                    savedResource.ResourceHref = scormInfo.ResourceHref;
-                    savedResource.SchemaVersion = scormInfo.SchemaVersion;
-                    savedResource.URL = scormInfo.FolderName;
-                    savedResource.IsActive = true;
-
-                    await _resourceRepository.UpdateAsync(savedResource);
-                }
-                catch (InvalidScormPackageException)
-                {
-                    savedResource.IsActive = false;
-                    await _resourceRepository.UpdateAsync(savedResource);
-                    throw;
-                }
-            }
-            else
-            {
+                savedResource.ResourceHref = scormInfo.ResourceHref;
+                savedResource.SchemaVersion = scormInfo.SchemaVersion;
+                savedResource.URL = scormInfo.FolderName;
                 savedResource.IsActive = true;
+
                 await _resourceRepository.UpdateAsync(savedResource);
+            }
+            catch (InvalidScormPackageException)
+            {
+                savedResource.IsActive = false;
+                await _resourceRepository.UpdateAsync(savedResource);
+                throw;
             }
 
             return savedResource;

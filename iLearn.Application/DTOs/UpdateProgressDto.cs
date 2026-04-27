@@ -3,7 +3,6 @@
     public class UpdateProgressDto
     {
         public int EnrollmentId { get; set; }
-        public string StudentCode { get; set; }
 
         // รับเป็นรายการ Resource ที่ต้องการบันทึกพร้อมกัน
         public List<ResourceProgressDto> Resources { get; set; } = new List<ResourceProgressDto>();

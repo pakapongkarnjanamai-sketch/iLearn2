@@ -12,7 +12,7 @@ namespace iLearn.API.Controllers.Base
 {
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize]
+    [Authorize(Policy = "AdminOnly")]
     public class GenericController<T> : ControllerBase where T : BaseEntity, new()
     {
         protected readonly IGenericRepository<T> _repository;

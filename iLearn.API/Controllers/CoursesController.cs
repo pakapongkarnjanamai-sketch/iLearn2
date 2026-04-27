@@ -1,13 +1,17 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
+using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace iLearn.API.Controllers
 {
+    [Authorize(Policy = "AdminOnly")]
     [Route("api/[controller]")]
     [ApiController]
     public class CoursesController : ControllerBase
@@ -154,6 +158,8 @@ namespace iLearn.API.Controllers
 
         [HttpPost("create-scorm")]
         [Consumes("multipart/form-data")]
+        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
         public async Task<IActionResult> CreateCourseWithScorm([FromForm] CourseCreateDto model)
         {
             if (!ModelState.IsValid)
@@ -209,6 +215,8 @@ namespace iLearn.API.Controllers
 
         [HttpPost("{courseId}/versions")]
         [Consumes("multipart/form-data")]
+        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
         public async Task<IActionResult> CreateVersion(int courseId, [FromForm] CreateCourseVersionDto model)
         {
             if (!ModelState.IsValid)
@@ -227,6 +235,10 @@ namespace iLearn.API.Controllers
             {
                 return NotFound(new { success = false, message = ex.Message });
             }
+            catch (InvalidScormPackageException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = "An error occurred while creating the version.", error = ex.Message });
@@ -235,6 +247,8 @@ namespace iLearn.API.Controllers
 
         [HttpPut("versions/{versionId}")]
         [Consumes("multipart/form-data")]
+        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
         public async Task<IActionResult> UpdateVersion(int versionId, [FromForm] CreateCourseVersionDto model)
         {
             if (!ModelState.IsValid)
@@ -249,6 +263,10 @@ namespace iLearn.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (InvalidScormPackageException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {

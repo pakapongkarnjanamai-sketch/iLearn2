@@ -1,10 +1,12 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +15,7 @@ using System.Diagnostics;
 
 namespace iLearn.API.Controllers
 {
+    [Authorize(Policy = "SuperAdminOnly")]
     [Route("api/[controller]")]
     [ApiController]
     public class ResourcesController : ControllerBase
@@ -76,23 +79,44 @@ namespace iLearn.API.Controllers
             if (fileStorage == null || fileStorage.Data == null)
                 return NotFound("File content missing");
 
+            var safeFileName = ScormUploadValidation.NormalizeUploadedFileName(fileStorage.Name);
+            if (string.IsNullOrWhiteSpace(safeFileName))
+            {
+                safeFileName = $"resource-{resource.Id}.bin";
+            }
 
-
-            return File(fileStorage.Data, fileStorage.ContentType, fileStorage.Name);
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return File(fileStorage.Data, "application/octet-stream", safeFileName);
         }
 
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(100_000_000)]
+        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
         public async Task<IActionResult> Upload(IFormFile file, int typeId)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");
 
+            try
+            {
+                ScormUploadValidation.EnsureValidScormPackageUpload(file);
+            }
+            catch (InvalidScormPackageException ex)
+            {
+                return BadRequest(new
+                {
+                    error = "Invalid SCORM Package",
+                    message = ex.Message
+                });
+            }
+
+            var safeFileName = ScormUploadValidation.NormalizeUploadedFileName(file.FileName);
+
             var fileStorage = new FileStorage
             {
-                Name = file.FileName,
-                ContentType = file.ContentType,
+                Name = safeFileName,
+                ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/zip" : file.ContentType,
                 Length = file.Length
             };
 
@@ -106,7 +130,7 @@ namespace iLearn.API.Controllers
 
             var resource = new Resource
             {
-                Name = file.FileName,
+                Name = safeFileName,
                 TypeId = typeId,
                 IsActive = false,
                 FileStorageId = savedFile.Id

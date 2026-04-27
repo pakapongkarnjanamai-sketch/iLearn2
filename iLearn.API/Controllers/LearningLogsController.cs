@@ -2,9 +2,11 @@
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
+using iLearn.API.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -20,13 +22,15 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly ICurrentUserService _currentUser;
         private readonly IMemoryCache _cache;
+        private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<CourseVersion> versionRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             ICurrentUserService currentUserService,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            ILearnerProxyIdentityResolver learnerProxyIdentityResolver)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
@@ -34,18 +38,25 @@ namespace iLearn.API.Controllers
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _currentUser = currentUserService;
             _cache = cache;
+            _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
         }
 
+        [Authorize(Policy = "DomainUser")]
         [HttpPost("update-progress")]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
+            if (!_learnerProxyIdentityResolver.TryResolveStudentCode(HttpContext, out var studentCode, out var statusCode, out var errorMessage))
+            {
+                return StatusCode(statusCode, new ApiResponse<string> { Success = false, Message = errorMessage });
+            }
+
             // 1. ตรวจสอบ Enrollment
             var enrollment = await _enrollmentRepo.GetByIdAsync(input.EnrollmentId);
             if (enrollment == null)
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
 
             // ตรวจสอบว่าเป็นเจ้าของ Enrollment หรือไม่
-            if (!string.Equals(enrollment.StudentCode, input.StudentCode, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(enrollment.StudentCode, studentCode, StringComparison.OrdinalIgnoreCase))
                 return Unauthorized(new ApiResponse<string> { Success = false, Message = "StudentDto code mismatch" });
 
             // ✅ ถ้าจบแล้ว (Completed) ไม่ให้แก้ (เว้นแต่ Admin จะ Reset IsCompleted = false มาแล้ว)
@@ -114,7 +125,7 @@ namespace iLearn.API.Controllers
                     var newLog = new LearningLog
                     {
                         EnrollmentId = input.EnrollmentId, // ✅ อย่าลืมใส่ EnrollmentId
-                        StudentCode = input.StudentCode,
+                        StudentCode = studentCode,
                         ResourceId = resInput.ResourceId,
                         CourseVersionId = versionId,
                         Status = newStatus,

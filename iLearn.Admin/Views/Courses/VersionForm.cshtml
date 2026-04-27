@@ -94,6 +94,16 @@
 
                     <div class="version-content-note mb-3">You can drag and drop rows to reorder the content, and click on Type to change it for new files.</div>
 
+                    <div class="admin-compat-note mb-3">
+                        <div class="admin-compat-note-title">SCORM Compatibility</div>
+                        <ul class="admin-compat-note-list">
+                            <li>Accepts SCORM 1.2 and SCORM 2004 ZIP packages only.</li>
+                            <li><code>imsmanifest.xml</code> may be at the ZIP root or inside a package folder.</li>
+                            <li>Uses one launch SCO per resource; SCORM 2004 sequencing and multi-SCO navigation are not orchestrated.</li>
+                            <li>Limits: 100 MB ZIP, 1,000 archive entries, 100 MB per file, 250 MB expanded.</li>
+                        </ul>
+                    </div>
+
                     <div class="admin-grid-shell overflow-hidden">
                         <div class="admin-grid-head">
                             <div class="admin-grid-title">Selected Content</div>
