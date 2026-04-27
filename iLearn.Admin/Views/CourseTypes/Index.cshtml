@@ -13,7 +13,7 @@
     </button>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2" id="summary-bar">
@@ -44,11 +44,10 @@
     </div>
 
     <!-- ── DataGrid ── -->
-   <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
-</div>
+
 
 </div>
 
@@ -77,6 +76,7 @@
             loadSummaryStats();
 
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search course types...", {
+                height: "100%",
                 dataSource: courseTypesStore,
                 remoteOperations: true,
                 editing: {
@@ -139,7 +139,7 @@
                         dataField: "name",
                         caption: "Course Type Name",
                         minWidth: 200,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             $("<div>").addClass("d-flex align-items-center gap-2")
                                 .append($("<i>").addClass("fas fa-tag").css({ color: "var(--primary-color)", opacity: ".75" }))
                                 .append($("<span>").addClass("fw-bold text-dark").text(options.value))
@@ -160,13 +160,13 @@
                         alignment: "center",
                         allowEditing: false,
                         sortOrder: undefined,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const count = options.value || 0;
-                            if (count === 0) {
-                                window.renderAdminGridTextCell(container, "None", "captionMuted");
-                            } else {
-                                window.renderAdminGridTextCell(container, window.formatAdminCountLabel(count, 'course'), "captionSuccess");
-                            }
+                            window.renderAdminGridTextCell(
+                                container,
+                                count === 0 ? "None" : window.formatAdminCountLabel(count, 'course'),
+                                count === 0 ? "captionMuted" : "captionSuccess"
+                            );
                         }
                     },
                     {
@@ -187,6 +187,10 @@
                 onRowUpdated: () => loadSummaryStats(),
                 onRowRemoved: () => loadSummaryStats()
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
         });
 
         function addNewCourseType() {

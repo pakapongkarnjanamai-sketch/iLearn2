@@ -23,7 +23,7 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2" id="summary-bar">
@@ -93,11 +93,9 @@
         </div>
     </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
-</div>
 
 </div>
 
@@ -125,6 +123,25 @@
         let uploadPopupInstance;
         let gridInstance;
         let serverStatsMap = {};
+        const summaryKpiIds = ['kpi-total', 'kpi-published', 'kpi-draft', 'kpi-dbsize', 'kpi-serverfiles', 'kpi-serversize'];
+        const summaryStatsCacheTtlMs = 30000;
+        let summaryStatsRequest = null;
+        let serverStatsRequest = null;
+        let summaryStatsCache = null;
+        let summaryStatsCacheAt = 0;
+
+        function renderServerStatCell(container, options, valueSelector, styleKey, formatter) {
+            const stats = serverStatsMap[options.data.id];
+            if (!options.data.isActive || !stats) {
+                $("<span>").css(window.getAdminGridTextStyle("xsMutedFaint")).text("—").appendTo(container);
+                return;
+            }
+
+            $("<span>")
+                .css(window.getAdminGridTextStyle(styleKey))
+                .text(formatter(valueSelector(stats)))
+                .appendTo(container);
+        }
 
         // Current filter state
         let filterCourseId = null;
@@ -330,37 +347,70 @@
         }
 
         function loadServerStats() {
-            $.ajax({
+            if (serverStatsRequest) {
+                return serverStatsRequest;
+            }
+
+            serverStatsRequest = $.ajax({
                 url: `${serviceUrl}/admin/ResourcesCRUD/GetServerStats`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done(function(data) {
                 serverStatsMap = data || {};
                 if (gridInstance) gridInstance.repaint();
+            }).always(function() {
+                serverStatsRequest = null;
             });
+
+            return serverStatsRequest;
         }
 
-        function loadSummaryStats() {
-            showStatSkeleton(['kpi-total', 'kpi-published', 'kpi-draft', 'kpi-dbsize', 'kpi-serverfiles', 'kpi-serversize']);
-            $.ajax({
+        function applySummaryStats(d) {
+            $("#kpi-total").text(window.formatAdminInteger(d.totalCount, '0'));
+            $("#kpi-published").text(window.formatAdminInteger(d.publishedCount, '0'));
+            $("#kpi-draft").text(window.formatAdminInteger(d.draftCount, '0'));
+            $("#kpi-dbsize").text(window.formatAdminFileSize(d.totalDbSize, '—'));
+            $("#kpi-serverfiles").text(window.formatAdminInteger(d.totalServerFiles, '0'));
+            $("#kpi-serversize").text(window.formatAdminFileSize(d.totalServerSize, '—'));
+        }
+
+        function loadSummaryStats(options) {
+            const settings = options || {};
+            const force = settings.force === true;
+            const now = Date.now();
+            const canUseCache = !force && summaryStatsCache && (now - summaryStatsCacheAt) < summaryStatsCacheTtlMs;
+
+            if (canUseCache) {
+                applySummaryStats(summaryStatsCache);
+                return $.Deferred().resolve(summaryStatsCache).promise();
+            }
+
+            if (summaryStatsRequest) {
+                return summaryStatsRequest;
+            }
+
+            showStatSkeleton(summaryKpiIds);
+
+            summaryStatsRequest = $.ajax({
                 url: `${serviceUrl}/admin/ResourcesCRUD/GetSummaryStats`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done(function(d) {
-                $("#kpi-total").text(window.formatAdminInteger(d.totalCount, '0'));
-                $("#kpi-published").text(window.formatAdminInteger(d.publishedCount, '0'));
-                $("#kpi-draft").text(window.formatAdminInteger(d.draftCount, '0'));
-                $("#kpi-dbsize").text(window.formatAdminFileSize(d.totalDbSize, '—'));
-                $("#kpi-serverfiles").text(window.formatAdminInteger(d.totalServerFiles, '0'));
-                $("#kpi-serversize").text(window.formatAdminFileSize(d.totalServerSize, '—'));
+                summaryStatsCache = d || {};
+                summaryStatsCacheAt = Date.now();
+                applySummaryStats(summaryStatsCache);
             }).fail(function() {
-                hideStatSkeleton(['kpi-total', 'kpi-published', 'kpi-draft', 'kpi-dbsize', 'kpi-serverfiles', 'kpi-serversize']);
+                hideStatSkeleton(summaryKpiIds);
+            }).always(function() {
+                summaryStatsRequest = null;
             });
+
+            return summaryStatsRequest;
         }
 
         function refreshAll() {
             loadServerStats();
-            loadSummaryStats();
+            loadSummaryStats({ force: true });
             if (gridInstance) gridInstance.refresh();
         }
 
@@ -500,6 +550,7 @@
 
             // ── DataGrid ──
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search resources...", {
+                height: "100%",
                 dataSource: createResourcesDataSource(),
                 remoteOperations: true,
                 editing: {
@@ -551,14 +602,12 @@
                     { dataField: "typeId", caption: "Resource Type", dataType: "number",
                         lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
                         alignment: "center", width: 120,
-                        cellTemplate: function(container, options) {
-                            window.renderAdminGridStatusCell(
-                                container,
-                                options.displayValue || "—",
-                                options.value === 1 ? "primary" : "warning",
-                                { showDot: false }
-                            );
-                        }
+                        cellTemplate: (container, options) => window.renderAdminGridStatusCell(
+                            container,
+                            options.displayValue || "—",
+                            options.value === 1 ? "primary" : "warning",
+                            { showDot: false }
+                        )
                     },
                     { dataField: "fileLength", caption: "DB Size", dataType: "number", alignment: "center", width: 100,
                         allowEditing: false,
@@ -567,37 +616,33 @@
                     },
                     { caption: "Server Files", dataType: "number", alignment: "center", width: 100,
                         allowEditing: false, allowSorting: false, allowFiltering: false,
-                        cellTemplate: function(container, options) {
-                            const stats = serverStatsMap[options.data.id];
-                            if (!options.data.isActive || !stats) {
-                                $("<span>").css(window.getAdminGridTextStyle("xsMutedFaint")).text("—").appendTo(container);
-                            } else {
-                                $("<span>").css(window.getAdminGridTextStyle("xsStrong"))
-                                    .text(window.formatAdminInteger(stats.fileCount, '0')).appendTo(container);
-                            }
-                        }
+                        cellTemplate: (container, options) => renderServerStatCell(
+                            container,
+                            options,
+                            stats => stats.fileCount,
+                            "xsStrong",
+                            value => window.formatAdminInteger(value, '0')
+                        )
                     },
                     { caption: "Server Size", dataType: "number", alignment: "center", width: 110,
                         allowEditing: false, allowSorting: false, allowFiltering: false,
-                        cellTemplate: function(container, options) {
-                            const stats = serverStatsMap[options.data.id];
-                            if (!options.data.isActive || !stats) {
-                                $("<span>").css(window.getAdminGridTextStyle("xsMutedFaint")).text("—").appendTo(container);
-                            } else {
-                                $("<span>").css(window.getAdminGridTextStyle("xsAccent"))
-                                    .text(window.formatAdminFileSize(stats.totalSize, '—')).appendTo(container);
-                            }
-                        }
+                        cellTemplate: (container, options) => renderServerStatCell(
+                            container,
+                            options,
+                            stats => stats.totalSize,
+                            "xsAccent",
+                            value => window.formatAdminFileSize(value, '—')
+                        )
                     },
                     { dataField: "courseIdsCount", caption: "Courses", dataType: "number", alignment: "center", width: 90,
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const count = options.value || 0;
-                            if (count === 0) {
-                                window.renderAdminGridTextCell(container, "None", "captionMuted");
-                            } else {
-                                window.renderAdminGridTextCell(container, window.formatAdminCountLabel(count, 'course'), "captionSuccess");
-                            }
+                            window.renderAdminGridTextCell(
+                                container,
+                                count === 0 ? "None" : window.formatAdminCountLabel(count, 'course'),
+                                count === 0 ? "captionMuted" : "captionSuccess"
+                            );
                         }
                     },
                     {
@@ -612,10 +657,11 @@
                     },
                     { dataField: "isActive", caption: "Status", dataType: "boolean", alignment: "center", width: 100,
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            const label = options.value ? "Active" : "Draft";
-                            window.renderAdminGridStatusCell(container, label, options.value ? "success" : "default");
-                        }
+                        cellTemplate: (container, options) => window.renderAdminGridStatusCell(
+                            container,
+                            options.value ? "Active" : "Draft",
+                            options.value ? "success" : "default"
+                        )
                     },
                     {
                         type: "buttons", caption: "Manage", width: 160, alignment: "center",
@@ -631,6 +677,10 @@
                     }
                 ]
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
 
             function setResourcePublic(id) {
                 showAdminConfirmDialog({
@@ -791,18 +841,18 @@
                                 calculateCellValue: r => window.formatAdminFileSize(r.fileLength, '—') },
                             { dataField: "serverFileCount", caption: "Files", width: 70, alignment: "center" },
                             { dataField: "serverSize", caption: "Server Size", width: 100, alignment: "center",
-                                cellTemplate: function(c, o) {
+                                cellTemplate: (container, options) => {
                                     $("<span>").css({ fontWeight: "600", color: "var(--danger-color)" })
-                                        .text(window.formatAdminFileSize(o.value, '—')).appendTo(c);
+                                        .text(window.formatAdminFileSize(options.value, '—')).appendTo(container);
                                 }
                             },
                             { dataField: "totalCourseCount", caption: "Courses", width: 80, alignment: "center",
-                                cellTemplate: function(c, o) {
-                                    const v = o.value || 0;
+                                cellTemplate: (container, options) => {
+                                    const count = options.value || 0;
                                     window.renderAdminGridTextCell(
-                                        c,
-                                        v === 0 ? "None" : window.formatAdminCountLabel(v, 'inactive course'),
-                                        v === 0 ? "captionMuted" : "captionStrong"
+                                        container,
+                                        count === 0 ? "None" : window.formatAdminCountLabel(count, 'inactive course'),
+                                        count === 0 ? "captionMuted" : "captionStrong"
                                     );
                                 }
                             }
@@ -832,10 +882,10 @@
                             { dataField: "fileLength", caption: "DB Size", width: 90, alignment: "center",
                                 calculateCellValue: r => window.formatAdminFileSize(r.fileLength, '—') },
                             { caption: "Active Courses", minWidth: 200,
-                                cellTemplate: function(c, o) {
-                                    const courses = o.data.activeCourseVersions || [];
-                                    courses.forEach(cv => {
-                                        window.renderAdminGridTextCell(c, `${cv.courseCode} v${cv.versionNumber}`, "xsStrong", {
+                                cellTemplate: (container, options) => {
+                                    const courses = options.data.activeCourseVersions || [];
+                                    courses.forEach(courseVersion => {
+                                        window.renderAdminGridTextCell(container, `${courseVersion.courseCode} v${courseVersion.versionNumber}`, "xsStrong", {
                                             color: "var(--success-color)",
                                             marginRight: "8px"
                                         });

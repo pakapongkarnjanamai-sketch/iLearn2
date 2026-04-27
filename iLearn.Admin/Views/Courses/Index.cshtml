@@ -122,7 +122,7 @@
                             }
                             return this.defaultCalculateFilterExpression.apply(this, arguments);
                         },
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             window.renderAdminCourseIdentityCell(container, {
                                 code: options.data.code,
                                 title: options.value,
@@ -135,7 +135,7 @@
                         caption: "Course Type",
                         width: 140,
                         alignment: "center",
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const text = options.value || "—";
                             const tone = window.getAdminCourseTypeTone(options.data.courseTypeId, options.value);
 

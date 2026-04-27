@@ -10,7 +10,7 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2" id="summary-bar">
@@ -71,11 +71,9 @@
     </div>
 
     <!-- ── DataGrid ── -->
-   <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
-</div>
 
 </div>
 
@@ -88,6 +86,11 @@
             { id: 'inprogress', name: 'In Progress' },
             { id: 'enrolled', name: 'Enrolled' }
         ];
+        const enrollmentStatusToneMap = {
+            Completed: "success",
+            "In Progress": "primary",
+            Enrolled: "default"
+        };
 
         let filterCourseId = null;
         let filterStatus = 'all';
@@ -211,6 +214,7 @@
 
             // ── DataGrid ──
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search learner ID...", {
+                height: "100%",
                 dataSource: enrollmentsStore,
                 remoteOperations: true,
 
@@ -301,29 +305,22 @@
                             if (r.progress > 0) return "In Progress";
                             return "Enrolled";
                         },
-                        cellTemplate: function(container, options) {
-                            const tone = options.value === "Completed"
-                                ? "success"
-                                : options.value === "In Progress"
-                                    ? "primary"
-                                    : "default";
-                            window.renderAdminGridStatusCell(container, options.value, tone);
-                        }
+                        cellTemplate: (container, options) => window.renderAdminGridStatusCell(
+                            container,
+                            options.value,
+                            enrollmentStatusToneMap[options.value] || "default"
+                        )
                     },
                     {
-                        dataField: "progress", caption: "Progress", width: 170, alignment: "center",
+                        dataField: "progress", caption: "Progress", width: 100, alignment: "center",
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
-                            $("<div/>").dxProgressBar({
-                                min: 0, max: 100, value: options.value || 0,
-                                statusFormat: function(ratio, value) { return Math.round(value) + "%"; }
-                            }).appendTo(container);
-                        }
+                        cssClass: "cell-accent",
+                        customizeText: function(e) { return Math.round(e.value || 0) + "%"; }
                     },
                     {
                         dataField: "totalScore", caption: "Score", width: 80, alignment: "center",
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const value = options.value || 0;
                             window.renderAdminGridTextCell(container, value > 0 ? value : "—", value > 0 ? "captionStrong" : "captionMuted");
                         }
@@ -360,6 +357,10 @@
                 onRowUpdated: () => loadSummaryStats(),
                 onRowRemoved: () => loadSummaryStats()
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
         });
     </script>
 }

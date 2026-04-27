@@ -241,7 +241,7 @@
                         dataField: "name",
                         caption: "Category Name",
                         minWidth: 200,
-                        cellTemplate: function (container, options) {
+                        cellTemplate: (container, options) => {
                             const wrapper = $("<div>").addClass("d-flex align-items-center gap-2");
                             $("<i>").addClass("fas fa-layer-group").css({ color: "var(--primary-color)", opacity: .75 }).appendTo(wrapper);
                             $("<a>").attr("href", `${DETAIL_URL}?id=${options.data.id}`)
@@ -255,13 +255,9 @@
                         caption: "Division",
                         width: 180,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            if (options.value) {
-                                window.renderAdminGridTextCell(container, options.value, "captionAccent");
-                            } else {
-                                appendAdminText(container, "—", { color: "var(--text-secondary)", fontStyle: "italic" });
-                            }
-                        }
+                        cellTemplate: (container, options) => options.value
+                            ? window.renderAdminGridTextCell(container, options.value, "captionAccent")
+                            : appendAdminText(container, "—", { color: "var(--text-secondary)", fontStyle: "italic" })
                     },
                     {
                         dataField: "courseCount",
@@ -276,9 +272,11 @@
                         caption: "Status",
                         width: 130,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            window.renderAdminGridStatusCell(container, options.value ? "Active" : "Inactive", options.value ? "success" : "default");
-                        }
+                        cellTemplate: (container, options) => window.renderAdminGridStatusCell(
+                            container,
+                            options.value ? "Active" : "Inactive",
+                            options.value ? "success" : "default"
+                        )
                     },
                     {
                         type: "buttons",

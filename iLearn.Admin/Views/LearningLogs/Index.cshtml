@@ -10,7 +10,7 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2" id="summary-bar">
@@ -81,11 +81,9 @@
     </div>
 
   
-   <div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
-</div>
 
 </div>
 
@@ -98,6 +96,13 @@
             { id: 'failed', name: 'Failed' },
             { id: 'inprogress', name: 'In Progress / Incomplete' }
         ];
+        const statusToneMap = {
+            completed: "success",
+            passed: "success",
+            failed: "danger",
+            incomplete: "warning",
+            in_progress: "primary"
+        };
 
         let filterStudentCode = null;
         let filterCourseCode = null;
@@ -206,6 +211,7 @@
 
             // ── DataGrid ──
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search logs...", {
+                height: "100%",
                 dataSource: logsStore,
                 remoteOperations: true,
 
@@ -219,32 +225,19 @@
                     { dataField: "enrollmentId", caption: "Enroll ID", width: 100, alignment: "center" },
                     {
                         dataField: "status", caption: "Status", width: 120, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            const val = (options.value || "").toLowerCase();
-                            const tone = val === "completed" || val === "passed"
-                                ? "success"
-                                : val === "failed"
-                                    ? "danger"
-                                    : val === "incomplete"
-                                        ? "warning"
-                                        : val === "in_progress"
-                                            ? "primary"
-                                            : "default";
-                            window.renderAdminGridStatusCell(container, options.value || "—", tone);
+                        cellTemplate: (container, options) => {
+                            const value = (options.value || "").toLowerCase();
+                            window.renderAdminGridStatusCell(container, options.value || "—", statusToneMap[value] || "default");
                         }
                     },
                     {
-                        dataField: "progress", caption: "Progress", width: 150, alignment: "center",
-                        cellTemplate: function(container, options) {
-                            $("<div/>").dxProgressBar({
-                                min: 0, max: 100, value: options.value || 0,
-                                statusFormat: function(ratio, value) { return Math.round(value) + "%"; }
-                            }).appendTo(container);
-                        }
+                        dataField: "progress", caption: "Progress", width: 100, alignment: "center",
+                        cssClass: "cell-accent",
+                        customizeText: function(e) { return Math.round(e.value || 0) + "%"; }
                     },
                     {
                         dataField: "score", caption: "Score", width: 80, alignment: "center",
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const value = options.value;
                             if (value === null || value === undefined) {
                                 window.renderAdminGridTextCell(container, "—", "captionMuted", { opacity: ".4" });
@@ -264,6 +257,10 @@
                     { dataField: "createdAt", caption: "First Access", dataType: "datetime", format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 155, visible: false }
                 ]
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
         });
     </script>
 }

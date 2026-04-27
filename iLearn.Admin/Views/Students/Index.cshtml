@@ -14,9 +14,9 @@
     </button>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
 </div>
 
@@ -26,6 +26,7 @@
         let gridInstance;
         $(() => {
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search learners by name, ID, or division...", {
+                height: "100%",
                 dataSource: createDataStore(serviceUrl, 'Students', { key: 'EId' }),
                 remoteOperations: true,
                 export: { enabled: true, allowExportSelectedData: true },
@@ -33,11 +34,11 @@
                 editing: { allowUpdating: false, allowDeleting: false, allowAdding: false },
                 columns: [
                     { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,
-                        cellTemplate: (c, o) => {
-                            $("<a>").attr("href", `@studentReportUrlTemplate`.replace("__STUDENT_CODE__", encodeURIComponent(o.value || "")))
+                        cellTemplate: (container, options) => {
+                            $("<a>").attr("href", `@studentReportUrlTemplate`.replace("__STUDENT_CODE__", encodeURIComponent(options.value || "")))
                                    .attr("target", "_blank")
                                    .css(window.getAdminGridTextStyle("captionStrong"))
-                                   .text(o.value || "—").appendTo(c);
+                                   .text(options.value || "—").appendTo(container);
                         }
                     },
                     { dataField: "EnglishFirstName", caption: "First Name", width: 250 },
@@ -48,6 +49,10 @@
                     { dataField: "Section", caption: "Section" }
                 ]
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
         });
 
         function refreshGrid() {

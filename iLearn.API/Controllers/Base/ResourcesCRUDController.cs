@@ -14,6 +14,8 @@ using Newtonsoft.Json;
 
 namespace iLearn.API.Controllers.Base
 {
+    internal sealed record ResourceFolderStats(int FileCount, long TotalSize);
+
     public class ResourcesCRUDController : GenericController<Resource>
     {
         private readonly IGenericRepository<CourseResource> _courseResourceRepo;
@@ -86,16 +88,8 @@ namespace iLearn.API.Controllers.Base
             if (_cache.TryGetValue(ResourceStatsCache.ServerStatsKey, out object? cachedStats) && cachedStats != null)
                 return Ok(cachedStats);
 
-            var publishedResources = await _repository.GetQuery()
-                .Where(r => r.IsActive && r.URL != null)
-                .Select(r => new { r.Id, r.URL })
-                .ToListAsync(cancellationToken);
-
-            var stats = publishedResources.Select(r =>
-            {
-                var info = _scormService.GetFolderInfo(r.URL!);
-                return new { r.Id, info.FileCount, info.TotalSize };
-            }).ToDictionary(x => x.Id, x => new { x.FileCount, x.TotalSize });
+            var folderStats = await GetPublishedFolderStatsAsync(cancellationToken);
+            var stats = folderStats.ToDictionary(x => x.Key, x => new { x.Value.FileCount, x.Value.TotalSize });
 
             _cache.Set(ResourceStatsCache.ServerStatsKey, stats, ResourceStatsCache.DefaultOptions);
 
@@ -108,30 +102,24 @@ namespace iLearn.API.Controllers.Base
             if (_cache.TryGetValue(ResourceStatsCache.SummaryStatsKey, out object? cachedSummary) && cachedSummary != null)
                 return Ok(cachedSummary);
 
-            var allResources = await _repository.GetQuery()
-                .Include(r => r.FileStorage)
-                .Select(r => new
+            var dbAggregate = await _repository.GetQuery()
+                .GroupBy(_ => 1)
+                .Select(g => new
                 {
-                    r.Id,
-                    r.IsActive,
-                    r.URL,
-                    dbSize = r.FileStorage != null ? r.FileStorage.Length : 0
+                    totalCount = g.Count(),
+                    publishedCount = g.Count(r => r.IsActive),
+                    totalDbSize = g.Sum(r => (long?)((r.FileStorage != null ? r.FileStorage.Length : 0))) ?? 0
                 })
-                .ToListAsync(cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
 
-            int totalCount = allResources.Count;
-            int publishedCount = allResources.Count(r => r.IsActive);
+            int totalCount = dbAggregate?.totalCount ?? 0;
+            int publishedCount = dbAggregate?.publishedCount ?? 0;
             int draftCount = totalCount - publishedCount;
-            long totalDbSize = allResources.Sum(r => r.dbSize);
+            long totalDbSize = dbAggregate?.totalDbSize ?? 0;
 
-            long totalServerSize = 0;
-            int totalServerFiles = 0;
-            foreach (var r in allResources.Where(r => r.IsActive && !string.IsNullOrEmpty(r.URL)))
-            {
-                var info = _scormService.GetFolderInfo(r.URL!);
-                totalServerFiles += info.FileCount;
-                totalServerSize += info.TotalSize;
-            }
+            var folderStats = await GetPublishedFolderStatsAsync(cancellationToken);
+            int totalServerFiles = folderStats.Values.Sum(s => s.FileCount);
+            long totalServerSize = folderStats.Values.Sum(s => s.TotalSize);
 
             var summary = new
             {
@@ -146,6 +134,30 @@ namespace iLearn.API.Controllers.Base
             _cache.Set(ResourceStatsCache.SummaryStatsKey, summary, ResourceStatsCache.DefaultOptions);
 
             return Ok(summary);
+        }
+
+        private async Task<Dictionary<int, ResourceFolderStats>> GetPublishedFolderStatsAsync(CancellationToken cancellationToken)
+        {
+            if (_cache.TryGetValue(ResourceStatsCache.FolderStatsKey, out Dictionary<int, ResourceFolderStats>? cachedStats) && cachedStats != null)
+            {
+                return cachedStats;
+            }
+
+            var publishedResources = await _repository.GetQuery()
+                .Where(r => r.IsActive && !string.IsNullOrEmpty(r.URL))
+                .Select(r => new { r.Id, r.URL })
+                .ToListAsync(cancellationToken);
+
+            var folderStats = new Dictionary<int, ResourceFolderStats>(publishedResources.Count);
+            foreach (var resource in publishedResources)
+            {
+                var info = _scormService.GetFolderInfo(resource.URL!);
+                folderStats[resource.Id] = new ResourceFolderStats(info.FileCount, info.TotalSize);
+            }
+
+            _cache.Set(ResourceStatsCache.FolderStatsKey, folderStats, ResourceStatsCache.DefaultOptions);
+
+            return folderStats;
         }
 
         [HttpPut("Put")]

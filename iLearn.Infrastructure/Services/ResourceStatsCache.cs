@@ -12,6 +12,7 @@ namespace iLearn.Infrastructure.Services
     {
         public const string SummaryStatsKey = "resources:summary-stats";
         public const string ServerStatsKey  = "resources:server-stats";
+        public const string FolderStatsKey  = "resources:folder-stats";
 
         public static MemoryCacheEntryOptions DefaultOptions { get; } = new MemoryCacheEntryOptions
         {
@@ -22,6 +23,7 @@ namespace iLearn.Infrastructure.Services
         {
             cache.Remove(SummaryStatsKey);
             cache.Remove(ServerStatsKey);
+            cache.Remove(FolderStatsKey);
         }
     }
 }

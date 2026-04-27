@@ -13,11 +13,12 @@
     </button>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
 </div>
+
 
 
 @section Scripts {
@@ -28,8 +29,35 @@
             loadMode: 'raw',
             cacheRawData: true
         };
+
+        function renderRoleBadge(container, roleName, roleId) {
+            const isSuperAdmin = roleName === 'SuperAdmin';
+            $('<span>')
+                .addClass('badge rounded-pill me-1')
+                .css({
+                    background: isSuperAdmin ? 'var(--warning-color)' : 'var(--surface-brand-subtle)',
+                    color: isSuperAdmin ? 'var(--text-primary)' : 'var(--primary-color)',
+                    fontSize: '.75rem'
+                })
+                .html((isSuperAdmin ? '<i class="fas fa-star me-1"></i>' : '') + (roleName || `Role #${roleId}`))
+                .appendTo(container);
+        }
+
+        function renderRolesCell(container, options) {
+            const userRoles = options.data.userRoles || [];
+            if (userRoles.length === 0) {
+                $('<span class="text-muted small">No roles assigned</span>').appendTo(container);
+                return;
+            }
+
+            userRoles.forEach((userRole) => {
+                renderRoleBadge(container, userRole.role?.name, userRole.roleId);
+            });
+        }
+
         $(() => {
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search users...", {
+                 height: "100%",
                 dataSource: createDataStore(serviceUrl, 'admin/UsersCRUD'),
                 remoteOperations: true,
                 export: { enabled: true },
@@ -75,27 +103,7 @@
                             }
                             return [];
                         },
-                        cellTemplate: function(container, options) {
-                            const userRoles = options.data.userRoles || [];
-                            if (userRoles.length === 0) {
-                                $('<span class="text-muted small">No roles assigned</span>')
-                                    .appendTo(container);
-                                return;
-                            }
-                            userRoles.forEach(ur => {
-                                const name = ur.role?.name || `Role #${ur.roleId}`;
-                                const isSuper = name === 'SuperAdmin';
-                                $('<span>')
-                                    .addClass('badge rounded-pill me-1')
-                                    .css({
-                                        background: isSuper ? 'var(--warning-color)' : 'var(--surface-brand-subtle)',
-                                        color:      isSuper ? 'var(--text-primary)' : 'var(--primary-color)',
-                                        fontSize:   '.75rem'
-                                    })
-                                    .html((isSuper ? '<i class="fas fa-star me-1"></i>' : '') + name)
-                                    .appendTo(container);
-                            });
-                        },
+                        cellTemplate: (container, options) => renderRolesCell(container, options),
                         editCellTemplate: tagBoxEditorTemplate,
                         lookup: {
                             dataSource: dsRolesLookup,
@@ -106,6 +114,9 @@
                     { dataField: "createdAt", dataType: "date", format: ADMIN_DATETIME_DISPLAY_FORMAT, visible: false }
                 ]
             }));
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
 
             function tagBoxEditorTemplate(cellElement, cellInfo) {
                 return $('<div>').dxTagBox({

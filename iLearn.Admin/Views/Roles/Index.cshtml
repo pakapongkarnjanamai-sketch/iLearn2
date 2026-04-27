@@ -13,9 +13,9 @@
     </button>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
 </div>
 
@@ -37,6 +37,7 @@
 
         $(() => {
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search roles...", {
+                height: "100%",
                 dataSource: createDataStore(serviceUrl, 'admin/RolesCRUD'),
                 remoteOperations: true,
                 export: { enabled: true },
@@ -73,6 +74,10 @@
                     }
                 ]
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
         });
 
         function addNewRole() {

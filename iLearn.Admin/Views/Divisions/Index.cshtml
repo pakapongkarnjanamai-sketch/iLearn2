@@ -13,7 +13,7 @@
     </button>
 </div>
 
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
+<div class="container-fluid admin-viewport-layout px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
 
     <!-- ── Summary KPI Bar ── -->
     <div class="row g-2" id="summary-bar">
@@ -44,11 +44,9 @@
     </div>
 
     <!-- ── DataGrid ── -->
-<div class="container-fluid px-4 py-3 pb-4 h-100 d-flex flex-column gap-3">
-    <div class="row g-3 h-100 admin-responsive-content">
-        <div id="grid" class="h-100"></div>
+    <div class="row g-3 flex-grow-1 admin-responsive-content">
+        <div id="grid" class="h-100 admin-viewport-fill"></div>
     </div>
-</div>
 
 
 </div>
@@ -78,6 +76,7 @@
             loadSummaryStats();
 
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search divisions...", {
+                height: "100%",
                 dataSource: divisionsStore,
                 remoteOperations: true,
                 editing: {
@@ -140,7 +139,7 @@
                         dataField: "name",
                         caption: "Division Name",
                         minWidth: 200,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             $("<div>").addClass("d-flex align-items-center gap-2")
                                 .append($("<i>").addClass("fas fa-building").css({ color: "var(--primary-color)", opacity: ".75" }))
                                 .append($("<span>").addClass("fw-bold text-dark").text(options.value))
@@ -158,10 +157,11 @@
                             displayExpr: 'name',
                             valueExpr: 'id'
                         },
-                        cellTemplate: function(container, options) {
-                            const isActive = options.value;
-                            window.renderAdminGridStatusCell(container, isActive ? "Active" : "Inactive", isActive ? "success" : "default");
-                        }
+                        cellTemplate: (container, options) => window.renderAdminGridStatusCell(
+                            container,
+                            options.value ? "Active" : "Inactive",
+                            options.value ? "success" : "default"
+                        )
                     },
                     {
                         dataField: "categoryCount",
@@ -169,13 +169,13 @@
                         width: 120,
                         alignment: "center",
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const count = options.value || 0;
-                            if (count === 0) {
-                                window.renderAdminGridTextCell(container, "None", "captionMuted");
-                            } else {
-                                window.renderAdminGridTextCell(container, count + " categor" + (count > 1 ? "ies" : "y"), "captionSuccess");
-                            }
+                            window.renderAdminGridTextCell(
+                                container,
+                                count === 0 ? "None" : count + " categor" + (count > 1 ? "ies" : "y"),
+                                count === 0 ? "captionMuted" : "captionSuccess"
+                            );
                         }
                     },
                     {
@@ -184,13 +184,13 @@
                         width: 110,
                         alignment: "center",
                         allowEditing: false,
-                        cellTemplate: function(container, options) {
+                        cellTemplate: (container, options) => {
                             const count = options.value || 0;
-                            if (count === 0) {
-                                window.renderAdminGridTextCell(container, "None", "captionMuted");
-                            } else {
-                                window.renderAdminGridTextCell(container, count + " role" + (count > 1 ? "s" : ""), "captionAccent");
-                            }
+                            window.renderAdminGridTextCell(
+                                container,
+                                count === 0 ? "None" : count + " role" + (count > 1 ? "s" : ""),
+                                count === 0 ? "captionMuted" : "captionAccent"
+                            );
                         }
                     },
                     {
@@ -213,6 +213,10 @@
                 onRowUpdated: () => loadSummaryStats(),
                 onRowRemoved: () => loadSummaryStats()
             }));
+
+            window.enableAdminViewportLayout({
+                refreshTargets: [gridInstance]
+            });
         });
 
         function addNewDivision() {

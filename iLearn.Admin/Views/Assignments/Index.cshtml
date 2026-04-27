@@ -103,9 +103,7 @@
                         dataField: "courseNames",
                         caption: "Courses",
                         minWidth: 200,
-                        cellTemplate: function (container, options) {
-                            renderAdminCoursesCell(container, options.value);
-                        }
+                        cellTemplate: (container, options) => renderAdminCoursesCell(container, options.value)
                     },
                     {
                         dataField: "description",
@@ -140,18 +138,14 @@
                         width: 110,
                         alignment: "center",
                         dataType: "date",
-                        cellTemplate: function (container, options) {
-                            renderAdminDueDateCell(container, options.value);
-                        }
+                        cellTemplate: (container, options) => renderAdminDueDateCell(container, options.value)
                     },
                     {
                         dataField: "status",
                         caption: "Status",
                         width: 130,
                         alignment: "center",
-                        cellTemplate: function (container, options) {
-                            renderAdminStatusCell(container, options.value, STATUS_MAP);
-                        }
+                        cellTemplate: (container, options) => renderAdminStatusCell(container, options.value, STATUS_MAP)
                     },
                     {
                         type: "buttons",
