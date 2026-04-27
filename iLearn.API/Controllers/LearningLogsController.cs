@@ -4,7 +4,9 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace iLearn.API.Controllers
 {
@@ -17,18 +19,21 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<CourseVersion> _versionRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly ICurrentUserService _currentUser;
+        private readonly IMemoryCache _cache;
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<CourseVersion> versionRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IMemoryCache cache)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
             _versionRepo = versionRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _currentUser = currentUserService;
+            _cache = cache;
         }
 
         [HttpPost("update-progress")]
@@ -167,6 +172,9 @@ namespace iLearn.API.Controllers
                     await _enrollmentAssignmentRepo.UpdateAsync(link);
                 }
             }
+
+            AdminSummaryStatsCache.InvalidateLearningLogs(_cache);
+            AdminSummaryStatsCache.InvalidateEnrollments(_cache);
 
             return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved." });
         }

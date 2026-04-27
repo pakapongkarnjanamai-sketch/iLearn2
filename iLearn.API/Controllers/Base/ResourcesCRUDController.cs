@@ -15,6 +15,13 @@ using Newtonsoft.Json;
 namespace iLearn.API.Controllers.Base
 {
     internal sealed record ResourceFolderStats(int FileCount, long TotalSize);
+    internal sealed record ResourceSummaryStats(
+        int TotalCount,
+        int PublishedCount,
+        int DraftCount,
+        long TotalDbSize,
+        int TotalServerFiles,
+        long TotalServerSize);
 
     public class ResourcesCRUDController : GenericController<Resource>
     {
@@ -85,55 +92,21 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("GetServerStats")]
         public async Task<IActionResult> GetServerStats(CancellationToken cancellationToken)
         {
-            if (_cache.TryGetValue(ResourceStatsCache.ServerStatsKey, out object? cachedStats) && cachedStats != null)
-                return Ok(cachedStats);
-
-            var folderStats = await GetPublishedFolderStatsAsync(cancellationToken);
-            var stats = folderStats.ToDictionary(x => x.Key, x => new { x.Value.FileCount, x.Value.TotalSize });
-
-            _cache.Set(ResourceStatsCache.ServerStatsKey, stats, ResourceStatsCache.DefaultOptions);
-
-            return Ok(stats);
+            return Ok(await GetCachedServerStatsAsync(cancellationToken));
         }
 
         [HttpGet("GetSummaryStats")]
         public async Task<IActionResult> GetSummaryStats(CancellationToken cancellationToken)
         {
-            if (_cache.TryGetValue(ResourceStatsCache.SummaryStatsKey, out object? cachedSummary) && cachedSummary != null)
-                return Ok(cachedSummary);
+            return Ok(await GetCachedSummaryStatsAsync(cancellationToken));
+        }
 
-            var dbAggregate = await _repository.GetQuery()
-                .GroupBy(_ => 1)
-                .Select(g => new
-                {
-                    totalCount = g.Count(),
-                    publishedCount = g.Count(r => r.IsActive),
-                    totalDbSize = g.Sum(r => (long?)((r.FileStorage != null ? r.FileStorage.Length : 0))) ?? 0
-                })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            int totalCount = dbAggregate?.totalCount ?? 0;
-            int publishedCount = dbAggregate?.publishedCount ?? 0;
-            int draftCount = totalCount - publishedCount;
-            long totalDbSize = dbAggregate?.totalDbSize ?? 0;
-
-            var folderStats = await GetPublishedFolderStatsAsync(cancellationToken);
-            int totalServerFiles = folderStats.Values.Sum(s => s.FileCount);
-            long totalServerSize = folderStats.Values.Sum(s => s.TotalSize);
-
-            var summary = new
-            {
-                totalCount,
-                publishedCount,
-                draftCount,
-                totalDbSize,
-                totalServerFiles,
-                totalServerSize
-            };
-
-            _cache.Set(ResourceStatsCache.SummaryStatsKey, summary, ResourceStatsCache.DefaultOptions);
-
-            return Ok(summary);
+        [HttpGet("GetDashboardStats")]
+        public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken)
+        {
+            var summary = await GetCachedSummaryStatsAsync(cancellationToken);
+            var serverStats = await GetCachedServerStatsAsync(cancellationToken);
+            return Ok(new { summary, serverStats });
         }
 
         private async Task<Dictionary<int, ResourceFolderStats>> GetPublishedFolderStatsAsync(CancellationToken cancellationToken)
@@ -155,9 +128,61 @@ namespace iLearn.API.Controllers.Base
                 folderStats[resource.Id] = new ResourceFolderStats(info.FileCount, info.TotalSize);
             }
 
-            _cache.Set(ResourceStatsCache.FolderStatsKey, folderStats, ResourceStatsCache.DefaultOptions);
+            _cache.Set(ResourceStatsCache.FolderStatsKey, folderStats, ResourceStatsCache.FolderOptions);
 
             return folderStats;
+        }
+
+        private async Task<Dictionary<int, ResourceFolderStats>> GetCachedServerStatsAsync(CancellationToken cancellationToken)
+        {
+            if (_cache.TryGetValue(ResourceStatsCache.ServerStatsKey, out Dictionary<int, ResourceFolderStats>? cachedStats) && cachedStats != null)
+            {
+                return cachedStats;
+            }
+
+            var folderStats = await GetPublishedFolderStatsAsync(cancellationToken);
+            var serverStats = new Dictionary<int, ResourceFolderStats>(folderStats);
+            _cache.Set(ResourceStatsCache.ServerStatsKey, serverStats, ResourceStatsCache.ServerOptions);
+            return serverStats;
+        }
+
+        private async Task<ResourceSummaryStats> GetCachedSummaryStatsAsync(CancellationToken cancellationToken)
+        {
+            if (_cache.TryGetValue(ResourceStatsCache.SummaryStatsKey, out ResourceSummaryStats cachedSummary))
+            {
+                return cachedSummary;
+            }
+
+            var dbAggregate = await _repository.GetQuery()
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    totalCount = g.Count(),
+                    publishedCount = g.Count(r => r.IsActive),
+                    totalDbSize = g.Sum(r => (long?)((r.FileStorage != null ? r.FileStorage.Length : 0))) ?? 0
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            int totalCount = dbAggregate?.totalCount ?? 0;
+            int publishedCount = dbAggregate?.publishedCount ?? 0;
+            int draftCount = totalCount - publishedCount;
+            long totalDbSize = dbAggregate?.totalDbSize ?? 0;
+
+            var folderStats = await GetPublishedFolderStatsAsync(cancellationToken);
+            int totalServerFiles = folderStats.Values.Sum(s => s.FileCount);
+            long totalServerSize = folderStats.Values.Sum(s => s.TotalSize);
+
+            var summary = new ResourceSummaryStats(
+                totalCount,
+                publishedCount,
+                draftCount,
+                totalDbSize,
+                totalServerFiles,
+                totalServerSize);
+
+            _cache.Set(ResourceStatsCache.SummaryStatsKey, summary, ResourceStatsCache.SummaryOptions);
+
+            return summary;
         }
 
         [HttpPut("Put")]

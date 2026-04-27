@@ -14,10 +14,23 @@ namespace iLearn.Infrastructure.Services
         public const string ServerStatsKey  = "resources:server-stats";
         public const string FolderStatsKey  = "resources:folder-stats";
 
-        public static MemoryCacheEntryOptions DefaultOptions { get; } = new MemoryCacheEntryOptions
+        public static MemoryCacheEntryOptions SummaryOptions { get; } = new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)
         };
+
+        public static MemoryCacheEntryOptions ServerOptions { get; } = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+        };
+
+        public static MemoryCacheEntryOptions FolderOptions { get; } = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+        };
+
+        // Backward-compatible alias for existing usages.
+        public static MemoryCacheEntryOptions DefaultOptions => SummaryOptions;
 
         public static void Invalidate(IMemoryCache cache)
         {

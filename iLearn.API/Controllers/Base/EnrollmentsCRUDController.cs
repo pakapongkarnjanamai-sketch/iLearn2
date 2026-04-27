@@ -14,12 +14,25 @@ using Newtonsoft.Json;
 
 namespace iLearn.API.Controllers.Base
 {
+    internal sealed record EnrollmentsSummaryStats(
+        int TotalCount,
+        int CompletedCount,
+        int InProgressCount,
+        int EnrolledCount,
+        double AvgProgress);
+
     [Authorize(Policy = "SuperAdminOnly")]
     public class EnrollmentsCRUDController : GenericController<Enrollment>
     {
+        private readonly IMemoryCache _cache;
+
         public EnrollmentsCRUDController(
             IGenericRepository<Enrollment> repository,
-            ICurrentUserService currentUser) : base(repository, currentUser) { }
+            ICurrentUserService currentUser,
+            IMemoryCache cache) : base(repository, currentUser)
+        {
+            _cache = cache;
+        }
 
         [HttpGet("Get")]
         public override async Task<IActionResult> Get(DataSourceLoadOptions loadOptions)
@@ -49,20 +62,71 @@ namespace iLearn.API.Controllers.Base
         }
 
         [HttpGet("GetSummaryStats")]
-        public async Task<IActionResult> GetSummaryStats()
+        public async Task<IActionResult> GetSummaryStats(CancellationToken cancellationToken)
         {
-            var all = await _repository.GetQuery()
-                .Select(e => new { e.IsCompleted, e.Progress })
-                .ToListAsync();
-
-            return Ok(new
+            if (_cache.TryGetValue(AdminSummaryStatsCache.EnrollmentsSummaryKey, out EnrollmentsSummaryStats? cachedStats) && cachedStats != null)
             {
-                totalCount = all.Count,
-                completedCount = all.Count(e => e.IsCompleted),
-                inProgressCount = all.Count(e => !e.IsCompleted && e.Progress > 0),
-                enrolledCount = all.Count(e => !e.IsCompleted && e.Progress == 0),
-                avgProgress = all.Count > 0 ? Math.Round(all.Average(e => e.Progress), 1) : 0
-            });
+                return Ok(cachedStats);
+            }
+
+            var aggregate = await _repository.GetQuery()
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    totalCount = g.Count(),
+                    completedCount = g.Count(e => e.IsCompleted),
+                    inProgressCount = g.Count(e => !e.IsCompleted && e.Progress > 0),
+                    enrolledCount = g.Count(e => !e.IsCompleted && e.Progress == 0),
+                    avgProgress = g.Average(e => (double?)e.Progress)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var stats = new EnrollmentsSummaryStats(
+                aggregate?.totalCount ?? 0,
+                aggregate?.completedCount ?? 0,
+                aggregate?.inProgressCount ?? 0,
+                aggregate?.enrolledCount ?? 0,
+                Math.Round(aggregate?.avgProgress ?? 0, 1));
+
+            _cache.Set(AdminSummaryStatsCache.EnrollmentsSummaryKey, stats, AdminSummaryStatsCache.SummaryOptions);
+
+            return Ok(stats);
+        }
+
+        [HttpPost("Post")]
+        public override async Task<IActionResult> Post([FromForm] string values)
+        {
+            var result = await base.Post(values);
+            if (result is OkObjectResult || result is OkResult)
+            {
+                AdminSummaryStatsCache.InvalidateEnrollments(_cache);
+            }
+
+            return result;
+        }
+
+        [HttpPut("Put")]
+        public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
+        {
+            var result = await base.Put(key, values);
+            if (result is OkObjectResult || result is OkResult)
+            {
+                AdminSummaryStatsCache.InvalidateEnrollments(_cache);
+            }
+
+            return result;
+        }
+
+        [HttpDelete("Delete")]
+        public override async Task<IActionResult> Delete([FromForm] int key)
+        {
+            var result = await base.Delete(key);
+            if (result is OkObjectResult || result is OkResult)
+            {
+                AdminSummaryStatsCache.InvalidateEnrollments(_cache);
+            }
+
+            return result;
         }
     }
 }

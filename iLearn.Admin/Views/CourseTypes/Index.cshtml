@@ -55,21 +55,51 @@
     <script>
         let gridInstance;
         const courseTypesStore = createDataStore(serviceUrl, 'admin/CourseTypesCRUD');
+        const summaryKpiIds = ['kpi-total', 'kpi-courses', 'kpi-avg', 'kpi-unused'];
+        const summaryStatsCacheTtlMs = 30000;
+        let summaryStatsRequest = null;
+        let summaryStatsCache = null;
+        let summaryStatsCacheAt = 0;
 
-        function loadSummaryStats() {
-            showStatSkeleton(['kpi-total', 'kpi-courses', 'kpi-avg', 'kpi-unused']);
-            $.ajax({
+        function applySummaryStats(d) {
+            $("#kpi-total").text(d.totalTypes);
+            $("#kpi-courses").text(d.totalCourses);
+            $("#kpi-avg").text(d.avgCoursesPerType);
+            $("#kpi-unused").text(d.unusedTypes);
+        }
+
+        function loadSummaryStats(options) {
+            const settings = options || {};
+            const force = settings.force === true;
+            const now = Date.now();
+            const canUseCache = !force && summaryStatsCache && (now - summaryStatsCacheAt) < summaryStatsCacheTtlMs;
+
+            if (canUseCache) {
+                applySummaryStats(summaryStatsCache);
+                return $.Deferred().resolve(summaryStatsCache).promise();
+            }
+
+            if (summaryStatsRequest) {
+                return summaryStatsRequest;
+            }
+
+            showStatSkeleton(summaryKpiIds);
+
+            summaryStatsRequest = $.ajax({
                 url: `${serviceUrl}/admin/CourseTypesCRUD/GetSummaryStats`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done(function(d) {
-                $("#kpi-total").text(d.totalTypes);
-                $("#kpi-courses").text(d.totalCourses);
-                $("#kpi-avg").text(d.avgCoursesPerType);
-                $("#kpi-unused").text(d.unusedTypes);
+                summaryStatsCache = d || {};
+                summaryStatsCacheAt = Date.now();
+                applySummaryStats(summaryStatsCache);
             }).fail(function() {
-                hideStatSkeleton(['kpi-total', 'kpi-courses', 'kpi-avg', 'kpi-unused']);
+                hideStatSkeleton(summaryKpiIds);
+            }).always(function() {
+                summaryStatsRequest = null;
             });
+
+            return summaryStatsRequest;
         }
 
         $(() => {
@@ -183,9 +213,9 @@
                         ]
                     }
                 ],
-                onRowInserted: () => loadSummaryStats(),
-                onRowUpdated: () => loadSummaryStats(),
-                onRowRemoved: () => loadSummaryStats()
+                onRowInserted: () => loadSummaryStats({ force: true }),
+                onRowUpdated: () => loadSummaryStats({ force: true }),
+                onRowRemoved: () => loadSummaryStats({ force: true })
             }));
 
             window.enableAdminViewportLayout({

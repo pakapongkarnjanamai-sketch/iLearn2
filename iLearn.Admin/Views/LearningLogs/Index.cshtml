@@ -96,6 +96,11 @@
             { id: 'failed', name: 'Failed' },
             { id: 'inprogress', name: 'In Progress / Incomplete' }
         ];
+        const summaryKpiIds = ['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-failed', 'kpi-avgscore', 'kpi-totaltime'];
+        const summaryStatsCacheTtlMs = 30000;
+        let summaryStatsRequest = null;
+        let summaryStatsCache = null;
+        let summaryStatsCacheAt = 0;
         const statusToneMap = {
             completed: "success",
             passed: "success",
@@ -119,22 +124,47 @@
             return window.formatAdminDuration(seconds, '—');
         }
 
-        function loadSummaryStats() {
-            showStatSkeleton(['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-failed', 'kpi-avgscore', 'kpi-totaltime']);
-            $.ajax({
+        function applySummaryStats(d) {
+            $("#kpi-total").text(window.formatAdminInteger(d.totalLogs, '0'));
+            $("#kpi-completed").text(window.formatAdminInteger(d.completedCount, '0'));
+            $("#kpi-inprogress").text(window.formatAdminInteger(d.inProgressCount, '0'));
+            $("#kpi-failed").text(window.formatAdminInteger(d.failedCount, '0'));
+            $("#kpi-avgscore").text(d.avgScore > 0 ? window.formatAdminPercentage(d.avgScore, '—') : '—');
+            $("#kpi-totaltime").text(formatTimeFull(d.totalTimeSpent));
+        }
+
+        function loadSummaryStats(options) {
+            const settings = options || {};
+            const force = settings.force === true;
+            const now = Date.now();
+            const canUseCache = !force && summaryStatsCache && (now - summaryStatsCacheAt) < summaryStatsCacheTtlMs;
+
+            if (canUseCache) {
+                applySummaryStats(summaryStatsCache);
+                return $.Deferred().resolve(summaryStatsCache).promise();
+            }
+
+            if (summaryStatsRequest) {
+                return summaryStatsRequest;
+            }
+
+            showStatSkeleton(summaryKpiIds);
+
+            summaryStatsRequest = $.ajax({
                 url: `${serviceUrl}/admin/LearningLogsCRUD/GetSummaryStats`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done(function(d) {
-                $("#kpi-total").text(window.formatAdminInteger(d.totalLogs, '0'));
-                $("#kpi-completed").text(window.formatAdminInteger(d.completedCount, '0'));
-                $("#kpi-inprogress").text(window.formatAdminInteger(d.inProgressCount, '0'));
-                $("#kpi-failed").text(window.formatAdminInteger(d.failedCount, '0'));
-                $("#kpi-avgscore").text(d.avgScore > 0 ? window.formatAdminPercentage(d.avgScore, '—') : '—');
-                $("#kpi-totaltime").text(formatTimeFull(d.totalTimeSpent));
+                summaryStatsCache = d || {};
+                summaryStatsCacheAt = Date.now();
+                applySummaryStats(summaryStatsCache);
             }).fail(function() {
-                hideStatSkeleton(['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-failed', 'kpi-avgscore', 'kpi-totaltime']);
+                hideStatSkeleton(summaryKpiIds);
+            }).always(function() {
+                summaryStatsRequest = null;
             });
+
+            return summaryStatsRequest;
         }
 
         function applyFilters() {

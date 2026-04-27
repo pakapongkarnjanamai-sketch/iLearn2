@@ -14,20 +14,29 @@ using Newtonsoft.Json;
 
 namespace iLearn.API.Controllers.Base
 {
+    internal sealed record DivisionsSummaryStats(
+        int TotalDivisions,
+        int TotalCategories,
+        int TotalRoles,
+        int UnusedDivisions);
+
     [Authorize(Policy = "SuperAdminOnly")]
     public class DivisionsCRUDController : GenericController<Division>
     {
         private readonly IGenericRepository<Category> _categoryRepo;
         private readonly IGenericRepository<Role> _roleRepo;
+        private readonly IMemoryCache _cache;
 
         public DivisionsCRUDController(
             IGenericRepository<Division> repository,
             ICurrentUserService currentUser,
             IGenericRepository<Category> categoryRepo,
-            IGenericRepository<Role> roleRepo) : base(repository, currentUser)
+            IGenericRepository<Role> roleRepo,
+            IMemoryCache cache) : base(repository, currentUser)
         {
             _categoryRepo = categoryRepo;
             _roleRepo = roleRepo;
+            _cache = cache;
         }
 
         [HttpGet("Get")]
@@ -90,32 +99,72 @@ namespace iLearn.API.Controllers.Base
         }
 
         [HttpGet("GetSummaryStats")]
-        public async Task<IActionResult> GetSummaryStats()
+        public async Task<IActionResult> GetSummaryStats(CancellationToken cancellationToken)
         {
-            var totalDivisions = await _repository.CountAsync();
-            var totalCategories = await _categoryRepo.CountAsync();
-            var totalRoles = await _roleRepo.CountAsync();
+            if (_cache.TryGetValue(AdminSummaryStatsCache.DivisionsSummaryKey, out DivisionsSummaryStats? cachedStats) && cachedStats != null)
+            {
+                return Ok(cachedStats);
+            }
 
-            var usedByCategoryIds = await _categoryRepo.GetQuery()
+            var totalDivisions = await _repository.GetQuery().CountAsync(cancellationToken);
+            var totalCategories = await _categoryRepo.GetQuery().CountAsync(cancellationToken);
+            var totalRoles = await _roleRepo.GetQuery().CountAsync(cancellationToken);
+
+            var usedDivisionIds = _categoryRepo.GetQuery()
                 .Where(c => c.DivisionId != null)
                 .Select(c => c.DivisionId!.Value)
-                .Distinct()
-                .ToListAsync();
-            var usedByRoleIds = await _roleRepo.GetQuery()
-                .Where(r => r.DivisionId != null)
-                .Select(r => r.DivisionId!.Value)
-                .Distinct()
-                .ToListAsync();
-            var usedIds = usedByCategoryIds.Union(usedByRoleIds).ToHashSet();
-            var unusedDivisions = await _repository.CountAsync(d => !usedIds.Contains(d.Id));
+                .Union(_roleRepo.GetQuery()
+                    .Where(r => r.DivisionId != null)
+                    .Select(r => r.DivisionId!.Value));
 
-            return Ok(new
-            {
+            var unusedDivisions = await _repository.GetQuery()
+                .CountAsync(d => !usedDivisionIds.Contains(d.Id), cancellationToken);
+
+            var stats = new DivisionsSummaryStats(
                 totalDivisions,
                 totalCategories,
                 totalRoles,
-                unusedDivisions
-            });
+                unusedDivisions);
+
+            _cache.Set(AdminSummaryStatsCache.DivisionsSummaryKey, stats, AdminSummaryStatsCache.SummaryOptions);
+
+            return Ok(stats);
+        }
+
+        [HttpPost("Post")]
+        public override async Task<IActionResult> Post([FromForm] string values)
+        {
+            var result = await base.Post(values);
+            if (result is OkObjectResult || result is OkResult)
+            {
+                AdminSummaryStatsCache.InvalidateDivisions(_cache);
+            }
+
+            return result;
+        }
+
+        [HttpPut("Put")]
+        public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
+        {
+            var result = await base.Put(key, values);
+            if (result is OkObjectResult || result is OkResult)
+            {
+                AdminSummaryStatsCache.InvalidateDivisions(_cache);
+            }
+
+            return result;
+        }
+
+        [HttpDelete("Delete")]
+        public override async Task<IActionResult> Delete([FromForm] int key)
+        {
+            var result = await base.Delete(key);
+            if (result is OkObjectResult || result is OkResult)
+            {
+                AdminSummaryStatsCache.InvalidateDivisions(_cache);
+            }
+
+            return result;
         }
     }
 }

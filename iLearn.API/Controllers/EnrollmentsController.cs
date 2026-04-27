@@ -6,8 +6,10 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,6 +34,7 @@ namespace iLearn.API.Controllers
         private readonly IAssignmentNoGenerator _assignmentNoGen;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMemoryCache _cache;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -45,7 +48,8 @@ namespace iLearn.API.Controllers
             IStudentGroupService studentGroupService,
             IAssignmentNoGenerator assignmentNoGen,
             IDateTime dateTime,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IMemoryCache cache)
         {
             _enrollmentRepo      = enrollmentRepo;
             _enrollmentService   = enrollmentService;
@@ -59,6 +63,7 @@ namespace iLearn.API.Controllers
             _assignmentNoGen     = assignmentNoGen;
             _dateTime            = dateTime;
             _unitOfWork          = unitOfWork;
+            _cache               = cache;
         }
 
         [HttpPost("ResetStatus")]
@@ -74,6 +79,7 @@ namespace iLearn.API.Controllers
             enrollment.Progress      = 0;
             enrollment.ResetAt       = _dateTime.Now;
             await _enrollmentRepo.UpdateAsync(enrollment);
+            AdminSummaryStatsCache.InvalidateEnrollments(_cache);
 
             return Ok(new { success = true });
         }
@@ -249,6 +255,7 @@ namespace iLearn.API.Controllers
                 enrollment.CompletedDate = null;
             }
             await _enrollmentRepo.UpdateAsync(enrollment);
+            AdminSummaryStatsCache.InvalidateEnrollments(_cache);
             return Ok(new ApiResponse<EnrollmentDto> { Success = true, Data = enrollment.ToDto() });
         }
 
@@ -325,6 +332,7 @@ namespace iLearn.API.Controllers
                     forceReset: true);
 
                 await transaction.CommitAsync();
+                AdminSummaryStatsCache.InvalidateEnrollments(_cache);
                 return Ok(new
                 {
                     message = "Courses assigned successfully!",

@@ -209,11 +209,12 @@
                             <li><hr class="dropdown-divider my-1"></li>
 
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2 admin-refresh-link"
-                                   href="#" data-admin-refresh-user="true">
-                                    <i class="fas fa-rotate-right text-muted admin-refresh-link-icon" aria-hidden="true"></i>
-                                    Refresh user data
-                                </a>
+                                <button type="button"
+                                        class="dropdown-item d-flex align-items-center gap-2 py-2 admin-refresh-link"
+                                        data-admin-clear-cache="true">
+                                    <i class="fas fa-broom text-muted admin-refresh-link-icon" aria-hidden="true"></i>
+                                    Clear all cached data
+                                </button>
                             </li>
                         </ul>
                     </li>
@@ -230,7 +231,8 @@
 
     <script>
         window.iLearnAdminConfig = {
-            apiBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseUrl"] ?? string.Empty))
+            apiBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseUrl"] ?? string.Empty)),
+            clearAllCacheUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Url.Action("ClearAll", "Cache") ?? string.Empty))
         };
     </script>
     <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>

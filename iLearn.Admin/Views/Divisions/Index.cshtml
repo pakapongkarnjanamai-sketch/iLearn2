@@ -55,21 +55,51 @@
     <script>
         let gridInstance;
         const divisionsStore = createDataStore(serviceUrl, 'admin/DivisionsCRUD');
+        const summaryKpiIds = ['kpi-total', 'kpi-categories', 'kpi-roles', 'kpi-unused'];
+        const summaryStatsCacheTtlMs = 30000;
+        let summaryStatsRequest = null;
+        let summaryStatsCache = null;
+        let summaryStatsCacheAt = 0;
 
-        function loadSummaryStats() {
-            showStatSkeleton(['kpi-total', 'kpi-categories', 'kpi-roles', 'kpi-unused']);
-            $.ajax({
+        function applySummaryStats(d) {
+            $("#kpi-total").text(d.totalDivisions);
+            $("#kpi-categories").text(d.totalCategories);
+            $("#kpi-roles").text(d.totalRoles);
+            $("#kpi-unused").text(d.unusedDivisions);
+        }
+
+        function loadSummaryStats(options) {
+            const settings = options || {};
+            const force = settings.force === true;
+            const now = Date.now();
+            const canUseCache = !force && summaryStatsCache && (now - summaryStatsCacheAt) < summaryStatsCacheTtlMs;
+
+            if (canUseCache) {
+                applySummaryStats(summaryStatsCache);
+                return $.Deferred().resolve(summaryStatsCache).promise();
+            }
+
+            if (summaryStatsRequest) {
+                return summaryStatsRequest;
+            }
+
+            showStatSkeleton(summaryKpiIds);
+
+            summaryStatsRequest = $.ajax({
                 url: `${serviceUrl}/admin/DivisionsCRUD/GetSummaryStats`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
             }).done(function(d) {
-                $("#kpi-total").text(d.totalDivisions);
-                $("#kpi-categories").text(d.totalCategories);
-                $("#kpi-roles").text(d.totalRoles);
-                $("#kpi-unused").text(d.unusedDivisions);
+                summaryStatsCache = d || {};
+                summaryStatsCacheAt = Date.now();
+                applySummaryStats(summaryStatsCache);
             }).fail(function() {
-                hideStatSkeleton(['kpi-total', 'kpi-categories', 'kpi-roles', 'kpi-unused']);
+                hideStatSkeleton(summaryKpiIds);
+            }).always(function() {
+                summaryStatsRequest = null;
             });
+
+            return summaryStatsRequest;
         }
 
         $(() => {
@@ -209,9 +239,9 @@
                         ]
                     }
                 ],
-                onRowInserted: () => loadSummaryStats(),
-                onRowUpdated: () => loadSummaryStats(),
-                onRowRemoved: () => loadSummaryStats()
+                onRowInserted: () => loadSummaryStats({ force: true }),
+                onRowUpdated: () => loadSummaryStats({ force: true }),
+                onRowRemoved: () => loadSummaryStats({ force: true })
             }));
 
             window.enableAdminViewportLayout({

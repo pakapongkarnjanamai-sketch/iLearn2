@@ -124,11 +124,10 @@
         let gridInstance;
         let serverStatsMap = {};
         const summaryKpiIds = ['kpi-total', 'kpi-published', 'kpi-draft', 'kpi-dbsize', 'kpi-serverfiles', 'kpi-serversize'];
-        const summaryStatsCacheTtlMs = 30000;
-        let summaryStatsRequest = null;
-        let serverStatsRequest = null;
-        let summaryStatsCache = null;
-        let summaryStatsCacheAt = 0;
+        const dashboardStatsCacheTtlMs = 30000;
+        let dashboardStatsRequest = null;
+        let dashboardStatsCache = null;
+        let dashboardStatsCacheAt = 0;
 
         function renderServerStatCell(container, options, valueSelector, styleKey, formatter) {
             const stats = serverStatsMap[options.data.id];
@@ -346,25 +345,6 @@
             }
         }
 
-        function loadServerStats() {
-            if (serverStatsRequest) {
-                return serverStatsRequest;
-            }
-
-            serverStatsRequest = $.ajax({
-                url: `${serviceUrl}/admin/ResourcesCRUD/GetServerStats`,
-                type: 'GET',
-                xhrFields: { withCredentials: true }
-            }).done(function(data) {
-                serverStatsMap = data || {};
-                if (gridInstance) gridInstance.repaint();
-            }).always(function() {
-                serverStatsRequest = null;
-            });
-
-            return serverStatsRequest;
-        }
-
         function applySummaryStats(d) {
             $("#kpi-total").text(window.formatAdminInteger(d.totalCount, '0'));
             $("#kpi-published").text(window.formatAdminInteger(d.publishedCount, '0'));
@@ -374,43 +354,61 @@
             $("#kpi-serversize").text(window.formatAdminFileSize(d.totalServerSize, '—'));
         }
 
-        function loadSummaryStats(options) {
+        function applyDashboardStats(payload) {
+            if (!payload) return;
+
+            serverStatsMap = payload.serverStats || {};
+            if (gridInstance) gridInstance.repaint();
+
+            if (payload.summary) {
+                applySummaryStats(payload.summary);
+            }
+        }
+
+        function loadDashboardStats(options) {
             const settings = options || {};
             const force = settings.force === true;
             const now = Date.now();
-            const canUseCache = !force && summaryStatsCache && (now - summaryStatsCacheAt) < summaryStatsCacheTtlMs;
+            const canUseCache = !force && dashboardStatsCache && (now - dashboardStatsCacheAt) < dashboardStatsCacheTtlMs;
 
             if (canUseCache) {
-                applySummaryStats(summaryStatsCache);
-                return $.Deferred().resolve(summaryStatsCache).promise();
+                applyDashboardStats(dashboardStatsCache);
+                return $.Deferred().resolve(dashboardStatsCache).promise();
             }
 
-            if (summaryStatsRequest) {
-                return summaryStatsRequest;
+            if (dashboardStatsRequest) {
+                return dashboardStatsRequest;
             }
 
             showStatSkeleton(summaryKpiIds);
 
-            summaryStatsRequest = $.ajax({
-                url: `${serviceUrl}/admin/ResourcesCRUD/GetSummaryStats`,
+            dashboardStatsRequest = $.ajax({
+                url: `${serviceUrl}/admin/ResourcesCRUD/GetDashboardStats`,
                 type: 'GET',
                 xhrFields: { withCredentials: true }
-            }).done(function(d) {
-                summaryStatsCache = d || {};
-                summaryStatsCacheAt = Date.now();
-                applySummaryStats(summaryStatsCache);
+            }).done(function(dashboard) {
+                dashboardStatsCache = dashboard || {};
+                dashboardStatsCacheAt = Date.now();
+                applyDashboardStats(dashboardStatsCache);
             }).fail(function() {
                 hideStatSkeleton(summaryKpiIds);
             }).always(function() {
-                summaryStatsRequest = null;
+                dashboardStatsRequest = null;
             });
 
-            return summaryStatsRequest;
+            return dashboardStatsRequest;
+        }
+
+        function loadSummaryStats(options) {
+            return loadDashboardStats(options);
+        }
+
+        function loadServerStats(options) {
+            return loadDashboardStats(options);
         }
 
         function refreshAll() {
-            loadServerStats();
-            loadSummaryStats({ force: true });
+            loadDashboardStats({ force: true });
             if (gridInstance) gridInstance.refresh();
         }
 
@@ -461,8 +459,7 @@
 
         $(() => {
             // Load stats on page init
-            loadServerStats();
-            loadSummaryStats();
+            loadDashboardStats();
 
             // ── Filter Bar Controls ──
             $("#filterType").dxSelectBox({

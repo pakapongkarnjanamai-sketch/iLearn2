@@ -1,6 +1,7 @@
 (function (window, $) {
     const config = window.iLearnAdminConfig || {};
     const apiBaseUrl = config.apiBaseUrl || '';
+    const clearAllCacheUrl = config.clearAllCacheUrl || '';
     const toastPosition = { position: 'bottom right', direction: 'up-push' };
     const spinnerIconHtml = '<i class="fas fa-spinner fa-spin me-1"></i>';
     const gridResizeNamespace = '.ilearnGridViewport';
@@ -1346,30 +1347,56 @@
         $.fn.dxPopup.__ilearnPopupSized = true;
     }
 
-    function refreshUserCache() {
+    function clearAllCache(triggerButton) {
+        const $trigger = $(triggerButton);
         const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('_refresh', '1');
+        currentUrl.searchParams.delete('_refresh');
 
         showAdminConfirmDialog({
-            title: 'Refresh user access data?',
-            text: 'Reload the latest role and division access from the API for this session.',
-            icon: 'question',
-            confirmButtonText: 'Refresh now',
+            title: 'Clear all cached data?',
+            text: 'This clears Admin and API in-memory caches, then reloads the current page.',
+            icon: 'warning',
+            confirmButtonText: 'Clear cache',
             cancelButtonText: 'Cancel',
-            confirmType: 'default'
+            confirmType: 'danger'
         }).done(function (confirmed) {
-            if (confirmed) {
-                window.location.href = currentUrl.toString();
+            if (!confirmed) {
+                return;
             }
+
+            if (!clearAllCacheUrl) {
+                showToast('Cache clear endpoint is not configured.', 'error', 4000);
+                return;
+            }
+
+            setButtonLoading($trigger, true, 'Clearing cache...');
+
+            $.ajax({
+                url: clearAllCacheUrl,
+                type: 'POST'
+            }).done(function (response) {
+                showToast(response && response.message ? response.message : 'All cached data cleared.', 'success', 1500);
+
+                window.setTimeout(function () {
+                    window.location.href = currentUrl.toString();
+                }, 180);
+            }).fail(function (xhr) {
+                const message = xhr && xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'Could not clear cached data.';
+                showToast(message, 'error', 4000);
+            }).always(function () {
+                setButtonLoading($trigger, false);
+            });
         });
     }
 
     $(function () {
         applyGlobalDxPopupSizing();
 
-        $(document).on('click', '[data-admin-refresh-user]', function (event) {
+        $(document).on('click', '[data-admin-clear-cache]', function (event) {
             event.preventDefault();
-            refreshUserCache();
+            clearAllCache(this);
         });
     });
 
@@ -1403,7 +1430,8 @@
     window.hideStatSkeleton = hideStatSkeleton;
     window.showCardsSkeleton = showCardsSkeleton;
     window.hideCardsSkeleton = hideCardsSkeleton;
-    window.refreshUserCache = refreshUserCache;
+    window.clearAllCache = clearAllCache;
+    window.refreshUserCache = clearAllCache;
     window.refreshViewportGridHeights = refreshViewportGridHeights;
     window.enableAdminViewportLayout = enableAdminViewportLayout;
     window.toggleAdminViewportLayout = toggleAdminViewportLayout;
