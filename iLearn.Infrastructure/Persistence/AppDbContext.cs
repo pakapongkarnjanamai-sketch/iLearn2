@@ -1,4 +1,5 @@
-﻿using iLearn.Application.Interfaces.Services;
+﻿using iLearn.Application.Common;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,7 @@ namespace iLearn.Infrastructure.Persistence
         public DbSet<CourseResource> CourseResources { get; set; }
         public DbSet<FileStorage> FileStorages { get; set; }
         public DbSet<LearningLog> LearningLogs { get; set; }
+        public DbSet<ScormRuntimeState> ScormRuntimeStates { get; set; }
         public DbSet<CourseType> CourseTypes { get; set; }
         public DbSet<AdminActivity> AdminActivities { get; set; }
 
@@ -105,6 +107,66 @@ namespace iLearn.Infrastructure.Persistence
                 .HasOne(r => r.FileStorage)
                 .WithOne() // หรือ WithMany ถ้าไฟล์เดียวใช้หลาย Resource
                 .HasForeignKey<Resource>(r => r.FileStorageId);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .HasOne(state => state.Enrollment)
+                .WithMany()
+                .HasForeignKey(state => state.EnrollmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .HasOne(state => state.Resource)
+                .WithMany()
+                .HasForeignKey(state => state.ResourceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .HasIndex(state => new { state.EnrollmentId, state.ResourceId })
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .HasIndex(state => state.LastCommittedAtUtc);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.ScormVersion)
+                .HasMaxLength(ScormRuntimeLimits.ScormVersionMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.LessonLocation)
+                .HasMaxLength(ScormRuntimeLimits.LessonLocationMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.LessonStatus)
+                .HasMaxLength(ScormRuntimeLimits.StatusMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.CompletionStatus)
+                .HasMaxLength(ScormRuntimeLimits.StatusMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.SuccessStatus)
+                .HasMaxLength(ScormRuntimeLimits.StatusMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.SessionTime)
+                .HasMaxLength(ScormRuntimeLimits.SessionTimeMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.TotalTime)
+                .HasMaxLength(ScormRuntimeLimits.TotalTimeMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.Entry)
+                .HasMaxLength(ScormRuntimeLimits.EntryMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.Exit)
+                .HasMaxLength(ScormRuntimeLimits.ExitMaxLength);
+
+            modelBuilder.Entity<ScormRuntimeState>()
+                .Property(state => state.RawScore)
+                .HasPrecision(7, 2);
 
             modelBuilder.Entity<CourseVersion>()
                 .HasOne(cv => cv.Course)

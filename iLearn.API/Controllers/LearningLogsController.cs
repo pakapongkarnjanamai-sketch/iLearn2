@@ -1,4 +1,5 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
@@ -23,6 +24,7 @@ namespace iLearn.API.Controllers
         private readonly ICurrentUserService _currentUser;
         private readonly IMemoryCache _cache;
         private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
+        private readonly IScormRuntimeStateService _scormRuntimeStateService;
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -30,7 +32,8 @@ namespace iLearn.API.Controllers
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             ICurrentUserService currentUserService,
             IMemoryCache cache,
-            ILearnerProxyIdentityResolver learnerProxyIdentityResolver)
+            ILearnerProxyIdentityResolver learnerProxyIdentityResolver,
+            IScormRuntimeStateService scormRuntimeStateService)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
@@ -39,156 +42,163 @@ namespace iLearn.API.Controllers
             _currentUser = currentUserService;
             _cache = cache;
             _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
+            _scormRuntimeStateService = scormRuntimeStateService;
         }
 
         [Authorize(Policy = "DomainUser")]
         [HttpPost("update-progress")]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
-            if (!_learnerProxyIdentityResolver.TryResolveStudentCode(HttpContext, out var studentCode, out var statusCode, out var errorMessage))
+            if (!TryResolveTrustedLearnerStudentCode(out var studentCode, out var errorResult))
             {
-                return StatusCode(statusCode, new ApiResponse<string> { Success = false, Message = errorMessage });
+                return errorResult;
             }
 
-            // 1. ตรวจสอบ Enrollment
-            var enrollment = await _enrollmentRepo.GetByIdAsync(input.EnrollmentId);
-            if (enrollment == null)
-                return NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" });
-
-            // ตรวจสอบว่าเป็นเจ้าของ Enrollment หรือไม่
-            if (!string.Equals(enrollment.StudentCode, studentCode, StringComparison.OrdinalIgnoreCase))
-                return Unauthorized(new ApiResponse<string> { Success = false, Message = "StudentDto code mismatch" });
-
-            // ✅ ถ้าจบแล้ว (Completed) ไม่ให้แก้ (เว้นแต่ Admin จะ Reset IsCompleted = false มาแล้ว)
-            if (enrollment.IsCompleted)
+            var validation = await ValidateEnrollmentForStudentAsync(input.EnrollmentId, studentCode);
+            if (validation.ErrorResult != null)
             {
-                return Ok(new ApiResponse<string> { Success = true, Message = "Course is completed." });
+                return validation.ErrorResult;
             }
 
-            // 🌟 ตรวจสอบก่อนว่าประวัติการเรียนนี้ยังมี Version ให้เรียนอยู่หรือไม่ (กรณีคอร์สถูกลบ)
-            if (!enrollment.EnrolledCourseVersion.HasValue)
-            {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "ไม่พบเวอร์ชันของหลักสูตรในระบบ (หลักสูตรอาจถูกลบไปแล้ว)" });
-            }
+            var updates = input.Resources
+                .Select(resource => new ResourceProgressUpdate(
+                    resource.ResourceId,
+                    resource.Status,
+                    resource.Progress,
+                    resource.Score,
+                    resource.SessionTime))
+                .ToList();
 
-            // 🌟 ดึงค่าตัวเลขออกมาอย่างปลอดภัยด้วย .Value
-            int versionId = enrollment.EnrolledCourseVersion.Value;
+            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, updates);
+            await UpdateEnrollmentRollupAsync(validation.Enrollment!, validation.VersionId);
 
-            // 2. ✅ ดึง Log โดยอ้างอิง EnrollmentId โดยตรง (แม่นยำกว่า StudentCode + Version อย่างเดียว)
-            var existingLogs = await _logRepo.GetAsync(l => l.EnrollmentId == input.EnrollmentId);
-
-            foreach (var resInput in input.Resources)
-            {
-                var log = existingLogs.FirstOrDefault(l => l.ResourceId == resInput.ResourceId);
-
-                // แปลงสถานะจาก Input
-                bool isInputPassed = resInput.Status?.ToLower() == "passed" ||
-                                     resInput.Status?.ToLower() == "completed";
-                string newStatus = isInputPassed ? "passed" : (resInput.Status ?? "incomplete");
-
-                // คำนวณเวลาในรอบนี้ (Session Time) เป็นวินาที
-                int sessionSeconds = ParseSessionTime(resInput.SessionTime);
-
-                if (log != null)
-                {
-                    // --- กรณีมี Log เดิม (Update) ---
-
-                    // ✅ 1. บวกเวลาสะสมเพิ่มเข้าไปเสมอ (เพื่อบันทึก Actual Usage)
-                    log.TotalSecondsPlayed += sessionSeconds;
-
-                    // ✅ 2. อัปเดต SessionTime ล่าสุดเก็บไว้ดู
-                    if (!string.IsNullOrEmpty(resInput.SessionTime))
-                    {
-                        log.SessionTime = resInput.SessionTime;
-                    }
-
-                    // ✅ 3. อัปเดตสถานะและคะแนน (เขียนทับได้เลย เพราะถือว่ากำลังเรียนรอบใหม่)
-                    // Logic เดิมจะกันไม่ให้แก้ถ้าผ่านแล้ว แต่กรณีนี้เรายอมให้แก้เพื่อให้สถานะเป็นปัจจุบัน
-                    log.Status = newStatus;
-                    log.Progress = isInputPassed ? 100 : (resInput.Progress ?? 0);
-
-                    // อัปเดตคะแนนเฉพาะถ้ามีส่งมา (หรือจะใช้ Logic คะแนนสูงสุดก็ได้ตามต้องการ)
-                    if (resInput.Score.HasValue)
-                    {
-                        log.Score = resInput.Score;
-                    }
-
-                    // ✅ 4. เพิ่มจำนวนครั้งที่พยายาม (Logic คร่าวๆ: ถ้านักเรียนส่ง Status มาใหม่ ให้ถือเป็นความเคลื่อนไหว)
-                    // หรือจะนับเฉพาะตอน Client ส่งสัญญาณเริ่มเรียนก็ได้ แต่นับตอน Save ก็พอใช้แทนได้
-                    log.AttemptCount++;
-
-                    await _logRepo.UpdateAsync(log);
-                }
-                else
-                {
-                    // --- กรณีไม่มี Log (Create New) ---
-                    var newLog = new LearningLog
-                    {
-                        EnrollmentId = input.EnrollmentId, // ✅ อย่าลืมใส่ EnrollmentId
-                        StudentCode = studentCode,
-                        ResourceId = resInput.ResourceId,
-                        CourseVersionId = versionId,
-                        Status = newStatus,
-                        Progress = isInputPassed ? 100 : (resInput.Progress ?? 0),
-                        Score = resInput.Score,
-                        SessionTime = resInput.SessionTime,
-                        TotalSecondsPlayed = sessionSeconds, // เริ่มต้นด้วยเวลาของรอบแรก
-                        AttemptCount = 1,
-                        CreatedAt = DateTime.Now // สมมติว่ามี
-                    };
-                    await _logRepo.AddAsync(newLog);
-                }
-            }
-
-            // 3. ตรวจสอบการจบหลักสูตร (Completion Check)
-            var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseResources")).FirstOrDefault();
-            if (version != null && version.CourseResources != null)
-            {
-                // รีโหลด Log ใหม่เพื่อให้ได้ค่าล่าสุด
-                var updatedLogs = await _logRepo.GetAsync(l => l.EnrollmentId == input.EnrollmentId);
-
-                var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
-                int passedCount = updatedLogs.Count(l =>
-                    allResourceIds.Contains(l.ResourceId ?? 0) && // ป้องกัน error กรณี ResourceId เป็น null
-                    (l.Status == "passed" || l.Status == "completed")
-                );
-
-                if (passedCount >= allResourceIds.Count && allResourceIds.Count > 0)
-                {
-                    enrollment.IsCompleted = true;
-                    enrollment.CompletedDate = DateTime.Now;
-                    enrollment.Progress = 100;
-                }
-                else
-                {
-                    enrollment.Progress = allResourceIds.Count > 0 ? ((double)passedCount / allResourceIds.Count) * 100 : 0;
-                }
-
-                // Sync TotalTimeSpent และ TotalScore จาก LearningLog กลับไปที่ Enrollment
-                enrollment.TotalTimeSpent = updatedLogs.Sum(l => l.TotalSecondsPlayed);
-                enrollment.TotalScore = updatedLogs
-                    .Where(l => allResourceIds.Contains(l.ResourceId ?? 0))
-                    .Max(l => (int?)l.Score ?? 0);
-
-                await _enrollmentRepo.UpdateAsync(enrollment);
-
-                // ── Snapshot สถานะปัจจุบันไปที่ EnrollmentAssignment links ──
-                var eaLinks = await _enrollmentAssignmentRepo.GetAsync(
-                    ea => ea.EnrollmentId == enrollment.Id);
-                foreach (var link in eaLinks)
-                {
-                    link.SnapshotCompleted     = enrollment.IsCompleted;
-                    link.SnapshotCompletedDate = enrollment.CompletedDate;
-                    link.SnapshotProgress      = enrollment.Progress;
-                    await _enrollmentAssignmentRepo.UpdateAsync(link);
-                }
-            }
-
-            AdminSummaryStatsCache.InvalidateLearningLogs(_cache);
-            AdminSummaryStatsCache.InvalidateEnrollments(_cache);
+            InvalidateLearningCaches();
 
             return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved." });
         }
+
+        [Authorize(Policy = "DomainUser")]
+        [HttpPost("commit-runtime")]
+        public async Task<IActionResult> CommitRuntime([FromBody] ScormRuntimeCommitRequestDto input)
+        {
+            if (!TryResolveTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            {
+                return errorResult;
+            }
+
+            var payloadValidationMessage = ValidateRuntimeCommitRequest(input);
+            if (!string.IsNullOrWhiteSpace(payloadValidationMessage))
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = payloadValidationMessage });
+            }
+
+            if (input.Resources.Count == 0)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No runtime resources were supplied." });
+            }
+
+            var validation = await ValidateEnrollmentForStudentAsync(input.EnrollmentId, studentCode);
+            if (validation.ErrorResult != null)
+            {
+                return validation.ErrorResult;
+            }
+
+            var version = (await _versionRepo.GetAsync(v => v.Id == validation.VersionId, includeProperties: "CourseResources")).FirstOrDefault();
+            if (version?.CourseResources == null)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Course version resources were not found." });
+            }
+
+            var validResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToHashSet();
+            var runtimeResources = input.Resources
+                .Where(resource => validResourceIds.Contains(resource.ResourceId))
+                .ToList();
+
+            if (runtimeResources.Count == 0)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No valid course resources were supplied for runtime commit." });
+            }
+
+            var persistedStates = await _scormRuntimeStateService.UpsertAsync(input.EnrollmentId, runtimeResources);
+            var progressUpdates = runtimeResources
+                .Select(MapRuntimeCommitToProgress)
+                .ToList();
+
+            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, progressUpdates, incrementAttemptCount: false);
+            await UpdateEnrollmentRollupAsync(validation.Enrollment!, validation.VersionId);
+
+            InvalidateLearningCaches();
+
+            return Ok(new ApiResponse<IReadOnlyList<ScormRuntimeStateDto>>
+            {
+                Success = true,
+                Message = "Runtime committed.",
+                Data = persistedStates
+            });
+        }
+
+        private static string? ValidateRuntimeCommitRequest(ScormRuntimeCommitRequestDto input)
+        {
+            if (input.EnrollmentId <= 0)
+            {
+                return "Invalid enrollment id for runtime commit.";
+            }
+
+            foreach (var resource in input.Resources)
+            {
+                if (resource.ResourceId <= 0)
+                {
+                    return "Invalid resource id for runtime commit.";
+                }
+
+                if (ExceedsLimit(resource.ScormVersion, ScormRuntimeLimits.ScormVersionMaxLength))
+                {
+                    return $"SCORM version exceeds the supported limit of {ScormRuntimeLimits.ScormVersionMaxLength} characters.";
+                }
+
+                if (ExceedsLimit(resource.LessonLocation, ScormRuntimeLimits.LessonLocationMaxLength))
+                {
+                    return $"Lesson location exceeds the supported limit of {ScormRuntimeLimits.LessonLocationMaxLength} characters.";
+                }
+
+                if (ExceedsLimit(resource.SuspendData, ScormRuntimeLimits.SuspendDataMaxLength))
+                {
+                    return $"Suspend data exceeds the supported limit of {ScormRuntimeLimits.SuspendDataMaxLength} characters.";
+                }
+
+                if (ExceedsLimit(resource.LessonStatus, ScormRuntimeLimits.StatusMaxLength) ||
+                    ExceedsLimit(resource.CompletionStatus, ScormRuntimeLimits.StatusMaxLength) ||
+                    ExceedsLimit(resource.SuccessStatus, ScormRuntimeLimits.StatusMaxLength))
+                {
+                    return $"Runtime status fields exceed the supported limit of {ScormRuntimeLimits.StatusMaxLength} characters.";
+                }
+
+                if (ExceedsLimit(resource.SessionTime, ScormRuntimeLimits.SessionTimeMaxLength) ||
+                    ExceedsLimit(resource.TotalTime, ScormRuntimeLimits.TotalTimeMaxLength))
+                {
+                    return $"Runtime time fields exceed the supported limit of {ScormRuntimeLimits.SessionTimeMaxLength} characters.";
+                }
+
+                if (ExceedsLimit(resource.Entry, ScormRuntimeLimits.EntryMaxLength) ||
+                    ExceedsLimit(resource.Exit, ScormRuntimeLimits.ExitMaxLength))
+                {
+                    return $"Runtime entry or exit fields exceed the supported limit of {ScormRuntimeLimits.EntryMaxLength} characters.";
+                }
+
+                if (ExceedsLimit(resource.CmiSnapshotJson, ScormRuntimeLimits.CmiSnapshotJsonMaxLength))
+                {
+                    return $"Runtime snapshot exceeds the supported limit of {ScormRuntimeLimits.CmiSnapshotJsonMaxLength} characters.";
+                }
+            }
+
+            return null;
+        }
+
+        private static bool ExceedsLimit(string? value, int maxLength)
+        {
+            return !string.IsNullOrEmpty(value) && value.Length > maxLength;
+        }
+
         private int ParseSessionTime(string? timeStr)
         {
             if (string.IsNullOrEmpty(timeStr)) return 0;
@@ -198,5 +208,220 @@ namespace iLearn.API.Controllers
             }
             return 0;
         }
+
+        private bool TryResolveTrustedLearnerStudentCode(out string studentCode, out IActionResult errorResult)
+        {
+            if (_learnerProxyIdentityResolver.TryResolveStudentCode(HttpContext, out studentCode, out var statusCode, out var errorMessage))
+            {
+                errorResult = null!;
+                return true;
+            }
+
+            errorResult = StatusCode(statusCode, new ApiResponse<string>
+            {
+                Success = false,
+                Message = errorMessage
+            });
+
+            return false;
+        }
+
+        private async Task<(Enrollment? Enrollment, int VersionId, IActionResult? ErrorResult)> ValidateEnrollmentForStudentAsync(int enrollmentId, string studentCode)
+        {
+            var enrollment = await _enrollmentRepo.GetByIdAsync(enrollmentId);
+            if (enrollment == null)
+            {
+                return (null, 0, NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" }));
+            }
+
+            if (!string.Equals(enrollment.StudentCode, studentCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return (null, 0, Unauthorized(new ApiResponse<string> { Success = false, Message = "StudentDto code mismatch" }));
+            }
+
+            if (enrollment.IsCompleted)
+            {
+                return (null, 0, Ok(new ApiResponse<string> { Success = true, Message = "Course is completed." }));
+            }
+
+            if (!enrollment.EnrolledCourseVersion.HasValue)
+            {
+                return (null, 0, BadRequest(new ApiResponse<string> { Success = false, Message = "ไม่พบเวอร์ชันของหลักสูตรในระบบ (หลักสูตรอาจถูกลบไปแล้ว)" }));
+            }
+
+            return (enrollment, enrollment.EnrolledCourseVersion.Value, null);
+        }
+
+        private async Task UpsertLearningLogsAsync(
+            int enrollmentId,
+            int versionId,
+            string studentCode,
+            IReadOnlyCollection<ResourceProgressUpdate> updates,
+            bool incrementAttemptCount = true)
+        {
+            var existingLogs = await _logRepo.GetAsync(log => log.EnrollmentId == enrollmentId);
+
+            foreach (var update in updates)
+            {
+                var log = existingLogs.FirstOrDefault(item => item.ResourceId == update.ResourceId);
+                bool isInputPassed = string.Equals(update.Status, "passed", StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(update.Status, "completed", StringComparison.OrdinalIgnoreCase);
+                string newStatus = isInputPassed ? "passed" : (update.Status ?? "incomplete");
+                int sessionSeconds = ParseSessionTime(update.SessionTime);
+
+                if (log != null)
+                {
+                    log.TotalSecondsPlayed += sessionSeconds;
+
+                    if (!string.IsNullOrEmpty(update.SessionTime))
+                    {
+                        log.SessionTime = update.SessionTime;
+                    }
+
+                    log.Status = newStatus;
+                    log.Progress = isInputPassed ? 100 : (update.Progress ?? 0);
+
+                    if (update.Score.HasValue)
+                    {
+                        log.Score = update.Score;
+                    }
+
+                    if (incrementAttemptCount)
+                    {
+                        log.AttemptCount++;
+                    }
+
+                    await _logRepo.UpdateAsync(log);
+                }
+                else
+                {
+                    var newLog = new LearningLog
+                    {
+                        EnrollmentId = enrollmentId,
+                        StudentCode = studentCode,
+                        ResourceId = update.ResourceId,
+                        CourseVersionId = versionId,
+                        Status = newStatus,
+                        Progress = isInputPassed ? 100 : (update.Progress ?? 0),
+                        Score = update.Score,
+                        SessionTime = update.SessionTime,
+                        TotalSecondsPlayed = sessionSeconds,
+                        AttemptCount = 1,
+                        CreatedAt = DateTime.Now
+                    };
+                    await _logRepo.AddAsync(newLog);
+                }
+            }
+        }
+
+        private async Task UpdateEnrollmentRollupAsync(Enrollment enrollment, int versionId)
+        {
+            var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseResources")).FirstOrDefault();
+            if (version?.CourseResources == null)
+            {
+                return;
+            }
+
+            var updatedLogs = await _logRepo.GetAsync(log => log.EnrollmentId == enrollment.Id);
+            var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+            int passedCount = updatedLogs.Count(log =>
+                allResourceIds.Contains(log.ResourceId ?? 0) &&
+                (log.Status == "passed" || log.Status == "completed"));
+
+            if (passedCount >= allResourceIds.Count && allResourceIds.Count > 0)
+            {
+                enrollment.IsCompleted = true;
+                enrollment.CompletedDate = DateTime.Now;
+                enrollment.Progress = 100;
+            }
+            else
+            {
+                enrollment.Progress = allResourceIds.Count > 0
+                    ? ((double)passedCount / allResourceIds.Count) * 100
+                    : 0;
+            }
+
+            enrollment.TotalTimeSpent = updatedLogs.Sum(log => log.TotalSecondsPlayed);
+            enrollment.TotalScore = updatedLogs
+                .Where(log => allResourceIds.Contains(log.ResourceId ?? 0))
+                .Max(log => (int?)log.Score ?? 0);
+
+            await _enrollmentRepo.UpdateAsync(enrollment);
+
+            var assignmentLinks = await _enrollmentAssignmentRepo.GetAsync(link => link.EnrollmentId == enrollment.Id);
+            foreach (var link in assignmentLinks)
+            {
+                link.SnapshotCompleted = enrollment.IsCompleted;
+                link.SnapshotCompletedDate = enrollment.CompletedDate;
+                link.SnapshotProgress = enrollment.Progress;
+                await _enrollmentAssignmentRepo.UpdateAsync(link);
+            }
+        }
+
+        private void InvalidateLearningCaches()
+        {
+            AdminSummaryStatsCache.InvalidateLearningLogs(_cache);
+            AdminSummaryStatsCache.InvalidateEnrollments(_cache);
+        }
+
+        private static ResourceProgressUpdate MapRuntimeCommitToProgress(ScormRuntimeResourceCommitDto resource)
+        {
+            var normalizedCompletionStatus = ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
+            var normalizedSuccessStatus = ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
+
+            return new ResourceProgressUpdate(
+                resource.ResourceId,
+                DeriveLegacyStatus(resource.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
+                DeriveLegacyProgress(resource.LessonStatus, normalizedCompletionStatus),
+                resource.RawScore.HasValue ? (int)Math.Round(resource.RawScore.Value, MidpointRounding.AwayFromZero) : null,
+                resource.SessionTime);
+        }
+
+        private static string DeriveLegacyStatus(string? lessonStatus, string? completionStatus, string? successStatus)
+        {
+            if (string.Equals(successStatus, "passed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "passed", StringComparison.OrdinalIgnoreCase))
+            {
+                return "passed";
+            }
+
+            if (string.Equals(completionStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "browsed", StringComparison.OrdinalIgnoreCase))
+            {
+                return "completed";
+            }
+
+            return "incomplete";
+        }
+
+        private static double? DeriveLegacyProgress(string? lessonStatus, string? completionStatus)
+        {
+            if (string.Equals(completionStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "passed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "browsed", StringComparison.OrdinalIgnoreCase))
+            {
+                return 100;
+            }
+
+            if (string.Equals(completionStatus, "incomplete", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "incomplete", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "not attempted", StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
+            return null;
+        }
+
+        private sealed record ResourceProgressUpdate(
+            int ResourceId,
+            string? Status,
+            double? Progress,
+            int? Score,
+            string? SessionTime);
     }
 }

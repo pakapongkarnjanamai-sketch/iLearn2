@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\iLearn.API\iLearn.API.csproj" />
     <ProjectReference Include="..\iLearn.Application\iLearn.Application.csproj" />
     <ProjectReference Include="..\iLearn.Domain\iLearn.Domain.csproj" />
     <ProjectReference Include="..\iLearn.Infrastructure\iLearn.Infrastructure.csproj" />

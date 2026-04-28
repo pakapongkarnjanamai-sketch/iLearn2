@@ -510,7 +510,7 @@
         const currentStudentCode = '@studentCode';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
-        const updateProgressUrl = '@Url.Action("UpdateProgress", "MyLearning")';
+        const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
 
         // ========================================
         // State Management
@@ -534,44 +534,364 @@
             loadCourseData();
 
             window.addEventListener("beforeunload", function (e) {
-                // Optional: Alert if unsaved
+                flushSelectedResourceRuntime({ includeSessionTime: true, useBeacon: true, reason: "beforeunload" });
             });
         });
 
         // ========================================
         // SCORM Model Management
         // ========================================
-        function resetScormModel() {
+        function getSelectedResource() {
+            if (!currentData || selectedResourceIndex < 0 || !currentData.resources || !currentData.resources[selectedResourceIndex]) {
+                return null;
+            }
+
+            return currentData.resources[selectedResourceIndex];
+        }
+
+        function markSelectedResourceDirty() {
+            const resource = getSelectedResource();
+            if (resource) {
+                resource.hasPendingRuntimeCommit = true;
+            }
+        }
+
+        function resolveResourceScormVersion(resource) {
+            const rawVersion = String(resource?.scormVersion || resource?.runtimeState?.scormVersion || '').trim();
+
+            if (!rawVersion) {
+                return "1.2";
+            }
+
+            if (rawVersion.includes("2004")) {
+                return "2004";
+            }
+
+            if (rawVersion.includes("1.2")) {
+                return "1.2";
+            }
+
+            return rawVersion;
+        }
+
+        function deriveLessonStatus(resource) {
+            const runtimeState = resource?.runtimeState || {};
+            if (runtimeState.lessonStatus) {
+                return runtimeState.lessonStatus;
+            }
+
+            const clientStatus = String(resource?.clientStatus || '').toLowerCase();
+            if (clientStatus === "passed") return "passed";
+            if (clientStatus === "failed") return "failed";
+            if (clientStatus === "completed") return "completed";
+            if (clientStatus === "incomplete") return "incomplete";
+            if (resource?.isCompleted) return "passed";
+            return "not attempted";
+        }
+
+        function deriveCompletionStatus(resource, lessonStatus) {
+            const runtimeState = resource?.runtimeState || {};
+            if (runtimeState.completionStatus) {
+                return runtimeState.completionStatus;
+            }
+
+            if (["passed", "completed", "failed", "browsed"].includes(lessonStatus)) {
+                return "completed";
+            }
+
+            if (lessonStatus === "incomplete") {
+                return "incomplete";
+            }
+
+            return "not attempted";
+        }
+
+        function deriveSuccessStatus(resource, lessonStatus) {
+            const runtimeState = resource?.runtimeState || {};
+            if (runtimeState.successStatus) {
+                return runtimeState.successStatus;
+            }
+
+            if (lessonStatus === "passed") return "passed";
+            if (lessonStatus === "failed") return "failed";
+            return "unknown";
+        }
+
+        function deriveClientStatus(resource) {
+            const runtimeState = resource?.runtimeState || {};
+            const lessonStatus = String(runtimeState.lessonStatus || '').toLowerCase();
+            const completionStatus = String(runtimeState.completionStatus || '').toLowerCase();
+            const successStatus = String(runtimeState.successStatus || '').toLowerCase();
+
+            if (resource?.isCompleted || successStatus === "passed" || lessonStatus === "passed") {
+                return "passed";
+            }
+
+            if (successStatus === "failed" || lessonStatus === "failed") {
+                return "failed";
+            }
+
+            if (completionStatus === "completed" || lessonStatus === "completed" || lessonStatus === "browsed") {
+                return "completed";
+            }
+
+            return "incomplete";
+        }
+
+        function deriveClientProgress(resource) {
+            const status = deriveClientStatus(resource);
+            if (["passed", "completed", "failed"].includes(status)) {
+                return 100;
+            }
+
+            const existingProgress = Number(resource?.clientProgress);
+            if (Number.isFinite(existingProgress) && existingProgress > 0) {
+                return existingProgress;
+            }
+
+            return resource?.isCompleted ? 100 : 0;
+        }
+
+        function applyRuntimeStateToResource(resource) {
+            if (!resource) return;
+
+            resource.clientStatus = deriveClientStatus(resource);
+            resource.clientProgress = deriveClientProgress(resource);
+
+            const rawScore = resource?.runtimeState?.rawScore;
+            resource.clientScore = rawScore !== null && rawScore !== undefined && rawScore !== ""
+                ? (parseFloat(rawScore) || 0)
+                : (resource.score || 0);
+            resource.clientTime = resource?.runtimeState?.sessionTime || resource?.time || resource?.clientTime || "00:00:00";
+            resource.hasPendingRuntimeCommit = false;
+        }
+
+        function resetScormModel(resource) {
+            const runtimeState = resource?.runtimeState || {};
+            const lessonLocation = runtimeState.lessonLocation || "";
+            const suspendData = runtimeState.suspendData || "";
+            const lessonStatus = deriveLessonStatus(resource);
+            const completionStatus = deriveCompletionStatus(resource, lessonStatus);
+            const successStatus = deriveSuccessStatus(resource, lessonStatus);
+            const rawScore = runtimeState.rawScore ?? resource?.clientScore ?? resource?.score ?? "";
+            const totalTime = runtimeState.totalTime || resource?.clientTime || resource?.time || "00:00:00";
+            const entry = runtimeState.entry || ((lessonLocation || suspendData) ? "resume" : "ab-initio");
+            const exitValue = runtimeState.exit || "";
+            const progressMeasure = (resource?.clientProgress || 0) > 0 ? String((resource.clientProgress / 100).toFixed(2)) : "0";
+
             cmiModel = {
                 // Student Info
                 "cmi.core.student_id": currentStudentCode,
                 "cmi.core.student_name": currentStudentCode,
 
                 // Status
-                "cmi.core.lesson_status": "not attempted",
+                "cmi.core.lesson_status": lessonStatus,
+                "cmi.completion_status": completionStatus,
+                "cmi.success_status": successStatus,
 
                 // Score
-                "cmi.core.score.raw": "",
+                "cmi.core.score.raw": rawScore === null || rawScore === undefined ? "" : String(rawScore),
                 "cmi.core.score.min": "",
                 "cmi.core.score.max": "",
+                "cmi.score.raw": rawScore === null || rawScore === undefined ? "" : String(rawScore),
 
                 // Suspend Data
-                "cmi.suspend_data": "",
-                "cmi.core.lesson_location": "",
+                "cmi.suspend_data": suspendData,
+                "cmi.core.lesson_location": lessonLocation,
+                "cmi.location": lessonLocation,
 
                 // Entry/Exit
-                "cmi.core.exit": "",
-                "cmi.core.entry": "ab-initio",
+                "cmi.core.exit": exitValue,
+                "cmi.core.entry": entry,
+                "cmi.exit": exitValue,
+                "cmi.entry": entry,
 
                 // Time
                 "cmi.core.session_time": "00:00:00",
-                "cmi.core.total_time": "00:00:00",
+                "cmi.core.total_time": totalTime,
+                "cmi.session_time": "00:00:00",
+                "cmi.total_time": totalTime,
+                "cmi.progress_measure": progressMeasure,
 
                 // Mode
                 "cmi.core.credit": "credit",
                 "cmi.core.lesson_mode": "normal"
             };
-            console.log("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"]);
+            console.log("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"], "entry:", entry, "location:", lessonLocation);
+        }
+
+        function syncRuntimeStateFromModel(resource, options = {}) {
+            if (!resource || !currentData || !currentData.enrollmentId) {
+                return null;
+            }
+
+            const includeSessionTime = options.includeSessionTime === true;
+            const runtimeState = resource.runtimeState || {};
+            const lessonLocation = cmiModel["cmi.location"] || cmiModel["cmi.core.lesson_location"] || runtimeState.lessonLocation || "";
+            const lessonStatus = cmiModel["cmi.core.lesson_status"] || runtimeState.lessonStatus || deriveLessonStatus(resource);
+            const completionStatus = cmiModel["cmi.completion_status"] || runtimeState.completionStatus || deriveCompletionStatus(resource, lessonStatus);
+            const successStatus = cmiModel["cmi.success_status"] || runtimeState.successStatus || deriveSuccessStatus(resource, lessonStatus);
+            const rawScoreValue = cmiModel["cmi.score.raw"] || cmiModel["cmi.core.score.raw"] || runtimeState.rawScore || resource.clientScore;
+            const parsedRawScore = rawScoreValue === "" || rawScoreValue === null || rawScoreValue === undefined
+                ? null
+                : (parseFloat(rawScoreValue) || 0);
+            const totalTime = cmiModel["cmi.total_time"] || cmiModel["cmi.core.total_time"] || runtimeState.totalTime || resource.clientTime || "00:00:00";
+
+            let sessionTime = runtimeState.sessionTime || null;
+            if (includeSessionTime) {
+                const modelSessionTime = cmiModel["cmi.session_time"] || cmiModel["cmi.core.session_time"];
+                if (!modelSessionTime) {
+                    captureSessionTime(resource);
+                }
+
+                sessionTime = modelSessionTime || resource.clientTime || runtimeState.sessionTime || "00:00:00";
+            }
+
+            cmiModel["cmi.location"] = lessonLocation;
+            cmiModel["cmi.core.lesson_location"] = lessonLocation;
+            cmiModel["cmi.core.lesson_status"] = lessonStatus;
+            cmiModel["cmi.completion_status"] = completionStatus;
+            cmiModel["cmi.success_status"] = successStatus;
+            cmiModel["cmi.score.raw"] = parsedRawScore === null ? "" : String(parsedRawScore);
+            cmiModel["cmi.core.score.raw"] = parsedRawScore === null ? "" : String(parsedRawScore);
+            cmiModel["cmi.total_time"] = totalTime;
+            cmiModel["cmi.core.total_time"] = totalTime;
+
+            if (sessionTime) {
+                cmiModel["cmi.session_time"] = sessionTime;
+                cmiModel["cmi.core.session_time"] = sessionTime;
+                resource.clientTime = sessionTime;
+            }
+
+            resource.runtimeState = {
+                enrollmentId: currentData.enrollmentId,
+                resourceId: resource.id,
+                scormVersion: resolveResourceScormVersion(resource),
+                lessonLocation: lessonLocation,
+                suspendData: cmiModel["cmi.suspend_data"] || runtimeState.suspendData || "",
+                lessonStatus: lessonStatus,
+                completionStatus: completionStatus,
+                successStatus: successStatus,
+                rawScore: parsedRawScore,
+                sessionTime: sessionTime,
+                totalTime: totalTime,
+                entry: cmiModel["cmi.entry"] || cmiModel["cmi.core.entry"] || runtimeState.entry || ((lessonLocation || (cmiModel["cmi.suspend_data"] || runtimeState.suspendData)) ? "resume" : "ab-initio"),
+                exit: cmiModel["cmi.exit"] || cmiModel["cmi.core.exit"] || runtimeState.exit || "",
+                lastCommittedAtUtc: new Date().toISOString(),
+                cmiSnapshotJson: JSON.stringify(cmiModel)
+            };
+
+            resource.scormVersion = resource.runtimeState.scormVersion;
+            return resource.runtimeState;
+        }
+
+        function buildRuntimeCommitPayload(resources, options = {}) {
+            const payloadResources = resources
+                .filter(resource => !!resource)
+                .map(resource => {
+                    const runtimeState = syncRuntimeStateFromModel(resource, options);
+                    if (!runtimeState) {
+                        return null;
+                    }
+
+                    return {
+                        ResourceId: resource.id,
+                        ScormVersion: runtimeState.scormVersion,
+                        LessonLocation: runtimeState.lessonLocation,
+                        SuspendData: runtimeState.suspendData,
+                        LessonStatus: runtimeState.lessonStatus,
+                        CompletionStatus: runtimeState.completionStatus,
+                        SuccessStatus: runtimeState.successStatus,
+                        RawScore: runtimeState.rawScore,
+                        SessionTime: options.includeSessionTime ? runtimeState.sessionTime : null,
+                        TotalTime: runtimeState.totalTime,
+                        Entry: runtimeState.entry,
+                        Exit: runtimeState.exit,
+                        LastCommittedAtUtc: runtimeState.lastCommittedAtUtc,
+                        CmiSnapshotJson: runtimeState.cmiSnapshotJson
+                    };
+                })
+                .filter(resource => resource !== null);
+
+            return {
+                EnrollmentId: currentData.enrollmentId,
+                Resources: payloadResources
+            };
+        }
+
+        function commitRuntimeResources(resources, options = {}) {
+            if (isReadOnly || !currentData || !currentData.enrollmentId || !Array.isArray(resources)) {
+                return Promise.resolve(null);
+            }
+
+            const shouldIncludeSessionTime = options.includeSessionTime === true;
+            const targetResources = resources.filter(resource => {
+                if (!resource) {
+                    return false;
+                }
+
+                return options.force === true ||
+                    resource.hasPendingRuntimeCommit === true ||
+                    (shouldIncludeSessionTime && sessionStartTime !== null);
+            });
+
+            if (targetResources.length === 0) {
+                return Promise.resolve(null);
+            }
+
+            const payload = buildRuntimeCommitPayload(targetResources, options);
+            if (!payload.Resources.length) {
+                return Promise.resolve(null);
+            }
+
+            console.log(`💾 Runtime commit (${options.reason || "unspecified"})`, payload);
+
+            if (options.useBeacon === true && navigator.sendBeacon) {
+                const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                const accepted = navigator.sendBeacon(commitRuntimeUrl, body);
+                if (accepted) {
+                    targetResources.forEach(resource => {
+                        resource.hasPendingRuntimeCommit = false;
+                    });
+                }
+
+                return Promise.resolve({ success: accepted });
+            }
+
+            return $.ajax({
+                url: commitRuntimeUrl,
+                method: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                xhrFields: { withCredentials: true },
+                data: JSON.stringify(payload)
+            }).done(function(res) {
+                if (res && res.success && Array.isArray(res.data)) {
+                    const stateMap = {};
+                    res.data.forEach(state => {
+                        stateMap[state.resourceId] = state;
+                    });
+
+                    targetResources.forEach(resource => {
+                        if (stateMap[resource.id]) {
+                            resource.runtimeState = stateMap[resource.id];
+                            resource.scormVersion = stateMap[resource.id].scormVersion || resource.scormVersion;
+                        }
+                        resource.hasPendingRuntimeCommit = false;
+                    });
+                }
+            }).fail(function(err) {
+                console.error("❌ Runtime commit failed:", err);
+            });
+        }
+
+        function flushSelectedResourceRuntime(options = {}) {
+            const resource = getSelectedResource();
+            if (!resource) {
+                return Promise.resolve(null);
+            }
+
+            return commitRuntimeResources([resource], options);
         }
 
         // ========================================
@@ -609,12 +929,9 @@
                     // 2. Prepare Local Data
                     if(currentData.resources) {
                         currentData.resources.forEach(r => {
-                            // Map สถานะจาก Server มายัง Client
-                            let status = r.isCompleted ? "passed" : "incomplete";
-                            r.clientStatus = status;
-                            r.clientProgress = r.isCompleted ? 100 : 0;
-                            r.clientScore = r.score || 0;
-                            r.clientTime = "00:00:00";
+                            r.runtimeState = r.runtimeState || null;
+                            r.scormVersion = r.scormVersion || (r.runtimeState ? r.runtimeState.scormVersion : "") || "1.2";
+                            applyRuntimeStateToResource(r);
                         });
                     }
 
@@ -709,6 +1026,11 @@
         // ========================================
         function selectResource(index) {
             if (!currentData || !currentData.resources[index]) return;
+            const previousResource = getSelectedResource();
+            if (!isReadOnly && previousResource && previousResource.id !== currentData.resources[index].id) {
+                flushSelectedResourceRuntime({ includeSessionTime: true, reason: "resource-switch" });
+            }
+
             console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
             console.log(`📌 Selected Resource [${index}]: ${currentData.resources[index].name}`);
             console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
@@ -731,7 +1053,7 @@
             sessionStartTime = null;
 
             // รีเซ็ต SCORM Model ทันทีเมื่อเลือกบทใหม่
-            resetScormModel();
+            resetScormModel(resource);
             console.log(`✅ SCORM Model cleared for new Learn `);
             console.log(`🛑 Previous iframe stopped`);
         }
@@ -752,24 +1074,12 @@
             console.log(`🚀 Starting Resource [${selectedResourceIndex}]: ${resource.name}`);
             console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-            // 1. ล้างค่า SCORM Model (Memory) - สำคัญมาก!
-            resetScormModel();
-
-            // 2. บังคับรีเซ็ตสถานะ UI ของบทเรียนนี้ (ถ้าไม่ใช่ ReadOnly)
-            if (!isReadOnly) {
-                resource.clientStatus = "incomplete";
-                resource.clientProgress = 0;
-                resource.clientScore = 0;
-
-                console.log(`📊 UI Reset: status=incomplete, progress=0%, score=0`);
-                recalcTotalProgress();
-
-                $(`#res-status-icon-${selectedResourceIndex}`).html('');
-                $(`#res-bar-${selectedResourceIndex}`).css("width", "0%");
-            }
+            // 1. โหลด SCORM Model จาก runtime state ล่าสุด
+            resetScormModel(resource);
 
             $("#startOverlay").fadeOut(200);
             sessionStartTime = new Date();
+            resource.hasPendingRuntimeCommit = true;
             const iframe = document.getElementById("scormFrame");
 
             // 3. บังคับโหลดใหม่ (Clear Cache iframe)
@@ -988,52 +1298,31 @@
                 return;
             }
 
-            console.log(`💾 Executing save...`);
-
-            const resourcesPayload = currentData.resources.map(r => ({
-                ResourceId: r.id,
-                Status: r.clientStatus,
-                Progress: r.clientProgress,
-                Score: r.clientScore,
-                SessionTime: r.clientTime
-            }));
-
-            // ส่งข้อมูลกลับโดยใช้ EnrollmentId ที่ได้รับมาจาก API
-            const payload = {
-                EnrollmentId: currentData.enrollmentId,
-                Resources: resourcesPayload
-            };
-            console.log(`📤 Payload:`, payload);
+            console.log(`💾 Executing runtime save...`);
 
             const btn = $("#btnConfirmSave");
             const oldHtml = btn.html();
             btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
 
-            $.ajax({
-                url: updateProgressUrl,
-                method: 'POST',
-                contentType: 'application/json',
-                xhrFields: { withCredentials: true },
-                data: JSON.stringify(payload),
-                success: function(res) {
+            Promise.resolve(flushSelectedResourceRuntime({ includeSessionTime: true, reason: "manual-save" }))
+                .then(function(res) {
                     btn.prop("disabled", false).html(oldHtml);
                     closeSummary();
-                    if (res.success) {
+
+                    if (!res || res.success) {
                         console.log(`✅ Save successful`);
                         showToast("บันทึกข้อมูลเรียบร้อยแล้ว", "success");
-                        // setTimeout(() => location.reload(), 1500);
-                           setTimeout(() => window.location.href = '@Url.Action("Index", "MyLearning")', 1500);
+                        setTimeout(() => window.location.href = '@Url.Action("Index", "MyLearning")', 1500);
                     } else {
                         console.error(`❌ Save failed:`, res.message);
-                        showToast(res.message, "error");
+                        showToast(res.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
                     }
-                },
-                error: function(err) {
+                })
+                .catch(function(err) {
                     console.error("❌ Save Error:", err);
                     btn.prop("disabled", false).html(oldHtml);
                     showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
-                }
-            });
+                });
         }
 
         // ========================================
@@ -1076,6 +1365,7 @@
 
                     console.log(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
                     cmiModel[e] = v;
+                    markSelectedResourceDirty();
 
                     if (e === "cmi.core.lesson_status") {
                         updateResourceData("status", v);
@@ -1093,11 +1383,14 @@
                         return "true";
                     }
                     console.log("💾 SCORM 1.2: LMSCommit");
+                    flushSelectedResourceRuntime({ includeSessionTime: false, reason: "scorm12-commit" });
                     return "true";
                 },
 
                 LMSFinish: function(p) {
                     console.log("🏁 SCORM 1.2: LMSFinish");
+                    flushSelectedResourceRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
+                    sessionStartTime = null;
                     return "true";
                 },
 
@@ -1117,6 +1410,8 @@
 
                 Terminate: function(p) {
                     console.log("🏁 SCORM 2004: Terminate");
+                    flushSelectedResourceRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
+                    sessionStartTime = null;
                     return "true";
                 },
 
@@ -1139,6 +1434,7 @@
 
                     console.log(`📝 SCORM 2004 SetValue("${e}", "${v}")`);
                     cmiModel[e] = v;
+                    markSelectedResourceDirty();
 
                     if (e === "cmi.completion_status" || e === "cmi.success_status") {
                         updateResourceData("status", v);
@@ -1159,6 +1455,7 @@
                         return "true";
                     }
                     console.log("💾 SCORM 2004: Commit");
+                    flushSelectedResourceRuntime({ includeSessionTime: false, reason: "scorm2004-commit" });
                     return "true";
                 },
 

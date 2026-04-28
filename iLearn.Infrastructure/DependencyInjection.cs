@@ -42,6 +42,7 @@ namespace iLearn.Infrastructure
             services.AddScoped<IAdminActivityService, AdminActivityService>();
             services.AddScoped<IAssignmentNoGenerator, AssignmentNoGenerator>();
             services.AddScoped<IScormService, ScormService>();
+            services.AddScoped<IScormRuntimeStateService, ScormRuntimeStateService>();
             services.AddSingleton<IMaintenanceStatusService, MaintenanceStatusService>();
 
             // ── External HTTP Services ──

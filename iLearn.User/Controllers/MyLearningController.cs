@@ -137,6 +137,43 @@ namespace iLearn.User.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CommitRuntime([FromBody] ScormRuntimeCommitRequestDto input)
+        {
+            var studentCode = GetAuthenticatedStudentCode();
+            if (string.IsNullOrWhiteSpace(studentCode))
+                return Unauthorized(new { success = false, message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน" });
+
+            if (input == null)
+                return BadRequest(new { success = false, message = "ข้อมูล runtime ไม่ถูกต้อง" });
+
+            try
+            {
+                var response = await SendLearnerProxyRequestAsync(
+                    HttpMethod.Post,
+                    "LearningLogs/commit-runtime",
+                    studentCode,
+                    input);
+                return await CreateProxyResultAsync(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    success = false,
+                    message = "ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง"
+                });
+            }
+        }
+
         private string? GetAuthenticatedStudentCode()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

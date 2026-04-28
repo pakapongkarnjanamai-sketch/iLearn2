@@ -36,6 +36,7 @@ namespace iLearn.API.Controllers
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMemoryCache _cache;
         private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
+        private readonly IScormRuntimeStateService _scormRuntimeStateService;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -51,7 +52,8 @@ namespace iLearn.API.Controllers
             IDateTime dateTime,
             IUnitOfWork unitOfWork,
             IMemoryCache cache,
-            ILearnerProxyIdentityResolver learnerProxyIdentityResolver)
+            ILearnerProxyIdentityResolver learnerProxyIdentityResolver,
+            IScormRuntimeStateService scormRuntimeStateService)
         {
             _enrollmentRepo      = enrollmentRepo;
             _enrollmentService   = enrollmentService;
@@ -67,6 +69,7 @@ namespace iLearn.API.Controllers
             _unitOfWork          = unitOfWork;
             _cache               = cache;
             _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
+            _scormRuntimeStateService = scormRuntimeStateService;
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -174,6 +177,7 @@ namespace iLearn.API.Controllers
             bool isReadOnly = false;
             bool isCompleted = false;
             List<LearningLog> userLogs = new();
+            Dictionary<int, ScormRuntimeStateDto> runtimeStateMap = new();
 
             if (enrollment != null)
             {
@@ -194,6 +198,9 @@ namespace iLearn.API.Controllers
                         l.EnrollmentId    == enrollment.Id     &&
                         (enrollment.ResetAt == null || l.CreatedAt >= enrollment.ResetAt)
                     )).ToList();
+
+                    runtimeStateMap = (await _scormRuntimeStateService.GetActiveStatesAsync(enrollment.Id, enrollment.ResetAt))
+                        .ToDictionary(state => state.ResourceId);
                 }
             }
             else
@@ -217,6 +224,7 @@ namespace iLearn.API.Controllers
                 .ThenBy(cr => cr.Resource.Name)
                 .Select(cr => {
                     var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
+                    runtimeStateMap.TryGetValue(cr.Resource.Id, out var runtimeState);
                     bool isDone = log != null && (
                         log.Status.ToLower() == "completed" ||
                         log.Status.ToLower() == "passed"
@@ -230,9 +238,11 @@ namespace iLearn.API.Controllers
                         LaunchUrl = !string.IsNullOrEmpty(cr.Resource.URL) && !string.IsNullOrEmpty(cr.Resource.ResourceHref)
                             ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
                             : cr.Resource.URL ?? string.Empty,
+                        ScormVersion = runtimeState?.ScormVersion ?? ScormRuntimeFieldMap.NormalizeVersion(cr.Resource.SchemaVersion),
                         IsCompleted = isDone,
                         Score = log?.Score,
-                        Time = log?.SessionTime
+                        Time = log?.SessionTime,
+                        RuntimeState = runtimeState
                     };
                 })
                 .ToList();

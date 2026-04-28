@@ -20,9 +20,11 @@
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = "Lesson";
         public string LaunchUrl { get; set; } = string.Empty;
+        public string ScormVersion { get; set; } = string.Empty;
 
         public bool IsCompleted { get; set; }
         public int? Score { get; set; }
         public string? Time { get; set; }
+        public ScormRuntimeStateDto? RuntimeState { get; set; }
     }
 }
