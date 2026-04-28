@@ -41,8 +41,8 @@
         }
 
         .scorm-toolbar {
-            height: 50px;
-            padding: 0 20px;
+            min-height: 52px;
+            padding: 0 16px;
             background: #fff;
             border-bottom: 1px solid #e9ecef;
             display: flex;
@@ -50,6 +50,46 @@
             align-items: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             z-index: 10;
+        }
+
+        .scorm-toolbar-main,
+        .scorm-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-back-link,
+        .toolbar-icon-btn {
+            min-height: 36px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            color: #334155;
+            text-decoration: none;
+            transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        }
+
+        .player-back-link {
+            padding: 0 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .toolbar-icon-btn {
+            width: 38px;
+            padding: 0;
+        }
+
+        .player-back-link:hover,
+        .toolbar-icon-btn:hover {
+            background: var(--brand-light);
+            border-color: rgba(2, 125, 131, 0.35);
+            color: var(--brand-color);
         }
 
         .scorm-body {
@@ -112,15 +152,129 @@
         }
 
         .course-header-panel {
-            padding: 20px;
+            padding: 18px 20px 16px;
             background-color: #fff;
             border-bottom: 1px solid #f0f0f0;
         }
 
-        .info-status-bar {
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
+        .course-eyebrow {
+            color: var(--brand-color);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .course-title {
+            color: #172033;
+            font-size: 1.05rem;
+            font-weight: 800;
+            line-height: 1.35;
+            margin-bottom: 14px;
+        }
+
+        .course-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .course-meta-item {
+            min-width: 0;
+            border: 1px solid #eef2f4;
+            border-radius: 8px;
+            background: #fbfcfc;
+            padding: 9px 10px;
+        }
+
+        .course-meta-label {
+            display: block;
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .course-meta-value {
+            display: block;
+            min-width: 0;
+            color: #1f2937;
+            font-size: 0.86rem;
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .course-status-pill {
+            width: fit-content;
+            max-width: 100%;
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 9px;
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+
+        .status-muted {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .status-success {
+            background: #eaf7ee;
+            color: #1e7e34;
+        }
+
+        .status-danger {
+            background: #fff1f2;
+            color: var(--danger-color);
+        }
+
+        .status-warning {
+            background: #fff8e1;
+            color: #9a6700;
+        }
+
+        .course-progress-panel {
+            border: 1px solid #e7f1f1;
+            border-radius: 8px;
+            background: #f7fbfb;
+            padding: 10px;
+        }
+
+        .course-progress-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #475569;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .course-progress-value {
+            color: var(--brand-color);
+            font-size: 0.9rem;
+            font-weight: 800;
+        }
+
+        .course-progress-track {
+            height: 7px;
+            background: #dcebea;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .course-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--brand-color);
+            border-radius: inherit;
+            transition: width 0.35s ease, background-color 0.2s ease;
         }
 
         .toc-header {
@@ -195,20 +349,9 @@
             transition: width 0.5s ease, background-color 0.3s ease;
         }
 
-        .resource-type-badge {
-            font-size: 0.7rem;
-            padding: 3px 8px;
-            border-radius: 12px;
-            background: #e9ecef;
-            color: #6c757d;
-            display: inline-block;
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
         /* --- Save Button --- */
         .save-btn-container {
-            padding: 20px;
+            padding: 18px 20px 20px;
             border-top: 1px solid #dee2e6;
             background: #fff;
         }
@@ -219,11 +362,15 @@
             color: white;
             font-weight: bold;
             border: none;
-            padding: 12px;
-            border-radius: 6px;
-            transition: all 0.3s;
+            padding: 13px 14px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
             font-size: 1rem;
             box-shadow: 0 4px 6px rgba(2, 125, 131, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
             .btn-save-course:disabled {
@@ -235,9 +382,43 @@
 
             .btn-save-course:hover:not(:disabled) {
                 background-color: var(--brand-dark);
-                transform: translateY(-2px);
+                transform: translateY(-1px);
                 box-shadow: 0 6px 12px rgba(2, 125, 131, 0.3);
             }
+
+        .btn-reset-progress {
+            width: 100%;
+            min-height: 38px;
+            margin-top: 10px;
+            border: 1px solid #f1c4c8;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--danger-color);
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+            .btn-reset-progress:hover:not(:disabled) {
+                background: #fff5f5;
+                border-color: #e9a4aa;
+            }
+
+            .btn-reset-progress:disabled {
+                color: #adb5bd;
+                border-color: #e9ecef;
+                background: #f8f9fa;
+                cursor: not-allowed;
+            }
+
+        .save-hint {
+            display: block;
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
 
         /* --- Modal (Summary) --- */
         .summary-overlay {
@@ -375,6 +556,10 @@
                 border-left: none;
                 border-top: 1px solid #dee2e6;
             }
+
+            .course-meta-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 }
@@ -383,16 +568,17 @@
 
     <div class="scorm-section" id="fullscreenArea">
         <div class="scorm-toolbar">
-            <div class="d-flex align-items-center overflow-hidden">
-                <button class="btn btn-sm btn-light me-2 d-lg-none" onclick="scrollToToc()">
+            <div class="scorm-toolbar-main">
+                <a href="@Url.Action("Index", "MyLearning")" class="player-back-link" title="กลับไปหน้าหลักสูตรของฉัน">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>กลับ</span>
+                </a>
+                <button type="button" class="toolbar-icon-btn d-lg-none" onclick="scrollToToc()" title="ดูเนื้อหาหลักสูตร">
                     <i class="fas fa-list"></i>
                 </button>
-                <div class="fw-bold text-truncate" id="learnTitle" style="max-width: 600px;">
-                    Loading...
-                </div>
             </div>
-            <div>
-                <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleFullscreen()" title="Fullscreen">
+            <div class="scorm-toolbar-actions">
+                <button type="button" class="toolbar-icon-btn" onclick="toggleFullscreen()" title="Fullscreen">
                     <i class="fas fa-expand fa-lg"></i>
                 </button>
             </div>
@@ -412,7 +598,7 @@
             <div id="summaryModal" class="summary-overlay">
                 <div class="summary-card">
                     <div class="summary-header">
-                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> ยืนยันการบันทึกข้อมูล</h5>
+                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> ผลการเรียน</h5>
                     </div>
                     <div class="summary-content">
                         <div class="info-row">
@@ -425,7 +611,7 @@
                         </div>
                         <hr class="my-3 text-muted" style="opacity: 0.2;">
                         <div class="alert alert-info small">
-                            <i class="fas fa-info-circle me-1"></i>ตรวจสอบเวลาเรียนและกด "ยืนยัน" เพื่อบันทึก
+                            <i class="fas fa-info-circle me-1"></i>ตรวจสอบผลการเรียนและเวลาเรียนของหลักสูตรนี้
                         </div>
                         <div class="info-row">
                             <table class="summary-table">
@@ -441,8 +627,8 @@
                     </div>
                     <div class="summary-footer">
                         <button class="btn btn-light" onclick="closeSummary()">กลับ</button>
-                        <button class="btn btn-primary px-4" id="btnConfirmSave" onclick="executeSave()">
-                            <i class="fas fa-save me-1"></i> ยืนยัน
+                        <button class="btn btn-primary px-4" id="btnConfirmSave" onclick="goBackToMyLearning()">
+                            <i class="fas fa-arrow-left me-1"></i> กลับหน้าหลักสูตร
                         </button>
                     </div>
                 </div>
@@ -454,27 +640,33 @@
 
     <div class="info-section" id="tocSection">
         <div class="course-header-panel">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h5 class="fw-bold text-dark mb-1" id="courseTitleDisplay">...</h5>
-                    <div class="text-muted small">
-                        <i class="fas fa-user-circle me-1"></i>
-                        <span id="studentCodeDisplay" class="fw-bold text-primary">-</span>
-                    </div>
+            <div class="course-eyebrow">รายละเอียดหลักสูตร</div>
+            <h5 class="course-title" id="courseTitleDisplay">กำลังโหลดข้อมูล...</h5>
+            <div class="course-meta-grid">
+                <div class="course-meta-item">
+                    <span class="course-meta-label">ผู้เรียน</span>
+                    <span class="course-meta-value" id="studentCodeDisplay">-</span>
                 </div>
-                <span class="badge bg-secondary" id="versionDisplay">v.1</span>
+                <div class="course-meta-item">
+                    <span class="course-meta-label">Category</span>
+                    <span class="course-meta-value" id="categoryNameDisplay">-</span>
+                </div>
+                <div class="course-meta-item">
+                    <span class="course-meta-label">Course Type</span>
+                    <span class="course-meta-value" id="courseTypeNameDisplay">-</span>
+                </div>
+                <div class="course-meta-item">
+                    <span class="course-meta-label">สถานะ</span>
+                    <span class="course-meta-value course-status-pill status-muted" id="courseStatusDisplay">-</span>
+                </div>
             </div>
-        </div>
-
-        <div class="info-status-bar" id="statusBarSection">
-            <div class="row g-0 text-center bg-white border rounded overflow-hidden">
-                <div class="col-6 border-end p-2" id="statusCol">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">สถานะการเรียน</small>
-                    <div id="statusDisplay" class="fw-bold mt-1 text-secondary" style="font-size: 0.9rem;">-</div>
+            <div class="course-progress-panel">
+                <div class="course-progress-head">
+                    <span>ความคืบหน้าหลักสูตร</span>
+                    <span class="course-progress-value" id="courseProgressDisplay">0%</span>
                 </div>
-                <div class="col-6 p-2" id="progressCol">
-                    <small class="text-uppercase text-muted" style="font-size: 0.65rem;">ความคืบหน้า</small>
-                    <div id="totalProgressDisplay" class="fw-bold mt-1 text-dark" style="font-size: 0.9rem;">0%</div>
+                <div class="course-progress-track">
+                    <div class="course-progress-fill" id="courseProgressFill"></div>
                 </div>
             </div>
         </div>
@@ -491,11 +683,16 @@
         </div>
 
         <div class="save-btn-container">
-            <button id="btnPreSave" class="btn-save-course" disabled onclick="showSummaryBeforeSave()">
-                <i class="fas fa-check-circle me-2"></i> บันทึกการเรียนรู้
+            <button id="btnPreSave" class="btn-save-course" disabled onclick="showLearningResult()">
+                <i class="fas fa-chart-line"></i>
+                <span>แสดงผลการเรียน</span>
+            </button>
+            <button id="btnResetProgress" class="btn-reset-progress" type="button" onclick="resetCourseProgress()">
+                <i class="fas fa-rotate-left"></i>
+                <span>รีเซ็ตความคืบหน้า</span>
             </button>
             <div class="text-center mt-2">
-                <small id="saveHintText" class="text-danger" style="font-size: 0.75rem;">* กรุณาเรียนและทำแบบทดสอบให้ผ่านเพื่อบันทึก</small>
+                <small id="saveHintText" class="save-hint text-danger">เรียนให้ครบและผ่านแบบทดสอบก่อนดูผลการเรียน</small>
             </div>
         </div>
     </div>
@@ -511,6 +708,7 @@
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
         const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
+        const resetProgressUrl = '@Url.Action("ResetProgress", "MyLearning")';
 
         // ========================================
         // State Management
@@ -638,6 +836,52 @@
 
             const parsed = Number(value);
             return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function setCourseStatusDisplay(label, variant = "muted") {
+            const status = $("#courseStatusDisplay");
+            status
+                .removeClass("status-muted status-success status-danger status-warning")
+                .addClass(`status-${variant}`)
+                .text(label);
+        }
+
+        function setCourseProgressDisplay(progress) {
+            const safeProgress = Math.round(normalizeProgressValue(progress));
+            $("#courseProgressDisplay").text(`${safeProgress}%`);
+            $("#courseProgressFill").css("width", `${safeProgress}%`);
+        }
+
+        function setSaveHint(message, tone = "danger", visible = true) {
+            const hint = $("#saveHintText");
+            hint
+                .removeClass("text-danger text-success text-warning text-muted")
+                .addClass(`text-${tone}`)
+                .text(message);
+
+            if (visible) {
+                hint.show();
+            } else {
+                hint.hide();
+            }
+        }
+
+        function renderCourseDetails(data) {
+            const initialProgress = data.isCompleted ? 100 : normalizeProgressValue(data.progress || 0);
+
+            $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
+            $("#studentCodeDisplay").text(currentStudentCode || "-");
+            $("#categoryNameDisplay").text(data.categoryName || "ไม่ระบุหมวดหมู่");
+            $("#courseTypeNameDisplay").text(data.courseTypeName || "ไม่ระบุประเภท");
+            setCourseProgressDisplay(initialProgress);
+
+            if (data.isCompleted) {
+                setCourseStatusDisplay("เรียนจบแล้ว", "success");
+            } else if (isReadOnly) {
+                setCourseStatusDisplay("ดูอย่างเดียว", "warning");
+            } else {
+                setCourseStatusDisplay("กำลังเรียน", "muted");
+            }
         }
 
         function applyRuntimeStateToResource(resource) {
@@ -975,24 +1219,23 @@
         // ========================================
         function setupReadOnlyMode() {
             console.log("👁️ Setting up Read Only Mode");
-            $("#progressCol").hide();
-            $("#statusCol").removeClass("col-6 border-end").addClass("col-12");
-
-            // แสดงสถานะที่เหมาะสม
-            if (currentData.isCompleted) {
-                $("#statusDisplay").text("เรียนจบแล้ว").addClass("text-success");
-            } else {
-                $("#statusDisplay").text("โหมดตัวอย่าง (View Only)").addClass("text-warning");
-            }
-
             $("#readOnlyBadge").removeClass("d-none");
-            $("#btnPreSave").hide(); // ซ่อนปุ่ม Save
+
+            if (!currentData.enrollmentId) {
+                $("#btnPreSave").hide();
+                $("#btnResetProgress").hide();
+            } else {
+                $("#btnPreSave").show().prop("disabled", false);
+                $("#btnResetProgress").show().prop("disabled", false);
+            }
 
             // ข้อความแจ้งเตือน
             if (currentData.isCompleted) {
-                $("#saveHintText").text("หลักสูตรนี้เรียนจบแล้ว (View Only)").removeClass("text-danger").addClass("text-success");
+                setCourseStatusDisplay("เรียนจบแล้ว", "success");
+                setSaveHint("หลักสูตรนี้เรียนจบแล้ว สามารถดูผลการเรียนหรือรีเซ็ตเพื่อเริ่มใหม่ได้", "success");
             } else {
-                $("#saveHintText").text("โหมดดูตัวอย่าง ไม่มีการบันทึกผล").removeClass("text-danger").addClass("text-warning");
+                setCourseStatusDisplay("ดูอย่างเดียว", "warning");
+                setSaveHint("โหมดดูตัวอย่าง ไม่มีการบันทึกผล", "warning");
             }
         }
 
@@ -1001,9 +1244,7 @@
         // ========================================
         function renderUI(data) {
             console.log("🎨 Rendering UI...");
-            $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
-            $("#studentCodeDisplay").text(currentStudentCode || "-");
-            $("#versionDisplay").text("v." + (data.courseVersionId || "1"));
+            renderCourseDetails(data);
 
             const listContainer = $("#courseTocList");
             listContainer.empty();
@@ -1027,7 +1268,6 @@
                             </div>
                             <div class="flex-grow-1 overflow-hidden">
                                 <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
-                                <span class="resource-type-badge">${item.type}</span>
                             </div>
                             <div class="ms-2 fw-bold small text-muted text-end">
                                 <div id="res-status-icon-${index}" style="font-size:1.2rem;"></div>
@@ -1069,7 +1309,6 @@
 
             $(".resource-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
-            $("#learnTitle").text(resource.name);
 
             // แสดง Start Overlay
             $("#startOverlay").fadeIn(200);
@@ -1332,44 +1571,65 @@
             if (!isReadOnly) {
                 const completionProgress = totalResources > 0 ? Math.floor((passedCount / totalResources) * 100) : 0;
                 currentData.progress = completionProgress;
-                $("#totalProgressDisplay").text(completionProgress + "%");
+                setCourseProgressDisplay(completionProgress);
 
                 const allPassed = (passedCount === totalResources);
                 const hasFailed = currentData.resources.some(r => r.clientStatus === "failed");
 
                 console.log(`📊 Summary: ${passedCount}/${totalResources} passed, Completion: ${completionProgress}%`);
                 if (allPassed) {
-                    $("#statusDisplay").text("ผ่านการทดสอบ").addClass("text-success").removeClass("text-secondary text-danger");
+                    setCourseStatusDisplay("พร้อมแสดงผล", "success");
                     $("#btnPreSave").prop("disabled", false);
-                    $("#saveHintText").hide();
+                    setSaveHint("พร้อมแสดงผลการเรียนแล้ว", "success");
                     console.log(`✅ All resources PASSED - Save button enabled`);
                 } else {
                     if (hasFailed) {
-                        $("#statusDisplay").text("ไม่ผ่านเกณฑ์").addClass("text-danger").removeClass("text-secondary");
-                        $("#saveHintText").text("* คุณทำแบบทดสอบไม่ผ่าน กรุณาทำใหม่").addClass("text-danger").show();
+                        setCourseStatusDisplay("ไม่ผ่านเกณฑ์", "danger");
+                        setSaveHint("แบบทดสอบยังไม่ผ่าน กรุณาทำใหม่ก่อนดูผลการเรียน", "danger");
                         console.log(`❌ Has FAILED resources`);
                     } else {
-                        $("#statusDisplay").text("กำลังเรียน").removeClass("text-success text-danger").addClass("text-secondary");
-                        $("#saveHintText").text("* กรุณาเรียนและทำแบบทดสอบให้ผ่านเพื่อบันทึก").removeClass("text-danger").show();
+                        setCourseStatusDisplay("กำลังเรียน", "muted");
+                        setSaveHint("เรียนให้ครบและผ่านแบบทดสอบก่อนดูผลการเรียน", "danger");
                         console.log(`⏳ Still in progress`);
                     }
                     $("#btnPreSave").prop("disabled", true);
+                }
+            } else {
+                const readOnlyProgress = currentData.isCompleted ? 100 : normalizeProgressValue(currentData.progress || 0);
+                setCourseProgressDisplay(readOnlyProgress);
+
+                if (currentData.isCompleted) {
+                    setCourseStatusDisplay("เรียนจบแล้ว", "success");
+                } else {
+                    setCourseStatusDisplay("ดูอย่างเดียว", "warning");
                 }
             }
         }
 
         // ========================================
-        // Show Summary Before Save
+        // Show Learning Result
         // ========================================
-        function showSummaryBeforeSave() {
+        function showLearningResult() {
             if (!currentData) return;
-            console.log(`📋 Showing summary...`);
+            console.log(`📋 Showing learning result...`);
 
             if (selectedResourceIndex !== -1) {
                 const r = currentData.resources[selectedResourceIndex];
                 if (!r.isCompleted) captureSessionTime(r);
             }
 
+            Promise.resolve(flushSelectedResourceRuntime({ includeSessionTime: true, reason: "view-result" }))
+                .then(function() {
+                    renderLearningResultModal();
+                })
+                .catch(function(err) {
+                    console.error("❌ Result sync failed:", err);
+                    showToast("ไม่สามารถซิงก์ผลล่าสุดได้ แต่ยังสามารถดูผลปัจจุบันบนหน้าจอได้", "warning");
+                    renderLearningResultModal();
+                });
+        }
+
+        function renderLearningResultModal() {
             $("#sumStudentName").text(currentStudentCode);
             $("#sumCourseName").text(currentData.courseTitle);
             const tbody = $("#summaryDetailsList");
@@ -1392,43 +1652,50 @@
             $("#summaryModal").fadeOut();
         }
 
+        function goBackToMyLearning() {
+            window.location.href = '@Url.Action("Index", "MyLearning")';
+        }
+
         // ========================================
-        // Execute Save
+        // Reset Progress
         // ========================================
-        function executeSave() {
+        function resetCourseProgress() {
             if (!currentData) return;
 
-            // Check Enrollment ID (สำคัญสำหรับการบันทึก)
             if (!currentData.enrollmentId) {
-                showToast("ไม่พบ Enrollment ID (View Only Mode)", "warning");
+                showToast("ไม่พบ Enrollment ID สำหรับรีเซ็ตความคืบหน้า", "warning");
                 return;
             }
 
-            console.log(`💾 Executing runtime save...`);
+            const confirmed = window.confirm("ต้องการรีเซ็ตความคืบหน้าหลักสูตรนี้ทั้งหมดหรือไม่?\n\nระบบจะเริ่มความคืบหน้าใหม่ที่ 0% แต่ประวัติเดิมยังคงอยู่ในรายงาน");
+            if (!confirmed) {
+                return;
+            }
 
-            const btn = $("#btnConfirmSave");
+            const btn = $("#btnResetProgress");
             const oldHtml = btn.html();
-            btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
+            btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> กำลังรีเซ็ต...');
 
-            Promise.resolve(flushSelectedResourceRuntime({ includeSessionTime: true, reason: "manual-save" }))
-                .then(function(res) {
+            $.ajax({
+                url: resetProgressUrl,
+                method: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                xhrFields: { withCredentials: true },
+                data: JSON.stringify({ enrollmentId: currentData.enrollmentId })
+            }).done(function(res) {
+                if (res && res.success) {
+                    showToast("รีเซ็ตความคืบหน้าเรียบร้อยแล้ว", "success");
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
                     btn.prop("disabled", false).html(oldHtml);
-                    closeSummary();
-
-                    if (!res || res.success) {
-                        console.log(`✅ Save successful`);
-                        showToast("บันทึกข้อมูลเรียบร้อยแล้ว", "success");
-                        setTimeout(() => window.location.href = '@Url.Action("Index", "MyLearning")', 1500);
-                    } else {
-                        console.error(`❌ Save failed:`, res.message);
-                        showToast(res.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
-                    }
-                })
-                .catch(function(err) {
-                    console.error("❌ Save Error:", err);
-                    btn.prop("disabled", false).html(oldHtml);
-                    showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
-                });
+                    showToast(res?.message || "ไม่สามารถรีเซ็ตความคืบหน้าได้", "error");
+                }
+            }).fail(function(err) {
+                console.error("❌ Reset Error:", err);
+                btn.prop("disabled", false).html(oldHtml);
+                showToast("เกิดข้อผิดพลาดในการรีเซ็ตความคืบหน้า", "error");
+            });
         }
 
         // ========================================

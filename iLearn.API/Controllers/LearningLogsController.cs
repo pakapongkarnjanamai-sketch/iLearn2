@@ -25,6 +25,7 @@ namespace iLearn.API.Controllers
         private readonly IMemoryCache _cache;
         private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
         private readonly IScormRuntimeStateService _scormRuntimeStateService;
+        private readonly IDateTime _dateTime;
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -33,7 +34,8 @@ namespace iLearn.API.Controllers
             ICurrentUserService currentUserService,
             IMemoryCache cache,
             ILearnerProxyIdentityResolver learnerProxyIdentityResolver,
-            IScormRuntimeStateService scormRuntimeStateService)
+            IScormRuntimeStateService scormRuntimeStateService,
+            IDateTime dateTime)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
@@ -43,6 +45,7 @@ namespace iLearn.API.Controllers
             _cache = cache;
             _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
             _scormRuntimeStateService = scormRuntimeStateService;
+            _dateTime = dateTime;
         }
 
         [AllowAnonymous]
@@ -69,7 +72,7 @@ namespace iLearn.API.Controllers
                     resource.SessionTime))
                 .ToList();
 
-            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, updates);
+            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, updates, resetAt: validation.Enrollment!.ResetAt);
             await UpdateEnrollmentRollupAsync(validation.Enrollment!, validation.VersionId);
 
             InvalidateLearningCaches();
@@ -124,7 +127,7 @@ namespace iLearn.API.Controllers
                 .Select(MapRuntimeCommitToProgress)
                 .ToList();
 
-            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, progressUpdates, incrementAttemptCount: false);
+            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, progressUpdates, incrementAttemptCount: false, resetAt: validation.Enrollment!.ResetAt);
             await UpdateEnrollmentRollupAsync(validation.Enrollment!, validation.VersionId);
 
             InvalidateLearningCaches();
@@ -134,6 +137,61 @@ namespace iLearn.API.Controllers
                 Success = true,
                 Message = "Runtime committed.",
                 Data = persistedStates
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-progress")]
+        public async Task<IActionResult> ResetProgress([FromBody] ResetProgressDto input)
+        {
+            if (!TryResolveTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            {
+                return errorResult;
+            }
+
+            if (input == null || input.EnrollmentId <= 0)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Invalid enrollment id." });
+            }
+
+            var validation = await ValidateEnrollmentForStudentAsync(input.EnrollmentId, studentCode, allowCompleted: true);
+            if (validation.ErrorResult != null)
+            {
+                return validation.ErrorResult;
+            }
+
+            var enrollment = validation.Enrollment!;
+            enrollment.IsCompleted = false;
+            enrollment.CompletedDate = null;
+            enrollment.Progress = 0;
+            enrollment.TotalScore = 0;
+            enrollment.TotalTimeSpent = 0;
+            enrollment.ResetAt = _dateTime.Now;
+
+            await _enrollmentRepo.UpdateAsync(enrollment);
+
+            var assignmentLinks = await _enrollmentAssignmentRepo.GetAsync(link => link.EnrollmentId == enrollment.Id);
+            foreach (var link in assignmentLinks)
+            {
+                link.SnapshotCompleted = false;
+                link.SnapshotCompletedDate = null;
+                link.SnapshotProgress = 0;
+                await _enrollmentAssignmentRepo.UpdateAsync(link);
+            }
+
+            InvalidateLearningCaches();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Progress reset.",
+                Data = new
+                {
+                    enrollment.Id,
+                    enrollment.ResetAt,
+                    enrollment.Progress,
+                    enrollment.IsCompleted
+                }
             });
         }
 
@@ -226,7 +284,10 @@ namespace iLearn.API.Controllers
             return false;
         }
 
-        private async Task<(Enrollment? Enrollment, int VersionId, IActionResult? ErrorResult)> ValidateEnrollmentForStudentAsync(int enrollmentId, string studentCode)
+        private async Task<(Enrollment? Enrollment, int VersionId, IActionResult? ErrorResult)> ValidateEnrollmentForStudentAsync(
+            int enrollmentId,
+            string studentCode,
+            bool allowCompleted = false)
         {
             var enrollment = await _enrollmentRepo.GetByIdAsync(enrollmentId);
             if (enrollment == null)
@@ -239,7 +300,7 @@ namespace iLearn.API.Controllers
                 return (null, 0, Unauthorized(new ApiResponse<string> { Success = false, Message = "StudentDto code mismatch" }));
             }
 
-            if (enrollment.IsCompleted)
+            if (enrollment.IsCompleted && !allowCompleted)
             {
                 return (null, 0, Ok(new ApiResponse<string> { Success = true, Message = "Course is completed." }));
             }
@@ -257,9 +318,12 @@ namespace iLearn.API.Controllers
             int versionId,
             string studentCode,
             IReadOnlyCollection<ResourceProgressUpdate> updates,
-            bool incrementAttemptCount = true)
+            bool incrementAttemptCount = true,
+            DateTime? resetAt = null)
         {
-            var existingLogs = await _logRepo.GetAsync(log => log.EnrollmentId == enrollmentId);
+            var existingLogs = await _logRepo.GetAsync(log =>
+                log.EnrollmentId == enrollmentId &&
+                (!resetAt.HasValue || log.CreatedAt >= resetAt.Value));
 
             foreach (var update in updates)
             {
@@ -307,7 +371,7 @@ namespace iLearn.API.Controllers
                         SessionTime = update.SessionTime,
                         TotalSecondsPlayed = sessionSeconds,
                         AttemptCount = 1,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = _dateTime.Now
                     };
                     await _logRepo.AddAsync(newLog);
                 }
@@ -322,7 +386,9 @@ namespace iLearn.API.Controllers
                 return;
             }
 
-            var updatedLogs = await _logRepo.GetAsync(log => log.EnrollmentId == enrollment.Id);
+            var updatedLogs = await _logRepo.GetAsync(log =>
+                log.EnrollmentId == enrollment.Id &&
+                (!enrollment.ResetAt.HasValue || log.CreatedAt >= enrollment.ResetAt.Value));
             var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
             int passedCount = updatedLogs.Count(log =>
                 allResourceIds.Contains(log.ResourceId ?? 0) &&
@@ -331,7 +397,7 @@ namespace iLearn.API.Controllers
             if (passedCount >= allResourceIds.Count && allResourceIds.Count > 0)
             {
                 enrollment.IsCompleted = true;
-                enrollment.CompletedDate = DateTime.Now;
+                enrollment.CompletedDate = _dateTime.Now;
                 enrollment.Progress = 100;
             }
             else

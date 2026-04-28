@@ -169,7 +169,7 @@ namespace iLearn.API.Controllers
 
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.CourseId == courseId && e.StudentCode == studentCode,
-                includeProperties: "Course"
+                includeProperties: "Course.CourseType,Course.Category"
             );
             var enrollment = enrollments.FirstOrDefault();
 
@@ -186,7 +186,7 @@ namespace iLearn.API.Controllers
 
                 var versions = await _versionRepo.GetAsync(
                     filter: v => v.CourseId == courseId && v.Id == targetVersionId,
-                    includeProperties: "CourseResources.Resource,Course"
+                    includeProperties: "CourseResources.Resource,Course.CourseType,Course.Category"
                 );
                 targetVersion = versions.FirstOrDefault();
 
@@ -209,7 +209,7 @@ namespace iLearn.API.Controllers
 
                 var activeVersions = await _versionRepo.GetAsync(
                   filter: v => v.CourseId == courseId && v.IsActive,
-                  includeProperties: "CourseResources.Resource,Course"
+                                    includeProperties: "CourseResources.Resource,Course.CourseType,Course.Category"
                 );
                 targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
@@ -259,6 +259,8 @@ namespace iLearn.API.Controllers
             {
                 CourseVersionId = targetVersion.Id,
                 CourseTitle = targetVersion.Course?.Title ?? "Unknown Course",
+                CategoryName = targetVersion.Course?.Category?.Name ?? "ไม่ระบุหมวดหมู่",
+                CourseTypeName = targetVersion.Course?.CourseType?.Name ?? "ไม่ระบุประเภท",
                 Progress = enrollment?.Progress ?? 0,
                 IsCompleted = isCompleted,
                 IsReadOnly = isReadOnly,

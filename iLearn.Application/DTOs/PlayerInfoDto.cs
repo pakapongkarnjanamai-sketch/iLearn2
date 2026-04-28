@@ -4,6 +4,8 @@
     {
         public int CourseVersionId { get; set; }
         public string CourseTitle { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public string CourseTypeName { get; set; } = string.Empty;
         public double Progress { get; set; }
 
         // สถานะจบการศึกษา (Completed)

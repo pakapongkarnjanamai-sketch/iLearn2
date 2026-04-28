@@ -119,6 +119,90 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CommitRuntime_CreatesNewActiveLogAfterResetAt()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+            var resetAt = new DateTime(2026, 4, 28, 11, 50, 0, DateTimeKind.Local);
+            var oldLogCreatedAt = resetAt.AddMinutes(-5);
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            enrollment.ResetAt = resetAt;
+
+            logRepo.Items.Add(new LearningLog
+            {
+                Id = 1,
+                EnrollmentId = 10,
+                StudentCode = "490222",
+                CourseVersionId = 20,
+                ResourceId = 100,
+                Status = "incomplete",
+                Progress = 0,
+                CreatedAt = oldLogCreatedAt
+            });
+
+            var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                Resources =
+                [
+                    new ScormRuntimeResourceCommitDto
+                    {
+                        ResourceId = 100,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "passed",
+                        RawScore = 100,
+                        SessionTime = "00:01:00"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(result);
+            Assert.Equal(2, logRepo.Items.Count);
+            Assert.Contains(logRepo.Items, log => log.Id == 1 && log.Status == "incomplete" && log.CreatedAt == oldLogCreatedAt);
+            Assert.Contains(logRepo.Items, log => log.Id != 1 && log.ResourceId == 100 && log.Status == "passed" && log.CreatedAt >= resetAt);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Equal(50, enrollment.Progress);
+        }
+
+        [Fact]
+        public async Task ResetProgress_ClearsEnrollmentSummaryAndAssignmentSnapshot()
+        {
+            var controller = CreateController(out _, out var enrollmentRepo, out var assignmentRepo);
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            enrollment.IsCompleted = true;
+            enrollment.CompletedDate = DateTime.Now.AddDays(-1);
+            enrollment.Progress = 100;
+            enrollment.TotalScore = 95;
+            enrollment.TotalTimeSpent = 3600;
+
+            assignmentRepo.Items.Add(new EnrollmentAssignment
+            {
+                Id = 1,
+                EnrollmentId = enrollment.Id,
+                AssignmentId = 9,
+                SnapshotCompleted = true,
+                SnapshotCompletedDate = DateTime.Now.AddDays(-1),
+                SnapshotProgress = 100
+            });
+
+            var result = await controller.ResetProgress(new ResetProgressDto { EnrollmentId = enrollment.Id });
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ApiResponse<object>>(ok.Value);
+            Assert.True(response.Success);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Null(enrollment.CompletedDate);
+            Assert.Equal(0, enrollment.Progress);
+            Assert.Equal(0, enrollment.TotalScore);
+            Assert.Equal(0, enrollment.TotalTimeSpent);
+            Assert.NotNull(enrollment.ResetAt);
+
+            var link = Assert.Single(assignmentRepo.Items);
+            Assert.False(link.SnapshotCompleted);
+            Assert.Null(link.SnapshotCompletedDate);
+            Assert.Equal(0, link.SnapshotProgress);
+        }
+
+        [Fact]
         public void LearnerProxyIdentityResolver_AcceptsValidSignedHeaders()
         {
             const string sharedSecret = "runtime-secret";
@@ -188,6 +272,14 @@ namespace iLearn.Tests
             out InMemoryGenericRepository<LearningLog> logRepo,
             out InMemoryGenericRepository<Enrollment> enrollmentRepo)
         {
+            return CreateController(out logRepo, out enrollmentRepo, out _);
+        }
+
+        private static LearningLogsController CreateController(
+            out InMemoryGenericRepository<LearningLog> logRepo,
+            out InMemoryGenericRepository<Enrollment> enrollmentRepo,
+            out InMemoryGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo)
+        {
             enrollmentRepo = new InMemoryGenericRepository<Enrollment>(
             [
                 new Enrollment
@@ -214,16 +306,18 @@ namespace iLearn.Tests
             ]);
 
             logRepo = new InMemoryGenericRepository<LearningLog>([]);
+            enrollmentAssignmentRepo = new InMemoryGenericRepository<EnrollmentAssignment>([]);
 
             var controller = new LearningLogsController(
                 logRepo,
                 enrollmentRepo,
                 versionRepo,
-                new InMemoryGenericRepository<EnrollmentAssignment>([]),
+                enrollmentAssignmentRepo,
                 new FakeCurrentUserService(),
                 new MemoryCache(new MemoryCacheOptions()),
                 new FakeLearnerProxyIdentityResolver(),
-                new FakeScormRuntimeStateService());
+                new FakeScormRuntimeStateService(),
+                new FakeDateTime());
 
             controller.ControllerContext = new ControllerContext
             {
@@ -271,6 +365,13 @@ namespace iLearn.Tests
                         ScormVersion = resource.ScormVersion
                     }).ToList());
             }
+        }
+
+        private sealed class FakeDateTime : IDateTime
+        {
+            public DateTime Now => new(2026, 4, 28, 12, 0, 0, DateTimeKind.Local);
+            public System.Globalization.CultureInfo CultureInfo => System.Globalization.CultureInfo.InvariantCulture;
+            public DateTime UnixTime => new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         }
 
         private sealed class InMemoryGenericRepository<T> : IGenericRepository<T> where T : BaseEntity

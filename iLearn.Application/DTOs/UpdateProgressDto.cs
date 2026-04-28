@@ -16,4 +16,9 @@
         public int? Score { get; set; }
         public string? SessionTime { get; set; } // เวลาที่ใช้ในรอบนี้
     }
+
+    public class ResetProgressDto
+    {
+        public int EnrollmentId { get; set; }
+    }
 }

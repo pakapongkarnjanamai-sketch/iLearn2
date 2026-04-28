@@ -52,7 +52,14 @@ namespace iLearn.Tests
                         ResetAt = Now.AddMinutes(-30),
                         Progress = 0,
                         IsCompleted = false,
-                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
+                        Course = new Course
+                        {
+                            Id = 5,
+                            Code = "C-05",
+                            Title = "Safety Course",
+                            Category = new Category { Id = 3, Name = "Safety" },
+                            CourseType = new CourseType { Id = 4, Name = "Common" }
+                        }
                     }
                 ],
                 versions:
@@ -62,7 +69,14 @@ namespace iLearn.Tests
                         Id = 20,
                         CourseId = 5,
                         VersionNumber = 2,
-                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
+                        Course = new Course
+                        {
+                            Id = 5,
+                            Code = "C-05",
+                            Title = "Safety Course",
+                            Category = new Category { Id = 3, Name = "Safety" },
+                            CourseType = new CourseType { Id = 4, Name = "Common" }
+                        },
                         CourseResources =
                         [
                             new CourseResource
@@ -110,6 +124,8 @@ namespace iLearn.Tests
             Assert.False(dto.IsReadOnly);
             Assert.Equal(20, dto.CourseVersionId);
             Assert.Equal("Safety Course", dto.CourseTitle);
+            Assert.Equal("Safety", dto.CategoryName);
+            Assert.Equal("Common", dto.CourseTypeName);
             Assert.Equal(0, dto.Progress);
             Assert.Equal("https://files.example.local/course/pkg-1/launch/index.html", resource.LaunchUrl);
             Assert.Equal(ScormRuntimeFieldMap.Scorm2004, resource.ScormVersion);
