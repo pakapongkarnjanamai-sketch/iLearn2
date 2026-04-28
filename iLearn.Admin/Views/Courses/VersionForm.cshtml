@@ -31,7 +31,10 @@
             <div class="admin-step-title"><span class="admin-step-index">2</span>Content</div>
         </div>
         <div class="admin-step-card" data-step-card="3">
-            <div class="admin-step-title"><span class="admin-step-index">3</span>Review</div>
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Options</div>
+        </div>
+        <div class="admin-step-card" data-step-card="4">
+            <div class="admin-step-title"><span class="admin-step-index">4</span>Review</div>
         </div>
     </div>
     <div class="admin-page-header-actions">
@@ -118,7 +121,75 @@
                 </div>
             </div>
 
-            <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
+            <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="form">
+                <div class="admin-section-header mb-2">
+                    <div class="admin-section-header-main">
+                        <div class="section-title mb-0 admin-section-title-fill">Version Options</div>
+                    </div>
+                    <div class="admin-section-divider"></div>
+                </div>
+
+                <div class="admin-option-card mb-2">
+                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+                        <div>
+                            <div class="u-fs-12 u-fw-semibold text-dark">Learner Version Policy</div>
+                            <div class="admin-status-option-note" id="version-policy-note">Checking learner impact when this step opens.</div>
+                        </div>
+                        <span class="tag-pill pill-default" id="version-policy-state">Pending</span>
+                    </div>
+
+                    <div class="admin-summary-grid admin-summary-grid--cols-4 mb-3">
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="policy-not-started-count">0</div>
+                            <div class="admin-summary-label">Not Started</div>
+                        </div>
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="policy-in-progress-count">0</div>
+                            <div class="admin-summary-label">In Progress</div>
+                        </div>
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="policy-completed-count">0</div>
+                            <div class="admin-summary-label">Completed</div>
+                        </div>
+                        <div class="admin-summary-item">
+                            <div class="admin-summary-value" id="policy-other-open-count">0</div>
+                            <div class="admin-summary-label">Not Affected</div>
+                        </div>
+                    </div>
+
+                    <div class="admin-status-options" id="version-policy-options">
+                        <div class="admin-status-option version-policy-option" data-version-policy="NewLearnersOnly">
+                            <label for="version-policy-new">
+                                <div>
+                                    <div class="admin-status-option-title">New Learners Only</div>
+                                    <div class="admin-status-option-note">Keep current assigned learners on their current version.</div>
+                                </div>
+                                <input class="form-check-input version-policy-radio" type="radio" name="version-policy" id="version-policy-new" value="NewLearnersOnly" checked>
+                            </label>
+                        </div>
+                        <div class="admin-status-option version-policy-option" data-version-policy="MoveNotStarted">
+                            <label for="version-policy-not-started">
+                                <div>
+                                    <div class="admin-status-option-title">Move Not Started</div>
+                                    <div class="admin-status-option-note">Move only not-started learners in currently in-progress assignments.</div>
+                                </div>
+                                <input class="form-check-input version-policy-radio" type="radio" name="version-policy" id="version-policy-not-started" value="MoveNotStarted">
+                            </label>
+                        </div>
+                        <div class="admin-status-option version-policy-option" data-version-policy="ResetInProgress">
+                            <label for="version-policy-reset">
+                                <div>
+                                    <div class="admin-status-option-title">Reset In Progress</div>
+                                    <div class="admin-status-option-note">Move and reset open learners in currently in-progress assignments.</div>
+                                </div>
+                                <input class="form-check-input version-policy-radio" type="radio" name="version-policy" id="version-policy-reset" value="ResetInProgress">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-panel-4" class="admin-wizard-panel" data-step-layout="review">
                 <div class="admin-section-header admin-review-header">
                     <div class="admin-section-header-main">
                         <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
@@ -172,7 +243,17 @@
         const VERSION_NOTE_HEIGHT = 90;
         const MASTER_RESOURCE_GRID_HEIGHT = "100%";
         const EXISTING_RESOURCE_GRID_HEIGHT = 520;
-        const TOTAL_WIZARD_STEPS = 3;
+        const TOTAL_WIZARD_STEPS = 4;
+        const VERSION_LEARNER_POLICY = {
+            NewLearnersOnly: "NewLearnersOnly",
+            MoveNotStarted: "MoveNotStarted",
+            ResetInProgress: "ResetInProgress"
+        };
+        const VERSION_LEARNER_POLICY_LABELS = {
+            NewLearnersOnly: "New Learners Only",
+            MoveNotStarted: "Move Not Started",
+            ResetInProgress: "Reset In Progress"
+        };
 
         const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
@@ -185,6 +266,11 @@
         let reviewForm;
         let gridViewportController = null;
         let isSubmittingVersion = false;
+        let initialVersionIsActive = false;
+        let versionLearnerImpact = null;
+        let versionLearnerImpactLoaded = false;
+        let isLoadingVersionImpact = false;
+        let learnerPolicySelection = VERSION_LEARNER_POLICY.NewLearnersOnly;
         const createState = {
             currentStep: 1
         };
@@ -214,6 +300,7 @@
             updateCreateWizardUi();
 
             refreshMasterGrid();
+            renderVersionPolicyStep();
             updateVersionReview();
             renderVersionReview();
         });
@@ -224,7 +311,12 @@
                 colCount: 1,
                 labelMode: "floating",
                 stylingMode: "outlined",
-                onFieldDataChanged: function() {
+                onFieldDataChanged: function(e) {
+                    if (e.dataField === "isActive") {
+                        invalidateVersionPolicyImpact();
+                        renderVersionPolicyStep();
+                    }
+
                     updateVersionReview();
                     renderVersionReview();
                 },
@@ -267,6 +359,11 @@
                     {
                         dataField: "status",
                         label: { text: "Status On Save" },
+                        colSpan: 2
+                    },
+                    {
+                        dataField: "learnerPolicy",
+                        label: { text: "Learner Policy" },
                         colSpan: 2
                     }
                 ]
@@ -509,6 +606,11 @@
 
                 submitData();
             });
+
+            $(".version-policy-radio").on("change", function() {
+                learnerPolicySelection = $(this).val() || VERSION_LEARNER_POLICY.NewLearnersOnly;
+                renderVersionPolicyStep();
+            });
         }
 
         function refreshMasterGrid() {
@@ -518,12 +620,20 @@
             renderVersionReview();
         }
 
-        function handleNextStep() {
+        async function handleNextStep() {
             if (createState.currentStep === 1 && !validateVersionDetailsStep()) {
                 return;
             }
 
             if (createState.currentStep === 2 && !validateVersionContentStep()) {
+                return;
+            }
+
+            if (createState.currentStep === 2 && !(await prepareVersionPolicyStep())) {
+                return;
+            }
+
+            if (createState.currentStep === 3 && !validateVersionPolicyStep()) {
                 return;
             }
 
@@ -569,6 +679,10 @@
             }
 
             if (createState.currentStep === 3) {
+                renderVersionPolicyStep();
+            }
+
+            if (createState.currentStep === 4) {
                 updateVersionReview();
                 renderVersionReview();
             }
@@ -593,6 +707,15 @@
             return true;
         }
 
+        function validateVersionPolicyStep() {
+            if (isVersionPolicyChoiceEnabled() && !learnerPolicySelection) {
+                showToast("Please select a learner version policy.", "warning", 2500);
+                return false;
+            }
+
+            return true;
+        }
+
         async function submitData() {
             if (isSubmittingVersion) {
                 return;
@@ -610,16 +733,19 @@
 
             isSubmittingVersion = true;
             const submitButtonSelector = "#btn-submit-version";
-            setButtonLoading(submitButtonSelector, true, IS_EDIT ? "Saving..." : "Creating...");
-            loadPanel.option("message", "Saving version and processing files...");
-            loadPanel.show();
             let shouldResetSubmitting = true;
 
             try {
+                const learnerPolicy = getLearnerPolicyForSave();
+
+                setButtonLoading(submitButtonSelector, true, IS_EDIT ? "Saving..." : "Creating...");
+                loadPanel.option("message", "Saving version and processing files...");
+                loadPanel.show();
+
                 await $.ajax({
                     url: getSubmitUrl(),
                     method: getSubmitMethod(),
-                    data: buildVersionFormData(),
+                    data: buildVersionFormData(learnerPolicy),
                     processData: false,
                     contentType: false,
                     xhrFields: { withCredentials: true }
@@ -652,11 +778,14 @@
                 });
 
                 const detailData = response.data || response;
+                initialVersionIsActive = !!detailData.isActive;
                 formWidget.option("formData", {
                     courseId: COURSE_ID,
                     note: detailData.note,
                     isActive: detailData.isActive
                 });
+                invalidateVersionPolicyImpact();
+                renderVersionPolicyStep();
 
                 await loadExistingResources(detailData.resourceIds || []);
             } catch (xhr) {
@@ -740,12 +869,13 @@
             });
         }
 
-        function buildVersionFormData() {
+        function buildVersionFormData(learnerPolicy) {
             const formData = formWidget.option("formData");
             const versionFormData = new FormData();
             versionFormData.append("courseId", COURSE_ID);
             versionFormData.append("note", formData.note);
             versionFormData.append("isActive", formData.isActive || false);
+            versionFormData.append("learnerPolicy", learnerPolicy || VERSION_LEARNER_POLICY.NewLearnersOnly);
 
             unifiedResources.forEach(function(resource) {
                 if (resource.isNew) {
@@ -761,6 +891,150 @@
             return versionFormData;
         }
 
+        async function loadVersionLearnerImpact() {
+            const response = await $.ajax({
+                url: `${serviceUrl}/courses/${COURSE_ID}/version-impact`,
+                method: "GET",
+                xhrFields: { withCredentials: true }
+            });
+
+            return response.data || response;
+        }
+
+        async function prepareVersionPolicyStep() {
+            if (!willActivateVersionOnSave()) {
+                invalidateVersionPolicyImpact();
+                renderVersionPolicyStep();
+                return true;
+            }
+
+            if (isLoadingVersionImpact) {
+                return false;
+            }
+
+            if (versionLearnerImpactLoaded) {
+                renderVersionPolicyStep();
+                return true;
+            }
+
+            isLoadingVersionImpact = true;
+            setButtonLoading("#btn-next-step", true, "Checking...");
+            loadPanel.option("message", "Checking learner impact...");
+            loadPanel.show();
+
+            try {
+                versionLearnerImpact = await loadVersionLearnerImpact();
+                versionLearnerImpactLoaded = true;
+                renderVersionPolicyStep();
+                return true;
+            } catch (xhr) {
+                showToast(window.getApiErrorMessage(xhr, "Failed to check learner impact."), "error", 4000);
+                return false;
+            } finally {
+                isLoadingVersionImpact = false;
+                loadPanel.hide();
+                setButtonLoading("#btn-next-step", false);
+            }
+        }
+
+        function invalidateVersionPolicyImpact() {
+            versionLearnerImpact = null;
+            versionLearnerImpactLoaded = false;
+            learnerPolicySelection = VERSION_LEARNER_POLICY.NewLearnersOnly;
+        }
+
+        function willActivateVersionOnSave() {
+            const formData = formWidget ? (formWidget.option("formData") || {}) : {};
+            return !!formData.isActive && (!IS_EDIT || !initialVersionIsActive);
+        }
+
+        function isVersionPolicyChoiceEnabled() {
+            return willActivateVersionOnSave()
+                && !!versionLearnerImpact
+                && !!versionLearnerImpact.hasEligibleOpenLearners;
+        }
+
+        function getLearnerPolicyForSave() {
+            return isVersionPolicyChoiceEnabled()
+                ? learnerPolicySelection
+                : VERSION_LEARNER_POLICY.NewLearnersOnly;
+        }
+
+        function getLearnerPolicyLabel(policy) {
+            return VERSION_LEARNER_POLICY_LABELS[policy] || VERSION_LEARNER_POLICY_LABELS.NewLearnersOnly;
+        }
+
+        function renderVersionPolicyStep() {
+            const impact = versionLearnerImpact || {};
+            const choiceEnabled = isVersionPolicyChoiceEnabled();
+            const policyForSave = getLearnerPolicyForSave();
+
+            $("#policy-not-started-count").text(formatPolicyCount(impact.notStartedCount));
+            $("#policy-in-progress-count").text(formatPolicyCount(impact.inProgressCount));
+            $("#policy-completed-count").text(formatPolicyCount(impact.completedCount));
+            $("#policy-other-open-count").text(formatPolicyCount(impact.otherOpenCount));
+
+            setVersionPolicyStatePill(getVersionPolicyState());
+            $("#version-policy-note").text(getVersionPolicyNote());
+
+            $(".version-policy-radio")
+                .prop("disabled", !choiceEnabled)
+                .prop("checked", false);
+            $(`.version-policy-radio[value="${policyForSave}"]`).prop("checked", true);
+
+            $(".version-policy-option").each(function() {
+                const policy = String($(this).data("versionPolicy") || "");
+                $(this)
+                    .toggleClass("disabled", !choiceEnabled)
+                    .toggleClass("active", choiceEnabled && policy === policyForSave);
+            });
+
+            updateVersionReview();
+        }
+
+        function setVersionPolicyStatePill(state) {
+            $("#version-policy-state")
+                .removeClass("pill-default pill-primary pill-warning pill-danger pill-success")
+                .addClass(state.className)
+                .text(state.text);
+        }
+
+        function getVersionPolicyState() {
+            if (!willActivateVersionOnSave()) {
+                return { text: "Not Required", className: "pill-default" };
+            }
+
+            if (!versionLearnerImpactLoaded) {
+                return { text: "Pending", className: "pill-default" };
+            }
+
+            if (!versionLearnerImpact || !versionLearnerImpact.hasEligibleOpenLearners) {
+                return { text: "No Impact", className: "pill-success" };
+            }
+
+            return { text: "Action Required", className: "pill-warning" };
+        }
+
+        function getVersionPolicyNote() {
+            if (!willActivateVersionOnSave()) {
+                return "This save will not activate a new version, so learner migration is not required.";
+            }
+
+            if (!versionLearnerImpactLoaded) {
+                return "Learner impact will be checked before continuing.";
+            }
+
+            if (!versionLearnerImpact || !versionLearnerImpact.hasEligibleOpenLearners) {
+                return "No open learners in current active assignments will be moved.";
+            }
+
+            return "Choose how assigned learners should be handled when this version becomes active.";
+        }
+
+        function formatPolicyCount(value) {
+            return Number(value || 0).toLocaleString();
+        }
+
         function updateVersionReview() {
             if (!formWidget || !reviewForm) {
                 return;
@@ -769,7 +1043,8 @@
             const formData = formWidget.option("formData") || {};
             reviewForm.option("formData", {
                 note: formData.note || "Not set",
-                status: formData.isActive ? "Set as active version" : "Saved as inactive version"
+                status: formData.isActive ? "Set as active version" : "Saved as inactive version",
+                learnerPolicy: getLearnerPolicyLabel(getLearnerPolicyForSave())
             });
         }
 

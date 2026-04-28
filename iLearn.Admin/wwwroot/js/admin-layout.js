@@ -1109,7 +1109,11 @@
         const $button = $(button);
 
         if (loading) {
-            $button.data('original-html', $button.html())
+            if (!$button.data('original-html')) {
+                $button.data('original-html', $button.html());
+            }
+
+            $button
                 .prop('disabled', true)
                 .html(spinnerIconHtml + (loadingText || 'Processing...'));
             return;

@@ -8,6 +8,7 @@ namespace iLearn.Application.DTOs
         public int CourseId { get; set; }
         public string Note { get; set; }
         public bool IsActive { get; set; }
+        public CourseVersionLearnerPolicy LearnerPolicy { get; set; } = CourseVersionLearnerPolicy.NewLearnersOnly;
 
         // สำหรับรับ ID ของไฟล์เดิมที่เลือกจากในระบบ
         public List<int> ResourceIds { get; set; } = new List<int>();

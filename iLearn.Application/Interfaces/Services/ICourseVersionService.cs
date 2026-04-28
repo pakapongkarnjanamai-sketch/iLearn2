@@ -10,6 +10,7 @@ namespace iLearn.Application.Interfaces.Services
         // Read Operations
         Task<CreateCourseVersionDto> GetVersionByIdAsync(int versionId);
         Task<IEnumerable<CourseVersionDto>> GetCourseVersionsAsync(int courseId);
+        Task<CourseVersionLearnerImpactDto> GetVersionLearnerImpactAsync(int courseId);
 
         // Create Operations
         Task<CourseVersionDto> CreateVersionAsync(int courseId, CreateCourseVersionDto model, List<IFormFile> files);
@@ -21,6 +22,6 @@ namespace iLearn.Application.Interfaces.Services
         Task DeleteVersionAsync(int versionId);
 
         // Version Management
-        Task SetActiveVersionAsync(int courseId, int versionId);
+        Task SetActiveVersionAsync(int courseId, int versionId, CourseVersionLearnerPolicy learnerPolicy = CourseVersionLearnerPolicy.NewLearnersOnly);
     }
 }

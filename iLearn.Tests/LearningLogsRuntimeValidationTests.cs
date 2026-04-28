@@ -84,6 +84,41 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CommitRuntime_DoesNotCompleteScorm12Resource_WhenLessonIncompleteButCompletionAliasIsStaleCompleted()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+
+            var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                Resources =
+                [
+                    new ScormRuntimeResourceCommitDto
+                    {
+                        ResourceId = 100,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "incomplete",
+                        CompletionStatus = "completed",
+                        SuccessStatus = "unknown",
+                        RawScore = 20,
+                        SuspendData = "N4IgDiBcCMA0IFsoCZ4DcoG0AMBdAvkA",
+                        SessionTime = "00:00:00"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(result);
+            var learnLog = Assert.Single(logRepo.Items, log => log.ResourceId == 100);
+            Assert.Equal("incomplete", learnLog.Status);
+            Assert.Equal(0, learnLog.Progress);
+            Assert.Equal(20, learnLog.Score);
+
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Equal(0, enrollment.Progress);
+        }
+
+        [Fact]
         public void LearnerProxyIdentityResolver_AcceptsValidSignedHeaders()
         {
             const string sharedSecret = "runtime-secret";

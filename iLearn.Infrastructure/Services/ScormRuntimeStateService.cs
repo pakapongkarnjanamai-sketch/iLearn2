@@ -96,14 +96,23 @@ namespace iLearn.Infrastructure.Services
         {
             var normalizedVersion = ScormRuntimeFieldMap.NormalizeVersion(resource.ScormVersion);
             var normalizedLessonStatus = PreferIncoming(resource.LessonStatus, null);
-            var normalizedCompletionStatus = ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
-            var normalizedSuccessStatus = ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
+            var normalizedCompletionStatus = IsScorm12(normalizedVersion)
+                ? ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, null)
+                : ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
+            var normalizedSuccessStatus = IsScorm12(normalizedVersion)
+                ? NormalizeScorm12SuccessStatus(resource.LessonStatus)
+                : ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
+            var isPlaceholderProgressCommit = IsPlaceholderProgressCommit(
+                resource,
+                normalizedLessonStatus,
+                normalizedCompletionStatus,
+                normalizedSuccessStatus);
 
             state.ScormVersion = PreferIncoming(normalizedVersion, state.ScormVersion) ?? string.Empty;
             state.LessonLocation = PreferIncoming(resource.LessonLocation, state.LessonLocation);
             state.SuspendData = PreferIncoming(resource.SuspendData, state.SuspendData);
-            state.LessonStatus = PreferStatus(normalizedLessonStatus, state.LessonStatus);
-            state.CompletionStatus = PreferStatus(normalizedCompletionStatus, state.CompletionStatus);
+            state.LessonStatus = PreferStatus(normalizedLessonStatus, state.LessonStatus, isPlaceholderProgressCommit);
+            state.CompletionStatus = PreferStatus(normalizedCompletionStatus, state.CompletionStatus, isPlaceholderProgressCommit);
             state.SuccessStatus = PreferSuccessStatus(normalizedSuccessStatus, state.SuccessStatus);
             state.SessionTime = PreferDuration(resource.SessionTime, state.SessionTime);
             state.TotalTime = PreferDuration(resource.TotalTime, state.TotalTime);
@@ -117,7 +126,8 @@ namespace iLearn.Infrastructure.Services
                 state.RawScore,
                 state.LessonStatus,
                 state.CompletionStatus,
-                state.SuccessStatus);
+                state.SuccessStatus,
+                isPlaceholderProgressCommit);
         }
 
         private static ScormRuntimeStateDto MapToDto(ScormRuntimeState state)
@@ -149,7 +159,7 @@ namespace iLearn.Infrastructure.Services
                 : incoming.Trim();
         }
 
-        private static string? PreferStatus(string? incoming, string? existing)
+        private static string? PreferStatus(string? incoming, string? existing, bool isPlaceholderProgressCommit)
         {
             var normalizedIncoming = PreferIncoming(incoming, null);
             if (normalizedIncoming == null)
@@ -157,7 +167,7 @@ namespace iLearn.Infrastructure.Services
                 return existing;
             }
 
-            return HasTerminalProgress(existing) && IsPlaceholderProgress(normalizedIncoming)
+            return isPlaceholderProgressCommit && HasTerminalProgress(existing) && IsPlaceholderProgress(normalizedIncoming)
                 ? existing
                 : normalizedIncoming;
         }
@@ -208,7 +218,8 @@ namespace iLearn.Infrastructure.Services
             decimal? existing,
             string? lessonStatus,
             string? completionStatus,
-            string? successStatus)
+            string? successStatus,
+            bool isPlaceholderProgressCommit)
         {
             if (!incoming.HasValue)
             {
@@ -218,7 +229,7 @@ namespace iLearn.Infrastructure.Services
             return existing.HasValue &&
                    existing.Value > 0 &&
                    incoming.Value == 0m &&
-                   LooksLikePlaceholderOutcome(lessonStatus, completionStatus, successStatus)
+                   (isPlaceholderProgressCommit || LooksLikePlaceholderOutcome(lessonStatus, completionStatus, successStatus))
                 ? existing
                 : incoming.Value;
         }
@@ -268,6 +279,20 @@ namespace iLearn.Infrastructure.Services
                    (string.IsNullOrWhiteSpace(successStatus) || IsUnknownSuccess(successStatus));
         }
 
+        private static bool IsPlaceholderProgressCommit(
+            ScormRuntimeResourceCommitDto resource,
+            string? lessonStatus,
+            string? completionStatus,
+            string? successStatus)
+        {
+            return LooksLikePlaceholderOutcome(lessonStatus, completionStatus, successStatus) &&
+                   (!resource.RawScore.HasValue || resource.RawScore.Value == 0m) &&
+                   string.IsNullOrWhiteSpace(resource.LessonLocation) &&
+                   string.IsNullOrWhiteSpace(resource.SuspendData) &&
+                   (string.IsNullOrWhiteSpace(resource.SessionTime) || IsZeroLikeDuration(resource.SessionTime)) &&
+                   (string.IsNullOrWhiteSpace(resource.TotalTime) || IsZeroLikeDuration(resource.TotalTime));
+        }
+
         private static bool HasResumeContext(string? lessonLocation, string? suspendData)
         {
             return !string.IsNullOrWhiteSpace(lessonLocation) || !string.IsNullOrWhiteSpace(suspendData);
@@ -300,6 +325,23 @@ namespace iLearn.Infrastructure.Services
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim().ToLowerInvariant();
+        }
+
+        private static bool IsScorm12(string? scormVersion)
+        {
+            return string.Equals(scormVersion, ScormRuntimeFieldMap.Scorm12, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? NormalizeScorm12SuccessStatus(string? lessonStatus)
+        {
+            return lessonStatus?.Trim().ToLowerInvariant() switch
+            {
+                "passed" => "passed",
+                "failed" => "failed",
+                null => null,
+                "" => null,
+                _ => "unknown"
+            };
         }
     }
 }

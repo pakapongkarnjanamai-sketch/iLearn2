@@ -742,6 +742,19 @@
             }
         }
 
+        function syncScorm12StatusAliases(lessonStatus) {
+            const normalizedStatus = String(lessonStatus || '').toLowerCase().trim();
+            const completionStatus = ["passed", "completed", "failed", "browsed"].includes(normalizedStatus)
+                ? "completed"
+                : (normalizedStatus || "not attempted");
+            const successStatus = normalizedStatus === "passed"
+                ? "passed"
+                : (normalizedStatus === "failed" ? "failed" : "unknown");
+
+            cmiModel["cmi.completion_status"] = completionStatus;
+            cmiModel["cmi.success_status"] = successStatus;
+        }
+
         function syncRuntimeStateFromModel(resource, options = {}) {
             if (!resource || !currentData || !currentData.enrollmentId) {
                 return null;
@@ -1102,6 +1115,7 @@
             $("#startOverlay").fadeOut(200);
             sessionStartTime = new Date();
             resource.hasPendingRuntimeCommit = true;
+            resource.sessionTerminalStatus = null;
             const iframe = document.getElementById("scormFrame");
 
             // 3. บังคับโหลดใหม่ (Clear Cache iframe)
@@ -1146,6 +1160,7 @@
                 if (valStr === "passed") {
                     resource.clientStatus = "passed";
                     resource.clientProgress = 100;
+                    resource.sessionTerminalStatus = "passed";
                     needsRecalc = true;
                     captureSessionTime(resource);
                     console.log(`✅ Status: PASSED (100%)`);
@@ -1153,10 +1168,12 @@
                 else if (valStr === "completed") {
                     resource.clientStatus = resource.clientSuccessStatus === "failed" ? "failed" : "passed";
                     if (resource.clientStatus === "failed") {
+                        resource.sessionTerminalStatus = "failed";
                         needsRecalc = true;
                         console.log(`❌ Status remains FAILED because success_status is failed`);
                     } else {
                         resource.clientProgress = 100;
+                        resource.sessionTerminalStatus = "passed";
                         needsRecalc = true;
                         captureSessionTime(resource);
                         console.log(`✅ Status: COMPLETED → PASSED (100%)`);
@@ -1164,12 +1181,15 @@
                 }
                 else if (valStr === "failed") {
                     resource.clientStatus = "failed";
+                    resource.sessionTerminalStatus = "failed";
                     needsRecalc = true;
                     console.log(`❌ Status: FAILED`);
                 }
                 else {
-                    if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
+                    if (resource.sessionTerminalStatus !== "passed" && resource.sessionTerminalStatus !== "failed") {
                         resource.clientStatus = "incomplete";
+                        resource.clientProgress = getIncompleteResourceProgress(resource);
+                        needsRecalc = true;
                         console.log(`⏳ Status: INCOMPLETE`);
                     }
                 }
@@ -1181,12 +1201,14 @@
                 if (valStr === "passed") {
                     resource.clientStatus = "passed";
                     resource.clientProgress = 100;
+                    resource.sessionTerminalStatus = "passed";
                     needsRecalc = true;
                     captureSessionTime(resource);
                     console.log(`✅ Success Status: PASSED (100%)`);
                 }
                 else if (valStr === "failed") {
                     resource.clientStatus = "failed";
+                    resource.sessionTerminalStatus = "failed";
                     needsRecalc = true;
                     captureSessionTime(resource);
                     console.log(`❌ Success Status: FAILED`);
@@ -1204,12 +1226,14 @@
                 if (valStr === "completed") {
                     if (resource.clientSuccessStatus === "failed" || resource.clientStatus === "failed") {
                         resource.clientStatus = "failed";
+                        resource.sessionTerminalStatus = "failed";
                         needsRecalc = true;
                         console.log(`❌ Completion Status: COMPLETED but success status is FAILED`);
                     }
                     else if (resource.clientSuccessStatus === "passed" || String(resource.type).toLowerCase() !== "exam") {
                         resource.clientStatus = "passed";
                         resource.clientProgress = 100;
+                        resource.sessionTerminalStatus = "passed";
                         needsRecalc = true;
                         captureSessionTime(resource);
                         console.log(`✅ Completion Status: COMPLETED`);
@@ -1221,8 +1245,9 @@
                     }
                 }
                 else if (valStr === "incomplete" || valStr === "not attempted" || valStr === "unknown") {
-                    if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
+                    if (resource.sessionTerminalStatus !== "passed" && resource.sessionTerminalStatus !== "failed") {
                         resource.clientStatus = "incomplete";
+                        resource.clientProgress = getIncompleteResourceProgress(resource);
                         needsRecalc = true;
                         console.log(`⏳ Completion Status: INCOMPLETE`);
                     }
@@ -1245,6 +1270,20 @@
             if (needsRecalc) {
                 recalcTotalProgress();
             }
+        }
+
+        function getIncompleteResourceProgress(resource) {
+            const score = Number(resource?.clientScore);
+            if (String(resource?.type || '').toLowerCase() === "learn" && Number.isFinite(score) && score > 0 && score < 100) {
+                return score;
+            }
+
+            const progress = Number(resource?.clientProgress);
+            if (Number.isFinite(progress) && progress > 0 && progress < 100) {
+                return progress;
+            }
+
+            return 0;
         }
 
         // ========================================
@@ -1449,6 +1488,7 @@
                     markSelectedResourceDirty();
 
                     if (e === "cmi.core.lesson_status") {
+                        syncScorm12StatusAliases(v);
                         updateResourceData("status", v);
                     }
                     if (e === "cmi.core.score.raw") {

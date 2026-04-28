@@ -366,8 +366,13 @@ namespace iLearn.API.Controllers
 
         private static ResourceProgressUpdate MapRuntimeCommitToProgress(ScormRuntimeResourceCommitDto resource)
         {
-            var normalizedCompletionStatus = ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
-            var normalizedSuccessStatus = ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
+            var scormVersion = ScormRuntimeFieldMap.NormalizeVersion(resource.ScormVersion);
+            var normalizedCompletionStatus = IsScorm12(scormVersion)
+                ? ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, null)
+                : ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
+            var normalizedSuccessStatus = IsScorm12(scormVersion)
+                ? NormalizeScorm12SuccessStatus(resource.LessonStatus)
+                : ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
 
             return new ResourceProgressUpdate(
                 resource.ResourceId,
@@ -375,6 +380,23 @@ namespace iLearn.API.Controllers
                 DeriveLegacyProgress(resource.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
                 resource.RawScore.HasValue ? (int)Math.Round(resource.RawScore.Value, MidpointRounding.AwayFromZero) : null,
                 resource.SessionTime);
+        }
+
+        private static bool IsScorm12(string? scormVersion)
+        {
+            return string.Equals(scormVersion, ScormRuntimeFieldMap.Scorm12, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? NormalizeScorm12SuccessStatus(string? lessonStatus)
+        {
+            return lessonStatus?.Trim().ToLowerInvariant() switch
+            {
+                "passed" => "passed",
+                "failed" => "failed",
+                null => null,
+                "" => null,
+                _ => "unknown"
+            };
         }
 
         private static string DeriveLegacyStatus(string? lessonStatus, string? completionStatus, string? successStatus)

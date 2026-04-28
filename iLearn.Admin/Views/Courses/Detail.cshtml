@@ -206,6 +206,11 @@
         const courseIndexUrl = '@Url.Action("Index", "Courses")';
         const newVersionUrl = '@Url.Action("VersionForm", "Courses")';
         const assignmentFormUrl = '@Url.Action("BulkAssign", "Assignments")';
+        const VERSION_LEARNER_POLICY = {
+            NewLearnersOnly: "NewLearnersOnly",
+            MoveNotStarted: "MoveNotStarted",
+            ResetInProgress: "ResetInProgress"
+        };
 
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
@@ -574,10 +579,17 @@
                 }
 
                 try {
+                    const learnerPolicy = await resolveLearnerPolicyForActiveVersion();
+                    if (!learnerPolicy) {
+                        return;
+                    }
+
                     await $.ajax({
                         url: `${courseApiUrl}/${courseId}/versions/${versionId}/set-active`,
                         type: 'PATCH',
-                        xhrFields: { withCredentials: true }
+                        contentType: 'application/json',
+                        xhrFields: { withCredentials: true },
+                        data: JSON.stringify({ policy: learnerPolicy })
                     });
 
                     showToast('Active version updated.', 'success', 2000);
@@ -591,6 +603,86 @@
                     }
                 }
             };
+
+            async function resolveLearnerPolicyForActiveVersion() {
+                const response = await $.ajax({
+                    url: `${courseApiUrl}/${courseId}/version-impact`,
+                    type: 'GET',
+                    xhrFields: { withCredentials: true }
+                });
+
+                const impact = response.data || response;
+                if (!impact || !impact.hasEligibleOpenLearners) {
+                    return VERSION_LEARNER_POLICY.NewLearnersOnly;
+                }
+
+                return showVersionLearnerPolicyDialog(impact);
+            }
+
+            function showVersionLearnerPolicyDialog(impact) {
+                const notStartedCount = Number(impact.notStartedCount || 0);
+                const inProgressCount = Number(impact.inProgressCount || 0);
+                const completedCount = Number(impact.completedCount || 0);
+                const otherOpenCount = Number(impact.otherOpenCount || 0);
+                const messageHtml = `
+                    <div class="text-start">
+                        <div class="u-fs-12 text-secondary mb-3">This course has assigned learners. Choose how the active version should apply.</div>
+                        <div class="admin-summary-grid admin-summary-grid--cols-4 mb-3">
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${notStartedCount}</div>
+                                <div class="admin-summary-label">Not Started</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${inProgressCount}</div>
+                                <div class="admin-summary-label">In Progress</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${completedCount}</div>
+                                <div class="admin-summary-label">Completed</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${otherOpenCount}</div>
+                                <div class="admin-summary-label">Not Affected</div>
+                            </div>
+                        </div>
+                        <div class="u-fs-11 text-secondary">Completed learners are kept as-is. In-progress learners are reset only if you choose reset.</div>
+                    </div>`;
+
+                const dialog = DevExpress.ui.dialog.custom({
+                    title: 'Apply Active Version',
+                    messageHtml,
+                    buttons: [
+                        {
+                            text: 'New Learners Only',
+                            onClick: function() {
+                                return VERSION_LEARNER_POLICY.NewLearnersOnly;
+                            }
+                        },
+                        {
+                            text: 'Move Not Started',
+                            type: 'default',
+                            onClick: function() {
+                                return VERSION_LEARNER_POLICY.MoveNotStarted;
+                            }
+                        },
+                        {
+                            text: 'Reset In Progress',
+                            type: 'danger',
+                            onClick: function() {
+                                return VERSION_LEARNER_POLICY.ResetInProgress;
+                            }
+                        },
+                        {
+                            text: 'Cancel',
+                            onClick: function() {
+                                return null;
+                            }
+                        }
+                    ]
+                });
+
+                return dialog.show();
+            }
 
             window.deleteVersion = function(versionId) {
                 DevExpress.ui.dialog.confirm('Delete this version? This cannot be undone.', 'Confirm Delete').done(async function(ok) {

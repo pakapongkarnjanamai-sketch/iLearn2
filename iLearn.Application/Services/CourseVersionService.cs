@@ -1,6 +1,7 @@
 ﻿using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
+using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -19,29 +20,44 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<CourseResource> _courseResourceRepository;
         private readonly IGenericRepository<Resource> _resourceRepository;
         private readonly IGenericRepository<FileStorage> _fileStorageRepository;
+        private readonly IGenericRepository<Enrollment> _enrollmentRepository;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepository;
+        private readonly IGenericRepository<LearningLog> _learningLogRepository;
         private readonly ICourseRepository _courseRepository;
         private readonly IScormService _scormService;
         private readonly IAdminActivityService _adminActivityService;
         private readonly ICurrentUserService _currentUser;
+        private readonly IDateTime _dateTime;
+        private readonly IUnitOfWork _unitOfWork;
 
         public CourseVersionService(
             IGenericRepository<CourseVersion> versionRepository,
             IGenericRepository<CourseResource> courseResourceRepository,
             IGenericRepository<Resource> resourceRepository,
             IGenericRepository<FileStorage> fileStorageRepository,
+            IGenericRepository<Enrollment> enrollmentRepository,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepository,
+            IGenericRepository<LearningLog> learningLogRepository,
             ICourseRepository courseRepository,
             IScormService scormService,
             IAdminActivityService adminActivityService,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            IDateTime dateTime,
+            IUnitOfWork unitOfWork)
         {
             _versionRepository = versionRepository;
             _courseResourceRepository = courseResourceRepository;
             _resourceRepository = resourceRepository;
             _fileStorageRepository = fileStorageRepository;
+            _enrollmentRepository = enrollmentRepository;
+            _enrollmentAssignmentRepository = enrollmentAssignmentRepository;
+            _learningLogRepository = learningLogRepository;
             _courseRepository = courseRepository;
             _scormService = scormService;
             _adminActivityService = adminActivityService;
             _currentUser = currentUser;
+            _dateTime = dateTime;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<CreateCourseVersionDto> GetVersionByIdAsync(int versionId)
@@ -106,6 +122,27 @@ namespace iLearn.Application.Services
             }
 
             return result;
+        }
+
+        public async Task<CourseVersionLearnerImpactDto> GetVersionLearnerImpactAsync(int courseId)
+        {
+            var course = await _courseRepository.GetByIdAsync(courseId);
+            if (course == null)
+                throw new KeyNotFoundException($"Course ID: {courseId} not found.");
+
+            var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == courseId);
+            var eligibleEnrollments = await GetPolicyEligibleOpenEnrollmentsAsync(courseId);
+            var startedEnrollmentIds = await GetStartedEnrollmentIdsAsync(eligibleEnrollments);
+            var eligibleKeys = eligibleEnrollments.Select(GetEnrollmentKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return new CourseVersionLearnerImpactDto
+            {
+                CourseId = courseId,
+                NotStartedCount = eligibleEnrollments.Count(e => !IsStarted(e, startedEnrollmentIds)),
+                InProgressCount = eligibleEnrollments.Count(e => IsStarted(e, startedEnrollmentIds)),
+                CompletedCount = enrollments.Count(e => e.IsCompleted),
+                OtherOpenCount = enrollments.Count(e => !e.IsCompleted && !eligibleKeys.Contains(GetEnrollmentKey(e)))
+            };
         }
 
         public async Task<CourseVersionDto> CreateVersionAsync(int courseId, CreateCourseVersionDto model, List<IFormFile> files)
@@ -199,6 +236,11 @@ namespace iLearn.Application.Services
 
             var sortedResources = courseResourcesForNew.OrderBy(cr => cr.Order).ToList();
 
+            if (newVersion.IsActive)
+            {
+                await ApplyLearnerVersionPolicyAsync(newVersion.CourseId, newVersion.Id, model.LearnerPolicy);
+            }
+
             await _adminActivityService.LogAsync(
                 actionType: "CreateCourseVersion",
                 entityType: nameof(CourseVersion),
@@ -232,6 +274,8 @@ namespace iLearn.Application.Services
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null)
                 throw new KeyNotFoundException($"Version ID: {versionId} not found.");
+
+            var activatesVersion = model.IsActive && !version.IsActive;
 
             version.Note = model.Note;
 
@@ -314,6 +358,11 @@ namespace iLearn.Application.Services
 
             var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
 
+            if (activatesVersion)
+            {
+                await ApplyLearnerVersionPolicyAsync(version.CourseId, version.Id, model.LearnerPolicy);
+            }
+
             return new CourseVersionDto
             {
                 Id = version.Id,
@@ -352,7 +401,10 @@ namespace iLearn.Application.Services
             await _versionRepository.DeleteAsync(version);
         }
 
-        public async Task SetActiveVersionAsync(int courseId, int versionId)
+        public async Task SetActiveVersionAsync(
+            int courseId,
+            int versionId,
+            CourseVersionLearnerPolicy learnerPolicy = CourseVersionLearnerPolicy.NewLearnersOnly)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null)
@@ -361,6 +413,8 @@ namespace iLearn.Application.Services
             var version = await _versionRepository.GetByIdAsync(versionId);
             if (version == null || version.CourseId != courseId)
                 throw new KeyNotFoundException($"Version ID: {versionId} not found.");
+
+            var wasAlreadyActive = version.IsActive;
 
             var activeVersions = await _versionRepository.GetAsync(
                 filter: v => v.CourseId == courseId && v.IsActive && v.Id != versionId
@@ -477,6 +531,132 @@ namespace iLearn.Application.Services
                     }
                 }
             }
+
+            if (!wasAlreadyActive)
+            {
+                await ApplyLearnerVersionPolicyAsync(courseId, versionId, learnerPolicy);
+            }
+        }
+
+        private async Task ApplyLearnerVersionPolicyAsync(
+            int courseId,
+            int versionId,
+            CourseVersionLearnerPolicy learnerPolicy)
+        {
+            if (learnerPolicy == CourseVersionLearnerPolicy.NewLearnersOnly)
+            {
+                return;
+            }
+
+            var eligibleEnrollments = await GetPolicyEligibleOpenEnrollmentsAsync(courseId);
+            if (eligibleEnrollments.Count == 0)
+            {
+                return;
+            }
+
+            var startedEnrollmentIds = await GetStartedEnrollmentIdsAsync(eligibleEnrollments);
+            var targetEnrollments = learnerPolicy == CourseVersionLearnerPolicy.MoveNotStarted
+                ? eligibleEnrollments.Where(e => !IsStarted(e, startedEnrollmentIds)).ToList()
+                : eligibleEnrollments;
+
+            if (targetEnrollments.Count == 0)
+            {
+                return;
+            }
+
+            var now = _dateTime.Now;
+            foreach (var enrollment in targetEnrollments)
+            {
+                enrollment.ResetAt = now;
+                enrollment.EnrolledCourseVersion = versionId;
+                enrollment.IsCompleted = false;
+                enrollment.CompletedDate = null;
+                enrollment.Progress = 0;
+                enrollment.TotalScore = 0;
+                enrollment.TotalTimeSpent = 0;
+                enrollment.UpdatedAt = now;
+
+                _enrollmentRepository.UpdateWithoutSave(enrollment);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        private async Task<List<Enrollment>> GetPolicyEligibleOpenEnrollmentsAsync(int courseId)
+        {
+            var assignmentLinks = await _enrollmentAssignmentRepository.GetAsync(
+                link => link.Enrollment != null && link.Enrollment.CourseId == courseId,
+                includeProperties: "Enrollment,Assignment");
+
+            return assignmentLinks
+                .Where(IsInProgressAssignmentLink)
+                .Select(link => link.Enrollment!)
+                .Where(enrollment => !enrollment.IsCompleted)
+                .GroupBy(GetEnrollmentKey, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private bool IsInProgressAssignmentLink(EnrollmentAssignment link)
+        {
+            if (link.IsDeleted || link.SnapshotCompleted || link.Assignment == null || link.Assignment.IsDeleted)
+            {
+                return false;
+            }
+
+            if (_currentUser.DivisionId.HasValue && link.Assignment.DivisionId != _currentUser.DivisionId.Value)
+            {
+                return false;
+            }
+
+            var now = _dateTime.Now;
+            if (link.Assignment.StartDate.HasValue && link.Assignment.StartDate.Value > now)
+            {
+                return false;
+            }
+
+            if (link.Assignment.DueDate.HasValue && link.Assignment.DueDate.Value < now)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task<HashSet<int>> GetStartedEnrollmentIdsAsync(IEnumerable<Enrollment> enrollments)
+        {
+            var enrollmentList = enrollments.Where(e => e.Id > 0).ToList();
+            var enrollmentIds = enrollmentList.Select(e => e.Id).Distinct().ToList();
+            if (enrollmentIds.Count == 0)
+            {
+                return [];
+            }
+
+            var resetMap = enrollmentList.ToDictionary(e => e.Id, e => e.ResetAt);
+            var logs = await _learningLogRepository.GetAsync(log => enrollmentIds.Contains(log.EnrollmentId));
+
+            return logs
+                .Where(log => !log.IsDeleted)
+                .Where(log => !resetMap.TryGetValue(log.EnrollmentId, out var resetAt)
+                    || !resetAt.HasValue
+                    || log.CreatedAt >= resetAt.Value)
+                .Select(log => log.EnrollmentId)
+                .ToHashSet();
+        }
+
+        private static bool IsStarted(Enrollment enrollment, HashSet<int> startedEnrollmentIds)
+        {
+            return enrollment.Progress > 0
+                || enrollment.TotalScore > 0
+                || enrollment.CompletedDate.HasValue
+                || startedEnrollmentIds.Contains(enrollment.Id);
+        }
+
+        private static string GetEnrollmentKey(Enrollment enrollment)
+        {
+            return enrollment.Id > 0
+                ? enrollment.Id.ToString()
+                : $"{enrollment.StudentCode}:{enrollment.CourseId}";
         }
 
         private async Task<Resource> ProcessNewResourceAsync(IFormFile file, int typeId)

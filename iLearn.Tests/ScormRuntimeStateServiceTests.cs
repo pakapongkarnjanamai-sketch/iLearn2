@@ -164,6 +164,58 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task UpsertAsync_AllowsMeaningfulIncompleteCommitToOverrideTerminalState()
+        {
+            var existingState = new ScormRuntimeState
+            {
+                Id = 1,
+                EnrollmentId = 11192,
+                ResourceId = 1089,
+                ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                LessonStatus = "completed",
+                CompletionStatus = "completed",
+                SuccessStatus = "unknown",
+                RawScore = 100m,
+                CreatedAt = Now.AddMinutes(-10),
+                UpdatedAt = Now.AddMinutes(-5),
+                LastCommittedAtUtc = Now.AddMinutes(-5)
+            };
+
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>([existingState], Now);
+            var unitOfWork = new FakeUnitOfWork();
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var result = await service.UpsertAsync(11192,
+            [
+                new ScormRuntimeResourceCommitDto
+                {
+                    ResourceId = 1089,
+                    ScormVersion = "1.2",
+                    SuspendData = "N4IgDiBcCMA0IFsoCZ4DcoG0AMBdAvkA",
+                    LessonStatus = "incomplete",
+                    CompletionStatus = "completed",
+                    SuccessStatus = "unknown",
+                    RawScore = 20m,
+                    SessionTime = "00:00:00",
+                    TotalTime = "00:00:00",
+                    Exit = "suspend",
+                    LastCommittedAtUtc = Now
+                }
+            ]);
+
+            var updated = Assert.Single(result);
+
+            Assert.Equal("incomplete", updated.LessonStatus);
+            Assert.Equal("incomplete", updated.CompletionStatus);
+            Assert.Equal("unknown", updated.SuccessStatus);
+            Assert.Equal("N4IgDiBcCMA0IFsoCZ4DcoG0AMBdAvkA", updated.SuspendData);
+            Assert.Equal(20m, updated.RawScore);
+            Assert.Equal("suspend", updated.Exit);
+            Assert.Equal(Now, updated.LastCommittedAtUtc);
+            Assert.Equal(1, unitOfWork.SaveCallCount);
+        }
+
+        [Fact]
         public async Task GetActiveStatesAsync_ExcludesStatesCommittedBeforeEnrollmentReset()
         {
             var resetAt = Now.AddHours(-1);

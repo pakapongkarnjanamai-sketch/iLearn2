@@ -8,6 +8,7 @@ using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace iLearn.API.Controllers
 {
@@ -199,6 +200,20 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [HttpGet("{courseId}/version-impact")]
+        public async Task<IActionResult> GetVersionLearnerImpact(int courseId)
+        {
+            try
+            {
+                var impact = await _versionService.GetVersionLearnerImpactAsync(courseId);
+                return Ok(new { success = true, data = impact });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpGet("versions/{versionId}")]
         public async Task<IActionResult> GetVersion(int versionId)
         {
@@ -291,11 +306,17 @@ namespace iLearn.API.Controllers
         }
 
         [HttpPatch("{courseId}/versions/{versionId}/set-active")]
-        public async Task<IActionResult> SetActiveVersion(int courseId, int versionId)
+        public async Task<IActionResult> SetActiveVersion(
+            int courseId,
+            int versionId,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CourseVersionLearnerPolicyDto? dto)
         {
             try
             {
-                await _versionService.SetActiveVersionAsync(courseId, versionId);
+                await _versionService.SetActiveVersionAsync(
+                    courseId,
+                    versionId,
+                    dto?.Policy ?? CourseVersionLearnerPolicy.NewLearnersOnly);
                 return Ok(new { success = true, message = "Active version changed successfully." });
             }
             catch (KeyNotFoundException ex)
