@@ -220,28 +220,36 @@ namespace iLearn.API.Controllers
             }
 
             var resources = targetVersion.CourseResources
-                .OrderBy(cr => cr.Resource.TypeId == 1 ? 0 : 1) // Learn first
-                .ThenBy(cr => cr.Resource.Name)
+                .Where(cr => cr.Resource != null)
+                .OrderBy(cr => cr.Resource!.TypeId == 1 ? 0 : 1) // Learn first
+                .ThenBy(cr => cr.Resource!.Name)
                 .Select(cr => {
-                    var log = userLogs.FirstOrDefault(l => l.ResourceId == cr.Resource.Id);
-                    runtimeStateMap.TryGetValue(cr.Resource.Id, out var runtimeState);
+                    var resource = cr.Resource!;
+                    var log = userLogs.FirstOrDefault(l => l.ResourceId == resource.Id);
+                    runtimeStateMap.TryGetValue(resource.Id, out var runtimeState);
+                    var resourceType = resource.TypeId == 2 ? "Exam" : "Learn";
+                    var scormVersion = runtimeState?.ScormVersion ?? ScormRuntimeFieldMap.NormalizeVersion(resource.SchemaVersion);
                     bool isDone = log != null && (
                         log.Status.ToLower() == "completed" ||
                         log.Status.ToLower() == "passed"
                     );
+                    var status = ResolvePlayerResourceStatus(resourceType, log, runtimeState, isDone);
 
                     return new PlayerResourceDto
                     {
-                        Id = cr.Resource.Id,
-                        Name = cr.Resource.Name,
-                        Type = cr.Resource.TypeId == 2 ? "Exam" : "Learn",
-                        LaunchUrl = !string.IsNullOrEmpty(cr.Resource.URL) && !string.IsNullOrEmpty(cr.Resource.ResourceHref)
-                            ? _scormService.GetScormUrl(cr.Resource.URL, cr.Resource.ResourceHref)
-                            : cr.Resource.URL ?? string.Empty,
-                        ScormVersion = runtimeState?.ScormVersion ?? ScormRuntimeFieldMap.NormalizeVersion(cr.Resource.SchemaVersion),
+                        Id = resource.Id,
+                        Name = resource.Name,
+                        Type = resourceType,
+                        LaunchUrl = !string.IsNullOrEmpty(resource.URL) && !string.IsNullOrEmpty(resource.ResourceHref)
+                            ? _scormService.GetScormUrl(resource.URL, resource.ResourceHref)
+                            : resource.URL ?? string.Empty,
+                        ScormVersion = scormVersion,
+                        Status = status,
+                        Progress = ResolvePlayerResourceCompletionProgress(status),
+                        ActivityProgress = ResolvePlayerResourceActivityProgress(resourceType, status, log, runtimeState, isDone),
                         IsCompleted = isDone,
-                        Score = log?.Score,
-                        Time = log?.SessionTime,
+                        Score = ResolvePlayerResourceScore(log, runtimeState),
+                        Time = ResolvePlayerResourceTime(log, runtimeState),
                         RuntimeState = runtimeState
                     };
                 })
@@ -251,6 +259,7 @@ namespace iLearn.API.Controllers
             {
                 CourseVersionId = targetVersion.Id,
                 CourseTitle = targetVersion.Course?.Title ?? "Unknown Course",
+                Progress = enrollment?.Progress ?? 0,
                 IsCompleted = isCompleted,
                 IsReadOnly = isReadOnly,
                 EnrollmentId = enrollment?.Id,
@@ -258,6 +267,101 @@ namespace iLearn.API.Controllers
             };
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
+        }
+
+        private static string ResolvePlayerResourceStatus(
+            string resourceType,
+            LearningLog? log,
+            ScormRuntimeStateDto? runtimeState,
+            bool isDone)
+        {
+            var lessonStatus = NormalizeStatus(runtimeState?.LessonStatus);
+            var completionStatus = NormalizeStatus(runtimeState?.CompletionStatus);
+            var successStatus = NormalizeStatus(runtimeState?.SuccessStatus);
+            var logStatus = NormalizeStatus(log?.Status);
+            var isExamResource = string.Equals(resourceType, "Exam", StringComparison.OrdinalIgnoreCase);
+
+            if (successStatus == "failed" || lessonStatus == "failed" || logStatus == "failed")
+            {
+                return "failed";
+            }
+
+            if (successStatus == "passed" || lessonStatus == "passed" || logStatus == "passed")
+            {
+                return "passed";
+            }
+
+            if (completionStatus == "completed" || lessonStatus == "completed" || lessonStatus == "browsed" || logStatus == "completed" || isDone)
+            {
+                return isExamResource ? "incomplete" : "completed";
+            }
+
+            return "incomplete";
+        }
+
+        private static double ResolvePlayerResourceCompletionProgress(string status)
+        {
+            return status is "passed" or "completed" ? 100 : 0;
+        }
+
+        private static double ResolvePlayerResourceActivityProgress(
+            string resourceType,
+            string status,
+            LearningLog? log,
+            ScormRuntimeStateDto? runtimeState,
+            bool isDone)
+        {
+            if (status is "passed" or "completed" or "failed")
+            {
+                return 100;
+            }
+
+            if (string.Equals(resourceType, "Learn", StringComparison.OrdinalIgnoreCase) && runtimeState?.RawScore is decimal rawScore && rawScore > 0)
+            {
+                return ClampProgress((double)rawScore);
+            }
+
+            if (log?.Progress > 0)
+            {
+                return ClampProgress(log.Progress);
+            }
+
+            return isDone ? 100 : 0;
+        }
+
+        private static decimal? ResolvePlayerResourceScore(LearningLog? log, ScormRuntimeStateDto? runtimeState)
+        {
+            if (runtimeState?.RawScore != null)
+            {
+                return runtimeState.RawScore.Value;
+            }
+
+            return log?.Score;
+        }
+
+        private static string ResolvePlayerResourceTime(LearningLog? log, ScormRuntimeStateDto? runtimeState)
+        {
+            if (!string.IsNullOrWhiteSpace(runtimeState?.SessionTime))
+            {
+                return runtimeState.SessionTime;
+            }
+
+            if (!string.IsNullOrWhiteSpace(log?.SessionTime))
+            {
+                return log.SessionTime;
+            }
+
+            return "00:00:00";
+        }
+
+        private static string NormalizeStatus(string? status)
+        {
+            return string.IsNullOrWhiteSpace(status) ? string.Empty : status.Trim().ToLowerInvariant();
+        }
+
+        private static double ClampProgress(double value)
+        {
+            return Math.Round(Math.Max(0, Math.Min(100, value)), 2);
         }
 
         private bool TryGetTrustedLearnerStudentCode(out string studentCode, out IActionResult errorResult)

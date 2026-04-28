@@ -4,6 +4,7 @@
     {
         public int CourseVersionId { get; set; }
         public string CourseTitle { get; set; } = string.Empty;
+        public double Progress { get; set; }
 
         // สถานะจบการศึกษา (Completed)
         public bool IsCompleted { get; set; } = false;
@@ -22,8 +23,12 @@
         public string LaunchUrl { get; set; } = string.Empty;
         public string ScormVersion { get; set; } = string.Empty;
 
+        public string Status { get; set; } = "incomplete";
+        public double Progress { get; set; }
+        public double ActivityProgress { get; set; }
+
         public bool IsCompleted { get; set; }
-        public int? Score { get; set; }
+        public decimal? Score { get; set; }
         public string? Time { get; set; }
         public ScormRuntimeStateDto? RuntimeState { get; set; }
     }

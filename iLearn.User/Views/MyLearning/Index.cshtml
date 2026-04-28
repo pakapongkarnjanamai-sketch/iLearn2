@@ -500,6 +500,73 @@
             color: #555;
         }
 
+        .catalog-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .catalog-type-filter-wrap {
+            flex: 1 1 420px;
+            min-width: 0;
+            max-width: min(760px, 100%);
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(2,125,131,0.28) transparent;
+            padding-bottom: 0.15rem;
+        }
+
+        .catalog-type-filter-wrap::-webkit-scrollbar {
+            height: 5px;
+        }
+
+        .catalog-type-filter-wrap::-webkit-scrollbar-thumb {
+            background: rgba(2,125,131,0.28);
+            border-radius: 3px;
+        }
+
+        .catalog-type-filter-wrap .nav-pills {
+            flex-wrap: nowrap;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        .catalog-type-filter-wrap .nav-link {
+            white-space: nowrap;
+            padding: 0.45rem 0.9rem;
+        }
+
+        .catalog-filter-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.35rem;
+            height: 1.35rem;
+            margin-left: 0.35rem;
+            padding: 0 0.35rem;
+            border-radius: 999px;
+            background: rgba(2, 125, 131, 0.1);
+            color: var(--brand-color);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .nav-pills .nav-link.active .catalog-filter-count {
+            background: var(--brand-color);
+            color: #fff;
+        }
+
+        .catalog-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 0 0 auto;
+        }
+
         /* Profile Stats */
         .stat-box {
             background: white;
@@ -652,6 +719,26 @@
                 position: relative;
                 top: 0;
             }
+
+            .catalog-toolbar {
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .catalog-type-filter-wrap {
+                flex-basis: 100%;
+                max-width: 100%;
+            }
+
+            .catalog-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            #searchBoxContainer {
+                flex: 1 1 240px;
+            }
         }
     </style>
 }
@@ -724,25 +811,14 @@ else
 
                 <ul class="nav nav-pills" id="pills-tab" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link" onclick="filterMyCourses('all')">
-                            <i class="fas fa-th-large me-1 small"></i> ทั้งหมด
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link active" onclick="filterMyCourses('not-started')">
-                            <i class="fas fa-hourglass-start me-1 small"></i> ยังไม่เริ่ม
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" onclick="filterMyCourses('progress')">
+                        <button type="button" class="nav-link active" data-filter="progress" onclick="filterMyCourses(this.dataset.filter)">
                             <i class="fas fa-spinner me-1 small"></i> กำลังเรียน
-                        </a>
+                        </button>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" onclick="filterMyCourses('completed')">
+                        <button type="button" class="nav-link" data-filter="completed" onclick="filterMyCourses(this.dataset.filter)">
                             <i class="fas fa-check-circle me-1 small"></i> เรียนจบแล้ว
-                        </a>
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -763,22 +839,20 @@ else
                         คลังหลักสูตร
                     </h5>
                 </div>
-                <div class="d-flex gap-3 align-items-center">
-                    <ul class="nav nav-pills" id="catalog-type-filter">
-                        <li class="nav-item">
-                            <a class="nav-link active" onclick="filterCatalogByType('all')">
-                                <i class="fas fa-th-large me-1 small"></i> ทั้งหมด
-                            </a>
-                        </li>
-                    </ul>
-                    <div id="searchBoxContainer"></div>
-                    <div class="catalog-view-toggle">
-                        <button class="toggle-btn active" id="btnListView" onclick="setCatalogView('list')" title="มุมมองรายการ">
-                            <i class="fas fa-list"></i>
-                        </button>
-                        <button class="toggle-btn" id="btnGridView" onclick="setCatalogView('grid')" title="มุมมองกริด">
-                            <i class="fas fa-th"></i>
-                        </button>
+                <div class="catalog-toolbar">
+                    <div class="catalog-type-filter-wrap" aria-label="ตัวกรองประเภทหลักสูตร">
+                        <ul class="nav nav-pills" id="catalog-type-filter"></ul>
+                    </div>
+                    <div class="catalog-actions">
+                        <div id="searchBoxContainer"></div>
+                        <div class="catalog-view-toggle">
+                            <button type="button" class="toggle-btn active" id="btnListView" onclick="setCatalogView('list')" title="มุมมองรายการ">
+                                <i class="fas fa-list"></i>
+                            </button>
+                            <button type="button" class="toggle-btn" id="btnGridView" onclick="setCatalogView('grid')" title="มุมมองกริด">
+                                <i class="fas fa-th"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -807,7 +881,7 @@ else
         const myCoursesUrl = '@Url.Action("GetMyCourses", "MyLearning")';
         let allCoursesData = [];
         let myCoursesData = [];
-        let currentFilter = 'not-started';
+        let currentFilter = 'progress';
         let selectedCategoryId = 'all';
         let selectedCourseType = 'all';
         let allCourseTypes = []; // dynamic course types loaded from API
@@ -899,8 +973,7 @@ else
                     if (res.success && res.data && res.data.length > 0) {
                         myCoursesData = res.data;
                         updateStats(res.data);
-                        const notStarted = res.data.filter(e => !e.isCompleted && (e.progress || 0) === 0);
-                        renderMyCourses(notStarted.length > 0 ? notStarted : res.data);
+                        renderCurrentMyCourses();
                     } else {
                         renderEmptyState('#myCoursesContainer', 'คุณยังไม่มีคอร์สที่ได้รับมอบหมาย');
                         $("#statEnrolled, #statCompleted").text("0");
@@ -911,6 +984,30 @@ else
                     showToast("ไม่สามารถโหลดข้อมูลคอร์สเรียนได้", "error");
                 }
             });
+        }
+
+        function getFilteredMyCourses(type) {
+            if (type === 'completed') {
+                return myCoursesData.filter(e => !!e.isCompleted);
+            }
+
+            return myCoursesData.filter(e => !e.isCompleted);
+        }
+
+        function getMyCoursesEmptyMessage(type) {
+            return type === 'completed'
+                ? 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
+                : 'คุณยังไม่มีคอร์สที่กำลังเรียน';
+        }
+
+        function renderCurrentMyCourses() {
+            const filteredData = getFilteredMyCourses(currentFilter);
+            if (filteredData.length === 0) {
+                renderEmptyState('#myCoursesContainer', getMyCoursesEmptyMessage(currentFilter));
+                return;
+            }
+
+            renderMyCourses(filteredData);
         }
 
         function renderMyCourses(enrollments) {
@@ -1019,55 +1116,15 @@ else
                 $btn.html('<i class="fas fa-th-large me-1"></i> ดูทั้งหมด');
             }
             // Re-render with current filter
-            let filteredData = myCoursesData;
-            if (currentFilter === 'not-started') {
-                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) === 0);
-            } else if (currentFilter === 'progress') {
-                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) > 0);
-            } else if (currentFilter === 'completed') {
-                filteredData = myCoursesData.filter(e => !!e.isCompleted);
-            }
-            if (filteredData.length === 0) {
-                const messages = {
-                    'all': 'คุณยังไม่มีคอร์สที่ลงทะเบียน',
-                    'not-started': 'คุณยังไม่มีคอร์สที่ยังไม่เริ่มเรียน',
-                    'progress': 'คุณยังไม่มีคอร์สที่กำลังเรียน',
-                    'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
-                };
-                renderEmptyState('#myCoursesContainer', messages[currentFilter]);
-            } else {
-                renderMyCourses(filteredData);
-            }
+            renderCurrentMyCourses();
         }
 
         // ========== Filter My Courses ==========
         function filterMyCourses(type) {
             currentFilter = type;
             $('#pills-tab .nav-link').removeClass('active');
-            event.target.classList.add('active');
-
-            let filteredData = myCoursesData;
-
-            if (type === 'not-started') {
-                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) === 0);
-            } else if (type === 'progress') {
-                filteredData = myCoursesData.filter(e => !e.isCompleted && (e.progress || 0) > 0);
-            } else if (type === 'completed') {
-                filteredData = myCoursesData.filter(e => !!e.isCompleted);
-            }
-
-            const $container = $("#myCoursesContainer");
-            if (filteredData.length === 0) {
-                const messages = {
-                    'all': 'คุณยังไม่มีคอร์สที่ลงทะเบียน',
-                    'not-started': 'คุณยังไม่มีคอร์สที่ยังไม่เริ่มเรียน',
-                    'progress': 'คุณยังไม่มีคอร์สที่กำลังเรียน',
-                    'completed': 'คุณยังไม่มีคอร์สที่เรียนจบแล้ว'
-                };
-                renderEmptyState('#myCoursesContainer', messages[type]);
-            } else {
-                renderMyCourses(filteredData);
-            }
+            $(`#pills-tab .nav-link[data-filter="${type}"]`).addClass('active');
+            renderCurrentMyCourses();
         }
 
         // ========== Load Course Types (dynamic) ==========
@@ -1078,7 +1135,6 @@ else
                 xhrFields: { withCredentials: true },
                 success: function(res) {
                     allCourseTypes = res.data || (Array.isArray(res) ? res : []);
-                    renderTypeFilterPills();
                     loadAllCourses();
                 },
                 error: function() {
@@ -1088,17 +1144,70 @@ else
         }
 
         // ========== Render Type Filter Pills ==========
-        function renderTypeFilterPills() {
-            const $filter = $('#catalog-type-filter');
-            // remove any previously injected type pills
-            $filter.find('.dynamic-type-pill').remove();
+        function getCatalogBaseCourses(categoryId) {
+            return categoryId === 'all'
+                ? allCoursesData
+                : (categorizedCourses[categoryId]?.courses || []);
+        }
 
-            allCourseTypes.forEach(function(ct) {
+        function getCourseTypeId(course) {
+            const typeId = course.courseTypeId ?? course.CourseTypeId;
+            return typeId === null || typeId === undefined || typeId === '' ? null : String(typeId);
+        }
+
+        function getCatalogTypeName(course, typeId) {
+            const configuredType = allCourseTypes.find(type => String(type.id) === String(typeId));
+            return configuredType?.name || course.typeName || course.courseTypeName || 'ไม่ระบุประเภท';
+        }
+
+        function getAvailableCatalogTypes(categoryId) {
+            const typeMap = new Map();
+            getCatalogBaseCourses(categoryId).forEach(course => {
+                const typeId = getCourseTypeId(course);
+                if (!typeId) return;
+
+                if (!typeMap.has(typeId)) {
+                    typeMap.set(typeId, {
+                        id: typeId,
+                        name: getCatalogTypeName(course, typeId),
+                        count: 0
+                    });
+                }
+
+                typeMap.get(typeId).count++;
+            });
+
+            return Array.from(typeMap.values())
+                .sort((a, b) => a.name.localeCompare(b.name, 'th'));
+        }
+
+        function renderTypeFilterPills(categoryId) {
+            const $filter = $('#catalog-type-filter');
+            const baseCourses = getCatalogBaseCourses(categoryId);
+            const availableTypes = getAvailableCatalogTypes(categoryId);
+            const hasSelectedType = selectedCourseType === 'all' || availableTypes.some(type => String(type.id) === String(selectedCourseType));
+
+            if (!hasSelectedType) {
+                selectedCourseType = 'all';
+            }
+
+            $filter.empty();
+            $filter.append(`
+                <li class="nav-item">
+                    <button type="button" class="nav-link ${selectedCourseType === 'all' ? 'active' : ''}" data-type="all" onclick="filterCatalogByType(this.dataset.type)">
+                        <i class="fas fa-th-large me-1 small"></i> ทั้งหมด
+                        <span class="catalog-filter-count">${baseCourses.length}</span>
+                    </button>
+                </li>
+            `);
+
+            availableTypes.forEach(function(type) {
                 $filter.append(`
-                    <li class="nav-item dynamic-type-pill">
-                        <a class="nav-link" onclick="filterCatalogByType(${ct.id})">
-                            <i class="fas fa-tag me-1 small"></i> ${ct.name}
-                        </a>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link ${String(selectedCourseType) === String(type.id) ? 'active' : ''}" data-type="${type.id}" onclick="filterCatalogByType(this.dataset.type)">
+                            <i class="fas fa-tag me-1 small"></i> ${type.name}
+                            <span class="catalog-filter-count">${type.count}</span>
+                        </button>
                     </li>
                 `);
             });
@@ -1119,12 +1228,15 @@ else
                     if (allCoursesData.length > 0) {
                         organizeCoursesByCategory(allCoursesData);
                         renderCategorySidebar();
+                        renderTypeFilterPills(selectedCategoryId);
                         renderCatalogContent('all');
                     } else {
+                        renderTypeFilterPills(selectedCategoryId);
                         renderEmptyState('#catalogContent', 'ยังไม่มีหลักสูตรในขณะนี้');
                     }
                 },
                 error: function() {
+                    renderTypeFilterPills(selectedCategoryId);
                     renderEmptyState('#catalogContent', 'ไม่สามารถโหลดข้อมูลหลักสูตรได้');
                     showToast("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error");
                 }
@@ -1178,7 +1290,7 @@ else
                 `);
             });
             // Click Event
-            $menu.on('click', '.category-menu-item', function() {
+            $menu.off('click.category').on('click.category', '.category-menu-item', function() {
                 const categoryId = $(this).data('category');
                 selectedCategoryId = categoryId;
 
@@ -1192,9 +1304,6 @@ else
         // ========== Filter Catalog by Course Type ==========
         function filterCatalogByType(type) {
             selectedCourseType = type;
-            $('#catalog-type-filter .nav-link').removeClass('active');
-            event.target.classList.add('active');
-
             renderCatalogContent(selectedCategoryId);
         }
 
@@ -1214,14 +1323,13 @@ else
         function renderCatalogContent(categoryId) {
             const $content = $("#catalogContent");
             $content.empty();
+            renderTypeFilterPills(categoryId);
 
-            let coursesToShow = categoryId === 'all'
-                ? allCoursesData
-                : (categorizedCourses[categoryId]?.courses || []);
+            let coursesToShow = getCatalogBaseCourses(categoryId);
 
             // Apply Course Type Filter
             if (selectedCourseType !== 'all') {
-                coursesToShow = coursesToShow.filter(c => c.courseTypeId === selectedCourseType);
+                coursesToShow = coursesToShow.filter(c => getCourseTypeId(c) === String(selectedCourseType));
             }
 
             if (coursesToShow.length === 0) {

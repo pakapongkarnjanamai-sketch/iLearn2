@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Text.Json;
 
 namespace iLearn.Tests
 {
@@ -33,7 +34,9 @@ namespace iLearn.Tests
                     LessonLocation = "page-7",
                     SuspendData = "bookmark-state",
                     LessonStatus = "incomplete",
-                    CompletionStatus = "incomplete"
+                    CompletionStatus = "incomplete",
+                    RawScore = 60,
+                    CmiSnapshotJson = "{\"debug\":true}"
                 }
             ]);
 
@@ -47,6 +50,7 @@ namespace iLearn.Tests
                         StudentCode = "490222",
                         EnrolledCourseVersion = 20,
                         ResetAt = Now.AddMinutes(-30),
+                        Progress = 0,
                         IsCompleted = false,
                         Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
                     }
@@ -106,13 +110,22 @@ namespace iLearn.Tests
             Assert.False(dto.IsReadOnly);
             Assert.Equal(20, dto.CourseVersionId);
             Assert.Equal("Safety Course", dto.CourseTitle);
+            Assert.Equal(0, dto.Progress);
             Assert.Equal("https://files.example.local/course/pkg-1/launch/index.html", resource.LaunchUrl);
             Assert.Equal(ScormRuntimeFieldMap.Scorm2004, resource.ScormVersion);
+            Assert.Equal("incomplete", resource.Status);
+            Assert.Equal(0, resource.Progress);
+            Assert.Equal(60, resource.ActivityProgress);
+            Assert.Equal(60m, resource.Score);
+            Assert.Equal("00:05:00", resource.Time);
             Assert.NotNull(resource.RuntimeState);
             Assert.Equal("page-7", resource.RuntimeState!.LessonLocation);
             Assert.Equal("bookmark-state", resource.RuntimeState.SuspendData);
             Assert.Equal(10, runtimeStateService.LastEnrollmentId);
             Assert.Equal(Now.AddMinutes(-30), runtimeStateService.LastResetAt);
+
+            var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Assert.DoesNotContain("cmiSnapshotJson", json);
         }
 
         [Fact]
@@ -163,7 +176,129 @@ namespace iLearn.Tests
             Assert.Equal("Preview Course", dto.CourseTitle);
             Assert.Equal("https://cdn.example.local/preview/index.html", resource.LaunchUrl);
             Assert.Equal(ScormRuntimeFieldMap.Scorm12, resource.ScormVersion);
+            Assert.Equal("incomplete", resource.Status);
+            Assert.Equal(0, resource.Progress);
+            Assert.Equal(0, resource.ActivityProgress);
+            Assert.Equal("00:00:00", resource.Time);
             Assert.Null(resource.RuntimeState);
+        }
+
+        [Fact]
+        public async Task GetPlayerInfoByCourse_SeparatesCourseCompletionProgressFromResourceActivityProgress()
+        {
+            var runtimeStateService = new FakeScormRuntimeStateService(
+            [
+                new ScormRuntimeStateDto
+                {
+                    EnrollmentId = 10,
+                    ResourceId = 100,
+                    ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                    LessonStatus = "completed",
+                    CompletionStatus = "completed",
+                    RawScore = 0
+                },
+                new ScormRuntimeStateDto
+                {
+                    EnrollmentId = 10,
+                    ResourceId = 101,
+                    ScormVersion = ScormRuntimeFieldMap.Scorm2004,
+                    LessonStatus = "incomplete",
+                    CompletionStatus = "incomplete",
+                    RawScore = 60
+                }
+            ]);
+
+            var controller = CreateController(runtimeStateService,
+                enrollments:
+                [
+                    new Enrollment
+                    {
+                        Id = 10,
+                        CourseId = 5,
+                        StudentCode = "490222",
+                        EnrolledCourseVersion = 20,
+                        Progress = 25,
+                        IsCompleted = false,
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
+                    }
+                ],
+                versions:
+                [
+                    new CourseVersion
+                    {
+                        Id = 20,
+                        CourseId = 5,
+                        VersionNumber = 2,
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
+                        CourseResources =
+                        [
+                            CreateCourseResource(1, 100, "Learn 1.2", 1, "SCORM 1.2"),
+                            CreateCourseResource(2, 101, "Learn 2004", 1, "SCORM 2004"),
+                            CreateCourseResource(3, 102, "Exam 1.2", 2, "SCORM 1.2"),
+                            CreateCourseResource(4, 103, "Exam 2004", 2, "SCORM 2004")
+                        ]
+                    }
+                ],
+                logs:
+                [
+                    new LearningLog
+                    {
+                        Id = 1,
+                        EnrollmentId = 10,
+                        StudentCode = "490222",
+                        CourseVersionId = 20,
+                        ResourceId = 100,
+                        Status = "completed",
+                        Progress = 100,
+                        Score = 0,
+                        CreatedAt = Now
+                    },
+                    new LearningLog
+                    {
+                        Id = 2,
+                        EnrollmentId = 10,
+                        StudentCode = "490222",
+                        CourseVersionId = 20,
+                        ResourceId = 101,
+                        Status = "incomplete",
+                        Progress = 0,
+                        Score = 60,
+                        CreatedAt = Now
+                    }
+                ]);
+
+            var result = await controller.GetPlayerInfoByCourse(5);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ApiResponse<PlayerInfoDto>>(ok.Value);
+            var dto = Assert.IsType<PlayerInfoDto>(response.Data);
+
+            Assert.Equal(25, dto.Progress);
+            Assert.Collection(dto.Resources,
+                first =>
+                {
+                    Assert.Equal("completed", first.Status);
+                    Assert.Equal(100, first.Progress);
+                    Assert.Equal(100, first.ActivityProgress);
+                },
+                second =>
+                {
+                    Assert.Equal("incomplete", second.Status);
+                    Assert.Equal(0, second.Progress);
+                    Assert.Equal(60, second.ActivityProgress);
+                },
+                third =>
+                {
+                    Assert.Equal("incomplete", third.Status);
+                    Assert.Equal(0, third.Progress);
+                    Assert.Equal(0, third.ActivityProgress);
+                },
+                fourth =>
+                {
+                    Assert.Equal("incomplete", fourth.Status);
+                    Assert.Equal(0, fourth.Progress);
+                    Assert.Equal(0, fourth.ActivityProgress);
+                });
         }
 
         private static EnrollmentsController CreateController(
@@ -195,6 +330,24 @@ namespace iLearn.Tests
             };
 
             return controller;
+        }
+
+        private static CourseResource CreateCourseResource(int id, int resourceId, string name, int typeId, string schemaVersion)
+        {
+            return new CourseResource
+            {
+                Id = id,
+                ResourceId = resourceId,
+                Resource = new Resource
+                {
+                    Id = resourceId,
+                    Name = name,
+                    TypeId = typeId,
+                    URL = $"pkg-{resourceId}",
+                    ResourceHref = "launch/index.html",
+                    SchemaVersion = schemaVersion
+                }
+            };
         }
 
         private sealed class FakeScormRuntimeStateService : IScormRuntimeStateService

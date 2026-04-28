@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace iLearn.Application.DTOs
 {
     public class ScormRuntimeStateDto
@@ -16,6 +18,8 @@ namespace iLearn.Application.DTOs
         public string? Entry { get; set; }
         public string? Exit { get; set; }
         public DateTime? LastCommittedAtUtc { get; set; }
+
+        [JsonIgnore]
         public string? CmiSnapshotJson { get; set; }
     }
 

@@ -617,56 +617,44 @@
             return "unknown";
         }
 
-        function deriveClientStatus(resource) {
-            const runtimeState = resource?.runtimeState || {};
-            const lessonStatus = String(runtimeState.lessonStatus || '').toLowerCase();
-            const completionStatus = String(runtimeState.completionStatus || '').toLowerCase();
-            const successStatus = String(runtimeState.successStatus || '').toLowerCase();
-            const isExamResource = String(resource?.type || '').toLowerCase() === "exam";
-
-            if (successStatus === "failed" || lessonStatus === "failed") {
-                return "failed";
-            }
-
-            if (successStatus === "passed" || lessonStatus === "passed" || (!isExamResource && resource?.isCompleted)) {
-                return "passed";
-            }
-
-            if (completionStatus === "completed" || lessonStatus === "completed" || lessonStatus === "browsed") {
-                return isExamResource ? "incomplete" : "completed";
-            }
-
-            return "incomplete";
+        function normalizeStatusValue(value, fallback = "incomplete") {
+            const normalized = String(value || '').toLowerCase().trim();
+            return normalized || fallback;
         }
 
-        function deriveClientProgress(resource) {
-            const status = deriveClientStatus(resource);
-            if (["passed", "completed", "failed"].includes(status)) {
-                return 100;
+        function normalizeProgressValue(value) {
+            const progress = Number(value);
+            if (!Number.isFinite(progress)) {
+                return 0;
             }
 
-            const existingProgress = Number(resource?.clientProgress);
-            if (Number.isFinite(existingProgress) && existingProgress > 0) {
-                return existingProgress;
+            return Math.max(0, Math.min(100, progress));
+        }
+
+        function parseNullableNumber(value) {
+            if (value === null || value === undefined || value === "") {
+                return null;
             }
 
-            return resource?.isCompleted ? 100 : 0;
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
         }
 
         function applyRuntimeStateToResource(resource) {
             if (!resource) return;
 
             const runtimeState = resource.runtimeState || {};
-            resource.clientSuccessStatus = String(runtimeState.successStatus || '').toLowerCase();
-            resource.clientCompletionStatus = String(runtimeState.completionStatus || '').toLowerCase();
-            resource.clientStatus = deriveClientStatus(resource);
-            resource.clientProgress = deriveClientProgress(resource);
+            const rawScore = parseNullableNumber(runtimeState.rawScore);
+            const resourceScore = parseNullableNumber(resource.score);
 
-            const rawScore = runtimeState.rawScore;
-            resource.clientScore = rawScore !== null && rawScore !== undefined && rawScore !== ""
-                ? (parseFloat(rawScore) || 0)
-                : (resource.score || 0);
-            resource.clientTime = runtimeState.sessionTime || resource?.time || resource?.clientTime || "00:00:00";
+            resource.scormVersion = resolveResourceScormVersion(resource);
+            resource.clientSuccessStatus = normalizeStatusValue(runtimeState.successStatus, "");
+            resource.clientCompletionStatus = normalizeStatusValue(runtimeState.completionStatus, "");
+            resource.clientStatus = normalizeStatusValue(resource.status);
+            resource.clientCompletionProgress = normalizeProgressValue(resource.progress || (resource.isCompleted ? 100 : 0));
+            resource.clientProgress = normalizeProgressValue(resource.activityProgress ?? resource.progress ?? (resource.isCompleted ? 100 : 0));
+            resource.clientScore = rawScore ?? resourceScore ?? 0;
+            resource.clientTime = resource.time || runtimeState.sessionTime || resource?.clientTime || "00:00:00";
             resource.hasPendingRuntimeCommit = false;
         }
 
@@ -1309,7 +1297,6 @@
             if(!currentData || !currentData.resources) return;
             let totalResources = currentData.resources.length;
             let passedCount = 0;
-            let totalP = 0;
 
             console.log(`\n🔄 Recalculating Progress...`);
             currentData.resources.forEach((r, idx) => {
@@ -1339,19 +1326,18 @@
                 } else {
                     iconContainer.html('');
                 }
-
-                totalP += r.clientProgress;
                 console.log(`  [${idx}] ${r.name}: ${r.clientStatus} (${r.clientProgress}%)`);
             });
 
             if (!isReadOnly) {
-                const avg = totalResources > 0 ? Math.floor(totalP / totalResources) : 0;
-                $("#totalProgressDisplay").text(avg + "%");
+                const completionProgress = totalResources > 0 ? Math.floor((passedCount / totalResources) * 100) : 0;
+                currentData.progress = completionProgress;
+                $("#totalProgressDisplay").text(completionProgress + "%");
 
                 const allPassed = (passedCount === totalResources);
                 const hasFailed = currentData.resources.some(r => r.clientStatus === "failed");
 
-                console.log(`📊 Summary: ${passedCount}/${totalResources} passed, Average: ${avg}%`);
+                console.log(`📊 Summary: ${passedCount}/${totalResources} passed, Completion: ${completionProgress}%`);
                 if (allPassed) {
                     $("#statusDisplay").text("ผ่านการทดสอบ").addClass("text-success").removeClass("text-secondary text-danger");
                     $("#btnPreSave").prop("disabled", false);
