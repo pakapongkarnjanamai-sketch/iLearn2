@@ -2,6 +2,7 @@
 using iLearn.Application.Common;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseCourseStaticFiles();
 
 app.UseRouting();
 app.UseSession();
@@ -99,5 +101,41 @@ static void EnsureConfigured(
 
     throw new InvalidOperationException(
         $"Missing {description}. Configure '{key}' via {scopeHint}. Suggested environment variable name: '{ConfigurationSecretGuard.ToEnvironmentVariableName(key)}'.");
+}
+
+static class CourseStaticFileApplicationBuilderExtensions
+{
+    public static IApplicationBuilder UseCourseStaticFiles(this WebApplication app)
+    {
+        var settings = app.Configuration
+            .GetSection(nameof(FileSettings))
+            .Get<FileSettings>() ?? new FileSettings();
+
+        var courseFolder = string.IsNullOrWhiteSpace(settings.CourseFolder)
+            ? "Courses"
+            : settings.CourseFolder.Trim('/', '\\');
+
+        var coursePhysicalPath = !string.IsNullOrWhiteSpace(settings.HostUnc)
+            ? settings.FileUnc
+            : Path.Combine(app.Environment.ContentRootPath, courseFolder);
+
+        if (!Directory.Exists(coursePhysicalPath))
+        {
+            app.Logger.LogWarning(
+                "Course static file folder does not exist: {CoursePhysicalPath}",
+                coursePhysicalPath);
+            return app;
+        }
+
+        return app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(coursePhysicalPath),
+            RequestPath = $"/{courseFolder.Replace('\\', '/')}",
+            OnPrepareResponse = context =>
+            {
+                context.Context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+            }
+        });
+    }
 }
 

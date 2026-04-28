@@ -57,7 +57,7 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// Resolve Division Name -> DivisionId สำหรับ iLearn.User ตอน Login
         /// </summary>
-        [Authorize(Policy = "DomainUser")]
+        [AllowAnonymous]
         [HttpGet("resolve-id")]
         public async Task<IActionResult> ResolveId([FromQuery] string name)
         {
@@ -110,7 +110,8 @@ namespace iLearn.API.Controllers
             var categories = await categoryQuery.ToListAsync();
 
             var categoryLookup = categories
-                .GroupBy(c => c.DivisionId)
+                .Where(c => c.DivisionId.HasValue)
+                .GroupBy(c => c.DivisionId!.Value)
                 .ToDictionary(
                     group => group.Key,
                     group => group

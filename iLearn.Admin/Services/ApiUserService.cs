@@ -2,6 +2,7 @@ using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 
@@ -16,13 +17,19 @@ namespace iLearn.Admin.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<ApiUserService> _logger;
         private readonly IMemoryCache _cache;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public ApiUserService(IHttpClientFactory httpClientFactory, ILogger<ApiUserService> logger, IMemoryCache cache)
+        public ApiUserService(
+            IHttpClientFactory httpClientFactory,
+            ILogger<ApiUserService> logger,
+            IMemoryCache cache,
+            IHttpContextAccessor httpContextAccessor)
         {
             _httpClient = httpClientFactory.CreateClient(ClientName);
             _logger = logger;
             _cache = cache;
+            _httpContextAccessor = httpContextAccessor;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -42,10 +49,9 @@ namespace iLearn.Admin.Services
             try
             {
                 var request = new CreateUserRequest { WindowsIdentity = windowsIdentity };
-                using var content = CreateRequestContent(request);
                 var requestUri = GetRequestUri(forceRefresh);
 
-                var response = await _httpClient.PostAsync(requestUri, content);
+                using var response = await PostAsCurrentWindowsIdentityAsync(requestUri, request);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -88,6 +94,26 @@ namespace iLearn.Admin.Services
         {
             var json = JsonSerializer.Serialize(request, _jsonOptions);
             return new StringContent(json, Encoding.UTF8, "application/json");
+        }
+
+        private async Task<HttpResponseMessage> PostAsCurrentWindowsIdentityAsync(string requestUri, CreateUserRequest request)
+        {
+            var windowsIdentity = _httpContextAccessor.HttpContext?.User.Identity as WindowsIdentity;
+            if (OperatingSystem.IsWindows() && windowsIdentity != null)
+            {
+                var accessToken = windowsIdentity.AccessToken;
+                if (!accessToken.IsInvalid)
+                {
+                    return WindowsIdentity.RunImpersonated(accessToken, () =>
+                    {
+                        using var content = CreateRequestContent(request);
+                        return _httpClient.PostAsync(requestUri, content).GetAwaiter().GetResult();
+                    });
+                }
+            }
+
+            using var fallbackContent = CreateRequestContent(request);
+            return await _httpClient.PostAsync(requestUri, fallbackContent);
         }
 
         private static string GetCacheKey(string windowsIdentity) => $"api_user_{windowsIdentity}";

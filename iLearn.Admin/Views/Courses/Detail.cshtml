@@ -224,6 +224,7 @@
         let divisionOptions = [];
         let categoryOptions = [];
         let courseTypeOptions = [];
+        let activeVersionRequestId = null;
         let dashboardKpi = {
             versionCount: 0,
             assignmentCount: 0,
@@ -467,6 +468,9 @@
                                     visible: function(e) {
                                         return !e.row.data.isActive;
                                     },
+                                    disabled: function() {
+                                        return activeVersionRequestId !== null;
+                                    },
                                     onClick: function(e) {
                                         window.setActiveVersion(e.row.data.id);
                                     }
@@ -560,6 +564,15 @@
             };
 
             window.setActiveVersion = async function(versionId) {
+                if (activeVersionRequestId !== null) {
+                    return;
+                }
+
+                activeVersionRequestId = versionId;
+                if (versionsGrid) {
+                    versionsGrid.repaint();
+                }
+
                 try {
                     await $.ajax({
                         url: `${courseApiUrl}/${courseId}/versions/${versionId}/set-active`,
@@ -571,6 +584,11 @@
                     await reloadVersions();
                 } catch (xhr) {
                     showToast(window.getApiErrorMessage(xhr, 'Error updating active version.'), 'error');
+                } finally {
+                    activeVersionRequestId = null;
+                    if (versionsGrid) {
+                        versionsGrid.repaint();
+                    }
                 }
             };
 

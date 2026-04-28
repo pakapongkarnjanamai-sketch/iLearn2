@@ -44,6 +44,46 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CommitRuntime_DoesNotCompleteEnrollment_WhenScorm2004SuccessFailedButCompletionCompleted()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+
+            var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                Resources =
+                [
+                    new ScormRuntimeResourceCommitDto
+                    {
+                        ResourceId = 100,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm2004,
+                        CompletionStatus = "completed",
+                        SuccessStatus = "failed",
+                        RawScore = 2,
+                        SessionTime = "00:00:18"
+                    },
+                    new ScormRuntimeResourceCommitDto
+                    {
+                        ResourceId = 101,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "passed",
+                        RawScore = 100,
+                        SessionTime = "00:00:10"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(result);
+            var failedExamLog = Assert.Single(logRepo.Items, log => log.ResourceId == 100);
+            Assert.Equal("failed", failedExamLog.Status);
+            Assert.Equal(0, failedExamLog.Progress);
+
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Equal(50, enrollment.Progress);
+        }
+
+        [Fact]
         public void LearnerProxyIdentityResolver_AcceptsValidSignedHeaders()
         {
             const string sharedSecret = "runtime-secret";
@@ -106,7 +146,14 @@ namespace iLearn.Tests
 
         private static LearningLogsController CreateController()
         {
-            var enrollmentRepo = new InMemoryGenericRepository<Enrollment>(
+            return CreateController(out _, out _);
+        }
+
+        private static LearningLogsController CreateController(
+            out InMemoryGenericRepository<LearningLog> logRepo,
+            out InMemoryGenericRepository<Enrollment> enrollmentRepo)
+        {
+            enrollmentRepo = new InMemoryGenericRepository<Enrollment>(
             [
                 new Enrollment
                 {
@@ -131,8 +178,10 @@ namespace iLearn.Tests
                 }
             ]);
 
+            logRepo = new InMemoryGenericRepository<LearningLog>([]);
+
             var controller = new LearningLogsController(
-                new InMemoryGenericRepository<LearningLog>([]),
+                logRepo,
                 enrollmentRepo,
                 versionRepo,
                 new InMemoryGenericRepository<EnrollmentAssignment>([]),

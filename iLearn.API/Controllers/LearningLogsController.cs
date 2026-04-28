@@ -45,7 +45,7 @@ namespace iLearn.API.Controllers
             _scormRuntimeStateService = scormRuntimeStateService;
         }
 
-        [Authorize(Policy = "DomainUser")]
+        [AllowAnonymous]
         [HttpPost("update-progress")]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
@@ -77,7 +77,7 @@ namespace iLearn.API.Controllers
             return Ok(new ApiResponse<string> { Success = true, Message = "Progress saved." });
         }
 
-        [Authorize(Policy = "DomainUser")]
+        [AllowAnonymous]
         [HttpPost("commit-runtime")]
         public async Task<IActionResult> CommitRuntime([FromBody] ScormRuntimeCommitRequestDto input)
         {
@@ -372,13 +372,19 @@ namespace iLearn.API.Controllers
             return new ResourceProgressUpdate(
                 resource.ResourceId,
                 DeriveLegacyStatus(resource.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
-                DeriveLegacyProgress(resource.LessonStatus, normalizedCompletionStatus),
+                DeriveLegacyProgress(resource.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
                 resource.RawScore.HasValue ? (int)Math.Round(resource.RawScore.Value, MidpointRounding.AwayFromZero) : null,
                 resource.SessionTime);
         }
 
         private static string DeriveLegacyStatus(string? lessonStatus, string? completionStatus, string? successStatus)
         {
+            if (string.Equals(successStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase))
+            {
+                return "failed";
+            }
+
             if (string.Equals(successStatus, "passed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(lessonStatus, "passed", StringComparison.OrdinalIgnoreCase))
             {
@@ -387,7 +393,6 @@ namespace iLearn.API.Controllers
 
             if (string.Equals(completionStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(lessonStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(lessonStatus, "browsed", StringComparison.OrdinalIgnoreCase))
             {
                 return "completed";
@@ -396,12 +401,17 @@ namespace iLearn.API.Controllers
             return "incomplete";
         }
 
-        private static double? DeriveLegacyProgress(string? lessonStatus, string? completionStatus)
+        private static double? DeriveLegacyProgress(string? lessonStatus, string? completionStatus, string? successStatus)
         {
+            if (string.Equals(successStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
             if (string.Equals(completionStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(lessonStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(lessonStatus, "passed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(lessonStatus, "browsed", StringComparison.OrdinalIgnoreCase))
             {
                 return 100;

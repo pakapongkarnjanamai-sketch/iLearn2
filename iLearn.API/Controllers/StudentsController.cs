@@ -29,7 +29,7 @@ namespace iLearn.API.Controllers
             _currentUser = currentUser;
         }
 
-        [Authorize(Policy = "DomainUser")]
+        [AllowAnonymous]
         [HttpGet("GetStudentbyEID/{employeeCode}")]
         public async Task<IActionResult> GetStudentbyEID(string employeeCode)
         {

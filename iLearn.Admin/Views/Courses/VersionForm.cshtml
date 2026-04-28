@@ -184,6 +184,7 @@
         let loadPanel;
         let reviewForm;
         let gridViewportController = null;
+        let isSubmittingVersion = false;
         const createState = {
             currentStep: 1
         };
@@ -502,6 +503,10 @@
             });
 
             $("#btn-submit-version").on("click", function() {
+                if (isSubmittingVersion) {
+                    return;
+                }
+
                 submitData();
             });
         }
@@ -589,6 +594,10 @@
         }
 
         async function submitData() {
+            if (isSubmittingVersion) {
+                return;
+            }
+
             if (!formWidget.validate().isValid) {
                 showToast("Please fill in the required version details.", "warning", 2000);
                 return;
@@ -599,10 +608,12 @@
                 return;
             }
 
+            isSubmittingVersion = true;
             const submitButtonSelector = "#btn-submit-version";
             setButtonLoading(submitButtonSelector, true, IS_EDIT ? "Saving..." : "Creating...");
             loadPanel.option("message", "Saving version and processing files...");
             loadPanel.show();
+            let shouldResetSubmitting = true;
 
             try {
                 await $.ajax({
@@ -615,14 +626,18 @@
                 });
 
                 showToast("Version saved successfully!", "success", 2000);
+                shouldResetSubmitting = false;
                 setTimeout(function() {
                     window.location.href = VERSION_CANCEL_URL;
                 }, 1200);
             } catch (xhr) {
                 showToast(`Error: ${window.getApiErrorMessage(xhr, "Failed to save")}`, "error", 4000);
             } finally {
-                loadPanel.hide();
-                setButtonLoading(submitButtonSelector, false);
+                if (shouldResetSubmitting) {
+                    isSubmittingVersion = false;
+                    loadPanel.hide();
+                    setButtonLoading(submitButtonSelector, false);
+                }
             }
         }
 

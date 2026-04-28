@@ -91,7 +91,7 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true });
         }
 
-        [Authorize(Policy = "DomainUser")]
+        [AllowAnonymous]
         [HttpGet("my-courses")]
         public async Task<IActionResult> GetMyCourses()
         {
@@ -158,7 +158,7 @@ namespace iLearn.API.Controllers
             });
         }
 
-        [Authorize(Policy = "DomainUser")]
+        [AllowAnonymous]
         [HttpGet("player-info/{courseId}")]
         public async Task<IActionResult> GetPlayerInfoByCourse(int courseId)
         {

@@ -622,17 +622,18 @@
             const lessonStatus = String(runtimeState.lessonStatus || '').toLowerCase();
             const completionStatus = String(runtimeState.completionStatus || '').toLowerCase();
             const successStatus = String(runtimeState.successStatus || '').toLowerCase();
-
-            if (resource?.isCompleted || successStatus === "passed" || lessonStatus === "passed") {
-                return "passed";
-            }
+            const isExamResource = String(resource?.type || '').toLowerCase() === "exam";
 
             if (successStatus === "failed" || lessonStatus === "failed") {
                 return "failed";
             }
 
+            if (successStatus === "passed" || lessonStatus === "passed" || (!isExamResource && resource?.isCompleted)) {
+                return "passed";
+            }
+
             if (completionStatus === "completed" || lessonStatus === "completed" || lessonStatus === "browsed") {
-                return "completed";
+                return isExamResource ? "incomplete" : "completed";
             }
 
             return "incomplete";
@@ -655,14 +656,17 @@
         function applyRuntimeStateToResource(resource) {
             if (!resource) return;
 
+            const runtimeState = resource.runtimeState || {};
+            resource.clientSuccessStatus = String(runtimeState.successStatus || '').toLowerCase();
+            resource.clientCompletionStatus = String(runtimeState.completionStatus || '').toLowerCase();
             resource.clientStatus = deriveClientStatus(resource);
             resource.clientProgress = deriveClientProgress(resource);
 
-            const rawScore = resource?.runtimeState?.rawScore;
+            const rawScore = runtimeState.rawScore;
             resource.clientScore = rawScore !== null && rawScore !== undefined && rawScore !== ""
                 ? (parseFloat(rawScore) || 0)
                 : (resource.score || 0);
-            resource.clientTime = resource?.runtimeState?.sessionTime || resource?.time || resource?.clientTime || "00:00:00";
+            resource.clientTime = runtimeState.sessionTime || resource?.time || resource?.clientTime || "00:00:00";
             resource.hasPendingRuntimeCommit = false;
         }
 
@@ -683,6 +687,8 @@
                 // Student Info
                 "cmi.core.student_id": currentStudentCode,
                 "cmi.core.student_name": currentStudentCode,
+                "cmi.learner_id": currentStudentCode,
+                "cmi.learner_name": currentStudentCode,
 
                 // Status
                 "cmi.core.lesson_status": lessonStatus,
@@ -715,9 +721,25 @@
 
                 // Mode
                 "cmi.core.credit": "credit",
-                "cmi.core.lesson_mode": "normal"
+                "cmi.credit": "credit",
+                "cmi.core.lesson_mode": "normal",
+                "cmi.mode": "normal",
+                "cmi.interactions._count": "0"
             };
             console.log("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"], "entry:", entry, "location:", lessonLocation);
+        }
+
+        function setCmiModelValue(elementName, value) {
+            cmiModel[elementName] = value;
+
+            const interactionMatch = /^cmi\.interactions\.(\d+)\./.exec(elementName);
+            if (interactionMatch) {
+                const nextCount = Number(interactionMatch[1]) + 1;
+                const currentCount = parseInt(cmiModel["cmi.interactions._count"] || "0", 10) || 0;
+                if (nextCount > currentCount) {
+                    cmiModel["cmi.interactions._count"] = String(nextCount);
+                }
+            }
         }
 
         function syncRuntimeStateFromModel(resource, options = {}) {
@@ -1129,11 +1151,16 @@
                     console.log(`✅ Status: PASSED (100%)`);
                 }
                 else if (valStr === "completed") {
-                    resource.clientStatus = "passed";
-                    resource.clientProgress = 100;
-                    needsRecalc = true;
-                    captureSessionTime(resource);
-                    console.log(`✅ Status: COMPLETED → PASSED (100%)`);
+                    resource.clientStatus = resource.clientSuccessStatus === "failed" ? "failed" : "passed";
+                    if (resource.clientStatus === "failed") {
+                        needsRecalc = true;
+                        console.log(`❌ Status remains FAILED because success_status is failed`);
+                    } else {
+                        resource.clientProgress = 100;
+                        needsRecalc = true;
+                        captureSessionTime(resource);
+                        console.log(`✅ Status: COMPLETED → PASSED (100%)`);
+                    }
                 }
                 else if (valStr === "failed") {
                     resource.clientStatus = "failed";
@@ -1144,6 +1171,60 @@
                     if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
                         resource.clientStatus = "incomplete";
                         console.log(`⏳ Status: INCOMPLETE`);
+                    }
+                }
+            }
+            else if (key === "successStatus") {
+                resource.clientSuccessStatus = valStr;
+                console.log(`📊 Resource [${selectedResourceIndex}] Success Status Update: ${valStr}`);
+
+                if (valStr === "passed") {
+                    resource.clientStatus = "passed";
+                    resource.clientProgress = 100;
+                    needsRecalc = true;
+                    captureSessionTime(resource);
+                    console.log(`✅ Success Status: PASSED (100%)`);
+                }
+                else if (valStr === "failed") {
+                    resource.clientStatus = "failed";
+                    needsRecalc = true;
+                    captureSessionTime(resource);
+                    console.log(`❌ Success Status: FAILED`);
+                }
+                else if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
+                    resource.clientStatus = "incomplete";
+                    needsRecalc = true;
+                    console.log(`⏳ Success Status: UNKNOWN`);
+                }
+            }
+            else if (key === "completionStatus") {
+                resource.clientCompletionStatus = valStr;
+                console.log(`📊 Resource [${selectedResourceIndex}] Completion Status Update: ${valStr}`);
+
+                if (valStr === "completed") {
+                    if (resource.clientSuccessStatus === "failed" || resource.clientStatus === "failed") {
+                        resource.clientStatus = "failed";
+                        needsRecalc = true;
+                        console.log(`❌ Completion Status: COMPLETED but success status is FAILED`);
+                    }
+                    else if (resource.clientSuccessStatus === "passed" || String(resource.type).toLowerCase() !== "exam") {
+                        resource.clientStatus = "passed";
+                        resource.clientProgress = 100;
+                        needsRecalc = true;
+                        captureSessionTime(resource);
+                        console.log(`✅ Completion Status: COMPLETED`);
+                    }
+                    else {
+                        resource.clientStatus = "incomplete";
+                        needsRecalc = true;
+                        console.log(`⏳ Completion Status: COMPLETED, waiting for exam success_status`);
+                    }
+                }
+                else if (valStr === "incomplete" || valStr === "not attempted" || valStr === "unknown") {
+                    if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
+                        resource.clientStatus = "incomplete";
+                        needsRecalc = true;
+                        console.log(`⏳ Completion Status: INCOMPLETE`);
                     }
                 }
             }
@@ -1364,7 +1445,7 @@
                     }
 
                     console.log(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
-                    cmiModel[e] = v;
+                    setCmiModelValue(e, v);
                     markSelectedResourceDirty();
 
                     if (e === "cmi.core.lesson_status") {
@@ -1433,11 +1514,14 @@
                     }
 
                     console.log(`📝 SCORM 2004 SetValue("${e}", "${v}")`);
-                    cmiModel[e] = v;
+                    setCmiModelValue(e, v);
                     markSelectedResourceDirty();
 
-                    if (e === "cmi.completion_status" || e === "cmi.success_status") {
-                        updateResourceData("status", v);
+                    if (e === "cmi.success_status") {
+                        updateResourceData("successStatus", v);
+                    }
+                    if (e === "cmi.completion_status") {
+                        updateResourceData("completionStatus", v);
                     }
                     if (e === "cmi.progress_measure") {
                         updateResourceData("progress", parseFloat(v) * 100);
