@@ -19,7 +19,7 @@ namespace iLearn.User.Controllers
 
         public IActionResult Index()
         {
-            if (User.Identity?.IsAuthenticated == true)
+            if (HasLearnerCookieSession())
                 return RedirectToAction("Index", "MyLearning");
 
             return View();
@@ -91,7 +91,7 @@ namespace iLearn.User.Controllers
         [HttpGet]
         public IActionResult GetCurrentUser()
         {
-            if (User.Identity?.IsAuthenticated != true)
+            if (!HasLearnerCookieSession())
                 return Json(new { success = false });
 
             return Json(new
@@ -117,6 +117,16 @@ namespace iLearn.User.Controllers
         private class DivisionResolveResult
         {
             public int DivisionId { get; set; }
+        }
+
+        private bool HasLearnerCookieSession()
+        {
+            return User.Identities.Any(identity =>
+                identity.IsAuthenticated &&
+                string.Equals(identity.AuthenticationType, CookieAuthenticationDefaults.AuthenticationScheme, StringComparison.Ordinal) &&
+                identity.HasClaim(claim =>
+                    claim.Type == ClaimTypes.NameIdentifier &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
         }
     }
 }

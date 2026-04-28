@@ -73,3 +73,34 @@ Typical local run commands after provisioning secrets:
 dotnet run --project .\iLearn.API\iLearn.API.csproj --launch-profile https
 dotnet run --project .\iLearn.User\iLearn.User.csproj --launch-profile https
 ```
+
+## Production Deploy Scripts
+
+Production side-by-side deploys should run with PowerShell 7 (`pwsh`), not Windows PowerShell 5.1.
+
+Install PowerShell 7 once:
+
+```powershell
+winget install --id Microsoft.PowerShell --source winget
+```
+
+User app deploy:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\tools\deploy-user.ps1
+```
+
+API deploy:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\tools\deploy-api.ps1
+```
+
+Dry-run before switching production:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\tools\deploy-user.ps1 -SkipPublish -WhatIf
+pwsh -NoLogo -NoProfile -File .\tools\deploy-api.ps1 -SkipPublish -WhatIf
+```
+
+Both scripts publish to `artifacts/publish/*`, copy to the production UNC share, then update the target app's `web.config` `aspNetCore.arguments` to the new side-by-side folder.

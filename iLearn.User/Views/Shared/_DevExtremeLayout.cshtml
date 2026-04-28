@@ -298,6 +298,8 @@
     <script>
         const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
         const serviceUrl = API_BASE;
+        const learnerLoginUrl = '@Url.Action("Index", "Home")';
+        let learnerSessionRedirecting = false;
 
         function createDataStore(baseUrl, controllerName, options) {
             const defaults = {
@@ -398,6 +400,29 @@
                 },
                 { position: 'bottom center', direction: 'up-push' }
             );
+        }
+
+        function handleLearnerSessionExpired(result) {
+            var payload = result && result.responseJSON ? result.responseJSON : result;
+            var status = result && typeof result.status === 'number' ? result.status : 0;
+            var isExpired = status === 440 || (payload && payload.sessionExpired === true);
+
+            if (!isExpired) {
+                return false;
+            }
+
+            if (learnerSessionRedirecting) {
+                return true;
+            }
+
+            learnerSessionRedirecting = true;
+            showToast((payload && payload.message) || 'Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง', 'warning', 2500);
+
+            window.setTimeout(function () {
+                window.location.href = (payload && payload.redirectUrl) || learnerLoginUrl;
+            }, 800);
+
+            return true;
         }
     </script>
 

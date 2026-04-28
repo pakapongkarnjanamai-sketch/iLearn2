@@ -970,6 +970,8 @@ else
                 method: 'GET',
                 xhrFields: { withCredentials: true },
                 success: function(res) {
+                    if (handleLearnerSessionExpired(res)) return;
+
                     if (res.success && res.data && res.data.length > 0) {
                         myCoursesData = res.data;
                         updateStats(res.data);
@@ -979,7 +981,9 @@ else
                         $("#statEnrolled, #statCompleted").text("0");
                     }
                 },
-                error: function() {
+                error: function(xhr) {
+                    if (handleLearnerSessionExpired(xhr)) return;
+
                     renderEmptyState('#myCoursesContainer', 'ไม่สามารถโหลดข้อมูลคอร์สเรียนได้');
                     showToast("ไม่สามารถโหลดข้อมูลคอร์สเรียนได้", "error");
                 }

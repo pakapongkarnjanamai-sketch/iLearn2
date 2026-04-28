@@ -1,8 +1,9 @@
 ﻿using iLearn.User.Extensions;
 using iLearn.Application.Common;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.Extensions.FileProviders;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,22 +29,37 @@ builder.Services.AddSession(options =>
 });
 
 // ── Authentication ──
-builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-    .AddNegotiate();
-
-builder.Services.Configure<IISOptions>(options =>
+builder.Services.AddAuthentication(options =>
 {
-    options.AutomaticAuthentication = true;
-    options.AuthenticationDisplayName = "Windows";
-});
-
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
     .AddCookie(options =>
     {
         options.LoginPath = "/Home/Index";
         options.AccessDeniedPath = "/Home/Index";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = RedirectAjaxToSessionExpiredAsync;
+        options.Events.OnRedirectToAccessDenied = RedirectAjaxToSessionExpiredAsync;
     });
+
+builder.Services.Configure<IISOptions>(options =>
+{
+    options.AutomaticAuthentication = false;
+    options.AuthenticationDisplayName = "Windows";
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("LearnerSession", policy =>
+    {
+        policy.AuthenticationSchemes.Add(CookieAuthenticationDefaults.AuthenticationScheme);
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim(ClaimTypes.NameIdentifier);
+    });
+});
 
 // ── Application Services ──
 builder.Services.AddUserServices(builder.Configuration);
@@ -83,6 +99,35 @@ static void ValidateRequiredSecrets(IConfiguration configuration, IHostEnvironme
         $"{LearnerProxyAuthOptions.SectionName}:SharedSecret",
         "learner proxy shared secret",
         environment);
+}
+
+static Task RedirectAjaxToSessionExpiredAsync(RedirectContext<CookieAuthenticationOptions> context)
+{
+    if (!IsAjaxRequest(context.Request))
+    {
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    }
+
+    context.Response.StatusCode = 440;
+    context.Response.ContentType = "application/json; charset=utf-8";
+    return context.Response.WriteAsJsonAsync(new
+    {
+        success = false,
+        sessionExpired = true,
+        message = "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
+        redirectUrl = context.RedirectUri
+    });
+}
+
+static bool IsAjaxRequest(HttpRequest request)
+{
+    return string.Equals(
+            request.Headers["X-Requested-With"],
+            "XMLHttpRequest",
+            StringComparison.OrdinalIgnoreCase)
+        || request.Headers.Accept.Any(value =>
+            value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
 }
 
 static void EnsureConfigured(

@@ -3,12 +3,13 @@ using iLearn.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 
 namespace iLearn.User.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "LearnerSession")]
     public class MyLearningController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -39,7 +40,7 @@ namespace iLearn.User.Controllers
         {
             var studentCode = GetAuthenticatedStudentCode();
             if (string.IsNullOrWhiteSpace(studentCode))
-                return Unauthorized(new { success = false, message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน" });
+                return LearnerSessionExpired();
 
             try
             {
@@ -72,7 +73,7 @@ namespace iLearn.User.Controllers
         {
             var studentCode = GetAuthenticatedStudentCode();
             if (string.IsNullOrWhiteSpace(studentCode))
-                return Unauthorized(new { success = false, message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน" });
+                return LearnerSessionExpired();
 
             try
             {
@@ -105,7 +106,7 @@ namespace iLearn.User.Controllers
         {
             var studentCode = GetAuthenticatedStudentCode();
             if (string.IsNullOrWhiteSpace(studentCode))
-                return Unauthorized(new { success = false, message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน" });
+                return LearnerSessionExpired();
 
             if (input == null)
                 return BadRequest(new { success = false, message = "ข้อมูลการบันทึกไม่ถูกต้อง" });
@@ -142,7 +143,7 @@ namespace iLearn.User.Controllers
         {
             var studentCode = GetAuthenticatedStudentCode();
             if (string.IsNullOrWhiteSpace(studentCode))
-                return Unauthorized(new { success = false, message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน" });
+                return LearnerSessionExpired();
 
             if (input == null)
                 return BadRequest(new { success = false, message = "ข้อมูล runtime ไม่ถูกต้อง" });
@@ -179,7 +180,7 @@ namespace iLearn.User.Controllers
         {
             var studentCode = GetAuthenticatedStudentCode();
             if (string.IsNullOrWhiteSpace(studentCode))
-                return Unauthorized(new { success = false, message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน" });
+                return LearnerSessionExpired();
 
             if (input == null || input.EnrollmentId <= 0)
                 return BadRequest(new { success = false, message = "ข้อมูลการรีเซ็ตไม่ถูกต้อง" });
@@ -214,6 +215,17 @@ namespace iLearn.User.Controllers
         private string? GetAuthenticatedStudentCode()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private IActionResult LearnerSessionExpired()
+        {
+            return StatusCode(440, new
+            {
+                success = false,
+                sessionExpired = true,
+                message = "ไม่พบข้อมูลผู้เรียนใน session ปัจจุบัน กรุณาเข้าสู่ระบบอีกครั้ง",
+                redirectUrl = Url.Action("Index", "Home")
+            });
         }
 
         private async Task<HttpResponseMessage> SendLearnerProxyRequestAsync(
@@ -255,6 +267,18 @@ namespace iLearn.User.Controllers
         {
             var content = await response.Content.ReadAsStringAsync();
             var mediaType = response.Content.Headers.ContentType?.MediaType ?? "application/json";
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                return new ObjectResult(new
+                {
+                    success = false,
+                    message = "ไม่สามารถยืนยันสิทธิ์กับระบบบริการได้ กรุณาลองใหม่อีกครั้ง"
+                })
+                {
+                    StatusCode = StatusCodes.Status503ServiceUnavailable
+                };
+            }
 
             return new ContentResult
             {

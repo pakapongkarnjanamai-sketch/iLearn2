@@ -256,13 +256,22 @@
             margin-bottom: 7px;
         }
 
+        .course-progress-body {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .course-progress-value {
             color: var(--brand-color);
             font-size: 0.9rem;
             font-weight: 800;
+            flex: 0 0 auto;
         }
 
         .course-progress-track {
+            flex: 1 1 auto;
+            min-width: 0;
             height: 7px;
             background: #dcebea;
             border-radius: 999px;
@@ -385,40 +394,6 @@
                 transform: translateY(-1px);
                 box-shadow: 0 6px 12px rgba(2, 125, 131, 0.3);
             }
-
-        .btn-reset-progress {
-            width: 100%;
-            min-height: 38px;
-            margin-top: 10px;
-            border: 1px solid #f1c4c8;
-            border-radius: 8px;
-            background: #fff;
-            color: var(--danger-color);
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-
-            .btn-reset-progress:hover:not(:disabled) {
-                background: #fff5f5;
-                border-color: #e9a4aa;
-            }
-
-            .btn-reset-progress:disabled {
-                color: #adb5bd;
-                border-color: #e9ecef;
-                background: #f8f9fa;
-                cursor: not-allowed;
-            }
-
-        .save-hint {
-            display: block;
-            font-size: 0.78rem;
-            line-height: 1.45;
-        }
 
         /* --- Modal (Summary) --- */
         .summary-overlay {
@@ -663,10 +638,12 @@
             <div class="course-progress-panel">
                 <div class="course-progress-head">
                     <span>ความคืบหน้าหลักสูตร</span>
-                    <span class="course-progress-value" id="courseProgressDisplay">0%</span>
                 </div>
-                <div class="course-progress-track">
-                    <div class="course-progress-fill" id="courseProgressFill"></div>
+                <div class="course-progress-body">
+                    <div class="course-progress-track">
+                        <div class="course-progress-fill" id="courseProgressFill"></div>
+                    </div>
+                    <span class="course-progress-value" id="courseProgressDisplay">0%</span>
                 </div>
             </div>
         </div>
@@ -687,13 +664,6 @@
                 <i class="fas fa-chart-line"></i>
                 <span>แสดงผลการเรียน</span>
             </button>
-            <button id="btnResetProgress" class="btn-reset-progress" type="button" onclick="resetCourseProgress()">
-                <i class="fas fa-rotate-left"></i>
-                <span>รีเซ็ตความคืบหน้า</span>
-            </button>
-            <div class="text-center mt-2">
-                <small id="saveHintText" class="save-hint text-danger">เรียนให้ครบและผ่านแบบทดสอบก่อนดูผลการเรียน</small>
-            </div>
         </div>
     </div>
 </div>
@@ -708,7 +678,6 @@
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
         const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
-        const resetProgressUrl = '@Url.Action("ResetProgress", "MyLearning")';
 
         // ========================================
         // State Management
@@ -850,20 +819,6 @@
             const safeProgress = Math.round(normalizeProgressValue(progress));
             $("#courseProgressDisplay").text(`${safeProgress}%`);
             $("#courseProgressFill").css("width", `${safeProgress}%`);
-        }
-
-        function setSaveHint(message, tone = "danger", visible = true) {
-            const hint = $("#saveHintText");
-            hint
-                .removeClass("text-danger text-success text-warning text-muted")
-                .addClass(`text-${tone}`)
-                .text(message);
-
-            if (visible) {
-                hint.show();
-            } else {
-                hint.hide();
-            }
         }
 
         function renderCourseDetails(data) {
@@ -1133,6 +1088,8 @@
                 xhrFields: { withCredentials: true },
                 data: JSON.stringify(payload)
             }).done(function(res) {
+                if (handleLearnerSessionExpired(res)) return;
+
                 if (res && res.success && Array.isArray(res.data)) {
                     const stateMap = {};
                     res.data.forEach(state => {
@@ -1148,6 +1105,8 @@
                     });
                 }
             }).fail(function(err) {
+                if (handleLearnerSessionExpired(err)) return;
+
                 console.error("❌ Runtime commit failed:", err);
             });
         }
@@ -1183,6 +1142,8 @@
                     xhrFields: { withCredentials: true }
                 });
 
+                if (handleLearnerSessionExpired(response)) return;
+
                 if (response && response.success) {
                     currentData = response.data;
                     console.log("✅ Course data loaded:", currentData);
@@ -1209,6 +1170,8 @@
                     showError("ไม่สามารถโหลดข้อมูลได้: " + (response.message || "Unknown error"));
                 }
             } catch (err) {
+                if (handleLearnerSessionExpired(err)) return;
+
                 console.error("❌ Load Error:", err);
                 showError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
             }
@@ -1223,19 +1186,15 @@
 
             if (!currentData.enrollmentId) {
                 $("#btnPreSave").hide();
-                $("#btnResetProgress").hide();
             } else {
                 $("#btnPreSave").show().prop("disabled", false);
-                $("#btnResetProgress").show().prop("disabled", false);
             }
 
             // ข้อความแจ้งเตือน
             if (currentData.isCompleted) {
                 setCourseStatusDisplay("เรียนจบแล้ว", "success");
-                setSaveHint("หลักสูตรนี้เรียนจบแล้ว สามารถดูผลการเรียนหรือรีเซ็ตเพื่อเริ่มใหม่ได้", "success");
             } else {
                 setCourseStatusDisplay("ดูอย่างเดียว", "warning");
-                setSaveHint("โหมดดูตัวอย่าง ไม่มีการบันทึกผล", "warning");
             }
         }
 
@@ -1580,16 +1539,13 @@
                 if (allPassed) {
                     setCourseStatusDisplay("พร้อมแสดงผล", "success");
                     $("#btnPreSave").prop("disabled", false);
-                    setSaveHint("พร้อมแสดงผลการเรียนแล้ว", "success");
                     console.log(`✅ All resources PASSED - Save button enabled`);
                 } else {
                     if (hasFailed) {
                         setCourseStatusDisplay("ไม่ผ่านเกณฑ์", "danger");
-                        setSaveHint("แบบทดสอบยังไม่ผ่าน กรุณาทำใหม่ก่อนดูผลการเรียน", "danger");
                         console.log(`❌ Has FAILED resources`);
                     } else {
                         setCourseStatusDisplay("กำลังเรียน", "muted");
-                        setSaveHint("เรียนให้ครบและผ่านแบบทดสอบก่อนดูผลการเรียน", "danger");
                         console.log(`⏳ Still in progress`);
                     }
                     $("#btnPreSave").prop("disabled", true);
@@ -1654,48 +1610,6 @@
 
         function goBackToMyLearning() {
             window.location.href = '@Url.Action("Index", "MyLearning")';
-        }
-
-        // ========================================
-        // Reset Progress
-        // ========================================
-        function resetCourseProgress() {
-            if (!currentData) return;
-
-            if (!currentData.enrollmentId) {
-                showToast("ไม่พบ Enrollment ID สำหรับรีเซ็ตความคืบหน้า", "warning");
-                return;
-            }
-
-            const confirmed = window.confirm("ต้องการรีเซ็ตความคืบหน้าหลักสูตรนี้ทั้งหมดหรือไม่?\n\nระบบจะเริ่มความคืบหน้าใหม่ที่ 0% แต่ประวัติเดิมยังคงอยู่ในรายงาน");
-            if (!confirmed) {
-                return;
-            }
-
-            const btn = $("#btnResetProgress");
-            const oldHtml = btn.html();
-            btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> กำลังรีเซ็ต...');
-
-            $.ajax({
-                url: resetProgressUrl,
-                method: 'POST',
-                contentType: 'application/json',
-                dataType: 'json',
-                xhrFields: { withCredentials: true },
-                data: JSON.stringify({ enrollmentId: currentData.enrollmentId })
-            }).done(function(res) {
-                if (res && res.success) {
-                    showToast("รีเซ็ตความคืบหน้าเรียบร้อยแล้ว", "success");
-                    setTimeout(() => window.location.reload(), 700);
-                } else {
-                    btn.prop("disabled", false).html(oldHtml);
-                    showToast(res?.message || "ไม่สามารถรีเซ็ตความคืบหน้าได้", "error");
-                }
-            }).fail(function(err) {
-                console.error("❌ Reset Error:", err);
-                btn.prop("disabled", false).html(oldHtml);
-                showToast("เกิดข้อผิดพลาดในการรีเซ็ตความคืบหน้า", "error");
-            });
         }
 
         // ========================================

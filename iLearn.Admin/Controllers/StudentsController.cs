@@ -13,7 +13,7 @@ namespace iLearn.Admin.Controllers
 
         [HttpGet("Students/Report")]
         [HttpGet("Students/Report/{code}")]
-        [Authorize(Policy = "DomainUser")]
+        [Authorize(Policy = "AdminOnly")]
         public IActionResult Report(string code)
         {
             ViewBag.StudentCode = code ?? "";
