@@ -59,8 +59,8 @@ namespace iLearn.API.Controllers
                 },
                 employeeService = new
                 {
-                    baseStudentLookupUrl = _employeeSettings.BaseStudentLookupUrl,
-                    baseStudentUrl       = _employeeSettings.BaseStudentUrl,
+                    baseLearnerLookupUrl = _employeeSettings.BaseLearnerLookupUrl,
+                    baseLearnerUrl       = _employeeSettings.BaseLearnerUrl,
                 },
                 allowedHosts = _config["AllowedHosts"] ?? "*",
                 logging = _config.GetSection("Logging:LogLevel")

@@ -27,9 +27,9 @@ namespace iLearn.Infrastructure.Persistence
 
         // --- เพิ่ม DbSet ใหม่ ---
         public DbSet<Category> Categories { get; set; }
-        public DbSet<Resource> Resources { get; set; }
+        public DbSet<ContentItem> ContentItems { get; set; }
         public DbSet<CourseVersion> CourseVersions { get; set; }
-        public DbSet<CourseResource> CourseResources { get; set; }
+        public DbSet<CourseContentItem> CourseContentItems { get; set; }
         public DbSet<FileStorage> FileStorages { get; set; }
         public DbSet<LearningLog> LearningLogs { get; set; }
         public DbSet<ScormRuntimeState> ScormRuntimeStates { get; set; }
@@ -39,14 +39,14 @@ namespace iLearn.Infrastructure.Persistence
         // DbSet เดิมที่มีอยู่แล้ว (ตรวจสอบว่ามีครบไหม)
         public DbSet<Division> Divisions { get; set; }
         public DbSet<Role> Roles { get; set; }
-        public DbSet<User> Users { get; set; } //User คือผู้ดูแลระบบ (Admin) ไม่ใช่นักเรียน ข้อมูลนักเรียนอยู่ใน StudentsController ซึ่งดึงมาจากระบบหลักผ่าน API
+        public DbSet<User> Users { get; set; } //User คือผู้ดูแลระบบ (Admin) ไม่ใช่นักเรียน ข้อมูลนักเรียนอยู่ใน LearnersController ซึ่งดึงมาจากระบบหลักผ่าน API
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Assignment> Assignments { get; set; }
 
         // ── กลุ่มผู้เรียน ──
-        public DbSet<StudentGroup> StudentGroups { get; set; }
-        public DbSet<StudentGroupMember> StudentGroupMembers { get; set; }
-        public DbSet<StudentGroupCategory> StudentGroupCategories { get; set; }
+        public DbSet<LearnerGroup> LearnerGroups { get; set; }
+        public DbSet<LearnerGroupMember> LearnerGroupMembers { get; set; }
+        public DbSet<LearnerGroupCategory> LearnerGroupCategories { get; set; }
 
         // ── ตารางกลาง Enrollment <-> Assignment ──
         public DbSet<EnrollmentAssignment> EnrollmentAssignments { get; set; }
@@ -64,7 +64,7 @@ namespace iLearn.Infrastructure.Persistence
             // ── Global Query Filter: ซ่อน soft-deleted records จากทุก query อัตโนมัติ ──
             ApplySoftDeleteFilters(modelBuilder);
 
-            // 1. Config Enrollment (StudentCode ไม่มี FK -> User)
+            // 1. Config Enrollment (LearnerCode ไม่มี FK -> User)
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.Course)
                 .WithMany(c => c.Enrollments)
@@ -89,24 +89,24 @@ namespace iLearn.Infrastructure.Persistence
                 .HasIndex(ea => new { ea.EnrollmentId, ea.AssignmentId })
                 .IsUnique();
 
-            // 2. Config CourseResource (Many-to-Many)
-            modelBuilder.Entity<CourseResource>()
+            // 2. Config CourseContentItem (Many-to-Many)
+            modelBuilder.Entity<CourseContentItem>()
                    .HasKey(cr => cr.Id);
-            modelBuilder.Entity<CourseResource>()
+            modelBuilder.Entity<CourseContentItem>()
                 .HasOne(cr => cr.CourseVersion)      // เปลี่ยนจาก Course เป็น CourseVersion
-                .WithMany(cv => cv.CourseResources) // ต้องตรงกับ Property ใน CourseVersion
+                .WithMany(cv => cv.CourseContentItems) // ต้องตรงกับ Property ใน CourseVersion
                 .HasForeignKey(cr => cr.CourseVersionId)
                 .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<CourseResource>()
-                .HasOne(cr => cr.Resource)
-                .WithMany(r => r.CourseResources)
-                .HasForeignKey(cr => cr.ResourceId)
+            modelBuilder.Entity<CourseContentItem>()
+                .HasOne(cr => cr.ContentItem)
+                .WithMany(r => r.CourseContentItems)
+                .HasForeignKey(cr => cr.ContentItemId)
                 .OnDelete(DeleteBehavior.Restrict);
-            // 3. Config Resource <-> FileStorage (1-to-1 or 1-to-Many)
-            modelBuilder.Entity<Resource>()
+            // 3. Config ContentItem <-> FileStorage (1-to-1 or 1-to-Many)
+            modelBuilder.Entity<ContentItem>()
                 .HasOne(r => r.FileStorage)
-                .WithOne() // หรือ WithMany ถ้าไฟล์เดียวใช้หลาย Resource
-                .HasForeignKey<Resource>(r => r.FileStorageId);
+                .WithOne() // หรือ WithMany ถ้าไฟล์เดียวใช้หลาย ContentItem
+                .HasForeignKey<ContentItem>(r => r.FileStorageId);
 
             modelBuilder.Entity<ScormRuntimeState>()
                 .HasOne(state => state.Enrollment)
@@ -115,13 +115,13 @@ namespace iLearn.Infrastructure.Persistence
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ScormRuntimeState>()
-                .HasOne(state => state.Resource)
+                .HasOne(state => state.ContentItem)
                 .WithMany()
-                .HasForeignKey(state => state.ResourceId)
+                .HasForeignKey(state => state.ContentItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ScormRuntimeState>()
-                .HasIndex(state => new { state.EnrollmentId, state.ResourceId })
+                .HasIndex(state => new { state.EnrollmentId, state.ContentItemId })
                 .IsUnique()
                 .HasFilter("[IsDeleted] = 0");
 
@@ -174,37 +174,37 @@ namespace iLearn.Infrastructure.Persistence
                 .HasForeignKey(cv => cv.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Config StudentGroup <-> StudentGroupMember
-            modelBuilder.Entity<StudentGroupMember>()
-                .HasOne(m => m.StudentGroup)
+            // Config LearnerGroup <-> LearnerGroupMember
+            modelBuilder.Entity<LearnerGroupMember>()
+                .HasOne(m => m.LearnerGroup)
                 .WithMany(g => g.Members)
-                .HasForeignKey(m => m.StudentGroupId)
+                .HasForeignKey(m => m.LearnerGroupId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Config StudentGroup -> StudentGroupCategory (folder)
-            modelBuilder.Entity<StudentGroup>()
+            // Config LearnerGroup -> LearnerGroupCategory (folder)
+            modelBuilder.Entity<LearnerGroup>()
                 .HasOne(g => g.Category)
-                .WithMany(c => c.StudentGroups)
+                .WithMany(c => c.LearnerGroups)
                 .HasForeignKey(g => g.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<StudentGroup>()
+            modelBuilder.Entity<LearnerGroup>()
                 .HasIndex(g => g.CategoryId);
 
-            // Config StudentGroupCategory self-reference (tree hierarchy)
-            modelBuilder.Entity<StudentGroupCategory>()
+            // Config LearnerGroupCategory self-reference (tree hierarchy)
+            modelBuilder.Entity<LearnerGroupCategory>()
                 .HasOne(c => c.Parent)
                 .WithMany(c => c.Children)
                 .HasForeignKey(c => c.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<StudentGroupCategory>()
+            modelBuilder.Entity<LearnerGroupCategory>()
                 .HasIndex(c => c.ParentId);
 
-            modelBuilder.Entity<StudentGroupCategory>()
+            modelBuilder.Entity<LearnerGroupCategory>()
                 .HasIndex(c => c.Path);
 
-            modelBuilder.Entity<StudentGroupCategory>()
+            modelBuilder.Entity<LearnerGroupCategory>()
                 .Property(c => c.Path)
                 .HasMaxLength(450);
 
@@ -238,11 +238,11 @@ namespace iLearn.Infrastructure.Persistence
                 .StartsAt(1)
                 .IncrementsBy(1);
 
-            // Config Assignment <-> StudentGroup
+            // Config Assignment <-> LearnerGroup
             modelBuilder.Entity<Assignment>()
-                .HasOne(a => a.StudentGroup)
+                .HasOne(a => a.LearnerGroup)
                 .WithMany(g => g.Assignments)
-                .HasForeignKey(a => a.StudentGroupId)
+                .HasForeignKey(a => a.LearnerGroupId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Assignment>()

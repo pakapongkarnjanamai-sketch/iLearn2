@@ -38,8 +38,8 @@ namespace iLearn.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetMyCourses()
         {
-            var studentCode = GetAuthenticatedStudentCode();
-            if (string.IsNullOrWhiteSpace(studentCode))
+            var learnerCode = GetAuthenticatedLearnerCode();
+            if (string.IsNullOrWhiteSpace(learnerCode))
                 return LearnerSessionExpired();
 
             try
@@ -47,7 +47,7 @@ namespace iLearn.User.Controllers
                 var response = await SendLearnerProxyRequestAsync(
                     HttpMethod.Get,
                     "Enrollments/my-courses",
-                    studentCode);
+                    learnerCode);
                 return await CreateProxyResultAsync(response);
             }
             catch (InvalidOperationException ex)
@@ -71,8 +71,8 @@ namespace iLearn.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPlayerInfo(int courseId)
         {
-            var studentCode = GetAuthenticatedStudentCode();
-            if (string.IsNullOrWhiteSpace(studentCode))
+            var learnerCode = GetAuthenticatedLearnerCode();
+            if (string.IsNullOrWhiteSpace(learnerCode))
                 return LearnerSessionExpired();
 
             try
@@ -80,7 +80,7 @@ namespace iLearn.User.Controllers
                 var response = await SendLearnerProxyRequestAsync(
                     HttpMethod.Get,
                     $"Enrollments/player-info/{courseId}",
-                    studentCode);
+                    learnerCode);
                 return await CreateProxyResultAsync(response);
             }
             catch (InvalidOperationException ex)
@@ -104,8 +104,8 @@ namespace iLearn.User.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
-            var studentCode = GetAuthenticatedStudentCode();
-            if (string.IsNullOrWhiteSpace(studentCode))
+            var learnerCode = GetAuthenticatedLearnerCode();
+            if (string.IsNullOrWhiteSpace(learnerCode))
                 return LearnerSessionExpired();
 
             if (input == null)
@@ -116,7 +116,7 @@ namespace iLearn.User.Controllers
                 var response = await SendLearnerProxyRequestAsync(
                     HttpMethod.Post,
                     "LearningLogs/update-progress",
-                    studentCode,
+                    learnerCode,
                     input);
                 return await CreateProxyResultAsync(response);
             }
@@ -141,8 +141,8 @@ namespace iLearn.User.Controllers
         [HttpPost]
         public async Task<IActionResult> CommitRuntime([FromBody] ScormRuntimeCommitRequestDto input)
         {
-            var studentCode = GetAuthenticatedStudentCode();
-            if (string.IsNullOrWhiteSpace(studentCode))
+            var learnerCode = GetAuthenticatedLearnerCode();
+            if (string.IsNullOrWhiteSpace(learnerCode))
                 return LearnerSessionExpired();
 
             if (input == null)
@@ -153,7 +153,7 @@ namespace iLearn.User.Controllers
                 var response = await SendLearnerProxyRequestAsync(
                     HttpMethod.Post,
                     "LearningLogs/commit-runtime",
-                    studentCode,
+                    learnerCode,
                     input);
                 return await CreateProxyResultAsync(response);
             }
@@ -178,8 +178,8 @@ namespace iLearn.User.Controllers
         [HttpPost]
         public async Task<IActionResult> ResetProgress([FromBody] ResetProgressDto input)
         {
-            var studentCode = GetAuthenticatedStudentCode();
-            if (string.IsNullOrWhiteSpace(studentCode))
+            var learnerCode = GetAuthenticatedLearnerCode();
+            if (string.IsNullOrWhiteSpace(learnerCode))
                 return LearnerSessionExpired();
 
             if (input == null || input.EnrollmentId <= 0)
@@ -190,7 +190,7 @@ namespace iLearn.User.Controllers
                 var response = await SendLearnerProxyRequestAsync(
                     HttpMethod.Post,
                     "LearningLogs/reset-progress",
-                    studentCode,
+                    learnerCode,
                     input);
                 return await CreateProxyResultAsync(response);
             }
@@ -212,7 +212,7 @@ namespace iLearn.User.Controllers
             }
         }
 
-        private string? GetAuthenticatedStudentCode()
+        private string? GetAuthenticatedLearnerCode()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
@@ -231,7 +231,7 @@ namespace iLearn.User.Controllers
         private async Task<HttpResponseMessage> SendLearnerProxyRequestAsync(
             HttpMethod method,
             string relativeUrl,
-            string studentCode,
+            string learnerCode,
             object? body = null)
         {
             if (string.IsNullOrWhiteSpace(_learnerProxyAuthOptions.SharedSecret))
@@ -245,13 +245,13 @@ namespace iLearn.User.Controllers
             var timestamp = LearnerProxyAuthSignature.CreateTimestamp(DateTimeOffset.UtcNow);
             var signature = LearnerProxyAuthSignature.Compute(
                 _learnerProxyAuthOptions.SharedSecret,
-                studentCode,
+                learnerCode,
                 timestamp,
                 method.Method,
                 absoluteUri.AbsolutePath);
 
             using var request = new HttpRequestMessage(method, absoluteUri);
-            request.Headers.TryAddWithoutValidation(LearnerProxyAuthHeaders.StudentCode, studentCode);
+            request.Headers.TryAddWithoutValidation(LearnerProxyAuthHeaders.LearnerCode, learnerCode);
             request.Headers.TryAddWithoutValidation(LearnerProxyAuthHeaders.Timestamp, timestamp);
             request.Headers.TryAddWithoutValidation(LearnerProxyAuthHeaders.Signature, signature);
 

@@ -67,17 +67,17 @@ namespace iLearn.API.Controllers.Base
                 .Include(c => c.CourseType)
                 .Include(c => c.Versions)
                 .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive
-                    && v.CourseResources.Any()
-                    && v.CourseResources.All(cr => cr.Resource != null
-                        && cr.Resource.IsActive
-                        && cr.Resource.URL != null
-                        && cr.Resource.URL != ""
-                        && (cr.Resource.ResourceHref != null && cr.Resource.ResourceHref != ""
-                            || cr.Resource.URL.StartsWith("http://")
-                            || cr.Resource.URL.StartsWith("https://")
-                            || cr.Resource.URL.StartsWith("/")
-                            || cr.Resource.URL.Contains("/")
-                            || cr.Resource.URL.Contains(".")))));
+                    && v.CourseContentItems.Any()
+                    && v.CourseContentItems.All(cr => cr.ContentItem != null
+                        && cr.ContentItem.IsActive
+                        && cr.ContentItem.URL != null
+                        && cr.ContentItem.URL != ""
+                        && (cr.ContentItem.LaunchHref != null && cr.ContentItem.LaunchHref != ""
+                            || cr.ContentItem.URL.StartsWith("http://")
+                            || cr.ContentItem.URL.StartsWith("https://")
+                            || cr.ContentItem.URL.StartsWith("/")
+                            || cr.ContentItem.URL.Contains("/")
+                            || cr.ContentItem.URL.Contains(".")))));
 
             // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)

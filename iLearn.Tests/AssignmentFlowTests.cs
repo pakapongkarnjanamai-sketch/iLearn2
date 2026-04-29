@@ -46,7 +46,7 @@ namespace iLearn.Tests
                 forceReset: false);
 
             var enrollment = service.EnrollmentRepository.Items.Single();
-            Assert.Equal("490222", enrollment.StudentCode);
+            Assert.Equal("490222", enrollment.LearnerCode);
             Assert.Equal(10, enrollment.CourseId);
             Assert.Equal(100, enrollment.EnrolledCourseVersion);
 
@@ -84,7 +84,7 @@ namespace iLearn.Tests
             var enrollment = new Enrollment
             {
                 Id = 1,
-                StudentCode = "490222",
+                LearnerCode = "490222",
                 CourseId = 20,
                 EnrolledCourseVersion = 200,
                 IsCompleted = true,

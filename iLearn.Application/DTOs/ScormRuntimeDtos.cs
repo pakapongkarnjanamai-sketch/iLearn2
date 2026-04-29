@@ -5,7 +5,7 @@ namespace iLearn.Application.DTOs
     public class ScormRuntimeStateDto
     {
         public int EnrollmentId { get; set; }
-        public int ResourceId { get; set; }
+        public int ContentItemId { get; set; }
         public string ScormVersion { get; set; } = string.Empty;
         public string? LessonLocation { get; set; }
         public string? SuspendData { get; set; }
@@ -26,12 +26,12 @@ namespace iLearn.Application.DTOs
     public class ScormRuntimeCommitRequestDto
     {
         public int EnrollmentId { get; set; }
-        public List<ScormRuntimeResourceCommitDto> Resources { get; set; } = new();
+        public List<ScormRuntimeContentItemCommitDto> ContentItems { get; set; } = new();
     }
 
-    public class ScormRuntimeResourceCommitDto
+    public class ScormRuntimeContentItemCommitDto
     {
-        public int ResourceId { get; set; }
+        public int ContentItemId { get; set; }
         public string ScormVersion { get; set; } = string.Empty;
         public string? LessonLocation { get; set; }
         public string? SuspendData { get; set; }

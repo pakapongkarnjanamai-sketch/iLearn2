@@ -180,13 +180,13 @@
         loadReport();
 
         // ─── Component: Pivot Table ───
-        function buildPivotTable(courses, students) {
-            const studentMap = {};
-            students.forEach(s => {
-                if (!studentMap[s.studentCode]) studentMap[s.studentCode] = {};
-                studentMap[s.studentCode][s.assignmentRuleId] = s;
+        function buildPivotTable(courses, learners) {
+            const learnerMap = {};
+            learners.forEach(s => {
+                if (!learnerMap[s.learnerCode]) learnerMap[s.learnerCode] = {};
+                learnerMap[s.learnerCode][s.assignmentRuleId] = s;
             });
-            const uniqueStudents = Object.keys(studentMap).sort();
+            const uniqueLearners = Object.keys(learnerMap).sort();
 
             // ปรับ Course Code ให้เป็นตัวหนา และ Course Title ให้ตัวเล็กลง ตัดคำอัตโนมัติ
             const colHeaders = courses.map(c =>
@@ -196,9 +196,9 @@
                 </th>`
             ).join("");
 
-            const dataRows = uniqueStudents.map(code => {
-                const enrollments = studentMap[code];
-                const name = Object.values(enrollments)[0]?.studentName || code;
+            const dataRows = uniqueLearners.map(code => {
+                const enrollments = learnerMap[code];
+                const name = Object.values(enrollments)[0]?.learnerName || code;
                 let completedCount = 0;
 
                 const cells = courses.map(c => {
@@ -255,7 +255,7 @@
 
             // Course Rows Data
             const courseRows = (data.courses || []).map(c => {
-                const pct = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
+                const pct = c.totalLearners > 0 ? Math.round((c.completedLearners / c.totalLearners) * 100) : 0;
                 const colorClass = pct === 100
                     ? "var(--success-color)"
                     : pct > 0
@@ -264,9 +264,9 @@
                 return `<tr>
                     <td class="fw-bold align-middle">${c.courseCode}</td>
                     <td class="align-middle">${c.courseTitle}</td>
-                    <td class="align-middle text-center">${c.totalStudents}</td>
-                    <td class="align-middle text-center fw-semibold">${c.completedStudents}</td>
-                    <td class="align-middle text-center">${c.totalStudents - c.completedStudents}</td>
+                    <td class="align-middle text-center">${c.totalLearners}</td>
+                    <td class="align-middle text-center fw-semibold">${c.completedLearners}</td>
+                    <td class="align-middle text-center">${c.totalLearners - c.completedLearners}</td>
                     <td class="align-middle u-minw-150">
                         <div class="d-flex justify-content-between u-fs-11">
                             <span class="text-muted">Progress</span><span class="fw-bold">${window.formatAdminPercentage(pct, '0%')}</span>
@@ -278,14 +278,14 @@
                 </tr>`;
             }).join("");
 
-           // Student Rows Data
-            const studentGroups = {};
-            (data.students || []).forEach(s => {
-                if (!studentGroups[s.studentCode]) studentGroups[s.studentCode] = [];
-                studentGroups[s.studentCode].push(s);
+           // Learner Rows Data
+            const learnerGroups = {};
+            (data.learners || []).forEach(s => {
+                if (!learnerGroups[s.learnerCode]) learnerGroups[s.learnerCode] = [];
+                learnerGroups[s.learnerCode].push(s);
             });
-            const studentRows = Object.entries(studentGroups).map(([code, rows]) => {
-                const name = rows[0]?.studentName || "";
+            const learnerRows = Object.entries(learnerGroups).map(([code, rows]) => {
+                const name = rows[0]?.learnerName || "";
 
                 // คำนวณค่า Total, Done, Left
                 const total = rows.length;
@@ -324,7 +324,7 @@
             // Format dates for display
             const displayStartDate = formatDate(data.startDate);
             const displayDueDate = formatDate(data.dueDate);
-            const learnerCount = Object.keys(studentGroups).length;
+            const learnerCount = Object.keys(learnerGroups).length;
             const useCompactTopFold = (data.courses || []).length <= 2 && learnerCount <= 3;
             const summaryChartHeight = useCompactTopFold ? 172 : 200;
             const assignmentDescription = data.description ? esc(String(data.description)) : "-";
@@ -438,7 +438,7 @@
                                 <i class="fas fa-file-excel"></i> Export
                             </button>
                         </div>
-                        ${buildPivotTable(data.courses, data.students)}
+                        ${buildPivotTable(data.courses, data.learners)}
                     </section>
 
                     <section class="report-section">
@@ -446,7 +446,7 @@
                             <div class="report-section-title-wrap">
                                 <h2 class="report-section-title">Learner Tracking</h2>
                             </div>
-                            <button class="report-action-btn" onclick="exportStudentTracking()">
+                            <button class="report-action-btn" onclick="exportLearnerTracking()">
                                 <i class="fas fa-file-excel"></i> Export
                             </button>
                         </div>
@@ -463,7 +463,7 @@
                                             <th>Progress</th>
                                         </tr>
                                     </thead>
-                                    <tbody>${studentRows}</tbody>
+                                    <tbody>${learnerRows}</tbody>
                                 </table>
                             </div>
                         </div>
@@ -550,27 +550,27 @@
                 { header: 'Progress %', key: 'pct',   width: 12 }
             ];
             (_reportData.courses || []).forEach(function(c) {
-                const pct = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
-                ws.addRow({ code: c.courseCode, title: c.courseTitle, total: c.totalStudents, done: c.completedStudents, left: c.totalStudents - c.completedStudents, pct });
+                const pct = c.totalLearners > 0 ? Math.round((c.completedLearners / c.totalLearners) * 100) : 0;
+                ws.addRow({ code: c.courseCode, title: c.courseTitle, total: c.totalLearners, done: c.completedLearners, left: c.totalLearners - c.completedLearners, pct });
             });
             styleHeaderRow(ws);
         }
 
         function addMatrixSheet(wb) {
             const courses = _reportData.courses || [];
-            const studentMap = {};
-            (_reportData.students || []).forEach(function(s) {
-                if (!studentMap[s.studentCode]) studentMap[s.studentCode] = {};
-                studentMap[s.studentCode][s.assignmentRuleId] = s;
+            const learnerMap = {};
+            (_reportData.learners || []).forEach(function(s) {
+                if (!learnerMap[s.learnerCode]) learnerMap[s.learnerCode] = {};
+                learnerMap[s.learnerCode][s.assignmentRuleId] = s;
             });
 
             const ws = wb.addWorksheet('Learner Course Matrix');
             const headers = ['Employee ID', 'Name', ...courses.map(c => c.courseCode), 'Total'];
             ws.addRow(headers);
 
-            Object.keys(studentMap).sort().forEach(function(code) {
-                const enrollments = studentMap[code];
-                const name = Object.values(enrollments)[0]?.studentName || '';
+            Object.keys(learnerMap).sort().forEach(function(code) {
+                const enrollments = learnerMap[code];
+                const name = Object.values(enrollments)[0]?.learnerName || '';
                 let completedCount = 0;
                 const row = [code, name];
                 courses.forEach(function(c) {
@@ -588,7 +588,7 @@
             styleHeaderRow(ws);
         }
 
-        function addStudentTrackingSheet(wb) {
+        function addLearnerTrackingSheet(wb) {
             const ws = wb.addWorksheet('Learner Tracking');
             ws.columns = [
                 { header: 'Employee ID', key: 'code',  width: 15 },
@@ -598,16 +598,16 @@
                 { header: 'Left',        key: 'left',  width: 10 },
                 { header: 'Progress %',  key: 'pct',   width: 12 }
             ];
-            const studentGroups = {};
-            (_reportData.students || []).forEach(function(s) {
-                if (!studentGroups[s.studentCode]) studentGroups[s.studentCode] = [];
-                studentGroups[s.studentCode].push(s);
+            const learnerGroups = {};
+            (_reportData.learners || []).forEach(function(s) {
+                if (!learnerGroups[s.learnerCode]) learnerGroups[s.learnerCode] = [];
+                learnerGroups[s.learnerCode].push(s);
             });
-            Object.entries(studentGroups).forEach(function([code, rows]) {
+            Object.entries(learnerGroups).forEach(function([code, rows]) {
                 const total = rows.length;
                 const done  = rows.filter(r => r.isCompleted).length;
                 const pct   = Math.round(rows.reduce((a, r) => a + r.progress, 0) / rows.length);
-                ws.addRow({ code, name: rows[0]?.studentName || '', total, done, left: total - done, pct });
+                ws.addRow({ code, name: rows[0]?.learnerName || '', total, done, left: total - done, pct });
             });
             styleHeaderRow(ws);
         }
@@ -625,15 +625,15 @@
             await window.ensureExportDependencies();
             const wb = new ExcelJS.Workbook();
             addMatrixSheet(wb);
-            saveWorkbook(wb, getExportFileName('Student_Course_Matrix'));
+            saveWorkbook(wb, getExportFileName('Learner_Course_Matrix'));
         }
 
-        async function exportStudentTracking() {
+        async function exportLearnerTracking() {
             if (!_reportData) return;
             await window.ensureExportDependencies();
             const wb = new ExcelJS.Workbook();
-            addStudentTrackingSheet(wb);
-            saveWorkbook(wb, getExportFileName('Student_Tracking'));
+            addLearnerTrackingSheet(wb);
+            saveWorkbook(wb, getExportFileName('Learner_Tracking'));
         }
 
         async function exportAllToExcel() {
@@ -642,7 +642,7 @@
             const wb = new ExcelJS.Workbook();
             addCourseOverviewSheet(wb);
             addMatrixSheet(wb);
-            addStudentTrackingSheet(wb);
+            addLearnerTrackingSheet(wb);
             saveWorkbook(wb, getExportFileName('Assignment_Report'));
         }
     </script>

@@ -86,7 +86,7 @@ namespace iLearn.API.Middleware
 
         private static (int Status, string Title) MapException(Exception ex) => ex switch
         {
-            KeyNotFoundException             => (StatusCodes.Status404NotFound,  "Resource not found."),
+            KeyNotFoundException             => (StatusCodes.Status404NotFound,  "ContentItem not found."),
             UnauthorizedAccessException      => (StatusCodes.Status403Forbidden, "Forbidden."),
             InvalidScormPackageException     => (StatusCodes.Status400BadRequest, "Invalid SCORM package."),
             ArgumentException                => (StatusCodes.Status400BadRequest, "Invalid request."),

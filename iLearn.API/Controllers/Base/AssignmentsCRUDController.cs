@@ -27,7 +27,7 @@ namespace iLearn.API.Controllers.Base
         // NOTE: SQL paging via vw_AssignmentList
         //   The IQueryable returned by vw_AssignmentList is passed directly to
         //   DataSourceLoader.Load, which appends WHERE / ORDER BY / OFFSET-FETCH
-        //   in SQL.  Status, CourseNames, StudentCount are all computed inside
+        //   in SQL.  Status, CourseNames, LearnerCount are all computed inside
         //   the view so no in-memory aggregation is needed.
         //
         //   Search-panel text (courseNames LIKE '%...%') is non-sargable because

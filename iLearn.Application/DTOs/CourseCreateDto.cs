@@ -22,8 +22,8 @@ namespace iLearn.Application.DTOs
         [Display(Name = "หมวดหมู่")]
         public int CategoryId { get; set; }
 
-        [Display(Name = "เอกสารประกอบ (Resource IDs)")]
-        public List<int>? ResourceIds { get; set; }
+        [Display(Name = "เอกสารประกอบ (ContentItem IDs)")]
+        public List<int>? ContentItemIds { get; set; }
 
         public List<IFormFile>? Files { get; set; }
     }

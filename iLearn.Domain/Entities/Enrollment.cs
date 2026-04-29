@@ -6,7 +6,7 @@ namespace iLearn.Domain.Entities
 {
     public class Enrollment : BaseEntity, IValidatableObject
     {
-        public string StudentCode { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
 
         public int? CourseId { get; set; }
         public Course? Course { get; set; }

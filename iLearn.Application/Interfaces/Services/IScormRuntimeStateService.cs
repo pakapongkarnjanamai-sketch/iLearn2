@@ -8,7 +8,7 @@ namespace iLearn.Application.Interfaces.Services
 
         Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(
             int enrollmentId,
-            IReadOnlyCollection<ScormRuntimeResourceCommitDto> resources,
+            IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems,
             CancellationToken cancellationToken = default);
     }
 }

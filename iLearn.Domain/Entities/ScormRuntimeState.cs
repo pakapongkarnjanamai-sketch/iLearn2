@@ -11,10 +11,10 @@ namespace iLearn.Domain.Entities
         [ForeignKey(nameof(EnrollmentId))]
         public Enrollment? Enrollment { get; set; }
 
-        public int ResourceId { get; set; }
+        public int ContentItemId { get; set; }
 
-        [ForeignKey(nameof(ResourceId))]
-        public Resource? Resource { get; set; }
+        [ForeignKey(nameof(ContentItemId))]
+        public ContentItem? ContentItem { get; set; }
 
         [StringLength(32)]
         public string ScormVersion { get; set; } = string.Empty;

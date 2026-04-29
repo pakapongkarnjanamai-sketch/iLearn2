@@ -5,7 +5,7 @@ namespace iLearn.Application.DTOs
     //public class LearningLogDto
     //{
     //    public int Id { get; set; }
-    //    public string StudentCode { get; set; } = string.Empty;
+    //    public string LearnerCode { get; set; } = string.Empty;
     //    public int CourseId { get; set; }
     //    public int ContentId { get; set; } 
 
@@ -17,11 +17,11 @@ namespace iLearn.Application.DTOs
     public class LearningLogDto
     {
         public int Id { get; set; }
-        public string StudentCode { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
 
         public int CourseId { get; set; }
         public int CourseVersionId { get; set; }
-        public int ResourceId { get; set; }
+        public int ContentItemId { get; set; }
 
         // แสดงผลสถานะและคะแนน
         public string LessonStatus { get; set; } = string.Empty;
@@ -40,7 +40,7 @@ namespace iLearn.Application.DTOs
 
     //public class CreateLearningLogDto
     //{
-    //    public string StudentCode { get; set; } = string.Empty;
+    //    public string LearnerCode { get; set; } = string.Empty;
     //    public int CourseId { get; set; }
     //    public int ContentId { get; set; }
     //    public int QuestionId { get; set; } 
@@ -51,7 +51,7 @@ namespace iLearn.Application.DTOs
     public class CreateLearningLogDto
     {
         [Required]
-        public string StudentCode { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
 
         [Required]
         public int CourseId { get; set; }
@@ -60,7 +60,7 @@ namespace iLearn.Application.DTOs
         public int CourseVersionId { get; set; }
 
         [Required]
-        public int ResourceId { get; set; }
+        public int ContentItemId { get; set; }
 
         // Optional: กรณีต้องการ Set ค่าเริ่มต้น
         public string? LessonStatus { get; set; } = "not attempted";

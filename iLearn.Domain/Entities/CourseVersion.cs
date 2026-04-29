@@ -11,7 +11,7 @@ namespace iLearn.Domain.Entities
         public int VersionNumber { get; set; } // เช่น 1, 2, 3
         public string? Note { get; set; }      // เช่น "Initial Release", "Updated materials"
 
-        // เชื่อมโยงไปหา Resource ผ่านตาราง CourseResource
-        public ICollection<CourseResource> CourseResources { get; set; } = new List<CourseResource>();
+        // เชื่อมโยงไปหา ContentItem ผ่านตาราง CourseContentItem
+        public ICollection<CourseContentItem> CourseContentItems { get; set; } = new List<CourseContentItem>();
     }
 }

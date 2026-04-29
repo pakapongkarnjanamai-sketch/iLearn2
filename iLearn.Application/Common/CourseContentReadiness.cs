@@ -6,65 +6,65 @@ using System.Linq;
 
 namespace iLearn.Application.Common
 {
-    public sealed record ResourceReadinessIssue(int ResourceId, string ResourceName, string Reason);
+    public sealed record ContentItemReadinessIssue(int ContentItemId, string ContentItemName, string Reason);
 
     public static class CourseContentReadiness
     {
-        public static bool IsResourceReady(Resource? resource)
+        public static bool IsContentItemReady(ContentItem? contentItem)
         {
-            return GetResourceIssue(resource) == null;
+            return GetContentItemIssue(contentItem) == null;
         }
 
-        public static ResourceReadinessIssue? GetResourceIssue(Resource? resource, int resourceId = 0)
+        public static ContentItemReadinessIssue? GetContentItemIssue(ContentItem? contentItem, int contentItemId = 0)
         {
-            if (resource == null)
+            if (contentItem == null)
             {
-                return new ResourceReadinessIssue(resourceId, $"Content item {resourceId}", "content item record is missing");
+                return new ContentItemReadinessIssue(contentItemId, $"Content item {contentItemId}", "content item record is missing");
             }
 
-            if (!resource.IsActive)
+            if (!contentItem.IsActive)
             {
-                return new ResourceReadinessIssue(resource.Id, resource.Name, "content item is not published");
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "content item is not published");
             }
 
-            if (string.IsNullOrWhiteSpace(resource.URL))
+            if (string.IsNullOrWhiteSpace(contentItem.URL))
             {
-                return new ResourceReadinessIssue(resource.Id, resource.Name, "launch URL is missing");
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "launch URL is missing");
             }
 
-            if (string.IsNullOrWhiteSpace(resource.ResourceHref) && !LooksLikeDirectLaunchUrl(resource.URL))
+            if (string.IsNullOrWhiteSpace(contentItem.LaunchHref) && !LooksLikeDirectLaunchUrl(contentItem.URL))
             {
-                return new ResourceReadinessIssue(resource.Id, resource.Name, "SCORM launch file is missing");
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "SCORM launch file is missing");
             }
 
             return null;
         }
 
-        public static bool IsVersionReady(IEnumerable<CourseResource>? courseResources)
+        public static bool IsVersionReady(IEnumerable<CourseContentItem>? courseContentItems)
         {
-            if (courseResources == null)
+            if (courseContentItems == null)
             {
                 return false;
             }
 
-            var resources = courseResources.ToList();
-            return resources.Count > 0 && resources.All(cr => IsResourceReady(cr.Resource));
+            var contentItems = courseContentItems.ToList();
+            return contentItems.Count > 0 && contentItems.All(cr => IsContentItemReady(cr.ContentItem));
         }
 
         public static bool HasReadyActiveVersion(Course? course)
         {
             return course?.IsActive == true
-                && course.Versions.Any(version => version.IsActive && IsVersionReady(version.CourseResources));
+                && course.Versions.Any(version => version.IsActive && IsVersionReady(version.CourseContentItems));
         }
 
-        public static string BuildActivationErrorMessage(int resourceCount, IReadOnlyCollection<ResourceReadinessIssue> issues)
+        public static string BuildActivationErrorMessage(int contentItemCount, IReadOnlyCollection<ContentItemReadinessIssue> issues)
         {
-            if (resourceCount == 0)
+            if (contentItemCount == 0)
             {
                 return "Cannot activate this course version because it has no content items.";
             }
 
-            var detail = string.Join("; ", issues.Take(5).Select(issue => $"{issue.ResourceName}: {issue.Reason}"));
+            var detail = string.Join("; ", issues.Take(5).Select(issue => $"{issue.ContentItemName}: {issue.Reason}"));
             if (issues.Count > 5)
             {
                 detail += $"; and {issues.Count - 5} more content item(s)";

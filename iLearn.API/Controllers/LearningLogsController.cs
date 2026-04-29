@@ -52,27 +52,27 @@ namespace iLearn.API.Controllers
         [HttpPost("update-progress")]
         public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressDto input)
         {
-            if (!TryResolveTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            if (!TryResolveTrustedLearnerLearnerCode(out var learnerCode, out var errorResult))
             {
                 return errorResult;
             }
 
-            var validation = await ValidateEnrollmentForStudentAsync(input.EnrollmentId, studentCode);
+            var validation = await ValidateEnrollmentForLearnerAsync(input.EnrollmentId, learnerCode);
             if (validation.ErrorResult != null)
             {
                 return validation.ErrorResult;
             }
 
-            var updates = input.Resources
-                .Select(resource => new ResourceProgressUpdate(
-                    resource.ResourceId,
-                    resource.Status,
-                    resource.Progress,
-                    resource.Score,
-                    resource.SessionTime))
+            var updates = input.ContentItems
+                .Select(contentItem => new ContentItemProgressUpdate(
+                    contentItem.ContentItemId,
+                    contentItem.Status,
+                    contentItem.Progress,
+                    contentItem.Score,
+                    contentItem.SessionTime))
                 .ToList();
 
-            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, updates, resetAt: validation.Enrollment!.ResetAt);
+            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, learnerCode, updates, resetAt: validation.Enrollment!.ResetAt);
             await UpdateEnrollmentRollupAsync(validation.Enrollment!, validation.VersionId);
 
             InvalidateLearningCaches();
@@ -84,7 +84,7 @@ namespace iLearn.API.Controllers
         [HttpPost("commit-runtime")]
         public async Task<IActionResult> CommitRuntime([FromBody] ScormRuntimeCommitRequestDto input)
         {
-            if (!TryResolveTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            if (!TryResolveTrustedLearnerLearnerCode(out var learnerCode, out var errorResult))
             {
                 return errorResult;
             }
@@ -95,39 +95,39 @@ namespace iLearn.API.Controllers
                 return BadRequest(new ApiResponse<string> { Success = false, Message = payloadValidationMessage });
             }
 
-            if (input.Resources.Count == 0)
+            if (input.ContentItems.Count == 0)
             {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "No runtime resources were supplied." });
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No runtime contentItems were supplied." });
             }
 
-            var validation = await ValidateEnrollmentForStudentAsync(input.EnrollmentId, studentCode);
+            var validation = await ValidateEnrollmentForLearnerAsync(input.EnrollmentId, learnerCode);
             if (validation.ErrorResult != null)
             {
                 return validation.ErrorResult;
             }
 
-            var version = (await _versionRepo.GetAsync(v => v.Id == validation.VersionId, includeProperties: "CourseResources")).FirstOrDefault();
-            if (version?.CourseResources == null)
+            var version = (await _versionRepo.GetAsync(v => v.Id == validation.VersionId, includeProperties: "CourseContentItems")).FirstOrDefault();
+            if (version?.CourseContentItems == null)
             {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "Course version resources were not found." });
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Course version contentItems were not found." });
             }
 
-            var validResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToHashSet();
-            var runtimeResources = input.Resources
-                .Where(resource => validResourceIds.Contains(resource.ResourceId))
+            var validContentItemIds = version.CourseContentItems.Select(cr => cr.ContentItemId).ToHashSet();
+            var runtimeContentItems = input.ContentItems
+                .Where(contentItem => validContentItemIds.Contains(contentItem.ContentItemId))
                 .ToList();
 
-            if (runtimeResources.Count == 0)
+            if (runtimeContentItems.Count == 0)
             {
-                return BadRequest(new ApiResponse<string> { Success = false, Message = "No valid course resources were supplied for runtime commit." });
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No valid course contentItems were supplied for runtime commit." });
             }
 
-            var persistedStates = await _scormRuntimeStateService.UpsertAsync(input.EnrollmentId, runtimeResources);
-            var progressUpdates = runtimeResources
+            var persistedStates = await _scormRuntimeStateService.UpsertAsync(input.EnrollmentId, runtimeContentItems);
+            var progressUpdates = runtimeContentItems
                 .Select(MapRuntimeCommitToProgress)
                 .ToList();
 
-            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, studentCode, progressUpdates, incrementAttemptCount: false, resetAt: validation.Enrollment!.ResetAt);
+            await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, learnerCode, progressUpdates, incrementAttemptCount: false, resetAt: validation.Enrollment!.ResetAt);
             await UpdateEnrollmentRollupAsync(validation.Enrollment!, validation.VersionId);
 
             InvalidateLearningCaches();
@@ -144,7 +144,7 @@ namespace iLearn.API.Controllers
         [HttpPost("reset-progress")]
         public async Task<IActionResult> ResetProgress([FromBody] ResetProgressDto input)
         {
-            if (!TryResolveTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            if (!TryResolveTrustedLearnerLearnerCode(out var learnerCode, out var errorResult))
             {
                 return errorResult;
             }
@@ -154,7 +154,7 @@ namespace iLearn.API.Controllers
                 return BadRequest(new ApiResponse<string> { Success = false, Message = "Invalid enrollment id." });
             }
 
-            var validation = await ValidateEnrollmentForStudentAsync(input.EnrollmentId, studentCode, allowCompleted: true);
+            var validation = await ValidateEnrollmentForLearnerAsync(input.EnrollmentId, learnerCode, allowCompleted: true);
             if (validation.ErrorResult != null)
             {
                 return validation.ErrorResult;
@@ -202,48 +202,48 @@ namespace iLearn.API.Controllers
                 return "Invalid enrollment id for runtime commit.";
             }
 
-            foreach (var resource in input.Resources)
+            foreach (var contentItem in input.ContentItems)
             {
-                if (resource.ResourceId <= 0)
+                if (contentItem.ContentItemId <= 0)
                 {
-                    return "Invalid resource id for runtime commit.";
+                    return "Invalid contentItem id for runtime commit.";
                 }
 
-                if (ExceedsLimit(resource.ScormVersion, ScormRuntimeLimits.ScormVersionMaxLength))
+                if (ExceedsLimit(contentItem.ScormVersion, ScormRuntimeLimits.ScormVersionMaxLength))
                 {
                     return $"SCORM version exceeds the supported limit of {ScormRuntimeLimits.ScormVersionMaxLength} characters.";
                 }
 
-                if (ExceedsLimit(resource.LessonLocation, ScormRuntimeLimits.LessonLocationMaxLength))
+                if (ExceedsLimit(contentItem.LessonLocation, ScormRuntimeLimits.LessonLocationMaxLength))
                 {
                     return $"Lesson location exceeds the supported limit of {ScormRuntimeLimits.LessonLocationMaxLength} characters.";
                 }
 
-                if (ExceedsLimit(resource.SuspendData, ScormRuntimeLimits.SuspendDataMaxLength))
+                if (ExceedsLimit(contentItem.SuspendData, ScormRuntimeLimits.SuspendDataMaxLength))
                 {
                     return $"Suspend data exceeds the supported limit of {ScormRuntimeLimits.SuspendDataMaxLength} characters.";
                 }
 
-                if (ExceedsLimit(resource.LessonStatus, ScormRuntimeLimits.StatusMaxLength) ||
-                    ExceedsLimit(resource.CompletionStatus, ScormRuntimeLimits.StatusMaxLength) ||
-                    ExceedsLimit(resource.SuccessStatus, ScormRuntimeLimits.StatusMaxLength))
+                if (ExceedsLimit(contentItem.LessonStatus, ScormRuntimeLimits.StatusMaxLength) ||
+                    ExceedsLimit(contentItem.CompletionStatus, ScormRuntimeLimits.StatusMaxLength) ||
+                    ExceedsLimit(contentItem.SuccessStatus, ScormRuntimeLimits.StatusMaxLength))
                 {
                     return $"Runtime status fields exceed the supported limit of {ScormRuntimeLimits.StatusMaxLength} characters.";
                 }
 
-                if (ExceedsLimit(resource.SessionTime, ScormRuntimeLimits.SessionTimeMaxLength) ||
-                    ExceedsLimit(resource.TotalTime, ScormRuntimeLimits.TotalTimeMaxLength))
+                if (ExceedsLimit(contentItem.SessionTime, ScormRuntimeLimits.SessionTimeMaxLength) ||
+                    ExceedsLimit(contentItem.TotalTime, ScormRuntimeLimits.TotalTimeMaxLength))
                 {
                     return $"Runtime time fields exceed the supported limit of {ScormRuntimeLimits.SessionTimeMaxLength} characters.";
                 }
 
-                if (ExceedsLimit(resource.Entry, ScormRuntimeLimits.EntryMaxLength) ||
-                    ExceedsLimit(resource.Exit, ScormRuntimeLimits.ExitMaxLength))
+                if (ExceedsLimit(contentItem.Entry, ScormRuntimeLimits.EntryMaxLength) ||
+                    ExceedsLimit(contentItem.Exit, ScormRuntimeLimits.ExitMaxLength))
                 {
                     return $"Runtime entry or exit fields exceed the supported limit of {ScormRuntimeLimits.EntryMaxLength} characters.";
                 }
 
-                if (ExceedsLimit(resource.CmiSnapshotJson, ScormRuntimeLimits.CmiSnapshotJsonMaxLength))
+                if (ExceedsLimit(contentItem.CmiSnapshotJson, ScormRuntimeLimits.CmiSnapshotJsonMaxLength))
                 {
                     return $"Runtime snapshot exceeds the supported limit of {ScormRuntimeLimits.CmiSnapshotJsonMaxLength} characters.";
                 }
@@ -267,9 +267,9 @@ namespace iLearn.API.Controllers
             return 0;
         }
 
-        private bool TryResolveTrustedLearnerStudentCode(out string studentCode, out IActionResult errorResult)
+        private bool TryResolveTrustedLearnerLearnerCode(out string learnerCode, out IActionResult errorResult)
         {
-            if (_learnerProxyIdentityResolver.TryResolveStudentCode(HttpContext, out studentCode, out var statusCode, out var errorMessage))
+            if (_learnerProxyIdentityResolver.TryResolveLearnerCode(HttpContext, out learnerCode, out var statusCode, out var errorMessage))
             {
                 errorResult = null!;
                 return true;
@@ -284,9 +284,9 @@ namespace iLearn.API.Controllers
             return false;
         }
 
-        private async Task<(Enrollment? Enrollment, int VersionId, IActionResult? ErrorResult)> ValidateEnrollmentForStudentAsync(
+        private async Task<(Enrollment? Enrollment, int VersionId, IActionResult? ErrorResult)> ValidateEnrollmentForLearnerAsync(
             int enrollmentId,
-            string studentCode,
+            string learnerCode,
             bool allowCompleted = false)
         {
             var enrollment = await _enrollmentRepo.GetByIdAsync(enrollmentId);
@@ -295,9 +295,9 @@ namespace iLearn.API.Controllers
                 return (null, 0, NotFound(new ApiResponse<string> { Success = false, Message = "Enrollment not found" }));
             }
 
-            if (!string.Equals(enrollment.StudentCode, studentCode, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(enrollment.LearnerCode, learnerCode, StringComparison.OrdinalIgnoreCase))
             {
-                return (null, 0, Unauthorized(new ApiResponse<string> { Success = false, Message = "StudentDto code mismatch" }));
+                return (null, 0, Unauthorized(new ApiResponse<string> { Success = false, Message = "LearnerDto code mismatch" }));
             }
 
             if (enrollment.IsCompleted && !allowCompleted)
@@ -316,8 +316,8 @@ namespace iLearn.API.Controllers
         private async Task UpsertLearningLogsAsync(
             int enrollmentId,
             int versionId,
-            string studentCode,
-            IReadOnlyCollection<ResourceProgressUpdate> updates,
+            string learnerCode,
+            IReadOnlyCollection<ContentItemProgressUpdate> updates,
             bool incrementAttemptCount = true,
             DateTime? resetAt = null)
         {
@@ -327,7 +327,7 @@ namespace iLearn.API.Controllers
 
             foreach (var update in updates)
             {
-                var log = existingLogs.FirstOrDefault(item => item.ResourceId == update.ResourceId);
+                var log = existingLogs.FirstOrDefault(item => item.ContentItemId == update.ContentItemId);
                 bool isInputPassed = string.Equals(update.Status, "passed", StringComparison.OrdinalIgnoreCase) ||
                                      string.Equals(update.Status, "completed", StringComparison.OrdinalIgnoreCase);
                 string newStatus = isInputPassed ? "passed" : (update.Status ?? "incomplete");
@@ -362,8 +362,8 @@ namespace iLearn.API.Controllers
                     var newLog = new LearningLog
                     {
                         EnrollmentId = enrollmentId,
-                        StudentCode = studentCode,
-                        ResourceId = update.ResourceId,
+                        LearnerCode = learnerCode,
+                        ContentItemId = update.ContentItemId,
                         CourseVersionId = versionId,
                         Status = newStatus,
                         Progress = isInputPassed ? 100 : (update.Progress ?? 0),
@@ -380,8 +380,8 @@ namespace iLearn.API.Controllers
 
         private async Task UpdateEnrollmentRollupAsync(Enrollment enrollment, int versionId)
         {
-            var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseResources")).FirstOrDefault();
-            if (version?.CourseResources == null)
+            var version = (await _versionRepo.GetAsync(v => v.Id == versionId, includeProperties: "CourseContentItems")).FirstOrDefault();
+            if (version?.CourseContentItems == null)
             {
                 return;
             }
@@ -389,12 +389,12 @@ namespace iLearn.API.Controllers
             var updatedLogs = await _logRepo.GetAsync(log =>
                 log.EnrollmentId == enrollment.Id &&
                 (!enrollment.ResetAt.HasValue || log.CreatedAt >= enrollment.ResetAt.Value));
-            var allResourceIds = version.CourseResources.Select(cr => cr.ResourceId).ToList();
+            var allContentItemIds = version.CourseContentItems.Select(cr => cr.ContentItemId).ToList();
             int passedCount = updatedLogs.Count(log =>
-                allResourceIds.Contains(log.ResourceId ?? 0) &&
+                allContentItemIds.Contains(log.ContentItemId ?? 0) &&
                 (log.Status == "passed" || log.Status == "completed"));
 
-            if (passedCount >= allResourceIds.Count && allResourceIds.Count > 0)
+            if (passedCount >= allContentItemIds.Count && allContentItemIds.Count > 0)
             {
                 enrollment.IsCompleted = true;
                 enrollment.CompletedDate = _dateTime.Now;
@@ -402,14 +402,14 @@ namespace iLearn.API.Controllers
             }
             else
             {
-                enrollment.Progress = allResourceIds.Count > 0
-                    ? ((double)passedCount / allResourceIds.Count) * 100
+                enrollment.Progress = allContentItemIds.Count > 0
+                    ? ((double)passedCount / allContentItemIds.Count) * 100
                     : 0;
             }
 
             enrollment.TotalTimeSpent = updatedLogs.Sum(log => log.TotalSecondsPlayed);
             enrollment.TotalScore = updatedLogs
-                .Where(log => allResourceIds.Contains(log.ResourceId ?? 0))
+                .Where(log => allContentItemIds.Contains(log.ContentItemId ?? 0))
                 .Max(log => (int?)log.Score ?? 0);
 
             await _enrollmentRepo.UpdateAsync(enrollment);
@@ -430,22 +430,22 @@ namespace iLearn.API.Controllers
             AdminSummaryStatsCache.InvalidateEnrollments(_cache);
         }
 
-        private static ResourceProgressUpdate MapRuntimeCommitToProgress(ScormRuntimeResourceCommitDto resource)
+        private static ContentItemProgressUpdate MapRuntimeCommitToProgress(ScormRuntimeContentItemCommitDto contentItem)
         {
-            var scormVersion = ScormRuntimeFieldMap.NormalizeVersion(resource.ScormVersion);
+            var scormVersion = ScormRuntimeFieldMap.NormalizeVersion(contentItem.ScormVersion);
             var normalizedCompletionStatus = IsScorm12(scormVersion)
-                ? ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, null)
-                : ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
+                ? ScormRuntimeFieldMap.NormalizeCompletionStatus(contentItem.LessonStatus, null)
+                : ScormRuntimeFieldMap.NormalizeCompletionStatus(contentItem.LessonStatus, contentItem.CompletionStatus);
             var normalizedSuccessStatus = IsScorm12(scormVersion)
-                ? NormalizeScorm12SuccessStatus(resource.LessonStatus)
-                : ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
+                ? NormalizeScorm12SuccessStatus(contentItem.LessonStatus)
+                : ScormRuntimeFieldMap.NormalizeSuccessStatus(contentItem.LessonStatus, contentItem.SuccessStatus);
 
-            return new ResourceProgressUpdate(
-                resource.ResourceId,
-                DeriveLegacyStatus(resource.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
-                DeriveLegacyProgress(resource.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
-                resource.RawScore.HasValue ? (int)Math.Round(resource.RawScore.Value, MidpointRounding.AwayFromZero) : null,
-                resource.SessionTime);
+            return new ContentItemProgressUpdate(
+                contentItem.ContentItemId,
+                DeriveLegacyStatus(contentItem.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
+                DeriveLegacyProgress(contentItem.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
+                contentItem.RawScore.HasValue ? (int)Math.Round(contentItem.RawScore.Value, MidpointRounding.AwayFromZero) : null,
+                contentItem.SessionTime);
         }
 
         private static bool IsScorm12(string? scormVersion)
@@ -515,8 +515,8 @@ namespace iLearn.API.Controllers
             return null;
         }
 
-        private sealed record ResourceProgressUpdate(
-            int ResourceId,
+        private sealed record ContentItemProgressUpdate(
+            int ContentItemId,
             string? Status,
             double? Progress,
             int? Score,

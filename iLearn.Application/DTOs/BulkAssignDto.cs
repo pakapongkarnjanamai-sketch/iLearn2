@@ -14,7 +14,7 @@ namespace iLearn.Application.DTOs
         // Selected employee codes when assigning individual learners.
         public List<string> EmployeeCodes { get; set; } = new List<string>();
 
-        // Optional student group identifier used instead of individual employee codes.
+        // Optional learner group identifier used instead of individual employee codes.
         public int? GroupId { get; set; }
 
         public string? Division { get; set; }
@@ -44,7 +44,7 @@ namespace iLearn.Application.DTOs
         public List<int> CourseIds { get; set; } = new();
     }
 
-    public class ManageAssignmentStudentsDto
+    public class ManageAssignmentLearnersDto
     {
         public List<string> EmployeeCodes { get; set; } = new();
     }

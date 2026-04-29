@@ -3,7 +3,7 @@
     ViewBag.Title = "Admin Dashboard";
     var roles = User.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToList();
     var hasSuperAdminRole = roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase);
-    var learnerProgressUrl = hasSuperAdminRole ? Url.Action("Index", "Students") : Url.Action("Index", "Assignments");
+    var learnerProgressUrl = hasSuperAdminRole ? Url.Action("Index", "Learners") : Url.Action("Index", "Assignments");
     var learningActivityUrl = hasSuperAdminRole ? Url.Action("Index", "LearningLogs") : Url.Action("Gantt", "Assignments");
 }
 
@@ -47,7 +47,7 @@
             </div>
             <div class="dashboard-kpi-meta">
                 <span><strong id="kpi-draft-courses">0</strong> draft</span>
-                <span><strong id="kpi-resource-count">0</strong> content items</span>
+                <span><strong id="kpi-contentItem-count">0</strong> content items</span>
             </div>
         </a>
 
@@ -178,7 +178,7 @@
                 </a>
                 @if (hasSuperAdminRole)
                 {
-                    <a href="@Url.Action("Index", "Students")" class="quick-action">
+                    <a href="@Url.Action("Index", "Learners")" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-users" aria-hidden="true"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Learner Directory</div>
@@ -254,7 +254,7 @@
         const dashboardStatIds = [
             'kpi-active-courses',
             'kpi-draft-courses',
-            'kpi-resource-count',
+            'kpi-contentItem-count',
             'kpi-active-assignments',
             'kpi-due-soon-tasks',
             'kpi-overdue-tasks',
@@ -302,7 +302,7 @@
             updateScope(data.scope || {});
             setText('kpi-active-courses', formatNumber(kpi.activeCourses));
             setText('kpi-draft-courses', formatNumber(kpi.draftCourses));
-            setText('kpi-resource-count', formatNumber(kpi.resourceCount));
+            setText('kpi-contentItem-count', formatNumber(kpi.contentItemCount));
             setText('kpi-active-assignments', formatNumber(kpi.activeAssignmentBatches));
             setText('kpi-due-soon-tasks', formatNumber(kpi.dueSoonTasks));
             setText('kpi-overdue-tasks', formatNumber(kpi.overdueTasks));

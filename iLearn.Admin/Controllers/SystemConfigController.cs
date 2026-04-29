@@ -97,8 +97,8 @@ namespace iLearn.Admin.Controllers
 
             vm.EmployeeService = new EmployeeServiceInfo
             {
-                BaseStudentLookupUrl = doc.GetNestedProp("employeeService", "baseStudentLookupUrl"),
-                BaseStudentUrl = doc.GetNestedProp("employeeService", "baseStudentUrl"),
+                BaseLearnerLookupUrl = doc.GetNestedProp("employeeService", "baseLearnerLookupUrl"),
+                BaseLearnerUrl = doc.GetNestedProp("employeeService", "baseLearnerUrl"),
             };
 
             vm.ApiRuntime = new ApiRuntimeInfo
@@ -163,8 +163,8 @@ namespace iLearn.Admin.Controllers
 
                 vm.EmployeeService = new EmployeeServiceInfo
                 {
-                    BaseStudentLookupUrl = apiConfig["EmployeeServiceSettings:BaseStudentLookupUrl"] ?? "",
-                    BaseStudentUrl = apiConfig["EmployeeServiceSettings:BaseStudentUrl"] ?? "",
+                    BaseLearnerLookupUrl = apiConfig["EmployeeServiceSettings:BaseLearnerLookupUrl"] ?? "",
+                    BaseLearnerUrl = apiConfig["EmployeeServiceSettings:BaseLearnerUrl"] ?? "",
                 };
 
                 vm.ApiRuntime = new ApiRuntimeInfo
@@ -265,8 +265,8 @@ namespace iLearn.Admin.Controllers
 
     public class EmployeeServiceInfo
     {
-        public string BaseStudentLookupUrl { get; set; } = string.Empty;
-        public string BaseStudentUrl { get; set; } = string.Empty;
+        public string BaseLearnerLookupUrl { get; set; } = string.Empty;
+        public string BaseLearnerUrl { get; set; } = string.Empty;
     }
 
     public class SystemConfigViewModel

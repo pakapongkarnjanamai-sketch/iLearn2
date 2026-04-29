@@ -16,11 +16,11 @@ namespace iLearn.Application.Services
     public class CourseService : ICourseService
     {
         private readonly ICourseRepository _courseRepo;
-        private readonly IGenericRepository<CourseResource> _courseResourceRepository;
+        private readonly IGenericRepository<CourseContentItem> _courseContentItemRepository;
         private readonly IGenericRepository<CourseVersion> _courseVersionRepository;
         private readonly ICourseAssignmentService _assignmentService;
 
-        private readonly IGenericRepository<Resource> _resourceRepository;
+        private readonly IGenericRepository<ContentItem> _contentItemRepository;
         private readonly IGenericRepository<FileStorage> _fileStorageRepository;
         private readonly IScormService _scormService;
 
@@ -29,7 +29,7 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Assignment> _assignmentRepository;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IStudentApiService _studentApiService;
+        private readonly ILearnerApiService _learnerApiService;
         private readonly IAdminActivityService _adminActivityService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
@@ -37,10 +37,10 @@ namespace iLearn.Application.Services
 
         public CourseService(
             ICourseRepository courseRepository,
-            IGenericRepository<CourseResource> courseResourceRepository,
+            IGenericRepository<CourseContentItem> courseContentItemRepository,
             IGenericRepository<CourseVersion> courseVersionRepository,
             ICourseAssignmentService assignmentService,
-            IGenericRepository<Resource> resourceRepository,
+            IGenericRepository<ContentItem> contentItemRepository,
             IGenericRepository<FileStorage> fileStorageRepository,
             IGenericRepository<Enrollment> enrollmentRepository,
             IGenericRepository<LearningLog> learningLogRepository,
@@ -48,14 +48,14 @@ namespace iLearn.Application.Services
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepository,
             IScormService scormService,
             IUnitOfWork unitOfWork,
-            IStudentApiService studentApiService,
+            ILearnerApiService learnerApiService,
             IAdminActivityService adminActivityService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
             ICourseVersionService versionService)
         {
             _courseRepo = courseRepository;
-            _courseResourceRepository = courseResourceRepository;
+            _courseContentItemRepository = courseContentItemRepository;
             _courseVersionRepository = courseVersionRepository;
             _assignmentService = assignmentService;
 
@@ -64,11 +64,11 @@ namespace iLearn.Application.Services
             _assignmentRepository = assignmentRepository;
             _enrollmentAssignmentRepository = enrollmentAssignmentRepository;
 
-            _resourceRepository = resourceRepository;
+            _contentItemRepository = contentItemRepository;
             _fileStorageRepository = fileStorageRepository;
             _scormService = scormService;
             _unitOfWork = unitOfWork;
-            _studentApiService = studentApiService;
+            _learnerApiService = learnerApiService;
             _adminActivityService = adminActivityService;
             _currentUser = currentUser;
             _dateTime = dateTime;
@@ -112,23 +112,23 @@ namespace iLearn.Application.Services
                            .OrderByDescending(v => v.VersionNumber)
                            .FirstOrDefault();
 
-            var resourceList = new List<CourseResourceDto>();
+            var contentItemList = new List<CourseContentItemDto>();
             if (targetVersion != null)
             {
-                var courseResources = await _courseResourceRepository.GetAsync(
+                var courseContentItems = await _courseContentItemRepository.GetAsync(
                     filter: cr => cr.CourseVersionId == targetVersion.Id,
-                    includeProperties: "Resource"
+                    includeProperties: "ContentItem"
                 );
 
-                // 🌟 [แก้ไขที่นี่] เพิ่ม .OrderBy(cr => cr.Order) เพื่อเรียงลำดับ Resource
-                resourceList = courseResources.OrderBy(cr => cr.Order).Select(cr => new CourseResourceDto
+                // 🌟 [แก้ไขที่นี่] เพิ่ม .OrderBy(cr => cr.Order) เพื่อเรียงลำดับ ContentItem
+                contentItemList = courseContentItems.OrderBy(cr => cr.Order).Select(cr => new CourseContentItemDto
                 {
-                    Id = cr.Resource.Id,
-                    Name = cr.Resource.Name,
-                    TypeId = cr.Resource.TypeId,
-                    TypeName = cr.Resource.TypeId == 2 ? "Exam" : "Learn",
-                    IsActive = cr.Resource.IsActive,
-                    URL = cr.Resource.URL
+                    Id = cr.ContentItem.Id,
+                    Name = cr.ContentItem.Name,
+                    TypeId = cr.ContentItem.TypeId,
+                    TypeName = cr.ContentItem.TypeId == 2 ? "Exam" : "Learn",
+                    IsActive = cr.ContentItem.IsActive,
+                    URL = cr.ContentItem.URL
                 }).ToList();
             }
 
@@ -141,7 +141,7 @@ namespace iLearn.Application.Services
                 CourseType = course.CourseTypeId,
                 CategoryId = course.CategoryId,
                 IsActive = course.IsActive,
-                Resources = resourceList
+                ContentItems = contentItemList
             };
         }
 
@@ -173,9 +173,9 @@ namespace iLearn.Application.Services
             };
             await _courseVersionRepository.AddAsync(courseVersion);
 
-            if (model.ResourceIds?.Count > 0)
+            if (model.ContentItemIds?.Count > 0)
             {
-                await AddResourcesToCourseVersionAsync(courseVersion.Id, model.ResourceIds);
+                await AddContentItemsToCourseVersionAsync(courseVersion.Id, model.ContentItemIds);
             }
 
             await _adminActivityService.LogAsync(
@@ -217,9 +217,9 @@ namespace iLearn.Application.Services
             };
             await _courseVersionRepository.AddAsync(version);
 
-            if (model.ResourceIds?.Count > 0)
+            if (model.ContentItemIds?.Count > 0)
             {
-                await AddResourcesToCourseVersionAsync(version.Id, model.ResourceIds);
+                await AddContentItemsToCourseVersionAsync(version.Id, model.ContentItemIds);
             }
 
             return course.ToDto();
@@ -242,9 +242,9 @@ namespace iLearn.Application.Services
             var versions = await _courseVersionRepository.GetAllAsync();
             var activeVersion = versions.FirstOrDefault(v => v.CourseId == id && v.IsActive);
 
-            if (activeVersion != null && dto.ResourceIds?.Count > 0)
+            if (activeVersion != null && dto.ContentItemIds?.Count > 0)
             {
-                await ReplaceVersionResourcesAsync(activeVersion.Id, dto.ResourceIds);
+                await ReplaceVersionContentItemsAsync(activeVersion.Id, dto.ContentItemIds);
             }
 
             await _adminActivityService.LogAsync(
@@ -275,67 +275,67 @@ namespace iLearn.Application.Services
                     $"Cannot delete this course because {inProgressCount} learner(s) are currently in progress."
                 );
 
-            // ── รวบรวม Resource + FileStorage ที่ต้องจัดการ ────────────
+            // ── รวบรวม ContentItem + FileStorage ที่ต้องจัดการ ────────────
             var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
             var versions    = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
             var versionIds  = versions.Select(v => v.Id).ToList();
 
-            var courseResources = new List<CourseResource>();
+            var courseContentItems = new List<CourseContentItem>();
             foreach (var vId in versionIds)
             {
-                var crs = await _courseResourceRepository.GetAsync(cr => cr.CourseVersionId == vId);
-                courseResources.AddRange(crs);
+                var crs = await _courseContentItemRepository.GetAsync(cr => cr.CourseVersionId == vId);
+                courseContentItems.AddRange(crs);
             }
 
             // หา FileStorage + SCORM folder ที่ไม่ได้ใช้โดย course อื่น → Hard Delete ทีหลัง
-            var resourceIdsToCheck  = courseResources.Select(cr => cr.ResourceId).Distinct().ToList();
-            var resourcesToSoftDel  = new List<Resource>();
+            var contentItemIdsToCheck  = courseContentItems.Select(cr => cr.ContentItemId).Distinct().ToList();
+            var contentItemsToSoftDel  = new List<ContentItem>();
             var fileStoragesToHardDel = new List<FileStorage>();
             var scormFoldersToDelete  = new List<string>();
 
-            foreach (var resId in resourceIdsToCheck)
+            foreach (var resId in contentItemIdsToCheck)
             {
-                // ตรวจว่า Resource นี้ถูกใช้โดย Course อื่นด้วยหรือเปล่า (ผ่าน CourseResource ที่ไม่ใช่ version ของ course นี้)
-                var otherUsages = await _courseResourceRepository.GetAsync(
-                    cr => cr.ResourceId == resId && !versionIds.Contains(cr.CourseVersionId)
+                // ตรวจว่า ContentItem นี้ถูกใช้โดย Course อื่นด้วยหรือเปล่า (ผ่าน CourseContentItem ที่ไม่ใช่ version ของ course นี้)
+                var otherUsages = await _courseContentItemRepository.GetAsync(
+                    cr => cr.ContentItemId == resId && !versionIds.Contains(cr.CourseVersionId)
                 );
 
-                var resource = await _resourceRepository.GetByIdAsync(resId);
-                if (resource == null) continue;
+                var contentItem = await _contentItemRepository.GetByIdAsync(resId);
+                if (contentItem == null) continue;
 
-                resourcesToSoftDel.Add(resource);
+                contentItemsToSoftDel.Add(contentItem);
 
-                // Hard Delete FileStorage เฉพาะ Resource ที่ไม่ได้แชร์กับ Course อื่น
-                if (!otherUsages.Any() && resource.FileStorageId.HasValue)
+                // Hard Delete FileStorage เฉพาะ ContentItem ที่ไม่ได้แชร์กับ Course อื่น
+                if (!otherUsages.Any() && contentItem.FileStorageId.HasValue)
                 {
-                    var file = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+                    var file = await _fileStorageRepository.GetByIdAsync(contentItem.FileStorageId.Value);
                     if (file != null)
                     {
                         fileStoragesToHardDel.Add(file);
                         string ext = Path.GetExtension(file.Name)?.ToLower() ?? "";
-                        if (ext == ".zip" && !string.IsNullOrEmpty(resource.URL))
-                            scormFoldersToDelete.Add(resource.URL);
+                        if (ext == ".zip" && !string.IsNullOrEmpty(contentItem.URL))
+                            scormFoldersToDelete.Add(contentItem.URL);
                     }
                 }
             }
 
-            // ── Soft Delete: Course, Version, CourseResource, Resource, Assignment ──
+            // ── Soft Delete: Course, Version, CourseContentItem, ContentItem, Assignment ──
             // ── Hard Delete: FileStorage (bytes) + SCORM folders ────────────────────
             // Soft-delete Assignments
             foreach (var a in assignments)
                 await _assignmentRepository.DeleteAsync(a);
 
-            // Soft-delete CourseResources (linking table)
-            foreach (var cr in courseResources)
-                await _courseResourceRepository.DeleteAsync(cr);
+            // Soft-delete CourseContentItems (linking table)
+            foreach (var cr in courseContentItems)
+                await _courseContentItemRepository.DeleteAsync(cr);
 
             // Soft-delete CourseVersions
             foreach (var v in versions)
                 await _courseVersionRepository.DeleteAsync(v);
 
-            // Soft-delete Resources (LearningLog.ResourceId ยังอ้างอิงได้)
-            foreach (var r in resourcesToSoftDel)
-                await _resourceRepository.DeleteAsync(r);
+            // Soft-delete ContentItems (LearningLog.ContentItemId ยังอ้างอิงได้)
+            foreach (var r in contentItemsToSoftDel)
+                await _contentItemRepository.DeleteAsync(r);
 
             // Hard-delete FileStorage — ลบ binary data จริง ไม่มี FK จากที่ไหนอ้างอิงมา
             foreach (var f in fileStoragesToHardDel)
@@ -351,38 +351,38 @@ namespace iLearn.Application.Services
 
  
 
-        private async Task AddResourcesToCourseVersionAsync(int versionId, List<int> resourceIds)
+        private async Task AddContentItemsToCourseVersionAsync(int versionId, List<int> contentItemIds)
         {
-            if (resourceIds?.Count > 0)
+            if (contentItemIds?.Count > 0)
             {
                 // กำหนดตัวแปรสำหรับลำดับ Order เริ่มต้นจาก 1
                 int orderIndex = 1;
-                foreach (var resourceId in resourceIds)
+                foreach (var contentItemId in contentItemIds)
                 {
-                    var courseResource = new CourseResource
+                    var courseContentItem = new CourseContentItem
                     {
                         CourseVersionId = versionId,
-                        ResourceId = resourceId,
+                        ContentItemId = contentItemId,
                         Order = orderIndex++ // 🌟 เก็บค่า Order
                     };
-                    await _courseResourceRepository.AddAsync(courseResource);
+                    await _courseContentItemRepository.AddAsync(courseContentItem);
                 }
             }
         }
 
-        private async Task ReplaceVersionResourcesAsync(int versionId, List<int> newResourceIds)
+        private async Task ReplaceVersionContentItemsAsync(int versionId, List<int> newContentItemIds)
         {
-            var allCourseResources = await _courseResourceRepository.GetAllAsync();
-            var currentResources = allCourseResources
+            var allCourseContentItems = await _courseContentItemRepository.GetAllAsync();
+            var currentContentItems = allCourseContentItems
                 .Where(cr => cr.CourseVersionId == versionId)
                 .ToList();
 
-            foreach (var item in currentResources)
+            foreach (var item in currentContentItems)
             {
-                await _courseResourceRepository.DeleteAsync(item);
+                await _courseContentItemRepository.DeleteAsync(item);
             }
 
-            await AddResourcesToCourseVersionAsync(versionId, newResourceIds);
+            await AddContentItemsToCourseVersionAsync(versionId, newContentItemIds);
         }
 
         public async Task<bool> UpdateCourseStatusAsync(int id, bool isActive)
@@ -403,12 +403,12 @@ namespace iLearn.Application.Services
                 var readiness = await _versionService.GetVersionReadinessAsync(activeVersion.Id);
                 if (!readiness.IsReady)
                 {
-                    var issues = readiness.Issues.Select(issue => new ResourceReadinessIssue(
-                        issue.ResourceId,
-                        issue.ResourceName,
+                    var issues = readiness.Issues.Select(issue => new ContentItemReadinessIssue(
+                        issue.ContentItemId,
+                        issue.ContentItemName,
                         issue.Reason)).ToList();
 
-                    throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(readiness.ResourceCount, issues));
+                    throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(readiness.ContentItemCount, issues));
                 }
             }
             else
@@ -451,22 +451,22 @@ namespace iLearn.Application.Services
             if (!enrollments.Any())
                 return [];
 
-            var codes = enrollments.Select(e => e.StudentCode).Distinct().ToList();
-            Dictionary<string, ExternalStudentDto> studentMap;
+            var codes = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
+            Dictionary<string, ExternalLearnerDto> learnerMap;
             try
             {
-                studentMap = await _studentApiService.GetStudentsByCodesAsync(codes);
+                learnerMap = await _learnerApiService.GetLearnersByCodesAsync(codes);
             }
             catch
             {
-                studentMap = new Dictionary<string, ExternalStudentDto>();
+                learnerMap = new Dictionary<string, ExternalLearnerDto>();
             }
 
             var now = _dateTime.Now;
 
             return enrollments.Select(e =>
             {
-                var student = studentMap.GetValueOrDefault(e.StudentCode);
+                var learner = learnerMap.GetValueOrDefault(e.LearnerCode);
                 var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
                 var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
 
@@ -485,11 +485,11 @@ namespace iLearn.Application.Services
                 return new CourseLearnerDto
                 {
                     Id            = e.Id,
-                    StudentCode   = e.StudentCode,
-                    StudentName   = student?.Name ?? e.StudentCode,
-                    Division      = student?.Division,
-                    Department    = student?.Department,
-                    Position      = student?.Position,
+                    LearnerCode   = e.LearnerCode,
+                    LearnerName   = learner?.Name ?? e.LearnerCode,
+                    Division      = learner?.Division,
+                    Department    = learner?.Department,
+                    Position      = learner?.Position,
                     Progress      = Math.Round(e.Progress),
                     IsCompleted   = e.IsCompleted,
                     CompletedDate = e.CompletedDate,
@@ -555,7 +555,7 @@ namespace iLearn.Application.Services
                         CompletedEnrollmentCount = done,
                         TotalEnrollmentCount     = total,
                         CompletionPct            = pct,
-                        StudentGroupId           = first.StudentGroupId
+                        LearnerGroupId           = first.LearnerGroupId
                     };
                 })
                 .OrderByDescending(x => x.AssignmentNo)

@@ -17,24 +17,24 @@ namespace iLearn.Infrastructure.Services
         {
             _settings = settings.Value;
         }
-        public string GetScormUrl(string folderName, string resourceHref)
+        public string GetScormUrl(string folderName, string launchHref)
         {
             if (!TryNormalizeRelativePath(folderName, out var safeFolderName))
             {
                 return string.Empty;
             }
 
-            (string FilePath, string Suffix) safeResourceHref;
+            (string FilePath, string Suffix) safeLaunchHref;
             try
             {
-                safeResourceHref = NormalizeLaunchHrefOrThrow(resourceHref, "SCORM resource");
+                safeLaunchHref = NormalizeLaunchHrefOrThrow(launchHref, "SCORM contentItem");
             }
             catch (InvalidScormPackageException)
             {
                 return string.Empty;
             }
 
-            return CombineUrlSegments(_settings.FileUrl, safeFolderName, safeResourceHref.FilePath) + safeResourceHref.Suffix;
+            return CombineUrlSegments(_settings.FileUrl, safeFolderName, safeLaunchHref.FilePath) + safeLaunchHref.Suffix;
         }
         public void DeleteScormFolder(string folderName)
         {
@@ -124,11 +124,11 @@ namespace iLearn.Infrastructure.Services
 
             var manifestPath = GetSafePathUnderRoot(destinationPath, manifestRelativePath);
             var manifestInfo = ValidateAndParseManifest(manifestPath);
-            var launchHref = CombineManifestRelativeLaunchPath(manifestRelativePath, manifestInfo.ResourceHref);
+            var launchHref = CombineManifestRelativeLaunchPath(manifestRelativePath, manifestInfo.LaunchHref);
 
             return new ScormManifestDto
             {
-                ResourceHref = launchHref,
+                LaunchHref = launchHref,
                 SchemaVersion = manifestInfo.SchemaVersion,
                 FolderName = safeFolderName,
                 FullUrl = CombineUrlSegments(_settings.FileUrl, safeFolderName, launchHref)
@@ -232,10 +232,10 @@ namespace iLearn.Infrastructure.Services
         /// <summary>
         /// ?????????????? Manifest ????????????????????
         /// </summary>
-        private (string ResourceHref, string SchemaVersion) ValidateAndParseManifest(string manifestPath)
+        private (string LaunchHref, string SchemaVersion) ValidateAndParseManifest(string manifestPath)
         {
             // Default Values
-            string resourceHref = string.Empty;
+            string launchHref = string.Empty;
             string schemaVersion = string.Empty;
 
             if (!File.Exists(manifestPath))
@@ -273,33 +273,33 @@ namespace iLearn.Infrastructure.Services
                 }
 
                 // ========================================
-                // ?? ?? Resource Href (Launch Page) - ??????
+                // ?? ?? ContentItem Href (Launch Page) - ??????
                 // ========================================
-                var launchHref = NormalizeLaunchHrefOrThrow(FindLaunchPage(xDocument, ns), "SCORM launch");
-                resourceHref = launchHref.FilePath + launchHref.Suffix;
+                var launchHrefParts = NormalizeLaunchHrefOrThrow(FindLaunchPage(xDocument, ns), "SCORM launch");
+                launchHref = launchHrefParts.FilePath + launchHrefParts.Suffix;
 
-                if (string.IsNullOrEmpty(resourceHref))
+                if (string.IsNullOrEmpty(launchHref))
                 {
                     throw new InvalidScormPackageException(
-                        "????? Launch Page (SCO Resource) ?? imsmanifest.xml"
+                        "????? Launch Page (SCO ContentItem) ?? imsmanifest.xml"
                     );
                 }
 
                 var manifestDir = Path.GetDirectoryName(manifestPath);
-                var launchFilePath = GetSafePathUnderRoot(manifestDir!, launchHref.FilePath);
+                var launchFilePath = GetSafePathUnderRoot(manifestDir!, launchHrefParts.FilePath);
 
                 if (!File.Exists(launchFilePath))
                 {
                     throw new InvalidScormPackageException(
-                        $"????????? Launch Page: {resourceHref}"
+                        $"????????? Launch Page: {launchHref}"
                     );
                 }
 
                 Console.WriteLine($"? SCORM Validation Passed:");
                 Console.WriteLine($"   ?? Version: {schemaVersion}");
-                Console.WriteLine($"   ?? Launch Page: {resourceHref}");
+                Console.WriteLine($"   ?? Launch Page: {launchHref}");
 
-                return (resourceHref, schemaVersion);
+                return (launchHref, schemaVersion);
             }
             catch (InvalidScormPackageException)
             {
@@ -401,7 +401,7 @@ namespace iLearn.Infrastructure.Services
         private string FindLaunchPage(XDocument xDocument, XNamespace ns)
         {
             // ??????? 1: ?? SCO (Sharable Content Object)
-            var scoResource = xDocument.Descendants(ns + "resource")
+            var scoContentItem = xDocument.Descendants(ns + "resource")
                 .FirstOrDefault(x =>
                 {
                     var typeAttr = x.Attribute("type");
@@ -414,9 +414,9 @@ namespace iLearn.Infrastructure.Services
                     return scormTypeAttr?.Value.Equals("sco", StringComparison.OrdinalIgnoreCase) == true;
                 });
 
-            if (scoResource != null)
+            if (scoContentItem != null)
             {
-                var href = scoResource.Attribute("href")?.Value;
+                var href = scoContentItem.Attribute("href")?.Value;
                 if (!string.IsNullOrEmpty(href))
                 {
                     return href.Replace("\\", "/");
@@ -424,14 +424,14 @@ namespace iLearn.Infrastructure.Services
             }
             
             // ??????? 2: ?? resource ????????????? webcontent
-            var firstResource = xDocument.Descendants(ns + "resource")
+            var firstContentItem = xDocument.Descendants(ns + "resource")
                 .FirstOrDefault(x =>
                     x.Attribute("type")?.Value == "webcontent" &&
                     x.Attribute("href") != null);
 
-            if (firstResource != null)
+            if (firstContentItem != null)
             {
-                var href = firstResource.Attribute("href")?.Value;
+                var href = firstContentItem.Attribute("href")?.Value;
                 if (!string.IsNullOrEmpty(href))
                 {
                     return href.Replace("\\", "/");
@@ -542,9 +542,9 @@ namespace iLearn.Infrastructure.Services
             return string.Equals(fileName, "imsmanifest.xml", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string CombineManifestRelativeLaunchPath(string manifestRelativePath, string resourceHref)
+        private static string CombineManifestRelativeLaunchPath(string manifestRelativePath, string launchHref)
         {
-            var launchHref = NormalizeLaunchHrefOrThrow(resourceHref, "SCORM launch");
+            var launchHrefParts = NormalizeLaunchHrefOrThrow(launchHref, "SCORM launch");
             var manifestDirectory = string.Empty;
             var lastSlashIndex = manifestRelativePath.LastIndexOf('/');
             if (lastSlashIndex >= 0)
@@ -553,10 +553,10 @@ namespace iLearn.Infrastructure.Services
             }
 
             var combinedPath = string.IsNullOrWhiteSpace(manifestDirectory)
-                ? launchHref.FilePath
-                : CombineUrlSegments(manifestDirectory, launchHref.FilePath);
+                ? launchHrefParts.FilePath
+                : CombineUrlSegments(manifestDirectory, launchHrefParts.FilePath);
 
-            return NormalizeRelativePathOrThrow(combinedPath, "SCORM launch") + launchHref.Suffix;
+            return NormalizeRelativePathOrThrow(combinedPath, "SCORM launch") + launchHrefParts.Suffix;
         }
 
         private static string GetSafePathUnderRoot(string rootPath, string relativePath)

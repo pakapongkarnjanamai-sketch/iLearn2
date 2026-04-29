@@ -255,7 +255,7 @@
             ResetInProgress: "Reset In Progress"
         };
 
-        const contentLibraryStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+        const contentLibraryStore = createDataStore(serviceUrl, 'admin/ContentItemsCRUD', { key: 'id' });
 
         let formWidget;
         let masterGrid;
@@ -525,7 +525,7 @@
                             {
                                 caption: "Used In", width: 100, alignment: "center", allowSorting: true,
                                 calculateCellValue: function(data) {
-                                    return (data.courseResources || []).length;
+                                    return (data.courseContentItems || []).length;
                                 },
                                 cellTemplate: function(container, options) {
                                     const count = options.value;
@@ -805,7 +805,7 @@
                 invalidateVersionPolicyImpact();
                 renderVersionPolicyStep();
 
-                await loadLinkedContentItems(detailData.resourceIds || []);
+                await loadLinkedContentItems(detailData.contentItemIds || []);
             } catch (xhr) {
                 showToast(window.getApiErrorMessage(xhr, "Error loading version"), "error");
             } finally {
@@ -813,22 +813,22 @@
             }
         }
 
-        async function loadLinkedContentItems(resourceIds) {
-            if (!resourceIds.length) {
+        async function loadLinkedContentItems(contentItemIds) {
+            if (!contentItemIds.length) {
                 return;
             }
 
             try {
                 const response = await contentLibraryStore.load();
-                const allResources = response.data || response || [];
+                const allContentItems = response.data || response || [];
 
-                resourceIds.forEach(function(resourceId) {
-                    const resource = allResources.find(function(item) {
-                        return item.id === resourceId;
+                contentItemIds.forEach(function(contentItemId) {
+                    const contentItem = allContentItems.find(function(item) {
+                        return item.id === contentItemId;
                     });
 
-                    if (resource) {
-                        addExistingContentItems([resource]);
+                    if (contentItem) {
+                        addExistingContentItems([contentItem]);
                     }
                 });
 
@@ -838,15 +838,15 @@
             }
         }
 
-        function createExistingContentItem(resource) {
+        function createExistingContentItem(contentItem) {
             return {
-                uid: `EXISTING_${resource.id}`,
-                realId: resource.id,
-                name: resource.name,
-                typeId: resource.typeId,
+                uid: `EXISTING_${contentItem.id}`,
+                realId: contentItem.id,
+                name: contentItem.name,
+                typeId: contentItem.typeId,
                 isNew: false,
-                isActive: !!resource.isActive,
-                url: resource.url || null
+                isActive: !!contentItem.isActive,
+                url: contentItem.url || null
             };
         }
 
@@ -860,20 +860,20 @@
             };
         }
 
-        function addExistingContentItems(resources) {
-            resources.forEach(function(resource) {
-                const resourceId = resource.realId ?? resource.id;
+        function addExistingContentItems(contentItems) {
+            contentItems.forEach(function(contentItem) {
+                const contentItemId = contentItem.realId ?? contentItem.id;
                 const exists = contentItems.some(function(item) {
-                    return !item.isNew && item.realId === resourceId;
+                    return !item.isNew && item.realId === contentItemId;
                 });
 
                 if (!exists) {
                     contentItems.push(createExistingContentItem({
-                        id: resourceId,
-                        name: resource.name,
-                        typeId: resource.typeId,
-                        isActive: resource.isActive,
-                        url: resource.url
+                        id: contentItemId,
+                        name: contentItem.name,
+                        typeId: contentItem.typeId,
+                        isActive: contentItem.isActive,
+                        url: contentItem.url
                     }));
                 }
             });
@@ -886,8 +886,8 @@
         }
 
         function removeContentItem(uid) {
-            contentItems = contentItems.filter(function(resource) {
-                return resource.uid !== uid;
+            contentItems = contentItems.filter(function(contentItem) {
+                return contentItem.uid !== uid;
             });
         }
 
@@ -899,15 +899,15 @@
             versionFormData.append("isActive", formData.isActive || false);
             versionFormData.append("learnerPolicy", learnerPolicy || VERSION_LEARNER_POLICY.NewLearnersOnly);
 
-            contentItems.forEach(function(resource) {
-                if (resource.isNew) {
-                    versionFormData.append("Files", resource.fileRef);
-                    versionFormData.append("ResourceIds", 0);
+            contentItems.forEach(function(contentItem) {
+                if (contentItem.isNew) {
+                    versionFormData.append("Files", contentItem.fileRef);
+                    versionFormData.append("ContentItemIds", 0);
                 } else {
-                    versionFormData.append("ResourceIds", resource.realId);
+                    versionFormData.append("ContentItemIds", contentItem.realId);
                 }
 
-                versionFormData.append("ResourceTypes", resource.typeId);
+                versionFormData.append("ContentTypeIds", contentItem.typeId);
             });
 
             return versionFormData;
@@ -1075,8 +1075,8 @@
             });
         }
 
-        function getContentReadinessState(resource) {
-            if (resource.isNew) {
+        function getContentReadinessState(contentItem) {
+            if (contentItem.isNew) {
                 return {
                     tone: "primary",
                     text: "Queued Upload",
@@ -1084,7 +1084,7 @@
                 };
             }
 
-            if (!resource.isActive) {
+            if (!contentItem.isActive) {
                 return {
                     tone: "danger",
                     text: "Not Ready",
@@ -1092,7 +1092,7 @@
                 };
             }
 
-            if (!resource.url) {
+            if (!contentItem.url) {
                 return {
                     tone: "warning",
                     text: "Not Ready",
@@ -1107,24 +1107,24 @@
             };
         }
 
-        function renderContentReadinessCell(container, resource) {
-            const state = getContentReadinessState(resource || {});
+        function renderContentReadinessCell(container, contentItem) {
+            const state = getContentReadinessState(contentItem || {});
             window.renderAdminGridStatusCell(container, state.text, state.tone, { showDot: false });
         }
 
         function getExistingContentReadinessIssues() {
             return contentItems
-                .filter(function(resource) {
-                    return !resource.isNew;
+                .filter(function(contentItem) {
+                    return !contentItem.isNew;
                 })
-                .map(function(resource) {
-                    const state = getContentReadinessState(resource);
+                .map(function(contentItem) {
+                    const state = getContentReadinessState(contentItem);
                     if (state.text === "Published") {
                         return null;
                     }
 
                     return {
-                        name: resource.name || "Unnamed content item",
+                        name: contentItem.name || "Unnamed content item",
                         reason: state.detail
                     };
                 })
@@ -1149,7 +1149,7 @@
 
         function getVersionReadinessErrorMessage(xhr) {
             const message = window.getApiErrorMessage(xhr, "") || "";
-            return /cannot activate this course version|learning (resources|content) are not ready|content items? are not ready|resource is not published|content item is not published|launch url is missing/i.test(message)
+            return /cannot activate this course version|learning (contentItems|content) are not ready|content items? are not ready|contentItem is not published|content item is not published|launch url is missing/i.test(message)
                 ? message
                 : "";
         }
@@ -1223,11 +1223,11 @@
         }
 
         function renderVersionReview() {
-            const existingCount = contentItems.filter(function(resource) {
-                return !resource.isNew;
+            const existingCount = contentItems.filter(function(contentItem) {
+                return !contentItem.isNew;
             }).length;
-            const newCount = contentItems.filter(function(resource) {
-                return resource.isNew;
+            const newCount = contentItems.filter(function(contentItem) {
+                return contentItem.isNew;
             }).length;
 
             $("#review-total-content").text(contentItems.length);
@@ -1245,19 +1245,19 @@
                     </div>`;
             }
 
-            const rows = contentItems.map(function(resource, index) {
-                const sourceText = resource.isNew ? "New upload" : "Content library";
-                const sourceBadge = resource.isNew ? "pill-primary" : "pill-default";
-                const readinessState = getContentReadinessState(resource);
+            const rows = contentItems.map(function(contentItem, index) {
+                const sourceText = contentItem.isNew ? "New upload" : "Content library";
+                const sourceBadge = contentItem.isNew ? "pill-primary" : "pill-default";
+                const readinessState = getContentReadinessState(contentItem);
 
                 return `
                     <tr>
                         <td>${index + 1}</td>
                         <td>
-                            <div class="admin-review-item-name">${window.escapeHtml(resource.name)}</div>
+                            <div class="admin-review-item-name">${window.escapeHtml(contentItem.name)}</div>
                         </td>
                         <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
-                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getContentTypeLabel(resource.typeId))}</span></td>
+                        <td><span class="tag-pill ${contentItem.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getContentTypeLabel(contentItem.typeId))}</span></td>
                         <td><span class="tag-pill pill-${window.escapeHtml(readinessState.tone)}">${window.escapeHtml(readinessState.text)}</span></td>
                     </tr>`;
             }).join('');

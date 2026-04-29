@@ -1,0 +1,856 @@
+@{
+    ViewBag.Title = "Add Members";
+    var groupId = ViewBag.GroupId is int gid ? gid : 0;
+}
+
+@section WizardStyles {
+    <link href="~/css/admin-wizard.css" rel="stylesheet" asp-append-version="true" />
+}
+
+<div class="page-header admin-page-header--wizard d-flex flex-wrap gap-3 mb-0">
+    <h1 class="page-title"><i class="fas fa-user-plus text-primary me-2" aria-hidden="true"></i>Add Members</h1>
+    <div class="admin-wizard-steps admin-wizard-steps--inline" role="group" aria-label="Progress steps">
+        <div class="admin-step-card active" data-step-card="1" aria-current="step">
+            <div class="admin-step-title"><span class="admin-step-index">1</span>Select</div>
+        </div>
+        <div class="admin-step-card" data-step-card="2">
+            <div class="admin-step-title"><span class="admin-step-index">2</span>Options</div>
+        </div>
+        <div class="admin-step-card" data-step-card="3">
+            <div class="admin-step-title"><span class="admin-step-index">3</span>Review</div>
+        </div>
+    </div>
+    <div class="admin-page-header-actions">
+        <a href="@Url.Action("Detail", "LearnerGroups", new { id = groupId })" class="action-link">
+            <i class="fas fa-times text-secondary" aria-hidden="true"></i> Cancel
+        </a>
+        <button type="button" id="btn-prev-step" class="action-link d-none">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Previous
+        </button>
+        <button type="button" id="btn-next-step" class="action-link primary">
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> Continue
+        </button>
+        <button type="button" id="btn-preview-summary" class="action-link primary d-none">
+            <i class="fas fa-file-alt" aria-hidden="true"></i> Preview Summary
+        </button>
+        <button type="button" id="btn-confirm" class="action-link primary d-none">
+            <i class="fas fa-check-circle" aria-hidden="true"></i> Confirm Changes
+        </button>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-3 d-flex flex-column gap-3 admin-wizard-shell admin-wizard-shell--fill admin-review-flow admin-viewport-layout">
+    <div id="load-panel" class="d-none"></div>
+
+    <div class="admin-review-main-col admin-responsive-content">
+        <div class="border rounded bg-white p-3 admin-viewport-fill" id="wizard-main-card">
+                <div id="step-panel-1" class="admin-wizard-panel admin-wizard-panel--selection-fill active" data-step-layout="wide">
+                    <div class="admin-selection-layout">
+                        <div class="admin-filter-shell d-flex flex-column gap-3">
+                            <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
+                            <div>
+                                <label class="admin-filter-label">Division</label>
+                                <div id="filter-div"></div>
+                            </div>
+                            <div>
+                                <label class="admin-filter-label">Department</label>
+                                <div id="filter-dept"></div>
+                            </div>
+                            <div>
+                                <label class="admin-filter-label">Section</label>
+                                <div id="filter-section"></div>
+                            </div>
+                            <button type="button" id="btn-clear-filter" class="admin-filter-clear-btn">
+                                <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
+                            </button>
+                        </div>
+                        <div class="admin-grid-shell">
+                            <div class="admin-grid-head">
+                                <div class="admin-grid-title">Learner Directory</div>
+                                <span class="tag-pill pill-default" id="member-selection-note">0 learner</span>
+                            </div>
+                            <div id="grid-add-learners" class="admin-grid-fill"></div>
+                        </div>
+                    </div>
+                    <div class="admin-selection-tray" id="selected-learners-tray">
+                        <div class="admin-selection-tray-label">Selected</div>
+                        <div class="admin-selection-tray-chips" id="selected-learners-chips"></div>
+                        <button type="button" class="admin-selection-tray-clear is-disabled" id="selected-learners-clear">
+                            <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div id="step-panel-2" class="admin-wizard-panel" data-step-layout="form">
+                    <div class="admin-section-header mb-2">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Assignment Options</div>
+                        </div>
+                        <div class="admin-section-divider"></div>
+                    </div>
+
+                    <div class="admin-option-card mb-2">
+                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <div class="u-fs-12 u-fw-semibold text-dark">Related Assignment Enrollment</div>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" id="chk-enroll-related">
+                                <label class="form-check-label u-fs-12 u-fw-semibold text-dark" for="chk-enroll-related">Enroll learners to related assignments</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="status-options-card" class="admin-option-card is-disabled mb-2">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                            <div>
+                                <div class="u-fs-12 u-fw-semibold text-dark">Assignment Status Filters</div>
+                            </div>
+                            <div class="tag-pill pill-default" id="selected-status-count">0 statuses selected</div>
+                        </div>
+
+                        <div class="admin-status-options">
+                            <div class="admin-status-option sg-status-option" data-status-option="InProgress">
+                                <label for="status-inprogress">
+                                    <div>
+                                        <div class="admin-status-option-title">In Progress</div>
+                                        <div class="admin-status-option-note">Assignments that are currently active and not yet fully completed.</div>
+                                    </div>
+                                    <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-inprogress" value="InProgress" disabled>
+                                </label>
+                            </div>
+                            <div class="admin-status-option sg-status-option" data-status-option="Upcoming">
+                                <label for="status-upcoming">
+                                    <div>
+                                        <div class="admin-status-option-title">Upcoming</div>
+                                        <div class="admin-status-option-note">Assignments with a start date in the future.</div>
+                                    </div>
+                                    <input class="form-check-input sg-status-checkbox" type="checkbox" id="status-upcoming" value="Upcoming" disabled>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="assignment-picker-card" class="admin-option-card is-disabled">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                            <div>
+                                <div class="u-fs-12 u-fw-semibold text-dark">Choose Assignments</div>
+                                <div class="admin-status-option-note">Pick the specific assignment batches that should receive these learners.</div>
+                            </div>
+                            <span class="tag-pill pill-default" id="selected-assignment-count">0 assignment</span>
+                        </div>
+                        <div class="admin-assignment-grid-shell">
+                            <div id="grid-related-assignments"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="step-panel-3" class="admin-wizard-panel" data-step-layout="review">
+                    <div class="admin-section-header admin-review-header">
+                        <div class="admin-section-header-main">
+                            <div class="section-title mb-0 admin-section-title-fill">Review And Confirm</div>
+                        </div>
+                        <div class="admin-section-divider"></div>
+                    </div>
+
+                    <div class="admin-review-stack">
+                        <div id="summary-cards" class="admin-summary-grid admin-summary-grid--cols-4"></div>
+
+                        <div class="admin-table-shell">
+                            <div class="admin-table-head">
+                                <div class="admin-table-title">Selected Learners</div>
+                                <span class="tag-pill pill-default" id="learner-summary-note"></span>
+                            </div>
+                            <div class="admin-table-wrap admin-review-table-wrap" id="learner-summary-table"></div>
+                        </div>
+
+                        <div class="admin-table-shell">
+                            <div class="admin-table-head">
+                                <div class="admin-table-title">Assignment Enrollment Impact</div>
+                                <span class="tag-pill pill-default" id="assignment-summary-note"></span>
+                            </div>
+                            <div class="admin-table-wrap admin-review-table-wrap" id="assignment-summary-table"></div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+</div>
+
+<!-- Wizard buttons moved to page-header above. -->
+
+@section Scripts {
+<script>
+    const GROUP_ID = @groupId;
+    const GROUPS_API_URL = `${serviceUrl}/LearnerGroups`;
+    const ASSIGNMENTS_API_URL = `${serviceUrl}/Assignments`;
+    const STUDENTS_API_URL = `${serviceUrl}/Learners`;
+    const GROUP_DETAIL_URL = '@Url.Action("Detail", "LearnerGroups", new { id = groupId })';
+    const EMPTY_TEXT = "—";
+    const MAX_VISIBLE_SELECTION_CHIPS = 12;
+
+    // Height Settings
+    const STUDENT_SELECTION_GRID_HEIGHT = "100%";
+
+    const wizardState = {
+        currentStep: 1,
+        group: null,
+        relatedAssignments: [],
+        preview: null
+    };
+
+    let learnersGrid = null;
+    let assignmentsGrid = null;
+    const selectedLearnerCache = new Map();
+    let selectionViewportController = null;
+
+    $(() => {
+        if (!(GROUP_ID > 0)) {
+            showToast("Learner Group is unavailable.", "warning");
+            window.location.href = '@Url.Action("Index", "LearnerGroups")';
+            return;
+        }
+
+        initializeLearnerGrid();
+        initializeAssignmentsGrid();
+        initializeFilters();
+        initializeActions();
+        loadPageContext();
+        updateWizardUi();
+    });
+
+    async function loadPageContext() {
+        try {
+            const [groupResponse, assignmentResponse] = await Promise.all([
+                $.ajax({
+                    url: `${GROUPS_API_URL}/${GROUP_ID}`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                }),
+                $.ajax({
+                    url: `${ASSIGNMENTS_API_URL}/group/${GROUP_ID}/history`,
+                    method: "GET",
+                    xhrFields: { withCredentials: true }
+                })
+            ]);
+
+            wizardState.group = groupResponse.data || null;
+            // Expired batches cannot meaningfully receive new enrollments.
+            wizardState.relatedAssignments = (assignmentResponse.data || [])
+                .filter(function(item) { return item && item.status !== "Expired" && item.status !== "Completed"; });
+
+            renderGroupSnapshot();
+            applyAssignmentStatusFilter();
+        } catch (error) {
+            showToast(getApiErrorMessage(error, "Failed to load Learner Group context."), "error");
+            window.location.href = GROUP_DETAIL_URL;
+        }
+    }
+
+    function initializeLearnerGrid() {
+        learnersGrid = initDxGrid("#grid-add-learners", {
+            preset: "wizardSelectionContinuousGrid",
+            height: STUDENT_SELECTION_GRID_HEIGHT,
+            dataSource: DevExpress.data.AspNet.createStore({
+                key: "EId",
+                loadUrl: `${STUDENTS_API_URL}/Get`,
+                onBeforeSend: function(method, options) {
+                    options.xhrFields = { withCredentials: true };
+                }
+            }),
+            noDataText: getNoDataText("learners"),
+            columns: [
+                        {
+                            dataField: "EId", caption: "ID", width: 95,
+                            cellTemplate: function(container, options) {
+                                window.renderAdminGridTextCell(container, options.value, 'captionStrong');
+                            }
+                        },
+                        {
+                            caption: "Name", minWidth: 160,
+                            calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
+                            cssClass: "fw-medium text-dark"
+                        },
+                        {
+                            dataField: "Position", caption: "Position", width: 90, alignment: "center",
+                            cellTemplate: function(container, options) {
+                                if (!options.value) {
+                                    return;
+                                }
+
+                                window.renderAdminGridTextCell(container, options.value, 'captionMuted');
+                            }
+                        },
+                        { dataField: "Department", caption: "Dept.", width: 90 },
+                        { dataField: "Section", caption: "Section", minWidth: 120,
+                            cssClass: "cell-muted",
+                            customizeText: function(e) { return e.value || EMPTY_TEXT; }
+                        }
+                    ],
+            onSelectionChanged: function(event) {
+                const selectedLearnerCodes = (event.selectedRowKeys || []).map(String);
+                (event.selectedRowsData || []).forEach(function(row) {
+                    if (!row || !row.EId) {
+                        return;
+                    }
+
+                    selectedLearnerCache.set(String(row.EId), row);
+                });
+
+                selectedLearnerCache.forEach(function(_, key) {
+                    if (selectedLearnerCodes.indexOf(key) === -1) {
+                        selectedLearnerCache.delete(key);
+                    }
+                });
+
+                renderSelectedLearnersTray(selectedLearnerCodes);
+                updateSelectionSummary();
+                invalidatePreview();
+            }
+        });
+    }
+
+    function renderSelectedLearnersTray(selectedLearnerCodes) {
+        const codes = selectedLearnerCodes || [];
+        const $chips = $("#selected-learners-chips");
+        const $clearBtn = $("#selected-learners-clear");
+
+        if (codes.length === 0) {
+            $chips.html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
+            $clearBtn.addClass("is-disabled").prop("disabled", true);
+            return;
+        }
+
+        $clearBtn.removeClass("is-disabled").prop("disabled", false);
+        const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
+        const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
+        const chips = visibleCodes.map(function(code) {
+            const row = selectedLearnerCache.get(String(code));
+            const normalizedCode = String(code || "");
+            const safeCode = escapeHtml(normalizedCode || EMPTY_TEXT);
+            const encodedCode = encodeURIComponent(normalizedCode);
+            const name = row
+                ? escapeHtml([row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(" ") || "")
+                : "";
+            const namePart = name
+                ? `<span class="admin-selection-chip-sep">·</span><span class="admin-selection-chip-name" title="${name}">${name}</span>`
+                : "";
+
+            return `<span class="admin-selection-chip">
+                <span class="admin-selection-chip-key">${safeCode}</span>
+                ${namePart}
+                <button type="button" class="admin-selection-chip-remove" data-code="${encodedCode}" aria-label="Remove ${safeCode}"><i class="fas fa-times" aria-hidden="true"></i></button>
+            </span>`;
+        });
+
+        if (overflowCount > 0) {
+            chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
+        }
+
+        $chips.html(chips.join(""));
+        $chips.off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
+            const code = decodeURIComponent(String($(this).attr("data-code") || ""));
+            if (!code || !learnersGrid) {
+                return;
+            }
+
+            learnersGrid.deselectRows([code]);
+        });
+    }
+
+    function initializeFilters() {
+        initAdminLearnerOrgFilters({
+            learnersBaseUrl: STUDENTS_API_URL,
+            gridInstance: learnersGrid
+        });
+    }
+
+    function initializeActions() {
+        $("#chk-enroll-related").on("change", function() {
+            toggleStatusOptions($(this).is(":checked"));
+            invalidatePreview();
+        });
+
+        $(".sg-status-checkbox").on("change", function() {
+            updateSelectedStatusCount();
+            applyAssignmentStatusFilter();
+            invalidatePreview();
+        });
+
+        $("#btn-next-step").on("click", function() {
+            if (wizardState.currentStep === 1) {
+                if (getSelectedLearnerCodes().length === 0) {
+                    showToast("Please select at least one learner.", "warning");
+                    return;
+                }
+
+                wizardState.currentStep = 2;
+                updateWizardUi();
+            }
+        });
+
+        $("#btn-prev-step").on("click", function() {
+            if (wizardState.currentStep > 1) {
+                wizardState.currentStep -= 1;
+                updateWizardUi();
+            }
+        });
+
+        $("#btn-preview-summary").on("click", previewSummary);
+        $("#btn-confirm").on("click", confirmChanges);
+
+        $("#selected-learners-clear").on("click", function() {
+            if (learnersGrid) { learnersGrid.clearSelection(); }
+        });
+
+        renderSelectedLearnersTray([]);
+    }
+
+    async function previewSummary() {
+        const payload = getPayload();
+        if (!payload.learnerCodes.length) {
+            showToast("Please select at least one learner.", "warning");
+            wizardState.currentStep = 1;
+            updateWizardUi();
+            return;
+        }
+
+        if (payload.enrollToRelatedAssignments) {
+            if (payload.assignmentStatuses.length === 0) {
+                showToast("Select at least one assignment status.", "warning");
+                return;
+            }
+            if (payload.assignmentIds.length === 0) {
+                showToast("Select at least one assignment to enroll into.", "warning");
+                return;
+            }
+        }
+
+        setButtonLoading("#btn-preview-summary", true, "Loading Summary...");
+        try {
+            const response = await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}/members/preview`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
+            });
+
+            wizardState.preview = response.data || null;
+            renderPreviewSummary();
+            wizardState.currentStep = 3;
+            updateWizardUi();
+        } catch (error) {
+            showToast(getApiErrorMessage(error, "Failed to build summary."), "error");
+        } finally {
+            setButtonLoading("#btn-preview-summary", false);
+        }
+    }
+
+    async function confirmChanges() {
+        const payload = getPayload();
+
+        const confirmed = await showAdminConfirmDialog({
+            title: "Confirm Add Members",
+            messageHtml: "<b>Apply these Learner Group updates?</b><br><small class='text-muted'>This will add the selected learners to the group and apply the assignment enrollment options shown in the summary.</small>",
+            confirmButtonText: "Confirm",
+            confirmType: "default",
+            icon: "question"
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        setButtonLoading("#btn-confirm", true, "Applying...");
+        try {
+            const response = await $.ajax({
+                url: `${GROUPS_API_URL}/${GROUP_ID}/members/confirm`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                xhrFields: { withCredentials: true }
+            });
+
+            const result = response.data || {};
+            showToast(buildSuccessMessage(result), "success");
+            window.location.href = GROUP_DETAIL_URL;
+        } catch (error) {
+            showToast(getApiErrorMessage(error, "Failed to apply Learner Group changes."), "error");
+        } finally {
+            setButtonLoading("#btn-confirm", false);
+        }
+    }
+
+    function getAddMembersStepNote(step) {
+        switch (step) {
+            case 1:
+                return 'Select learners to add to this Learner Group.';
+            case 2:
+                return 'Set related assignment enrollment options.';
+            case 3:
+                return 'Review the summary before applying changes.';
+            default:
+                return '';
+        }
+    }
+
+    function updateWizardUi() {
+        $(".admin-wizard-panel").removeClass("active");
+        $(`#step-panel-${wizardState.currentStep}`).addClass("active");
+        const layout = $(`#step-panel-${wizardState.currentStep}`).attr("data-step-layout") || "wide";
+        const isSelectionStep = wizardState.currentStep === 1;
+        $(".admin-wizard-shell")
+            .toggleClass("is-selection-step", isSelectionStep)
+            .toggleClass("is-form-step", layout === "form")
+            .toggleClass("is-review-step", layout === "review");
+
+        selectionViewportController = window.toggleAdminViewportLayout(selectionViewportController, isSelectionStep, {
+            layoutSelector: ".admin-wizard-shell.admin-viewport-layout",
+            contentSelector: ".admin-review-main-col.admin-responsive-content",
+            refreshTargets: [learnersGrid]
+        });
+
+        $("[data-step-card]").each(function() {
+            const step = Number($(this).attr("data-step-card"));
+            $(this)
+                .toggleClass("active", step === wizardState.currentStep)
+                .toggleClass("complete", step < wizardState.currentStep);
+            if (step === wizardState.currentStep) {
+                $(this).attr("aria-current", "step");
+            } else {
+                $(this).removeAttr("aria-current");
+            }
+        });
+
+        $(".bottom-toolbar-note").html(`<i class="fas fa-info-circle text-muted me-1" aria-hidden="true"></i> ${getAddMembersStepNote(wizardState.currentStep)}`);
+        $("#btn-prev-step").toggleClass("d-none", wizardState.currentStep === 1);
+        $("#btn-next-step").toggleClass("d-none", wizardState.currentStep !== 1);
+        $("#btn-preview-summary").toggleClass("d-none", wizardState.currentStep !== 2);
+        $("#btn-confirm").toggleClass("d-none", wizardState.currentStep !== 3);
+    }
+
+    function renderGroupSnapshot() {
+        const group = wizardState.group;
+        const assignments = wizardState.relatedAssignments;
+
+        $("#group-name").text(group?.name || EMPTY_TEXT);
+        $("#group-description").text(group?.description || "No description");
+        $("#group-member-count").text(window.formatAdminCountLabel((group?.members || []).length, "member"));
+        $("#group-assignment-count").text(window.formatAdminCountLabel(assignments.length, "batch"));
+        $("#assignment-status-overview").html(buildStatusOverview(assignments));
+        updateSelectionSummary();
+    }
+
+    function renderAssignmentOverview() {
+        // Replaced by the selectable assignment grid in step 2.
+    }
+
+    function initializeAssignmentsGrid() {
+        assignmentsGrid = initDxGrid("#grid-related-assignments", {
+            preset: "compactGrid",
+            dataSource: [],
+            keyExpr: "id",
+            height: 320,
+            selection: {
+                mode: "multiple",
+                allowSelectAll: true,
+                showCheckBoxesMode: "always"
+            },
+            paging: { pageSize: 25 },
+            pager: { visible: true, showInfo: true, showPageSizeSelector: false },
+            searchPanel: { visible: false },
+            noDataText: "No assignments match the selected statuses.",
+            columns: [
+                {
+                    dataField: "assignmentNo", caption: "Assignment No", width: 150, alignment: "center",
+                    cssClass: "cell-bold",
+                    customizeText: function(e) { return e.value || EMPTY_TEXT; }
+                },
+                {
+                    dataField: "courseNames", caption: "Courses", minWidth: 200,
+                    cellTemplate: function(container, options) {
+                        window.renderAdminGridTruncatedTextCell(container, options.value, 80, "default");
+                    }
+                },
+                {
+                    dataField: "status", caption: "Status", width: 110, alignment: "center",
+                    cellTemplate: function(container, options) {
+                        $(container).html(renderStatusPill(options.value));
+                    }
+                },
+                {
+                    dataField: "startDate", caption: "Start", width: 100, alignment: "center",
+                    dataType: "date", format: ADMIN_DATE_DISPLAY_FORMAT, cssClass: "cell-caption"
+                },
+                {
+                    dataField: "dueDate", caption: "Due", width: 100, alignment: "center",
+                    dataType: "date", format: ADMIN_DATE_DISPLAY_FORMAT, cssClass: "cell-caption"
+                },
+                {
+                    dataField: "totalEnrollmentCount", caption: "Current Learners", width: 130, alignment: "center",
+                    customizeText: function(e) { return Number(e.value || 0).toLocaleString(); }
+                }
+            ],
+            onSelectionChanged: function() {
+                updateSelectedAssignmentCount();
+                invalidatePreview();
+            }
+        });
+    }
+
+    function applyAssignmentStatusFilter() {
+        if (!assignmentsGrid) {
+            return;
+        }
+
+        const enabled = $("#chk-enroll-related").is(":checked");
+        const statuses = getSelectedStatuses();
+
+        if (!enabled || statuses.length === 0) {
+            assignmentsGrid.option("dataSource", []);
+            assignmentsGrid.clearSelection();
+            updateSelectedAssignmentCount();
+            return;
+        }
+
+        const filtered = wizardState.relatedAssignments.filter(function(item) {
+            return statuses.indexOf(item.status) !== -1;
+        });
+
+        const previousKeys = (assignmentsGrid.getSelectedRowKeys() || []).filter(function(key) {
+            return filtered.some(function(row) { return row.id === key; });
+        });
+
+        assignmentsGrid.option("dataSource", filtered);
+        assignmentsGrid.refresh();
+        if (previousKeys.length) {
+            assignmentsGrid.selectRows(previousKeys, false);
+        } else {
+            assignmentsGrid.clearSelection();
+        }
+        updateSelectedAssignmentCount();
+    }
+
+    function updateSelectedAssignmentCount() {
+        const count = getSelectedAssignmentIds().length;
+        $("#selected-assignment-count").text(window.formatAdminCountLabel(count, "assignment"));
+    }
+
+    function getSelectedAssignmentIds() {
+        if (!assignmentsGrid) {
+            return [];
+        }
+
+        return (assignmentsGrid.getSelectedRowKeys() || []).map(Number).filter(function(id) {
+            return Number.isFinite(id) && id > 0;
+        });
+    }
+
+    function renderPreviewSummary() {
+        const preview = wizardState.preview;
+        if (!preview) {
+            return;
+        }
+
+        $("#summary-cards").html([
+            buildSummaryCard(preview.selectedLearnerCount, "Selected Learners", "text-dark"),
+            buildSummaryCard(preview.newMemberCount, "New Members", "u-text-success"),
+            buildSummaryCard(preview.existingMemberCount, "Already In Group", "u-text-warning"),
+            buildSummaryCard(preview.selectedAssignmentCount, "Assignment Batches", "u-text-info"),
+            buildSummaryCard(preview.selectedCourseCount, "Courses Affected", "text-dark"),
+            buildSummaryCard(preview.estimatedEnrollmentCount, "Estimated Enrollments", "u-text-info")
+        ].join(""));
+
+        $("#learner-summary-note").text(window.formatAdminCountLabel(preview.selectedLearnerCount, "learner"));
+        $("#assignment-summary-note").text(preview.enrollToRelatedAssignments
+            ? window.formatAdminCountLabel(preview.selectedAssignmentCount, "batch")
+            : "No enrollment links");
+
+        $("#learner-summary-table").html(buildLearnersSummaryTable(preview.learners || []));
+        $("#assignment-summary-table").html(buildAssignmentsSummaryTable(preview.assignments || []));
+    }
+
+    function buildLearnersSummaryTable(learners) {
+        if (!learners.length) {
+            return buildEmptyState("fas fa-user-graduate", "No learners selected yet.");
+        }
+
+        const rows = learners.map(function(learner) {
+            const memberState = learner.isAlreadyMember
+                ? '<span class="tag-pill pill-warning">Already in group</span>'
+                : '<span class="tag-pill pill-success">New member</span>';
+
+            return `
+                <tr>
+                    <td>
+                        <div class="tag-pill pill-default fw-bold">${escapeHtml(learner.learnerCode || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>
+                        <div class="admin-review-item-name">${escapeHtml(learner.learnerName || learner.learnerCode || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>${escapeHtml(learner.position || EMPTY_TEXT)}</td>
+                    <td>${memberState}</td>
+                </tr>`;
+        }).join("");
+
+        return `
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Learner</th>
+                        <th>Position</th>
+                        <th>Membership Impact</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    }
+
+    function buildAssignmentsSummaryTable(assignments) {
+        if (!assignments.length) {
+            return buildEmptyState("fas fa-tasks", "No related assignments will be updated with this action.");
+        }
+
+        const rows = assignments.map(function(assignment) {
+            return `
+                <tr>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(assignment.assignmentNo || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>
+                        <div>${escapeHtml(assignment.courseNames || EMPTY_TEXT)}</div>
+                    </td>
+                    <td>${renderStatusPill(assignment.status)}</td>
+                    <td>${window.formatAdminDate(assignment.startDate, EMPTY_TEXT)}</td>
+                    <td>${window.formatAdminDate(assignment.dueDate, EMPTY_TEXT)}</td>
+                    <td>${window.formatAdminCountLabel(assignment.currentLearnerCount || 0, "learner")}</td>
+                    <td>${window.formatAdminCountLabel(assignment.estimatedEnrollmentCount || 0, "enrollment")}</td>
+                </tr>`;
+        }).join("");
+
+        return `
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Courses</th>
+                        <th>Status</th>
+                        <th>Start</th>
+                        <th>Due</th>
+                        <th>Current Learners</th>
+                        <th>Estimated Enrollments</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    }
+
+    function buildSummaryCard(value, label, className) {
+        return buildAdminSummaryCard(value, label, className);
+    }
+
+    function buildEmptyState(iconClass, message) {
+        return `
+            <div class="admin-wizard-empty-state">
+                <i class="${iconClass}"></i>
+                <div>${message}</div>
+            </div>`;
+    }
+
+    function buildStatusOverview(assignments) {
+        if (!assignments.length) {
+            return '<span class="text-muted">No assignments yet</span>';
+        }
+
+        const parts = [
+            { status: "Completed", label: "Completed", cls: "pill-success" },
+            { status: "InProgress", label: "In Progress", cls: "pill-primary" },
+            { status: "Upcoming", label: "Upcoming", cls: "pill-warning" },
+            { status: "Expired", label: "Expired", cls: "pill-danger" }
+        ].map(function(item) {
+            return `<span class="tag-pill ${item.cls} me-1 mb-1">${item.label}: ${countAssignmentsByStatus(item.status)}</span>`;
+        });
+
+        return parts.join("");
+    }
+
+    function renderStatusPill(status) {
+        const map = {
+            Completed: { cls: "pill-success", text: "Completed" },
+            InProgress: { cls: "pill-primary", text: "In Progress" },
+            Upcoming: { cls: "pill-warning", text: "Upcoming" },
+            Expired: { cls: "pill-danger", text: "Expired" }
+        };
+
+        const resolved = map[status] || { cls: "pill-default", text: status || EMPTY_TEXT };
+        return `<span class="tag-pill ${resolved.cls}">${resolved.text}</span>`;
+    }
+
+    function toggleStatusOptions(enabled) {
+        $("#status-options-card").toggleClass("is-disabled", !enabled);
+        $("#assignment-picker-card").toggleClass("is-disabled", !enabled);
+        $(".sg-status-checkbox").prop("disabled", !enabled);
+        $(".sg-status-option").toggleClass("disabled", !enabled);
+
+        if (!enabled) {
+            $(".sg-status-checkbox").prop("checked", false);
+            if (assignmentsGrid) { assignmentsGrid.clearSelection(); }
+        }
+
+        updateSelectedStatusCount();
+        applyAssignmentStatusFilter();
+    }
+
+    function updateSelectedStatusCount() {
+        const count = getSelectedStatuses().length;
+        $("#selected-status-count").text(window.formatAdminCountLabel(count, "status"));
+    }
+
+    function updateSelectionSummary() {
+        const count = getSelectedLearnerCodes().length;
+        $("#member-selection-note").text(count > 0 ? window.formatAdminCountLabel(count, "learner") : "0 learner");
+    }
+
+    function invalidatePreview() {
+        wizardState.preview = null;
+    }
+
+    function countAssignmentsByStatus(status) {
+        return wizardState.relatedAssignments.filter(function(item) {
+            return item.status === status;
+        }).length;
+    }
+
+    function getSelectedLearnerCodes() {
+        return learnersGrid ? (learnersGrid.getSelectedRowKeys() || []) : [];
+    }
+
+    function getSelectedStatuses() {
+        return $(".sg-status-checkbox:checked").map(function() {
+            return $(this).val();
+        }).get();
+    }
+
+    function getPayload() {
+        return {
+            learnerCodes: getSelectedLearnerCodes(),
+            enrollToRelatedAssignments: $("#chk-enroll-related").is(":checked"),
+            assignmentStatuses: getSelectedStatuses(),
+            assignmentIds: getSelectedAssignmentIds()
+        };
+    }
+
+    function buildSuccessMessage(result) {
+        const addedMembers = Number(result.addedMemberCount || 0);
+        const assignments = Number(result.assignmentCount || 0);
+
+        if (assignments > 0) {
+            return `${window.formatAdminCountLabel(addedMembers, "member")} added and ${window.formatAdminCountLabel(assignments, "assignment batch")} updated.`;
+        }
+
+        return `${window.formatAdminCountLabel(addedMembers, "member")} added successfully.`;
+    }
+</script>
+}

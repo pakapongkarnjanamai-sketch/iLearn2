@@ -14,10 +14,10 @@
         // [เพิ่มใหม่] สถานะ View Only (ไม่มี Enrollment หรือดูตัวอย่าง)
         public bool IsReadOnly { get; set; } = false;
         public int? EnrollmentId { get; set; } // [เพิ่ม] ส่ง ID กลับไปเพื่อให้ Frontend ใช้ตอน Save
-        public List<PlayerResourceDto> Resources { get; set; } = new();
+        public List<PlayerContentItemDto> ContentItems { get; set; } = new();
     }
 
-    public class PlayerResourceDto
+    public class PlayerContentItemDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;

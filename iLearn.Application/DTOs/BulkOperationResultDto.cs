@@ -14,8 +14,8 @@ namespace iLearn.Application.DTOs
 
     public class BulkOperationItemDto
     {
-        public int ResourceId { get; set; }
-        public string ResourceName { get; set; } = string.Empty;
+        public int ContentItemId { get; set; }
+        public string ContentItemName { get; set; } = string.Empty;
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
         public string? Details { get; set; }
@@ -28,7 +28,7 @@ namespace iLearn.Application.DTOs
         public int TotalItems { get; set; }
         public int SuccessCount { get; set; }
         public int FailureCount { get; set; }
-        public string? CurrentResourceName { get; set; }
+        public string? CurrentContentItemName { get; set; }
         public string? CurrentStep { get; set; }
         public bool IsComplete { get; set; }
         public BulkOperationItemDto? LatestResult { get; set; }

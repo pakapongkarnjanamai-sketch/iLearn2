@@ -20,7 +20,7 @@ namespace iLearn.Domain.Entities
         public int CourseCount { get; set; }
         public bool HasDeletedCourse { get; set; }
         /// <summary>Real enrolled-learner count from EnrollmentAssignments (not EmployeeCodes CSV).</summary>
-        public int StudentCount { get; set; }
+        public int LearnerCount { get; set; }
         public bool HasEnrollments { get; set; }
         /// <summary>Computed in-view: Completed | Upcoming | Expired | InProgress.</summary>
         public string Status { get; set; } = string.Empty;

@@ -6,8 +6,8 @@ namespace iLearn.Application.DTOs
     public class CourseLearnerDto
     {
         public int Id { get; set; }
-        public string StudentCode { get; set; } = string.Empty;
-        public string StudentName { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
+        public string LearnerName { get; set; } = string.Empty;
         public string? Division { get; set; }
         public string? Department { get; set; }
         public string? Position { get; set; }
@@ -33,7 +33,7 @@ namespace iLearn.Application.DTOs
         public int CompletedEnrollmentCount { get; set; }
         public int TotalEnrollmentCount { get; set; }
         public double CompletionPct { get; set; }
-        public int? StudentGroupId { get; set; }
+        public int? LearnerGroupId { get; set; }
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ namespace iLearn.Application.DTOs
     }
 
     /// <summary>
-    /// DTO ?????? Assignment Group History (????? StudentGroup)
+    /// DTO ?????? Assignment Group History (????? LearnerGroup)
     /// </summary>
     public class AssignmentGroupHistoryDto
     {

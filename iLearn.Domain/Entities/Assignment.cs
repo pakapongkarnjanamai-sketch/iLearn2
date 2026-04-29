@@ -27,9 +27,9 @@ namespace iLearn.Domain.Entities
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
 
-        public int? StudentGroupId { get; set; }
-        [ForeignKey("StudentGroupId")]
-        public StudentGroup? StudentGroup { get; set; }
+        public int? LearnerGroupId { get; set; }
+        [ForeignKey("LearnerGroupId")]
+        public LearnerGroup? LearnerGroup { get; set; }
 
         public ICollection<AssignmentCourse> AssignmentCourses { get; set; } = new List<AssignmentCourse>();
     }

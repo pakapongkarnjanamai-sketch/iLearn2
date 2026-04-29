@@ -17,7 +17,7 @@ namespace iLearn.Application.Interfaces.Services
         /// <summary>Paginated + filterable assignment history.</summary>
         Task<PagedResult<AssignmentHistoryDto>> GetAssignmentHistoryPagedAsync(PaginationParams p);
 
-        /// <summary>Get assignment history for a specific Student Group.</summary>
+        /// <summary>Get assignment history for a specific Learner Group.</summary>
         Task<List<AssignmentGroupHistoryDto>> GetGroupHistoryAsync(int groupId);
 
         /// <summary>Extend due date for all assignments in the same AssignmentNo group.</summary>
@@ -38,14 +38,14 @@ namespace iLearn.Application.Interfaces.Services
 
     public class ConflictDto
     {
-        public string StudentCode { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
         public string CourseTitle { get; set; } = string.Empty;
         public DateTime? DueDate { get; set; }
     }
 
     public class CompletedConflictDto
     {
-        public string StudentCode { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
         public string CourseTitle { get; set; } = string.Empty;
         public DateTime? CompletedDate { get; set; }
     }

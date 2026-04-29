@@ -17,7 +17,7 @@ namespace iLearn.Application.DTOs
         public string? CourseTypeName { get; set; }
     }
 
-    public class LookupStudentDto
+    public class LookupLearnerDto
     {
         public string EmpCode { get; set; }
         public string FirstName { get; set; }

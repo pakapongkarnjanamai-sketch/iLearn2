@@ -61,7 +61,7 @@
             <div class="row g-3 align-items-end">
                 <div class="col-auto u-minw-200">
                     <label class="filter-label">Learner ID</label>
-                    <div id="filterStudent"></div>
+                    <div id="filterLearner"></div>
                 </div>
                 <div class="col-auto u-minw-240">
                     <label class="filter-label">Course</label>
@@ -109,7 +109,7 @@
             in_progress: "primary"
         };
 
-        let filterStudentCode = null;
+        let filterLearnerCode = null;
         let filterCourseCode = null;
         let filterStatus = 'all';
 
@@ -169,7 +169,7 @@
 
         function applyFilters() {
             const filters = [];
-            if (filterStudentCode) filters.push(["studentCode", "contains", filterStudentCode]);
+            if (filterLearnerCode) filters.push(["learnerCode", "contains", filterLearnerCode]);
             if (filterCourseCode) filters.push(["courseCode", "contains", filterCourseCode]);
 
             if (filterStatus === 'completed') {
@@ -198,12 +198,12 @@
             loadSummaryStats();
 
             // ── Filter Bar Controls ──
-            $("#filterStudent").dxTextBox({
+            $("#filterLearner").dxTextBox({
                 placeholder: 'Search...',
                 showClearButton: true,
                 width: '100%',
                 valueChangeEvent: 'keyup',
-                onValueChanged: (e) => { filterStudentCode = e.value || null; applyFilters(); }
+                onValueChanged: (e) => { filterLearnerCode = e.value || null; applyFilters(); }
             });
 
             $("#filterCourse").dxSelectBox({
@@ -230,10 +230,10 @@
             });
 
             $("#btnClearFilters").on('click', function() {
-                filterStudentCode = null;
+                filterLearnerCode = null;
                 filterCourseCode = null;
                 filterStatus = 'all';
-                $("#filterStudent").dxTextBox("instance").option('value', null);
+                $("#filterLearner").dxTextBox("instance").option('value', null);
                 $("#filterCourse").dxSelectBox("instance").option('value', null);
                 $("#filterStatus").dxSelectBox("instance").option('value', 'all');
                 applyFilters();
@@ -250,7 +250,7 @@
 
                 columns: [
                 { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
-                    { dataField: "studentCode", caption: "Learner ID", width: 130 },
+                    { dataField: "learnerCode", caption: "Learner ID", width: 130 },
                     { dataField: "courseCode", caption: "Course", minWidth: 120 },
                     { dataField: "courseTitle", caption: "Course Title", minWidth: 180, visible: false },
                     { dataField: "enrollmentId", caption: "Enroll ID", width: 100, alignment: "center" },

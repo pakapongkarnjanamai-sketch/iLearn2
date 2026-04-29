@@ -18,12 +18,12 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<User> _userRepo;
-        private readonly IGenericRepository<Resource> _resourceRepo;
+        private readonly IGenericRepository<ContentItem> _contentItemRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<LearningLog> _learningLogRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
-        private readonly IGenericRepository<StudentGroup> _studentGroupRepo;
+        private readonly IGenericRepository<LearnerGroup> _learnerGroupRepo;
         private readonly IAdminActivityService _adminActivityService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
@@ -32,12 +32,12 @@ namespace iLearn.API.Controllers
         public DashboardController(
             IGenericRepository<Course> courseRepo,
             IGenericRepository<User> userRepo,
-            IGenericRepository<Resource> resourceRepo,
+            IGenericRepository<ContentItem> contentItemRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<LearningLog> learningLogRepo,
             IGenericRepository<Assignment> assignmentRepo,
-            IGenericRepository<StudentGroup> studentGroupRepo,
+            IGenericRepository<LearnerGroup> learnerGroupRepo,
             IAdminActivityService adminActivityService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
@@ -45,12 +45,12 @@ namespace iLearn.API.Controllers
         {
             _courseRepo = courseRepo;
             _userRepo = userRepo;
-            _resourceRepo = resourceRepo;
+            _contentItemRepo = contentItemRepo;
             _enrollmentRepo = enrollmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _learningLogRepo = learningLogRepo;
             _assignmentRepo = assignmentRepo;
-            _studentGroupRepo = studentGroupRepo;
+            _learnerGroupRepo = learnerGroupRepo;
             _adminActivityService = adminActivityService;
             _currentUser = currentUser;
             _dateTime = dateTime;
@@ -68,15 +68,15 @@ namespace iLearn.API.Controllers
 
             var coursesQuery = ApplyCourseScope(_courseRepo.GetQuery().AsNoTracking());
             var assignmentsQuery = ApplyAssignmentScope(_assignmentRepo.GetQuery().AsNoTracking());
-            var resourcesQuery = ApplyResourceScope(_resourceRepo.GetQuery().AsNoTracking());
-            var groupsQuery = ApplyStudentGroupScope(_studentGroupRepo.GetQuery().AsNoTracking());
+            var contentItemsQuery = ApplyContentItemScope(_contentItemRepo.GetQuery().AsNoTracking());
+            var groupsQuery = ApplyLearnerGroupScope(_learnerGroupRepo.GetQuery().AsNoTracking());
             var learningLogsQuery = ApplyLearningLogScope(_learningLogRepo.GetQuery().AsNoTracking());
 
             var activeCourses = await coursesQuery.CountAsync(c => c.IsActive, cancellationToken);
             var draftCourses = await coursesQuery.CountAsync(c => !c.IsActive, cancellationToken);
             var newCourses = await coursesQuery.CountAsync(c => c.CreatedAt >= recentWindowStart, cancellationToken);
-            var resourceCount = await resourcesQuery.CountAsync(r => r.IsActive, cancellationToken);
-            var studentGroupCount = await groupsQuery.CountAsync(g => g.IsActive, cancellationToken);
+            var contentItemCount = await contentItemsQuery.CountAsync(r => r.IsActive, cancellationToken);
+            var learnerGroupCount = await groupsQuery.CountAsync(g => g.IsActive, cancellationToken);
 
             var assignmentRows = await assignmentsQuery
                 .Select(a => new DashboardAssignmentRow
@@ -101,7 +101,7 @@ namespace iLearn.API.Controllers
                     .Select(link => new DashboardTaskRow
                     {
                         AssignmentId = link.AssignmentId,
-                        StudentCode = link.Enrollment!.StudentCode,
+                        LearnerCode = link.Enrollment!.LearnerCode,
                         CourseId = link.Enrollment.CourseId ?? (link.Assignment != null ? link.Assignment.CourseId : null),
                         IsCompleted = link.SnapshotCompleted || link.Enrollment.IsCompleted,
                         Progress = link.SnapshotCompleted ? link.SnapshotProgress : link.Enrollment.Progress,
@@ -117,7 +117,7 @@ namespace iLearn.API.Controllers
             var totalTasks = taskRows.Count;
             var completionRate = totalTasks == 0 ? 0 : Math.Round((double)completedTasks / totalTasks * 100, 1);
             var assignedLearners = taskRows
-                .Select(t => t.StudentCode)
+                .Select(t => t.LearnerCode)
                 .Where(code => !string.IsNullOrWhiteSpace(code))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
@@ -169,8 +169,8 @@ namespace iLearn.API.Controllers
                         activeCourses,
                         draftCourses,
                         newCourses,
-                        resourceCount,
-                        studentGroupCount,
+                        contentItemCount,
+                        learnerGroupCount,
                         activeAssignmentBatches,
                         assignedLearners,
                         completionRate,
@@ -202,7 +202,7 @@ namespace iLearn.API.Controllers
         {
             var activeCourses = await ApplyCourseScope(_courseRepo.GetQuery()).CountAsync(c => c.IsActive);
             var draftCourses = await ApplyCourseScope(_courseRepo.GetQuery()).CountAsync(c => !c.IsActive);
-            var totalResources = await ApplyResourceScope(_resourceRepo.GetQuery()).CountAsync();
+            var totalContentItems = await ApplyContentItemScope(_contentItemRepo.GetQuery()).CountAsync();
 
             var now = _dateTime.Now;
             var inProgressAssignments = await ApplyAssignmentScope(_assignmentRepo.GetQuery()).CountAsync(
@@ -217,7 +217,7 @@ namespace iLearn.API.Controllers
                     activeCourses,
                     draftCourses,
                     inProgressAssignments,
-                    totalResources
+                    totalContentItems
                 }
             });
         }
@@ -428,7 +428,7 @@ namespace iLearn.API.Controllers
                         .OrderBy(d => d!.Value)
                         .FirstOrDefault();
                     var learnerCount = links
-                        .Select(t => t.StudentCode)
+                        .Select(t => t.LearnerCode)
                         .Where(code => !string.IsNullOrWhiteSpace(code))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .Count();
@@ -538,7 +538,7 @@ namespace iLearn.API.Controllers
             return query;
         }
 
-        private IQueryable<StudentGroup> ApplyStudentGroupScope(IQueryable<StudentGroup> query)
+        private IQueryable<LearnerGroup> ApplyLearnerGroupScope(IQueryable<LearnerGroup> query)
         {
             var divisionId = _currentUser.DivisionId;
             var divisionName = _currentUser.DivisionName;
@@ -559,7 +559,7 @@ namespace iLearn.API.Controllers
             return query;
         }
 
-        private IQueryable<Resource> ApplyResourceScope(IQueryable<Resource> query)
+        private IQueryable<ContentItem> ApplyContentItemScope(IQueryable<ContentItem> query)
         {
             var divisionId = _currentUser.DivisionId;
             var divisionName = _currentUser.DivisionName;
@@ -567,11 +567,11 @@ namespace iLearn.API.Controllers
             if (divisionId.HasValue)
             {
                 return string.IsNullOrWhiteSpace(divisionName)
-                    ? query.Where(r => r.CourseResources.Any(cr => cr.CourseVersion != null
+                    ? query.Where(r => r.CourseContentItems.Any(cr => cr.CourseVersion != null
                         && cr.CourseVersion.Course != null
                         && cr.CourseVersion.Course.Category != null
                         && cr.CourseVersion.Course.Category.DivisionId == divisionId.Value))
-                    : query.Where(r => r.CourseResources.Any(cr => cr.CourseVersion != null
+                    : query.Where(r => r.CourseContentItems.Any(cr => cr.CourseVersion != null
                         && cr.CourseVersion.Course != null
                         && cr.CourseVersion.Course.Category != null
                         && (cr.CourseVersion.Course.Category.DivisionId == divisionId.Value
@@ -581,7 +581,7 @@ namespace iLearn.API.Controllers
 
             if (ShouldFilterByDivisionName())
             {
-                return query.Where(r => r.CourseResources.Any(cr => cr.CourseVersion != null
+                return query.Where(r => r.CourseContentItems.Any(cr => cr.CourseVersion != null
                     && cr.CourseVersion.Course != null
                     && cr.CourseVersion.Course.Category != null
                     && cr.CourseVersion.Course.Category.Division != null
@@ -693,7 +693,7 @@ namespace iLearn.API.Controllers
         private sealed class DashboardTaskRow
         {
             public int AssignmentId { get; set; }
-            public string StudentCode { get; set; } = string.Empty;
+            public string LearnerCode { get; set; } = string.Empty;
             public int? CourseId { get; set; }
             public bool IsCompleted { get; set; }
             public double Progress { get; set; }

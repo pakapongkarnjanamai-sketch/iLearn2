@@ -2029,33 +2029,33 @@ button.kpi-card {
     color: var(--primary-color);
 }
 
-.version-resource-empty {
+.version-contentItem-empty {
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
     opacity: 0.5;
     font-style: italic;
 }
 
-.version-resource-item {
+.version-contentItem-item {
     padding: 4px 8px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-xs);
 }
 
-.version-resource-index {
+.version-contentItem-index {
     min-width: 16px;
     font-weight: 600;
     color: var(--text-secondary);
     text-align: center;
 }
 
-.version-resource-name {
+.version-contentItem-name {
     color: var(--text-primary);
     font-weight: var(--font-weight-medium);
 }
 
-.version-resource-preview {
+.version-contentItem-preview {
     font-size: var(--font-size-xs);
     color: var(--primary-color);
     flex-shrink: 0;

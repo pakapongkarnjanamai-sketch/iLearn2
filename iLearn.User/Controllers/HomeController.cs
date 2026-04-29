@@ -31,14 +31,14 @@ namespace iLearn.User.Controllers
             if (string.IsNullOrWhiteSpace(employeeCode))
                 return Json(new { success = false, message = "กรุณาระบุรหัสพนักงาน" });
 
-            ExternalStudentDto? employee = null;
+            ExternalLearnerDto? employee = null;
             try
             {
                 var client = _httpClientFactory.CreateClient("iLearnAPI");
-                var response = await client.GetAsync($"Students/GetStudentbyEID/{Uri.EscapeDataString(employeeCode)}");
+                var response = await client.GetAsync($"Learners/GetLearnerbyEID/{Uri.EscapeDataString(employeeCode)}");
 
                 if (response.IsSuccessStatusCode)
-                    employee = await response.Content.ReadFromJsonAsync<ExternalStudentDto>();
+                    employee = await response.Content.ReadFromJsonAsync<ExternalLearnerDto>();
             }
             catch
             {

@@ -1,0 +1,517 @@
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    Layout = "_ReportLayout";
+    ViewData["Title"] = "Learner Report";
+    ViewData["ReportTitle"] = "Learner Report";
+    ViewData["ReportIcon"] = "fa-file-alt";
+    var apiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+    var learnerCode = ViewBag.LearnerCode as string ?? "";
+}
+
+@section Styles {
+    <style>
+        .learner-profile-panel,
+        .learner-summary-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .learner-identity {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .learner-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: var(--font-size-lg);
+            font-weight: 700;
+        }
+
+        .learner-name {
+            font-size: var(--font-size-xl);
+            line-height: var(--text-heading-line-height);
+            font-weight: 700;
+            color: var(--text-primary);
+            max-width: 26ch;
+        }
+
+        .learner-context {
+            margin-top: 4px;
+            font-size: var(--font-size-sm);
+            line-height: var(--text-secondary-line-height);
+            color: var(--text-secondary);
+        }
+
+        .learner-info-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .learner-info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: var(--font-size-sm);
+            line-height: var(--text-secondary-line-height);
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .learner-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .learner-info-row i {
+            width: 16px;
+            margin-top: 2px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .learner-info-label {
+            min-width: 72px;
+            font-weight: 500;
+        }
+
+        .learner-info-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .learner-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            gap: 10px;
+        }
+
+        .learner-metric {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: color-mix(in srgb, var(--surface-base) 90%, var(--surface-subtle));
+            padding: 12px 14px;
+        }
+
+        .learner-metric--critical {
+            border-color: color-mix(in srgb, var(--danger-color) 24%, var(--border-color));
+        }
+
+        .learner-metric--muted {
+            background: color-mix(in srgb, var(--surface-subtle) 94%, var(--surface-base));
+        }
+
+        .learner-metric-value {
+            font-size: var(--font-size-xl);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: var(--font-feature-data);
+        }
+
+        .learner-metric-label {
+            margin-top: 2px;
+            font-size: var(--font-size-caption);
+            line-height: var(--text-caption-line-height);
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .learner-history-shell {
+            overflow: auto;
+        }
+
+        .learner-history-table {
+            min-width: 930px;
+        }
+
+        .status-overdue { color: color-mix(in srgb, var(--danger-color) 72%, var(--text-primary)); }
+        .status-overdue .status-dot { background: color-mix(in srgb, var(--danger-color) 72%, var(--text-primary)); }
+        .status-cancelled { color: var(--text-secondary); opacity: 0.6; }
+        .status-cancelled .status-dot { background: var(--border-strong); }
+
+        @@media (max-width: 767.98px) {
+            .learner-identity {
+                align-items: center;
+            }
+
+            .learner-history-table {
+                min-width: 860px;
+            }
+        }
+    </style>
+}
+
+@section ToolbarActions {
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.print()">
+            <i class="fas fa-print"></i> Print
+        </button>
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> Export
+        </button>
+        <button class="toolbar-btn d-flex align-items-center gap-2" onclick="window.close()">
+            <i class="fas fa-times"></i> Close
+        </button>
+}
+
+    <!-- ── Content ── -->
+    <div id="report-content" class="report-page">
+        <div class="report-empty-state">
+            <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
+            <span class="fs-6">Loading profile...</span>
+        </div>
+    </div>
+
+@section Scripts {
+    <script>
+        const STUDENT_CODE = '@learnerCode';
+        const serviceUrl = "@apiBaseUrl";
+        let _profileData = null;
+
+        // ─── Helpers ───
+        function fmtDate(v)     { return window.formatAdminDate ? window.formatAdminDate(v, "—") : (v || "—"); }
+        function fmtDuration(s) { return window.formatAdminDuration ? window.formatAdminDuration(s, "—") : (s || "—"); }
+        function fmtPct(v)      { return window.formatAdminPercentage ? window.formatAdminPercentage(v, "0%") : (v + "%"); }
+        function esc(s)         { return window.escapeAdminHtml ? window.escapeAdminHtml(s) : $("<span>").text(s).html(); }
+
+        function getStatus(e) {
+            const now = new Date();
+            if (e.isAssignmentCancelled) return { cls: "status-cancelled", label: "Cancelled", icon: "fa-ban" };
+            if (e.isCompleted)           return { cls: "status-done",      label: "Completed", icon: "fa-check-circle" };
+            if (!e.isCompleted && e.dueDate && new Date(e.dueDate) < now)
+                                         return { cls: "status-overdue",   label: "Overdue",   icon: "fa-exclamation-circle" };
+            if (e.progress > 0)          return { cls: "status-active",    label: "In Progress", icon: "fa-spinner" };
+            return                                { cls: "status-pending",   label: "Not Started", icon: "fa-circle" };
+        }
+
+        // ─── Load Profile ───
+        async function loadProfile() {
+            try {
+                const res = await fetch(
+                    `${serviceUrl}/Learners/profile/${encodeURIComponent(STUDENT_CODE)}`,
+                    { credentials: "include" }
+                );
+                const json = await res.json();
+                if (!json.success || !json.data) {
+                    document.getElementById("report-content").innerHTML =
+                        '<div class="text-danger text-center py-5">Failed to load profile data.</div>';
+                    return;
+                }
+                _profileData = json.data;
+                renderProfile(json.data);
+            } catch {
+                document.getElementById("report-content").innerHTML =
+                    '<div class="text-danger text-center py-5">Network error.</div>';
+            }
+        }
+
+        loadProfile();
+
+        // ─── Render ───
+        function renderProfile(d) {
+            const k = d.kpi;
+            const enrollments = d.enrollments || [];
+            const now = new Date();
+
+            // Compute audit stats
+            const overdue    = enrollments.filter(e => !e.isCompleted && !e.isAssignmentCancelled && e.dueDate && new Date(e.dueDate) < now).length;
+            const notStarted = enrollments.filter(e => !e.isCompleted && !e.isAssignmentCancelled && e.progress === 0).length;
+            const cancelled  = enrollments.filter(e => e.isAssignmentCancelled).length;
+            const completionPct = k.totalCourses > 0 ? Math.round((k.completedCourses / k.totalCourses) * 100) : 0;
+
+            // Build initial
+            const initial = (d.name || d.code || "?").charAt(0).toUpperCase();
+
+            // Info rows
+            const infoItems = [
+                { icon: "fa-id-badge",    label: "Code",       value: d.code },
+                { icon: "fa-building",    label: "Division",   value: d.division },
+                { icon: "fa-layer-group", label: "Dept.",      value: d.department },
+                { icon: "fa-sitemap",     label: "Section",    value: d.section },
+                { icon: "fa-user-tag",    label: "Position",   value: d.position },
+                { icon: "fa-clock",       label: "Total Time", value: fmtDuration(k.totalTimeSpentSeconds) }
+            ].filter(r => r.value).map(r =>
+                `<div class="learner-info-row">
+                    <i class="fas ${r.icon}"></i>
+                    <span class="learner-info-label">${r.label}</span>
+                    <span class="learner-info-value">${esc(String(r.value))}</span>
+                </div>`
+            ).join("");
+
+            // Enrollment rows
+            const historyRows = enrollments.map(e => {
+                const st = getStatus(e);
+                const pct = e.progress || 0;
+                const barColor = pct === 100
+                    ? "var(--success-color)"
+                    : pct > 0
+                        ? "var(--warning-color)"
+                        : "var(--border-color)";
+                const titleStyle = e.isCourseDeleted ? "color:var(--text-secondary); text-decoration:line-through;" : "";
+                const deletedIcon = e.isCourseDeleted ? ' <i class="fas fa-archive u-fs-10 text-secondary" title="Course deleted"></i>' : "";
+                const dueDateStyle = (!e.isCompleted && e.dueDate && new Date(e.dueDate) < now)
+                    ? "color:var(--danger-color); font-weight:600;" : "";
+
+                return `<tr>
+                    <td class="fw-bold align-middle">${esc(e.courseCode || "—")}</td>
+                    <td class="align-middle" style="${titleStyle}">${esc(e.courseTitle || "—")}${deletedIcon}</td>
+                    <td class="align-middle text-center">
+                        <span class="${st.cls}"><span class="status-dot"></span>${st.label}</span>
+                    </td>
+                    <td class="align-middle u-minw-120">
+                        <div class="d-flex justify-content-between u-fs-11">
+                            <span class="text-muted">Progress</span>
+                            <span class="fw-bold">${fmtPct(pct)}</span>
+                        </div>
+                        <div class="progress-slim">
+                            <div style="height:100%; width:${pct}%; background:${barColor};"></div>
+                        </div>
+                    </td>
+                    <td class="align-middle text-center">${e.totalScore > 0 ? '<span class="fw-bold">' + e.totalScore + '</span>' : '<span class="text-muted">—</span>'}</td>
+                    <td class="align-middle text-center u-fs-11 text-secondary">${fmtDuration(e.totalTimeSpent)}</td>
+                    <td class="align-middle text-center u-fs-11 text-secondary">${fmtDate(e.startDate)}</td>
+                    <td class="align-middle text-center u-fs-11" style="${dueDateStyle}">${fmtDate(e.dueDate)}</td>
+                    <td class="align-middle text-center u-fs-11 text-secondary">${fmtDate(e.completedDate)}</td>
+                </tr>`;
+            }).join("");
+
+            // Inject layout
+            document.getElementById("report-content").innerHTML = `
+                <div class="report-stack">
+                    <div class="report-grid report-grid--sidebar">
+                        <section class="report-section">
+                            <div class="report-section-head">
+                                <div class="report-section-title-wrap">
+                                    <h2 class="report-section-title">Learner Information</h2>
+                                </div>
+                            </div>
+
+                            <div class="report-panel learner-profile-panel">
+                                <div class="learner-identity">
+                                    <div class="learner-avatar">${initial}</div>
+                                    <div>
+                                        <div class="learner-name">${esc(d.name || d.code)}</div>
+                                        <div class="learner-context">
+                                            ${[d.division, d.department, d.section].filter(Boolean).map(v => esc(v)).join(" · ") || "—"}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="learner-info-list">${infoItems}</div>
+                            </div>
+                        </section>
+
+                        <section class="report-section">
+                            <div class="report-section-head">
+                                <div class="report-section-title-wrap">
+                                    <h2 class="report-section-title">Completion Summary</h2>
+                                </div>
+                            </div>
+
+                            <div class="report-panel learner-summary-panel">
+                                <div class="learner-metrics">
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${k.totalCourses}</div>
+                                        <div class="learner-metric-label">Total</div>
+                                    </div>
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${k.completedCourses}</div>
+                                        <div class="learner-metric-label">Completed</div>
+                                    </div>
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${k.inProgressCourses}</div>
+                                        <div class="learner-metric-label">In Progress</div>
+                                    </div>
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${notStarted}</div>
+                                        <div class="learner-metric-label">Not Started</div>
+                                    </div>
+                                    <div class="learner-metric learner-metric--critical">
+                                        <div class="learner-metric-value">${overdue}</div>
+                                        <div class="learner-metric-label">Overdue</div>
+                                    </div>
+                                    ${cancelled > 0 ? `<div class="learner-metric learner-metric--muted">
+                                        <div class="learner-metric-value">${cancelled}</div>
+                                        <div class="learner-metric-label">Cancelled</div>
+                                    </div>` : ""}
+                                </div>
+
+                                <div class="report-chart-block">
+                                    <div class="report-kicker">Completion</div>
+                                    <div id="profile-pie-chart" style="height:200px;"></div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="report-section">
+                        <div class="report-section-head">
+                            <div class="report-section-title-wrap">
+                                <h2 class="report-section-title">Learning History</h2>
+                            </div>
+                            <button class="report-action-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Export
+                            </button>
+                        </div>
+
+                        <div class="report-table-shell learner-history-shell">
+                            <table class="table table-hover m-0 learner-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Course</th>
+                                        <th class="text-center">Status</th>
+                                        <th>Progress</th>
+                                        <th class="text-center">Score</th>
+                                        <th class="text-center">Time</th>
+                                        <th class="text-center">Start</th>
+                                        <th class="text-center">Due</th>
+                                        <th class="text-center">Completed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${historyRows || '<tr><td colspan="9" class="text-center text-muted py-4">No enrollment data.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            `;
+
+            // Render Pie Chart
+            $("#profile-pie-chart").dxPieChart(
+                window.createAdminPieChartConfig({
+                    palettePreset: "status4",
+                    centerLabel: 'Completion',
+                    centerValue: completionPct + '%',
+                    baseConfig: {
+                        type: "doughnut",
+                        innerRadius: 0.65,
+                        dataSource: [
+                            { status: "Completed",   count: k.completedCourses },
+                            { status: "In Progress", count: k.inProgressCourses },
+                            { status: "Not Started", count: notStarted - overdue },
+                            { status: "Overdue",     count: overdue }
+                        ].filter(i => i.count > 0),
+                        series: [{
+                            argumentField: "status", valueField: "count",
+                            label: {
+                                visible: true,
+                                position: "outside",
+                                customizeText: p => `${p.valueText} (${p.percentText})`,
+                                font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
+                                connector: { visible: true, width: 1 }
+                            }
+                        }],
+                        legend: {
+                            horizontalAlignment: "right", verticalAlignment: "center",
+                            margin: 0, font: { size: parseInt(window.adminTypography.size.caption, 10), color: "var(--text-secondary)" }
+                        },
+                        tooltip: { enabled: true }
+                    }
+                })
+            );
+        }
+
+        // ─── Excel Export ───
+        function getExportFileName(prefix) {
+            const code = (_profileData?.code || 'Unknown').replace(/[\\/:*?"<>|]/g, '_');
+            const now = new Date();
+            const ts = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+                String(now.getHours()).padStart(2, '0'),
+                String(now.getMinutes()).padStart(2, '0')
+            ].join('');
+            return `${prefix}_${code}_${ts}.xlsx`;
+        }
+
+        function saveWorkbook(workbook, fileName) {
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            });
+        }
+
+        function styleHeaderRow(ws) {
+            const row = ws.getRow(1);
+            row.font = { bold: true, size: parseInt(window.adminTypography.size.xs, 10) };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            row.alignment = { vertical: 'middle' };
+            row.eachCell(cell => cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } });
+        }
+
+        async function exportToExcel() {
+            if (!_profileData) return;
+            await window.ensureExportDependencies();
+            const d = _profileData;
+            const wb = new ExcelJS.Workbook();
+            const now = new Date();
+
+            // Sheet 1: Summary
+            const ws1 = wb.addWorksheet('Summary');
+            ws1.columns = [
+                { header: 'Field', key: 'field', width: 18 },
+                { header: 'Value', key: 'value', width: 40 }
+            ];
+            ws1.addRow({ field: 'Employee Code', value: d.code });
+            ws1.addRow({ field: 'Name', value: d.name });
+            ws1.addRow({ field: 'Division', value: d.division || '' });
+            ws1.addRow({ field: 'Department', value: d.department || '' });
+            ws1.addRow({ field: 'Section', value: d.section || '' });
+            ws1.addRow({ field: 'Position', value: d.position || '' });
+            ws1.addRow({ field: 'Total Courses', value: d.kpi.totalCourses });
+            ws1.addRow({ field: 'Completed', value: d.kpi.completedCourses });
+            ws1.addRow({ field: 'In Progress', value: d.kpi.inProgressCourses });
+            const overdueCount = (d.enrollments || []).filter(e => !e.isCompleted && !e.isAssignmentCancelled && e.dueDate && new Date(e.dueDate) < now).length;
+            ws1.addRow({ field: 'Overdue', value: overdueCount });
+            ws1.addRow({ field: 'Completion %', value: d.kpi.totalCourses > 0 ? Math.round((d.kpi.completedCourses / d.kpi.totalCourses) * 100) : 0 });
+            styleHeaderRow(ws1);
+
+            // Sheet 2: Learning History
+            const ws2 = wb.addWorksheet('Learning History');
+            ws2.columns = [
+                { header: 'Course Code',  key: 'code',      width: 20 },
+                { header: 'Course Title', key: 'title',     width: 45 },
+                { header: 'Status',       key: 'status',    width: 14 },
+                { header: 'Progress %',   key: 'progress',  width: 12 },
+                { header: 'Score',        key: 'score',     width: 10 },
+                { header: 'Time (sec)',   key: 'time',      width: 12 },
+                { header: 'Start Date',   key: 'start',     width: 14 },
+                { header: 'Due Date',     key: 'due',       width: 14 },
+                { header: 'Completed On', key: 'completed', width: 14 }
+            ];
+            (d.enrollments || []).forEach(function (e) {
+                const st = getStatus(e);
+                ws2.addRow({
+                    code: e.courseCode,
+                    title: e.courseTitle,
+                    status: st.label,
+                    progress: e.progress || 0,
+                    score: e.totalScore || 0,
+                    time: e.totalTimeSpent || 0,
+                    start: e.startDate ? fmtDate(e.startDate) : '',
+                    due: e.dueDate ? fmtDate(e.dueDate) : '',
+                    completed: e.completedDate ? fmtDate(e.completedDate) : ''
+                });
+            });
+            styleHeaderRow(ws2);
+
+            saveWorkbook(wb, getExportFileName('Learner_Profile'));
+        }
+    </script>
+}

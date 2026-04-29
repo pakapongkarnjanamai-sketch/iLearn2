@@ -3,7 +3,7 @@
     ViewData["Title"] = "Learning Player";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
     var courseId = ViewBag.CourseId ?? 0;
-    var studentCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var learnerCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 }
 
 @section Styles {
@@ -303,8 +303,8 @@
             background-color: #fff;
         }
 
-        /* --- Resource Item Styling --- */
-        .resource-item {
+        /* --- ContentItem Item Styling --- */
+        .contentItem-item {
             cursor: pointer;
             transition: all 0.2s;
             background: #fff;
@@ -316,17 +316,17 @@
             overflow: hidden;
         }
 
-            .resource-item:hover {
+            .contentItem-item:hover {
                 border-color: #b2dfdb;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             }
 
-            .resource-item.active {
+            .contentItem-item.active {
                 border-color: var(--brand-color);
                 background-color: var(--brand-light);
             }
 
-                .resource-item.active::before {
+                .contentItem-item.active::before {
                     content: "";
                     position: absolute;
                     left: 0;
@@ -337,7 +337,7 @@
                 }
 
             /* Add style for failed item */
-            .resource-item.item-failed {
+            .contentItem-item.item-failed {
                 border-color: var(--danger-color);
                 background-color: #fff5f5;
             }
@@ -578,7 +578,7 @@
                     <div class="summary-content">
                         <div class="info-row">
                             <span class="info-label">ผู้เรียน:</span>
-                            <span class="info-value" id="sumStudentName">-</span>
+                            <span class="info-value" id="sumLearnerName">-</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">หลักสูตร:</span>
@@ -620,7 +620,7 @@
             <div class="course-meta-grid">
                 <div class="course-meta-item">
                     <span class="course-meta-label">ผู้เรียน</span>
-                    <span class="course-meta-value" id="studentCodeDisplay">-</span>
+                    <span class="course-meta-value" id="learnerCodeDisplay">-</span>
                 </div>
                 <div class="course-meta-item">
                     <span class="course-meta-label">Category</span>
@@ -674,7 +674,7 @@
         // Configuration
         // ========================================
         const COURSE_ID = "@courseId"; // ใช้ Course ID แทน
-        const currentStudentCode = '@studentCode';
+        const currentLearnerCode = '@learnerCode';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
         const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
@@ -683,7 +683,7 @@
         // State Management
         // ========================================
         let currentData = null;
-        let selectedResourceIndex = -1;
+        let selectedContentItemIndex = -1;
         let isReadOnly = false;
         let sessionStartTime = null;
 
@@ -701,30 +701,30 @@
             loadCourseData();
 
             window.addEventListener("beforeunload", function (e) {
-                flushSelectedResourceRuntime({ includeSessionTime: true, useBeacon: true, reason: "beforeunload" });
+                flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "beforeunload" });
             });
         });
 
         // ========================================
         // SCORM Model Management
         // ========================================
-        function getSelectedResource() {
-            if (!currentData || selectedResourceIndex < 0 || !currentData.resources || !currentData.resources[selectedResourceIndex]) {
+        function getSelectedContentItem() {
+            if (!currentData || selectedContentItemIndex < 0 || !currentData.contentItems || !currentData.contentItems[selectedContentItemIndex]) {
                 return null;
             }
 
-            return currentData.resources[selectedResourceIndex];
+            return currentData.contentItems[selectedContentItemIndex];
         }
 
-        function markSelectedResourceDirty() {
-            const resource = getSelectedResource();
-            if (resource) {
-                resource.hasPendingRuntimeCommit = true;
+        function markSelectedContentItemDirty() {
+            const contentItem = getSelectedContentItem();
+            if (contentItem) {
+                contentItem.hasPendingRuntimeCommit = true;
             }
         }
 
-        function resolveResourceScormVersion(resource) {
-            const rawVersion = String(resource?.scormVersion || resource?.runtimeState?.scormVersion || '').trim();
+        function resolveContentItemScormVersion(contentItem) {
+            const rawVersion = String(contentItem?.scormVersion || contentItem?.runtimeState?.scormVersion || '').trim();
 
             if (!rawVersion) {
                 return "1.2";
@@ -741,23 +741,23 @@
             return rawVersion;
         }
 
-        function deriveLessonStatus(resource) {
-            const runtimeState = resource?.runtimeState || {};
+        function deriveLessonStatus(contentItem) {
+            const runtimeState = contentItem?.runtimeState || {};
             if (runtimeState.lessonStatus) {
                 return runtimeState.lessonStatus;
             }
 
-            const clientStatus = String(resource?.clientStatus || '').toLowerCase();
+            const clientStatus = String(contentItem?.clientStatus || '').toLowerCase();
             if (clientStatus === "passed") return "passed";
             if (clientStatus === "failed") return "failed";
             if (clientStatus === "completed") return "completed";
             if (clientStatus === "incomplete") return "incomplete";
-            if (resource?.isCompleted) return "passed";
+            if (contentItem?.isCompleted) return "passed";
             return "not attempted";
         }
 
-        function deriveCompletionStatus(resource, lessonStatus) {
-            const runtimeState = resource?.runtimeState || {};
+        function deriveCompletionStatus(contentItem, lessonStatus) {
+            const runtimeState = contentItem?.runtimeState || {};
             if (runtimeState.completionStatus) {
                 return runtimeState.completionStatus;
             }
@@ -773,8 +773,8 @@
             return "not attempted";
         }
 
-        function deriveSuccessStatus(resource, lessonStatus) {
-            const runtimeState = resource?.runtimeState || {};
+        function deriveSuccessStatus(contentItem, lessonStatus) {
+            const runtimeState = contentItem?.runtimeState || {};
             if (runtimeState.successStatus) {
                 return runtimeState.successStatus;
             }
@@ -825,7 +825,7 @@
             const initialProgress = data.isCompleted ? 100 : normalizeProgressValue(data.progress || 0);
 
             $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
-            $("#studentCodeDisplay").text(currentStudentCode || "-");
+            $("#learnerCodeDisplay").text(currentLearnerCode || "-");
             $("#categoryNameDisplay").text(data.categoryName || "ไม่ระบุหมวดหมู่");
             $("#courseTypeNameDisplay").text(data.courseTypeName || "ไม่ระบุประเภท");
             setCourseProgressDisplay(initialProgress);
@@ -839,43 +839,43 @@
             }
         }
 
-        function applyRuntimeStateToResource(resource) {
-            if (!resource) return;
+        function applyRuntimeStateToContentItem(contentItem) {
+            if (!contentItem) return;
 
-            const runtimeState = resource.runtimeState || {};
+            const runtimeState = contentItem.runtimeState || {};
             const rawScore = parseNullableNumber(runtimeState.rawScore);
-            const resourceScore = parseNullableNumber(resource.score);
+            const contentItemScore = parseNullableNumber(contentItem.score);
 
-            resource.scormVersion = resolveResourceScormVersion(resource);
-            resource.clientSuccessStatus = normalizeStatusValue(runtimeState.successStatus, "");
-            resource.clientCompletionStatus = normalizeStatusValue(runtimeState.completionStatus, "");
-            resource.clientStatus = normalizeStatusValue(resource.status);
-            resource.clientCompletionProgress = normalizeProgressValue(resource.progress || (resource.isCompleted ? 100 : 0));
-            resource.clientProgress = normalizeProgressValue(resource.activityProgress ?? resource.progress ?? (resource.isCompleted ? 100 : 0));
-            resource.clientScore = rawScore ?? resourceScore ?? 0;
-            resource.clientTime = resource.time || runtimeState.sessionTime || resource?.clientTime || "00:00:00";
-            resource.hasPendingRuntimeCommit = false;
+            contentItem.scormVersion = resolveContentItemScormVersion(contentItem);
+            contentItem.clientSuccessStatus = normalizeStatusValue(runtimeState.successStatus, "");
+            contentItem.clientCompletionStatus = normalizeStatusValue(runtimeState.completionStatus, "");
+            contentItem.clientStatus = normalizeStatusValue(contentItem.status);
+            contentItem.clientCompletionProgress = normalizeProgressValue(contentItem.progress || (contentItem.isCompleted ? 100 : 0));
+            contentItem.clientProgress = normalizeProgressValue(contentItem.activityProgress ?? contentItem.progress ?? (contentItem.isCompleted ? 100 : 0));
+            contentItem.clientScore = rawScore ?? contentItemScore ?? 0;
+            contentItem.clientTime = contentItem.time || runtimeState.sessionTime || contentItem?.clientTime || "00:00:00";
+            contentItem.hasPendingRuntimeCommit = false;
         }
 
-        function resetScormModel(resource) {
-            const runtimeState = resource?.runtimeState || {};
+        function resetScormModel(contentItem) {
+            const runtimeState = contentItem?.runtimeState || {};
             const lessonLocation = runtimeState.lessonLocation || "";
             const suspendData = runtimeState.suspendData || "";
-            const lessonStatus = deriveLessonStatus(resource);
-            const completionStatus = deriveCompletionStatus(resource, lessonStatus);
-            const successStatus = deriveSuccessStatus(resource, lessonStatus);
-            const rawScore = runtimeState.rawScore ?? resource?.clientScore ?? resource?.score ?? "";
-            const totalTime = runtimeState.totalTime || resource?.clientTime || resource?.time || "00:00:00";
+            const lessonStatus = deriveLessonStatus(contentItem);
+            const completionStatus = deriveCompletionStatus(contentItem, lessonStatus);
+            const successStatus = deriveSuccessStatus(contentItem, lessonStatus);
+            const rawScore = runtimeState.rawScore ?? contentItem?.clientScore ?? contentItem?.score ?? "";
+            const totalTime = runtimeState.totalTime || contentItem?.clientTime || contentItem?.time || "00:00:00";
             const entry = runtimeState.entry || ((lessonLocation || suspendData) ? "resume" : "ab-initio");
             const exitValue = runtimeState.exit || "";
-            const progressMeasure = (resource?.clientProgress || 0) > 0 ? String((resource.clientProgress / 100).toFixed(2)) : "0";
+            const progressMeasure = (contentItem?.clientProgress || 0) > 0 ? String((contentItem.clientProgress / 100).toFixed(2)) : "0";
 
             cmiModel = {
-                // Student Info
-                "cmi.core.student_id": currentStudentCode,
-                "cmi.core.student_name": currentStudentCode,
-                "cmi.learner_id": currentStudentCode,
-                "cmi.learner_name": currentStudentCode,
+                // Learner Info
+                "cmi.core.learner_id": currentLearnerCode,
+                "cmi.core.learner_name": currentLearnerCode,
+                "cmi.learner_id": currentLearnerCode,
+                "cmi.learner_name": currentLearnerCode,
 
                 // Status
                 "cmi.core.lesson_status": lessonStatus,
@@ -942,31 +942,31 @@
             cmiModel["cmi.success_status"] = successStatus;
         }
 
-        function syncRuntimeStateFromModel(resource, options = {}) {
-            if (!resource || !currentData || !currentData.enrollmentId) {
+        function syncRuntimeStateFromModel(contentItem, options = {}) {
+            if (!contentItem || !currentData || !currentData.enrollmentId) {
                 return null;
             }
 
             const includeSessionTime = options.includeSessionTime === true;
-            const runtimeState = resource.runtimeState || {};
+            const runtimeState = contentItem.runtimeState || {};
             const lessonLocation = cmiModel["cmi.location"] || cmiModel["cmi.core.lesson_location"] || runtimeState.lessonLocation || "";
-            const lessonStatus = cmiModel["cmi.core.lesson_status"] || runtimeState.lessonStatus || deriveLessonStatus(resource);
-            const completionStatus = cmiModel["cmi.completion_status"] || runtimeState.completionStatus || deriveCompletionStatus(resource, lessonStatus);
-            const successStatus = cmiModel["cmi.success_status"] || runtimeState.successStatus || deriveSuccessStatus(resource, lessonStatus);
-            const rawScoreValue = cmiModel["cmi.score.raw"] || cmiModel["cmi.core.score.raw"] || runtimeState.rawScore || resource.clientScore;
+            const lessonStatus = cmiModel["cmi.core.lesson_status"] || runtimeState.lessonStatus || deriveLessonStatus(contentItem);
+            const completionStatus = cmiModel["cmi.completion_status"] || runtimeState.completionStatus || deriveCompletionStatus(contentItem, lessonStatus);
+            const successStatus = cmiModel["cmi.success_status"] || runtimeState.successStatus || deriveSuccessStatus(contentItem, lessonStatus);
+            const rawScoreValue = cmiModel["cmi.score.raw"] || cmiModel["cmi.core.score.raw"] || runtimeState.rawScore || contentItem.clientScore;
             const parsedRawScore = rawScoreValue === "" || rawScoreValue === null || rawScoreValue === undefined
                 ? null
                 : (parseFloat(rawScoreValue) || 0);
-            const totalTime = cmiModel["cmi.total_time"] || cmiModel["cmi.core.total_time"] || runtimeState.totalTime || resource.clientTime || "00:00:00";
+            const totalTime = cmiModel["cmi.total_time"] || cmiModel["cmi.core.total_time"] || runtimeState.totalTime || contentItem.clientTime || "00:00:00";
 
             let sessionTime = runtimeState.sessionTime || null;
             if (includeSessionTime) {
                 const modelSessionTime = cmiModel["cmi.session_time"] || cmiModel["cmi.core.session_time"];
                 if (!modelSessionTime) {
-                    captureSessionTime(resource);
+                    captureSessionTime(contentItem);
                 }
 
-                sessionTime = modelSessionTime || resource.clientTime || runtimeState.sessionTime || "00:00:00";
+                sessionTime = modelSessionTime || contentItem.clientTime || runtimeState.sessionTime || "00:00:00";
             }
 
             cmiModel["cmi.location"] = lessonLocation;
@@ -982,13 +982,13 @@
             if (sessionTime) {
                 cmiModel["cmi.session_time"] = sessionTime;
                 cmiModel["cmi.core.session_time"] = sessionTime;
-                resource.clientTime = sessionTime;
+                contentItem.clientTime = sessionTime;
             }
 
-            resource.runtimeState = {
+            contentItem.runtimeState = {
                 enrollmentId: currentData.enrollmentId,
-                resourceId: resource.id,
-                scormVersion: resolveResourceScormVersion(resource),
+                contentItemId: contentItem.id,
+                scormVersion: resolveContentItemScormVersion(contentItem),
                 lessonLocation: lessonLocation,
                 suspendData: cmiModel["cmi.suspend_data"] || runtimeState.suspendData || "",
                 lessonStatus: lessonStatus,
@@ -1003,21 +1003,21 @@
                 cmiSnapshotJson: JSON.stringify(cmiModel)
             };
 
-            resource.scormVersion = resource.runtimeState.scormVersion;
-            return resource.runtimeState;
+            contentItem.scormVersion = contentItem.runtimeState.scormVersion;
+            return contentItem.runtimeState;
         }
 
-        function buildRuntimeCommitPayload(resources, options = {}) {
-            const payloadResources = resources
-                .filter(resource => !!resource)
-                .map(resource => {
-                    const runtimeState = syncRuntimeStateFromModel(resource, options);
+        function buildRuntimeCommitPayload(contentItems, options = {}) {
+            const payloadContentItems = contentItems
+                .filter(contentItem => !!contentItem)
+                .map(contentItem => {
+                    const runtimeState = syncRuntimeStateFromModel(contentItem, options);
                     if (!runtimeState) {
                         return null;
                     }
 
                     return {
-                        ResourceId: resource.id,
+                        ContentItemId: contentItem.id,
                         ScormVersion: runtimeState.scormVersion,
                         LessonLocation: runtimeState.lessonLocation,
                         SuspendData: runtimeState.suspendData,
@@ -1033,36 +1033,36 @@
                         CmiSnapshotJson: runtimeState.cmiSnapshotJson
                     };
                 })
-                .filter(resource => resource !== null);
+                .filter(contentItem => contentItem !== null);
 
             return {
                 EnrollmentId: currentData.enrollmentId,
-                Resources: payloadResources
+                ContentItems: payloadContentItems
             };
         }
 
-        function commitRuntimeResources(resources, options = {}) {
-            if (isReadOnly || !currentData || !currentData.enrollmentId || !Array.isArray(resources)) {
+        function commitRuntimeContentItems(contentItems, options = {}) {
+            if (isReadOnly || !currentData || !currentData.enrollmentId || !Array.isArray(contentItems)) {
                 return Promise.resolve(null);
             }
 
             const shouldIncludeSessionTime = options.includeSessionTime === true;
-            const targetResources = resources.filter(resource => {
-                if (!resource) {
+            const targetContentItems = contentItems.filter(contentItem => {
+                if (!contentItem) {
                     return false;
                 }
 
                 return options.force === true ||
-                    resource.hasPendingRuntimeCommit === true ||
+                    contentItem.hasPendingRuntimeCommit === true ||
                     (shouldIncludeSessionTime && sessionStartTime !== null);
             });
 
-            if (targetResources.length === 0) {
+            if (targetContentItems.length === 0) {
                 return Promise.resolve(null);
             }
 
-            const payload = buildRuntimeCommitPayload(targetResources, options);
-            if (!payload.Resources.length) {
+            const payload = buildRuntimeCommitPayload(targetContentItems, options);
+            if (!payload.ContentItems.length) {
                 return Promise.resolve(null);
             }
 
@@ -1072,8 +1072,8 @@
                 const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
                 const accepted = navigator.sendBeacon(commitRuntimeUrl, body);
                 if (accepted) {
-                    targetResources.forEach(resource => {
-                        resource.hasPendingRuntimeCommit = false;
+                    targetContentItems.forEach(contentItem => {
+                        contentItem.hasPendingRuntimeCommit = false;
                     });
                 }
 
@@ -1093,15 +1093,15 @@
                 if (res && res.success && Array.isArray(res.data)) {
                     const stateMap = {};
                     res.data.forEach(state => {
-                        stateMap[state.resourceId] = state;
+                        stateMap[state.contentItemId] = state;
                     });
 
-                    targetResources.forEach(resource => {
-                        if (stateMap[resource.id]) {
-                            resource.runtimeState = stateMap[resource.id];
-                            resource.scormVersion = stateMap[resource.id].scormVersion || resource.scormVersion;
+                    targetContentItems.forEach(contentItem => {
+                        if (stateMap[contentItem.id]) {
+                            contentItem.runtimeState = stateMap[contentItem.id];
+                            contentItem.scormVersion = stateMap[contentItem.id].scormVersion || contentItem.scormVersion;
                         }
-                        resource.hasPendingRuntimeCommit = false;
+                        contentItem.hasPendingRuntimeCommit = false;
                     });
                 }
             }).fail(function(err) {
@@ -1111,13 +1111,13 @@
             });
         }
 
-        function flushSelectedResourceRuntime(options = {}) {
-            const resource = getSelectedResource();
-            if (!resource) {
+        function flushSelectedContentItemRuntime(options = {}) {
+            const contentItem = getSelectedContentItem();
+            if (!contentItem) {
                 return Promise.resolve(null);
             }
 
-            return commitRuntimeResources([resource], options);
+            return commitRuntimeContentItems([contentItem], options);
         }
 
         // ========================================
@@ -1155,11 +1155,11 @@
                     }
 
                     // 2. Prepare Local Data
-                    if(currentData.resources) {
-                        currentData.resources.forEach(r => {
+                    if(currentData.contentItems) {
+                        currentData.contentItems.forEach(r => {
                             r.runtimeState = r.runtimeState || null;
                             r.scormVersion = r.scormVersion || (r.runtimeState ? r.runtimeState.scormVersion : "") || "1.2";
-                            applyRuntimeStateToResource(r);
+                            applyRuntimeStateToContentItem(r);
                         });
                     }
 
@@ -1209,18 +1209,18 @@
             listContainer.empty();
 
             if (isReadOnly) listContainer.addClass("view-only-mode");
-            if (!data.resources || data.resources.length === 0) {
+            if (!data.contentItems || data.contentItems.length === 0) {
                 listContainer.html('<div class="alert alert-warning m-3">ไม่พบเนื้อหาในหลักสูตรนี้</div>');
                 return;
             }
 
-            data.resources.forEach((item, index) => {
+            data.contentItems.forEach((item, index) => {
                 let iconClass = "far fa-file text-primary";
                 if (item.type === "Learn") iconClass = "fas fa-book-open text-primary";
                 else if (item.type === "Exam") iconClass = "fas fa-pencil-alt text-primary";
 
                 const html = `
-                    <div class="resource-item" id="res-item-${index}" onclick="selectResource(${index})">
+                    <div class="contentItem-item" id="res-item-${index}" onclick="selectContentItem(${index})">
                         <div class="d-flex align-items-center">
                             <div class="me-3 fs-4" style="width: 30px; text-align: center;">
                                 <i class="${iconClass}"></i>
@@ -1240,21 +1240,21 @@
                 listContainer.append(html);
             });
 
-            if (data.resources.length > 0) selectResource(0);
+            if (data.contentItems.length > 0) selectContentItem(0);
         }
 
         // ========================================
-        // Resource Selection
+        // ContentItem Selection
         // ========================================
-        function selectResource(index) {
-            if (!currentData || !currentData.resources[index]) return;
-            const previousResource = getSelectedResource();
-            if (!isReadOnly && previousResource && previousResource.id !== currentData.resources[index].id) {
-                flushSelectedResourceRuntime({ includeSessionTime: true, reason: "resource-switch" });
+        function selectContentItem(index) {
+            if (!currentData || !currentData.contentItems[index]) return;
+            const previousContentItem = getSelectedContentItem();
+            if (!isReadOnly && previousContentItem && previousContentItem.id !== currentData.contentItems[index].id) {
+                flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "contentItem-switch" });
             }
 
             console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-            console.log(`📌 Selected Resource [${index}]: ${currentData.resources[index].name}`);
+            console.log(`📌 Selected ContentItem [${index}]: ${currentData.contentItems[index].name}`);
             console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
             // 🔴 CRITICAL: หยุด iframe เดิมทันที
@@ -1263,10 +1263,10 @@
             iframe.style.display = "none";
 
             // อัปเดต UI
-            selectedResourceIndex = index;
-            const resource = currentData.resources[index];
+            selectedContentItemIndex = index;
+            const contentItem = currentData.contentItems[index];
 
-            $(".resource-item").removeClass("active");
+            $(".contentItem-item").removeClass("active");
             $(`#res-item-${index}`).addClass("active");
 
             // แสดง Start Overlay
@@ -1274,7 +1274,7 @@
             sessionStartTime = null;
 
             // รีเซ็ต SCORM Model ทันทีเมื่อเลือกบทใหม่
-            resetScormModel(resource);
+            resetScormModel(contentItem);
             console.log(`✅ SCORM Model cleared for new Learn `);
             console.log(`🛑 Previous iframe stopped`);
         }
@@ -1283,48 +1283,48 @@
         // Start Course
         // ========================================
         function startCourse() {
-            if (selectedResourceIndex === -1) return;
-            const resource = currentData.resources[selectedResourceIndex];
+            if (selectedContentItemIndex === -1) return;
+            const contentItem = currentData.contentItems[selectedContentItemIndex];
 
-            if (!resource.launchUrl) {
+            if (!contentItem.launchUrl) {
                 showToast("Invalid Launch URL", "error");
                 return;
             }
 
             console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            console.log(`🚀 Starting Resource [${selectedResourceIndex}]: ${resource.name}`);
+            console.log(`🚀 Starting ContentItem [${selectedContentItemIndex}]: ${contentItem.name}`);
             console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
             // 1. โหลด SCORM Model จาก runtime state ล่าสุด
-            resetScormModel(resource);
+            resetScormModel(contentItem);
 
             $("#startOverlay").fadeOut(200);
             sessionStartTime = new Date();
-            resource.hasPendingRuntimeCommit = true;
-            resource.sessionTerminalStatus = null;
+            contentItem.hasPendingRuntimeCommit = true;
+            contentItem.sessionTerminalStatus = null;
             const iframe = document.getElementById("scormFrame");
 
             // 3. บังคับโหลดใหม่ (Clear Cache iframe)
             iframe.src = "about:blank";
             setTimeout(() => {
                 iframe.style.display = "block";
-                iframe.src = resource.launchUrl;
-                console.log(`🌐 Loading: ${resource.launchUrl}`);
+                iframe.src = contentItem.launchUrl;
+                console.log(`🌐 Loading: ${contentItem.launchUrl}`);
                 console.log(`📦 Initial cmiModel:`, JSON.stringify(cmiModel, null, 2));
             }, 100);
         }
 
         // ========================================
-        // Update Resource Data (SCORM Callbacks)
+        // Update ContentItem Data (SCORM Callbacks)
         // ========================================
-        function updateResourceData(key, value) {
+        function updateContentItemData(key, value) {
             if (isReadOnly) {
                 console.log(`⚠️ Read-only mode - ignoring update`);
                 return;
             }
 
-            if (selectedResourceIndex === -1 || !currentData) {
-                console.log(`⚠️ No resource selected - ignoring update`);
+            if (selectedContentItemIndex === -1 || !currentData) {
+                console.log(`⚠️ No contentItem selected - ignoring update`);
                 return;
             }
 
@@ -1335,105 +1335,105 @@
                 return;
             }
 
-            let resource = currentData.resources[selectedResourceIndex];
+            let contentItem = currentData.contentItems[selectedContentItemIndex];
             let needsRecalc = false;
             const valStr = String(value).toLowerCase().trim();
 
-            console.log(`📊 updateResourceData - Resource [${selectedResourceIndex}] ${key}: ${value}`);
+            console.log(`📊 updateContentItemData - ContentItem [${selectedContentItemIndex}] ${key}: ${value}`);
 
             if (key === "status") {
-                console.log(`📊 Resource [${selectedResourceIndex}] Status Update: ${valStr}`);
+                console.log(`📊 ContentItem [${selectedContentItemIndex}] Status Update: ${valStr}`);
                 if (valStr === "passed") {
-                    resource.clientStatus = "passed";
-                    resource.clientProgress = 100;
-                    resource.sessionTerminalStatus = "passed";
+                    contentItem.clientStatus = "passed";
+                    contentItem.clientProgress = 100;
+                    contentItem.sessionTerminalStatus = "passed";
                     needsRecalc = true;
-                    captureSessionTime(resource);
+                    captureSessionTime(contentItem);
                     console.log(`✅ Status: PASSED (100%)`);
                 }
                 else if (valStr === "completed") {
-                    resource.clientStatus = resource.clientSuccessStatus === "failed" ? "failed" : "passed";
-                    if (resource.clientStatus === "failed") {
-                        resource.sessionTerminalStatus = "failed";
+                    contentItem.clientStatus = contentItem.clientSuccessStatus === "failed" ? "failed" : "passed";
+                    if (contentItem.clientStatus === "failed") {
+                        contentItem.sessionTerminalStatus = "failed";
                         needsRecalc = true;
                         console.log(`❌ Status remains FAILED because success_status is failed`);
                     } else {
-                        resource.clientProgress = 100;
-                        resource.sessionTerminalStatus = "passed";
+                        contentItem.clientProgress = 100;
+                        contentItem.sessionTerminalStatus = "passed";
                         needsRecalc = true;
-                        captureSessionTime(resource);
+                        captureSessionTime(contentItem);
                         console.log(`✅ Status: COMPLETED → PASSED (100%)`);
                     }
                 }
                 else if (valStr === "failed") {
-                    resource.clientStatus = "failed";
-                    resource.sessionTerminalStatus = "failed";
+                    contentItem.clientStatus = "failed";
+                    contentItem.sessionTerminalStatus = "failed";
                     needsRecalc = true;
                     console.log(`❌ Status: FAILED`);
                 }
                 else {
-                    if (resource.sessionTerminalStatus !== "passed" && resource.sessionTerminalStatus !== "failed") {
-                        resource.clientStatus = "incomplete";
-                        resource.clientProgress = getIncompleteResourceProgress(resource);
+                    if (contentItem.sessionTerminalStatus !== "passed" && contentItem.sessionTerminalStatus !== "failed") {
+                        contentItem.clientStatus = "incomplete";
+                        contentItem.clientProgress = getIncompleteContentItemProgress(contentItem);
                         needsRecalc = true;
                         console.log(`⏳ Status: INCOMPLETE`);
                     }
                 }
             }
             else if (key === "successStatus") {
-                resource.clientSuccessStatus = valStr;
-                console.log(`📊 Resource [${selectedResourceIndex}] Success Status Update: ${valStr}`);
+                contentItem.clientSuccessStatus = valStr;
+                console.log(`📊 ContentItem [${selectedContentItemIndex}] Success Status Update: ${valStr}`);
 
                 if (valStr === "passed") {
-                    resource.clientStatus = "passed";
-                    resource.clientProgress = 100;
-                    resource.sessionTerminalStatus = "passed";
+                    contentItem.clientStatus = "passed";
+                    contentItem.clientProgress = 100;
+                    contentItem.sessionTerminalStatus = "passed";
                     needsRecalc = true;
-                    captureSessionTime(resource);
+                    captureSessionTime(contentItem);
                     console.log(`✅ Success Status: PASSED (100%)`);
                 }
                 else if (valStr === "failed") {
-                    resource.clientStatus = "failed";
-                    resource.sessionTerminalStatus = "failed";
+                    contentItem.clientStatus = "failed";
+                    contentItem.sessionTerminalStatus = "failed";
                     needsRecalc = true;
-                    captureSessionTime(resource);
+                    captureSessionTime(contentItem);
                     console.log(`❌ Success Status: FAILED`);
                 }
-                else if (resource.clientStatus !== "passed" && resource.clientStatus !== "failed") {
-                    resource.clientStatus = "incomplete";
+                else if (contentItem.clientStatus !== "passed" && contentItem.clientStatus !== "failed") {
+                    contentItem.clientStatus = "incomplete";
                     needsRecalc = true;
                     console.log(`⏳ Success Status: UNKNOWN`);
                 }
             }
             else if (key === "completionStatus") {
-                resource.clientCompletionStatus = valStr;
-                console.log(`📊 Resource [${selectedResourceIndex}] Completion Status Update: ${valStr}`);
+                contentItem.clientCompletionStatus = valStr;
+                console.log(`📊 ContentItem [${selectedContentItemIndex}] Completion Status Update: ${valStr}`);
 
                 if (valStr === "completed") {
-                    if (resource.clientSuccessStatus === "failed" || resource.clientStatus === "failed") {
-                        resource.clientStatus = "failed";
-                        resource.sessionTerminalStatus = "failed";
+                    if (contentItem.clientSuccessStatus === "failed" || contentItem.clientStatus === "failed") {
+                        contentItem.clientStatus = "failed";
+                        contentItem.sessionTerminalStatus = "failed";
                         needsRecalc = true;
                         console.log(`❌ Completion Status: COMPLETED but success status is FAILED`);
                     }
-                    else if (resource.clientSuccessStatus === "passed" || String(resource.type).toLowerCase() !== "exam") {
-                        resource.clientStatus = "passed";
-                        resource.clientProgress = 100;
-                        resource.sessionTerminalStatus = "passed";
+                    else if (contentItem.clientSuccessStatus === "passed" || String(contentItem.type).toLowerCase() !== "exam") {
+                        contentItem.clientStatus = "passed";
+                        contentItem.clientProgress = 100;
+                        contentItem.sessionTerminalStatus = "passed";
                         needsRecalc = true;
-                        captureSessionTime(resource);
+                        captureSessionTime(contentItem);
                         console.log(`✅ Completion Status: COMPLETED`);
                     }
                     else {
-                        resource.clientStatus = "incomplete";
+                        contentItem.clientStatus = "incomplete";
                         needsRecalc = true;
                         console.log(`⏳ Completion Status: COMPLETED, waiting for exam success_status`);
                     }
                 }
                 else if (valStr === "incomplete" || valStr === "not attempted" || valStr === "unknown") {
-                    if (resource.sessionTerminalStatus !== "passed" && resource.sessionTerminalStatus !== "failed") {
-                        resource.clientStatus = "incomplete";
-                        resource.clientProgress = getIncompleteResourceProgress(resource);
+                    if (contentItem.sessionTerminalStatus !== "passed" && contentItem.sessionTerminalStatus !== "failed") {
+                        contentItem.clientStatus = "incomplete";
+                        contentItem.clientProgress = getIncompleteContentItemProgress(contentItem);
                         needsRecalc = true;
                         console.log(`⏳ Completion Status: INCOMPLETE`);
                     }
@@ -1442,15 +1442,15 @@
             else if (key === "progress") {
                 let prog = parseFloat(value) || 0;
                 if (prog > 100) prog = 100;
-                if (prog > resource.clientProgress) {
-                    resource.clientProgress = prog;
+                if (prog > contentItem.clientProgress) {
+                    contentItem.clientProgress = prog;
                     needsRecalc = true;
                     console.log(`📈 Progress: ${prog}%`);
                 }
             }
             else if (key === "score") {
-                resource.clientScore = parseFloat(value) || 0;
-                console.log(`🎯 Score: ${resource.clientScore}`);
+                contentItem.clientScore = parseFloat(value) || 0;
+                console.log(`🎯 Score: ${contentItem.clientScore}`);
             }
 
             if (needsRecalc) {
@@ -1458,13 +1458,13 @@
             }
         }
 
-        function getIncompleteResourceProgress(resource) {
-            const score = Number(resource?.clientScore);
-            if (String(resource?.type || '').toLowerCase() === "learn" && Number.isFinite(score) && score > 0 && score < 100) {
+        function getIncompleteContentItemProgress(contentItem) {
+            const score = Number(contentItem?.clientScore);
+            if (String(contentItem?.type || '').toLowerCase() === "learn" && Number.isFinite(score) && score > 0 && score < 100) {
                 return score;
             }
 
-            const progress = Number(resource?.clientProgress);
+            const progress = Number(contentItem?.clientProgress);
             if (Number.isFinite(progress) && progress > 0 && progress < 100) {
                 return progress;
             }
@@ -1475,15 +1475,15 @@
         // ========================================
         // Capture Session Time
         // ========================================
-        function captureSessionTime(resource) {
-            if (resource.isCompleted) return; // Already saved on DB
+        function captureSessionTime(contentItem) {
+            if (contentItem.isCompleted) return; // Already saved on DB
             if (sessionStartTime) {
                 const now = new Date();
                 const diffSec = Math.round((now - sessionStartTime) / 1000);
                 const date = new Date(0);
                 date.setSeconds(diffSec);
                 const timeString = date.toISOString().substr(11, 8);
-                resource.clientTime = timeString;
+                contentItem.clientTime = timeString;
                 console.log(`⏱️ Session Time: ${timeString}`);
             }
         }
@@ -1492,12 +1492,12 @@
         // Recalculate Total Progress
         // ========================================
         function recalcTotalProgress() {
-            if(!currentData || !currentData.resources) return;
-            let totalResources = currentData.resources.length;
+            if(!currentData || !currentData.contentItems) return;
+            let totalContentItems = currentData.contentItems.length;
             let passedCount = 0;
 
             console.log(`\n🔄 Recalculating Progress...`);
-            currentData.resources.forEach((r, idx) => {
+            currentData.contentItems.forEach((r, idx) => {
                 if (!isReadOnly) {
                     const bar = $(`#res-bar-${idx}`);
                     bar.css("width", r.clientProgress + "%");
@@ -1528,22 +1528,22 @@
             });
 
             if (!isReadOnly) {
-                const completionProgress = totalResources > 0 ? Math.floor((passedCount / totalResources) * 100) : 0;
+                const completionProgress = totalContentItems > 0 ? Math.floor((passedCount / totalContentItems) * 100) : 0;
                 currentData.progress = completionProgress;
                 setCourseProgressDisplay(completionProgress);
 
-                const allPassed = (passedCount === totalResources);
-                const hasFailed = currentData.resources.some(r => r.clientStatus === "failed");
+                const allPassed = (passedCount === totalContentItems);
+                const hasFailed = currentData.contentItems.some(r => r.clientStatus === "failed");
 
-                console.log(`📊 Summary: ${passedCount}/${totalResources} passed, Completion: ${completionProgress}%`);
+                console.log(`📊 Summary: ${passedCount}/${totalContentItems} passed, Completion: ${completionProgress}%`);
                 if (allPassed) {
                     setCourseStatusDisplay("พร้อมแสดงผล", "success");
                     $("#btnPreSave").prop("disabled", false);
-                    console.log(`✅ All resources PASSED - Save button enabled`);
+                    console.log(`✅ All contentItems PASSED - Save button enabled`);
                 } else {
                     if (hasFailed) {
                         setCourseStatusDisplay("ไม่ผ่านเกณฑ์", "danger");
-                        console.log(`❌ Has FAILED resources`);
+                        console.log(`❌ Has FAILED contentItems`);
                     } else {
                         setCourseStatusDisplay("กำลังเรียน", "muted");
                         console.log(`⏳ Still in progress`);
@@ -1569,12 +1569,12 @@
             if (!currentData) return;
             console.log(`📋 Showing learning result...`);
 
-            if (selectedResourceIndex !== -1) {
-                const r = currentData.resources[selectedResourceIndex];
+            if (selectedContentItemIndex !== -1) {
+                const r = currentData.contentItems[selectedContentItemIndex];
                 if (!r.isCompleted) captureSessionTime(r);
             }
 
-            Promise.resolve(flushSelectedResourceRuntime({ includeSessionTime: true, reason: "view-result" }))
+            Promise.resolve(flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "view-result" }))
                 .then(function() {
                     renderLearningResultModal();
                 })
@@ -1586,12 +1586,12 @@
         }
 
         function renderLearningResultModal() {
-            $("#sumStudentName").text(currentStudentCode);
+            $("#sumLearnerName").text(currentLearnerCode);
             $("#sumCourseName").text(currentData.courseTitle);
             const tbody = $("#summaryDetailsList");
             tbody.empty();
 
-            currentData.resources.forEach(r => {
+            currentData.contentItems.forEach(r => {
                 const timeDisplay = r.clientTime || "00:00:00";
                 const row = `
                     <tr>
@@ -1652,14 +1652,14 @@
 
                     console.log(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
                     setCmiModelValue(e, v);
-                    markSelectedResourceDirty();
+                    markSelectedContentItemDirty();
 
                     if (e === "cmi.core.lesson_status") {
                         syncScorm12StatusAliases(v);
-                        updateResourceData("status", v);
+                        updateContentItemData("status", v);
                     }
                     if (e === "cmi.core.score.raw") {
-                        updateResourceData("score", v);
+                        updateContentItemData("score", v);
                     }
 
                     return "true";
@@ -1671,13 +1671,13 @@
                         return "true";
                     }
                     console.log("💾 SCORM 1.2: LMSCommit");
-                    flushSelectedResourceRuntime({ includeSessionTime: false, reason: "scorm12-commit" });
+                    flushSelectedContentItemRuntime({ includeSessionTime: false, reason: "scorm12-commit" });
                     return "true";
                 },
 
                 LMSFinish: function(p) {
                     console.log("🏁 SCORM 1.2: LMSFinish");
-                    flushSelectedResourceRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
+                    flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
                     sessionStartTime = null;
                     return "true";
                 },
@@ -1698,7 +1698,7 @@
 
                 Terminate: function(p) {
                     console.log("🏁 SCORM 2004: Terminate");
-                    flushSelectedResourceRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
+                    flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
                     sessionStartTime = null;
                     return "true";
                 },
@@ -1722,19 +1722,19 @@
 
                     console.log(`📝 SCORM 2004 SetValue("${e}", "${v}")`);
                     setCmiModelValue(e, v);
-                    markSelectedResourceDirty();
+                    markSelectedContentItemDirty();
 
                     if (e === "cmi.success_status") {
-                        updateResourceData("successStatus", v);
+                        updateContentItemData("successStatus", v);
                     }
                     if (e === "cmi.completion_status") {
-                        updateResourceData("completionStatus", v);
+                        updateContentItemData("completionStatus", v);
                     }
                     if (e === "cmi.progress_measure") {
-                        updateResourceData("progress", parseFloat(v) * 100);
+                        updateContentItemData("progress", parseFloat(v) * 100);
                     }
                     if (e === "cmi.score.raw") {
-                        updateResourceData("score", v);
+                        updateContentItemData("score", v);
                     }
 
                     return "true";
@@ -1746,7 +1746,7 @@
                         return "true";
                     }
                     console.log("💾 SCORM 2004: Commit");
-                    flushSelectedResourceRuntime({ includeSessionTime: false, reason: "scorm2004-commit" });
+                    flushSelectedContentItemRuntime({ includeSessionTime: false, reason: "scorm2004-commit" });
                     return "true";
                 },
 
@@ -1788,11 +1788,11 @@
             console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             console.log("🔍 SCORM State Debug");
             console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            console.log("Selected Resource:", selectedResourceIndex);
+            console.log("Selected ContentItem:", selectedContentItemIndex);
             console.log("Current cmiModel:", JSON.stringify(cmiModel, null, 2));
-            console.log("Resources Status:");
-            if (currentData && currentData.resources) {
-                currentData.resources.forEach((r, i) => {
+            console.log("ContentItems Status:");
+            if (currentData && currentData.contentItems) {
+                currentData.contentItems.forEach((r, i) => {
                     console.log(`  [${i}] ${r.name}:`, {
                         clientStatus: r.clientStatus,
                         clientProgress: r.clientProgress,

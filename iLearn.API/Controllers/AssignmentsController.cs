@@ -21,7 +21,7 @@ namespace iLearn.API.Controllers
         private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly IAssignmentDashboardService _dashboardService;
         private readonly ICourseAssignmentService _courseAssignmentService;
-        private readonly IStudentApiService _studentApiService;
+        private readonly ILearnerApiService _learnerApiService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
@@ -34,7 +34,7 @@ namespace iLearn.API.Controllers
             IAssignmentBatchService assignmentBatchService,
             IAssignmentDashboardService dashboardService,
             ICourseAssignmentService courseAssignmentService,
-            IStudentApiService studentApiService,
+            ILearnerApiService learnerApiService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
             IUnitOfWork unitOfWork)
@@ -46,7 +46,7 @@ namespace iLearn.API.Controllers
             _assignmentBatchService = assignmentBatchService;
             _dashboardService = dashboardService;
             _courseAssignmentService = courseAssignmentService;
-            _studentApiService = studentApiService;
+            _learnerApiService = learnerApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
@@ -177,7 +177,7 @@ namespace iLearn.API.Controllers
             var mainAssignment = await _repo.GetQuery()
                 .AsNoTracking()
                 .Where(a => a.Id == id && (!divisionId.HasValue || a.DivisionId == divisionId.Value))
-                .Select(a => new { a.AssignmentNo, a.StudentGroupId })
+                .Select(a => new { a.AssignmentNo, a.LearnerGroupId })
                 .FirstOrDefaultAsync();
 
             if (mainAssignment == null)
@@ -202,7 +202,7 @@ namespace iLearn.API.Controllers
                 data = new
                 {
                     courseIds,
-                    studentGroupId = mainAssignment.StudentGroupId
+                    learnerGroupId = mainAssignment.LearnerGroupId
                 }
             });
         }
@@ -228,8 +228,8 @@ namespace iLearn.API.Controllers
             if (targetRuleIds.Count == 0)
                 return BadRequest(new { message = "No matching courses found in this assignment." });
 
-            var normalizedStudentCodes = dto.StudentCodes is { Count: > 0 }
-                ? NormalizeStudentCodes(dto.StudentCodes)
+            var normalizedLearnerCodes = dto.LearnerCodes is { Count: > 0 }
+                ? NormalizeLearnerCodes(dto.LearnerCodes)
                 : null;
 
             // Find enrollment IDs via EnrollmentAssignment links
@@ -238,8 +238,8 @@ namespace iLearn.API.Controllers
                     && !ea.IsDeleted
                     && ea.Enrollment != null);
 
-            if (normalizedStudentCodes != null)
-                linksQuery = linksQuery.Where(ea => normalizedStudentCodes.Contains(ea.Enrollment!.StudentCode));
+            if (normalizedLearnerCodes != null)
+                linksQuery = linksQuery.Where(ea => normalizedLearnerCodes.Contains(ea.Enrollment!.LearnerCode));
 
             var enrollmentIds = await linksQuery
                 .Select(ea => ea.EnrollmentId)
@@ -422,8 +422,8 @@ namespace iLearn.API.Controllers
                 return Ok(new { success = true, message = "No new courses were added.", addedCount = 0 });
             }
 
-            var studentCodes = await GetBatchStudentCodesAsync(batchRules.Select(rule => rule.Id).ToList(), batchRules);
-            var employeeCodesText = string.Join(",", studentCodes);
+            var learnerCodes = await GetBatchLearnerCodesAsync(batchRules.Select(rule => rule.Id).ToList(), batchRules);
+            var employeeCodesText = string.Join(",", learnerCodes);
 
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
@@ -437,14 +437,14 @@ namespace iLearn.API.Controllers
                     StartDate = mainRule.StartDate,
                     DueDate = mainRule.DueDate,
                     Division = mainRule.Division,
-                    StudentGroupId = mainRule.StudentGroupId,
+                    LearnerGroupId = mainRule.LearnerGroupId,
                     DivisionId = mainRule.DivisionId
                 }).ToList();
 
                 await _unitOfWork.AddRangeAsync(newRules);
                 await _unitOfWork.SaveChangesAsync();
 
-                if (studentCodes.Count > 0)
+                if (learnerCodes.Count > 0)
                 {
                     var assignmentRuleIdsByCourseId = newRules
                         .Where(rule => rule.CourseId.HasValue)
@@ -452,7 +452,7 @@ namespace iLearn.API.Controllers
 
                     await _courseAssignmentService.AssignCoursesToEmployees(
                         assignmentRuleIdsByCourseId,
-                        studentCodes,
+                        learnerCodes,
                         mainRule.StartDate,
                         mainRule.DueDate,
                         forceReset: false);
@@ -519,8 +519,8 @@ namespace iLearn.API.Controllers
         }
 
         [Authorize(Policy = "AdminOnly")]
-        [HttpPost("{id}/students")]
-        public async Task<IActionResult> AddStudents(int id, [FromBody] ManageAssignmentStudentsDto dto)
+        [HttpPost("{id}/learners")]
+        public async Task<IActionResult> AddLearners(int id, [FromBody] ManageAssignmentLearnersDto dto)
         {
             var mainRule = await _repo.GetByIdAsync(id);
             if (mainRule == null) return NotFound(new { message = "Assignment not found" });
@@ -530,26 +530,26 @@ namespace iLearn.API.Controllers
                 return Forbid();
             }
 
-            var requestedStudentCodes = NormalizeStudentCodes(dto.EmployeeCodes);
-            if (requestedStudentCodes.Count == 0)
+            var requestedLearnerCodes = NormalizeLearnerCodes(dto.EmployeeCodes);
+            if (requestedLearnerCodes.Count == 0)
             {
                 return BadRequest(new { message = "At least one learner is required." });
             }
 
             var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
             var ruleIds = batchRules.Select(rule => rule.Id).ToList();
-            var currentStudentCodes = await GetBatchStudentCodesAsync(ruleIds, batchRules);
-            var newStudentCodes = requestedStudentCodes
-                .Except(currentStudentCodes, StringComparer.OrdinalIgnoreCase)
+            var currentLearnerCodes = await GetBatchLearnerCodesAsync(ruleIds, batchRules);
+            var newLearnerCodes = requestedLearnerCodes
+                .Except(currentLearnerCodes, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            if (newStudentCodes.Count == 0)
+            if (newLearnerCodes.Count == 0)
             {
                 return Ok(new { success = true, message = "No new learners were added.", addedCount = 0 });
             }
 
-            var updatedStudentCodes = currentStudentCodes
-                .Union(newStudentCodes, StringComparer.OrdinalIgnoreCase)
+            var updatedLearnerCodes = currentLearnerCodes
+                .Union(newLearnerCodes, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -557,7 +557,7 @@ namespace iLearn.API.Controllers
             {
                 foreach (var rule in batchRules)
                 {
-                    rule.EmployeeCodes = string.Join(",", updatedStudentCodes);
+                    rule.EmployeeCodes = string.Join(",", updatedLearnerCodes);
                 }
 
                 var assignmentRuleIdsByCourseId = batchRules
@@ -568,7 +568,7 @@ namespace iLearn.API.Controllers
                 {
                     await _courseAssignmentService.AssignCoursesToEmployees(
                         assignmentRuleIdsByCourseId,
-                        newStudentCodes,
+                        newLearnerCodes,
                         mainRule.StartDate,
                         mainRule.DueDate,
                         forceReset: false);
@@ -576,7 +576,7 @@ namespace iLearn.API.Controllers
 
                 await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return Ok(new { success = true, message = "Learners added successfully.", addedCount = newStudentCodes.Count });
+                return Ok(new { success = true, message = "Learners added successfully.", addedCount = newLearnerCodes.Count });
             }
             catch
             {
@@ -586,8 +586,8 @@ namespace iLearn.API.Controllers
         }
 
         [Authorize(Policy = "AdminOnly")]
-        [HttpDelete("{id}/students/{studentCode}")]
-        public async Task<IActionResult> RemoveStudent(int id, string studentCode)
+        [HttpDelete("{id}/learners/{learnerCode}")]
+        public async Task<IActionResult> RemoveLearner(int id, string learnerCode)
         {
             var mainRule = await _repo.GetByIdAsync(id);
             if (mainRule == null) return NotFound(new { message = "Assignment not found" });
@@ -597,22 +597,22 @@ namespace iLearn.API.Controllers
                 return Forbid();
             }
 
-            var normalizedStudentCode = studentCode?.Trim();
-            if (string.IsNullOrWhiteSpace(normalizedStudentCode))
+            var normalizedLearnerCode = learnerCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedLearnerCode))
             {
                 return BadRequest(new { message = "Learner code is required." });
             }
 
             var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
             var ruleIds = batchRules.Select(rule => rule.Id).ToList();
-            var currentStudentCodes = await GetBatchStudentCodesAsync(ruleIds, batchRules);
-            if (!currentStudentCodes.Contains(normalizedStudentCode, StringComparer.OrdinalIgnoreCase))
+            var currentLearnerCodes = await GetBatchLearnerCodesAsync(ruleIds, batchRules);
+            if (!currentLearnerCodes.Contains(normalizedLearnerCode, StringComparer.OrdinalIgnoreCase))
             {
                 return NotFound(new { message = "Learner is not assigned to this assignment." });
             }
 
-            var remainingStudentCodes = currentStudentCodes
-                .Where(code => !string.Equals(code, normalizedStudentCode, StringComparison.OrdinalIgnoreCase))
+            var remainingLearnerCodes = currentLearnerCodes
+                .Where(code => !string.Equals(code, normalizedLearnerCode, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -621,7 +621,7 @@ namespace iLearn.API.Controllers
                 var links = await _enrollmentAssignmentRepo.GetAsync(
                     link => ruleIds.Contains(link.AssignmentId)
                         && link.Enrollment != null
-                        && link.Enrollment.StudentCode == normalizedStudentCode,
+                        && link.Enrollment.LearnerCode == normalizedLearnerCode,
                     includeProperties: "Enrollment");
 
                 foreach (var link in links)
@@ -630,7 +630,7 @@ namespace iLearn.API.Controllers
                     link.DeletedAt = _dateTime.Now;
                 }
 
-                var employeeCodesText = string.Join(",", remainingStudentCodes);
+                var employeeCodesText = string.Join(",", remainingLearnerCodes);
                 foreach (var rule in batchRules)
                 {
                     rule.EmployeeCodes = employeeCodesText;
@@ -703,30 +703,30 @@ namespace iLearn.API.Controllers
             return requestedCourseIds.Any(courseId => !accessibleCourseIds.Contains(courseId));
         }
 
-        private async Task<List<string>> GetBatchStudentCodesAsync(List<int> ruleIds, IEnumerable<Assignment> batchRules)
+        private async Task<List<string>> GetBatchLearnerCodesAsync(List<int> ruleIds, IEnumerable<Assignment> batchRules)
         {
-            var studentCodesFromLinks = await _enrollmentAssignmentRepo.GetQuery()
+            var learnerCodesFromLinks = await _enrollmentAssignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(link => ruleIds.Contains(link.AssignmentId) && !link.IsDeleted && link.Enrollment != null)
-                .Select(link => link.Enrollment!.StudentCode)
+                .Select(link => link.Enrollment!.LearnerCode)
                 .Distinct()
                 .ToListAsync();
 
-            var studentCodesFromRules = batchRules
+            var learnerCodesFromRules = batchRules
                 .SelectMany(rule => (rule.EmployeeCodes ?? string.Empty)
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 .ToList();
 
-            return studentCodesFromLinks
-                .Concat(studentCodesFromRules)
+            return learnerCodesFromLinks
+                .Concat(learnerCodesFromRules)
                 .Where(code => !string.IsNullOrWhiteSpace(code))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
-        private static List<string> NormalizeStudentCodes(IEnumerable<string>? studentCodes)
+        private static List<string> NormalizeLearnerCodes(IEnumerable<string>? learnerCodes)
         {
-            return studentCodes?
+            return learnerCodes?
                 .Where(code => !string.IsNullOrWhiteSpace(code))
                 .Select(code => code.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -790,10 +790,10 @@ namespace iLearn.API.Controllers
                 .Select(ea => new AssignmentHistoryLinkRow
                 {
                     AssignmentId = ea.AssignmentId,
-                    StudentCode = ea.Enrollment != null ? ea.Enrollment.StudentCode : null,
+                    LearnerCode = ea.Enrollment != null ? ea.Enrollment.LearnerCode : null,
                     IsCompleted = ea.SnapshotCompleted || (ea.Enrollment != null && ea.Enrollment.IsCompleted)
                 })
-                .Where(ea => ea.StudentCode != null)
+                .Where(ea => ea.LearnerCode != null)
                 .ToListAsync(cancellationToken);
 
             var linksByAssignmentId = linkRows.ToLookup(link => link.AssignmentId);
@@ -822,8 +822,8 @@ namespace iLearn.API.Controllers
                     DueDate = a.DueDate,
                     CreatedBy = a.CreatedBy,
                     CreatedAt = a.CreatedAt,
-                    StudentGroupId = a.StudentGroupId,
-                    StudentGroupName = a.StudentGroup != null ? a.StudentGroup.Name : null
+                    LearnerGroupId = a.LearnerGroupId,
+                    LearnerGroupName = a.LearnerGroup != null ? a.LearnerGroup.Name : null
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -849,8 +849,8 @@ namespace iLearn.API.Controllers
                     DueDate = a.DueDate,
                     CreatedBy = a.CreatedBy,
                     CreatedAt = a.CreatedAt,
-                    StudentGroupId = a.StudentGroupId,
-                    StudentGroupName = a.StudentGroup != null ? a.StudentGroup.Name : null
+                    LearnerGroupId = a.LearnerGroupId,
+                    LearnerGroupName = a.LearnerGroup != null ? a.LearnerGroup.Name : null
                 })
                 .ToListAsync(cancellationToken);
 
@@ -882,13 +882,13 @@ namespace iLearn.API.Controllers
 
             var ruleIds = assignmentRows.Select(row => row.Id).ToList();
 
-            var studentRows = await _enrollmentAssignmentRepo.GetQuery()
+            var learnerRows = await _enrollmentAssignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(link => ruleIds.Contains(link.AssignmentId) && link.Enrollment != null)
-                .Select(link => new DashboardStudentRow
+                .Select(link => new DashboardLearnerRow
                 {
                     AssignmentId = link.AssignmentId,
-                    StudentCode = link.Enrollment!.StudentCode,
+                    LearnerCode = link.Enrollment!.LearnerCode,
                     Progress = link.SnapshotCompleted ? link.SnapshotProgress : link.Enrollment.Progress,
                     IsCompleted = link.SnapshotCompleted || link.Enrollment.IsCompleted,
                     CompletedDate = link.SnapshotCompleted ? link.SnapshotCompletedDate : link.Enrollment.CompletedDate,
@@ -897,40 +897,40 @@ namespace iLearn.API.Controllers
                 })
                 .ToListAsync(cancellationToken);
 
-            var uniqueStudentCodes = studentRows
-                .Select(row => row.StudentCode)
+            var uniqueLearnerCodes = learnerRows
+                .Select(row => row.LearnerCode)
                 .Where(code => !string.IsNullOrWhiteSpace(code))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            var studentNames = uniqueStudentCodes.Count == 0
-                ? new Dictionary<string, ExternalStudentDto>(StringComparer.OrdinalIgnoreCase)
-                : await _studentApiService.GetStudentsByCodesAsync(uniqueStudentCodes);
+            var learnerNames = uniqueLearnerCodes.Count == 0
+                ? new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
+                : await _learnerApiService.GetLearnersByCodesAsync(uniqueLearnerCodes);
 
-            var studentsByCode = studentRows
-                .GroupBy(row => row.StudentCode)
+            var learnersByCode = learnerRows
+                .GroupBy(row => row.LearnerCode)
                 .Select(group => new
                 {
-                    StudentCode = group.Key,
+                    LearnerCode = group.Key,
                     AllCompleted = group.All(row => row.IsCompleted),
                     AnyStarted = group.Any(row => row.IsCompleted || row.Progress > 0)
                 })
                 .ToList();
 
-            var completedCount = studentsByCode.Count(item => item.AllCompleted);
-            var inProgressCount = studentsByCode.Count(item => !item.AllCompleted && item.AnyStarted);
-            var notStartedCount = studentsByCode.Count(item => !item.AllCompleted && !item.AnyStarted);
-            var totalEnrollments = studentRows.Count;
-            var completedEnrollments = studentRows.Count(row => row.IsCompleted);
+            var completedCount = learnersByCode.Count(item => item.AllCompleted);
+            var inProgressCount = learnersByCode.Count(item => !item.AllCompleted && item.AnyStarted);
+            var notStartedCount = learnersByCode.Count(item => !item.AllCompleted && !item.AnyStarted);
+            var totalEnrollments = learnerRows.Count;
+            var completedEnrollments = learnerRows.Count(row => row.IsCompleted);
             var completionRate = totalEnrollments == 0
                 ? 0
                 : Math.Round((double)completedEnrollments / totalEnrollments * 100);
 
-            var studentCountByRule = studentRows
+            var learnerCountByRule = learnerRows
                 .GroupBy(row => row.AssignmentId)
                 .ToDictionary(group => group.Key, group => group.Count());
 
-            var completedCountByRule = studentRows
+            var completedCountByRule = learnerRows
                 .Where(row => row.IsCompleted)
                 .GroupBy(row => row.AssignmentId)
                 .ToDictionary(group => group.Key, group => group.Count());
@@ -949,14 +949,14 @@ namespace iLearn.API.Controllers
                         AssignmentRuleId = row.Id,
                         CourseCode = course?.Code ?? "-",
                         CourseTitle = course?.Title ?? "Unknown Course",
-                        CompletedStudents = completedCountByRule.GetValueOrDefault(row.Id),
-                        TotalStudents = studentCountByRule.GetValueOrDefault(row.Id),
+                        CompletedLearners = completedCountByRule.GetValueOrDefault(row.Id),
+                        TotalLearners = learnerCountByRule.GetValueOrDefault(row.Id),
                         IsCourseDeleted = course?.IsDeleted ?? false
                     };
                 })
                 .ToList();
 
-            var students = studentRows
+            var learners = learnerRows
                 .Select(row =>
                 {
                     var assignment = assignmentRows.FirstOrDefault(item => item.Id == row.AssignmentId);
@@ -967,10 +967,10 @@ namespace iLearn.API.Controllers
                     }
 
                     var status = row.IsCompleted ? "Completed" : row.Progress > 0 ? "In Progress" : "Pending";
-                    return new StudentProgressDto
+                    return new LearnerProgressDto
                     {
-                        StudentCode = row.StudentCode,
-                        StudentName = studentNames.GetValueOrDefault(row.StudentCode)?.Name ?? row.StudentCode,
+                        LearnerCode = row.LearnerCode,
+                        LearnerName = learnerNames.GetValueOrDefault(row.LearnerCode)?.Name ?? row.LearnerCode,
                         AssignmentRuleId = row.AssignmentId,
                         CourseCode = course?.Code ?? "-",
                         CourseTitle = course?.Title ?? "Unknown Course",
@@ -991,11 +991,11 @@ namespace iLearn.API.Controllers
                 CreatedBy = mainAssignment.CreatedBy,
                 StartDate = mainAssignment.StartDate,
                 DueDate = mainAssignment.DueDate,
-                TotalEmployees = studentsByCode.Count,
+                TotalEmployees = learnersByCode.Count,
                 TotalCourses = courseSummaries.Count,
                 CompletionRate = completionRate,
-                StudentGroupId = mainAssignment.StudentGroupId,
-                StudentGroupName = mainAssignment.StudentGroupName,
+                LearnerGroupId = mainAssignment.LearnerGroupId,
+                LearnerGroupName = mainAssignment.LearnerGroupName,
                 HasDeletedCourse = courseSummaries.Any(course => course.IsCourseDeleted),
                 ChartData = new DashboardChartDto
                 {
@@ -1004,7 +1004,7 @@ namespace iLearn.API.Controllers
                     NotStarted = notStartedCount
                 },
                 Courses = courseSummaries,
-                Students = students
+                Learners = learners
             };
         }
 
@@ -1091,7 +1091,7 @@ namespace iLearn.API.Controllers
                 "createdBy" => item => item.CreatedBy,
                 "courseNames" => item => item.CourseNames,
                 "description" => item => item.Description,
-                "studentCount" => item => item.StudentCount,
+                "learnerCount" => item => item.LearnerCount,
                 "progress" or "completedEnrollmentCount" => item => item.TotalEnrollmentCount > 0
                     ? Math.Round((double)item.CompletedEnrollmentCount / item.TotalEnrollmentCount * 100)
                     : 0,
@@ -1128,7 +1128,7 @@ namespace iLearn.API.Controllers
             var first = group.OrderBy(item => item.Id).First();
             var relatedLinks = group
                 .SelectMany(item => linksByAssignmentId[item.Id])
-                .Where(link => !string.IsNullOrWhiteSpace(link.StudentCode))
+                .Where(link => !string.IsNullOrWhiteSpace(link.LearnerCode))
                 .ToList();
 
             var allCompleted = relatedLinks.Count > 0 && relatedLinks.All(link => link.IsCompleted);
@@ -1164,7 +1164,7 @@ namespace iLearn.API.Controllers
                 CreatedBy = first.CreatedBy,
                 CreatedAt = first.CreatedAt,
                 CourseCount = courseEntries.Count,
-                StudentCount = string.IsNullOrWhiteSpace(first.EmployeeCodes)
+                LearnerCount = string.IsNullOrWhiteSpace(first.EmployeeCodes)
                     ? 0
                     : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
                 CompletedEnrollmentCount = relatedLinks.Count(link => link.IsCompleted),
@@ -1261,7 +1261,7 @@ namespace iLearn.API.Controllers
         private sealed class AssignmentHistoryLinkRow
         {
             public int AssignmentId { get; set; }
-            public string? StudentCode { get; set; }
+            public string? LearnerCode { get; set; }
             public bool IsCompleted { get; set; }
         }
 
@@ -1295,14 +1295,14 @@ namespace iLearn.API.Controllers
             public DateTime? DueDate { get; set; }
             public string? CreatedBy { get; set; }
             public DateTime CreatedAt { get; set; }
-            public int? StudentGroupId { get; set; }
-            public string? StudentGroupName { get; set; }
+            public int? LearnerGroupId { get; set; }
+            public string? LearnerGroupName { get; set; }
         }
 
-        private sealed class DashboardStudentRow
+        private sealed class DashboardLearnerRow
         {
             public int AssignmentId { get; set; }
-            public string StudentCode { get; set; } = string.Empty;
+            public string LearnerCode { get; set; } = string.Empty;
             public double Progress { get; set; }
             public bool IsCompleted { get; set; }
             public DateTime? CompletedDate { get; set; }

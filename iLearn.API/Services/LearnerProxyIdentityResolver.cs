@@ -8,7 +8,7 @@ namespace iLearn.API.Services
 {
     public interface ILearnerProxyIdentityResolver
     {
-        bool TryResolveStudentCode(HttpContext context, out string studentCode, out int statusCode, out string errorMessage);
+        bool TryResolveLearnerCode(HttpContext context, out string learnerCode, out int statusCode, out string errorMessage);
     }
 
     public sealed class LearnerProxyIdentityResolver : ILearnerProxyIdentityResolver
@@ -24,9 +24,9 @@ namespace iLearn.API.Services
             _logger = logger;
         }
 
-        public bool TryResolveStudentCode(HttpContext context, out string studentCode, out int statusCode, out string errorMessage)
+        public bool TryResolveLearnerCode(HttpContext context, out string learnerCode, out int statusCode, out string errorMessage)
         {
-            studentCode = string.Empty;
+            learnerCode = string.Empty;
 
             if (string.IsNullOrWhiteSpace(_options.SharedSecret))
             {
@@ -35,8 +35,8 @@ namespace iLearn.API.Services
                 return false;
             }
 
-            if (!TryGetSingleHeader(context, LearnerProxyAuthHeaders.StudentCode, out var requestedStudentCode) ||
-                string.IsNullOrWhiteSpace(requestedStudentCode))
+            if (!TryGetSingleHeader(context, LearnerProxyAuthHeaders.LearnerCode, out var requestedLearnerCode) ||
+                string.IsNullOrWhiteSpace(requestedLearnerCode))
             {
                 statusCode = StatusCodes.Status400BadRequest;
                 errorMessage = "Missing learner identity header.";
@@ -71,7 +71,7 @@ namespace iLearn.API.Services
             var signedPath = LearnerProxyAuthSignature.NormalizeAbsolutePath($"{context.Request.PathBase}{context.Request.Path}");
             var expectedSignature = LearnerProxyAuthSignature.Compute(
                 _options.SharedSecret,
-                requestedStudentCode,
+                requestedLearnerCode,
                 timestampValue,
                 context.Request.Method,
                 signedPath);
@@ -91,7 +91,7 @@ namespace iLearn.API.Services
                 return false;
             }
 
-            studentCode = requestedStudentCode.Trim();
+            learnerCode = requestedLearnerCode.Trim();
             statusCode = StatusCodes.Status200OK;
             errorMessage = string.Empty;
             return true;

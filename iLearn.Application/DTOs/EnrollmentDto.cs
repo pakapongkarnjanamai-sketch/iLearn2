@@ -3,7 +3,7 @@
     public class EnrollmentDto
     {
         public int Id { get; set; }
-        public string StudentCode { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
         public int? CourseId { get; set; }
         public string CourseCode { get; set; } = string.Empty;
         public string CourseTitle { get; set; } = string.Empty;

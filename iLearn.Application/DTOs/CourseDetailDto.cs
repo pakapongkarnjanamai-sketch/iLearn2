@@ -12,10 +12,10 @@ namespace iLearn.Application.DTOs
         public int CourseType { get; set; }
         public int CategoryId { get; set; }
         public bool IsActive { get; set; }
-        public List<CourseResourceDto> Resources { get; set; } = new();
+        public List<CourseContentItemDto> ContentItems { get; set; } = new();
     }
 
-    public class CourseResourceDto
+    public class CourseContentItemDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -33,6 +33,6 @@ namespace iLearn.Application.DTOs
         public string Note { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<CourseResourceDto> Resources { get; set; } = new();
+        public List<CourseContentItemDto> ContentItems { get; set; } = new();
     }
 }

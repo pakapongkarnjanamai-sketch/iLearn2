@@ -2,7 +2,7 @@
     ViewBag.Title = "Assignment Detail";
     var reportByNoUrlTemplate = Url.Content("~/Assignments/Report/__ASSIGNMENT_NO__");
     var reportByIdUrl = Url.Content($"~/Assignments/Report/{ViewBag.AssignmentId}");
-    var studentReportUrlTemplate = Url.Content("~/Students/Report/__STUDENT_CODE__");
+    var learnerReportUrlTemplate = Url.Content("~/Learners/Report/__STUDENT_CODE__");
     var assignmentDetailBaseUrl = Url.Content("~/Assignments/Detail");
 }
 
@@ -85,9 +85,9 @@
                     <div class="detail-info-label">Created By</div>
                     <div class="detail-info-value" id="lbl-created-by">—</div>
                 </div>
-                <div id="meta-student-group" class="d-none">
-                    <div class="detail-info-label">Student Group</div>
-                    <div class="detail-info-value" id="lbl-student-group">—</div>
+                <div id="meta-learner-group" class="d-none">
+                    <div class="detail-info-label">Learner Group</div>
+                    <div class="detail-info-value" id="lbl-learner-group">—</div>
                 </div>
             </div>
         </div>
@@ -134,7 +134,7 @@
                         </div>
                     </button>
 
-                    <button type="button" id="btn-add-students" class="quick-action">
+                    <button type="button" id="btn-add-learners" class="quick-action">
                         <div class="qa-icon qa-icon-success"><i class="fas fa-user-plus"></i></div>
                         <div>
                             <div class="u-fs-12 u-fw-semibold">Add Learners</div>
@@ -180,7 +180,7 @@
         </div>
     </div>
 
-    <!-- ── Row 2: Course Cards + Student Grid ───────────────────── -->
+    <!-- ── Row 2: Course Cards + Learner Grid ───────────────────── -->
     <div class="row g-3">
         <!-- Course List -->
         <div class="col-xl-4">
@@ -194,13 +194,13 @@
             </div>
         </div>
 
-        <!-- Student DataGrid -->
+        <!-- Learner DataGrid -->
         <div class="col-xl-8">
             <div class="border rounded bg-white">
                 <div class="p-3 d-flex justify-content-between align-items-center">
                     <div class="section-title mb-0 assignment-panel-title">
                         Learners
-                        <span class="text-secondary fw-normal ms-2" id="student-grid-subtitle"
+                        <span class="text-secondary fw-normal ms-2" id="learner-grid-subtitle"
                               class="u-fs-11 u-text-transform-none u-letter-spacing-0">— All</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -208,7 +208,7 @@
                     </div>
                 </div>
                 <div class="px-3 pb-3">
-                    <div id="student-grid"></div>
+                    <div id="learner-grid"></div>
                 </div>
             </div>
         </div>
@@ -217,7 +217,7 @@
 </div>
 
 <div id="add-course-popup"></div>
-<div id="add-students-popup"></div>
+<div id="add-learners-popup"></div>
 
 @section Scripts {
 <script>
@@ -229,16 +229,16 @@
     const ASSIGNMENT_LOOKUP_COURSES_URL = `${ASSIGNMENTS_API_URL}/lookup-courses`;
     const ASSIGNMENT_VALIDATE_URL = `${ASSIGNMENTS_API_URL}/validate-before-assign`;
     const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
-    const STUDENT_REPORT_URL_TEMPLATE = '@studentReportUrlTemplate';
+    const STUDENT_REPORT_URL_TEMPLATE = '@learnerReportUrlTemplate';
     const ASSIGNMENT_DETAIL_BASE_URL = '@assignmentDetailBaseUrl';
     const EMPTY_TEXT = "—";
 
     let loadPanel;
     let currentDueDate = null;
     let currentStartDate = null;
-    let studentsByRuleId = new Map();
+    let learnersByRuleId = new Map();
     let addCoursePopup;
-    let addStudentsPopup;
+    let addLearnersPopup;
     let dashboardData = null;
 
     $(() => {
@@ -258,7 +258,7 @@
         $("#btn-delete-assignment").click(handleDeleteAssignment);
         $("#btn-extend-due-date").click(openExtendDueDatePopup);
         $("#btn-add-course").click(() => addCoursePopup.show());
-        $("#btn-add-students").click(() => addStudentsPopup.show());
+        $("#btn-add-learners").click(() => addLearnersPopup.show());
         $("#btn-reassignment").click(handleReassignment);
     });
 
@@ -381,7 +381,7 @@
             ]
         }).dxPopup("instance");
 
-        addStudentsPopup = $("#add-students-popup").dxPopup({
+        addLearnersPopup = $("#add-learners-popup").dxPopup({
             title: "Add Learners",
             width: "90vw",
             maxWidth: 1280,
@@ -391,7 +391,7 @@
             deferRendering: false,
             wrapperAttr: { class: "shadow-lg rounded-4" },
             onShown: function() {
-                const g = $("#add-students-grid").dxDataGrid("instance");
+                const g = $("#add-learners-grid").dxDataGrid("instance");
                 if (g) g.updateDimensions();
             },
             contentTemplate: function(contentElement) {
@@ -422,16 +422,16 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 d-flex flex-column u-min-w-0">
-                            <div id="add-students-grid" class="flex-grow-1"></div>
+                            <div id="add-learners-grid" class="flex-grow-1"></div>
                         </div>
                     </div>
                 `).appendTo(contentElement);
 
-                const empGrid = initDxGrid("#add-students-grid", {
+                const empGrid = initDxGrid("#add-learners-grid", {
                     preset: "selectionGrid",
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
-                        loadUrl: `${serviceUrl}/Students/Get`,
+                        loadUrl: `${serviceUrl}/Learners/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
                         }
@@ -471,8 +471,8 @@
                     ]
                 });
 
-                initAdminStudentOrgFilters({
-                    studentsBaseUrl: `${serviceUrl}/Students`,
+                initAdminLearnerOrgFilters({
+                    learnersBaseUrl: `${serviceUrl}/Learners`,
                     gridInstance: empGrid,
                     divSelector: "#add-filter-emp-div",
                     deptSelector: "#add-filter-emp-dept",
@@ -489,7 +489,7 @@
                     options: {
                         text: "Cancel",
                         stylingMode: "outlined",
-                        onClick: function() { addStudentsPopup.hide(); }
+                        onClick: function() { addLearnersPopup.hide(); }
                     }
                 },
                 {
@@ -500,7 +500,7 @@
                         text: "Add Selected",
                         type: "default",
                         stylingMode: "contained",
-                        onClick: addSelectedStudents
+                        onClick: addSelectedLearners
                     }
                 }
             ]
@@ -524,7 +524,7 @@
             const data = response.data;
             dashboardData = data;
             const courses = Array.isArray(data.courses) ? data.courses : [];
-            const students = Array.isArray(data.students) ? data.students : [];
+            const learners = Array.isArray(data.learners) ? data.learners : [];
             const firstRuleId = courses.length > 0 ? courses[0].assignmentRuleId : null;
             const dropdownOptions = courses.map(course => ({
                 assignmentRuleId: course.assignmentRuleId,
@@ -536,8 +536,8 @@
             initializeStatusChart(data.chartData, data.completionRate);
             initializeCourseList(courses, firstRuleId);
             initializeCourseSelector(dropdownOptions, firstRuleId);
-            studentsByRuleId = groupStudentsByRuleId(students);
-            initializeStudentGrid(getStudentsForRule(firstRuleId));
+            learnersByRuleId = groupLearnersByRuleId(learners);
+            initializeLearnerGrid(getLearnersForRule(firstRuleId));
 
             if (firstRuleId) {
                 setActiveCourseFilter(firstRuleId, dropdownOptions[0]?.displayText || EMPTY_TEXT);
@@ -580,7 +580,7 @@
         // ── Status badge ──────────────────────────────────────────────
         const now = new Date();
         const isPastDue = data.dueDate && new Date(data.dueDate) < now;
-        const isFullyDone = (data.completionRate ?? 0) >= 1 && (data.totalStudents ?? data.totalEmployees ?? 0) > 0;
+        const isFullyDone = (data.completionRate ?? 0) >= 1 && (data.totalLearners ?? data.totalEmployees ?? 0) > 0;
         let badgeClass, badgeIcon, badgeText;
         if (isFullyDone) {
             badgeClass = "pill-success";  badgeIcon = "fa-check-circle"; badgeText = "Completed";
@@ -605,12 +605,12 @@
             );
         }
 
-        if (data.studentGroupId) {
-            $("#lbl-student-group").html(
-                `<a href="@Url.Action("Detail", "StudentGroups")?id=${data.studentGroupId}" class="action-link">${window.escapeHtml(data.studentGroupName || '-')}</a>` +
-                ` <span class="text-secondary u-fs-11">(ID: ${data.studentGroupId})</span>`
+        if (data.learnerGroupId) {
+            $("#lbl-learner-group").html(
+                `<a href="@Url.Action("Detail", "LearnerGroups")?id=${data.learnerGroupId}" class="action-link">${window.escapeHtml(data.learnerGroupName || '-')}</a>` +
+                ` <span class="text-secondary u-fs-11">(ID: ${data.learnerGroupId})</span>`
             );
-            $("#meta-student-group").removeClass("d-none");
+            $("#meta-learner-group").removeClass("d-none");
         }
 
         if (!data.hasDeletedCourse) {
@@ -626,10 +626,10 @@
     }
 
     function initializeStats(data) {
-        const totalStudents = data.totalStudents ?? data.totalEmployees;
+        const totalLearners = data.totalLearners ?? data.totalEmployees;
         const chartData = data.chartData || {};
 
-        $("#stat-total-emp").text(totalStudents ?? 0);
+        $("#stat-total-emp").text(totalLearners ?? 0);
         $("#stat-total-courses").text(data.totalCourses ?? 0);
         $("#stat-completed").text(chartData.completed ?? 0);
         $("#stat-inprogress").text(chartData.inProgress ?? 0);
@@ -706,7 +706,7 @@
 
     function buildCourseCardHtml(course, isActive) {
         const percent = getCourseCompletionPercent(course);
-        const remaining = course.totalStudents - course.completedStudents;
+        const remaining = course.totalLearners - course.completedLearners;
         const toneClass = course.isCourseDeleted
             ? "danger"
             : getProgressTone(percent);
@@ -748,7 +748,7 @@
 
                 <!-- Row 4: Stats -->
                 <div class="d-flex gap-3 u-fs-11">
-                    <span class="u-text-success"><i class="fas fa-check me-1"></i>${window.formatAdminCountLabel(course.completedStudents, 'done', 'done')}</span>
+                    <span class="u-text-success"><i class="fas fa-check me-1"></i>${window.formatAdminCountLabel(course.completedLearners, 'done', 'done')}</span>
                     <span class="text-secondary">${window.formatAdminCountLabel(remaining, 'left', 'left')}</span>
                 </div>
 
@@ -770,18 +770,18 @@
         });
     }
 
-    function initializeStudentGrid(students) {
-        initDxGrid("#student-grid", {
+    function initializeLearnerGrid(learners) {
+        initDxGrid("#learner-grid", {
             preset: "compactGrid",
             height: "auto",
             minVisibleRows: 8,
-            dataSource: students,
+            dataSource: learners,
             rowAlternationEnabled: false,
             filterRow: { visible: false },
             searchPanel: { placeholder: "Search learner...", width: 160 },
             export: { enabled: false },
             onExporting: function(e) {
-                handleExporting(e, `Student_Tracking_${ASSIGNMENT_ID}`);
+                handleExporting(e, `Learner_Tracking_${ASSIGNMENT_ID}`);
             },
             onRowPrepared: function(e) {
                 if (e.rowType === "data" && e.data.isCompleted) {
@@ -790,7 +790,7 @@
             },
             columns: [
                 {
-                    dataField: "studentCode",
+                    dataField: "learnerCode",
                     caption: "ID",
                     width: 100,
                     cellTemplate: function(container, options) {
@@ -803,7 +803,7 @@
                     }
                 },
                 {
-                    dataField: "studentName",
+                    dataField: "learnerName",
                     caption: "Name",
                     minWidth: 120,
                     cssClass: "cell-secondary",
@@ -823,7 +823,7 @@
                     caption: "Status",
                     width: 110,
                     cellTemplate: function(container, options) {
-                        renderStudentStatusCell(container, options.value, options.data.progress);
+                        renderLearnerStatusCell(container, options.value, options.data.progress);
                     }
                 },
                 {
@@ -850,7 +850,7 @@
                             .html('<i class="fas fa-sync-alt u-text-warning"></i>')
                             .on("click", function(e) {
                                 e.preventDefault();
-                                confirmResetStudent(options.data.assignmentRuleId, options.data.studentCode, options.data.studentName || options.data.studentCode);
+                                confirmResetLearner(options.data.assignmentRuleId, options.data.learnerCode, options.data.learnerName || options.data.learnerCode);
                             })
                             .appendTo($wrap);
                         $("<button>")
@@ -860,7 +860,7 @@
                             .html('<i class="fas fa-user-minus u-text-danger"></i>')
                             .on("click", function(e) {
                                 e.preventDefault();
-                                confirmRemoveStudent(options.data.studentCode, options.data.studentName || options.data.studentCode);
+                                confirmRemoveLearner(options.data.learnerCode, options.data.learnerName || options.data.learnerCode);
                             })
                             .appendTo($wrap);
                     }
@@ -897,10 +897,10 @@
         }
     }
 
-    async function addSelectedStudents() {
-        const grid = $("#add-students-grid").dxDataGrid("instance");
-        const studentCodes = grid ? grid.getSelectedRowKeys() : [];
-        if (!studentCodes.length) {
+    async function addSelectedLearners() {
+        const grid = $("#add-learners-grid").dxDataGrid("instance");
+        const learnerCodes = grid ? grid.getSelectedRowKeys() : [];
+        if (!learnerCodes.length) {
             showToast("Please select at least one learner.", "warning");
             return;
         }
@@ -910,14 +910,14 @@
 
         try {
             const response = await $.ajax({
-                url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/students`,
+                url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/learners`,
                 method: "POST",
                 contentType: "application/json",
                 xhrFields: { withCredentials: true },
-                data: JSON.stringify({ employeeCodes: studentCodes })
+                data: JSON.stringify({ employeeCodes: learnerCodes })
             });
 
-            addStudentsPopup.hide();
+            addLearnersPopup.hide();
             reloadDetail(response.message || "Learners updated.");
         } catch (error) {
             loadPanel.hide();
@@ -928,38 +928,38 @@
     function setActiveCourseFilter(ruleId, title) {
         $("#course-list").find(".course-item").removeClass("active");
         $("#course-list").find(`.course-item[data-rule="${ruleId}"]`).addClass("active");
-        $("#student-grid-subtitle").text(`— ${title}`);
-        const grid = $("#student-grid").dxDataGrid("instance");
+        $("#learner-grid-subtitle").text(`— ${title}`);
+        const grid = $("#learner-grid").dxDataGrid("instance");
         if (!grid) {
             return;
         }
 
-        grid.option("dataSource", getStudentsForRule(ruleId));
+        grid.option("dataSource", getLearnersForRule(ruleId));
         grid.searchByText("");
     }
 
-    function groupStudentsByRuleId(students) {
+    function groupLearnersByRuleId(learners) {
         const grouped = new Map();
 
-        students.forEach(student => {
-            const key = student.assignmentRuleId ?? 0;
+        learners.forEach(learner => {
+            const key = learner.assignmentRuleId ?? 0;
             if (!grouped.has(key)) {
                 grouped.set(key, []);
             }
 
-            grouped.get(key).push(student);
+            grouped.get(key).push(learner);
         });
 
         return grouped;
     }
 
-    function getStudentsForRule(ruleId) {
-        return studentsByRuleId.get(ruleId ?? 0) || [];
+    function getLearnersForRule(ruleId) {
+        return learnersByRuleId.get(ruleId ?? 0) || [];
     }
 
     function getCourseCompletionPercent(course) {
-        return course.totalStudents > 0
-            ? Math.round((course.completedStudents / course.totalStudents) * 100)
+        return course.totalLearners > 0
+            ? Math.round((course.completedLearners / course.totalLearners) * 100)
             : 0;
     }
 
@@ -1003,7 +1003,7 @@
         return "default";
     }
 
-    function renderStudentStatusCell(container, isCompleted, progress) {
+    function renderLearnerStatusCell(container, isCompleted, progress) {
         let dotClass = "dot-default";
         let label = "Pending";
 
@@ -1057,10 +1057,10 @@
         });
     }
 
-    function confirmRemoveStudent(studentCode, studentName) {
+    function confirmRemoveLearner(learnerCode, learnerName) {
         showConfirmDialog({
             title: "Remove learner from assignment?",
-            html: `<b>${window.escapeHtml(studentCode || EMPTY_TEXT)}</b> ${window.escapeHtml(studentName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
+            html: `<b>${window.escapeHtml(learnerCode || EMPTY_TEXT)}</b> ${window.escapeHtml(learnerName || EMPTY_TEXT)} will be removed from all assigned courses in this assignment.`,
             confirmButtonText: "Remove",
             confirmClass: "btn-danger",
             cancelButtonText: "Cancel"
@@ -1074,7 +1074,7 @@
 
             try {
                 const response = await $.ajax({
-                    url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/students/${encodeURIComponent(studentCode)}`,
+                    url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/learners/${encodeURIComponent(learnerCode)}`,
                     method: "DELETE",
                     xhrFields: { withCredentials: true }
                 });
@@ -1099,9 +1099,9 @@
         };
     }
 
-    function getReassignmentStudentCodes() {
-        return [...new Set((dashboardData?.students || [])
-            .map(student => student.studentCode)
+    function getReassignmentLearnerCodes() {
+        return [...new Set((dashboardData?.learners || [])
+            .map(learner => learner.learnerCode)
             .filter(Boolean))];
     }
 
@@ -1113,7 +1113,7 @@
         const previewItems = items.slice(0, 5).map(function(item) {
             return `
                 <li class="mb-1">
-                    <span class="fw-semibold">${window.escapeHtml(item.studentCode)}</span>
+                    <span class="fw-semibold">${window.escapeHtml(item.learnerCode)}</span>
                     <span class="text-secondary mx-1">→</span>
                     <span>${window.escapeHtml(item.courseTitle)}</span>
                 </li>`;
@@ -1137,11 +1137,11 @@
     function showReassignmentSummaryDialog(validationResult, payload) {
         const resolvedCount = validationResult.resolvedCount
             || payload.employeeCodes.length
-            || dashboardData?.totalStudents
+            || dashboardData?.totalLearners
             || dashboardData?.totalEmployees
             || 0;
         const targetText = payload.groupId
-            ? `${window.escapeHtml(dashboardData?.studentGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'learner')})`
+            ? `${window.escapeHtml(dashboardData?.learnerGroupName || "Selected group")} (${window.formatAdminCountLabel(resolvedCount, 'learner')})`
             : window.formatAdminCountLabel(resolvedCount, 'learner');
         const inProgressConflicts = validationResult.inProgressConflicts || [];
         const completedConflicts = validationResult.completedConflicts || [];
@@ -1227,9 +1227,9 @@
         const cancelId = `${dialogId}-cancel`;
         const confirmId = `${dialogId}-confirm`;
         const defaults = getDefaultReassignmentDates();
-        const lockedTargetText = reassignData.studentGroupId
-            ? window.escapeHtml(dashboardData.studentGroupName || "Selected group")
-            : window.formatAdminCountLabel(getReassignmentStudentCodes().length, 'learner');
+        const lockedTargetText = reassignData.learnerGroupId
+            ? window.escapeHtml(dashboardData.learnerGroupName || "Selected group")
+            : window.formatAdminCountLabel(getReassignmentLearnerCodes().length, 'learner');
 
         const dialog = DevExpress.ui.dialog.custom({
             title: "Reassignment",
@@ -1321,8 +1321,8 @@
                         return;
                     }
 
-                    const employeeCodes = reassignData.studentGroupId ? [] : getReassignmentStudentCodes();
-                    if (!reassignData.studentGroupId && employeeCodes.length === 0) {
+                    const employeeCodes = reassignData.learnerGroupId ? [] : getReassignmentLearnerCodes();
+                    if (!reassignData.learnerGroupId && employeeCodes.length === 0) {
                         showToast("No learners available for reassignment.", "warning", 3000);
                         return;
                     }
@@ -1330,7 +1330,7 @@
                     const payload = {
                         courseIds: reassignData.courseIds,
                         employeeCodes: employeeCodes,
-                        groupId: reassignData.studentGroupId || null,
+                        groupId: reassignData.learnerGroupId || null,
                         startDate: startDate,
                         dueDate: dueDate,
                         description: formData.description,
@@ -1372,7 +1372,7 @@
     }
 
     function confirmResetEnrollment(options) {
-        const { title, messageHtml, ruleIds, studentCodes, loadingMessage, successMessage, errorMessage } = options;
+        const { title, messageHtml, ruleIds, learnerCodes, loadingMessage, successMessage, errorMessage } = options;
 
         const dialog = DevExpress.ui.dialog.custom({
             title: title,
@@ -1391,7 +1391,7 @@
 
             try {
                 const payload = { ruleIds: ruleIds };
-                if (studentCodes) payload.studentCodes = studentCodes;
+                if (learnerCodes) payload.learnerCodes = learnerCodes;
 
                 const response = await $.ajax({
                     url: `${ASSIGNMENTS_API_URL}/${ASSIGNMENT_ID}/reset-enrollments`,
@@ -1414,19 +1414,19 @@
             title: "Reset All Learners",
             messageHtml: `Reset enrollment progress for all learners in:<br><b><i class="fas fa-book me-1"></i>${window.escapeHtml(title)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
-            studentCodes: null,
+            learnerCodes: null,
             loadingMessage: "Resetting enrollments...",
             successMessage: "Enrollments reset successfully.",
             errorMessage: "Error resetting enrollments."
         });
     }
 
-    function confirmResetStudent(ruleId, studentCode, studentName) {
+    function confirmResetLearner(ruleId, learnerCode, learnerName) {
         confirmResetEnrollment({
             title: "Reset Learner Enrollment",
-            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(studentCode)} ${window.escapeHtml(studentName)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
+            messageHtml: `Reset enrollment progress for:<br><b><i class="fas fa-user me-1"></i>${window.escapeHtml(learnerCode)} ${window.escapeHtml(learnerName)}</b><br><br><span class="admin-danger-note"><i class="fas fa-exclamation-triangle me-1"></i>Progress will be cleared. This action cannot be undone.</span>`,
             ruleIds: [ruleId],
-            studentCodes: [studentCode],
+            learnerCodes: [learnerCode],
             loadingMessage: "Resetting enrollment...",
             successMessage: "Enrollment reset successfully.",
             errorMessage: "Error resetting enrollment."

@@ -23,7 +23,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
-        private readonly IStudentApiService _studentApiService;
+        private readonly ILearnerApiService _learnerApiService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
 
@@ -34,7 +34,7 @@ namespace iLearn.API.Controllers
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
-            IStudentApiService studentApiService,
+            ILearnerApiService learnerApiService,
             ICurrentUserService currentUser,
             IDateTime dateTime)
         {
@@ -44,7 +44,7 @@ namespace iLearn.API.Controllers
             _enrollmentRepo = enrollmentRepo;
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
-            _studentApiService = studentApiService;
+            _learnerApiService = learnerApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
         }
@@ -363,22 +363,22 @@ namespace iLearn.API.Controllers
             if (!enrollments.Any())
                 return Ok(new { success = true, data = new List<object>() });
 
-            var codes = enrollments.Select(e => e.StudentCode).Distinct().ToList();
-            Dictionary<string, ExternalStudentDto> studentMap;
+            var codes = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
+            Dictionary<string, ExternalLearnerDto> learnerMap;
             try
             {
-                studentMap = await _studentApiService.GetStudentsByCodesAsync(codes);
+                learnerMap = await _learnerApiService.GetLearnersByCodesAsync(codes);
             }
             catch
             {
-                studentMap = new Dictionary<string, ExternalStudentDto>();
+                learnerMap = new Dictionary<string, ExternalLearnerDto>();
             }
 
             var now = _dateTime.Now;
 
             var result = enrollments.Select(e =>
             {
-                var student = studentMap.GetValueOrDefault(e.StudentCode);
+                var learner = learnerMap.GetValueOrDefault(e.LearnerCode);
                 var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
                 var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
 
@@ -397,11 +397,11 @@ namespace iLearn.API.Controllers
                 return new
                 {
                     id            = e.Id,
-                    studentCode   = e.StudentCode,
-                    studentName   = student?.Name ?? e.StudentCode,
-                    division      = student?.Division,
-                    department    = student?.Department,
-                    position      = student?.Position,
+                    learnerCode   = e.LearnerCode,
+                    learnerName   = learner?.Name ?? e.LearnerCode,
+                    division      = learner?.Division,
+                    department    = learner?.Department,
+                    position      = learner?.Position,
                     progress      = Math.Round(e.Progress),
                     isCompleted   = e.IsCompleted,
                     completedDate = e.CompletedDate,
@@ -471,7 +471,7 @@ namespace iLearn.API.Controllers
                         completedEnrollmentCount = done,
                         totalEnrollmentCount     = total,
                         completionPct            = pct,
-                        studentGroupId           = first.StudentGroupId
+                        learnerGroupId           = first.LearnerGroupId
                     };
                 })
                 .OrderByDescending(x => x.assignmentNo)
@@ -512,7 +512,7 @@ namespace iLearn.API.Controllers
         }
 
         // ── Consolidated Dashboard endpoint ───────────────────────────────
-        // Returns course info, versions with resources, and KPI counts in one call
+        // Returns course info, versions with contentItems, and KPI counts in one call
         [HttpGet("{courseId}/dashboard")]
         public async Task<IActionResult> GetDashboard(int courseId)
         {

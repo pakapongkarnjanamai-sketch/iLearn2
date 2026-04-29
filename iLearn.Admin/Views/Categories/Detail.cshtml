@@ -32,7 +32,7 @@
                         <div class="detail-stat__lbl">Courses</div>
                     </div>
                     <div class="detail-stat">
-                        <div class="detail-stat__num" id="stat-students">—</div>
+                        <div class="detail-stat__num" id="stat-learners">—</div>
                         <div class="detail-stat__lbl">Learners</div>
                     </div>
                     <div class="detail-stat detail-stat--success">
@@ -301,7 +301,7 @@
     function renderStats() {
         const s = statsData;
         $("#stat-courses").text(s.totalCourses);
-        $("#stat-students").text(s.uniqueStudents);
+        $("#stat-learners").text(s.uniqueLearners);
         $("#stat-completed").text(s.completedEnrollments);
         $("#stat-inprogress").text(s.inProgressEnrollments);
     }

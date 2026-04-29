@@ -36,8 +36,8 @@ namespace iLearn.Tests
                 Note = "Version 2",
                 IsActive = true,
                 LearnerPolicy = CourseVersionLearnerPolicy.MoveNotStarted,
-                ResourceIds = [500],
-                ResourceTypes = [1]
+                ContentItemIds = [500],
+                ContentTypeIds = [1]
             }, []);
 
             var notStarted = harness.Enrollments.Items.Single(e => e.Id == 1);
@@ -85,17 +85,17 @@ namespace iLearn.Tests
         }
 
         [Fact]
-        public async Task CreateVersionAsync_ActiveVersionWithUnreadyResource_RejectsBeforeMovingLearners()
+        public async Task CreateVersionAsync_ActiveVersionWithUnreadyContentItem_RejectsBeforeMovingLearners()
         {
-            var harness = CreatePolicyHarness(resourceReady: false);
+            var harness = CreatePolicyHarness(contentItemReady: false);
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Service.CreateVersionAsync(10, new CreateCourseVersionDto
             {
                 Note = "Version 2",
                 IsActive = true,
                 LearnerPolicy = CourseVersionLearnerPolicy.MoveNotStarted,
-                ResourceIds = [500],
-                ResourceTypes = [1]
+                ContentItemIds = [500],
+                ContentTypeIds = [1]
             }, []));
 
             Assert.Contains("not ready", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -105,9 +105,9 @@ namespace iLearn.Tests
         }
 
         [Fact]
-        public async Task SetActiveVersionAsync_UnreadyResource_RejectsAndKeepsExistingActiveVersion()
+        public async Task SetActiveVersionAsync_UnreadyContentItem_RejectsAndKeepsExistingActiveVersion()
         {
-            var harness = CreatePolicyHarness(includeInactiveVersion: true, resourceReady: false);
+            var harness = CreatePolicyHarness(includeInactiveVersion: true, contentItemReady: false);
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 harness.Service.SetActiveVersionAsync(10, 101, CourseVersionLearnerPolicy.ResetInProgress));
@@ -119,57 +119,57 @@ namespace iLearn.Tests
         }
 
         [Fact]
-        public async Task CreateVersionAsync_ActiveVersionWithStoredUnreadyResource_PreparesResourceAndActivates()
+        public async Task CreateVersionAsync_ActiveVersionWithStoredUnreadyContentItem_PreparesContentItemAndActivates()
         {
-            var harness = CreatePolicyHarness(resourceReady: false, resourceHasStoredPackage: true);
+            var harness = CreatePolicyHarness(contentItemReady: false, contentItemHasStoredPackage: true);
 
             var version = await harness.Service.CreateVersionAsync(10, new CreateCourseVersionDto
             {
                 Note = "Version 2",
                 IsActive = true,
                 LearnerPolicy = CourseVersionLearnerPolicy.NewLearnersOnly,
-                ResourceIds = [500],
-                ResourceTypes = [1]
+                ContentItemIds = [500],
+                ContentTypeIds = [1]
             }, []);
 
-            var resource = harness.Resources.Items.Single(r => r.Id == 500);
+            var contentItem = harness.ContentItems.Items.Single(r => r.Id == 500);
 
             Assert.True(version.IsActive);
             Assert.False(harness.Versions.Items.Single(v => v.Id == 100).IsActive);
-            Assert.True(resource.IsActive);
-            Assert.Equal("launch/index.html", resource.ResourceHref);
-            Assert.Equal("SCORM 1.2", resource.SchemaVersion);
-            Assert.False(string.IsNullOrWhiteSpace(resource.URL));
+            Assert.True(contentItem.IsActive);
+            Assert.Equal("launch/index.html", contentItem.LaunchHref);
+            Assert.Equal("SCORM 1.2", contentItem.SchemaVersion);
+            Assert.False(string.IsNullOrWhiteSpace(contentItem.URL));
             Assert.Equal(1, harness.ScormService.ExtractCalls);
         }
 
         [Fact]
-        public async Task SetActiveVersionAsync_UnreadyStoredResource_PreparesResourceAndActivatesVersion()
+        public async Task SetActiveVersionAsync_UnreadyStoredContentItem_PreparesContentItemAndActivatesVersion()
         {
-            var harness = CreatePolicyHarness(includeInactiveVersion: true, resourceReady: false, resourceHasStoredPackage: true);
+            var harness = CreatePolicyHarness(includeInactiveVersion: true, contentItemReady: false, contentItemHasStoredPackage: true);
 
             await harness.Service.SetActiveVersionAsync(10, 101, CourseVersionLearnerPolicy.NewLearnersOnly);
 
-            var resource = harness.Resources.Items.Single(r => r.Id == 500);
+            var contentItem = harness.ContentItems.Items.Single(r => r.Id == 500);
 
             Assert.False(harness.Versions.Items.Single(v => v.Id == 100).IsActive);
             Assert.True(harness.Versions.Items.Single(v => v.Id == 101).IsActive);
-            Assert.True(resource.IsActive);
-            Assert.Equal("launch/index.html", resource.ResourceHref);
-            Assert.Equal("SCORM 1.2", resource.SchemaVersion);
-            Assert.False(string.IsNullOrWhiteSpace(resource.URL));
+            Assert.True(contentItem.IsActive);
+            Assert.Equal("launch/index.html", contentItem.LaunchHref);
+            Assert.Equal("SCORM 1.2", contentItem.SchemaVersion);
+            Assert.False(string.IsNullOrWhiteSpace(contentItem.URL));
             Assert.Equal(1, harness.ScormService.ExtractCalls);
         }
 
         private static CourseVersionPolicyHarness CreatePolicyHarness(
             bool includeInactiveVersion = false,
-            bool resourceReady = true,
-            bool resourceHasStoredPackage = false)
+            bool contentItemReady = true,
+            bool contentItemHasStoredPackage = false)
         {
             var course = new Course { Id = 10, Code = "C-10", Title = "Course 10", IsActive = true };
             var oldVersion = new CourseVersion { Id = 100, CourseId = 10, VersionNumber = 1, IsActive = true };
             var inactiveVersion = new CourseVersion { Id = 101, CourseId = 10, VersionNumber = 2, IsActive = false };
-            var fileStorage = resourceHasStoredPackage
+            var fileStorage = contentItemHasStoredPackage
                 ? new FileStorage
                 {
                     Id = 800,
@@ -179,15 +179,15 @@ namespace iLearn.Tests
                     Data = [1, 2, 3]
                 }
                 : null;
-            var resource = new Resource
+            var contentItem = new ContentItem
             {
                 Id = 500,
                 Name = "learn.zip",
                 TypeId = 1,
-                IsActive = resourceReady,
-                URL = resourceReady ? "pkg-500" : null,
-                ResourceHref = resourceReady ? "launch/index.html" : null,
-                SchemaVersion = resourceReady ? "SCORM 1.2" : null,
+                IsActive = contentItemReady,
+                URL = contentItemReady ? "pkg-500" : null,
+                LaunchHref = contentItemReady ? "launch/index.html" : null,
+                SchemaVersion = contentItemReady ? "SCORM 1.2" : null,
                 FileStorageId = fileStorage?.Id,
                 FileStorage = fileStorage
             };
@@ -208,12 +208,12 @@ namespace iLearn.Tests
 
             var enrollments = new List<Enrollment>
             {
-                new() { Id = 1, StudentCode = "490001", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 },
-                new() { Id = 2, StudentCode = "490002", CourseId = 10, EnrolledCourseVersion = 100, Progress = 40, TotalScore = 12 },
-                new() { Id = 3, StudentCode = "490003", CourseId = 10, EnrolledCourseVersion = 100, Progress = 100, IsCompleted = true, CompletedDate = Now.AddDays(-2) },
-                new() { Id = 4, StudentCode = "490004", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 },
-                new() { Id = 5, StudentCode = "490005", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 },
-                new() { Id = 6, StudentCode = "490006", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 }
+                new() { Id = 1, LearnerCode = "490001", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 },
+                new() { Id = 2, LearnerCode = "490002", CourseId = 10, EnrolledCourseVersion = 100, Progress = 40, TotalScore = 12 },
+                new() { Id = 3, LearnerCode = "490003", CourseId = 10, EnrolledCourseVersion = 100, Progress = 100, IsCompleted = true, CompletedDate = Now.AddDays(-2) },
+                new() { Id = 4, LearnerCode = "490004", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 },
+                new() { Id = 5, LearnerCode = "490005", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 },
+                new() { Id = 6, LearnerCode = "490006", CourseId = 10, EnrolledCourseVersion = 100, Progress = 0 }
             };
 
             var enrollmentAssignments = new List<EnrollmentAssignment>
@@ -225,21 +225,21 @@ namespace iLearn.Tests
                 CreateLink(6, enrollments[5], inProgressAssignment)
             };
 
-            var courseResource = new CourseResource
+            var courseContentItem = new CourseContentItem
             {
                 Id = 50,
                 CourseVersionId = inactiveVersion.Id,
                 CourseVersion = inactiveVersion,
-                ResourceId = resource.Id,
-                Resource = resource,
+                ContentItemId = contentItem.Id,
+                ContentItem = contentItem,
                 Order = 1
             };
 
             var versionRepo = new InMemoryGenericRepository<CourseVersion>(
                 includeInactiveVersion ? [oldVersion, inactiveVersion] : [oldVersion], Now);
-            var courseResourceRepo = new InMemoryGenericRepository<CourseResource>(
-                includeInactiveVersion ? [courseResource] : [], Now);
-            var resourceRepo = new InMemoryGenericRepository<Resource>([resource], Now);
+            var courseContentItemRepo = new InMemoryGenericRepository<CourseContentItem>(
+                includeInactiveVersion ? [courseContentItem] : [], Now);
+            var contentItemRepo = new InMemoryGenericRepository<ContentItem>([contentItem], Now);
             var fileStorageRepo = new InMemoryGenericRepository<FileStorage>(fileStorage is null ? [] : [fileStorage], Now);
             var enrollmentRepo = new InMemoryGenericRepository<Enrollment>(enrollments, Now);
             var enrollmentAssignmentRepo = new InMemoryGenericRepository<EnrollmentAssignment>(enrollmentAssignments, Now);
@@ -249,9 +249,9 @@ namespace iLearn.Tests
                 {
                     Id = 90,
                     EnrollmentId = 6,
-                    StudentCode = "490006",
+                    LearnerCode = "490006",
                     CourseVersionId = 100,
-                    ResourceId = 500,
+                    ContentItemId = 500,
                     Status = "incomplete",
                     Progress = 0,
                     CreatedAt = Now.AddMinutes(-5)
@@ -262,8 +262,8 @@ namespace iLearn.Tests
 
             var service = new CourseVersionService(
                 versionRepo,
-                courseResourceRepo,
-                resourceRepo,
+                courseContentItemRepo,
+                contentItemRepo,
                 fileStorageRepo,
                 enrollmentRepo,
                 enrollmentAssignmentRepo,
@@ -275,7 +275,7 @@ namespace iLearn.Tests
                 new FakeDateTime(Now),
                 unitOfWork);
 
-            return new CourseVersionPolicyHarness(service, versionRepo, resourceRepo, enrollmentRepo, scormService);
+            return new CourseVersionPolicyHarness(service, versionRepo, contentItemRepo, enrollmentRepo, scormService);
         }
 
         private static EnrollmentAssignment CreateLink(int enrollmentId, Enrollment enrollment, Assignment assignment)
@@ -295,7 +295,7 @@ namespace iLearn.Tests
         private sealed record CourseVersionPolicyHarness(
             CourseVersionService Service,
             InMemoryGenericRepository<CourseVersion> Versions,
-            InMemoryGenericRepository<Resource> Resources,
+            InMemoryGenericRepository<ContentItem> ContentItems,
             InMemoryGenericRepository<Enrollment> Enrollments,
             FakeScormService ScormService);
 
@@ -309,7 +309,7 @@ namespace iLearn.Tests
                 return Task.FromResult(new ScormManifestDto
                 {
                     FolderName = folderName,
-                    ResourceHref = "launch/index.html",
+                    LaunchHref = "launch/index.html",
                     SchemaVersion = "SCORM 1.2"
                 });
             }
@@ -318,7 +318,7 @@ namespace iLearn.Tests
             {
             }
 
-            public string GetScormUrl(string folderName, string resourceHref) => folderName;
+            public string GetScormUrl(string folderName, string launchHref) => folderName;
 
             public (int FileCount, long TotalSize) GetFolderInfo(string folderName) => (0, 0);
         }

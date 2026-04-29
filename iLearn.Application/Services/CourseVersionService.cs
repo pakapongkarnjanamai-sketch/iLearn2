@@ -17,8 +17,8 @@ namespace iLearn.Application.Services
     public class CourseVersionService : ICourseVersionService
     {
         private readonly IGenericRepository<CourseVersion> _versionRepository;
-        private readonly IGenericRepository<CourseResource> _courseResourceRepository;
-        private readonly IGenericRepository<Resource> _resourceRepository;
+        private readonly IGenericRepository<CourseContentItem> _courseContentItemRepository;
+        private readonly IGenericRepository<ContentItem> _contentItemRepository;
         private readonly IGenericRepository<FileStorage> _fileStorageRepository;
         private readonly IGenericRepository<Enrollment> _enrollmentRepository;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepository;
@@ -32,8 +32,8 @@ namespace iLearn.Application.Services
 
         public CourseVersionService(
             IGenericRepository<CourseVersion> versionRepository,
-            IGenericRepository<CourseResource> courseResourceRepository,
-            IGenericRepository<Resource> resourceRepository,
+            IGenericRepository<CourseContentItem> courseContentItemRepository,
+            IGenericRepository<ContentItem> contentItemRepository,
             IGenericRepository<FileStorage> fileStorageRepository,
             IGenericRepository<Enrollment> enrollmentRepository,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepository,
@@ -46,8 +46,8 @@ namespace iLearn.Application.Services
             IUnitOfWork unitOfWork)
         {
             _versionRepository = versionRepository;
-            _courseResourceRepository = courseResourceRepository;
-            _resourceRepository = resourceRepository;
+            _courseContentItemRepository = courseContentItemRepository;
+            _contentItemRepository = contentItemRepository;
             _fileStorageRepository = fileStorageRepository;
             _enrollmentRepository = enrollmentRepository;
             _enrollmentAssignmentRepository = enrollmentAssignmentRepository;
@@ -66,18 +66,18 @@ namespace iLearn.Application.Services
             if (version == null)
                 throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
-            var courseResources = await _courseResourceRepository.GetAsync(
+            var courseContentItems = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
 
-            var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
+            var sortedContentItems = courseContentItems.OrderBy(cr => cr.Order).ToList();
 
             return new CreateCourseVersionDto
             {
                 CourseId = version.CourseId,
                 Note = version.Note,
                 IsActive = version.IsActive,
-                ResourceIds = sortedResources.Select(cr => cr.ResourceId).ToList()
+                ContentItemIds = sortedContentItems.Select(cr => cr.ContentItemId).ToList()
             };
         }
 
@@ -92,12 +92,12 @@ namespace iLearn.Application.Services
 
             foreach (var version in sortedVersions)
             {
-                var courseResources = await _courseResourceRepository.GetAsync(
+                var courseContentItems = await _courseContentItemRepository.GetAsync(
                     filter: cr => cr.CourseVersionId == version.Id,
-                    includeProperties: "Resource"
+                    includeProperties: "ContentItem"
                 );
 
-                var sortedCourseResources = courseResources.OrderBy(cr => cr.Order).ToList();
+                var sortedCourseContentItems = courseContentItems.OrderBy(cr => cr.Order).ToList();
 
                 var versionDto = new CourseVersionDto
                 {
@@ -107,14 +107,14 @@ namespace iLearn.Application.Services
                     Note = version.Note,
                     IsActive = version.IsActive,
                     CreatedAt = version.CreatedAt,
-                    Resources = sortedCourseResources.Select(cr => new CourseResourceDto
+                    ContentItems = sortedCourseContentItems.Select(cr => new CourseContentItemDto
                     {
-                        Id = cr.Resource?.Id ?? 0,
-                        Name = cr.Resource?.Name ?? "Unknown",
-                        TypeId = cr.Resource?.TypeId ?? 0,
-                        TypeName = cr.Resource?.TypeId == 1 ? "Learn" : "Exam",
-                        IsActive = cr.Resource?.IsActive ?? false,
-                        URL = cr.Resource?.URL
+                        Id = cr.ContentItem?.Id ?? 0,
+                        Name = cr.ContentItem?.Name ?? "Unknown",
+                        TypeId = cr.ContentItem?.TypeId ?? 0,
+                        TypeName = cr.ContentItem?.TypeId == 1 ? "Learn" : "Exam",
+                        IsActive = cr.ContentItem?.IsActive ?? false,
+                        URL = cr.ContentItem?.URL
                     }).ToList()
                 };
 
@@ -151,23 +151,23 @@ namespace iLearn.Application.Services
             if (version == null)
                 throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
-            var courseResources = await _courseResourceRepository.GetAsync(
+            var courseContentItems = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId,
-                includeProperties: "Resource"
+                includeProperties: "ContentItem"
             );
 
-            var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
-            var issues = await GetResourceReadinessIssuesAsync(sortedResources);
+            var sortedContentItems = courseContentItems.OrderBy(cr => cr.Order).ToList();
+            var issues = await GetContentItemReadinessIssuesAsync(sortedContentItems);
 
             return new CourseVersionReadinessDto
             {
                 VersionId = versionId,
-                ResourceCount = sortedResources.Count,
-                IsReady = sortedResources.Count > 0 && issues.Count == 0,
+                ContentItemCount = sortedContentItems.Count,
+                IsReady = sortedContentItems.Count > 0 && issues.Count == 0,
                 Issues = issues.Select(issue => new CourseVersionReadinessIssueDto
                 {
-                    ResourceId = issue.ResourceId,
-                    ResourceName = issue.ResourceName,
+                    ContentItemId = issue.ContentItemId,
+                    ContentItemName = issue.ContentItemName,
                     Reason = issue.Reason
                 }).ToList()
             };
@@ -198,8 +198,8 @@ namespace iLearn.Application.Services
 
             await _versionRepository.AddAsync(newVersion);
 
-            var orderedResourceIds = await BuildOrderedResourceIdsAsync(model, files);
-            await ReplaceCourseVersionResourcesAsync(newVersion.Id, orderedResourceIds);
+            var orderedContentItemIds = await BuildOrderedContentItemIdsAsync(model, files);
+            await ReplaceCourseVersionContentItemsAsync(newVersion.Id, orderedContentItemIds);
 
             if (model.IsActive)
             {
@@ -222,12 +222,12 @@ namespace iLearn.Application.Services
                 await ApplyLearnerVersionPolicyAsync(newVersion.CourseId, newVersion.Id, model.LearnerPolicy);
             }
 
-            var courseResourcesForNew = await _courseResourceRepository.GetAsync(
+            var courseContentItemsForNew = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == newVersion.Id,
-                includeProperties: "Resource"
+                includeProperties: "ContentItem"
             );
 
-            var sortedResources = courseResourcesForNew.OrderBy(cr => cr.Order).ToList();
+            var sortedContentItems = courseContentItemsForNew.OrderBy(cr => cr.Order).ToList();
 
             await _adminActivityService.LogAsync(
                 actionType: "CreateCourseVersion",
@@ -245,14 +245,14 @@ namespace iLearn.Application.Services
                 Note = newVersion.Note,
                 IsActive = newVersion.IsActive,
                 CreatedAt = newVersion.CreatedAt,
-                Resources = sortedResources.Select(cr => new CourseResourceDto
+                ContentItems = sortedContentItems.Select(cr => new CourseContentItemDto
                 {
-                    Id = cr.Resource?.Id ?? 0,
-                    Name = cr.Resource?.Name ?? "Unknown",
-                    TypeId = cr.Resource?.TypeId ?? 0,
-                    TypeName = cr.Resource?.TypeId == 1 ? "Learn" : "Exam",
-                    IsActive = cr.Resource?.IsActive ?? false,
-                    URL = cr.Resource?.URL
+                    Id = cr.ContentItem?.Id ?? 0,
+                    Name = cr.ContentItem?.Name ?? "Unknown",
+                    TypeId = cr.ContentItem?.TypeId ?? 0,
+                    TypeName = cr.ContentItem?.TypeId == 1 ? "Learn" : "Exam",
+                    IsActive = cr.ContentItem?.IsActive ?? false,
+                    URL = cr.ContentItem?.URL
                 }).ToList()
             };
         }
@@ -265,16 +265,16 @@ namespace iLearn.Application.Services
 
             var activatesVersion = model.IsActive && !version.IsActive;
             var deactivatesVersion = !model.IsActive && version.IsActive;
-            var orderedResourceIds = await BuildOrderedResourceIdsAsync(model, files);
+            var orderedContentItemIds = await BuildOrderedContentItemIdsAsync(model, files);
 
             if (model.IsActive)
             {
-                await EnsureResourceIdsReadyForActivationAsync(orderedResourceIds);
+                await EnsureContentItemIdsReadyForActivationAsync(orderedContentItemIds);
             }
 
             version.Note = model.Note;
 
-            await ReplaceCourseVersionResourcesAsync(versionId, orderedResourceIds);
+            await ReplaceCourseVersionContentItemsAsync(versionId, orderedContentItemIds);
 
             if (model.IsActive)
             {
@@ -306,12 +306,12 @@ namespace iLearn.Application.Services
                 await DeactivateCourseIfNoActiveVersionAsync(version.CourseId);
             }
 
-            var courseResources = await _courseResourceRepository.GetAsync(
+            var courseContentItems = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId,
-                includeProperties: "Resource"
+                includeProperties: "ContentItem"
             );
 
-            var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
+            var sortedContentItems = courseContentItems.OrderBy(cr => cr.Order).ToList();
 
             if (activatesVersion)
             {
@@ -326,14 +326,14 @@ namespace iLearn.Application.Services
                 Note = version.Note,
                 IsActive = version.IsActive,
                 CreatedAt = version.CreatedAt,
-                Resources = sortedResources.Select(cr => new CourseResourceDto
+                ContentItems = sortedContentItems.Select(cr => new CourseContentItemDto
                 {
-                    Id = cr.Resource?.Id ?? 0,
-                    Name = cr.Resource?.Name ?? "Unknown",
-                    TypeId = cr.Resource?.TypeId ?? 0,
-                    TypeName = cr.Resource?.TypeId == 1 ? "Learn" : "Exam",
-                    IsActive = cr.Resource?.IsActive ?? false,
-                    URL = cr.Resource?.URL
+                    Id = cr.ContentItem?.Id ?? 0,
+                    Name = cr.ContentItem?.Name ?? "Unknown",
+                    TypeId = cr.ContentItem?.TypeId ?? 0,
+                    TypeName = cr.ContentItem?.TypeId == 1 ? "Learn" : "Exam",
+                    IsActive = cr.ContentItem?.IsActive ?? false,
+                    URL = cr.ContentItem?.URL
                 }).ToList()
             };
         }
@@ -344,13 +344,13 @@ namespace iLearn.Application.Services
             if (version == null)
                 throw new KeyNotFoundException($"Version ID: {versionId} not found.");
 
-            var courseResources = await _courseResourceRepository.GetAsync(
+            var courseContentItems = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
 
-            foreach (var cr in courseResources)
+            foreach (var cr in courseContentItems)
             {
-                await _courseResourceRepository.DeleteAsync(cr);
+                await _courseContentItemRepository.DeleteAsync(cr);
             }
 
             await _versionRepository.DeleteAsync(version);
@@ -511,113 +511,113 @@ namespace iLearn.Application.Services
         {
             return enrollment.Id > 0
                 ? enrollment.Id.ToString()
-                : $"{enrollment.StudentCode}:{enrollment.CourseId}";
+                : $"{enrollment.LearnerCode}:{enrollment.CourseId}";
         }
 
-        private async Task<List<int>> BuildOrderedResourceIdsAsync(CreateCourseVersionDto model, List<IFormFile>? files)
+        private async Task<List<int>> BuildOrderedContentItemIdsAsync(CreateCourseVersionDto model, List<IFormFile>? files)
         {
-            var orderedResourceIds = new List<int>();
-            if (model.ResourceIds == null || model.ResourceIds.Count == 0)
+            var orderedContentItemIds = new List<int>();
+            if (model.ContentItemIds == null || model.ContentItemIds.Count == 0)
             {
-                return orderedResourceIds;
+                return orderedContentItemIds;
             }
 
             var uploadedFiles = files ?? new List<IFormFile>();
             int fileIndex = 0;
 
-            for (int index = 0; index < model.ResourceIds.Count; index++)
+            for (int index = 0; index < model.ContentItemIds.Count; index++)
             {
-                var resourceId = model.ResourceIds[index];
-                var currentTypeId = model.ResourceTypes != null && model.ResourceTypes.Count > index
-                    ? model.ResourceTypes[index]
+                var contentItemId = model.ContentItemIds[index];
+                var currentTypeId = model.ContentTypeIds != null && model.ContentTypeIds.Count > index
+                    ? model.ContentTypeIds[index]
                     : 1;
 
-                if (resourceId == 0)
+                if (contentItemId == 0)
                 {
                     if (fileIndex >= uploadedFiles.Count)
                     {
-                        throw new InvalidOperationException("Cannot save this course version because an uploaded resource file is missing.");
+                        throw new InvalidOperationException("Cannot save this course version because an uploaded contentItem file is missing.");
                     }
 
-                    var newResource = await ProcessNewResourceAsync(uploadedFiles[fileIndex], currentTypeId);
-                    orderedResourceIds.Add(newResource.Id);
+                    var newContentItem = await ProcessNewContentItemAsync(uploadedFiles[fileIndex], currentTypeId);
+                    orderedContentItemIds.Add(newContentItem.Id);
                     fileIndex++;
                 }
-                else if (resourceId > 0)
+                else if (contentItemId > 0)
                 {
-                    orderedResourceIds.Add(resourceId);
+                    orderedContentItemIds.Add(contentItemId);
                 }
             }
 
-            return orderedResourceIds;
+            return orderedContentItemIds;
         }
 
-        private async Task ReplaceCourseVersionResourcesAsync(int versionId, IReadOnlyList<int> resourceIds)
+        private async Task ReplaceCourseVersionContentItemsAsync(int versionId, IReadOnlyList<int> contentItemIds)
         {
-            var oldResources = await _courseResourceRepository.GetAsync(
+            var oldContentItems = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId
             );
 
-            foreach (var oldResource in oldResources)
+            foreach (var oldContentItem in oldContentItems)
             {
-                await _courseResourceRepository.DeleteAsync(oldResource);
+                await _courseContentItemRepository.DeleteAsync(oldContentItem);
             }
 
             int orderIndex = 1;
-            foreach (var resourceId in resourceIds)
+            foreach (var contentItemId in contentItemIds)
             {
-                var courseResource = new CourseResource
+                var courseContentItem = new CourseContentItem
                 {
                     CourseVersionId = versionId,
-                    ResourceId = resourceId,
+                    ContentItemId = contentItemId,
                     Order = orderIndex++,
                     CreatedAt = DateTime.UtcNow
                 };
-                await _courseResourceRepository.AddAsync(courseResource);
+                await _courseContentItemRepository.AddAsync(courseContentItem);
             }
         }
 
         private async Task EnsureVersionReadyForActivationAsync(int versionId)
         {
-            var courseResources = await _courseResourceRepository.GetAsync(
+            var courseContentItems = await _courseContentItemRepository.GetAsync(
                 filter: cr => cr.CourseVersionId == versionId,
-                includeProperties: "Resource"
+                includeProperties: "ContentItem"
             );
 
-            var sortedResources = courseResources.OrderBy(cr => cr.Order).ToList();
-            var issues = await GetResourceReadinessIssuesAsync(sortedResources, attemptAutoPrepare: true);
+            var sortedContentItems = courseContentItems.OrderBy(cr => cr.Order).ToList();
+            var issues = await GetContentItemReadinessIssuesAsync(sortedContentItems, attemptAutoPrepare: true);
 
-            if (sortedResources.Count == 0 || issues.Count > 0)
+            if (sortedContentItems.Count == 0 || issues.Count > 0)
             {
-                throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(sortedResources.Count, issues));
+                throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(sortedContentItems.Count, issues));
             }
         }
 
-        private async Task EnsureResourceIdsReadyForActivationAsync(IReadOnlyList<int> resourceIds)
+        private async Task EnsureContentItemIdsReadyForActivationAsync(IReadOnlyList<int> contentItemIds)
         {
-            if (resourceIds.Count == 0)
+            if (contentItemIds.Count == 0)
             {
                 throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(0, []));
             }
 
-            var issues = await GetResourceReadinessIssuesAsync(resourceIds.Distinct().ToList(), attemptAutoPrepare: true);
+            var issues = await GetContentItemReadinessIssuesAsync(contentItemIds.Distinct().ToList(), attemptAutoPrepare: true);
 
             if (issues.Count > 0)
             {
-                throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(resourceIds.Count, issues));
+                throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(contentItemIds.Count, issues));
             }
         }
 
-        private async Task<List<ResourceReadinessIssue>> GetResourceReadinessIssuesAsync(
-            IEnumerable<CourseResource> courseResources,
+        private async Task<List<ContentItemReadinessIssue>> GetContentItemReadinessIssuesAsync(
+            IEnumerable<CourseContentItem> courseContentItems,
             bool attemptAutoPrepare = false)
         {
-            var issues = new List<ResourceReadinessIssue>();
+            var issues = new List<ContentItemReadinessIssue>();
 
-            foreach (var courseResource in courseResources)
+            foreach (var courseContentItem in courseContentItems)
             {
-                var resource = courseResource.Resource ?? await _resourceRepository.GetByIdAsync(courseResource.ResourceId);
-                var issue = await GetResourceReadinessIssueAsync(resource, courseResource.ResourceId, attemptAutoPrepare);
+                var contentItem = courseContentItem.ContentItem ?? await _contentItemRepository.GetByIdAsync(courseContentItem.ContentItemId);
+                var issue = await GetContentItemReadinessIssueAsync(contentItem, courseContentItem.ContentItemId, attemptAutoPrepare);
                 if (issue != null)
                 {
                     issues.Add(issue);
@@ -627,16 +627,16 @@ namespace iLearn.Application.Services
             return issues;
         }
 
-        private async Task<List<ResourceReadinessIssue>> GetResourceReadinessIssuesAsync(
-            IReadOnlyCollection<int> resourceIds,
+        private async Task<List<ContentItemReadinessIssue>> GetContentItemReadinessIssuesAsync(
+            IReadOnlyCollection<int> contentItemIds,
             bool attemptAutoPrepare = false)
         {
-            var issues = new List<ResourceReadinessIssue>();
+            var issues = new List<ContentItemReadinessIssue>();
 
-            foreach (var resourceId in resourceIds)
+            foreach (var contentItemId in contentItemIds)
             {
-                var resource = await _resourceRepository.GetByIdAsync(resourceId);
-                var issue = await GetResourceReadinessIssueAsync(resource, resourceId, attemptAutoPrepare);
+                var contentItem = await _contentItemRepository.GetByIdAsync(contentItemId);
+                var issue = await GetContentItemReadinessIssueAsync(contentItem, contentItemId, attemptAutoPrepare);
                 if (issue != null)
                 {
                     issues.Add(issue);
@@ -646,24 +646,24 @@ namespace iLearn.Application.Services
             return issues;
         }
 
-        private async Task<ResourceReadinessIssue?> GetResourceReadinessIssueAsync(
-            Resource? resource,
-            int resourceId,
+        private async Task<ContentItemReadinessIssue?> GetContentItemReadinessIssueAsync(
+            ContentItem? contentItem,
+            int contentItemId,
             bool attemptAutoPrepare)
         {
-            var issue = CourseContentReadiness.GetResourceIssue(resource, resourceId);
-            if (issue == null || !attemptAutoPrepare || resource == null)
+            var issue = CourseContentReadiness.GetContentItemIssue(contentItem, contentItemId);
+            if (issue == null || !attemptAutoPrepare || contentItem == null)
             {
                 return issue;
             }
 
-            var preparationIssue = await TryPrepareResourceForActivationAsync(resource);
+            var preparationIssue = await TryPrepareContentItemForActivationAsync(contentItem);
             if (preparationIssue != null)
             {
                 return preparationIssue;
             }
 
-            return CourseContentReadiness.GetResourceIssue(resource, resourceId);
+            return CourseContentReadiness.GetContentItemIssue(contentItem, contentItemId);
         }
 
         private async Task SetCourseActiveIfNeededAsync(Course course)
@@ -700,25 +700,25 @@ namespace iLearn.Application.Services
             }
         }
 
-        private async Task<ResourceReadinessIssue?> TryPrepareResourceForActivationAsync(Resource resource)
+        private async Task<ContentItemReadinessIssue?> TryPrepareContentItemForActivationAsync(ContentItem contentItem)
         {
-            if (CourseContentReadiness.IsResourceReady(resource))
+            if (CourseContentReadiness.IsContentItemReady(contentItem))
             {
                 return null;
             }
 
-            if (!resource.FileStorageId.HasValue)
+            if (!contentItem.FileStorageId.HasValue)
             {
                 return null;
             }
 
-            var fileStorage = await _fileStorageRepository.GetByIdAsync(resource.FileStorageId.Value);
+            var fileStorage = await _fileStorageRepository.GetByIdAsync(contentItem.FileStorageId.Value);
             if (fileStorage?.Data == null || fileStorage.Data.Length == 0)
             {
-                return new ResourceReadinessIssue(resource.Id, resource.Name, "original SCORM package is missing");
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "original SCORM package is missing");
             }
 
-            var previousFolderName = resource.URL;
+            var previousFolderName = contentItem.URL;
 
             try
             {
@@ -726,12 +726,12 @@ namespace iLearn.Application.Services
                     fileStorage.Data,
                     Guid.NewGuid().ToString());
 
-                resource.ResourceHref = scormInfo.ResourceHref;
-                resource.SchemaVersion = scormInfo.SchemaVersion;
-                resource.URL = scormInfo.FolderName;
-                resource.IsActive = true;
+                contentItem.LaunchHref = scormInfo.LaunchHref;
+                contentItem.SchemaVersion = scormInfo.SchemaVersion;
+                contentItem.URL = scormInfo.FolderName;
+                contentItem.IsActive = true;
 
-                await _resourceRepository.UpdateAsync(resource);
+                await _contentItemRepository.UpdateAsync(contentItem);
 
                 if (!string.IsNullOrWhiteSpace(previousFolderName)
                     && !string.Equals(previousFolderName, scormInfo.FolderName, StringComparison.OrdinalIgnoreCase))
@@ -743,19 +743,19 @@ namespace iLearn.Application.Services
             }
             catch (InvalidScormPackageException ex)
             {
-                resource.IsActive = false;
-                await _resourceRepository.UpdateAsync(resource);
-                return new ResourceReadinessIssue(resource.Id, resource.Name, ex.Message);
+                contentItem.IsActive = false;
+                await _contentItemRepository.UpdateAsync(contentItem);
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, ex.Message);
             }
             catch (Exception ex)
             {
-                resource.IsActive = false;
-                await _resourceRepository.UpdateAsync(resource);
-                return new ResourceReadinessIssue(resource.Id, resource.Name, $"automatic content preparation failed: {ex.Message}");
+                contentItem.IsActive = false;
+                await _contentItemRepository.UpdateAsync(contentItem);
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, $"automatic content preparation failed: {ex.Message}");
             }
         }
 
-        private async Task<Resource> ProcessNewResourceAsync(IFormFile file, int typeId)
+        private async Task<ContentItem> ProcessNewContentItemAsync(IFormFile file, int typeId)
         {
             if (file == null || file.Length == 0)
                 throw new InvalidScormPackageException("A SCORM package file is required.");
@@ -779,7 +779,7 @@ namespace iLearn.Application.Services
 
             var savedFile = await _fileStorageRepository.AddAsync(fileStorage);
 
-            var resource = new Resource
+            var contentItem = new ContentItem
             {
                 Name = safeFileName,
                 TypeId = typeId,
@@ -787,7 +787,7 @@ namespace iLearn.Application.Services
                 FileStorageId = savedFile.Id
             };
 
-            var savedResource = await _resourceRepository.AddAsync(resource);
+            var savedContentItem = await _contentItemRepository.AddAsync(contentItem);
 
             try
             {
@@ -798,21 +798,21 @@ namespace iLearn.Application.Services
                     folderName
                 );
 
-                savedResource.ResourceHref = scormInfo.ResourceHref;
-                savedResource.SchemaVersion = scormInfo.SchemaVersion;
-                savedResource.URL = scormInfo.FolderName;
-                savedResource.IsActive = true;
+                savedContentItem.LaunchHref = scormInfo.LaunchHref;
+                savedContentItem.SchemaVersion = scormInfo.SchemaVersion;
+                savedContentItem.URL = scormInfo.FolderName;
+                savedContentItem.IsActive = true;
 
-                await _resourceRepository.UpdateAsync(savedResource);
+                await _contentItemRepository.UpdateAsync(savedContentItem);
             }
             catch (InvalidScormPackageException)
             {
-                savedResource.IsActive = false;
-                await _resourceRepository.UpdateAsync(savedResource);
+                savedContentItem.IsActive = false;
+                await _contentItemRepository.UpdateAsync(savedContentItem);
                 throw;
             }
 
-            return savedResource;
+            return savedContentItem;
         }
     }
 }

@@ -33,50 +33,50 @@ namespace iLearn.Infrastructure.Services
 
             return states
                 .Select(MapToDto)
-                .OrderBy(state => state.ResourceId)
+                .OrderBy(state => state.ContentItemId)
                 .ToList();
         }
 
         public async Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(
             int enrollmentId,
-            IReadOnlyCollection<ScormRuntimeResourceCommitDto> resources,
+            IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems,
             CancellationToken cancellationToken = default)
         {
-            if (resources.Count == 0)
+            if (contentItems.Count == 0)
             {
                 return [];
             }
 
             var existingStates = (await _runtimeStateRepo.GetAsync(state => state.EnrollmentId == enrollmentId))
-                .ToDictionary(state => state.ResourceId);
+                .ToDictionary(state => state.ContentItemId);
             var touchedStates = new Dictionary<int, ScormRuntimeState>();
 
-            foreach (var resource in resources)
+            foreach (var contentItem in contentItems)
             {
-                if (resource.ResourceId <= 0)
+                if (contentItem.ContentItemId <= 0)
                 {
                     continue;
                 }
 
-                if (!existingStates.TryGetValue(resource.ResourceId, out var state))
+                if (!existingStates.TryGetValue(contentItem.ContentItemId, out var state))
                 {
                     state = new ScormRuntimeState
                     {
                         EnrollmentId = enrollmentId,
-                        ResourceId = resource.ResourceId
+                        ContentItemId = contentItem.ContentItemId
                     };
 
-                    ApplyCommit(state, resource);
+                    ApplyCommit(state, contentItem);
                     await _runtimeStateRepo.AddWithoutSaveAsync(state);
-                    existingStates[resource.ResourceId] = state;
+                    existingStates[contentItem.ContentItemId] = state;
                 }
                 else
                 {
-                    ApplyCommit(state, resource);
+                    ApplyCommit(state, contentItem);
                     _runtimeStateRepo.UpdateWithoutSave(state);
                 }
 
-                touchedStates[resource.ResourceId] = state;
+                touchedStates[contentItem.ContentItemId] = state;
             }
 
             if (touchedStates.Count == 0)
@@ -88,41 +88,41 @@ namespace iLearn.Infrastructure.Services
 
             return touchedStates.Values
                 .Select(MapToDto)
-                .OrderBy(state => state.ResourceId)
+                .OrderBy(state => state.ContentItemId)
                 .ToList();
         }
 
-        private void ApplyCommit(ScormRuntimeState state, ScormRuntimeResourceCommitDto resource)
+        private void ApplyCommit(ScormRuntimeState state, ScormRuntimeContentItemCommitDto contentItem)
         {
-            var normalizedVersion = ScormRuntimeFieldMap.NormalizeVersion(resource.ScormVersion);
-            var normalizedLessonStatus = PreferIncoming(resource.LessonStatus, null);
+            var normalizedVersion = ScormRuntimeFieldMap.NormalizeVersion(contentItem.ScormVersion);
+            var normalizedLessonStatus = PreferIncoming(contentItem.LessonStatus, null);
             var normalizedCompletionStatus = IsScorm12(normalizedVersion)
-                ? ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, null)
-                : ScormRuntimeFieldMap.NormalizeCompletionStatus(resource.LessonStatus, resource.CompletionStatus);
+                ? ScormRuntimeFieldMap.NormalizeCompletionStatus(contentItem.LessonStatus, null)
+                : ScormRuntimeFieldMap.NormalizeCompletionStatus(contentItem.LessonStatus, contentItem.CompletionStatus);
             var normalizedSuccessStatus = IsScorm12(normalizedVersion)
-                ? NormalizeScorm12SuccessStatus(resource.LessonStatus)
-                : ScormRuntimeFieldMap.NormalizeSuccessStatus(resource.LessonStatus, resource.SuccessStatus);
+                ? NormalizeScorm12SuccessStatus(contentItem.LessonStatus)
+                : ScormRuntimeFieldMap.NormalizeSuccessStatus(contentItem.LessonStatus, contentItem.SuccessStatus);
             var isPlaceholderProgressCommit = IsPlaceholderProgressCommit(
-                resource,
+                contentItem,
                 normalizedLessonStatus,
                 normalizedCompletionStatus,
                 normalizedSuccessStatus);
 
             state.ScormVersion = PreferIncoming(normalizedVersion, state.ScormVersion) ?? string.Empty;
-            state.LessonLocation = PreferIncoming(resource.LessonLocation, state.LessonLocation);
-            state.SuspendData = PreferIncoming(resource.SuspendData, state.SuspendData);
+            state.LessonLocation = PreferIncoming(contentItem.LessonLocation, state.LessonLocation);
+            state.SuspendData = PreferIncoming(contentItem.SuspendData, state.SuspendData);
             state.LessonStatus = PreferStatus(normalizedLessonStatus, state.LessonStatus, isPlaceholderProgressCommit);
             state.CompletionStatus = PreferStatus(normalizedCompletionStatus, state.CompletionStatus, isPlaceholderProgressCommit);
             state.SuccessStatus = PreferSuccessStatus(normalizedSuccessStatus, state.SuccessStatus);
-            state.SessionTime = PreferDuration(resource.SessionTime, state.SessionTime);
-            state.TotalTime = PreferDuration(resource.TotalTime, state.TotalTime);
-            state.Entry = PreferEntry(resource.Entry, state.Entry, state.LessonLocation, state.SuspendData);
-            state.Exit = PreferIncoming(resource.Exit, state.Exit);
-            state.CmiSnapshotJson = PreferIncoming(resource.CmiSnapshotJson, state.CmiSnapshotJson);
-            state.LastCommittedAtUtc = resource.LastCommittedAtUtc ?? _dateTime.Now.ToUniversalTime();
+            state.SessionTime = PreferDuration(contentItem.SessionTime, state.SessionTime);
+            state.TotalTime = PreferDuration(contentItem.TotalTime, state.TotalTime);
+            state.Entry = PreferEntry(contentItem.Entry, state.Entry, state.LessonLocation, state.SuspendData);
+            state.Exit = PreferIncoming(contentItem.Exit, state.Exit);
+            state.CmiSnapshotJson = PreferIncoming(contentItem.CmiSnapshotJson, state.CmiSnapshotJson);
+            state.LastCommittedAtUtc = contentItem.LastCommittedAtUtc ?? _dateTime.Now.ToUniversalTime();
 
             state.RawScore = PreferRawScore(
-                resource.RawScore,
+                contentItem.RawScore,
                 state.RawScore,
                 state.LessonStatus,
                 state.CompletionStatus,
@@ -135,7 +135,7 @@ namespace iLearn.Infrastructure.Services
             return new ScormRuntimeStateDto
             {
                 EnrollmentId = state.EnrollmentId,
-                ResourceId = state.ResourceId,
+                ContentItemId = state.ContentItemId,
                 ScormVersion = state.ScormVersion,
                 LessonLocation = state.LessonLocation,
                 SuspendData = state.SuspendData,
@@ -280,17 +280,17 @@ namespace iLearn.Infrastructure.Services
         }
 
         private static bool IsPlaceholderProgressCommit(
-            ScormRuntimeResourceCommitDto resource,
+            ScormRuntimeContentItemCommitDto contentItem,
             string? lessonStatus,
             string? completionStatus,
             string? successStatus)
         {
             return LooksLikePlaceholderOutcome(lessonStatus, completionStatus, successStatus) &&
-                   (!resource.RawScore.HasValue || resource.RawScore.Value == 0m) &&
-                   string.IsNullOrWhiteSpace(resource.LessonLocation) &&
-                   string.IsNullOrWhiteSpace(resource.SuspendData) &&
-                   (string.IsNullOrWhiteSpace(resource.SessionTime) || IsZeroLikeDuration(resource.SessionTime)) &&
-                   (string.IsNullOrWhiteSpace(resource.TotalTime) || IsZeroLikeDuration(resource.TotalTime));
+                   (!contentItem.RawScore.HasValue || contentItem.RawScore.Value == 0m) &&
+                   string.IsNullOrWhiteSpace(contentItem.LessonLocation) &&
+                   string.IsNullOrWhiteSpace(contentItem.SuspendData) &&
+                   (string.IsNullOrWhiteSpace(contentItem.SessionTime) || IsZeroLikeDuration(contentItem.SessionTime)) &&
+                   (string.IsNullOrWhiteSpace(contentItem.TotalTime) || IsZeroLikeDuration(contentItem.TotalTime));
         }
 
         private static bool HasResumeContext(string? lessonLocation, string? suspendData)

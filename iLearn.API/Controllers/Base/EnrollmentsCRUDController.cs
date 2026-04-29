@@ -43,7 +43,7 @@ namespace iLearn.API.Controllers.Base
                 .Select(e => new
                 {
                     e.Id,
-                    e.StudentCode,
+                    e.LearnerCode,
                     e.CourseId,
                     courseCode = e.Course != null ? e.Course.Code : "",
                     courseTitle = e.Course != null ? e.Course.Title : "",

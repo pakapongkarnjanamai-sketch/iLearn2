@@ -584,21 +584,21 @@
             cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } };
         });
     }
-    // ─── Student Org Filter Initializer ──────────────────────────────────────────
+    // ─── Learner Org Filter Initializer ──────────────────────────────────────────
     // Initialises the cascading Division → Department → Section (+ optional Position)
-    // filter widgets for a student selection grid.
+    // filter widgets for a learner selection grid.
     //
     // options {object}:
-    //   studentsBaseUrl  {string}  Base URL for the Students API (e.g. serviceUrl + '/Students')
+    //   learnersBaseUrl  {string}  Base URL for the Learners API (e.g. serviceUrl + '/Learners')
     //   gridInstance     {object}  DevExtreme DataGrid instance to filter
     //   divSelector      {string}  Selector for the Division SelectBox  (default '#filter-div')
     //   deptSelector     {string}  Selector for the Department SelectBox (default '#filter-dept')
     //   sectionSelector  {string}  Selector for the Section SelectBox    (default '#filter-section')
     //   positionSelector {string}  Selector for the optional Position TagBox (omit if not used)
     //   clearSelector    {string}  Selector for the clear-filters button  (default '#btn-clear-filter')
-    function initAdminStudentOrgFilters(options) {
+    function initAdminLearnerOrgFilters(options) {
         var opts = options || {};
-        var baseUrl = opts.studentsBaseUrl || (window.serviceUrl + '/Students');
+        var baseUrl = opts.learnersBaseUrl || (window.serviceUrl + '/Learners');
         var grid = opts.gridInstance;
         var divSel = opts.divSelector || '#filter-div';
         var deptSel = opts.deptSelector || '#filter-dept';
@@ -832,6 +832,6 @@
     window.buildAdminExportTimestampSuffix = buildAdminExportTimestampSuffix;
     window.saveAdminWorkbook = saveAdminWorkbook;
     window.styleAdminExcelHeaderRow = styleAdminExcelHeaderRow;
-    window.initAdminStudentOrgFilters = initAdminStudentOrgFilters;
+    window.initAdminLearnerOrgFilters = initAdminLearnerOrgFilters;
     window.initAdminCourseFilters = initAdminCourseFilters;
 })(window, window.jQuery);

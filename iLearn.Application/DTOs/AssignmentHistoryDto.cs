@@ -20,7 +20,7 @@ namespace iLearn.Application.DTOs
 
         // ✅ Summary counts (คำนวณฝั่ง service ไม่ต้องยิง API เพิ่ม)
         public int CourseCount { get; set; }
-        public int StudentCount { get; set; }
+        public int LearnerCount { get; set; }
         public int CompletedEnrollmentCount { get; set; }
         public int TotalEnrollmentCount { get; set; }
 

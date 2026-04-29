@@ -12,8 +12,8 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IAssignmentBatchService _assignmentBatchService;
-        private readonly IStudentApiService _studentApiService;
-        private readonly IStudentGroupService _studentGroupService;
+        private readonly ILearnerApiService _learnerApiService;
+        private readonly ILearnerGroupService _learnerGroupService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
@@ -23,8 +23,8 @@ namespace iLearn.Application.Services
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
             IAssignmentBatchService assignmentBatchService,
-            IStudentApiService studentApiService,
-            IStudentGroupService studentGroupService,
+            ILearnerApiService learnerApiService,
+            ILearnerGroupService learnerGroupService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
             IUnitOfWork unitOfWork)
@@ -33,8 +33,8 @@ namespace iLearn.Application.Services
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
             _assignmentBatchService = assignmentBatchService;
-            _studentApiService = studentApiService;
-            _studentGroupService = studentGroupService;
+            _learnerApiService = learnerApiService;
+            _learnerGroupService = learnerGroupService;
             _currentUser = currentUser;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
@@ -62,7 +62,7 @@ namespace iLearn.Application.Services
                 .Where(ea => ea.Enrollment != null)
                 .Select(ea => new EnrollmentProjection
                 {
-                    StudentCode   = ea.Enrollment!.StudentCode,
+                    LearnerCode   = ea.Enrollment!.LearnerCode,
                     AssignmentId  = ea.AssignmentId,
                     Progress      = ea.SnapshotCompleted ? ea.SnapshotProgress : ea.Enrollment.Progress,
                     IsCompleted   = ea.SnapshotCompleted || ea.Enrollment.IsCompleted,
@@ -72,19 +72,19 @@ namespace iLearn.Application.Services
                     Course        = ea.Enrollment.Course
                 }).ToList();
 
-            var studentEnrollments = enrollments
-                .GroupBy(e => e.StudentCode)
+            var learnerEnrollments = enrollments
+                .GroupBy(e => e.LearnerCode)
                 .Select(g => new
                 {
-                    StudentCode  = g.Key,
+                    LearnerCode  = g.Key,
                     AllCompleted = g.All(e => e.IsCompleted),
                     AnyStarted   = g.Any(e => e.IsCompleted || e.Progress > 0)
                 }).ToList();
 
-            int uniqueStudentsCount  = studentEnrollments.Count;
-            int completedCount       = studentEnrollments.Count(s => s.AllCompleted);
-            int inProgressCount      = studentEnrollments.Count(s => !s.AllCompleted && s.AnyStarted);
-            int notStartedCount      = studentEnrollments.Count(s => !s.AllCompleted && !s.AnyStarted);
+            int uniqueLearnersCount  = learnerEnrollments.Count;
+            int completedCount       = learnerEnrollments.Count(s => s.AllCompleted);
+            int inProgressCount      = learnerEnrollments.Count(s => !s.AllCompleted && s.AnyStarted);
+            int notStartedCount      = learnerEnrollments.Count(s => !s.AllCompleted && !s.AnyStarted);
             int totalEnrollments     = enrollments.Count;
             int completedEnrollments = enrollments.Count(e => e.IsCompleted);
             double completionRate    = totalEnrollments == 0
@@ -95,24 +95,24 @@ namespace iLearn.Application.Services
                 AssignmentRuleId  = r.Id,
                 CourseCode        = r.Course?.Code ?? "-",
                 CourseTitle       = r.Course?.Title ?? "Unknown Course",
-                CompletedStudents = enrollments.Count(e => e.AssignmentId == r.Id && e.IsCompleted),
-                TotalStudents     = enrollments.Count(e => e.AssignmentId == r.Id),
+                CompletedLearners = enrollments.Count(e => e.AssignmentId == r.Id && e.IsCompleted),
+                TotalLearners     = enrollments.Count(e => e.AssignmentId == r.Id),
                 IsCourseDeleted   = r.Course?.IsDeleted ?? false
             }).ToList();
 
-            var uniqueCodes  = enrollments.Select(e => e.StudentCode).Distinct().ToList();
-            var studentNames = await LookupStudentNamesAsync(uniqueCodes);
+            var uniqueCodes  = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
+            var learnerNames = await LookupLearnerNamesAsync(uniqueCodes);
 
             var ruleCourseMap = allRules.ToDictionary(r => r.Id, r => r.Course);
 
-            var studentsProgress = enrollments.Select(e =>
+            var learnersProgress = enrollments.Select(e =>
             {
                 var course = e.Course ?? (ruleCourseMap.TryGetValue(e.AssignmentId, out var c) ? c : null);
                 var status = e.IsCompleted ? "Completed" : e.Progress > 0 ? "In Progress" : "Pending";
-                return new StudentProgressDto
+                return new LearnerProgressDto
                 {
-                    StudentCode      = e.StudentCode,
-                    StudentName      = studentNames.GetValueOrDefault(e.StudentCode, e.StudentCode),
+                    LearnerCode      = e.LearnerCode,
+                    LearnerName      = learnerNames.GetValueOrDefault(e.LearnerCode, e.LearnerCode),
                     AssignmentRuleId = e.AssignmentId,
                     CourseCode       = course?.Code ?? "-",
                     CourseTitle      = course?.Title ?? "Unknown Course",
@@ -134,7 +134,7 @@ namespace iLearn.Application.Services
                 CreatedBy        = mainRule.CreatedBy,
                 StartDate        = mainRule.StartDate,
                 DueDate          = mainRule.DueDate,
-                TotalEmployees   = uniqueStudentsCount,
+                TotalEmployees   = uniqueLearnersCount,
                 TotalCourses     = allRules.Count,
                 CompletionRate   = completionRate,
                 HasDeletedCourse = hasDeletedCourse,
@@ -145,7 +145,7 @@ namespace iLearn.Application.Services
                     NotStarted = notStartedCount
                 },
                 Courses  = courseSummaries,
-                Students = studentsProgress
+                Learners = learnersProgress
             };
         }
 
@@ -153,7 +153,7 @@ namespace iLearn.Application.Services
         {
             if (dto.GroupId.HasValue && dto.EmployeeCodes.Count == 0)
             {
-                dto.EmployeeCodes = await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
+                dto.EmployeeCodes = await _learnerGroupService.GetLearnerCodesAsync(dto.GroupId.Value);
                 if (dto.EmployeeCodes.Count == 0)
                     return new ValidateBeforeAssignResult { Success = false, Message = "The selected group has no members." };
             }
@@ -165,23 +165,23 @@ namespace iLearn.Application.Services
 
             var inProgressConflicts = existingLinks
                 .Where(ea => ea.Enrollment != null
-                          && dto.EmployeeCodes.Contains(ea.Enrollment.StudentCode)
+                          && dto.EmployeeCodes.Contains(ea.Enrollment.LearnerCode)
                           && !(ea.SnapshotCompleted || ea.Enrollment.IsCompleted)
                           && (ea.SnapshotProgress > 0 || ea.Enrollment.Progress > 0))
                 .Select(ea => new ConflictDto
                 {
-                    StudentCode = ea.Enrollment!.StudentCode,
+                    LearnerCode = ea.Enrollment!.LearnerCode,
                     CourseTitle  = ea.Assignment?.Course?.Title ?? "Unknown",
                     DueDate      = ea.DueDate
                 }).ToList();
 
             var completedConflicts = existingLinks
                 .Where(ea => ea.Enrollment != null
-                          && dto.EmployeeCodes.Contains(ea.Enrollment.StudentCode)
+                          && dto.EmployeeCodes.Contains(ea.Enrollment.LearnerCode)
                           && (ea.SnapshotCompleted || ea.Enrollment.IsCompleted))
                 .Select(ea => new CompletedConflictDto
                 {
-                    StudentCode   = ea.Enrollment!.StudentCode,
+                    LearnerCode   = ea.Enrollment!.LearnerCode,
                     CourseTitle    = ea.Assignment?.Course?.Title ?? "Unknown",
                     CompletedDate = ea.SnapshotCompleted ? ea.SnapshotCompletedDate : ea.Enrollment.CompletedDate
                 }).ToList();
@@ -315,7 +315,7 @@ namespace iLearn.Application.Services
                 CreatedBy    = first.CreatedBy,
                 CreatedAt    = first.CreatedAt,
                 CourseCount  = g.Select(a => a.CourseId).Distinct().Count(),
-                StudentCount = string.IsNullOrEmpty(first.EmployeeCodes)
+                LearnerCount = string.IsNullOrEmpty(first.EmployeeCodes)
                     ? 0
                     : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
                 CompletedEnrollmentCount = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted),
@@ -327,13 +327,13 @@ namespace iLearn.Application.Services
             };
         }
 
-        private async Task<Dictionary<string, string>> LookupStudentNamesAsync(List<string> codes)
+        private async Task<Dictionary<string, string>> LookupLearnerNamesAsync(List<string> codes)
         {
             if (codes.Count == 0) return new Dictionary<string, string>();
 
             try
             {
-                var bulk = await _studentApiService.GetStudentsByCodesAsync(codes);
+                var bulk = await _learnerApiService.GetLearnersByCodesAsync(codes);
                 return bulk.ToDictionary(kv => kv.Key, kv => kv.Value.Name ?? kv.Key);
             }
             catch
@@ -343,7 +343,7 @@ namespace iLearn.Application.Services
                 {
                     try
                     {
-                        var s = await _studentApiService.GetStudentByCodeAsync(code);
+                        var s = await _learnerApiService.GetLearnerByCodeAsync(code);
                         dict[code] = s?.Name ?? code;
                     }
                     catch
@@ -357,7 +357,7 @@ namespace iLearn.Application.Services
 
         private sealed class EnrollmentProjection
         {
-            public string StudentCode { get; set; } = string.Empty;
+            public string LearnerCode { get; set; } = string.Empty;
             public int AssignmentId { get; set; }
             public double Progress { get; set; }
             public bool IsCompleted { get; set; }
@@ -371,7 +371,7 @@ namespace iLearn.Application.Services
         {
             var divisionId = _currentUser.DivisionId;
             var assignments = await _assignmentRepo.GetAsync(
-                r => r.StudentGroupId == groupId &&
+                r => r.LearnerGroupId == groupId &&
                 (!divisionId.HasValue || r.DivisionId == divisionId.Value),
                 includeProperties: "Course"
             );

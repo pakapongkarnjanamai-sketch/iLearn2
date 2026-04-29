@@ -25,16 +25,16 @@ namespace iLearn.API.Controllers.Base
     [Authorize(Policy = "SuperAdminOnly")]
     public class LearningLogsCRUDController : GenericController<LearningLog>
     {
-        private readonly IGenericRepository<Resource> _resourceRepo;
+        private readonly IGenericRepository<ContentItem> _contentItemRepo;
         private readonly IMemoryCache _cache;
 
         public LearningLogsCRUDController(
             IGenericRepository<LearningLog> repository,
             ICurrentUserService currentUser,
-            IGenericRepository<Resource> resourceRepo,
+            IGenericRepository<ContentItem> contentItemRepo,
             IMemoryCache cache) : base(repository, currentUser)
         {
-            _resourceRepo = resourceRepo;
+            _contentItemRepo = contentItemRepo;
             _cache = cache;
         }
 
@@ -48,9 +48,9 @@ namespace iLearn.API.Controllers.Base
                 .Select(l => new
                 {
                     l.Id,
-                    l.StudentCode,
+                    l.LearnerCode,
                     l.EnrollmentId,
-                    l.ResourceId,
+                    l.ContentItemId,
                     l.CourseVersionId,
                     courseCode = l.Enrollment != null && l.Enrollment.Course != null ? l.Enrollment.Course.Code : "",
                     courseTitle = l.Enrollment != null && l.Enrollment.Course != null ? l.Enrollment.Course.Title : "",

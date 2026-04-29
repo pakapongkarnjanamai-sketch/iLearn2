@@ -15,7 +15,7 @@ namespace iLearn.Application.Common
 
     public static class LearnerProxyAuthHeaders
     {
-        public const string StudentCode = "X-iLearn-Learner-Code";
+        public const string LearnerCode = "X-iLearn-Learner-Code";
         public const string Timestamp = "X-iLearn-Learner-Timestamp";
         public const string Signature = "X-iLearn-Learner-Signature";
     }
@@ -27,7 +27,7 @@ namespace iLearn.Application.Common
 
         public static string Compute(
             string sharedSecret,
-            string studentCode,
+            string learnerCode,
             string timestamp,
             string method,
             string absolutePath)
@@ -36,7 +36,7 @@ namespace iLearn.Application.Common
                 throw new InvalidOperationException("Learner proxy shared secret is not configured.");
 
             var payload = string.Join('\n',
-                studentCode.Trim(),
+                learnerCode.Trim(),
                 timestamp.Trim(),
                 method.Trim().ToUpperInvariant(),
                 NormalizeAbsolutePath(absolutePath));

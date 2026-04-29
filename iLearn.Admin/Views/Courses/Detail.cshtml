@@ -465,7 +465,7 @@
                             cssClass: "cell-caption"
                         },
                         {
-                            dataField: "resources",
+                            dataField: "contentItems",
                             caption: "Content",
                             minWidth: 300,
                             allowSorting: false,
@@ -529,7 +529,7 @@
             }
 
             window.previewContentItem = async function(contentId, contentName) {
-                const apiUrl = `${serviceUrl}/Resources/${contentId}/content`;
+                const apiUrl = `${serviceUrl}/ContentItems/${contentId}/content`;
                 if (!contentName.toLowerCase().endsWith('.zip')) {
                     window.open(apiUrl, '_blank');
                     return;
@@ -742,7 +742,7 @@
                 const readiness = response.data || response || {
                     versionId: versionId,
                     isReady: true,
-                    resourceCount: 0,
+                    contentItemCount: 0,
                     issues: []
                 };
 
@@ -792,7 +792,7 @@
                 const issues = Array.isArray(readiness?.issues) ? readiness.issues : [];
                 const issueItems = issues.length
                     ? issues.map(function(issue) {
-                        const contentName = window.escapeHtml(issue.resourceName || 'Unnamed content item');
+                        const contentName = window.escapeHtml(issue.contentItemName || 'Unnamed content item');
                         const reason = window.escapeHtml(issue.reason || 'Not ready');
                         return `<li><strong>${contentName}</strong> <span class="text-secondary">${reason}</span></li>`;
                     }).join('')
@@ -801,7 +801,7 @@
                 const messageHtml = `
                     <div class="text-start">
                         <div class="u-fs-12 text-secondary mb-2">This version still could not be activated after automatic preparation. Fix the listed content issues first.</div>
-                        <div class="tag-pill pill-warning mb-3">${window.escapeHtml(window.formatAdminCountLabel(issues.length || readiness.resourceCount || 0, 'issue'))}</div>
+                        <div class="tag-pill pill-warning mb-3">${window.escapeHtml(window.formatAdminCountLabel(issues.length || readiness.contentItemCount || 0, 'issue'))}</div>
                         <ul class="ps-3 mb-3 u-fs-11">${issueItems}</ul>
                         <div class="u-fs-11 text-secondary">Open the version editor to replace the affected content items, or repair the stored SCORM package and try again.</div>
                     </div>`;
@@ -966,7 +966,7 @@
                         ? `<span class="tag-pill pill-success">Version ${activeVersion.versionNumber}</span>`
                         : '<span class="tag-pill pill-default">No active version</span>'
                 );
-                $("#summary-content-count").text(window.formatAdminCountLabel((activeVersion?.resources || []).length, 'content item', 'content items'));
+                $("#summary-content-count").text(window.formatAdminCountLabel((activeVersion?.contentItems || []).length, 'content item', 'content items'));
 
                 $("#stat-version-count").text(kpi.versionCount ?? (versions || []).length);
                 $("#stat-assignment-count").text(kpi.assignmentCount ?? 0);
@@ -1208,8 +1208,8 @@
                 return window.formatAdminDate(value, EMPTY_TEXT);
             }
 
-            function renderVersionContentCell(container, resources) {
-                const contentItems = Array.isArray(resources) ? resources : [];
+            function renderVersionContentCell(container, contentItems) {
+                const contentItems = Array.isArray(contentItems) ? contentItems : [];
 
                 if (!contentItems.length) {
                     $("<span>")

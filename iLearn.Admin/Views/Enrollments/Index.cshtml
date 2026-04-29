@@ -182,10 +182,10 @@
             gridInstance.refresh();
         }
 
-        function resetEnrollment(id, studentCode) {
+        function resetEnrollment(id, learnerCode) {
             showAdminConfirmDialog({
                 title: 'Reset Progress?',
-                messageHtml: `<div class="u-text-secondary-60">Reset all progress for <strong>${escapeAdminHtml(studentCode)}</strong>.<br>Learning logs will be preserved for history.</div>`,
+                messageHtml: `<div class="u-text-secondary-60">Reset all progress for <strong>${escapeAdminHtml(learnerCode)}</strong>.<br>Learning logs will be preserved for history.</div>`,
                 icon: 'warning',
                 confirmButtonText: 'Reset',
                 cancelButtonText: 'Cancel',
@@ -274,7 +274,7 @@
                                 items: [
                                
                                     {
-                                        dataField: "studentCode",
+                                        dataField: "learnerCode",
                                         label: { text: "Learner ID" },
                                         editorOptions: { readOnly: true }
                                     },
@@ -324,7 +324,7 @@
 
                 columns: [
                  { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
-                    { dataField: "studentCode", caption: "Learner ID", width: 130 },
+                    { dataField: "learnerCode", caption: "Learner ID", width: 130 },
                     {
                         dataField: "courseId", caption: "Course", minWidth: 180,
                         lookup: { dataSource: dsCoursesLookup, displayExpr: "code", valueExpr: "id" }
@@ -380,7 +380,7 @@
                             {
                                 hint: "Reset Progress", icon: "refresh",
                                 visible: e => e.row.data.progress > 0 || e.row.data.isCompleted,
-                                onClick: e => resetEnrollment(e.row.data.id, e.row.data.studentCode)
+                                onClick: e => resetEnrollment(e.row.data.id, e.row.data.learnerCode)
                             },
                             "delete"
                         ]

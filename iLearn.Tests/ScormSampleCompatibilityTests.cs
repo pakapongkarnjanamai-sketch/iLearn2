@@ -41,7 +41,7 @@ namespace iLearn.Tests
                 var result = await ExtractPackageAsync(packagePath);
 
                 Assert.Contains(result.SchemaVersion, new[] { "1.2", "2004" });
-                Assert.False(string.IsNullOrWhiteSpace(result.ResourceHref));
+                Assert.False(string.IsNullOrWhiteSpace(result.LaunchHref));
             }
         }
 
@@ -68,7 +68,7 @@ namespace iLearn.Tests
                 var result = await ExtractPackageAsync(packagePath);
 
                 Assert.Contains(result.SchemaVersion, new[] { "1.2", "2004" });
-                Assert.False(string.IsNullOrWhiteSpace(result.ResourceHref));
+                Assert.False(string.IsNullOrWhiteSpace(result.LaunchHref));
             }
         }
 

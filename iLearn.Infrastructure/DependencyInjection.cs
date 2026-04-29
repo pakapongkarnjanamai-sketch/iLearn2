@@ -46,7 +46,7 @@ namespace iLearn.Infrastructure
             services.AddSingleton<IMaintenanceStatusService, MaintenanceStatusService>();
 
             // ── External HTTP Services ──
-            services.AddHttpClient<IStudentApiService, StudentApiService>();
+            services.AddHttpClient<ILearnerApiService, LearnerApiService>();
 
             return services;
         }

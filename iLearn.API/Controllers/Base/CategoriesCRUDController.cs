@@ -209,7 +209,7 @@ namespace iLearn.API.Controllers.Base
                 .Select(e => new
                 {
                     e.CourseId,
-                    e.StudentCode,
+                    e.LearnerCode,
                     e.IsCompleted,
                     e.Progress
                 })
@@ -219,7 +219,7 @@ namespace iLearn.API.Controllers.Base
             var completedEnrollments = enrollments.Count(e => e.IsCompleted);
             var inProgressEnrollments = enrollments.Count(e => !e.IsCompleted && e.Progress > 0);
             var notStartedEnrollments = enrollments.Count(e => !e.IsCompleted && e.Progress == 0);
-            var uniqueStudents = enrollments.Select(e => e.StudentCode).Distinct().Count();
+            var uniqueLearners = enrollments.Select(e => e.LearnerCode).Distinct().Count();
             var avgProgress = totalEnrollments > 0
                 ? Math.Round(enrollments.Average(e => e.Progress), 1)
                 : 0;
@@ -270,7 +270,7 @@ namespace iLearn.API.Controllers.Base
                         completedEnrollments,
                         inProgressEnrollments,
                         notStartedEnrollments,
-                        uniqueStudents,
+                        uniqueLearners,
                         avgProgress
                     }
                 }

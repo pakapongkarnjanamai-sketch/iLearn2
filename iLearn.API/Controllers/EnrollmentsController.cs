@@ -30,7 +30,7 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<CourseVersion> _versionRepo;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IScormService _scormService;
-        private readonly IStudentGroupService _studentGroupService;
+        private readonly ILearnerGroupService _learnerGroupService;
         private readonly IAssignmentNoGenerator _assignmentNoGen;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
@@ -47,7 +47,7 @@ namespace iLearn.API.Controllers
             IGenericRepository<CourseVersion> versionRepo,
             IGenericRepository<Course> courseRepo,
             IScormService scormService,
-            IStudentGroupService studentGroupService,
+            ILearnerGroupService learnerGroupService,
             IAssignmentNoGenerator assignmentNoGen,
             IDateTime dateTime,
             IUnitOfWork unitOfWork,
@@ -63,7 +63,7 @@ namespace iLearn.API.Controllers
             _versionRepo         = versionRepo;
             _courseRepo          = courseRepo;
             _scormService        = scormService;
-            _studentGroupService = studentGroupService;
+            _learnerGroupService = learnerGroupService;
             _assignmentNoGen     = assignmentNoGen;
             _dateTime            = dateTime;
             _unitOfWork          = unitOfWork;
@@ -95,7 +95,7 @@ namespace iLearn.API.Controllers
         [HttpGet("my-courses")]
         public async Task<IActionResult> GetMyCourses()
         {
-            if (!TryGetTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            if (!TryGetTrustedLearnerLearnerCode(out var learnerCode, out var errorResult))
             {
                 return errorResult;
             }
@@ -104,8 +104,8 @@ namespace iLearn.API.Controllers
             var oneMonthAgo = currentDate.AddMonths(-1);
 
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => !e.IsDeleted && e.StudentCode == studentCode && e.Course != null && e.Course.IsActive,
-                includeProperties: "Course.CourseType,Course.Versions.CourseResources.Resource,AssignmentLinks.Assignment",
+                filter: e => !e.IsDeleted && e.LearnerCode == learnerCode && e.Course != null && e.Course.IsActive,
+                includeProperties: "Course.CourseType,Course.Versions.CourseContentItems.ContentItem,AssignmentLinks.Assignment",
                 ignoreQueryFilters: true
             );
 
@@ -167,13 +167,13 @@ namespace iLearn.API.Controllers
         [HttpGet("player-info/{courseId}")]
         public async Task<IActionResult> GetPlayerInfoByCourse(int courseId)
         {
-            if (!TryGetTrustedLearnerStudentCode(out var studentCode, out var errorResult))
+            if (!TryGetTrustedLearnerLearnerCode(out var learnerCode, out var errorResult))
             {
                 return errorResult;
             }
 
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => e.CourseId == courseId && e.StudentCode == studentCode,
+                filter: e => e.CourseId == courseId && e.LearnerCode == learnerCode,
                 includeProperties: "Course.CourseType,Course.Category"
             );
             var enrollment = enrollments.FirstOrDefault();
@@ -191,21 +191,21 @@ namespace iLearn.API.Controllers
 
                 var versions = await _versionRepo.GetAsync(
                     filter: v => v.CourseId == courseId && v.Id == targetVersionId,
-                    includeProperties: "CourseResources.Resource,Course.CourseType,Course.Category"
+                    includeProperties: "CourseContentItems.ContentItem,Course.CourseType,Course.Category"
                 );
                 targetVersion = versions.FirstOrDefault();
 
                 if (targetVersion != null)
                 {
                     userLogs = (await _logRepo.GetAsync(l =>
-                        l.StudentCode     == studentCode       &&
+                        l.LearnerCode     == learnerCode       &&
                         l.CourseVersionId == targetVersion.Id  &&
                         l.EnrollmentId    == enrollment.Id     &&
                         (enrollment.ResetAt == null || l.CreatedAt >= enrollment.ResetAt)
                     )).ToList();
 
                     runtimeStateMap = (await _scormRuntimeStateService.GetActiveStatesAsync(enrollment.Id, enrollment.ResetAt))
-                        .ToDictionary(state => state.ResourceId);
+                        .ToDictionary(state => state.ContentItemId);
                 }
             }
             else
@@ -214,7 +214,7 @@ namespace iLearn.API.Controllers
 
                 var activeVersions = await _versionRepo.GetAsync(
                   filter: v => v.CourseId == courseId && v.IsActive,
-                                    includeProperties: "CourseResources.Resource,Course.CourseType,Course.Category"
+                                    includeProperties: "CourseContentItems.ContentItem,Course.CourseType,Course.Category"
                 );
                 targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
@@ -224,42 +224,42 @@ namespace iLearn.API.Controllers
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found or Course is not active" });
             }
 
-            if (targetVersion.Course?.IsActive != true || !CourseContentReadiness.IsVersionReady(targetVersion.CourseResources))
+            if (targetVersion.Course?.IsActive != true || !CourseContentReadiness.IsVersionReady(targetVersion.CourseContentItems))
             {
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content is not ready for learning." });
             }
 
-            var resources = targetVersion.CourseResources
-                .Where(cr => CourseContentReadiness.IsResourceReady(cr.Resource))
-                .OrderBy(cr => cr.Resource!.TypeId == 1 ? 0 : 1) // Learn first
-                .ThenBy(cr => cr.Resource!.Name)
+            var contentItems = targetVersion.CourseContentItems
+                .Where(cr => CourseContentReadiness.IsContentItemReady(cr.ContentItem))
+                .OrderBy(cr => cr.ContentItem!.TypeId == 1 ? 0 : 1) // Learn first
+                .ThenBy(cr => cr.ContentItem!.Name)
                 .Select(cr => {
-                    var resource = cr.Resource!;
-                    var log = userLogs.FirstOrDefault(l => l.ResourceId == resource.Id);
-                    runtimeStateMap.TryGetValue(resource.Id, out var runtimeState);
-                    var resourceType = resource.TypeId == 2 ? "Exam" : "Learn";
-                    var scormVersion = runtimeState?.ScormVersion ?? ScormRuntimeFieldMap.NormalizeVersion(resource.SchemaVersion);
+                    var contentItem = cr.ContentItem!;
+                    var log = userLogs.FirstOrDefault(l => l.ContentItemId == contentItem.Id);
+                    runtimeStateMap.TryGetValue(contentItem.Id, out var runtimeState);
+                    var contentItemType = contentItem.TypeId == 2 ? "Exam" : "Learn";
+                    var scormVersion = runtimeState?.ScormVersion ?? ScormRuntimeFieldMap.NormalizeVersion(contentItem.SchemaVersion);
                     bool isDone = log != null && (
                         log.Status.ToLower() == "completed" ||
                         log.Status.ToLower() == "passed"
                     );
-                    var status = ResolvePlayerResourceStatus(resourceType, log, runtimeState, isDone);
+                    var status = ResolvePlayerContentItemStatus(contentItemType, log, runtimeState, isDone);
 
-                    return new PlayerResourceDto
+                    return new PlayerContentItemDto
                     {
-                        Id = resource.Id,
-                        Name = resource.Name,
-                        Type = resourceType,
-                        LaunchUrl = !string.IsNullOrEmpty(resource.URL) && !string.IsNullOrEmpty(resource.ResourceHref)
-                            ? _scormService.GetScormUrl(resource.URL, resource.ResourceHref)
-                            : resource.URL ?? string.Empty,
+                        Id = contentItem.Id,
+                        Name = contentItem.Name,
+                        Type = contentItemType,
+                        LaunchUrl = !string.IsNullOrEmpty(contentItem.URL) && !string.IsNullOrEmpty(contentItem.LaunchHref)
+                            ? _scormService.GetScormUrl(contentItem.URL, contentItem.LaunchHref)
+                            : contentItem.URL ?? string.Empty,
                         ScormVersion = scormVersion,
                         Status = status,
-                        Progress = ResolvePlayerResourceCompletionProgress(status),
-                        ActivityProgress = ResolvePlayerResourceActivityProgress(resourceType, status, log, runtimeState, isDone),
+                        Progress = ResolvePlayerContentItemCompletionProgress(status),
+                        ActivityProgress = ResolvePlayerContentItemActivityProgress(contentItemType, status, log, runtimeState, isDone),
                         IsCompleted = isDone,
-                        Score = ResolvePlayerResourceScore(log, runtimeState),
-                        Time = ResolvePlayerResourceTime(log, runtimeState),
+                        Score = ResolvePlayerContentItemScore(log, runtimeState),
+                        Time = ResolvePlayerContentItemTime(log, runtimeState),
                         RuntimeState = runtimeState
                     };
                 })
@@ -275,14 +275,14 @@ namespace iLearn.API.Controllers
                 IsCompleted = isCompleted,
                 IsReadOnly = isReadOnly,
                 EnrollmentId = enrollment?.Id,
-                Resources = resources
+                ContentItems = contentItems
             };
 
             return Ok(new ApiResponse<PlayerInfoDto> { Success = true, Data = dto });
         }
 
-        private static string ResolvePlayerResourceStatus(
-            string resourceType,
+        private static string ResolvePlayerContentItemStatus(
+            string contentItemType,
             LearningLog? log,
             ScormRuntimeStateDto? runtimeState,
             bool isDone)
@@ -291,7 +291,7 @@ namespace iLearn.API.Controllers
             var completionStatus = NormalizeStatus(runtimeState?.CompletionStatus);
             var successStatus = NormalizeStatus(runtimeState?.SuccessStatus);
             var logStatus = NormalizeStatus(log?.Status);
-            var isExamResource = string.Equals(resourceType, "Exam", StringComparison.OrdinalIgnoreCase);
+            var isExamContentItem = string.Equals(contentItemType, "Exam", StringComparison.OrdinalIgnoreCase);
 
             if (successStatus == "failed" || lessonStatus == "failed" || logStatus == "failed")
             {
@@ -305,19 +305,19 @@ namespace iLearn.API.Controllers
 
             if (completionStatus == "completed" || lessonStatus == "completed" || lessonStatus == "browsed" || logStatus == "completed" || isDone)
             {
-                return isExamResource ? "incomplete" : "completed";
+                return isExamContentItem ? "incomplete" : "completed";
             }
 
             return "incomplete";
         }
 
-        private static double ResolvePlayerResourceCompletionProgress(string status)
+        private static double ResolvePlayerContentItemCompletionProgress(string status)
         {
             return status is "passed" or "completed" ? 100 : 0;
         }
 
-        private static double ResolvePlayerResourceActivityProgress(
-            string resourceType,
+        private static double ResolvePlayerContentItemActivityProgress(
+            string contentItemType,
             string status,
             LearningLog? log,
             ScormRuntimeStateDto? runtimeState,
@@ -328,7 +328,7 @@ namespace iLearn.API.Controllers
                 return 100;
             }
 
-            if (string.Equals(resourceType, "Learn", StringComparison.OrdinalIgnoreCase) && runtimeState?.RawScore is decimal rawScore && rawScore > 0)
+            if (string.Equals(contentItemType, "Learn", StringComparison.OrdinalIgnoreCase) && runtimeState?.RawScore is decimal rawScore && rawScore > 0)
             {
                 return ClampProgress((double)rawScore);
             }
@@ -341,7 +341,7 @@ namespace iLearn.API.Controllers
             return isDone ? 100 : 0;
         }
 
-        private static decimal? ResolvePlayerResourceScore(LearningLog? log, ScormRuntimeStateDto? runtimeState)
+        private static decimal? ResolvePlayerContentItemScore(LearningLog? log, ScormRuntimeStateDto? runtimeState)
         {
             if (runtimeState?.RawScore != null)
             {
@@ -351,7 +351,7 @@ namespace iLearn.API.Controllers
             return log?.Score;
         }
 
-        private static string ResolvePlayerResourceTime(LearningLog? log, ScormRuntimeStateDto? runtimeState)
+        private static string ResolvePlayerContentItemTime(LearningLog? log, ScormRuntimeStateDto? runtimeState)
         {
             if (!string.IsNullOrWhiteSpace(runtimeState?.SessionTime))
             {
@@ -376,9 +376,9 @@ namespace iLearn.API.Controllers
             return Math.Round(Math.Max(0, Math.Min(100, value)), 2);
         }
 
-        private bool TryGetTrustedLearnerStudentCode(out string studentCode, out IActionResult errorResult)
+        private bool TryGetTrustedLearnerLearnerCode(out string learnerCode, out IActionResult errorResult)
         {
-            if (_learnerProxyIdentityResolver.TryResolveStudentCode(HttpContext, out studentCode, out var statusCode, out var errorMessage))
+            if (_learnerProxyIdentityResolver.TryResolveLearnerCode(HttpContext, out learnerCode, out var statusCode, out var errorMessage))
             {
                 errorResult = null!;
                 return true;
@@ -401,7 +401,7 @@ namespace iLearn.API.Controllers
             }
 
             var targetVersion = ResolveEnrollmentTargetVersion(enrollment);
-            return targetVersion != null && CourseContentReadiness.IsVersionReady(targetVersion.CourseResources);
+            return targetVersion != null && CourseContentReadiness.IsVersionReady(targetVersion.CourseContentItems);
         }
 
         private static CourseVersion? ResolveEnrollmentTargetVersion(Enrollment enrollment)
@@ -509,7 +509,7 @@ namespace iLearn.API.Controllers
                     StartDate      = dto.StartDate,
                     DueDate        = dto.DueDate,
                     Division       = dto.Division,
-                    StudentGroupId = dto.GroupId,
+                    LearnerGroupId = dto.GroupId,
                     DivisionId     = _currentUser.DivisionId
                 }).ToList();
 
@@ -591,7 +591,7 @@ namespace iLearn.API.Controllers
             if (!dto.GroupId.HasValue || dto.EmployeeCodes.Count > 0)
                 return dto.EmployeeCodes;
 
-            return await _studentGroupService.GetStudentCodesAsync(dto.GroupId.Value);
+            return await _learnerGroupService.GetLearnerCodesAsync(dto.GroupId.Value);
         }
 
         private async Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(IEnumerable<int> courseIds)
@@ -601,7 +601,7 @@ namespace iLearn.API.Controllers
                 c => targetCourseIds.Contains(c.Id)
                     && c.IsActive
                     && (!_currentUser.DivisionId.HasValue || c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value),
-                includeProperties: "Category,Versions.CourseResources.Resource"
+                includeProperties: "Category,Versions.CourseContentItems.ContentItem"
             );
 
             return courses

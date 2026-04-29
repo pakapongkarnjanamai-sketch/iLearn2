@@ -11,8 +11,8 @@ namespace iLearn.Application.DTOs
         public List<int>? RuleIds { get; set; }
 
         /// <summary>
-        /// Student codes to reset. Empty or null means all students.
+        /// Learner codes to reset. Empty or null means all learners.
         /// </summary>
-        public List<string>? StudentCodes { get; set; }
+        public List<string>? LearnerCodes { get; set; }
     }
 }

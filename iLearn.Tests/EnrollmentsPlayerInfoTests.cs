@@ -29,7 +29,7 @@ namespace iLearn.Tests
                 new ScormRuntimeStateDto
                 {
                     EnrollmentId = 10,
-                    ResourceId = 100,
+                    ContentItemId = 100,
                     ScormVersion = ScormRuntimeFieldMap.Scorm2004,
                     LessonLocation = "page-7",
                     SuspendData = "bookmark-state",
@@ -47,7 +47,7 @@ namespace iLearn.Tests
                     {
                         Id = 10,
                         CourseId = 5,
-                        StudentCode = "490222",
+                        LearnerCode = "490222",
                         EnrolledCourseVersion = 20,
                         ResetAt = Now.AddMinutes(-30),
                         Progress = 0,
@@ -77,19 +77,19 @@ namespace iLearn.Tests
                             Category = new Category { Id = 3, Name = "Safety" },
                             CourseType = new CourseType { Id = 4, Name = "Common" }
                         },
-                        CourseResources =
+                        CourseContentItems =
                         [
-                            new CourseResource
+                            new CourseContentItem
                             {
                                 Id = 1,
-                                ResourceId = 100,
-                                Resource = new Resource
+                                ContentItemId = 100,
+                                ContentItem = new ContentItem
                                 {
                                     Id = 100,
                                     Name = "SCORM Learn",
                                     TypeId = 1,
                                     URL = "pkg-1",
-                                    ResourceHref = "launch/index.html",
+                                    LaunchHref = "launch/index.html",
                                     SchemaVersion = "SCORM 1.2"
                                 }
                             }
@@ -102,9 +102,9 @@ namespace iLearn.Tests
                     {
                         Id = 1,
                         EnrollmentId = 10,
-                        StudentCode = "490222",
+                        LearnerCode = "490222",
                         CourseVersionId = 20,
-                        ResourceId = 100,
+                        ContentItemId = 100,
                         Status = "incomplete",
                         SessionTime = "00:05:00",
                         Score = 35,
@@ -117,7 +117,7 @@ namespace iLearn.Tests
             var ok = Assert.IsType<OkObjectResult>(result);
             var response = Assert.IsType<ApiResponse<PlayerInfoDto>>(ok.Value);
             var dto = Assert.IsType<PlayerInfoDto>(response.Data);
-            var resource = Assert.Single(dto.Resources);
+            var contentItem = Assert.Single(dto.ContentItems);
 
             Assert.True(response.Success);
             Assert.Equal(10, dto.EnrollmentId);
@@ -127,16 +127,16 @@ namespace iLearn.Tests
             Assert.Equal("Safety", dto.CategoryName);
             Assert.Equal("Common", dto.CourseTypeName);
             Assert.Equal(0, dto.Progress);
-            Assert.Equal("https://files.example.local/course/pkg-1/launch/index.html", resource.LaunchUrl);
-            Assert.Equal(ScormRuntimeFieldMap.Scorm2004, resource.ScormVersion);
-            Assert.Equal("incomplete", resource.Status);
-            Assert.Equal(0, resource.Progress);
-            Assert.Equal(60, resource.ActivityProgress);
-            Assert.Equal(60m, resource.Score);
-            Assert.Equal("00:05:00", resource.Time);
-            Assert.NotNull(resource.RuntimeState);
-            Assert.Equal("page-7", resource.RuntimeState!.LessonLocation);
-            Assert.Equal("bookmark-state", resource.RuntimeState.SuspendData);
+            Assert.Equal("https://files.example.local/course/pkg-1/launch/index.html", contentItem.LaunchUrl);
+            Assert.Equal(ScormRuntimeFieldMap.Scorm2004, contentItem.ScormVersion);
+            Assert.Equal("incomplete", contentItem.Status);
+            Assert.Equal(0, contentItem.Progress);
+            Assert.Equal(60, contentItem.ActivityProgress);
+            Assert.Equal(60m, contentItem.Score);
+            Assert.Equal("00:05:00", contentItem.Time);
+            Assert.NotNull(contentItem.RuntimeState);
+            Assert.Equal("page-7", contentItem.RuntimeState!.LessonLocation);
+            Assert.Equal("bookmark-state", contentItem.RuntimeState.SuspendData);
             Assert.Equal(10, runtimeStateService.LastEnrollmentId);
             Assert.Equal(Now.AddMinutes(-30), runtimeStateService.LastResetAt);
 
@@ -158,19 +158,19 @@ namespace iLearn.Tests
                         VersionNumber = 3,
                         IsActive = true,
                         Course = new Course { Id = 9, Code = "C-09", Title = "Preview Course" },
-                        CourseResources =
+                        CourseContentItems =
                         [
-                            new CourseResource
+                            new CourseContentItem
                             {
                                 Id = 2,
-                                ResourceId = 200,
-                                Resource = new Resource
+                                ContentItemId = 200,
+                                ContentItem = new ContentItem
                                 {
                                     Id = 200,
-                                    Name = "Preview Resource",
+                                    Name = "Preview ContentItem",
                                     TypeId = 1,
                                     URL = "https://cdn.example.local/preview/index.html",
-                                    ResourceHref = null,
+                                    LaunchHref = null,
                                     SchemaVersion = "SCORM 1.2"
                                 }
                             }
@@ -184,23 +184,23 @@ namespace iLearn.Tests
             var ok = Assert.IsType<OkObjectResult>(result);
             var response = Assert.IsType<ApiResponse<PlayerInfoDto>>(ok.Value);
             var dto = Assert.IsType<PlayerInfoDto>(response.Data);
-            var resource = Assert.Single(dto.Resources);
+            var contentItem = Assert.Single(dto.ContentItems);
 
             Assert.True(dto.IsReadOnly);
             Assert.Null(dto.EnrollmentId);
             Assert.Equal(30, dto.CourseVersionId);
             Assert.Equal("Preview Course", dto.CourseTitle);
-            Assert.Equal("https://cdn.example.local/preview/index.html", resource.LaunchUrl);
-            Assert.Equal(ScormRuntimeFieldMap.Scorm12, resource.ScormVersion);
-            Assert.Equal("incomplete", resource.Status);
-            Assert.Equal(0, resource.Progress);
-            Assert.Equal(0, resource.ActivityProgress);
-            Assert.Equal("00:00:00", resource.Time);
-            Assert.Null(resource.RuntimeState);
+            Assert.Equal("https://cdn.example.local/preview/index.html", contentItem.LaunchUrl);
+            Assert.Equal(ScormRuntimeFieldMap.Scorm12, contentItem.ScormVersion);
+            Assert.Equal("incomplete", contentItem.Status);
+            Assert.Equal(0, contentItem.Progress);
+            Assert.Equal(0, contentItem.ActivityProgress);
+            Assert.Equal("00:00:00", contentItem.Time);
+            Assert.Null(contentItem.RuntimeState);
         }
 
         [Fact]
-        public async Task GetPlayerInfoByCourse_UnreadyResource_ReturnsNotFound()
+        public async Task GetPlayerInfoByCourse_UnreadyContentItem_ReturnsNotFound()
         {
             var controller = CreateController(new FakeScormRuntimeStateService([]),
                 enrollments:
@@ -209,7 +209,7 @@ namespace iLearn.Tests
                     {
                         Id = 10,
                         CourseId = 5,
-                        StudentCode = "490222",
+                        LearnerCode = "490222",
                         EnrolledCourseVersion = 20,
                         Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
                     }
@@ -222,20 +222,20 @@ namespace iLearn.Tests
                         CourseId = 5,
                         VersionNumber = 2,
                         Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
-                        CourseResources =
+                        CourseContentItems =
                         [
-                            new CourseResource
+                            new CourseContentItem
                             {
                                 Id = 1,
-                                ResourceId = 100,
-                                Resource = new Resource
+                                ContentItemId = 100,
+                                ContentItem = new ContentItem
                                 {
                                     Id = 100,
                                     Name = "Draft SCORM",
                                     TypeId = 1,
                                     IsActive = false,
                                     URL = null,
-                                    ResourceHref = null
+                                    LaunchHref = null
                                 }
                             }
                         ]
@@ -252,14 +252,14 @@ namespace iLearn.Tests
         }
 
         [Fact]
-        public async Task GetPlayerInfoByCourse_SeparatesCourseCompletionProgressFromResourceActivityProgress()
+        public async Task GetPlayerInfoByCourse_SeparatesCourseCompletionProgressFromContentItemActivityProgress()
         {
             var runtimeStateService = new FakeScormRuntimeStateService(
             [
                 new ScormRuntimeStateDto
                 {
                     EnrollmentId = 10,
-                    ResourceId = 100,
+                    ContentItemId = 100,
                     ScormVersion = ScormRuntimeFieldMap.Scorm12,
                     LessonStatus = "completed",
                     CompletionStatus = "completed",
@@ -268,7 +268,7 @@ namespace iLearn.Tests
                 new ScormRuntimeStateDto
                 {
                     EnrollmentId = 10,
-                    ResourceId = 101,
+                    ContentItemId = 101,
                     ScormVersion = ScormRuntimeFieldMap.Scorm2004,
                     LessonStatus = "incomplete",
                     CompletionStatus = "incomplete",
@@ -283,7 +283,7 @@ namespace iLearn.Tests
                     {
                         Id = 10,
                         CourseId = 5,
-                        StudentCode = "490222",
+                        LearnerCode = "490222",
                         EnrolledCourseVersion = 20,
                         Progress = 25,
                         IsCompleted = false,
@@ -298,12 +298,12 @@ namespace iLearn.Tests
                         CourseId = 5,
                         VersionNumber = 2,
                         Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
-                        CourseResources =
+                        CourseContentItems =
                         [
-                            CreateCourseResource(1, 100, "Learn 1.2", 1, "SCORM 1.2"),
-                            CreateCourseResource(2, 101, "Learn 2004", 1, "SCORM 2004"),
-                            CreateCourseResource(3, 102, "Exam 1.2", 2, "SCORM 1.2"),
-                            CreateCourseResource(4, 103, "Exam 2004", 2, "SCORM 2004")
+                            CreateCourseContentItem(1, 100, "Learn 1.2", 1, "SCORM 1.2"),
+                            CreateCourseContentItem(2, 101, "Learn 2004", 1, "SCORM 2004"),
+                            CreateCourseContentItem(3, 102, "Exam 1.2", 2, "SCORM 1.2"),
+                            CreateCourseContentItem(4, 103, "Exam 2004", 2, "SCORM 2004")
                         ]
                     }
                 ],
@@ -313,9 +313,9 @@ namespace iLearn.Tests
                     {
                         Id = 1,
                         EnrollmentId = 10,
-                        StudentCode = "490222",
+                        LearnerCode = "490222",
                         CourseVersionId = 20,
-                        ResourceId = 100,
+                        ContentItemId = 100,
                         Status = "completed",
                         Progress = 100,
                         Score = 0,
@@ -325,9 +325,9 @@ namespace iLearn.Tests
                     {
                         Id = 2,
                         EnrollmentId = 10,
-                        StudentCode = "490222",
+                        LearnerCode = "490222",
                         CourseVersionId = 20,
-                        ResourceId = 101,
+                        ContentItemId = 101,
                         Status = "incomplete",
                         Progress = 0,
                         Score = 60,
@@ -342,7 +342,7 @@ namespace iLearn.Tests
             var dto = Assert.IsType<PlayerInfoDto>(response.Data);
 
             Assert.Equal(25, dto.Progress);
-            Assert.Collection(dto.Resources,
+            Assert.Collection(dto.ContentItems,
                 first =>
                 {
                     Assert.Equal("completed", first.Status);
@@ -384,7 +384,7 @@ namespace iLearn.Tests
                 new InMemoryGenericRepository<CourseVersion>(versions),
                 new InMemoryGenericRepository<Course>([]),
                 new FakeScormService(),
-                new FakeStudentGroupService(),
+                new FakeLearnerGroupService(),
                 new FakeAssignmentNoGenerator(),
                 new FakeDateTime(Now),
                 new FakeUnitOfWork(),
@@ -400,19 +400,19 @@ namespace iLearn.Tests
             return controller;
         }
 
-        private static CourseResource CreateCourseResource(int id, int resourceId, string name, int typeId, string schemaVersion)
+        private static CourseContentItem CreateCourseContentItem(int id, int contentItemId, string name, int typeId, string schemaVersion)
         {
-            return new CourseResource
+            return new CourseContentItem
             {
                 Id = id,
-                ResourceId = resourceId,
-                Resource = new Resource
+                ContentItemId = contentItemId,
+                ContentItem = new ContentItem
                 {
-                    Id = resourceId,
+                    Id = contentItemId,
                     Name = name,
                     TypeId = typeId,
-                    URL = $"pkg-{resourceId}",
-                    ResourceHref = "launch/index.html",
+                    URL = $"pkg-{contentItemId}",
+                    LaunchHref = "launch/index.html",
                     SchemaVersion = schemaVersion
                 }
             };
@@ -437,7 +437,7 @@ namespace iLearn.Tests
                 return Task.FromResult(_states);
             }
 
-            public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeResourceCommitDto> resources, CancellationToken cancellationToken = default)
+            public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default)
             {
                 return Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
             }
@@ -445,9 +445,9 @@ namespace iLearn.Tests
 
         private sealed class FakeLearnerProxyIdentityResolver : ILearnerProxyIdentityResolver
         {
-            public bool TryResolveStudentCode(HttpContext context, out string studentCode, out int statusCode, out string errorMessage)
+            public bool TryResolveLearnerCode(HttpContext context, out string learnerCode, out int statusCode, out string errorMessage)
             {
-                studentCode = "490222";
+                learnerCode = "490222";
                 statusCode = StatusCodes.Status200OK;
                 errorMessage = string.Empty;
                 return true;
@@ -488,7 +488,7 @@ namespace iLearn.Tests
         {
             public Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName) => throw new NotSupportedException();
             public void DeleteScormFolder(string folderName) => throw new NotSupportedException();
-            public string GetScormUrl(string folderName, string resourceHref) => $"https://files.example.local/course/{folderName}/{resourceHref}";
+            public string GetScormUrl(string folderName, string launchHref) => $"https://files.example.local/course/{folderName}/{launchHref}";
             public (int FileCount, long TotalSize) GetFolderInfo(string folderName) => (0, 0);
         }
 
@@ -516,21 +516,21 @@ namespace iLearn.Tests
             public Task<List<LookupCourseDto>> GetLookupCoursesAsync() => Task.FromResult(new List<LookupCourseDto>());
         }
 
-        private sealed class FakeStudentGroupService : IStudentGroupService
+        private sealed class FakeLearnerGroupService : ILearnerGroupService
         {
-            public Task<List<StudentGroupDto>> GetAllAsync() => Task.FromResult(new List<StudentGroupDto>());
-            public Task<PagedResult<StudentGroupDto>> GetPagedAsync(PaginationParams p) => Task.FromResult(new PagedResult<StudentGroupDto>());
-            public Task<StudentGroupDetailDto?> GetByIdAsync(int id) => Task.FromResult<StudentGroupDetailDto?>(null);
-            public Task<StudentGroupDto> CreateAsync(CreateStudentGroupDto dto) => throw new NotSupportedException();
-            public Task UpdateAsync(int id, UpdateStudentGroupDto dto) => Task.CompletedTask;
+            public Task<List<LearnerGroupDto>> GetAllAsync() => Task.FromResult(new List<LearnerGroupDto>());
+            public Task<PagedResult<LearnerGroupDto>> GetPagedAsync(PaginationParams p) => Task.FromResult(new PagedResult<LearnerGroupDto>());
+            public Task<LearnerGroupDetailDto?> GetByIdAsync(int id) => Task.FromResult<LearnerGroupDetailDto?>(null);
+            public Task<LearnerGroupDto> CreateAsync(CreateLearnerGroupDto dto) => throw new NotSupportedException();
+            public Task UpdateAsync(int id, UpdateLearnerGroupDto dto) => Task.CompletedTask;
             public Task DeleteAsync(int id) => Task.CompletedTask;
             public Task AddMembersAsync(int groupId, AddGroupMembersDto dto) => Task.CompletedTask;
-            public Task<StudentGroupAddMembersPreviewDto> PreviewAddMembersAsync(int groupId, StudentGroupAddMembersOptionsDto dto) => throw new NotSupportedException();
-            public Task<StudentGroupAddMembersResultDto> AddMembersWithAssignmentsAsync(int groupId, StudentGroupAddMembersOptionsDto dto) => throw new NotSupportedException();
-            public Task<StudentGroupRemoveMembersPreviewDto> PreviewRemoveMembersAsync(int groupId, StudentGroupRemoveMembersOptionsDto dto) => throw new NotSupportedException();
-            public Task<StudentGroupRemoveMembersResultDto> RemoveMembersWithAssignmentsAsync(int groupId, StudentGroupRemoveMembersOptionsDto dto) => throw new NotSupportedException();
+            public Task<LearnerGroupAddMembersPreviewDto> PreviewAddMembersAsync(int groupId, LearnerGroupAddMembersOptionsDto dto) => throw new NotSupportedException();
+            public Task<LearnerGroupAddMembersResultDto> AddMembersWithAssignmentsAsync(int groupId, LearnerGroupAddMembersOptionsDto dto) => throw new NotSupportedException();
+            public Task<LearnerGroupRemoveMembersPreviewDto> PreviewRemoveMembersAsync(int groupId, LearnerGroupRemoveMembersOptionsDto dto) => throw new NotSupportedException();
+            public Task<LearnerGroupRemoveMembersResultDto> RemoveMembersWithAssignmentsAsync(int groupId, LearnerGroupRemoveMembersOptionsDto dto) => throw new NotSupportedException();
             public Task RemoveMemberAsync(int groupId, int memberId) => Task.CompletedTask;
-            public Task<List<string>> GetStudentCodesAsync(int groupId) => Task.FromResult(new List<string>());
+            public Task<List<string>> GetLearnerCodesAsync(int groupId) => Task.FromResult(new List<string>());
         }
 
         private sealed class InMemoryGenericRepository<T> : IGenericRepository<T> where T : BaseEntity

@@ -141,7 +141,7 @@ namespace iLearn.Application.Services
         }
 
         private async Task<Enrollment> CreateOrUpdateEnrollment(
-            string studentCode,
+            string learnerCode,
             Course course,
             CourseVersion activeVersion,
             int? assignmentRuleId = null,
@@ -157,7 +157,7 @@ namespace iLearn.Application.Services
             if (existing == null)
             {
                 var existingEnrollments = await _enrollmentRepo.GetAsync(e =>
-                    e.StudentCode == studentCode &&
+                    e.LearnerCode == learnerCode &&
                     e.CourseId == course.Id);
 
                 existing = existingEnrollments.FirstOrDefault();
@@ -167,7 +167,7 @@ namespace iLearn.Application.Services
             {
                 existing = new Enrollment
                 {
-                    StudentCode           = studentCode,
+                    LearnerCode           = learnerCode,
                     CourseId              = course.Id,
                     EnrolledCourseVersion = activeVersion.Id,
                     IsCompleted           = false,
@@ -283,7 +283,7 @@ namespace iLearn.Application.Services
                         CreatedBy    = first.CreatedBy,
                         CreatedAt    = first.CreatedAt,
                         CourseCount  = g.Select(a => a.CourseId).Distinct().Count(),
-                        StudentCount = string.IsNullOrEmpty(first.EmployeeCodes)
+                        LearnerCount = string.IsNullOrEmpty(first.EmployeeCodes)
                             ? 0
                             : first.EmployeeCodes.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
                         CompletedEnrollmentCount = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted),
@@ -322,15 +322,15 @@ namespace iLearn.Application.Services
             }
 
             result.ValidEmployeeCodes = employeeCodes
-                .Except(validation.InProgressConflicts.Select(x => x.StudentCode))
-                .Except(validation.CompletedConflicts.Select(x => x.StudentCode))
+                .Except(validation.InProgressConflicts.Select(x => x.LearnerCode))
+                .Except(validation.CompletedConflicts.Select(x => x.LearnerCode))
                 .Distinct()
                 .ToList();
 
             result.ConflictMessages.AddRange(validation.InProgressConflicts
-                .Select(x => $"Student {x.StudentCode} is already in progress for {x.CourseTitle}."));
+                .Select(x => $"Learner {x.LearnerCode} is already in progress for {x.CourseTitle}."));
             result.ConflictMessages.AddRange(validation.CompletedConflicts
-                .Select(x => $"Student {x.StudentCode} has already completed {x.CourseTitle}."));
+                .Select(x => $"Learner {x.LearnerCode} has already completed {x.CourseTitle}."));
 
             return result;
         }
@@ -369,9 +369,9 @@ namespace iLearn.Application.Services
         {
             var enrollments = await _enrollmentRepo.GetAsync(e =>
                 courseIds.Contains(e.CourseId ?? 0) &&
-                employeeCodes.Contains(e.StudentCode));
+                employeeCodes.Contains(e.LearnerCode));
 
-            return enrollments.ToDictionary(e => BuildEnrollmentKey(e.StudentCode, e.CourseId ?? 0));
+            return enrollments.ToDictionary(e => BuildEnrollmentKey(e.LearnerCode, e.CourseId ?? 0));
         }
 
         private async Task<Dictionary<int, List<EnrollmentAssignment>>> GetExistingLinkMapAsync(IEnumerable<int> enrollmentIds)
@@ -386,9 +386,9 @@ namespace iLearn.Application.Services
                 .ToDictionary(g => g.Key, g => g.ToList());
         }
 
-        private static string BuildEnrollmentKey(string studentCode, int courseId)
+        private static string BuildEnrollmentKey(string learnerCode, int courseId)
         {
-            return $"{studentCode.Trim().ToUpperInvariant()}::{courseId}";
+            return $"{learnerCode.Trim().ToUpperInvariant()}::{courseId}";
         }
     }
 }

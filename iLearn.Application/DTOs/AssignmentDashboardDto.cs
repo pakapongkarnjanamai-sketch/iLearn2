@@ -15,10 +15,10 @@ namespace iLearn.Application.DTOs
         public double CompletionRate { get; set; }
         public DashboardChartDto ChartData { get; set; }
         public List<CourseSummaryDto> Courses { get; set; }
-        public List<StudentProgressDto> Students { get; set; }
+        public List<LearnerProgressDto> Learners { get; set; }
 
-        public int? StudentGroupId { get; set; }
-        public string? StudentGroupName { get; set; }
+        public int? LearnerGroupId { get; set; }
+        public string? LearnerGroupName { get; set; }
 
         // ✅ แจ้ง Dashboard ว่า assignment นี้มี course ที่ถูกลบไปแล้ว
         public bool HasDeletedCourse { get; set; }
@@ -36,17 +36,17 @@ namespace iLearn.Application.DTOs
         public int AssignmentRuleId { get; set; }
         public string CourseCode { get; set; }
         public string CourseTitle { get; set; }
-        public int CompletedStudents { get; set; }
-        public int TotalStudents { get; set; }
+        public int CompletedLearners { get; set; }
+        public int TotalLearners { get; set; }
 
         // ✅ บอกว่า course นี้ถูก soft-delete ไปแล้ว (ข้อมูล progress ยังคงอยู่)
         public bool IsCourseDeleted { get; set; }
     }
 
-    public class StudentProgressDto
+    public class LearnerProgressDto
     {
-        public string StudentCode { get; set; }
-        public string? StudentName { get; set; }
+        public string LearnerCode { get; set; }
+        public string? LearnerName { get; set; }
         public int? AssignmentRuleId { get; set; }
         public string? CourseCode { get; set; }
         public string? CourseTitle { get; set; }

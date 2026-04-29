@@ -26,11 +26,11 @@ namespace iLearn.Tests
             var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
             {
                 EnrollmentId = 10,
-                Resources =
+                ContentItems =
                 [
-                    new ScormRuntimeResourceCommitDto
+                    new ScormRuntimeContentItemCommitDto
                     {
-                        ResourceId = 100,
+                        ContentItemId = 100,
                         ScormVersion = ScormRuntimeFieldMap.Scorm2004,
                         SuspendData = new string('x', ScormRuntimeLimits.SuspendDataMaxLength + 1)
                     }
@@ -51,20 +51,20 @@ namespace iLearn.Tests
             var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
             {
                 EnrollmentId = 10,
-                Resources =
+                ContentItems =
                 [
-                    new ScormRuntimeResourceCommitDto
+                    new ScormRuntimeContentItemCommitDto
                     {
-                        ResourceId = 100,
+                        ContentItemId = 100,
                         ScormVersion = ScormRuntimeFieldMap.Scorm2004,
                         CompletionStatus = "completed",
                         SuccessStatus = "failed",
                         RawScore = 2,
                         SessionTime = "00:00:18"
                     },
-                    new ScormRuntimeResourceCommitDto
+                    new ScormRuntimeContentItemCommitDto
                     {
-                        ResourceId = 101,
+                        ContentItemId = 101,
                         ScormVersion = ScormRuntimeFieldMap.Scorm12,
                         LessonStatus = "passed",
                         RawScore = 100,
@@ -74,7 +74,7 @@ namespace iLearn.Tests
             });
 
             Assert.IsType<OkObjectResult>(result);
-            var failedExamLog = Assert.Single(logRepo.Items, log => log.ResourceId == 100);
+            var failedExamLog = Assert.Single(logRepo.Items, log => log.ContentItemId == 100);
             Assert.Equal("failed", failedExamLog.Status);
             Assert.Equal(0, failedExamLog.Progress);
 
@@ -84,18 +84,18 @@ namespace iLearn.Tests
         }
 
         [Fact]
-        public async Task CommitRuntime_DoesNotCompleteScorm12Resource_WhenLessonIncompleteButCompletionAliasIsStaleCompleted()
+        public async Task CommitRuntime_DoesNotCompleteScorm12ContentItem_WhenLessonIncompleteButCompletionAliasIsStaleCompleted()
         {
             var controller = CreateController(out var logRepo, out var enrollmentRepo);
 
             var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
             {
                 EnrollmentId = 10,
-                Resources =
+                ContentItems =
                 [
-                    new ScormRuntimeResourceCommitDto
+                    new ScormRuntimeContentItemCommitDto
                     {
-                        ResourceId = 100,
+                        ContentItemId = 100,
                         ScormVersion = ScormRuntimeFieldMap.Scorm12,
                         LessonStatus = "incomplete",
                         CompletionStatus = "completed",
@@ -108,7 +108,7 @@ namespace iLearn.Tests
             });
 
             Assert.IsType<OkObjectResult>(result);
-            var learnLog = Assert.Single(logRepo.Items, log => log.ResourceId == 100);
+            var learnLog = Assert.Single(logRepo.Items, log => log.ContentItemId == 100);
             Assert.Equal("incomplete", learnLog.Status);
             Assert.Equal(0, learnLog.Progress);
             Assert.Equal(20, learnLog.Score);
@@ -131,9 +131,9 @@ namespace iLearn.Tests
             {
                 Id = 1,
                 EnrollmentId = 10,
-                StudentCode = "490222",
+                LearnerCode = "490222",
                 CourseVersionId = 20,
-                ResourceId = 100,
+                ContentItemId = 100,
                 Status = "incomplete",
                 Progress = 0,
                 CreatedAt = oldLogCreatedAt
@@ -142,11 +142,11 @@ namespace iLearn.Tests
             var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
             {
                 EnrollmentId = 10,
-                Resources =
+                ContentItems =
                 [
-                    new ScormRuntimeResourceCommitDto
+                    new ScormRuntimeContentItemCommitDto
                     {
-                        ResourceId = 100,
+                        ContentItemId = 100,
                         ScormVersion = ScormRuntimeFieldMap.Scorm12,
                         LessonStatus = "passed",
                         RawScore = 100,
@@ -158,7 +158,7 @@ namespace iLearn.Tests
             Assert.IsType<OkObjectResult>(result);
             Assert.Equal(2, logRepo.Items.Count);
             Assert.Contains(logRepo.Items, log => log.Id == 1 && log.Status == "incomplete" && log.CreatedAt == oldLogCreatedAt);
-            Assert.Contains(logRepo.Items, log => log.Id != 1 && log.ResourceId == 100 && log.Status == "passed" && log.CreatedAt >= resetAt);
+            Assert.Contains(logRepo.Items, log => log.Id != 1 && log.ContentItemId == 100 && log.Status == "passed" && log.CreatedAt >= resetAt);
             Assert.False(enrollment.IsCompleted);
             Assert.Equal(50, enrollment.Progress);
         }
@@ -206,7 +206,7 @@ namespace iLearn.Tests
         public void LearnerProxyIdentityResolver_AcceptsValidSignedHeaders()
         {
             const string sharedSecret = "runtime-secret";
-            const string studentCode = "490222";
+            const string learnerCode = "490222";
             var timestamp = LearnerProxyAuthSignature.CreateTimestamp(DateTimeOffset.UtcNow);
             var resolver = new LearnerProxyIdentityResolver(
                 Options.Create(new LearnerProxyAuthOptions
@@ -220,19 +220,19 @@ namespace iLearn.Tests
             context.Request.Method = HttpMethods.Post;
             context.Request.Path = "/api/LearningLogs/commit-runtime";
 
-            context.Request.Headers[LearnerProxyAuthHeaders.StudentCode] = studentCode;
+            context.Request.Headers[LearnerProxyAuthHeaders.LearnerCode] = learnerCode;
             context.Request.Headers[LearnerProxyAuthHeaders.Timestamp] = timestamp;
             context.Request.Headers[LearnerProxyAuthHeaders.Signature] = LearnerProxyAuthSignature.Compute(
                 sharedSecret,
-                studentCode,
+                learnerCode,
                 timestamp,
                 HttpMethods.Post,
                 "/api/LearningLogs/commit-runtime");
 
-            var accepted = resolver.TryResolveStudentCode(context, out var resolvedStudentCode, out var statusCode, out var errorMessage);
+            var accepted = resolver.TryResolveLearnerCode(context, out var resolvedLearnerCode, out var statusCode, out var errorMessage);
 
             Assert.True(accepted);
-            Assert.Equal(studentCode, resolvedStudentCode);
+            Assert.Equal(learnerCode, resolvedLearnerCode);
             Assert.Equal(StatusCodes.Status200OK, statusCode);
             Assert.Equal(string.Empty, errorMessage);
         }
@@ -251,14 +251,14 @@ namespace iLearn.Tests
             var context = new DefaultHttpContext();
             context.Request.Method = HttpMethods.Post;
             context.Request.Path = "/api/LearningLogs/commit-runtime";
-            context.Request.Headers[LearnerProxyAuthHeaders.StudentCode] = "490222";
+            context.Request.Headers[LearnerProxyAuthHeaders.LearnerCode] = "490222";
             context.Request.Headers[LearnerProxyAuthHeaders.Timestamp] = LearnerProxyAuthSignature.CreateTimestamp(DateTimeOffset.UtcNow);
             context.Request.Headers[LearnerProxyAuthHeaders.Signature] = "BAD-SIGNATURE";
 
-            var accepted = resolver.TryResolveStudentCode(context, out var resolvedStudentCode, out var statusCode, out var errorMessage);
+            var accepted = resolver.TryResolveLearnerCode(context, out var resolvedLearnerCode, out var statusCode, out var errorMessage);
 
             Assert.False(accepted);
-            Assert.Equal(string.Empty, resolvedStudentCode);
+            Assert.Equal(string.Empty, resolvedLearnerCode);
             Assert.Equal(StatusCodes.Status401Unauthorized, statusCode);
             Assert.Equal("Invalid learner proxy signature.", errorMessage);
         }
@@ -285,7 +285,7 @@ namespace iLearn.Tests
                 new Enrollment
                 {
                     Id = 10,
-                    StudentCode = "490222",
+                    LearnerCode = "490222",
                     EnrolledCourseVersion = 20,
                     IsCompleted = false
                 }
@@ -297,10 +297,10 @@ namespace iLearn.Tests
                 {
                     Id = 20,
                     CourseId = 1,
-                    CourseResources =
+                    CourseContentItems =
                     [
-                        new CourseResource { Id = 1, ResourceId = 100 },
-                        new CourseResource { Id = 2, ResourceId = 101 }
+                        new CourseContentItem { Id = 1, ContentItemId = 100 },
+                        new CourseContentItem { Id = 2, ContentItemId = 101 }
                     ]
                 }
             ]);
@@ -339,9 +339,9 @@ namespace iLearn.Tests
 
         private sealed class FakeLearnerProxyIdentityResolver : ILearnerProxyIdentityResolver
         {
-            public bool TryResolveStudentCode(HttpContext context, out string studentCode, out int statusCode, out string errorMessage)
+            public bool TryResolveLearnerCode(HttpContext context, out string learnerCode, out int statusCode, out string errorMessage)
             {
-                studentCode = "490222";
+                learnerCode = "490222";
                 statusCode = StatusCodes.Status200OK;
                 errorMessage = string.Empty;
                 return true;
@@ -355,14 +355,14 @@ namespace iLearn.Tests
                 return Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
             }
 
-            public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeResourceCommitDto> resources, CancellationToken cancellationToken = default)
+            public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default)
             {
                 return Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>(
-                    resources.Select(resource => new ScormRuntimeStateDto
+                    contentItems.Select(contentItem => new ScormRuntimeStateDto
                     {
                         EnrollmentId = enrollmentId,
-                        ResourceId = resource.ResourceId,
-                        ScormVersion = resource.ScormVersion
+                        ContentItemId = contentItem.ContentItemId,
+                        ScormVersion = contentItem.ScormVersion
                     }).ToList());
             }
         }

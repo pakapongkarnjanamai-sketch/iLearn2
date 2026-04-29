@@ -241,15 +241,15 @@
                     <div class="admin-grid-shell">
                         <div class="admin-grid-head">
                             <div class="admin-grid-title">Learner Directory</div>
-                            <span class="tag-pill pill-default" id="student-selection-note">0 learner</span>
+                            <span class="tag-pill pill-default" id="learner-selection-note">0 learner</span>
                         </div>
-                        <div id="grid-students-inline" class="assign-inline-grid"></div>
+                        <div id="grid-learners-inline" class="assign-inline-grid"></div>
                     </div>
                 </div>
-                <div class="admin-selection-tray" id="student-selection-tray">
+                <div class="admin-selection-tray" id="learner-selection-tray">
                     <div class="admin-selection-tray-label">Selected</div>
-                    <div class="admin-selection-tray-chips" id="student-tray-chips"></div>
-                    <button type="button" class="admin-selection-tray-clear is-disabled" id="student-tray-clear">
+                    <div class="admin-selection-tray-chips" id="learner-tray-chips"></div>
+                    <button type="button" class="admin-selection-tray-clear is-disabled" id="learner-tray-clear">
                         <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
                     </button>
                 </div>
@@ -258,7 +258,7 @@
             <div id="target-panel-group" class="admin-fill-pane d-none">
                 <div class="admin-grid-shell">
                     <div class="admin-grid-head">
-                        <div class="admin-grid-title">Student Groups</div>
+                        <div class="admin-grid-title">Learner Groups</div>
                         <span class="tag-pill pill-default" id="group-selection-note">0 group</span>
                     </div>
                     <div id="grid-groups-inline" class="assign-inline-grid"></div>
@@ -331,7 +331,7 @@
         let selectedCourseIds = initialCourseIds
             ? initialCourseIds.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
             : initialCourseId ? [parseInt(initialCourseId, 10)] : [];
-        let selectedStudentCodes = [];
+        let selectedLearnerCodes = [];
         let selectedGroupId = null;
         let selectedGroupName = null;
         let selectedGroupMemberCount = 0;
@@ -340,11 +340,11 @@
         let form;
         let loadPanel;
         let courseGrid;
-        let studentGrid;
+        let learnerGrid;
         let groupGrid;
         const courseDataCache = new Map();
-        const studentDataCache = new Map();
-        let studentGridInitialized = false;
+        const learnerDataCache = new Map();
+        let learnerGridInitialized = false;
         let groupGridInitialized = false;
         let reviewForm;
         let selectionViewportController = null;
@@ -384,10 +384,10 @@
             initializeReviewForm();
             updateSnapshotFromForm();
             updateCourseSelectionUi();
-            updateStudentSelectionUi();
+            updateLearnerSelectionUi();
             updateGroupSelectionUi();
             renderCourseSelectionTray();
-            renderStudentSelectionTray();
+            renderLearnerSelectionTray();
             updateWizardUi(1);
 
             $("#group-tray-clear").on("click", function() {
@@ -396,14 +396,14 @@
             $("#course-tray-clear").on("click", function() {
                 if (courseGrid) { courseGrid.clearSelection(); }
             });
-            $("#student-tray-clear").on("click", function() {
-                if (studentGrid) { studentGrid.clearSelection(); }
+            $("#learner-tray-clear").on("click", function() {
+                if (learnerGrid) { learnerGrid.clearSelection(); }
             });
 
             if (initialGroupId) {
                 switchTargetMode('group');
                 $.ajax({
-                    url: `${serviceUrl}/StudentGroups/${initialGroupId}`,
+                    url: `${serviceUrl}/LearnerGroups/${initialGroupId}`,
                     method: "GET",
                     xhrFields: { withCredentials: true }
                 }).done(function(res) {
@@ -492,13 +492,13 @@
                 });
             }
 
-            function initializeStudentSelection() {
-                studentGrid = initDxGrid("#grid-students-inline", {
+            function initializeLearnerSelection() {
+                learnerGrid = initDxGrid("#grid-learners-inline", {
                     preset: "wizardSelectionContinuousGrid",
                     height: SELECTION_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "EId",
-                        loadUrl: `${serviceUrl}/Students/Get`,
+                        loadUrl: `${serviceUrl}/Learners/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
                         }
@@ -537,18 +537,18 @@
                             customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }
                     ],
-                    selectedRowKeys: selectedStudentCodes,
+                    selectedRowKeys: selectedLearnerCodes,
                     onSelectionChanged: function(e) {
-                        selectedStudentCodes = e.selectedRowKeys;
-                        (e.selectedRowsData || []).forEach(function(row) { studentDataCache.set(String(row.EId), row); });
-                        updateStudentSelectionUi();
-                        renderStudentSelectionTray();
+                        selectedLearnerCodes = e.selectedRowKeys;
+                        (e.selectedRowsData || []).forEach(function(row) { learnerDataCache.set(String(row.EId), row); });
+                        updateLearnerSelectionUi();
+                        renderLearnerSelectionTray();
                     }
                 });
 
-                initAdminStudentOrgFilters({
-                    studentsBaseUrl: `${serviceUrl}/Students`,
-                    gridInstance: studentGrid,
+                initAdminLearnerOrgFilters({
+                    learnersBaseUrl: `${serviceUrl}/Learners`,
+                    gridInstance: learnerGrid,
                     divSelector: "#filter-emp-div",
                     deptSelector: "#filter-emp-dept",
                     sectionSelector: "#filter-emp-section",
@@ -565,7 +565,7 @@
                         key: "id",
                         loadMode: "raw",
                         load: () => $.ajax({
-                            url: `${serviceUrl}/StudentGroups`,
+                            url: `${serviceUrl}/LearnerGroups`,
                             method: "GET",
                             xhrFields: { withCredentials: true }
                         }).then(function(res) {
@@ -575,7 +575,7 @@
                     remoteOperations: false,
                     filterRow: { visible: true },
                     searchPanel: { visible: false },
-                    noDataText: getNoDataText("student groups"),
+                    noDataText: getNoDataText("learner groups"),
                     export: { enabled: false },
                     selection: {
                         mode: "single",
@@ -669,7 +669,7 @@
                         return;
                     }
 
-                    refreshGridInstance(studentGrid);
+                    refreshGridInstance(learnerGrid);
                 });
             }
 
@@ -702,9 +702,9 @@
                 updateTargetSnapshot();
             }
 
-            function updateStudentSelectionUi() {
-                const count = selectedStudentCodes.length;
-                $("#student-selection-note").text(count > 0
+            function updateLearnerSelectionUi() {
+                const count = selectedLearnerCodes.length;
+                $("#learner-selection-note").text(count > 0
                     ? window.formatAdminCountLabel(count, 'learner')
                     : "0 learner");
                 updateTargetSnapshot();
@@ -716,7 +716,7 @@
                     : "0 group");
                 const $clearBtn = $("#group-tray-clear");
                 if (!selectedGroupId) {
-                    $("#group-tray-summary").html('<span class="admin-selection-tray-empty">No Student Group selected yet.</span>');
+                    $("#group-tray-summary").html('<span class="admin-selection-tray-empty">No Learner Group selected yet.</span>');
                     $clearBtn.addClass("is-disabled").prop("disabled", true);
                     updateTargetSnapshot();
                     return;
@@ -732,7 +732,7 @@
 
             function updateTargetModeNote() {
                 $("#target-selection-note").text(currentTargetMode === 'group'
-                    ? "Choose one Student Group to assign the selected courses."
+                    ? "Choose one Learner Group to assign the selected courses."
                     : "Select one or more learners for this assignment batch.");
                 updateTargetSnapshot();
             }
@@ -748,12 +748,12 @@
 
             function updateTargetSnapshot() {
                 const isGroupMode = currentTargetMode === 'group';
-                const targetCount = isGroupMode ? selectedGroupMemberCount : selectedStudentCodes.length;
+                const targetCount = isGroupMode ? selectedGroupMemberCount : selectedLearnerCodes.length;
                 const targetName = isGroupMode
                     ? (selectedGroupName || 'No group selected')
                     : (targetCount > 0 ? `${window.formatAdminCountLabel(targetCount, 'learner')} selected` : 'No target selected');
 
-                $("#snapshot-target-mode").text(isGroupMode ? 'Student Group' : 'Individual learners');
+                $("#snapshot-target-mode").text(isGroupMode ? 'Learner Group' : 'Individual learners');
                 $("#snapshot-target-count").text(window.formatAdminCountLabel(targetCount, isGroupMode ? 'member' : 'learner'));
                 $("#snapshot-target-name").text(targetName);
             }
@@ -784,7 +784,7 @@
                     description: payload.description || "",
                     startDate: fmtDate(payload.startDate),
                     dueDate: fmtDate(payload.dueDate),
-                    targetMode: payload.groupId ? "Student Group" : "Individual Learners",
+                    targetMode: payload.groupId ? "Learner Group" : "Individual Learners",
                     target: payload.groupId
                         ? (selectedGroupName || "Selected group")
                         : window.formatAdminCountLabel(resolvedCount, "learner")
@@ -802,11 +802,11 @@
                     $("#review-learners-note").text(window.formatAdminCountLabel(resolvedCount, "member"));
                     $("#review-learners-table").html(buildGroupReviewPanel(selectedGroupName, resolvedCount));
                 } else {
-                    const studentRows = studentGrid ? (studentGrid.getSelectedRowsData() || []) : [];
-                    const totalStudents = selectedStudentCodes.length;
+                    const learnerRows = learnerGrid ? (learnerGrid.getSelectedRowsData() || []) : [];
+                    const totalLearners = selectedLearnerCodes.length;
                     $("#review-learners-title").text("Selected Learners");
-                    $("#review-learners-note").text(window.formatAdminCountLabel(totalStudents, "learner"));
-                    $("#review-learners-table").html(buildLearnersReviewTable(studentRows, totalStudents));
+                    $("#review-learners-note").text(window.formatAdminCountLabel(totalLearners, "learner"));
+                    $("#review-learners-table").html(buildLearnersReviewTable(learnerRows, totalLearners));
                 }
 
                 $("#review-conflicts").html(buildConflictSections(inProgress, completed));
@@ -835,13 +835,13 @@
                 }
 
                 if (currentStep === 3) {
-                    if (currentTargetMode === 'individual' && selectedStudentCodes.length === 0) {
+                    if (currentTargetMode === 'individual' && selectedLearnerCodes.length === 0) {
                         showToast("Please select at least one learner.", "error");
                         return;
                     }
 
                     if (currentTargetMode === 'group' && !selectedGroupId) {
-                        showToast("Please select a Student Group.", "error");
+                        showToast("Please select a Learner Group.", "error");
                         return;
                     }
 
@@ -861,13 +861,13 @@
                     return;
                 }
 
-                if (currentTargetMode === 'individual' && selectedStudentCodes.length === 0) {
+                if (currentTargetMode === 'individual' && selectedLearnerCodes.length === 0) {
                     showToast("Please select at least one learner.", "error");
                     return;
                 }
 
                 if (currentTargetMode === 'group' && !selectedGroupId) {
-                    showToast("Please select a Student Group.", "error");
+                    showToast("Please select a Learner Group.", "error");
                     return;
                 }
 
@@ -876,7 +876,7 @@
                 const [rangeStart, rangeEnd] = formData.dateRange || [null, null];
                 const payload = {
                     courseIds: selectedCourseIds,
-                    employeeCodes: isGroupMode ? [] : selectedStudentCodes,
+                    employeeCodes: isGroupMode ? [] : selectedLearnerCodes,
                     groupId: isGroupMode ? selectedGroupId : null,
                     startDate: rangeStart,
                     dueDate: rangeEnd,
@@ -970,9 +970,9 @@
                 toggleSelectionViewportLayout(isSelectionStep);
 
                 if (step === 3) {
-                    if (!studentGridInitialized) {
-                        initializeStudentSelection();
-                        studentGridInitialized = true;
+                    if (!learnerGridInitialized) {
+                        initializeLearnerSelection();
+                        learnerGridInitialized = true;
                     }
                     if (!groupGridInitialized) {
                         initializeGroupSelection();
@@ -1035,11 +1035,11 @@
                 });
             }
 
-            function renderStudentSelectionTray() {
-                const codes = selectedStudentCodes;
-                const $clearBtn = $("#student-tray-clear");
+            function renderLearnerSelectionTray() {
+                const codes = selectedLearnerCodes;
+                const $clearBtn = $("#learner-tray-clear");
                 if (!codes.length) {
-                    $("#student-tray-chips").html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
+                    $("#learner-tray-chips").html('<span class="admin-selection-tray-empty">No learners selected yet.</span>');
                     $clearBtn.addClass("is-disabled").prop("disabled", true);
                     return;
                 }
@@ -1047,7 +1047,7 @@
                 const visibleCodes = codes.slice(0, MAX_VISIBLE_SELECTION_CHIPS);
                 const overflowCount = Math.max(codes.length - visibleCodes.length, 0);
                 const chips = visibleCodes.map(function(code) {
-                    const row = studentDataCache.get(String(code));
+                    const row = learnerDataCache.get(String(code));
                     const normalizedCode = String(code || "");
                     const displayCode = window.escapeHtml(normalizedCode);
                     const encodedCode = encodeURIComponent(normalizedCode);
@@ -1067,10 +1067,10 @@
                     chips.push(`<span class="admin-selection-chip is-overflow">+${overflowCount} more</span>`);
                 }
 
-                $("#student-tray-chips").html(chips.join(""));
-                $("#student-tray-chips").off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
+                $("#learner-tray-chips").html(chips.join(""));
+                $("#learner-tray-chips").off("click", ".admin-selection-chip-remove").on("click", ".admin-selection-chip-remove", function() {
                     const code = decodeURIComponent(String($(this).attr("data-code") || ""));
-                    if (studentGrid) { studentGrid.deselectRows([String(code)]); }
+                    if (learnerGrid) { learnerGrid.deselectRows([String(code)]); }
                 });
             }
 
@@ -1161,7 +1161,7 @@
                             <div class="fw-bold mb-2 text-dark"><i class="fas fa-exclamation-triangle text-warning me-2"></i>In-Progress Will Be Reset</div>
                             <ul class="assign-conflict-list">${inProgress.map(c => `
                                 <li>
-                                    <span class="tag-pill pill-default fw-bold">${c.studentCode}</span>
+                                    <span class="tag-pill pill-default fw-bold">${c.learnerCode}</span>
                                     <span class="text-muted mx-1">→</span>
                                     <span class="fw-medium">${c.courseTitle}</span>
                                 </li>`).join('')}</ul>
@@ -1175,7 +1175,7 @@
                             <div class="fw-bold mb-2 text-dark"><i class="fas fa-redo text-info me-2"></i>Completed Will Be Reassigned</div>
                             <ul class="assign-conflict-list">${completed.map(c => `
                                 <li>
-                                    <span class="tag-pill pill-default fw-bold">${c.studentCode}</span>
+                                    <span class="tag-pill pill-default fw-bold">${c.learnerCode}</span>
                                     <span class="text-muted mx-1">→</span>
                                     <span class="fw-medium">${c.courseTitle}</span>
                                     <span class="text-muted small ms-2"><i class="fas fa-check-circle me-1"></i>${window.formatAdminDate(c.completedDate, EMPTY_TEXT)}</span>

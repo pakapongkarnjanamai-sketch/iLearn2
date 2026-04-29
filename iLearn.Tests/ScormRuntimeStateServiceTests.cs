@@ -47,7 +47,7 @@ namespace iLearn.Tests
             {
                 Id = 1,
                 EnrollmentId = 99,
-                ResourceId = 10,
+                ContentItemId = 10,
                 ScormVersion = ScormRuntimeFieldMap.Scorm12,
                 LessonLocation = "page-1",
                 SuspendData = "state-a",
@@ -69,9 +69,9 @@ namespace iLearn.Tests
 
             var result = await service.UpsertAsync(99,
             [
-                new ScormRuntimeResourceCommitDto
+                new ScormRuntimeContentItemCommitDto
                 {
-                    ResourceId = 10,
+                    ContentItemId = 10,
                     ScormVersion = "SCORM 1.2",
                     LessonLocation = " ",
                     SuspendData = "state-b",
@@ -109,7 +109,7 @@ namespace iLearn.Tests
             {
                 Id = 1,
                 EnrollmentId = 11191,
-                ResourceId = 1088,
+                ContentItemId = 1088,
                 ScormVersion = ScormRuntimeFieldMap.Scorm12,
                 LessonLocation = "pg-4",
                 SuspendData = "resume-token-123",
@@ -132,9 +132,9 @@ namespace iLearn.Tests
 
             var result = await service.UpsertAsync(11191,
             [
-                new ScormRuntimeResourceCommitDto
+                new ScormRuntimeContentItemCommitDto
                 {
-                    ResourceId = 1088,
+                    ContentItemId = 1088,
                     ScormVersion = "1.2",
                     LessonStatus = "incomplete",
                     CompletionStatus = "incomplete",
@@ -170,7 +170,7 @@ namespace iLearn.Tests
             {
                 Id = 1,
                 EnrollmentId = 11192,
-                ResourceId = 1089,
+                ContentItemId = 1089,
                 ScormVersion = ScormRuntimeFieldMap.Scorm12,
                 LessonStatus = "completed",
                 CompletionStatus = "completed",
@@ -187,9 +187,9 @@ namespace iLearn.Tests
 
             var result = await service.UpsertAsync(11192,
             [
-                new ScormRuntimeResourceCommitDto
+                new ScormRuntimeContentItemCommitDto
                 {
-                    ResourceId = 1089,
+                    ContentItemId = 1089,
                     ScormVersion = "1.2",
                     SuspendData = "N4IgDiBcCMA0IFsoCZ4DcoG0AMBdAvkA",
                     LessonStatus = "incomplete",
@@ -225,7 +225,7 @@ namespace iLearn.Tests
                 {
                     Id = 1,
                     EnrollmentId = 77,
-                    ResourceId = 1,
+                    ContentItemId = 1,
                     ScormVersion = ScormRuntimeFieldMap.Scorm12,
                     LessonLocation = "before-reset",
                     CreatedAt = Now.AddHours(-3),
@@ -235,7 +235,7 @@ namespace iLearn.Tests
                 {
                     Id = 2,
                     EnrollmentId = 77,
-                    ResourceId = 2,
+                    ContentItemId = 2,
                     ScormVersion = ScormRuntimeFieldMap.Scorm2004,
                     LessonLocation = "after-reset-updated",
                     CreatedAt = Now.AddHours(-3),
@@ -245,7 +245,7 @@ namespace iLearn.Tests
                 {
                     Id = 3,
                     EnrollmentId = 77,
-                    ResourceId = 3,
+                    ContentItemId = 3,
                     ScormVersion = ScormRuntimeFieldMap.Scorm12,
                     LessonLocation = "after-reset-created",
                     CreatedAt = Now.AddMinutes(-10)
@@ -254,7 +254,7 @@ namespace iLearn.Tests
                 {
                     Id = 4,
                     EnrollmentId = 88,
-                    ResourceId = 4,
+                    ContentItemId = 4,
                     ScormVersion = ScormRuntimeFieldMap.Scorm12,
                     LessonLocation = "other-enrollment",
                     CreatedAt = Now.AddMinutes(-5),
@@ -270,12 +270,12 @@ namespace iLearn.Tests
             Assert.Collection(activeStates,
                 state =>
                 {
-                    Assert.Equal(2, state.ResourceId);
+                    Assert.Equal(2, state.ContentItemId);
                     Assert.Equal("after-reset-updated", state.LessonLocation);
                 },
                 state =>
                 {
-                    Assert.Equal(3, state.ResourceId);
+                    Assert.Equal(3, state.ContentItemId);
                     Assert.Equal("after-reset-created", state.LessonLocation);
                 });
         }

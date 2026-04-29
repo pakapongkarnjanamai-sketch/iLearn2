@@ -142,11 +142,11 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("LearnerGroupId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("StudentGroupId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -161,7 +161,7 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasIndex("DivisionId");
 
-                    b.HasIndex("StudentGroupId");
+                    b.HasIndex("LearnerGroupId");
 
                     b.HasIndex("AssignmentNo", "CourseId")
                         .IsUnique()
@@ -260,15 +260,15 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("int");
 
+                    b.Property<int>("LearnerCount")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StudentCount")
-                        .HasColumnType("int");
 
                     b.ToTable((string)null);
 
@@ -322,6 +322,69 @@ namespace iLearn.Infrastructure.Migrations
                     b.HasIndex("DivisionId");
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.ContentItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("FileStorageId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LaunchHref")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SchemaVersion")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("URL")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileStorageId")
+                        .IsUnique()
+                        .HasFilter("[FileStorageId] IS NOT NULL");
+
+                    b.ToTable("ContentItems");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Course", b =>
@@ -385,13 +448,16 @@ namespace iLearn.Infrastructure.Migrations
                     b.ToTable("Courses");
                 });
 
-            modelBuilder.Entity("iLearn.Domain.Entities.CourseResource", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.CourseContentItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContentItemId")
+                        .HasColumnType("int");
 
                     b.Property<int>("CourseVersionId")
                         .HasColumnType("int");
@@ -419,9 +485,6 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<int?>("Order")
                         .HasColumnType("int");
 
-                    b.Property<int>("ResourceId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -431,11 +494,11 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ContentItemId");
+
                     b.HasIndex("CourseVersionId");
 
-                    b.HasIndex("ResourceId");
-
-                    b.ToTable("CourseResources");
+                    b.ToTable("CourseContentItems");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.CourseType", b =>
@@ -643,6 +706,10 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LearnerCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Progress")
                         .HasColumnType("float");
 
@@ -651,10 +718,6 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("StudentCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TotalScore")
                         .HasColumnType("int");
@@ -796,6 +859,178 @@ namespace iLearn.Infrastructure.Migrations
                     b.ToTable("FileStorages");
                 });
 
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DivisionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("DivisionId");
+
+                    b.ToTable("LearnerGroups");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroupCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Depth")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DivisionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Path");
+
+                    b.ToTable("LearnerGroupCategories");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroupMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LearnerCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LearnerGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LearnerGroupId");
+
+                    b.ToTable("LearnerGroupMembers");
+                });
+
             modelBuilder.Entity("iLearn.Domain.Entities.LearningLog", b =>
                 {
                     b.Property<int>("Id")
@@ -805,6 +1040,9 @@ namespace iLearn.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ContentItemId")
                         .HasColumnType("int");
 
                     b.Property<int?>("CourseVersionId")
@@ -833,11 +1071,12 @@ namespace iLearn.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LearnerCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Progress")
                         .HasColumnType("float");
-
-                    b.Property<int?>("ResourceId")
-                        .HasColumnType("int");
 
                     b.Property<int?>("Score")
                         .HasColumnType("int");
@@ -846,10 +1085,6 @@ namespace iLearn.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StudentCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -868,69 +1103,6 @@ namespace iLearn.Infrastructure.Migrations
                     b.HasIndex("EnrollmentId");
 
                     b.ToTable("LearningLogs");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.Resource", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("FileStorageId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ResourceHref")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SchemaVersion")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TypeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("URL")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FileStorageId")
-                        .IsUnique()
-                        .HasFilter("[FileStorageId] IS NOT NULL");
-
-                    b.ToTable("Resources");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Role", b =>
@@ -1000,6 +1172,9 @@ namespace iLearn.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<int>("ContentItemId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1046,9 +1221,6 @@ namespace iLearn.Infrastructure.Migrations
                         .HasPrecision(7, 2)
                         .HasColumnType("decimal(7,2)");
 
-                    b.Property<int>("ResourceId")
-                        .HasColumnType("int");
-
                     b.Property<string>("ScormVersion")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1078,187 +1250,15 @@ namespace iLearn.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ContentItemId");
+
                     b.HasIndex("LastCommittedAtUtc");
 
-                    b.HasIndex("ResourceId");
-
-                    b.HasIndex("EnrollmentId", "ResourceId")
+                    b.HasIndex("EnrollmentId", "ContentItemId")
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("ScormRuntimeStates");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroup", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DivisionId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("DivisionId");
-
-                    b.ToTable("StudentGroups");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Depth")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DivisionId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Path")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DivisionId");
-
-                    b.HasIndex("ParentId");
-
-                    b.HasIndex("Path");
-
-                    b.ToTable("StudentGroupCategories");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupMember", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("StudentCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StudentGroupId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentGroupId");
-
-                    b.ToTable("StudentGroupMembers");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.User", b =>
@@ -1368,16 +1368,16 @@ namespace iLearn.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("DivisionId");
 
-                    b.HasOne("iLearn.Domain.Entities.StudentGroup", "StudentGroup")
+                    b.HasOne("iLearn.Domain.Entities.LearnerGroup", "LearnerGroup")
                         .WithMany("Assignments")
-                        .HasForeignKey("StudentGroupId")
+                        .HasForeignKey("LearnerGroupId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Course");
 
                     b.Navigation("DivisionNavigation");
 
-                    b.Navigation("StudentGroup");
+                    b.Navigation("LearnerGroup");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.AssignmentCourse", b =>
@@ -1408,6 +1408,15 @@ namespace iLearn.Infrastructure.Migrations
                     b.Navigation("Division");
                 });
 
+            modelBuilder.Entity("iLearn.Domain.Entities.ContentItem", b =>
+                {
+                    b.HasOne("iLearn.Domain.Entities.FileStorage", "FileStorage")
+                        .WithOne()
+                        .HasForeignKey("iLearn.Domain.Entities.ContentItem", "FileStorageId");
+
+                    b.Navigation("FileStorage");
+                });
+
             modelBuilder.Entity("iLearn.Domain.Entities.Course", b =>
                 {
                     b.HasOne("iLearn.Domain.Entities.Category", "Category")
@@ -1427,23 +1436,23 @@ namespace iLearn.Infrastructure.Migrations
                     b.Navigation("CourseType");
                 });
 
-            modelBuilder.Entity("iLearn.Domain.Entities.CourseResource", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.CourseContentItem", b =>
                 {
+                    b.HasOne("iLearn.Domain.Entities.ContentItem", "ContentItem")
+                        .WithMany("CourseContentItems")
+                        .HasForeignKey("ContentItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("iLearn.Domain.Entities.CourseVersion", "CourseVersion")
-                        .WithMany("CourseResources")
+                        .WithMany("CourseContentItems")
                         .HasForeignKey("CourseVersionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("iLearn.Domain.Entities.Resource", "Resource")
-                        .WithMany("CourseResources")
-                        .HasForeignKey("ResourceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Navigation("ContentItem");
 
                     b.Navigation("CourseVersion");
-
-                    b.Navigation("Resource");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.CourseVersion", b =>
@@ -1486,6 +1495,49 @@ namespace iLearn.Infrastructure.Migrations
                     b.Navigation("Enrollment");
                 });
 
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroup", b =>
+                {
+                    b.HasOne("iLearn.Domain.Entities.LearnerGroupCategory", "Category")
+                        .WithMany("LearnerGroups")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("iLearn.Domain.Entities.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Division");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroupCategory", b =>
+                {
+                    b.HasOne("iLearn.Domain.Entities.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId");
+
+                    b.HasOne("iLearn.Domain.Entities.LearnerGroupCategory", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Division");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroupMember", b =>
+                {
+                    b.HasOne("iLearn.Domain.Entities.LearnerGroup", "LearnerGroup")
+                        .WithMany("Members")
+                        .HasForeignKey("LearnerGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LearnerGroup");
+                });
+
             modelBuilder.Entity("iLearn.Domain.Entities.LearningLog", b =>
                 {
                     b.HasOne("iLearn.Domain.Entities.Enrollment", "Enrollment")
@@ -1495,15 +1547,6 @@ namespace iLearn.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Enrollment");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.Resource", b =>
-                {
-                    b.HasOne("iLearn.Domain.Entities.FileStorage", "FileStorage")
-                        .WithOne()
-                        .HasForeignKey("iLearn.Domain.Entities.Resource", "FileStorageId");
-
-                    b.Navigation("FileStorage");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Role", b =>
@@ -1517,64 +1560,21 @@ namespace iLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("iLearn.Domain.Entities.ScormRuntimeState", b =>
                 {
+                    b.HasOne("iLearn.Domain.Entities.ContentItem", "ContentItem")
+                        .WithMany()
+                        .HasForeignKey("ContentItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("iLearn.Domain.Entities.Enrollment", "Enrollment")
                         .WithMany()
                         .HasForeignKey("EnrollmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("iLearn.Domain.Entities.Resource", "Resource")
-                        .WithMany()
-                        .HasForeignKey("ResourceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Navigation("ContentItem");
 
                     b.Navigation("Enrollment");
-
-                    b.Navigation("Resource");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroup", b =>
-                {
-                    b.HasOne("iLearn.Domain.Entities.StudentGroupCategory", "Category")
-                        .WithMany("StudentGroups")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("iLearn.Domain.Entities.Division", "Division")
-                        .WithMany()
-                        .HasForeignKey("DivisionId");
-
-                    b.Navigation("Category");
-
-                    b.Navigation("Division");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupCategory", b =>
-                {
-                    b.HasOne("iLearn.Domain.Entities.Division", "Division")
-                        .WithMany()
-                        .HasForeignKey("DivisionId");
-
-                    b.HasOne("iLearn.Domain.Entities.StudentGroupCategory", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Division");
-
-                    b.Navigation("Parent");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupMember", b =>
-                {
-                    b.HasOne("iLearn.Domain.Entities.StudentGroup", "StudentGroup")
-                        .WithMany("Members")
-                        .HasForeignKey("StudentGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StudentGroup");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.UserRole", b =>
@@ -1606,6 +1606,11 @@ namespace iLearn.Infrastructure.Migrations
                     b.Navigation("Courses");
                 });
 
+            modelBuilder.Entity("iLearn.Domain.Entities.ContentItem", b =>
+                {
+                    b.Navigation("CourseContentItems");
+                });
+
             modelBuilder.Entity("iLearn.Domain.Entities.Course", b =>
                 {
                     b.Navigation("AssignmentCourses");
@@ -1624,7 +1629,7 @@ namespace iLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("iLearn.Domain.Entities.CourseVersion", b =>
                 {
-                    b.Navigation("CourseResources");
+                    b.Navigation("CourseContentItems");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.Enrollment", b =>
@@ -1632,28 +1637,23 @@ namespace iLearn.Infrastructure.Migrations
                     b.Navigation("AssignmentLinks");
                 });
 
-            modelBuilder.Entity("iLearn.Domain.Entities.Resource", b =>
-                {
-                    b.Navigation("CourseResources");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.Role", b =>
-                {
-                    b.Navigation("UserRoles");
-                });
-
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroup", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroup", b =>
                 {
                     b.Navigation("Assignments");
 
                     b.Navigation("Members");
                 });
 
-            modelBuilder.Entity("iLearn.Domain.Entities.StudentGroupCategory", b =>
+            modelBuilder.Entity("iLearn.Domain.Entities.LearnerGroupCategory", b =>
                 {
                     b.Navigation("Children");
 
-                    b.Navigation("StudentGroups");
+                    b.Navigation("LearnerGroups");
+                });
+
+            modelBuilder.Entity("iLearn.Domain.Entities.Role", b =>
+                {
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("iLearn.Domain.Entities.User", b =>

@@ -59,7 +59,7 @@ namespace iLearn.Tests
 
             var result = await _service.ExtractAndParseScormAsync(packageBytes, "package-c");
 
-            Assert.Equal("launch/index.html", result.ResourceHref);
+            Assert.Equal("launch/index.html", result.LaunchHref);
             Assert.Equal("https://files.example.local/course/package-c/launch/index.html", result.FullUrl);
         }
 
@@ -72,7 +72,7 @@ namespace iLearn.Tests
 
             var result = await _service.ExtractAndParseScormAsync(packageBytes, "package-wrapped");
 
-            Assert.Equal("wrapped/launch/index.html", result.ResourceHref);
+            Assert.Equal("wrapped/launch/index.html", result.LaunchHref);
             Assert.Equal("https://files.example.local/course/package-wrapped/wrapped/launch/index.html", result.FullUrl);
         }
 
@@ -85,7 +85,7 @@ namespace iLearn.Tests
 
             var result = await _service.ExtractAndParseScormAsync(packageBytes, "package-query");
 
-            Assert.Equal("wrapped/launch/index.html?content=playing", result.ResourceHref);
+            Assert.Equal("wrapped/launch/index.html?content=playing", result.LaunchHref);
             Assert.Equal("https://files.example.local/course/package-query/wrapped/launch/index.html?content=playing", result.FullUrl);
         }
 
@@ -231,9 +231,9 @@ namespace iLearn.Tests
       </item>
     </organization>
   </organizations>
-  <resources>
-    <resource identifier="res1" type="webcontent" adlcp:scormType="sco" href="{launchHref}" />
-  </resources>
+    <resources>
+        <resource identifier="res1" type="webcontent" adlcp:scormType="sco" href="{launchHref}" />
+    </resources>
 </manifest>
 """;
         }

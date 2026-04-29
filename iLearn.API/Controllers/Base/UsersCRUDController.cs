@@ -18,16 +18,16 @@ namespace iLearn.API.Controllers.Base
     public class UsersCRUDController : GenericController<User>
     {
         private readonly IGenericRepository<UserRole> _userRoleRepo;
-        private readonly IStudentApiService _studentApiService;
+        private readonly ILearnerApiService _learnerApiService;
 
         public UsersCRUDController(
             IGenericRepository<User> repository,
             ICurrentUserService currentUser,
             IGenericRepository<UserRole> userRoleRepo,
-            IStudentApiService studentApiService) : base(repository, currentUser)
+            ILearnerApiService learnerApiService) : base(repository, currentUser)
         {
             _userRoleRepo = userRoleRepo;
-            _studentApiService = studentApiService;
+            _learnerApiService = learnerApiService;
         }
 
         [HttpGet("Get")]
@@ -80,7 +80,7 @@ namespace iLearn.API.Controllers.Base
                 return Ok(loadResult);
 
             var rows = items.Cast<dynamic>().ToList();
-            var employeeLookup = await _studentApiService.GetEmployeesByNidsAsync(
+            var employeeLookup = await _learnerApiService.GetEmployeesByNidsAsync(
                 rows.Select(r => (string?)r.Nid ?? string.Empty));
 
             var enriched = rows.Select(r =>

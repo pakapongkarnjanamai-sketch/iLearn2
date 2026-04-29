@@ -263,7 +263,7 @@ else
             loadUrl: `${serviceUrl}/Divisions`
         });
         const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
-        const contentLibraryStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+        const contentLibraryStore = createDataStore(serviceUrl, 'admin/ContentItemsCRUD', { key: 'id' });
         const courseTypesStore = createDataStore(serviceUrl, 'Courses', {
             key: 'id',
             loadUrl: `${serviceUrl}/Courses/course-types-lookup`
@@ -600,7 +600,7 @@ else
                             },
                             {
                                 caption: "Used In", width: 100, alignment: "center", allowSorting: true,
-                                calculateCellValue: function(d) { return (d.courseResources || []).length; },
+                                calculateCellValue: function(d) { return (d.courseContentItems || []).length; },
                                 cellTemplate: function(container, options) {
                                     const count = options.value;
                                     window.renderAdminGridTextCell(container, count, count > 0 ? 'captionSuccess' : 'captionMuted');
@@ -842,7 +842,7 @@ else
                 });
                 const courseData = response.data || response;
 
-                addExistingContentItems(courseData.resources || []);
+                addExistingContentItems(courseData.contentItems || []);
 
                 const resolvedDivisionId = await resolveDivisionId(courseData);
 
@@ -911,15 +911,15 @@ else
             }
         }
 
-        function createExistingContentItem(resource) {
+        function createExistingContentItem(contentItem) {
             return {
-                uid: `EXISTING_${resource.id}`,
-                realId: resource.id,
-                name: resource.name,
-                typeId: resource.typeId,
+                uid: `EXISTING_${contentItem.id}`,
+                realId: contentItem.id,
+                name: contentItem.name,
+                typeId: contentItem.typeId,
                 isNew: false,
-                isActive: !!resource.isActive,
-                url: resource.url || null
+                isActive: !!contentItem.isActive,
+                url: contentItem.url || null
             };
         }
 
@@ -933,20 +933,20 @@ else
             };
         }
 
-        function addExistingContentItems(resources) {
-            resources.forEach(function(resource) {
-                const resourceId = resource.realId ?? resource.id;
+        function addExistingContentItems(contentItems) {
+            contentItems.forEach(function(contentItem) {
+                const contentItemId = contentItem.realId ?? contentItem.id;
                 const exists = contentItems.some(function(item) {
-                    return !item.isNew && item.realId === resourceId;
+                    return !item.isNew && item.realId === contentItemId;
                 });
 
                 if (!exists) {
                     contentItems.push(createExistingContentItem({
-                        id: resourceId,
-                        name: resource.name,
-                        typeId: resource.typeId,
-                        isActive: resource.isActive,
-                        url: resource.url
+                        id: contentItemId,
+                        name: contentItem.name,
+                        typeId: contentItem.typeId,
+                        isActive: contentItem.isActive,
+                        url: contentItem.url
                     }));
                 }
             });
@@ -959,16 +959,16 @@ else
         }
 
         function removeContentItem(uid) {
-            contentItems = contentItems.filter(function(resource) {
-                return resource.uid !== uid;
+            contentItems = contentItems.filter(function(contentItem) {
+                return contentItem.uid !== uid;
             });
         }
 
         function getCoursePayload() {
             const formData = formWidget.option("formData");
-            const linkedResourceIds = contentItems
-                .filter(function(resource) { return !resource.isNew; })
-                .map(function(resource) { return resource.realId; });
+            const linkedContentItemIds = contentItems
+                .filter(function(contentItem) { return !contentItem.isNew; })
+                .map(function(contentItem) { return contentItem.realId; });
 
             return {
                 courseCode: formData.courseCode,
@@ -976,7 +976,7 @@ else
                 description: formData.description,
                 courseType: formData.courseType,
                 categoryId: formData.categoryId,
-                resourceIds: linkedResourceIds
+                contentItemIds: linkedContentItemIds
             };
         }
 
@@ -1027,15 +1027,15 @@ else
             versionFormData.append("Note", IS_EDIT ? "Updated content via form" : "Initial content upload");
             versionFormData.append("IsActive", true);
 
-            contentItems.forEach(function(resource) {
-                if (resource.isNew) {
-                    versionFormData.append("Files", resource.fileRef);
-                    versionFormData.append("ResourceIds", 0);
+            contentItems.forEach(function(contentItem) {
+                if (contentItem.isNew) {
+                    versionFormData.append("Files", contentItem.fileRef);
+                    versionFormData.append("ContentItemIds", 0);
                 } else {
-                    versionFormData.append("ResourceIds", resource.realId);
+                    versionFormData.append("ContentItemIds", contentItem.realId);
                 }
 
-                versionFormData.append("ResourceTypes", resource.typeId);
+                versionFormData.append("ContentTypeIds", contentItem.typeId);
             });
 
             return versionFormData;
@@ -1070,8 +1070,8 @@ else
             const courseType = getEditorText("courseType", "Not selected");
             const division = getEditorText("divisionId", "No division");
             const category = getEditorText("categoryId", "No category");
-            const previewContentNames = contentItems.slice(0, 3).map(function(resource) {
-                return resource.name;
+            const previewContentNames = contentItems.slice(0, 3).map(function(contentItem) {
+                return contentItem.name;
             });
 
             $("#snapshot-course-type").text(courseType);
@@ -1099,11 +1099,11 @@ else
                 return;
             }
 
-            const existingCount = contentItems.filter(function(resource) {
-                return !resource.isNew;
+            const existingCount = contentItems.filter(function(contentItem) {
+                return !contentItem.isNew;
             }).length;
-            const newCount = contentItems.filter(function(resource) {
-                return resource.isNew;
+            const newCount = contentItems.filter(function(contentItem) {
+                return contentItem.isNew;
             }).length;
 
             $("#review-total-content").text(contentItems.length);
@@ -1121,19 +1121,19 @@ else
                     </div>`;
             }
 
-            const rows = contentItems.map(function(resource, index) {
-                const sourceText = resource.isNew ? "New upload" : "Content library";
-                const sourceBadge = resource.isNew ? "pill-primary" : "pill-default";
-                const readinessState = getContentReadinessState(resource);
+            const rows = contentItems.map(function(contentItem, index) {
+                const sourceText = contentItem.isNew ? "New upload" : "Content library";
+                const sourceBadge = contentItem.isNew ? "pill-primary" : "pill-default";
+                const readinessState = getContentReadinessState(contentItem);
 
                 return `
                     <tr>
                         <td>${index + 1}</td>
                         <td>
-                            <div class="admin-review-item-name">${window.escapeHtml(resource.name)}</div>
+                            <div class="admin-review-item-name">${window.escapeHtml(contentItem.name)}</div>
                         </td>
                         <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
-                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getContentTypeLabel(resource.typeId))}</span></td>
+                        <td><span class="tag-pill ${contentItem.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getContentTypeLabel(contentItem.typeId))}</span></td>
                         <td><span class="tag-pill pill-${window.escapeHtml(readinessState.tone)}">${window.escapeHtml(readinessState.text)}</span></td>
                     </tr>`;
             }).join('');
@@ -1172,8 +1172,8 @@ else
             return typeId === 2 ? "Exam" : "Learn";
         }
 
-        function getContentReadinessState(resource) {
-            if (resource.isNew) {
+        function getContentReadinessState(contentItem) {
+            if (contentItem.isNew) {
                 return {
                     tone: "primary",
                     text: "Queued Upload",
@@ -1181,7 +1181,7 @@ else
                 };
             }
 
-            if (!resource.isActive) {
+            if (!contentItem.isActive) {
                 return {
                     tone: "danger",
                     text: "Not Ready",
@@ -1189,7 +1189,7 @@ else
                 };
             }
 
-            if (!resource.url) {
+            if (!contentItem.url) {
                 return {
                     tone: "warning",
                     text: "Not Ready",
@@ -1204,8 +1204,8 @@ else
             };
         }
 
-        function renderContentReadinessCell(container, resource) {
-            const state = getContentReadinessState(resource || {});
+        function renderContentReadinessCell(container, contentItem) {
+            const state = getContentReadinessState(contentItem || {});
             window.renderAdminGridStatusCell(container, state.text, state.tone, { showDot: false });
         }
 

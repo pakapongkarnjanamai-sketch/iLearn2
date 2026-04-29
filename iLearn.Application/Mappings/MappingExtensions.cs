@@ -71,7 +71,7 @@ namespace iLearn.Application.Mappings
             return new EnrollmentDto
             {
                 Id                    = entity.Id,
-                StudentCode           = entity.StudentCode,
+                LearnerCode           = entity.LearnerCode,
                 CourseId              = entity.CourseId,
                 CourseCode            = entity.Course?.Code  ?? string.Empty,
                 CourseTitle           = entity.Course?.Title ?? string.Empty,
@@ -110,19 +110,19 @@ namespace iLearn.Application.Mappings
             };
         }
 
-        // --- Resource Mappings ---
+        // --- ContentItem Mappings ---
 
-        public static ResourceDto ToDto(this Resource entity)
+        public static ContentItemDto ToDto(this ContentItem entity)
         {
             if (entity == null) return null;
 
-            return new ResourceDto
+            return new ContentItemDto
             {
                 Id = entity.Id,
                 Name = entity.Name,
                 TypeId = entity.TypeId,
                 IsActive = entity.IsActive,
-                ContentUrl = $"/api/resources/{entity.Id}/content"
+                ContentUrl = $"/api/contentItems/{entity.Id}/content"
             };
         }
 
