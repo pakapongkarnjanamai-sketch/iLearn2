@@ -13,12 +13,31 @@
     const gridPostRenderRefreshDelay = 120;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
+    const currentScriptElement = document.currentScript || document.querySelector('script[src*="/js/admin-layout.js"]');
+    const configuredAppBasePath = typeof config.appBasePath === 'string' ? config.appBasePath.trim() : '';
+    const derivedAppBasePath = (function () {
+        if (configuredAppBasePath) {
+            return configuredAppBasePath;
+        }
+
+        if (!currentScriptElement || !currentScriptElement.src) {
+            return '/';
+        }
+
+        try {
+            const scriptUrl = new URL(currentScriptElement.src, window.location.origin);
+            return scriptUrl.pathname.replace(/\/js\/admin-layout(?:\.min)?\.js$/i, '/');
+        } catch (error) {
+            return '/';
+        }
+    })();
+    const adminAppBasePath = derivedAppBasePath.endsWith('/') ? derivedAppBasePath : `${derivedAppBasePath}/`;
     let viewportLayoutCounter = 0;
     const exportDependencyScripts = [
-        '/js/devextreme/dx-exceljs-fork.min.js',
-        '/js/devextreme/filesaver.min.js'
+        'js/devextreme/dx-exceljs-fork.min.js',
+        'js/devextreme/FileSaver.min.js'
     ];
-    const html2CanvasScriptPath = '/lib/html2canvas/html2canvas.min.js';
+    const html2CanvasScriptPath = 'lib/html2canvas/html2canvas.min.js';
     let exportDependenciesPromise = null;
     let html2CanvasPromise = null;
     const adminDialogDefaults = {
@@ -873,8 +892,10 @@
     }
 
     function loadScriptOnce(scriptPath) {
+        const resolvedScriptPath = resolveAdminAssetUrl(scriptPath);
+
         return new Promise(function (resolve, reject) {
-            const selector = `script[src="${scriptPath}"]`;
+            const selector = `script[src="${resolvedScriptPath}"]`;
             const existing = document.querySelector(selector);
 
             if (existing) {
@@ -891,13 +912,13 @@
 
                 existing.addEventListener('error', function onError() {
                     existing.removeEventListener('error', onError);
-                    reject(new Error(`Failed to load script: ${scriptPath}`));
+                    reject(new Error(`Failed to load script: ${resolvedScriptPath}`));
                 }, { once: true });
                 return;
             }
 
             const script = document.createElement('script');
-            script.src = scriptPath;
+            script.src = resolvedScriptPath;
             script.async = true;
 
             script.addEventListener('load', function () {
@@ -906,11 +927,24 @@
             }, { once: true });
 
             script.addEventListener('error', function () {
-                reject(new Error(`Failed to load script: ${scriptPath}`));
+                reject(new Error(`Failed to load script: ${resolvedScriptPath}`));
             }, { once: true });
 
             document.head.appendChild(script);
         });
+    }
+
+    function resolveAdminAssetUrl(assetPath) {
+        if (!assetPath) {
+            return adminAppBasePath;
+        }
+
+        if (/^(?:[a-z]+:)?\/\//i.test(assetPath)) {
+            return assetPath;
+        }
+
+        const normalizedAssetPath = String(assetPath).replace(/^\/+/, '');
+        return `${adminAppBasePath}${normalizedAssetPath}`;
     }
 
     function ensureExportDependencies() {
