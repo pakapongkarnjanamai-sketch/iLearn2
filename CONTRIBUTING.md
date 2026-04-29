@@ -96,11 +96,20 @@ API deploy:
 pwsh -NoLogo -NoProfile -File .\tools\deploy-api.ps1
 ```
 
+Admin deploy:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\tools\deploy-admin.ps1
+```
+
 Dry-run before switching production:
 
 ```powershell
 pwsh -NoLogo -NoProfile -File .\tools\deploy-user.ps1 -SkipPublish -WhatIf
 pwsh -NoLogo -NoProfile -File .\tools\deploy-api.ps1 -SkipPublish -WhatIf
+pwsh -NoLogo -NoProfile -File .\tools\deploy-admin.ps1 -SkipPublish -WhatIf
 ```
 
 Both scripts publish to `artifacts/publish/*`, copy to the production UNC share, then update the target app's `web.config` `aspNetCore.arguments` to the new side-by-side folder.
+
+Use the step-by-step runbook in `DOC/DEPLOY-CHECKLIST.md` for every deploy and rollback.
