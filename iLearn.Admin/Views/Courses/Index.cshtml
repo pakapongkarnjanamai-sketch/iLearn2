@@ -227,7 +227,7 @@
 
             function applyActiveFilters(gridInstance) {
                 window.applyAdminQuickFilter(gridInstance, courseQuickFilterState.typeKey, {
-                    getConditions: function (filterKey) {
+                    resolve: function (filterKey) {
                         const conditions = [];
 
                         if (currentTreeFilter) {
@@ -239,7 +239,9 @@
                             conditions.push(["courseTypeId", "=", selectedType.courseTypeId]);
                         }
 
-                        return conditions;
+                        return {
+                            conditions: conditions
+                        };
                     },
                     onApplied: function () {
                         updateQuickFilterUi();

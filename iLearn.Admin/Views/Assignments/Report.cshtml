@@ -9,21 +9,110 @@
 
 @section Styles {
     <style>
-        .sticky-col {
+        .assignment-info-panel,
+        .assignment-summary-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .assignment-identity {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .assignment-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: var(--font-size-lg);
+            font-weight: 700;
+        }
+
+        .assignment-name {
+            font-size: var(--font-size-xl);
+            line-height: var(--text-heading-line-height);
+            font-weight: 700;
+            color: var(--text-primary);
+            max-width: 26ch;
+        }
+
+        .assignment-context {
+            margin-top: 4px;
+            font-size: var(--font-size-sm);
+            line-height: var(--text-secondary-line-height);
+            color: var(--text-secondary);
+        }
+
+        .assignment-info-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .assignment-info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: var(--font-size-sm);
+            line-height: var(--text-secondary-line-height);
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .assignment-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .assignment-info-label {
+            min-width: 92px;
+            font-weight: 500;
+        }
+
+        .assignment-info-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .assignment-report-grid {
+            align-items: start;
+        }
+
+        .assignment-matrix-shell .sticky-col {
             position: sticky;
             left: 0;
             background-color: var(--surface-base);
             z-index: 2;
-            border-right: 2px solid var(--border-color) !important;
+            box-shadow: 1px 0 0 0 var(--border-color);
         }
 
-        .table-hover tbody tr:hover .sticky-col {
-            background-color: var(--bg-light);
+        .assignment-matrix-shell .table-hover tbody tr:hover .sticky-col {
+            background-color: color-mix(in srgb, var(--bg-light) 88%, var(--surface-base));
         }
 
-        th.sticky-col {
-            background-color: var(--bg-light);
+        .assignment-matrix-shell th.sticky-col {
+            background-color: color-mix(in srgb, var(--bg-light) 92%, var(--surface-base));
             z-index: 3;
+        }
+
+        .assignment-matrix-shell .table th:not(.sticky-col) {
+            min-width: 160px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .assignment-matrix-shell .table td {
+            vertical-align: middle;
         }
     </style>
 }
@@ -40,8 +129,8 @@
         </button>
 }
 
-    <div id="report-content" class="container-fluid py-4">
-        <div class="d-flex flex-column justify-content-center align-items-center text-muted u-minh-70vh">
+    <div id="report-content" class="report-page">
+        <div class="report-empty-state">
             <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
             <span class="fs-6">Loading data...</span>
         </div>
@@ -57,6 +146,10 @@
         // Helper: Format Date
         function formatDate(dateString) {
             return window.formatAdminDate(dateString, "-");
+        }
+
+        function esc(value) {
+            return window.escapeAdminHtml ? window.escapeAdminHtml(value) : $("<span>").text(value).html();
         }
 
         // Resolve Assignment No → ID, then fetch dashboard
@@ -139,17 +232,19 @@
                         </tr>`;
             }).join("");
 
-            return `<div class="table-responsive border rounded bg-white">
-                        <table class="table table-bordered table-hover pivot-table m-0">
-                            <thead class="sticky-thead">
-                                <tr>
-                                    <th class="sticky-col align-middle u-minw-180">Learner \\ Course</th>
-                                    ${colHeaders}
-                                    <th class="text-center align-middle bg-light u-minw-80">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>${dataRows}</tbody>
-                        </table>
+            return `<div class="report-table-shell assignment-matrix-shell">
+                        <div class="report-table-scroll">
+                            <table class="table table-bordered table-hover pivot-table m-0">
+                                <thead class="sticky-thead">
+                                    <tr>
+                                        <th class="sticky-col align-middle u-minw-180">Learner \\ Course</th>
+                                        ${colHeaders}
+                                        <th class="text-center align-middle bg-light u-minw-80">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${dataRows}</tbody>
+                            </table>
+                        </div>
                     </div>`;
         }
 
@@ -161,12 +256,16 @@
             // Course Rows Data
             const courseRows = (data.courses || []).map(c => {
                 const pct = c.totalStudents > 0 ? Math.round((c.completedStudents / c.totalStudents) * 100) : 0;
-                const colorClass = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--primary-color)" : "var(--border-color)";
+                const colorClass = pct === 100
+                    ? "var(--success-color)"
+                    : pct > 0
+                        ? "var(--warning-color)"
+                        : "var(--border-color)";
                 return `<tr>
                     <td class="fw-bold align-middle">${c.courseCode}</td>
                     <td class="align-middle">${c.courseTitle}</td>
                     <td class="align-middle text-center">${c.totalStudents}</td>
-                    <td class="align-middle text-center u-text-success">${c.completedStudents}</td>
+                    <td class="align-middle text-center fw-semibold">${c.completedStudents}</td>
                     <td class="align-middle text-center">${c.totalStudents - c.completedStudents}</td>
                     <td class="align-middle u-minw-150">
                         <div class="d-flex justify-content-between u-fs-11">
@@ -197,7 +296,11 @@
                 const overallPct = Math.round(rows.reduce((a, r) => a + r.progress, 0) / rows.length);
 
                 // กำหนดสีของหลอด Progress
-                const colorClass = overallPct === 100 ? "var(--success-color)" : overallPct > 0 ? "var(--primary-color)" : "var(--border-color)";
+                const colorClass = overallPct === 100
+                    ? "var(--success-color)"
+                    : overallPct > 0
+                        ? "var(--warning-color)"
+                        : "var(--border-color)";
 
                 return `<tr>
                     <td class="align-middle">
@@ -205,7 +308,7 @@
                         <div class="text-muted u-fs-11">${name}</div>
                     </td>
                     <td class="align-middle text-center">${total}</td>
-                    <td class="align-middle text-center u-text-success">${done}</td>
+                    <td class="align-middle text-center fw-semibold">${done}</td>
                     <td class="align-middle text-center">${left}</td>
                     <td class="align-middle u-minw-150">
                         <div class="d-flex justify-content-between u-fs-11">
@@ -221,107 +324,150 @@
             // Format dates for display
             const displayStartDate = formatDate(data.startDate);
             const displayDueDate = formatDate(data.dueDate);
+            const learnerCount = Object.keys(studentGroups).length;
+            const useCompactTopFold = (data.courses || []).length <= 2 && learnerCount <= 3;
+            const summaryChartHeight = useCompactTopFold ? 172 : 200;
+            const assignmentDescription = data.description ? esc(String(data.description)) : "-";
+            const createdBy = data.createdBy ? esc(String(data.createdBy)) : "-";
+            const topFoldClass = "report-grid report-grid--sidebar assignment-report-grid";
 
             // Inject HTML Layout
             document.getElementById("report-content").innerHTML = `
-                <div class="row g-4 mb-5">
-
-                    <div class="col-md-4">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                            <h2 class="fs-6 fw-bold m-0 text-dark">Status Summary</h2>
-                            <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportSummaryImage()">
-                                <i class="fas fa-download"></i> Save Image
-                            </button>
-                        </div>
-
-                        <div id="export-target" class="bg-white p-4 border rounded ">
-                            <div class="text-center mb-3">
-                                <div class="small text-muted text-uppercase u-letter-spacing-05">Assignment No.</div>
-                                <h3 class="fs-5 fw-bold m-0 text-dark">${data.assignmentNo || "-"}</h3>
-                            </div>
-
-                            <div class="text-center mb-4 bg-light p-2 rounded">
-                                <i class="far fa-calendar-alt text-muted me-1"></i>
-                                <span class="fw-bold u-fs-12">${displayStartDate}</span>
-                                <i class="fas fa-arrow-right text-muted mx-2 u-fs-10"></i>
-                                <span class="fw-bold text-danger u-fs-12">${displayDueDate}</span>
-                            </div>
-
-                            <div class="d-flex justify-content-around text-center border-bottom pb-4 mb-4">
-                                <div>
-                                    <div class="fs-4 fw-bold">${data.totalEmployees}</div>
-                                    <div class="small text-muted">Learners</div>
-                                </div>
-                                <div>
-                                    <div class="fs-4 fw-bold">${data.totalCourses}</div>
-                                    <div class="small text-muted">Courses</div>
-                                </div>
-                                <div>
-                                    <div class="fs-4 fw-bold u-text-success">${window.formatAdminPercentage(data.completionRate, '0%')}</div>
-                                    <div class="small text-muted">Completion</div>
+                <div class="report-stack">
+                    <div class="${topFoldClass}">
+                        <section class="report-section">
+                            <div class="report-section-head">
+                                <div class="report-section-title-wrap">
+                                    <h2 class="report-section-title">Assignment Information</h2>
                                 </div>
                             </div>
 
-                            <div id="report-pie-chart" style="height: 220px;"></div>
-                        </div>
+                            <div class="report-panel assignment-info-panel">
+                                <div class="assignment-identity">
+                                    <div class="assignment-avatar">A</div>
+                                    <div>
+                                        <div class="assignment-name">${esc(String(data.assignmentNo || "-"))}</div>
+                                        <div class="assignment-context">${assignmentDescription}</div>
+                                    </div>
+                                </div>
+
+                                <div class="assignment-info-list">
+                                    <div class="assignment-info-row">
+                                        <span class="assignment-info-label">Created By</span>
+                                        <span class="assignment-info-value">${createdBy}</span>
+                                    </div>
+                                    <div class="assignment-info-row">
+                                        <span class="assignment-info-label">Start</span>
+                                        <span class="assignment-info-value">${displayStartDate}</span>
+                                    </div>
+                                    <div class="assignment-info-row">
+                                        <span class="assignment-info-label">Due</span>
+                                        <span class="assignment-info-value">${displayDueDate}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="report-section">
+                            <div class="report-section-head">
+                                <div class="report-section-title-wrap">
+                                    <h2 class="report-section-title">Completion Summary</h2>
+                                </div>
+                            </div>
+
+                            <div class="report-panel assignment-summary-panel">
+
+                                <div class="report-metrics">
+                                    <div class="report-metric">
+                                        <div class="report-metric-value">${data.totalEmployees}</div>
+                                        <div class="report-metric-label">Learners</div>
+                                    </div>
+                                    <div class="report-metric">
+                                        <div class="report-metric-value">${data.totalCourses}</div>
+                                        <div class="report-metric-label">Courses</div>
+                                    </div>
+                                    <div class="report-metric">
+                                        <div class="report-metric-value">${window.formatAdminPercentage(data.completionRate, '0%')}</div>
+                                        <div class="report-metric-label">Completion</div>
+                                    </div>
+                                </div>
+
+                                <div class="report-chart-block">
+                                    <div class="report-kicker">Completion Distribution</div>
+                                    <div id="report-pie-chart" style="height: ${summaryChartHeight}px;"></div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
-                    <div class="col-md-8">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                            <h2 class="fs-6 fw-bold m-0 text-dark">Course Overview</h2>
-                            <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportCourseOverview()">
+                    <section class="report-section">
+                        <div class="report-section-head">
+                            <div class="report-section-title-wrap">
+                                <h2 class="report-section-title">Course Overview</h2>
+                            </div>
+                            <button class="report-action-btn" onclick="exportCourseOverview()">
                                 <i class="fas fa-file-excel"></i> Export
                             </button>
                         </div>
-                        <div class="border rounded overflow-hidden bg-white ">
-                            <table class="table table-hover m-0">
-                                <thead>
-                                    <tr>
-                                        <th>Code</th>
-                                        <th>Course</th>
-                                        <th class="text-center">Total</th>
-                                        <th class="text-center">Done</th>
-                                        <th class="text-center">Left</th>
-                                        <th>Progress</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${courseRows}</tbody>
-                            </table>
+
+                        <div class="report-table-shell">
+                            <div class="report-table-scroll">
+                                <table class="table table-hover m-0 assignment-overview-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Course</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">Done</th>
+                                            <th class="text-center">Left</th>
+                                            <th>Progress</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${courseRows}</tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </section>
 
-                <div class="mb-5">
-                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                        <h2 class="fs-6 fw-bold m-0 text-dark">Learner × Course Matrix</h2>
-                        <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportPivotMatrix()">
-                            <i class="fas fa-file-excel"></i> Export
-                        </button>
-                    </div>
-                    ${buildPivotTable(data.courses, data.students)}
-                </div>
+                    <section class="report-section">
+                        <div class="report-section-head">
+                            <div class="report-section-title-wrap">
+                                <h2 class="report-section-title">Learner × Course Matrix</h2>
+                            </div>
+                            <button class="report-action-btn" onclick="exportPivotMatrix()">
+                                <i class="fas fa-file-excel"></i> Export
+                            </button>
+                        </div>
+                        ${buildPivotTable(data.courses, data.students)}
+                    </section>
 
-                <div class="mb-5">
-                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                        <h2 class="fs-6 fw-bold m-0 text-dark">Learner Tracking</h2>
-                        <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportStudentTracking()">
-                            <i class="fas fa-file-excel"></i> Export
-                        </button>
-                    </div>
-                    <div class="border rounded overflow-hidden bg-white ">
-                        <table class="table table-hover m-0">
-                            <thead>
-                                <tr>
-                                    <th>Learner</th>
-                                    <th class="text-center">Total</th>
-                                    <th class="text-center">Done</th>
-                                    <th class="text-center">Left</th>
-                                    <th>Progress</th>
-                                </tr>
-                            </thead>
-                            <tbody>${studentRows}</tbody>
-                        </table>
-                    </div>
+                    <section class="report-section">
+                        <div class="report-section-head">
+                            <div class="report-section-title-wrap">
+                                <h2 class="report-section-title">Learner Tracking</h2>
+                            </div>
+                            <button class="report-action-btn" onclick="exportStudentTracking()">
+                                <i class="fas fa-file-excel"></i> Export
+                            </button>
+                        </div>
+
+                        <div class="report-table-shell">
+                            <div class="report-table-scroll">
+                                <table class="table table-hover m-0 assignment-tracking-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Learner</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">Done</th>
+                                            <th class="text-center">Left</th>
+                                            <th>Progress</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${studentRows}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             `;
 
@@ -329,9 +475,14 @@
             $("#report-pie-chart").dxPieChart(
                 window.createAdminPieChartConfig({
                     palettePreset: "status3",
+                    centerLabel: 'Completion',
+                    centerValue: window.formatAdminPercentage(data.completionRate, '0%'),
                     baseConfig: {
                         type: "doughnut",
                         innerRadius: 0.7,
+                        size: {
+                            height: summaryChartHeight
+                        },
                         dataSource: [
                             { status: "Completed",   count: cd.completed  },
                             { status: "In Progress", count: cd.inProgress },
@@ -343,13 +494,13 @@
                                 visible: true,
                                 position: "outside",
                                 customizeText: p => `${p.valueText} (${p.percentText})`,
-                                font: { size: parseInt(window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
+                                font: { size: parseInt(useCompactTopFold ? window.adminTypography.size.micro : window.adminTypography.size.xs, 10), color: "var(--text-secondary)" },
                                 connector: { visible: true, width: 1 }
                             }
                         }],
                         legend: {
                             horizontalAlignment: "right", verticalAlignment: "center",
-                            margin: 0, font: { size: parseInt(window.adminTypography.size.caption, 10), color: "var(--text-secondary)" }
+                            margin: 0, font: { size: parseInt(useCompactTopFold ? window.adminTypography.size.xs : window.adminTypography.size.caption, 10), color: "var(--text-secondary)" }
                         },
                         tooltip: { enabled: true }
                     }
@@ -362,15 +513,30 @@
 
         // ─── Excel Export Helpers ───
         function getExportFileName(prefix) {
-            return buildAdminExportFileName(prefix, _reportData && _reportData.assignmentNo);
+            const assignmentNo = (_reportData?.assignmentNo || 'Unknown').replace(/[\\/:*?"<>|]/g, '_');
+            const now = new Date();
+            const ts = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+                String(now.getHours()).padStart(2, '0'),
+                String(now.getMinutes()).padStart(2, '0')
+            ].join('');
+            return `${prefix}_${assignmentNo}_${ts}.xlsx`;
         }
 
         function saveWorkbook(workbook, fileName) {
-            saveAdminWorkbook(workbook, fileName);
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+            });
         }
 
         function styleHeaderRow(ws) {
-            styleAdminExcelHeaderRow(ws);
+            const row = ws.getRow(1);
+            row.font = { bold: true, size: parseInt(window.adminTypography.size.xs, 10) };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            row.alignment = { vertical: 'middle' };
+            row.eachCell(cell => cell.border = { bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } } });
         }
 
         function addCourseOverviewSheet(wb) {
@@ -478,26 +644,6 @@
             addMatrixSheet(wb);
             addStudentTrackingSheet(wb);
             saveWorkbook(wb, getExportFileName('Assignment_Report'));
-        }
-
-        // ─── Export Summary Image ───
-        async function exportSummaryImage() {
-            const targetDiv = document.getElementById("export-target");
-            try {
-                const html2canvasLib = await window.ensureHtml2Canvas();
-                const canvas = await html2canvasLib(targetDiv, {
-                    scale: 2,
-                    backgroundColor: window.getAdminExportBackgroundColor(),
-                    logging: false
-                });
-                const link = document.createElement("a");
-                link.download = `Assignment_Summary_${ASSIGNMENT_ID}.png`;
-                link.href = canvas.toDataURL("image/png");
-                link.click();
-            } catch (err) {
-                console.error("Error generating image:", err);
-                alert("Could not save the image. Please try again.");
-            }
         }
     </script>
 }

@@ -10,189 +10,147 @@
 
 @section Styles {
     <style>
-        #report-content {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding-left: clamp(12px, 2vw, 24px);
-            padding-right: clamp(12px, 2vw, 24px);
-        }
-
-        .report-top-grid {
-            display: grid;
-            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-            gap: clamp(16px, 2.2vw, 28px);
-            margin-bottom: clamp(28px, 4vw, 44px);
-        }
-
-        .report-section {
+        .learner-profile-panel,
+        .learner-summary-panel {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 18px;
         }
 
-        .section-head {
+        .learner-identity {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            border-bottom: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--border-color));
-            padding-bottom: 8px;
-        }
-
-        .section-title {
-            font-size: var(--font-size-lg);
-            font-weight: 700;
-            color: var(--primary-dark);
-            line-height: var(--text-subheading-line-height);
-            letter-spacing: 0.01em;
-            margin: 0;
-        }
-
-        .profile-card,
-        .summary-card,
-        .history-card {
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            background: var(--surface-base);
-        }
-
-        .profile-card {
-            background: color-mix(in srgb, var(--surface-brand-subtle) 36%, var(--surface-base));
-            border-color: color-mix(in srgb, var(--primary-color) 20%, var(--border-color));
-        }
-
-        .summary-card {
-            background: linear-gradient(
-                180deg,
-                color-mix(in srgb, var(--surface-info-subtle) 72%, var(--surface-base)) 0%,
-                var(--surface-base) 100%
-            );
-            border-color: color-mix(in srgb, var(--primary-color) 14%, var(--border-color));
-        }
-
-        .history-card {
-            background: color-mix(in srgb, var(--surface-subtle) 70%, var(--surface-base));
-        }
-
-        .profile-card,
-        .summary-card {
-            padding: clamp(14px, 1.8vw, 22px);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 12px;
-            border-bottom: 1px solid var(--border-color);
+            align-items: flex-start;
+            gap: 16px;
             padding-bottom: 16px;
-            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .stat-block {
-            background: var(--surface-base);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            padding: 10px 8px;
-        }
-
-        .stat-block--total {
-            border-color: color-mix(in srgb, var(--primary-color) 22%, var(--border-color));
-            background: color-mix(in srgb, var(--surface-brand-subtle) 40%, var(--surface-base));
-        }
-
-        .stat-block--completed {
-            border-color: var(--border-success);
-            background: var(--surface-success-subtle);
-        }
-
-        .stat-block--inprogress {
-            border-color: var(--border-warning);
-            background: var(--surface-warning-subtle);
-        }
-
-        .stat-block--overdue {
-            border-color: var(--border-danger);
-            background: var(--surface-danger-subtle);
-        }
-
-        .stat-block--cancelled {
-            border-color: var(--border-strong);
-            background: var(--surface-subtle);
-        }
-
-        .stat-block--total .stat-num { color: var(--primary-dark); }
-        .stat-block--completed .stat-num { color: var(--success-color); }
-        .stat-block--inprogress .stat-num { color: var(--warning-color); }
-        .stat-block--overdue .stat-num { color: var(--danger-color); }
-        .stat-block--cancelled .stat-num { color: var(--text-secondary); }
-
-        .history-card {
-            overflow: auto;
-        }
-
-        .history-table {
-            min-width: 930px;
-        }
-
-        .profile-name {
-            font-size: var(--font-size-xl);
-            font-weight: 700;
-            line-height: var(--text-heading-line-height);
-            color: var(--text-primary);
-            max-width: 26ch;
-        }
-
-        .profile-avatar {
+        .learner-avatar {
             width: 64px;
             height: 64px;
-            background: var(--surface-brand-subtle);
-            color: var(--primary-color);
             border-radius: 50%;
-            font-size: var(--font-size-xl);
-            font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            border: 2px solid var(--surface-base);
-            outline: 1px solid var(--border-color);
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: var(--font-size-lg);
+            font-weight: 700;
         }
 
-        .info-row {
+        .learner-name {
+            font-size: var(--font-size-xl);
+            line-height: var(--text-heading-line-height);
+            font-weight: 700;
+            color: var(--text-primary);
+            max-width: 26ch;
+        }
+
+        .learner-context {
+            margin-top: 4px;
+            font-size: var(--font-size-sm);
+            line-height: var(--text-secondary-line-height);
+            color: var(--text-secondary);
+        }
+
+        .learner-info-list {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 0;
+            flex-direction: column;
+        }
+
+        .learner-info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
             font-size: var(--font-size-sm);
             line-height: var(--text-secondary-line-height);
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border-color);
         }
 
-        .info-row:last-child { border-bottom: none; }
-        .info-row i { width: 16px; text-align: center; color: var(--primary-mid); opacity: 0.9; }
-        .info-row .info-label { min-width: 70px; font-weight: 500; }
-        .info-row .info-value { font-weight: 600; color: var(--text-primary); }
-        .status-overdue { color: var(--danger-color); }
-        .status-overdue .status-dot { background: var(--danger-color); }
-        .status-cancelled { color: var(--text-secondary); opacity: 0.6; }
-        .status-cancelled .status-dot { background: var(--border-strong); }
-        .stat-block { text-align: center; }
-        .stat-block .stat-num { font-size: var(--font-size-xl); font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: var(--font-feature-data); }
-        .stat-block .stat-label { font-size: var(--font-size-caption); line-height: var(--text-caption-line-height); color: var(--text-secondary); margin-top: 2px; letter-spacing: 0.02em; text-transform: uppercase; }
-
-        @@media (max-width: 991.98px) {
-            .report-top-grid {
-                grid-template-columns: 1fr;
-            }
+        .learner-info-row:last-child {
+            border-bottom: none;
         }
 
+        .learner-info-row i {
+            width: 16px;
+            margin-top: 2px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .learner-info-label {
+            min-width: 72px;
+            font-weight: 500;
+        }
+
+        .learner-info-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .learner-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            gap: 10px;
+        }
+
+        .learner-metric {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: color-mix(in srgb, var(--surface-base) 90%, var(--surface-subtle));
+            padding: 12px 14px;
+        }
+
+        .learner-metric--critical {
+            border-color: color-mix(in srgb, var(--danger-color) 24%, var(--border-color));
+        }
+
+        .learner-metric--muted {
+            background: color-mix(in srgb, var(--surface-subtle) 94%, var(--surface-base));
+        }
+
+        .learner-metric-value {
+            font-size: var(--font-size-xl);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: var(--font-feature-data);
+        }
+
+        .learner-metric-label {
+            margin-top: 2px;
+            font-size: var(--font-size-caption);
+            line-height: var(--text-caption-line-height);
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .learner-history-shell {
+            overflow: auto;
+        }
+
+        .learner-history-table {
+            min-width: 930px;
+        }
+
+        .status-overdue { color: color-mix(in srgb, var(--danger-color) 72%, var(--text-primary)); }
+        .status-overdue .status-dot { background: color-mix(in srgb, var(--danger-color) 72%, var(--text-primary)); }
+        .status-cancelled { color: var(--text-secondary); opacity: 0.6; }
+        .status-cancelled .status-dot { background: var(--border-strong); }
+
         @@media (max-width: 767.98px) {
-            .section-head {
-                flex-wrap: wrap;
+            .learner-identity {
+                align-items: center;
             }
 
-            .history-table {
+            .learner-history-table {
                 min-width: 860px;
             }
         }
@@ -212,8 +170,8 @@
 }
 
     <!-- ── Content ── -->
-    <div id="report-content" class="container-fluid py-4">
-        <div class="d-flex flex-column justify-content-center align-items-center text-muted u-minh-70vh">
+    <div id="report-content" class="report-page">
+        <div class="report-empty-state">
             <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
             <span class="fs-6">Loading profile...</span>
         </div>
@@ -288,10 +246,10 @@
                 { icon: "fa-user-tag",    label: "Position",   value: d.position },
                 { icon: "fa-clock",       label: "Total Time", value: fmtDuration(k.totalTimeSpentSeconds) }
             ].filter(r => r.value).map(r =>
-                `<div class="info-row">
+                `<div class="learner-info-row">
                     <i class="fas ${r.icon}"></i>
-                    <span class="info-label">${r.label}</span>
-                    <span class="info-value">${esc(String(r.value))}</span>
+                    <span class="learner-info-label">${r.label}</span>
+                    <span class="learner-info-value">${esc(String(r.value))}</span>
                 </div>`
             ).join("");
 
@@ -299,7 +257,11 @@
             const historyRows = enrollments.map(e => {
                 const st = getStatus(e);
                 const pct = e.progress || 0;
-                const barColor = pct === 100 ? "var(--success-color)" : pct > 0 ? "var(--primary-color)" : "var(--border-color)";
+                const barColor = pct === 100
+                    ? "var(--success-color)"
+                    : pct > 0
+                        ? "var(--warning-color)"
+                        : "var(--border-color)";
                 const titleStyle = e.isCourseDeleted ? "color:var(--text-secondary); text-decoration:line-through;" : "";
                 const deletedIcon = e.isCourseDeleted ? ' <i class="fas fa-archive u-fs-10 text-secondary" title="Course deleted"></i>' : "";
                 const dueDateStyle = (!e.isCompleted && e.dueDate && new Date(e.dueDate) < now)
@@ -320,107 +282,114 @@
                             <div style="height:100%; width:${pct}%; background:${barColor};"></div>
                         </div>
                     </td>
-                    <td class="align-middle text-center">${e.totalScore > 0 ? '<span class="fw-bold" style="color:var(--primary-color)">' + e.totalScore + '</span>' : '<span class="text-muted">—</span>'}</td>
+                    <td class="align-middle text-center">${e.totalScore > 0 ? '<span class="fw-bold">' + e.totalScore + '</span>' : '<span class="text-muted">—</span>'}</td>
                     <td class="align-middle text-center u-fs-11 text-secondary">${fmtDuration(e.totalTimeSpent)}</td>
                     <td class="align-middle text-center u-fs-11 text-secondary">${fmtDate(e.startDate)}</td>
                     <td class="align-middle text-center u-fs-11" style="${dueDateStyle}">${fmtDate(e.dueDate)}</td>
-                    <td class="align-middle text-center u-fs-11" style="color:var(--success-color);">${fmtDate(e.completedDate)}</td>
+                    <td class="align-middle text-center u-fs-11 text-secondary">${fmtDate(e.completedDate)}</td>
                 </tr>`;
             }).join("");
 
             // Inject layout
             document.getElementById("report-content").innerHTML = `
-                <div class="report-top-grid">
+                <div class="report-stack">
+                    <div class="report-grid report-grid--sidebar">
+                        <section class="report-section">
+                            <div class="report-section-head">
+                                <div class="report-section-title-wrap">
+                                    <h2 class="report-section-title">Learner Information</h2>
+                                </div>
+                            </div>
+
+                            <div class="report-panel learner-profile-panel">
+                                <div class="learner-identity">
+                                    <div class="learner-avatar">${initial}</div>
+                                    <div>
+                                        <div class="learner-name">${esc(d.name || d.code)}</div>
+                                        <div class="learner-context">
+                                            ${[d.division, d.department, d.section].filter(Boolean).map(v => esc(v)).join(" · ") || "—"}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="learner-info-list">${infoItems}</div>
+                            </div>
+                        </section>
+
+                        <section class="report-section">
+                            <div class="report-section-head">
+                                <div class="report-section-title-wrap">
+                                    <h2 class="report-section-title">Completion Summary</h2>
+                                </div>
+                            </div>
+
+                            <div class="report-panel learner-summary-panel">
+                                <div class="learner-metrics">
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${k.totalCourses}</div>
+                                        <div class="learner-metric-label">Total</div>
+                                    </div>
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${k.completedCourses}</div>
+                                        <div class="learner-metric-label">Completed</div>
+                                    </div>
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${k.inProgressCourses}</div>
+                                        <div class="learner-metric-label">In Progress</div>
+                                    </div>
+                                    <div class="learner-metric">
+                                        <div class="learner-metric-value">${notStarted}</div>
+                                        <div class="learner-metric-label">Not Started</div>
+                                    </div>
+                                    <div class="learner-metric learner-metric--critical">
+                                        <div class="learner-metric-value">${overdue}</div>
+                                        <div class="learner-metric-label">Overdue</div>
+                                    </div>
+                                    ${cancelled > 0 ? `<div class="learner-metric learner-metric--muted">
+                                        <div class="learner-metric-value">${cancelled}</div>
+                                        <div class="learner-metric-label">Cancelled</div>
+                                    </div>` : ""}
+                                </div>
+
+                                <div class="report-chart-block">
+                                    <div class="report-kicker">Completion</div>
+                                    <div id="profile-pie-chart" style="height:200px;"></div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
 
                     <section class="report-section">
-                        <div class="section-head">
-                            <h2 class="section-title">Learner Information</h2>
-                            <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportProfileImage()">
-                                <i class="fas fa-download"></i> Save Image
+                        <div class="report-section-head">
+                            <div class="report-section-title-wrap">
+                                <h2 class="report-section-title">Learning History</h2>
+                            </div>
+                            <button class="report-action-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Export
                             </button>
                         </div>
 
-                        <div id="export-target" class="profile-card">
-                            <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
-                                <div class="profile-avatar">${initial}</div>
-                                <div>
-                                    <div class="profile-name">${esc(d.name || d.code)}</div>
-                                    <div class="text-muted u-fs-12">
-                                        ${[d.division, d.department, d.section].filter(Boolean).map(v => esc(v)).join(" · ") || "—"}
-                                    </div>
-                                </div>
-                            </div>
-                            ${infoItems}
-                        </div>
-                    </section>
-
-                    <section class="report-section">
-                        <div class="section-head">
-                            <h2 class="section-title">Completion Summary</h2>
-                        </div>
-
-                        <div class="summary-card">
-                            <div class="stats-grid text-center">
-                                <div class="stat-block stat-block--total">
-                                    <div class="stat-num">${k.totalCourses}</div>
-                                    <div class="stat-label">Total</div>
-                                </div>
-                                <div class="stat-block stat-block--completed">
-                                    <div class="stat-num">${k.completedCourses}</div>
-                                    <div class="stat-label">Completed</div>
-                                </div>
-                                <div class="stat-block stat-block--inprogress">
-                                    <div class="stat-num">${k.inProgressCourses}</div>
-                                    <div class="stat-label">In Progress</div>
-                                </div>
-                                <div class="stat-block">
-                                    <div class="stat-num">${notStarted}</div>
-                                    <div class="stat-label">Not Started</div>
-                                </div>
-                                <div class="stat-block stat-block--overdue">
-                                    <div class="stat-num">${overdue}</div>
-                                    <div class="stat-label">Overdue</div>
-                                </div>
-                                ${cancelled > 0 ? `<div class="stat-block stat-block--cancelled">
-                                    <div class="stat-num">${cancelled}</div>
-                                    <div class="stat-label">Cancelled</div>
-                                </div>` : ""}
-                            </div>
-
-                            <div id="profile-pie-chart" style="height:220px;"></div>
+                        <div class="report-table-shell learner-history-shell">
+                            <table class="table table-hover m-0 learner-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Course</th>
+                                        <th class="text-center">Status</th>
+                                        <th>Progress</th>
+                                        <th class="text-center">Score</th>
+                                        <th class="text-center">Time</th>
+                                        <th class="text-center">Start</th>
+                                        <th class="text-center">Due</th>
+                                        <th class="text-center">Completed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${historyRows || '<tr><td colspan="9" class="text-center text-muted py-4">No enrollment data.</td></tr>'}
+                                </tbody>
+                            </table>
                         </div>
                     </section>
                 </div>
-
-                <section class="report-section mb-5">
-                    <div class="section-head">
-                        <h2 class="section-title">Learning History</h2>
-                        <button class="btn btn-outline-primary btn-sm py-1 px-2 u-fs-11" onclick="exportToExcel()">
-                            <i class="fas fa-file-excel"></i> Export
-                        </button>
-                    </div>
-
-                    <div class="history-card">
-                        <table class="table table-hover m-0 history-table">
-                            <thead>
-                                <tr>
-                                    <th>Code</th>
-                                    <th>Course</th>
-                                    <th class="text-center">Status</th>
-                                    <th>Progress</th>
-                                    <th class="text-center">Score</th>
-                                    <th class="text-center">Time</th>
-                                    <th class="text-center">Start</th>
-                                    <th class="text-center">Due</th>
-                                    <th class="text-center">Completed</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${historyRows || '<tr><td colspan="9" class="text-center text-muted py-4">No enrollment data.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
             `;
 
             // Render Pie Chart
@@ -543,21 +512,6 @@
             styleHeaderRow(ws2);
 
             saveWorkbook(wb, getExportFileName('Student_Profile'));
-        }
-
-        // ─── Export Summary Image ───
-        async function exportProfileImage() {
-            const target = document.getElementById("export-target");
-            try {
-                const html2canvasLib = await window.ensureHtml2Canvas();
-                const canvas = await html2canvasLib(target, { scale: 2, backgroundColor: window.getAdminExportBackgroundColor(), logging: false });
-                const link = document.createElement("a");
-                link.download = `Student_Profile_${STUDENT_CODE}.png`;
-                link.href = canvas.toDataURL("image/png");
-                link.click();
-            } catch {
-                alert("Could not save the image.");
-            }
         }
     </script>
 }

@@ -8,23 +8,15 @@
 <head>
     <meta charset="utf-8" />
     <title>@pageTitle</title>
-    <link rel="preload" href="~/lib/font-awesome/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin asp-append-version="true" />
     <link rel="preload" href="~/js/devextreme/dx.all.js" as="script" asp-append-version="true" />
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" asp-append-version="true" />
-    <style>
-        @@font-face { font-family: "Font Awesome 7 Free"; font-display: swap; }
-        @@font-face { font-family: "Font Awesome 7 Brands"; font-display: swap; }
-        @@font-face { font-family: "Font Awesome 5 Free"; font-display: swap; }
-        @@font-face { font-family: "Font Awesome 5 Brands"; font-display: swap; }
-        @@font-face { font-family: "FontAwesome"; font-display: swap; }
-    </style>
     <link href="~/css/admin-tokens.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/admin-minimal.css" rel="stylesheet" asp-append-version="true" />
     <style>
         body {
-            font-family: var(--font-stack);
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
             background: var(--surface-base);
             color: var(--text-primary);
             font-size: var(--font-size-md);
@@ -68,15 +60,16 @@
         }
 
         .toolbar-btn:focus-visible {
-            outline: 2px solid color-mix(in srgb, var(--primary-color) 70%, var(--surface-base));
-            outline-offset: 1px;
-            border-color: color-mix(in srgb, var(--primary-color) 40%, var(--border-color));
-            color: var(--primary-dark);
+            outline: 1px solid var(--border-strong);
+            outline-offset: 0;
+            border-color: var(--border-strong);
+            color: var(--text-primary);
         }
 
         .toolbar-btn:active {
-            background: color-mix(in srgb, var(--surface-brand-subtle) 52%, var(--surface-base));
-            border-color: color-mix(in srgb, var(--primary-color) 36%, var(--border-color));
+            background: var(--bg-light);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
         }
 
         .toolbar-btn:disabled,
@@ -90,6 +83,164 @@
         .toolbar .fw-bold {
             font-size: var(--font-size-lg) !important;
             line-height: var(--text-subheading-line-height);
+        }
+
+        .report-page {
+            max-width: 1520px;
+            margin: 0 auto;
+            padding: clamp(20px, 2.6vw, 28px) clamp(14px, 2vw, 28px) clamp(40px, 5vw, 56px);
+        }
+
+        .report-stack {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(24px, 2.8vw, 32px);
+        }
+
+        .report-grid {
+            display: grid;
+            gap: clamp(16px, 1.8vw, 24px);
+        }
+
+        .report-grid--sidebar {
+            grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+        }
+
+        .report-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .report-section-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .report-section-title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .report-section-title {
+            font-size: var(--font-size-lg);
+            line-height: var(--text-subheading-line-height);
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .report-panel {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--surface-base);
+            padding: clamp(14px, 1.6vw, 20px);
+        }
+
+        .report-kicker {
+            font-size: var(--font-size-caption);
+            line-height: var(--text-caption-line-height);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .report-emphasis {
+            font-size: clamp(1.35rem, 2vw, 1.85rem);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .report-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+            gap: 8px;
+        }
+
+        .report-metric {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-light);
+            padding: 10px 12px;
+        }
+
+        .report-metric-value {
+            font-size: var(--font-size-xl);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: var(--font-feature-data);
+        }
+
+        .report-metric-label {
+            margin-top: 2px;
+            font-size: var(--font-size-caption);
+            line-height: var(--text-caption-line-height);
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .report-chart-block {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .report-action-btn {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.36rem 0.65rem;
+            min-height: 1.9rem;
+            font-size: var(--font-size-xs);
+            line-height: 1.2;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: var(--surface-base);
+            color: var(--text-secondary);
+            transition: background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out;
+        }
+
+        .report-action-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .report-action-btn:focus-visible {
+            outline: 1px solid var(--border-strong);
+            outline-offset: 0;
+            border-color: var(--border-strong);
+        }
+
+        .report-table-shell {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--surface-base);
+            overflow: hidden;
+        }
+
+        .report-table-scroll {
+            overflow: auto;
+        }
+
+        .report-empty-state {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-secondary);
         }
 
         .table {
@@ -129,19 +280,19 @@
         }
 
         .status-done {
-            color: var(--success-color);
+            color: color-mix(in srgb, var(--success-color) 72%, var(--text-primary));
         }
 
         .status-done .status-dot {
-            background: var(--success-color);
+            background: color-mix(in srgb, var(--success-color) 72%, var(--text-primary));
         }
 
         .status-active {
-            color: var(--warning-color);
+            color: color-mix(in srgb, var(--warning-color) 64%, var(--text-primary));
         }
 
         .status-active .status-dot {
-            background: var(--warning-color);
+            background: color-mix(in srgb, var(--warning-color) 64%, var(--text-primary));
         }
 
         .status-pending {
@@ -155,6 +306,17 @@
         @@media (max-width: 767.98px) {
             .toolbar-btn {
                 min-height: 2.75rem;
+            }
+
+            .report-section-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @@media (max-width: 991.98px) {
+            .report-grid--sidebar {
+                grid-template-columns: 1fr;
             }
         }
 
