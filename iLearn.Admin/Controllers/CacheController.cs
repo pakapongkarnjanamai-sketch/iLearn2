@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using System.Security.Principal;
 
 namespace iLearn.Admin.Controllers
 {
@@ -37,8 +38,7 @@ namespace iLearn.Admin.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("iLearnAPI");
-                using var response = await client.PostAsync("admin/cache/clear-all", content: null);
+                using var response = await PostApiClearAllAsCurrentWindowsIdentityAsync();
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (!response.IsSuccessStatusCode)
@@ -71,6 +71,31 @@ namespace iLearn.Admin.Controllers
                     message = "Admin cache cleared, but API cache could not be cleared."
                 });
             }
+        }
+
+        private Task<HttpResponseMessage> PostApiClearAllAsCurrentWindowsIdentityAsync()
+        {
+            var client = _httpClientFactory.CreateClient("iLearnAPI");
+
+            if (!OperatingSystem.IsWindows())
+            {
+                return client.PostAsync("admin/cache/clear-all", content: null);
+            }
+
+            var windowsIdentity = HttpContext.User.Identities
+                .FirstOrDefault(identity => identity is WindowsIdentity && identity.IsAuthenticated) as WindowsIdentity;
+
+            if (windowsIdentity != null)
+            {
+                var accessToken = windowsIdentity.AccessToken;
+                if (!accessToken.IsInvalid)
+                {
+                    return Task.FromResult(WindowsIdentity.RunImpersonated(accessToken, () =>
+                        client.PostAsync("admin/cache/clear-all", content: null).GetAwaiter().GetResult()));
+                }
+            }
+
+            return client.PostAsync("admin/cache/clear-all", content: null);
         }
     }
 }

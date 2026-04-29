@@ -249,6 +249,7 @@
                 onExporting: (e) => handleExporting(e, 'LearningLogs_Report'),
 
                 columns: [
+                { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "studentCode", caption: "Learner ID", width: 130 },
                     { dataField: "courseCode", caption: "Course", minWidth: 120 },
                     { dataField: "courseTitle", caption: "Course Title", minWidth: 180, visible: false },

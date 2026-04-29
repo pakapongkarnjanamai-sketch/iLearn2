@@ -606,6 +606,7 @@
                     }
                 },
                 columns: [
+                { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "name", caption: "Resource File Name", dataType: "string", minWidth: 200 },
                     { dataField: "typeId", caption: "Resource Type", dataType: "number",
                         lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
@@ -830,7 +831,7 @@
             }).done(function(d) {
                 $("#opt-unused-count").text(d.summary.unusedCount);
                 $("#opt-publish-count").text(d.summary.shouldPublishCount);
-                $("#opt-reclaim-size").text(formatFileSize(d.summary.totalReclaimableSize));
+                $("#opt-reclaim-size").text(window.formatAdminFileSize(d.summary.totalReclaimableSize, '—'));
 
                 // Unused Published Grid
                 if (unusedGridInstance) {

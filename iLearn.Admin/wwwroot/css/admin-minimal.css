@@ -1676,45 +1676,6 @@ main > .container {
     gap: 8px;
 }
 
-.dashboard-report-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background: var(--surface-base);
-    color: var(--text-primary);
-    text-decoration: none !important;
-    transition: background 0.18s ease-out, border-color 0.18s ease-out;
-}
-
-.dashboard-report-link:hover {
-    background: var(--bg-light);
-    border-color: var(--border-brand);
-    color: var(--text-primary);
-}
-
-.dashboard-report-link:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-.dashboard-report-link .qa-icon {
-    flex: 0 0 32px;
-}
-
-.dashboard-report-title {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-}
-
-.dashboard-report-note {
-    margin-top: 2px;
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-}
-
 .dashboard-empty-state {
     display: flex;
     min-height: 120px;

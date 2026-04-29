@@ -148,41 +148,41 @@
         <section class="dash-panel">
             <div class="dash-panel-header">Report Hub</div>
             <div class="dash-panel-body dashboard-report-list">
-                <a href="@Url.Action("Index", "Assignments")" class="dashboard-report-link">
+                <a href="@Url.Action("Index", "Assignments")" class="quick-action">
                     <div class="qa-icon qa-icon-accent"><i class="fas fa-file-lines" aria-hidden="true"></i></div>
                     <div>
-                        <div class="dashboard-report-title">Assignment Reports</div>
-                        <div class="dashboard-report-note">Progress, completion, and learner matrix</div>
+                        <div class="u-fs-12 u-fw-semibold">Assignment Reports</div>
+                        <div class="u-fs-11 text-secondary">Progress, completion, and learner matrix</div>
                     </div>
                 </a>
-                <a href="@Url.Action("Gantt", "Assignments")" class="dashboard-report-link">
+                <a href="@Url.Action("Gantt", "Assignments")" class="quick-action">
                     <div class="qa-icon qa-icon-warning"><i class="fas fa-timeline" aria-hidden="true"></i></div>
                     <div>
-                        <div class="dashboard-report-title">Assignment Timeline</div>
-                        <div class="dashboard-report-note">Schedule and due-date workload</div>
+                        <div class="u-fs-12 u-fw-semibold">Assignment Timeline</div>
+                        <div class="u-fs-11 text-secondary">Schedule and due-date workload</div>
                     </div>
                 </a>
-                <a href="@Url.Action("Index", "Courses")" class="dashboard-report-link">
+                <a href="@Url.Action("Index", "Courses")" class="quick-action">
                     <div class="qa-icon qa-icon-success"><i class="fas fa-book-open" aria-hidden="true"></i></div>
                     <div>
-                        <div class="dashboard-report-title">Course Catalog</div>
-                        <div class="dashboard-report-note">Course status and content ownership</div>
+                        <div class="u-fs-12 u-fw-semibold">Course Catalog</div>
+                        <div class="u-fs-11 text-secondary">Course status and content ownership</div>
                     </div>
                 </a>
-                <a href="@Url.Action("Index", "Categories")" class="dashboard-report-link">
+                <a href="@Url.Action("Index", "Categories")" class="quick-action">
                     <div class="qa-icon qa-icon-purple"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
                     <div>
-                        <div class="dashboard-report-title">Category Reports</div>
-                        <div class="dashboard-report-note">Course groups by division scope</div>
+                        <div class="u-fs-12 u-fw-semibold">Category Reports</div>
+                        <div class="u-fs-11 text-secondary">Course groups by division scope</div>
                     </div>
                 </a>
                 @if (hasSuperAdminRole)
                 {
-                    <a href="@Url.Action("Index", "Students")" class="dashboard-report-link">
+                    <a href="@Url.Action("Index", "Students")" class="quick-action">
                         <div class="qa-icon qa-icon-muted"><i class="fas fa-users" aria-hidden="true"></i></div>
                         <div>
-                            <div class="dashboard-report-title">Learner Directory</div>
-                            <div class="dashboard-report-note">Employee lookup and individual reports</div>
+                            <div class="u-fs-12 u-fw-semibold">Learner Directory</div>
+                            <div class="u-fs-11 text-secondary">Employee lookup and individual reports</div>
                         </div>
                     </a>
                 }
