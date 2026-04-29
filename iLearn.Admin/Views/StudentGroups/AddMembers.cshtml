@@ -206,7 +206,7 @@
 
     $(() => {
         if (!(GROUP_ID > 0)) {
-            showToast("Student group is unavailable.", "warning");
+            showToast("Student Group is unavailable.", "warning");
             window.location.href = '@Url.Action("Index", "StudentGroups")';
             return;
         }
@@ -242,7 +242,7 @@
             renderGroupSnapshot();
             applyAssignmentStatusFilter();
         } catch (error) {
-            showToast(getApiErrorMessage(error, "Failed to load student group context."), "error");
+            showToast(getApiErrorMessage(error, "Failed to load Student Group context."), "error");
             window.location.href = GROUP_DETAIL_URL;
         }
     }
@@ -452,7 +452,7 @@
 
         const confirmed = await showAdminConfirmDialog({
             title: "Confirm Add Members",
-            messageHtml: "<b>Apply these student group updates?</b><br><small class='text-muted'>This will add the selected learners to the group and apply the assignment enrollment options shown in the summary.</small>",
+            messageHtml: "<b>Apply these Student Group updates?</b><br><small class='text-muted'>This will add the selected learners to the group and apply the assignment enrollment options shown in the summary.</small>",
             confirmButtonText: "Confirm",
             confirmType: "default",
             icon: "question"
@@ -476,7 +476,7 @@
             showToast(buildSuccessMessage(result), "success");
             window.location.href = GROUP_DETAIL_URL;
         } catch (error) {
-            showToast(getApiErrorMessage(error, "Failed to apply student group changes."), "error");
+            showToast(getApiErrorMessage(error, "Failed to apply Student Group changes."), "error");
         } finally {
             setButtonLoading("#btn-confirm", false);
         }
@@ -485,7 +485,7 @@
     function getAddMembersStepNote(step) {
         switch (step) {
             case 1:
-                return 'Select learners to add to this student group.';
+                return 'Select learners to add to this Student Group.';
             case 2:
                 return 'Set related assignment enrollment options.';
             case 3:

@@ -1,15 +1,15 @@
 ﻿@using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService AuthorizationService
 @{
-    ViewBag.Title = "Resource Library";
+    ViewBag.Title = "Content Library";
     var isSuperAdmin = (await AuthorizationService.AuthorizeAsync(User, "SuperAdminOnly")).Succeeded;
 }
 
 <!-- ── Page Header ── -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <h1 class="page-title">Resource Library</h1>
-        <div class="page-subtitle">Manage learning materials, SCORM packages, and assign them to courses.</div>
+        <h1 class="page-title">Content Library</h1>
+        <div class="page-subtitle">Manage content items, SCORM packages, and course usage.</div>
     </div>
     <div class="d-flex gap-2">
    
@@ -18,7 +18,7 @@
             </button>
     
         <button type="button" class="action-link primary" onclick="openUploadPopup()">
-            <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Upload Resource
+            <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Upload Content
         </button>
     </div>
 </div>
@@ -29,7 +29,7 @@
     <div class="row g-2" id="summary-bar">
         <div class="col-6 col-md">
             <div class="kpi-card kpi-all h-100">
-                <div class="kpi-label">Total Resources</div>
+                <div class="kpi-label">Total Content Items</div>
                 <div class="kpi-number" id="kpi-total">—</div>
             </div>
         </div>
@@ -73,7 +73,7 @@
         <div class="panel-body p-2">
             <div class="row g-3 align-items-end">
                 <div class="col-auto">
-                    <label class="filter-label">Resource Type</label>
+                    <label class="filter-label">Content Type</label>
                     <div id="filterType"></div>
                 </div>
                 <div class="col-auto u-minw-280">
@@ -119,7 +119,7 @@
                 <li>Supports import, launch, runtime commit, and resume for SCORM 1.2 and SCORM 2004 content.</li>
                 <li><code>imsmanifest.xml</code> may be at the ZIP root or inside a package folder.</li>
                 <li>Resume depends on the package writing bookmark or suspend data and calling Commit or Terminate.</li>
-                <li>Uses one launch SCO per resource; full SCORM 2004 sequencing and multi-SCO navigation are not orchestrated.</li>
+                <li>Uses one launch SCO per content item; full SCORM 2004 sequencing and multi-SCO navigation are not orchestrated.</li>
                 <li>Limits: 100 MB ZIP, 1,000 archive entries, 100 MB per file, 250 MB expanded.</li>
             </ul>
         </div>
@@ -223,7 +223,7 @@
             closeProcessingDialog();
 
             batchPublishProgressDialogController = createAdminDialogController({
-                title: 'Publishing Resources',
+                title: 'Publishing Content',
                 width: 560,
                 messageHtml: `
                     <div class="text-start dialog-body-sm">
@@ -290,7 +290,7 @@
                 $('#batchPublishLatestLog').prepend(
                     `<div style="margin-bottom:6px; color:${color};">
                         <i class="fas ${icon} me-1"></i>
-                        <strong>${latest.resourceName || progress.currentResourceName || 'Resource'}</strong>
+                        <strong>${latest.resourceName || progress.currentResourceName || 'Content item'}</strong>
                         <div class="log-item-detail">${detail}</div>
                     </div>`
                 );
@@ -342,7 +342,7 @@
 
                 if (lastProgress) {
                     const type = lastProgress.failureCount > 0 ? 'warning' : 'success';
-                    const message = `Published ${window.formatAdminCountLabel(lastProgress.successCount || 0, 'resource')}. ${window.formatAdminCountLabel(lastProgress.failureCount || 0, 'failed item', 'failed items')}.`;
+                    const message = `Published ${window.formatAdminCountLabel(lastProgress.successCount || 0, 'content item', 'content items')}. ${window.formatAdminCountLabel(lastProgress.failureCount || 0, 'failed item', 'failed items')}.`;
                     showToast(message, type, 3500);
                 } else {
                     showToast('Batch publish completed.', 'success', 3000);
@@ -523,7 +523,7 @@
 
             // ── Popup Upload ──
             uploadPopupInstance = $("#uploadPopup").dxPopup({
-                title: "Upload New Resource",
+                title: "Upload New Content",
                 width: 500, height: 'auto',
                 contentTemplate: function(contentElement) {
                     contentElement.append($("#popupContent").show());
@@ -557,15 +557,15 @@
             });
 
             // ── DataGrid ──
-            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search resources...", {
+            gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search content...", {
                 height: "100%",
                 dataSource: createResourcesDataSource(),
                 remoteOperations: true,
                 editing: {
                     mode: "popup", allowUpdating: true, allowDeleting: true, allowAdding: false, useIcons: true,
-                    texts: { confirmDeleteMessage: "Are you sure you want to delete this resource?" },
+                    texts: { confirmDeleteMessage: "Are you sure you want to delete this content item?" },
                     popup: {
-                        title: "Edit Resource",
+                        title: "Edit Content",
                         showTitle: true,
                         width: 480,
                         height: "auto",
@@ -579,18 +579,18 @@
                         items: [
                             {
                                 itemType: "group",
-                                caption: "Resource Details",
+                                caption: "Content Details",
                                 colCount: 1,
                                 items: [
                                     {
                                         dataField: "name",
-                                        label: { text: "Resource File Name" },
-                                        editorOptions: { placeholder: "Enter resource name..." },
+                                        label: { text: "Content File Name" },
+                                        editorOptions: { placeholder: "Enter content name..." },
                                         validationRules: [{ type: "required", message: "Name is required" }]
                                     },
                                     {
                                         dataField: "typeId",
-                                        label: { text: "Resource Type" },
+                                        label: { text: "Content Type" },
                                         editorType: "dxSelectBox",
                                         editorOptions: {
                                             dataSource: resourceTypes,
@@ -607,8 +607,8 @@
                 },
                 columns: [
                 { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
-                    { dataField: "name", caption: "Resource File Name", dataType: "string", minWidth: 200 },
-                    { dataField: "typeId", caption: "Resource Type", dataType: "number",
+                    { dataField: "name", caption: "Content File Name", dataType: "string", minWidth: 200 },
+                    { dataField: "typeId", caption: "Content Type", dataType: "number",
                         lookup: { dataSource: resourceTypes, valueExpr: 'id', displayExpr: 'name' },
                         alignment: "center", width: 120,
                         cellTemplate: (container, options) => window.renderAdminGridStatusCell(
@@ -693,7 +693,7 @@
 
             function setResourcePublic(id) {
                 showAdminConfirmDialog({
-                    title: 'Publish Resource?',
+                    title: 'Publish Content?',
                     text: 'Extract and publish this SCORM package?',
                     icon: 'question',
                     confirmButtonText: 'Publish',
@@ -713,7 +713,7 @@
                 const detail = sizeText ? `This will delete ${filesText} (${sizeText}) from the server.` : 'This will delete extracted files from the server.';
 
                 showAdminConfirmDialog({
-                    title: 'Unpublish Resource?',
+                    title: 'Unpublish Content?',
                     messageHtml: `<div class="u-text-secondary-60 text-start">
                                <p><strong>${escapeAdminHtml(name)}</strong></p>
                                <p>${detail}</p>
@@ -730,11 +730,11 @@
                             type: 'POST',
                             xhrFields: { withCredentials: true }
                         }).done((res) => {
-                                showToast(res.message || "Resource unpublished.", "success", 2000);
+                                showToast(res.message || "Content unpublished.", "success", 2000);
                                 refreshAll();
                             })
                             .fail((xhr) => {
-                                showToast(xhr.responseJSON?.message || "Failed to unpublish resource.", "error", 3000);
+                                showToast(xhr.responseJSON?.message || "Failed to unpublish content.", "error", 3000);
                             });
                     }
                 });
@@ -753,7 +753,7 @@
         window.openOptimizePopup = function() {
             if (!optimizePopupInstance) {
                 optimizePopupInstance = $("#optimizePopup").dxPopup({
-                    title: "Resource Optimization",
+                    title: "Content Optimization",
                     showTitle: true,
                     width: "90%",
                     maxWidth: 1100,
@@ -769,7 +769,7 @@
                                 <div class="d-flex align-items-center gap-2 mb-3 p-3 border rounded optimize-banner">
                                     <i class="fas fa-magic optimize-banner-icon"></i>
                                     <div class="u-fs-12 u-text-secondary-60">
-                                        Analyze resource usage and optimize server storage. Unpublish unused resources to free disk space, or publish draft resources that are needed by active courses.
+                                        Analyze content usage and optimize server storage. Unpublish unused content to free disk space, or publish draft content that is needed by active courses.
                                     </div>
                                 </div>
 
@@ -796,7 +796,7 @@
 
                                 <div class="mb-2 d-flex justify-content-between align-items-center">
                                     <div class="optimize-section-title u-text-danger">
-                                        <i class="fas fa-box-archive me-1"></i> Unused Published Resources
+                                        <i class="fas fa-box-archive me-1"></i> Unused Published Content
                                     </div>
                                     <button type="button" class="action-link action-link-sm" id="btnBulkUnpublish">
                                         <i class="fas fa-box-archive"></i> Unpublish Selected
@@ -806,7 +806,7 @@
 
                                 <div class="mb-2 d-flex justify-content-between align-items-center">
                                     <div class="optimize-section-title u-text-success">
-                                        <i class="fas fa-upload me-1"></i> Draft Resources Needed by Active Courses
+                                        <i class="fas fa-upload me-1"></i> Draft Content Needed by Active Courses
                                     </div>
                                     <button type="button" class="action-link primary action-link-sm" id="btnBulkPublish">
                                         <i class="fas fa-upload"></i> Publish Selected
@@ -843,7 +843,7 @@
                         dataSource: d.unusedPublished,
                         keyExpr: "id",
                         columns: [
-                            { dataField: "name", caption: "Resource Name", minWidth: 180 },
+                            { dataField: "name", caption: "Content Name", minWidth: 180 },
                             { dataField: "typeId", caption: "Type", width: 80, alignment: "center",
                                 calculateCellValue: r => r.typeId === 1 ? "Learn" : "Exam" },
                             { dataField: "fileLength", caption: "DB Size", width: 90, alignment: "center",
@@ -885,7 +885,7 @@
                         dataSource: d.shouldPublish,
                         keyExpr: "id",
                         columns: [
-                            { dataField: "name", caption: "Resource Name", minWidth: 180 },
+                            { dataField: "name", caption: "Content Name", minWidth: 180 },
                             { dataField: "typeId", caption: "Type", width: 80, alignment: "center",
                                 calculateCellValue: r => r.typeId === 1 ? "Learn" : "Exam" },
                             { dataField: "fileLength", caption: "DB Size", width: 90, alignment: "center",
@@ -909,10 +909,10 @@
                 // Wire bulk actions
                 $("#btnBulkUnpublish").off("click").on("click", function() {
                     const keys = unusedGridInstance.getSelectedRowKeys();
-                    if (keys.length === 0) { showToast("Select resources to unpublish.", "warning"); return; }
+                    if (keys.length === 0) { showToast("Select content items to unpublish.", "warning"); return; }
                     showAdminConfirmDialog({
-                        title: `Unpublish ${window.formatAdminCountLabel(keys.length, 'Resource')}?`,
-                        messageHtml: `<div class="u-text-secondary-60">This will delete extracted files from the server for <strong>${window.formatAdminCountLabel(keys.length, 'resource')}</strong>.<br>Original .zip files in the database will be kept.</div>`,
+                        title: `Unpublish ${window.formatAdminCountLabel(keys.length, 'content item', 'content items')}?`,
+                        messageHtml: `<div class="u-text-secondary-60">This will delete extracted files from the server for <strong>${window.formatAdminCountLabel(keys.length, 'content item', 'content items')}</strong>.<br>Original .zip files in the database will be kept.</div>`,
                         icon: 'warning',
                         confirmButtonText: `Unpublish ${window.formatAdminInteger(keys.length, '0')}`,
                         cancelButtonText: 'Cancel',
@@ -920,7 +920,7 @@
                     }).done(confirmed => {
                         if (confirmed) {
                             setButtonLoading("#btnBulkUnpublish", true, "Processing...");
-                            showProcessingDialog('Unpublishing Resources', 'Removing published files from the server. Please wait.');
+                            showProcessingDialog('Unpublishing Content', 'Removing published files from the server. Please wait.');
                             $.ajax({
                                 url: `${serviceUrl}/Resources/Admin/BatchUnpublish`,
                                 type: 'POST',
@@ -943,9 +943,9 @@
 
                 $("#btnBulkPublish").off("click").on("click", function() {
                     const keys = shouldPublishGridInstance.getSelectedRowKeys();
-                    if (keys.length === 0) { showToast("Select resources to publish.", "warning"); return; }
+                    if (keys.length === 0) { showToast("Select content items to publish.", "warning"); return; }
                     showAdminConfirmDialog({
-                        title: `Publish ${window.formatAdminCountLabel(keys.length, 'Resource')}?`,
+                        title: `Publish ${window.formatAdminCountLabel(keys.length, 'content item', 'content items')}?`,
                         messageHtml: `<div class="u-text-secondary-60">This will extract and publish <strong>${window.formatAdminCountLabel(keys.length, 'SCORM package')}</strong> to the server.</div>`,
                         icon: 'question',
                         confirmButtonText: `Publish ${window.formatAdminInteger(keys.length, '0')}`,
@@ -962,11 +962,11 @@
 
                 $("#btnUnpublishAllPublished").off("click").on("click", function() {
                     showAdminConfirmDialog({
-                        title: 'Unpublish all published resources?',
+                        title: 'Unpublish all published content?',
                         messageHtml: `<div class="u-text-secondary-60 text-start">
                                    <p>This will remove all published SCORM folders/files from the server.</p>
-                                   <p>All affected records in <strong>Resources</strong> will be reverted to draft status.</p>
-                                   <p class="u-text-danger dialog-body-sm">This action impacts every published resource.</p>
+                                   <p>All affected content records will be reverted to draft status.</p>
+                                   <p class="u-text-danger dialog-body-sm">This action impacts every published content item.</p>
                                </div>`,
                         icon: 'warning',
                         confirmButtonText: 'Unpublish All',
@@ -976,18 +976,18 @@
                         if (!confirmed) return;
 
                         setButtonLoading("#btnUnpublishAllPublished", true, "Processing...");
-                        showProcessingDialog('Unpublishing All Resources', 'Removing all published files and reverting resources to draft.');
+                        showProcessingDialog('Unpublishing All Content', 'Removing all published files and reverting content to draft.');
 
                         $.ajax({
                             url: `${serviceUrl}/Resources/Admin/BulkDeletePublished?confirmDelete=true`,
                             type: 'DELETE',
                             xhrFields: { withCredentials: true }
                         }).done(function(res) {
-                            showToast(res.summary || 'All published resources were unpublished.', 'success', 3500);
+                            showToast(res.summary || 'All published content was unpublished.', 'success', 3500);
                             loadOptimizeData();
                             refreshAll();
                         }).fail(function(xhr) {
-                            showToast(xhr.responseJSON?.message || 'Failed to unpublish all published resources.', 'error', 4000);
+                            showToast(xhr.responseJSON?.message || 'Failed to unpublish all published content.', 'error', 4000);
                         }).always(function() {
                             closeProcessingDialog();
                             setButtonLoading("#btnUnpublishAllPublished", false);

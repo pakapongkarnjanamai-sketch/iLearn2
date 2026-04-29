@@ -223,7 +223,7 @@
                     type: "buttons", caption: "Actions", width: 90,
                     alignment: "center", fixed: true, fixedPosition: "right",
                     buttons: [{
-                        hint: "Remove from student group", icon: "remove",
+                        hint: "Remove from Student Group", icon: "remove",
                         onClick: e => confirmRemoveMember(e.row.data)
                     }]
                 }
@@ -312,8 +312,8 @@
         setActionPanelState(!HAS_VALID_GROUP_ID);
 
         if (!HAS_VALID_GROUP_ID) {
-            $("#page-subtitle").text("Student group is unavailable.");
-            showToast("Student group is unavailable.", "warning");
+            $("#page-subtitle").text("Student Group is unavailable.");
+            showToast("Student Group is unavailable.", "warning");
             return;
         }
 
@@ -343,7 +343,7 @@
         window.confirmRemoveMember = function (data) {
             showStudentGroupConfirmDialog({
                 title: "Confirm Remove",
-                messageHtml: `Remove <b>${data.studentName || data.studentCode}</b> from this student group?`,
+                messageHtml: `Remove <b>${data.studentName || data.studentCode}</b> from this Student Group?`,
                 confirmButtonText: "Remove",
                 confirmType: "danger",
                 icon: "warning"
@@ -370,8 +370,8 @@
         $("#btn-delete-group").click(function () {
             showStudentGroupConfirmDialog({
                 title: "Confirm Delete",
-                messageHtml: `<b>Delete this student group?</b><br>
-                 <small class="text-muted">All members in this student group will also be removed.</small>`,
+                messageHtml: `<b>Delete this Student Group?</b><br>
+                 <small class="text-muted">All members in this Student Group will also be removed.</small>`,
                 confirmButtonText: "Delete",
                 confirmType: "danger",
                 icon: "warning"
@@ -394,7 +394,7 @@
                         xhrFields: { withCredentials: true }
                     });
 
-                    showToast("Student group deleted.", "success");
+                    showToast("Student Group deleted.", "success");
                     window.location.href = INDEX_URL;
                 } catch (err) {
                     setActionPanelState(false);
@@ -402,7 +402,7 @@
                         iconSelector: "#delete-group-icon",
                         textSelector: "#delete-group-text"
                     });
-                    showToast(getApiErrorMessage(err, "Failed to delete student group."), "error");
+                    showToast(getApiErrorMessage(err, "Failed to delete Student Group."), "error");
                 }
             });
         });
@@ -508,7 +508,7 @@
 
     function openEditGroupDialog() {
         if (!currentGroup) {
-            showToast("Student group details are still loading.", "warning", 2500);
+            showToast("Student Group details are still loading.", "warning", 2500);
             return;
         }
 
@@ -625,12 +625,12 @@
                             ...payload
                         };
                         dialog.hide();
-                        showToast("Student group updated successfully.", "success");
+                        showToast("Student Group updated successfully.", "success");
                         await loadGroupDetail();
                     } catch (error) {
                         confirmButton.option({ text: "Save Changes", disabled: false });
                         cancelButton.option("disabled", false);
-                        showToast(getApiErrorMessage(error, "Failed to save student group."), "error");
+                        showToast(getApiErrorMessage(error, "Failed to save Student Group."), "error");
                     }
                 }
             }).dxButton("instance");
@@ -639,7 +639,7 @@
 
     window.openChangeCategoryDialog = function() {
         if (!currentGroup) {
-            showToast("Student group details are still loading.", "warning", 2500);
+            showToast("Student Group details are still loading.", "warning", 2500);
             return;
         }
 

@@ -6,7 +6,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <h1 class="page-title">Enrollments</h1>
-        <div class="page-subtitle">Track employee enrollments, learning progress, and completion status.</div>
+        <div class="page-subtitle">Track learner enrollments, learning progress, and completion status.</div>
     </div>
 </div>
 
@@ -34,7 +34,7 @@
         </div>
         <div class="col-6 col-md">
             <div class="kpi-card kpi-warning h-100">
-                <div class="kpi-label">Enrolled</div>
+                <div class="kpi-label">Not Started</div>
                 <div class="kpi-number" id="kpi-enrolled">—</div>
             </div>
         </div>
@@ -84,7 +84,7 @@
             { id: 'all', name: 'All' },
             { id: 'completed', name: 'Completed' },
             { id: 'inprogress', name: 'In Progress' },
-            { id: 'enrolled', name: 'Enrolled' }
+            { id: 'enrolled', name: 'Not Started' }
         ];
         const summaryKpiIds = ['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-enrolled', 'kpi-avgprogress'];
         const summaryStatsCacheTtlMs = 30000;
@@ -94,7 +94,7 @@
         const enrollmentStatusToneMap = {
             Completed: "success",
             "In Progress": "primary",
-            Enrolled: "default"
+            "Not Started": "default"
         };
 
         let filterCourseId = null;
@@ -335,7 +335,7 @@
                         calculateCellValue: function(r) {
                             if (r.isCompleted) return "Completed";
                             if (r.progress > 0) return "In Progress";
-                            return "Enrolled";
+                            return "Not Started";
                         },
                         cellTemplate: (container, options) => window.renderAdminGridStatusCell(
                             container,
@@ -372,7 +372,7 @@
                             return e.value ? window.formatAdminDateTime(e.value, "—") : "—";
                         }
                     },
-                    { dataField: "createdAt", caption: "Enrolled On", dataType: "datetime", format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 160, allowEditing: false },
+                    { dataField: "createdAt", caption: "Assigned On", dataType: "datetime", format: ADMIN_DATETIME_DISPLAY_FORMAT, width: 160, allowEditing: false },
                     {
                         type: "buttons", caption: "Manage", width: 130, alignment: "center",
                         buttons: [

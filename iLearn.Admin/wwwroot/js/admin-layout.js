@@ -28,11 +28,12 @@
     const noDataMessages = {
         courses: 'No courses found.',
         learners: 'No learners found.',
-        students: 'No students found.',
-        resources: 'No resources found.',
+        students: 'No learners found.',
+        'student groups': 'No Student Groups found.',
+        resources: 'No content items found.',
         content: 'No content added yet. Click buttons above to add.',
-        unusedPublishedResources: 'No unused published resources found.',
-        draftResourcesNeeded: 'No draft resources needed by active courses.'
+        unusedPublishedResources: 'No unused published content found.',
+        draftResourcesNeeded: 'No draft content needed by active courses.'
     };
     const toastIconMap = {
         success: 'fa-circle-check',

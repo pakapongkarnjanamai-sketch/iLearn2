@@ -195,7 +195,7 @@
 
     $(() => {
         if (!(GROUP_ID > 0)) {
-            showToast("Student group is unavailable.", "warning");
+            showToast("Student Group is unavailable.", "warning");
             window.location.href = '@Url.Action("Index", "StudentGroups")';
             return;
         }
@@ -233,7 +233,7 @@
             applyAssignmentStatusFilter();
             updateSelectionSummary();
         } catch (error) {
-            showToast(getApiErrorMessage(error, "Failed to load student group context."), "error");
+            showToast(getApiErrorMessage(error, "Failed to load Student Group context."), "error");
             window.location.href = GROUP_DETAIL_URL;
         }
     }
@@ -528,7 +528,7 @@
 
         const confirmed = await showAdminConfirmDialog({
             title: "Confirm Remove Members",
-            messageHtml: "<b>Apply these student group changes?</b><br><small class='text-muted'>Members will be removed from this group. Selected assignment links will also be deleted. This cannot be undone.</small>",
+            messageHtml: "<b>Apply these Student Group changes?</b><br><small class='text-muted'>Members will be removed from this group. Selected assignment links will also be deleted. This cannot be undone.</small>",
             confirmButtonText: "Remove",
             confirmType: "danger",
             icon: "warning"
@@ -552,7 +552,7 @@
             showToast(buildSuccessMessage(result), "success");
             window.location.href = GROUP_DETAIL_URL;
         } catch (error) {
-            showToast(getApiErrorMessage(error, "Failed to apply student group changes."), "error");
+            showToast(getApiErrorMessage(error, "Failed to apply Student Group changes."), "error");
         } finally {
             setButtonLoading("#btn-confirm", false);
         }
@@ -561,7 +561,7 @@
     function getRemoveMembersStepNote(step) {
         switch (step) {
             case 1:
-                return 'Select members to remove from this student group.';
+                return 'Select members to remove from this Student Group.';
             case 2:
                 return 'Optionally unlink them from active or upcoming assignments.';
             case 3:

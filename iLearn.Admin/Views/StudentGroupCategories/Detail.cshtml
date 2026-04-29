@@ -209,7 +209,7 @@
 
     function renderGroups(items) {
         if (!items.length) {
-            $("#groups-list").html('<div class="text-muted small">No student groups in this category.</div>');
+            $("#groups-list").html('<div class="text-muted small">No Student Groups in this category.</div>');
             return;
         }
         const html = items.map(g =>
@@ -421,7 +421,7 @@
     async function deleteCategory() {
         const confirmed = await showAdminConfirmDialog({
             title: "Delete Category",
-            messageHtml: "<b>Delete this category?</b><br><small class='text-muted'>This only works if it has no sub-categories or student groups.</small>",
+            messageHtml: "<b>Delete this category?</b><br><small class='text-muted'>This only works if it has no sub-categories or Student Groups.</small>",
             confirmButtonText: "Delete",
             confirmType: "danger",
             icon: "warning"

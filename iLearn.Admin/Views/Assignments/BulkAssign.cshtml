@@ -716,7 +716,7 @@
                     : "0 group");
                 const $clearBtn = $("#group-tray-clear");
                 if (!selectedGroupId) {
-                    $("#group-tray-summary").html('<span class="admin-selection-tray-empty">No student group selected yet.</span>');
+                    $("#group-tray-summary").html('<span class="admin-selection-tray-empty">No Student Group selected yet.</span>');
                     $clearBtn.addClass("is-disabled").prop("disabled", true);
                     updateTargetSnapshot();
                     return;
@@ -732,7 +732,7 @@
 
             function updateTargetModeNote() {
                 $("#target-selection-note").text(currentTargetMode === 'group'
-                    ? "Choose one student group to assign the selected courses."
+                    ? "Choose one Student Group to assign the selected courses."
                     : "Select one or more learners for this assignment batch.");
                 updateTargetSnapshot();
             }
@@ -753,7 +753,7 @@
                     ? (selectedGroupName || 'No group selected')
                     : (targetCount > 0 ? `${window.formatAdminCountLabel(targetCount, 'learner')} selected` : 'No target selected');
 
-                $("#snapshot-target-mode").text(isGroupMode ? 'Student group' : 'Individual learners');
+                $("#snapshot-target-mode").text(isGroupMode ? 'Student Group' : 'Individual learners');
                 $("#snapshot-target-count").text(window.formatAdminCountLabel(targetCount, isGroupMode ? 'member' : 'learner'));
                 $("#snapshot-target-name").text(targetName);
             }
@@ -841,7 +841,7 @@
                     }
 
                     if (currentTargetMode === 'group' && !selectedGroupId) {
-                        showToast("Please select a student group.", "error");
+                        showToast("Please select a Student Group.", "error");
                         return;
                     }
 
@@ -867,7 +867,7 @@
                 }
 
                 if (currentTargetMode === 'group' && !selectedGroupId) {
-                    showToast("Please select a student group.", "error");
+                    showToast("Please select a Student Group.", "error");
                     return;
                 }
 
