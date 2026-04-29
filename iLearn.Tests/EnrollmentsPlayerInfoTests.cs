@@ -200,6 +200,58 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task GetPlayerInfoByCourse_UnreadyResource_ReturnsNotFound()
+        {
+            var controller = CreateController(new FakeScormRuntimeStateService([]),
+                enrollments:
+                [
+                    new Enrollment
+                    {
+                        Id = 10,
+                        CourseId = 5,
+                        StudentCode = "490222",
+                        EnrolledCourseVersion = 20,
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
+                    }
+                ],
+                versions:
+                [
+                    new CourseVersion
+                    {
+                        Id = 20,
+                        CourseId = 5,
+                        VersionNumber = 2,
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
+                        CourseResources =
+                        [
+                            new CourseResource
+                            {
+                                Id = 1,
+                                ResourceId = 100,
+                                Resource = new Resource
+                                {
+                                    Id = 100,
+                                    Name = "Draft SCORM",
+                                    TypeId = 1,
+                                    IsActive = false,
+                                    URL = null,
+                                    ResourceHref = null
+                                }
+                            }
+                        ]
+                    }
+                ],
+                logs: []);
+
+            var result = await controller.GetPlayerInfoByCourse(5);
+
+            var notFound = Assert.IsType<NotFoundObjectResult>(result);
+            var response = Assert.IsType<ApiResponse<string>>(notFound.Value);
+            Assert.False(response.Success);
+            Assert.Equal("Content is not ready for learning.", response.Message);
+        }
+
+        [Fact]
         public async Task GetPlayerInfoByCourse_SeparatesCourseCompletionProgressFromResourceActivityProgress()
         {
             var runtimeStateService = new FakeScormRuntimeStateService(

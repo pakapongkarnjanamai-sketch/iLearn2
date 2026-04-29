@@ -791,9 +791,11 @@ else
             setButtonLoading(submitButtonSelector, true, IS_EDIT ? "Saving..." : "Creating...");
             loadPanel.option("message", "Saving course details...");
             loadPanel.show();
+            let savedCourseId = null;
 
             try {
                 const courseId = await saveCourse();
+                savedCourseId = courseId;
 
                 loadPanel.option("message", "Preparing resources...");
                 const activeVersionId = await getActiveVersionId(courseId);
@@ -807,7 +809,10 @@ else
                 }, 1000);
             } catch (err) {
                 console.error(err);
-                showToast(`Error: ${window.getApiErrorMessage(err, "Request failed")}`, "error", 4000);
+                const fallbackMessage = !IS_EDIT && savedCourseId
+                    ? "Course was saved as a draft, but content is not ready yet. Review the upload error and try again."
+                    : "Request failed";
+                showToast(`Error: ${window.getApiErrorMessage(err, fallbackMessage)}`, "error", 5000);
             } finally {
                 loadPanel.hide();
                 setButtonLoading(submitButtonSelector, false);

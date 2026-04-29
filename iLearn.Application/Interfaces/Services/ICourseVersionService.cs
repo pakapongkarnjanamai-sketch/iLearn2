@@ -11,6 +11,7 @@ namespace iLearn.Application.Interfaces.Services
         Task<CreateCourseVersionDto> GetVersionByIdAsync(int versionId);
         Task<IEnumerable<CourseVersionDto>> GetCourseVersionsAsync(int courseId);
         Task<CourseVersionLearnerImpactDto> GetVersionLearnerImpactAsync(int courseId);
+        Task<CourseVersionReadinessDto> GetVersionReadinessAsync(int versionId);
 
         // Create Operations
         Task<CourseVersionDto> CreateVersionAsync(int courseId, CreateCourseVersionDto model, List<IFormFile> files);

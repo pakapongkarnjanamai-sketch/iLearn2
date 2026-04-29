@@ -84,12 +84,113 @@ namespace iLearn.Tests
             Assert.Equal(100, notAssigned.EnrolledCourseVersion);
         }
 
-        private static CourseVersionPolicyHarness CreatePolicyHarness(bool includeInactiveVersion = false)
+        [Fact]
+        public async Task CreateVersionAsync_ActiveVersionWithUnreadyResource_RejectsBeforeMovingLearners()
+        {
+            var harness = CreatePolicyHarness(resourceReady: false);
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Service.CreateVersionAsync(10, new CreateCourseVersionDto
+            {
+                Note = "Version 2",
+                IsActive = true,
+                LearnerPolicy = CourseVersionLearnerPolicy.MoveNotStarted,
+                ResourceIds = [500],
+                ResourceTypes = [1]
+            }, []));
+
+            Assert.Contains("not ready", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(harness.Versions.Items.Single(v => v.Id == 100).IsActive);
+            Assert.DoesNotContain(harness.Versions.Items, v => v.Id != 100 && v.IsActive);
+            Assert.Equal(100, harness.Enrollments.Items.Single(e => e.Id == 1).EnrolledCourseVersion);
+        }
+
+        [Fact]
+        public async Task SetActiveVersionAsync_UnreadyResource_RejectsAndKeepsExistingActiveVersion()
+        {
+            var harness = CreatePolicyHarness(includeInactiveVersion: true, resourceReady: false);
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                harness.Service.SetActiveVersionAsync(10, 101, CourseVersionLearnerPolicy.ResetInProgress));
+
+            Assert.Contains("not ready", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(harness.Versions.Items.Single(v => v.Id == 100).IsActive);
+            Assert.False(harness.Versions.Items.Single(v => v.Id == 101).IsActive);
+            Assert.Equal(100, harness.Enrollments.Items.Single(e => e.Id == 1).EnrolledCourseVersion);
+        }
+
+        [Fact]
+        public async Task CreateVersionAsync_ActiveVersionWithStoredUnreadyResource_PreparesResourceAndActivates()
+        {
+            var harness = CreatePolicyHarness(resourceReady: false, resourceHasStoredPackage: true);
+
+            var version = await harness.Service.CreateVersionAsync(10, new CreateCourseVersionDto
+            {
+                Note = "Version 2",
+                IsActive = true,
+                LearnerPolicy = CourseVersionLearnerPolicy.NewLearnersOnly,
+                ResourceIds = [500],
+                ResourceTypes = [1]
+            }, []);
+
+            var resource = harness.Resources.Items.Single(r => r.Id == 500);
+
+            Assert.True(version.IsActive);
+            Assert.False(harness.Versions.Items.Single(v => v.Id == 100).IsActive);
+            Assert.True(resource.IsActive);
+            Assert.Equal("launch/index.html", resource.ResourceHref);
+            Assert.Equal("SCORM 1.2", resource.SchemaVersion);
+            Assert.False(string.IsNullOrWhiteSpace(resource.URL));
+            Assert.Equal(1, harness.ScormService.ExtractCalls);
+        }
+
+        [Fact]
+        public async Task SetActiveVersionAsync_UnreadyStoredResource_PreparesResourceAndActivatesVersion()
+        {
+            var harness = CreatePolicyHarness(includeInactiveVersion: true, resourceReady: false, resourceHasStoredPackage: true);
+
+            await harness.Service.SetActiveVersionAsync(10, 101, CourseVersionLearnerPolicy.NewLearnersOnly);
+
+            var resource = harness.Resources.Items.Single(r => r.Id == 500);
+
+            Assert.False(harness.Versions.Items.Single(v => v.Id == 100).IsActive);
+            Assert.True(harness.Versions.Items.Single(v => v.Id == 101).IsActive);
+            Assert.True(resource.IsActive);
+            Assert.Equal("launch/index.html", resource.ResourceHref);
+            Assert.Equal("SCORM 1.2", resource.SchemaVersion);
+            Assert.False(string.IsNullOrWhiteSpace(resource.URL));
+            Assert.Equal(1, harness.ScormService.ExtractCalls);
+        }
+
+        private static CourseVersionPolicyHarness CreatePolicyHarness(
+            bool includeInactiveVersion = false,
+            bool resourceReady = true,
+            bool resourceHasStoredPackage = false)
         {
             var course = new Course { Id = 10, Code = "C-10", Title = "Course 10", IsActive = true };
             var oldVersion = new CourseVersion { Id = 100, CourseId = 10, VersionNumber = 1, IsActive = true };
             var inactiveVersion = new CourseVersion { Id = 101, CourseId = 10, VersionNumber = 2, IsActive = false };
-            var resource = new Resource { Id = 500, Name = "learn.zip", TypeId = 1, IsActive = true };
+            var fileStorage = resourceHasStoredPackage
+                ? new FileStorage
+                {
+                    Id = 800,
+                    Name = "learn.zip",
+                    ContentType = "application/zip",
+                    Length = 3,
+                    Data = [1, 2, 3]
+                }
+                : null;
+            var resource = new Resource
+            {
+                Id = 500,
+                Name = "learn.zip",
+                TypeId = 1,
+                IsActive = resourceReady,
+                URL = resourceReady ? "pkg-500" : null,
+                ResourceHref = resourceReady ? "launch/index.html" : null,
+                SchemaVersion = resourceReady ? "SCORM 1.2" : null,
+                FileStorageId = fileStorage?.Id,
+                FileStorage = fileStorage
+            };
             var inProgressAssignment = new Assignment
             {
                 Id = 700,
@@ -139,7 +240,7 @@ namespace iLearn.Tests
             var courseResourceRepo = new InMemoryGenericRepository<CourseResource>(
                 includeInactiveVersion ? [courseResource] : [], Now);
             var resourceRepo = new InMemoryGenericRepository<Resource>([resource], Now);
-            var fileStorageRepo = new InMemoryGenericRepository<FileStorage>([], Now);
+            var fileStorageRepo = new InMemoryGenericRepository<FileStorage>(fileStorage is null ? [] : [fileStorage], Now);
             var enrollmentRepo = new InMemoryGenericRepository<Enrollment>(enrollments, Now);
             var enrollmentAssignmentRepo = new InMemoryGenericRepository<EnrollmentAssignment>(enrollmentAssignments, Now);
             var learningLogRepo = new InMemoryGenericRepository<LearningLog>(
@@ -157,6 +258,7 @@ namespace iLearn.Tests
                 }
             ], Now);
             var unitOfWork = new FakeUnitOfWork();
+            var scormService = new FakeScormService();
 
             var service = new CourseVersionService(
                 versionRepo,
@@ -167,13 +269,13 @@ namespace iLearn.Tests
                 enrollmentAssignmentRepo,
                 learningLogRepo,
                 new InMemoryCourseRepository([course], Now),
-                new FakeScormService(),
+                scormService,
                 new FakeAdminActivityService(),
                 new FakeCurrentUserService(),
                 new FakeDateTime(Now),
                 unitOfWork);
 
-            return new CourseVersionPolicyHarness(service, enrollmentRepo);
+            return new CourseVersionPolicyHarness(service, versionRepo, resourceRepo, enrollmentRepo, scormService);
         }
 
         private static EnrollmentAssignment CreateLink(int enrollmentId, Enrollment enrollment, Assignment assignment)
@@ -192,12 +294,25 @@ namespace iLearn.Tests
 
         private sealed record CourseVersionPolicyHarness(
             CourseVersionService Service,
-            InMemoryGenericRepository<Enrollment> Enrollments);
+            InMemoryGenericRepository<CourseVersion> Versions,
+            InMemoryGenericRepository<Resource> Resources,
+            InMemoryGenericRepository<Enrollment> Enrollments,
+            FakeScormService ScormService);
 
         private sealed class FakeScormService : IScormService
         {
-            public Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName) =>
-                Task.FromResult(new ScormManifestDto { FolderName = folderName });
+            public int ExtractCalls { get; private set; }
+
+            public Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName)
+            {
+                ExtractCalls++;
+                return Task.FromResult(new ScormManifestDto
+                {
+                    FolderName = folderName,
+                    ResourceHref = "launch/index.html",
+                    SchemaVersion = "SCORM 1.2"
+                });
+            }
 
             public void DeleteScormFolder(string folderName)
             {

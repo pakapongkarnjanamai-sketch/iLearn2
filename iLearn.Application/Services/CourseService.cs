@@ -1,4 +1,5 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -158,7 +159,7 @@ namespace iLearn.Application.Services
                 CategoryId = model.CategoryId,
                 Description = model.Description,
                 CourseTypeId = model.CourseType,
-                IsActive = true
+                IsActive = false
             };
 
             await _courseRepo.AddAsync(course);
@@ -167,8 +168,8 @@ namespace iLearn.Application.Services
             {
                 CourseId = course.Id,
                 VersionNumber = 1,
-                Note = "Initial Create",
-                IsActive = true
+                Note = "Draft (Pending Content)",
+                IsActive = false
             };
             await _courseVersionRepository.AddAsync(courseVersion);
 
@@ -399,23 +400,15 @@ namespace iLearn.Application.Services
                 if (activeVersion == null)
                     throw new InvalidOperationException("Cannot activate the course because no active version exists.");
 
-                // 2. ตรวจสอบว่าเวอร์ชันที่ใช้งานอยู่ มีเนื้อหาบทเรียน (CourseResource) หรือไม่
-                var courseResources = await _courseResourceRepository.GetAsync(
-                    filter: cr => cr.CourseVersionId == activeVersion.Id,
-                    includeProperties: "Resource"
-                );
-
-                if (!courseResources.Any())
-                    throw new InvalidOperationException("Cannot activate the course because the current version has no learning resources.");
-
-                // 3. ตรวจสอบความสมบูรณ์ของไฟล์/ข้อมูลใน Resource
-                foreach (var cr in courseResources)
+                var readiness = await _versionService.GetVersionReadinessAsync(activeVersion.Id);
+                if (!readiness.IsReady)
                 {
-                    if (cr.Resource == null)
-                        throw new InvalidOperationException("Cannot activate the course because a referenced resource is missing or invalid.");
+                    var issues = readiness.Issues.Select(issue => new ResourceReadinessIssue(
+                        issue.ResourceId,
+                        issue.ResourceName,
+                        issue.Reason)).ToList();
 
-                    if (!cr.Resource.FileStorageId.HasValue && string.IsNullOrWhiteSpace(cr.Resource.URL))
-                        throw new InvalidOperationException($"Cannot activate the course because resource '{cr.Resource.Name}' is incomplete (no file or URL attached).");
+                    throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(readiness.ResourceCount, issues));
                 }
             }
             else

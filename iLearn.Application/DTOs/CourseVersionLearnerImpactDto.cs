@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace iLearn.Application.DTOs
 {
     public enum CourseVersionLearnerPolicy
@@ -9,6 +11,7 @@ namespace iLearn.Application.DTOs
 
     public class CourseVersionLearnerPolicyDto
     {
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public CourseVersionLearnerPolicy Policy { get; set; } = CourseVersionLearnerPolicy.NewLearnersOnly;
     }
 

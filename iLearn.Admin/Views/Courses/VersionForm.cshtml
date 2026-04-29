@@ -458,6 +458,12 @@
                         }
                     },
                     {
+                        caption: "Status", width: 150, alignment: "center", allowEditing: false,
+                        cellTemplate: function(container, options) {
+                            renderResourceReadinessCell(container, options.data);
+                        }
+                    },
+                    {
                         type: "buttons", width: 80, alignment: "center", allowEditing: false,
                         buttons: [{
                             icon: "trash", hint: "Remove from list",
@@ -508,6 +514,12 @@
                                     const isLearningType = options.value === 1;
                                     const text = isLearningType ? "Learn" : "Exam";
                                     window.renderAdminGridStatusCell(container, text, isLearningType ? 'primary' : 'warning', { showDot: false });
+                                }
+                            },
+                            {
+                                caption: "Status", width: 130, alignment: "center",
+                                cellTemplate: function(container, options) {
+                                    renderResourceReadinessCell(container, options.data);
                                 }
                             },
                             {
@@ -757,6 +769,12 @@
                     window.location.href = VERSION_CANCEL_URL;
                 }, 1200);
             } catch (xhr) {
+                const readinessMessage = getVersionReadinessErrorMessage(xhr);
+                if (readinessMessage) {
+                    showVersionReadinessServerDialog(readinessMessage);
+                    return;
+                }
+
                 showToast(`Error: ${window.getApiErrorMessage(xhr, "Failed to save")}`, "error", 4000);
             } finally {
                 if (shouldResetSubmitting) {
@@ -826,7 +844,9 @@
                 realId: resource.id,
                 name: resource.name,
                 typeId: resource.typeId,
-                isNew: false
+                isNew: false,
+                isActive: !!resource.isActive,
+                url: resource.url || null
             };
         }
 
@@ -851,7 +871,9 @@
                     unifiedResources.push(createExistingResource({
                         id: resourceId,
                         name: resource.name,
-                        typeId: resource.typeId
+                        typeId: resource.typeId,
+                        isActive: resource.isActive,
+                        url: resource.url
                     }));
                 }
             });
@@ -941,6 +963,11 @@
             versionLearnerImpact = null;
             versionLearnerImpactLoaded = false;
             learnerPolicySelection = VERSION_LEARNER_POLICY.NewLearnersOnly;
+        }
+
+        function willSaveVersionAsActive() {
+            const formData = formWidget ? (formWidget.option("formData") || {}) : {};
+            return !!formData.isActive;
         }
 
         function willActivateVersionOnSave() {
@@ -1048,6 +1075,153 @@
             });
         }
 
+        function getResourceReadinessState(resource) {
+            if (resource.isNew) {
+                return {
+                    tone: "primary",
+                    text: "Queued Upload",
+                    detail: "Will be processed when you save this version."
+                };
+            }
+
+            if (!resource.isActive) {
+                return {
+                    tone: "danger",
+                    text: "Not Ready",
+                    detail: "resource is not published"
+                };
+            }
+
+            if (!resource.url) {
+                return {
+                    tone: "warning",
+                    text: "Not Ready",
+                    detail: "launch URL is missing"
+                };
+            }
+
+            return {
+                tone: "success",
+                text: "Published",
+                detail: "Ready to use in an active version."
+            };
+        }
+
+        function renderResourceReadinessCell(container, resource) {
+            const state = getResourceReadinessState(resource || {});
+            window.renderAdminGridStatusCell(container, state.text, state.tone, { showDot: false });
+        }
+
+        function getExistingResourceReadinessIssues() {
+            return unifiedResources
+                .filter(function(resource) {
+                    return !resource.isNew;
+                })
+                .map(function(resource) {
+                    const state = getResourceReadinessState(resource);
+                    if (state.text === "Published") {
+                        return null;
+                    }
+
+                    return {
+                        name: resource.name || "Unnamed resource",
+                        reason: state.detail
+                    };
+                })
+                .filter(function(issue) {
+                    return issue !== null;
+                });
+        }
+
+        function validateActiveVersionResourceReadiness() {
+            if (!willSaveVersionAsActive()) {
+                return true;
+            }
+
+            const issues = getExistingResourceReadinessIssues();
+            if (!issues.length) {
+                return true;
+            }
+
+            showVersionReadinessDialog(issues);
+            return false;
+        }
+
+        function getVersionReadinessErrorMessage(xhr) {
+            const message = window.getApiErrorMessage(xhr, "") || "";
+            return /cannot activate this course version|learning resources are not ready|resource is not published|launch url is missing/i.test(message)
+                ? message
+                : "";
+        }
+
+        function showVersionReadinessDialog(issues) {
+            const issueItems = issues.map(function(issue) {
+                return `<li><strong>${window.escapeHtml(issue.name)}</strong> <span class="text-secondary">${window.escapeHtml(issue.reason)}</span></li>`;
+            }).join('');
+
+            const dialog = DevExpress.ui.dialog.custom({
+                title: "Version Not Ready",
+                messageHtml: `
+                    <div class="text-start">
+                        <div class="u-fs-12 text-secondary mb-2">This version cannot be saved as active until these linked resources are ready.</div>
+                        <ul class="ps-3 mb-3 u-fs-11">${issueItems}</ul>
+                        <div class="u-fs-11 text-secondary">Replace or remove the affected resources, or keep this version inactive until the resources are published.</div>
+                    </div>`,
+                buttons: [
+                    {
+                        text: "Keep Version Inactive",
+                        type: "default",
+                        onClick: function() {
+                            if (formWidget) {
+                                formWidget.updateData("isActive", false);
+                            }
+                            return true;
+                        }
+                    },
+                    {
+                        text: "Keep Editing",
+                        onClick: function() {
+                            return false;
+                        }
+                    }
+                ]
+            });
+
+            return dialog.show();
+        }
+
+        function showVersionReadinessServerDialog(message) {
+            const dialog = DevExpress.ui.dialog.custom({
+                title: "Version Not Ready",
+                messageHtml: `
+                    <div class="text-start">
+                        <div class="u-fs-12 text-secondary mb-2">The server could not make all linked resources ready for this active save.</div>
+                        <div class="u-fs-11 mb-3">${window.escapeHtml(message)}</div>
+                        <div class="u-fs-11 text-secondary">Publish or replace the affected content, or keep this version inactive until the content is ready.</div>
+                    </div>`,
+                buttons: [
+                    {
+                        text: "Keep Version Inactive",
+                        type: "default",
+                        onClick: function() {
+                            if (formWidget) {
+                                formWidget.updateData("isActive", false);
+                            }
+                            return true;
+                        }
+                    },
+                    {
+                        text: "Keep Editing",
+                        onClick: function() {
+                            return false;
+                        }
+                    }
+                ]
+            });
+
+            return dialog.show();
+        }
+
         function renderVersionReview() {
             const existingCount = unifiedResources.filter(function(resource) {
                 return !resource.isNew;
@@ -1074,6 +1248,7 @@
             const rows = unifiedResources.map(function(resource, index) {
                 const sourceText = resource.isNew ? "New upload" : "Resource library";
                 const sourceBadge = resource.isNew ? "pill-primary" : "pill-default";
+                const readinessState = getResourceReadinessState(resource);
 
                 return `
                     <tr>
@@ -1083,7 +1258,7 @@
                         </td>
                         <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
                         <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>
-                        <td>${resource.isNew ? "Queued for upload" : "Linked from library"}</td>
+                        <td><span class="tag-pill pill-${window.escapeHtml(readinessState.tone)}">${window.escapeHtml(readinessState.text)}</span></td>
                     </tr>`;
             }).join('');
 

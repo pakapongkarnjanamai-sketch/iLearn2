@@ -66,13 +66,24 @@ namespace iLearn.API.Controllers.Base
                 .Include(c => c.Category).ThenInclude(cat => cat.Division)
                 .Include(c => c.CourseType)
                 .Include(c => c.Versions)
-                .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive));
+                .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive
+                    && v.CourseResources.Any()
+                    && v.CourseResources.All(cr => cr.Resource != null
+                        && cr.Resource.IsActive
+                        && cr.Resource.URL != null
+                        && cr.Resource.URL != ""
+                        && (cr.Resource.ResourceHref != null && cr.Resource.ResourceHref != ""
+                            || cr.Resource.URL.StartsWith("http://")
+                            || cr.Resource.URL.StartsWith("https://")
+                            || cr.Resource.URL.StartsWith("/")
+                            || cr.Resource.URL.Contains("/")
+                            || cr.Resource.URL.Contains(".")))));
 
             // -- Data Isolation --
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            return Ok(await DataSourceLoader.LoadAsync(query, loadOptions));
         }
     }
 }

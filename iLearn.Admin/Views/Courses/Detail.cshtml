@@ -230,6 +230,7 @@
         let categoryOptions = [];
         let courseTypeOptions = [];
         let activeVersionRequestId = null;
+        const versionReadinessCache = new Map();
         let dashboardKpi = {
             versionCount: 0,
             assignmentCount: 0,
@@ -498,6 +499,7 @@
 
             function renderVersionsGrid(versions) {
                 versionsData = versions || [];
+                versionReadinessCache.clear();
                 updateVersionsCountBadge(versionsData.length);
 
                 if (versionsGrid) {
@@ -595,6 +597,14 @@
                     showToast('Active version updated.', 'success', 2000);
                     await reloadVersions();
                 } catch (xhr) {
+                    if (xhr?.status === 409) {
+                        const readiness = await tryGetVersionReadiness(versionId, true);
+                        if (readiness && !readiness.isReady) {
+                            await showVersionReadinessDialog(versionId, readiness);
+                            return;
+                        }
+                    }
+
                     showToast(window.getApiErrorMessage(xhr, 'Error updating active version.'), 'error');
                 } finally {
                     activeVersionRequestId = null;
@@ -676,6 +686,97 @@
                             text: 'Cancel',
                             onClick: function() {
                                 return null;
+                            }
+                        }
+                    ]
+                });
+
+                return dialog.show();
+            }
+
+            async function ensureVersionReadyForActivation(versionId) {
+                const readiness = await tryGetVersionReadiness(versionId);
+                if (!readiness) {
+                    return true;
+                }
+
+                if (readiness.isReady) {
+                    return true;
+                }
+
+                await showVersionReadinessDialog(versionId, readiness);
+                return false;
+            }
+
+            async function tryGetVersionReadiness(versionId, forceRefresh) {
+                try {
+                    return await getVersionReadiness(versionId, forceRefresh);
+                } catch (xhr) {
+                    if (xhr?.status === 404) {
+                        return null;
+                    }
+
+                    throw xhr;
+                }
+            }
+
+            async function getVersionReadiness(versionId, forceRefresh) {
+                const cacheKey = String(versionId);
+                if (!forceRefresh && versionReadinessCache.has(cacheKey)) {
+                    return versionReadinessCache.get(cacheKey);
+                }
+
+                const response = await $.ajax({
+                    url: `${courseApiUrl}/versions/${versionId}/readiness`,
+                    type: 'GET',
+                    xhrFields: { withCredentials: true }
+                });
+
+                const readiness = response.data || response || {
+                    versionId: versionId,
+                    isReady: true,
+                    resourceCount: 0,
+                    issues: []
+                };
+
+                versionReadinessCache.set(cacheKey, readiness);
+                return readiness;
+            }
+
+            function showVersionReadinessDialog(versionId, readiness) {
+                const issues = Array.isArray(readiness?.issues) ? readiness.issues : [];
+                const issueItems = issues.length
+                    ? issues.map(function(issue) {
+                        const resourceName = window.escapeHtml(issue.resourceName || 'Unnamed resource');
+                        const reason = window.escapeHtml(issue.reason || 'Not ready');
+                        return `<li><strong>${resourceName}</strong> <span class="text-secondary">${reason}</span></li>`;
+                    }).join('')
+                    : '<li><span class="text-secondary">This version has no published learning resources yet.</span></li>';
+
+                const messageHtml = `
+                    <div class="text-start">
+                        <div class="u-fs-12 text-secondary mb-2">This version still could not be activated after automatic preparation. Fix the listed resource issues first.</div>
+                        <div class="tag-pill pill-warning mb-3">${window.escapeHtml(window.formatAdminCountLabel(issues.length || readiness.resourceCount || 0, 'issue'))}</div>
+                        <ul class="ps-3 mb-3 u-fs-11">${issueItems}</ul>
+                        <div class="u-fs-11 text-secondary">Open the version editor to replace the affected resources, or repair the stored SCORM package and try again.</div>
+                    </div>`;
+
+                const dialog = DevExpress.ui.dialog.custom({
+                    title: 'Version Not Ready',
+                    messageHtml,
+                    buttons: [
+                        {
+                            text: 'Open Version',
+                            type: 'default',
+                            onClick: function() {
+                                window.location.href = `${newVersionUrl}?id=${versionId}&courseId=${courseId}`;
+                                return true;
+                            }
+                        },
+                        {
+                            text: 'Close',
+                            onClick: function() {
+                                return false;
                             }
                         }
                     ]
@@ -1079,6 +1180,8 @@
                     const $row = $("<div>").addClass('d-flex align-items-center gap-2 version-resource-line');
                     const typeTone = resource.typeId === 1 ? 'pill-primary' : 'pill-warning';
                     const typeName = resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam');
+                    const readinessTone = resource.isActive ? 'pill-success' : 'pill-danger';
+                    const readinessLabel = resource.isActive ? 'Published' : 'Not Ready';
 
                     $("<span>")
                         .addClass('u-fs-11 text-secondary')
@@ -1094,6 +1197,11 @@
                     $("<span>")
                         .addClass(`tag-pill tag-pill-xs ${typeTone}`)
                         .text(typeName)
+                        .appendTo($row);
+
+                    $("<span>")
+                        .addClass(`tag-pill tag-pill-xs ${readinessTone}`)
+                        .text(readinessLabel)
                         .appendTo($row);
 
                     if (resource.isActive) {

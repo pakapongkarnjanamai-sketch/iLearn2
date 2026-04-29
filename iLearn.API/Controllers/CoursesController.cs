@@ -228,6 +228,20 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [HttpGet("versions/{versionId}/readiness")]
+        public async Task<IActionResult> GetVersionReadiness(int versionId)
+        {
+            try
+            {
+                var readiness = await _versionService.GetVersionReadinessAsync(versionId);
+                return Ok(new { success = true, data = readiness });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost("{courseId}/versions")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
@@ -251,6 +265,10 @@ namespace iLearn.API.Controllers
                 return NotFound(new { success = false, message = ex.Message });
             }
             catch (InvalidScormPackageException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
@@ -283,6 +301,10 @@ namespace iLearn.API.Controllers
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = "An error occurred while updating the version.", error = ex.Message });
@@ -302,6 +324,10 @@ namespace iLearn.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 

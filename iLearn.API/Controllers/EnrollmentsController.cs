@@ -104,13 +104,18 @@ namespace iLearn.API.Controllers
             var oneMonthAgo = currentDate.AddMonths(-1);
 
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => !e.IsDeleted && e.StudentCode == studentCode && e.Course != null,
-                includeProperties: "Course.CourseType,AssignmentLinks.Assignment",
+                filter: e => !e.IsDeleted && e.StudentCode == studentCode && e.Course != null && e.Course.IsActive,
+                includeProperties: "Course.CourseType,Course.Versions.CourseResources.Resource,AssignmentLinks.Assignment",
                 ignoreQueryFilters: true
             );
 
             var filtered = enrollments.Where(e =>
             {
+                if (!IsEnrollmentContentReady(e))
+                {
+                    return false;
+                }
+
                 var schedule = GetEffectiveSchedule(e);
                 if (!schedule.ShouldBeVisible)
                 {
@@ -219,8 +224,13 @@ namespace iLearn.API.Controllers
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found or Course is not active" });
             }
 
+            if (targetVersion.Course?.IsActive != true || !CourseContentReadiness.IsVersionReady(targetVersion.CourseResources))
+            {
+                return NotFound(new ApiResponse<string> { Success = false, Message = "Content is not ready for learning." });
+            }
+
             var resources = targetVersion.CourseResources
-                .Where(cr => cr.Resource != null)
+                .Where(cr => CourseContentReadiness.IsResourceReady(cr.Resource))
                 .OrderBy(cr => cr.Resource!.TypeId == 1 ? 0 : 1) // Learn first
                 .ThenBy(cr => cr.Resource!.Name)
                 .Select(cr => {
@@ -381,6 +391,36 @@ namespace iLearn.API.Controllers
             });
 
             return false;
+        }
+
+        private static bool IsEnrollmentContentReady(Enrollment enrollment)
+        {
+            if (enrollment.Course?.IsActive != true)
+            {
+                return false;
+            }
+
+            var targetVersion = ResolveEnrollmentTargetVersion(enrollment);
+            return targetVersion != null && CourseContentReadiness.IsVersionReady(targetVersion.CourseResources);
+        }
+
+        private static CourseVersion? ResolveEnrollmentTargetVersion(Enrollment enrollment)
+        {
+            var versions = enrollment.Course?.Versions;
+            if (versions == null || versions.Count == 0)
+            {
+                return null;
+            }
+
+            if (enrollment.EnrolledCourseVersion.HasValue)
+            {
+                return versions.FirstOrDefault(v => v.Id == enrollment.EnrolledCourseVersion.Value);
+            }
+
+            return versions
+                .Where(v => v.IsActive)
+                .OrderByDescending(v => v.VersionNumber)
+                .FirstOrDefault();
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -557,12 +597,16 @@ namespace iLearn.API.Controllers
         private async Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(IEnumerable<int> courseIds)
         {
             var targetCourseIds = courseIds.Distinct().ToList();
-            return await _courseRepo.GetAsync(
+            var courses = await _courseRepo.GetAsync(
                 c => targetCourseIds.Contains(c.Id)
                     && c.IsActive
                     && (!_currentUser.DivisionId.HasValue || c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value),
-                includeProperties: "Category"
+                includeProperties: "Category,Versions.CourseResources.Resource"
             );
+
+            return courses
+                .Where(CourseContentReadiness.HasReadyActiveVersion)
+                .ToList();
         }
 
         private static bool HasUnauthorizedCourses(IEnumerable<int> requestedCourseIds, IEnumerable<Course> accessibleCourses)
