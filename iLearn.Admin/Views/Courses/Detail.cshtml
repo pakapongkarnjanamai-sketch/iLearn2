@@ -1209,9 +1209,9 @@
             }
 
             function renderVersionContentCell(container, contentItems) {
-                const contentItems = Array.isArray(contentItems) ? contentItems : [];
+                const normalizedContentItems = Array.isArray(contentItems) ? contentItems : [];
 
-                if (!contentItems.length) {
+                if (!normalizedContentItems.length) {
                     $("<span>")
                         .addClass('text-muted u-fs-11')
                         .text('No files attached')
@@ -1221,7 +1221,7 @@
 
                 const $stack = $("<div>").addClass('d-flex flex-column gap-1 version-content-stack');
 
-                contentItems.slice(0, 2).forEach(function(contentItem, index) {
+                normalizedContentItems.slice(0, 2).forEach(function(contentItem, index) {
                     const $row = $("<div>").addClass('d-flex align-items-center gap-2 version-content-line');
                     const typeTone = contentItem.typeId === 1 ? 'pill-primary' : 'pill-warning';
                     const typeName = contentItem.typeName || (contentItem.typeId === 1 ? 'Learn' : 'Exam');
@@ -1263,10 +1263,10 @@
                     $row.appendTo($stack);
                 });
 
-                if (contentItems.length > 2) {
+                if (normalizedContentItems.length > 2) {
                     $("<div>")
                     .addClass('version-content-more')
-                    .text(`+${contentItems.length - 2} more`)
+                    .text(`+${normalizedContentItems.length - 2} more`)
                         .appendTo($stack);
                 }
 

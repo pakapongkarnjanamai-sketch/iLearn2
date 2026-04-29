@@ -241,6 +241,240 @@
     let addLearnersPopup;
     let dashboardData = null;
 
+    function initializeAssignmentCourseFilters(options) {
+        if (typeof window.initAdminCourseFilters === "function") {
+            window.initAdminCourseFilters(options);
+            return;
+        }
+
+        const opts = options || {};
+        const svcUrl = opts.serviceUrl || window.serviceUrl || "";
+        const grid = opts.gridInstance;
+        const typeSel = opts.typeSel || "#filter-course-type";
+        const divSel = opts.divSel || "#filter-course-div";
+        const catSel = opts.catSel || "#filter-course-cat";
+        const clearSel = opts.clearSel || "#btn-clear-course-filter";
+
+        function applyCourseFilters() {
+            const typeVal = $(typeSel).dxSelectBox("instance").option("value");
+            const divVal = $(divSel).dxSelectBox("instance").option("value");
+            const catVal = $(catSel).dxSelectBox("instance").option("value");
+            const conditions = [];
+
+            if (typeVal) { conditions.push(["courseTypeId", "=", typeVal]); }
+            if (divVal) { conditions.push(["divisionId", "=", divVal]); }
+            if (catVal) { conditions.push(["categoryId", "=", catVal]); }
+
+            window.applyCombinedFilter(grid, conditions);
+        }
+
+        $(typeSel).dxSelectBox({
+            dataSource: window.createDataStore(svcUrl, "admin/CourseTypesCRUD", { key: "id" }),
+            displayExpr: "name",
+            valueExpr: "id",
+            placeholder: "All Types",
+            searchEnabled: true,
+            showClearButton: true,
+            width: "100%",
+            onValueChanged: applyCourseFilters
+        });
+
+        $(divSel).dxSelectBox({
+            dataSource: window.createDataStore(svcUrl, "admin/DivisionsCRUD", { key: "id" }),
+            displayExpr: "name",
+            valueExpr: "id",
+            placeholder: "All Divisions",
+            searchEnabled: true,
+            showClearButton: true,
+            width: "100%",
+            onValueChanged: function(e) {
+                const catBox = $(catSel).dxSelectBox("instance");
+                catBox.option("value", null);
+
+                if (e.value) {
+                    catBox.option("dataSource", window.createDataStore(svcUrl, "admin/CategoriesCRUD", {
+                        key: "id",
+                        action: "Get",
+                        filter: ["divisionId", "=", e.value]
+                    }));
+                    catBox.option("disabled", false);
+                    catBox.option("placeholder", "All Categories");
+                } else {
+                    catBox.option({ dataSource: [], disabled: true, placeholder: "Select Division first" });
+                }
+
+                applyCourseFilters();
+            }
+        });
+
+        $(catSel).dxSelectBox({
+            displayExpr: "name",
+            valueExpr: "id",
+            placeholder: "Select Division first",
+            showClearButton: true,
+            searchEnabled: true,
+            width: "100%",
+            disabled: true,
+            onValueChanged: applyCourseFilters
+        });
+
+        $(clearSel).off("click.assignmentCourseFilters").on("click.assignmentCourseFilters", function() {
+            $(typeSel).dxSelectBox("instance").option("value", null);
+            $(divSel).dxSelectBox("instance").option("value", null);
+            $(catSel).dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            grid.clearFilter();
+        });
+    }
+
+    function initializeAssignmentLearnerOrgFilters(options) {
+        if (typeof window.initAdminLearnerOrgFilters === "function") {
+            window.initAdminLearnerOrgFilters(options);
+            return;
+        }
+
+        const opts = options || {};
+        const baseUrl = opts.learnersBaseUrl || `${window.serviceUrl}/Learners`;
+        const grid = opts.gridInstance;
+        const divSel = opts.divSelector || "#filter-div";
+        const deptSel = opts.deptSelector || "#filter-dept";
+        const secSel = opts.sectionSelector || "#filter-section";
+        const posSel = opts.positionSelector || null;
+        const clearSel = opts.clearSelector || "#btn-clear-filter";
+
+        function makeLookup(endpoint, queryText) {
+            return new DevExpress.data.CustomStore({
+                key: "Name",
+                load: function() {
+                    return $.ajax({
+                        url: `${baseUrl}/${endpoint}${queryText || ""}`,
+                        method: "GET",
+                        xhrFields: { withCredentials: true }
+                    }).then(function(res) {
+                        return res.data || res;
+                    });
+                }
+            });
+        }
+
+        function applyFilters() {
+            const filters = [];
+            const divVal = $(divSel).dxSelectBox("instance").option("value");
+            const deptVal = $(deptSel).dxSelectBox("instance").option("value");
+            const secVal = $(secSel).dxSelectBox("instance").option("value");
+
+            if (divVal) { filters.push(["Division", "=", divVal]); }
+            if (deptVal) { filters.push(["Department", "=", deptVal]); }
+            if (secVal) { filters.push(["Section", "=", secVal]); }
+
+            if (posSel) {
+                const posVals = $(posSel).dxTagBox("instance").option("value") || [];
+                if (posVals.length > 0) {
+                    let posFilter = ["Position", "=", posVals[0]];
+                    for (let index = 1; index < posVals.length; index += 1) {
+                        posFilter = [posFilter, "or", ["Position", "=", posVals[index]]];
+                    }
+                    filters.push(posFilter);
+                }
+            }
+
+            window.applyCombinedFilter(grid, filters);
+        }
+
+        const divisionBox = $(divSel).dxSelectBox({
+            dataSource: makeLookup("GetDivisions"),
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "All Divisions",
+            searchEnabled: true,
+            showClearButton: true,
+            width: "100%",
+            onValueChanged: function(e) {
+                const deptBox = $(deptSel).dxSelectBox("instance");
+                deptBox.option({
+                    value: null,
+                    disabled: !e.value,
+                    placeholder: e.value ? "All Departments" : "Select Division first",
+                    dataSource: e.value
+                        ? makeLookup("GetDepartments", `?filter=["Division","=","${e.value}"]`)
+                        : []
+                });
+
+                $(secSel).dxSelectBox("instance").option({
+                    value: null,
+                    disabled: true,
+                    placeholder: "Select Department first",
+                    dataSource: []
+                });
+
+                applyFilters();
+            }
+        }).dxSelectBox("instance");
+
+        $(deptSel).dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "Select Division first",
+            showClearButton: true,
+            searchEnabled: true,
+            width: "100%",
+            disabled: true,
+            onValueChanged: function(e) {
+                const secBox = $(secSel).dxSelectBox("instance");
+                const divVal = divisionBox.option("value");
+                const query = e.value
+                    ? `?filter=[["Division","=","${divVal}"],"and",["Department","=","${e.value}"]]`
+                    : (divVal ? `?filter=["Division","=","${divVal}"]` : "");
+
+                secBox.option({
+                    value: null,
+                    disabled: !e.value,
+                    placeholder: e.value ? "All Sections" : "Select Department first",
+                    dataSource: e.value ? makeLookup("GetSections", query) : []
+                });
+
+                applyFilters();
+            }
+        });
+
+        $(secSel).dxSelectBox({
+            displayExpr: "Name",
+            valueExpr: "Name",
+            placeholder: "Select Department first",
+            showClearButton: true,
+            searchEnabled: true,
+            width: "100%",
+            disabled: true,
+            onValueChanged: applyFilters
+        });
+
+        if (posSel) {
+            $(posSel).dxTagBox({
+                dataSource: makeLookup("GetPositions"),
+                displayExpr: "Name",
+                valueExpr: "Name",
+                placeholder: "All Positions",
+                searchEnabled: true,
+                showClearButton: true,
+                showSelectionControls: true,
+                applyValueMode: "useButtons",
+                width: "100%",
+                onValueChanged: applyFilters
+            });
+        }
+
+        $(clearSel).off("click.assignmentLearnerFilters").on("click.assignmentLearnerFilters", function() {
+            divisionBox.option("value", null);
+            $(deptSel).dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+            $(secSel).dxSelectBox("instance").option({ value: null, disabled: true, dataSource: [] });
+
+            if (posSel) {
+                $(posSel).dxTagBox("instance").option("value", []);
+            }
+
+            grid.clearFilter();
+        });
+    }
+
     $(() => {
         loadPanel = $("#load-panel").dxLoadPanel({
             shadingColor: "rgba(255,255,255,0.8)",
@@ -347,7 +581,7 @@
                     }));
                 });
 
-                initAdminCourseFilters({
+                initializeAssignmentCourseFilters({
                     serviceUrl: serviceUrl,
                     gridInstance: courseGrid,
                     typeSel: "#add-filter-course-type",
@@ -471,7 +705,7 @@
                     ]
                 });
 
-                initAdminLearnerOrgFilters({
+                initializeAssignmentLearnerOrgFilters({
                     learnersBaseUrl: `${serviceUrl}/Learners`,
                     gridInstance: empGrid,
                     divSelector: "#add-filter-emp-div",

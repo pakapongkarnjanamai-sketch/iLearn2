@@ -164,6 +164,42 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CommitRuntime_AllowsFinalSessionSync_WhenEnrollmentAlreadyCompleted()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            enrollment.IsCompleted = true;
+            enrollment.CompletedDate = new DateTime(2026, 4, 28, 11, 59, 0, DateTimeKind.Local);
+
+            var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                ContentItems =
+                [
+                    new ScormRuntimeContentItemCommitDto
+                    {
+                        ContentItemId = 100,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "passed",
+                        RawScore = 100,
+                        SessionTime = "00:00:09"
+                    }
+                ]
+            });
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ApiResponse<IReadOnlyList<ScormRuntimeStateDto>>>(ok.Value);
+            Assert.True(response.Success);
+            Assert.Equal("Runtime committed.", response.Message);
+
+            var learnLog = Assert.Single(logRepo.Items, log => log.ContentItemId == 100);
+            Assert.Equal("passed", learnLog.Status);
+            Assert.Equal(100, learnLog.Score);
+            Assert.Equal("00:00:09", learnLog.SessionTime);
+            Assert.Equal(9, learnLog.TotalSecondsPlayed);
+        }
+
+        [Fact]
         public async Task ResetProgress_ClearsEnrollmentSummaryAndAssignmentSnapshot()
         {
             var controller = CreateController(out _, out var enrollmentRepo, out var assignmentRepo);

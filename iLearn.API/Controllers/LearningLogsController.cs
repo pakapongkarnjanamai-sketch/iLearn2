@@ -100,7 +100,7 @@ namespace iLearn.API.Controllers
                 return BadRequest(new ApiResponse<string> { Success = false, Message = "No runtime contentItems were supplied." });
             }
 
-            var validation = await ValidateEnrollmentForLearnerAsync(input.EnrollmentId, learnerCode);
+            var validation = await ValidateEnrollmentForLearnerAsync(input.EnrollmentId, learnerCode, allowCompleted: true);
             if (validation.ErrorResult != null)
             {
                 return validation.ErrorResult;

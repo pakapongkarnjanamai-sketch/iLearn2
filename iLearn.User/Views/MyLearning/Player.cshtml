@@ -807,6 +807,20 @@
             return Number.isFinite(parsed) ? parsed : null;
         }
 
+        function parseClockTimeToSeconds(value) {
+            const normalizedValue = String(value || '').trim();
+            if (!normalizedValue) {
+                return 0;
+            }
+
+            const parts = normalizedValue.split(':').map(Number);
+            if (parts.length !== 3 || parts.some(part => !Number.isFinite(part))) {
+                return 0;
+            }
+
+            return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+        }
+
         function setCourseStatusDisplay(label, variant = "muted") {
             const status = $("#courseStatusDisplay");
             status
@@ -942,31 +956,67 @@
             cmiModel["cmi.success_status"] = successStatus;
         }
 
+        function syncScorm12RuntimeAliases(elementName, value) {
+            const aliasMap = {
+                "cmi.core.lesson_location": "cmi.location",
+                "cmi.core.entry": "cmi.entry",
+                "cmi.core.exit": "cmi.exit",
+                "cmi.core.score.raw": "cmi.score.raw",
+                "cmi.core.session_time": "cmi.session_time",
+                "cmi.core.total_time": "cmi.total_time"
+            };
+
+            const aliasName = aliasMap[elementName];
+            if (aliasName) {
+                cmiModel[aliasName] = value;
+            }
+        }
+
+        function getPreferredCmiModelValue(contentItem, scorm12Key, scorm2004Key, fallbackValue) {
+            const primaryKey = resolveContentItemScormVersion(contentItem) === "1.2"
+                ? scorm12Key
+                : scorm2004Key;
+            const secondaryKey = primaryKey === scorm12Key ? scorm2004Key : scorm12Key;
+            const primaryValue = cmiModel[primaryKey];
+
+            if (primaryValue !== undefined && primaryValue !== null && primaryValue !== "") {
+                return primaryValue;
+            }
+
+            const secondaryValue = cmiModel[secondaryKey];
+            if (secondaryValue !== undefined && secondaryValue !== null && secondaryValue !== "") {
+                return secondaryValue;
+            }
+
+            return fallbackValue;
+        }
+
         function syncRuntimeStateFromModel(contentItem, options = {}) {
             if (!contentItem || !currentData || !currentData.enrollmentId) {
                 return null;
             }
 
             const includeSessionTime = options.includeSessionTime === true;
+            const scormVersion = resolveContentItemScormVersion(contentItem);
             const runtimeState = contentItem.runtimeState || {};
-            const lessonLocation = cmiModel["cmi.location"] || cmiModel["cmi.core.lesson_location"] || runtimeState.lessonLocation || "";
+            const lessonLocation = getPreferredCmiModelValue(contentItem, "cmi.core.lesson_location", "cmi.location", runtimeState.lessonLocation || "");
             const lessonStatus = cmiModel["cmi.core.lesson_status"] || runtimeState.lessonStatus || deriveLessonStatus(contentItem);
             const completionStatus = cmiModel["cmi.completion_status"] || runtimeState.completionStatus || deriveCompletionStatus(contentItem, lessonStatus);
             const successStatus = cmiModel["cmi.success_status"] || runtimeState.successStatus || deriveSuccessStatus(contentItem, lessonStatus);
-            const rawScoreValue = cmiModel["cmi.score.raw"] || cmiModel["cmi.core.score.raw"] || runtimeState.rawScore || contentItem.clientScore;
+            const rawScoreValue = getPreferredCmiModelValue(contentItem, "cmi.core.score.raw", "cmi.score.raw", runtimeState.rawScore ?? contentItem.clientScore);
             const parsedRawScore = rawScoreValue === "" || rawScoreValue === null || rawScoreValue === undefined
                 ? null
                 : (parseFloat(rawScoreValue) || 0);
-            const totalTime = cmiModel["cmi.total_time"] || cmiModel["cmi.core.total_time"] || runtimeState.totalTime || contentItem.clientTime || "00:00:00";
+            let totalTime = getPreferredCmiModelValue(contentItem, "cmi.core.total_time", "cmi.total_time", runtimeState.totalTime || contentItem.clientTime || "00:00:00");
 
             let sessionTime = runtimeState.sessionTime || null;
             if (includeSessionTime) {
-                const modelSessionTime = cmiModel["cmi.session_time"] || cmiModel["cmi.core.session_time"];
-                if (!modelSessionTime) {
-                    captureSessionTime(contentItem);
-                }
+                captureSessionTime(contentItem);
 
-                sessionTime = modelSessionTime || contentItem.clientTime || runtimeState.sessionTime || "00:00:00";
+                sessionTime = getPreferredCmiModelValue(contentItem, "cmi.core.session_time", "cmi.session_time", contentItem.clientTime || runtimeState.sessionTime || "00:00:00");
+                if ((totalTime === null || totalTime === undefined || totalTime === "" || totalTime === "00:00:00") && sessionTime) {
+                    totalTime = sessionTime;
+                }
             }
 
             cmiModel["cmi.location"] = lessonLocation;
@@ -988,7 +1038,7 @@
             contentItem.runtimeState = {
                 enrollmentId: currentData.enrollmentId,
                 contentItemId: contentItem.id,
-                scormVersion: resolveContentItemScormVersion(contentItem),
+                scormVersion: scormVersion,
                 lessonLocation: lessonLocation,
                 suspendData: cmiModel["cmi.suspend_data"] || runtimeState.suspendData || "",
                 lessonStatus: lessonStatus,
@@ -1483,8 +1533,15 @@
                 const date = new Date(0);
                 date.setSeconds(diffSec);
                 const timeString = date.toISOString().substr(11, 8);
-                contentItem.clientTime = timeString;
-                console.log(`⏱️ Session Time: ${timeString}`);
+                const existingSessionTime = getPreferredCmiModelValue(contentItem, "cmi.core.session_time", "cmi.session_time", contentItem.clientTime || "");
+                const effectiveSessionTime = parseClockTimeToSeconds(existingSessionTime) > parseClockTimeToSeconds(timeString)
+                    ? existingSessionTime
+                    : timeString;
+
+                contentItem.clientTime = effectiveSessionTime;
+                cmiModel["cmi.core.session_time"] = effectiveSessionTime;
+                cmiModel["cmi.session_time"] = effectiveSessionTime;
+                console.log(`⏱️ Session Time: ${effectiveSessionTime}`);
             }
         }
 
@@ -1652,6 +1709,7 @@
 
                     console.log(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
                     setCmiModelValue(e, v);
+                    syncScorm12RuntimeAliases(e, v);
                     markSelectedContentItemDirty();
 
                     if (e === "cmi.core.lesson_status") {
