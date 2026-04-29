@@ -83,7 +83,7 @@
                         <div class="col-md-6">
                             <div class="target-card h-100 d-flex flex-column align-items-center justify-content-center" id="btn-show-existing" role="button" tabindex="0">
                                 <i class="fas fa-search fa-lg target-card-icon"></i>
-                                <div class="fw-bold text-dark target-card-title">Select Existing Resources</div>
+                                <div class="fw-bold text-dark target-card-title">Select Existing Content</div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -104,7 +104,7 @@
                             <li>Supports import, launch, runtime commit, and resume for SCORM 1.2 and SCORM 2004 content.</li>
                             <li><code>imsmanifest.xml</code> may be at the ZIP root or inside a package folder.</li>
                             <li>Resume depends on the package writing bookmark or suspend data and calling Commit or Terminate.</li>
-                            <li>Uses one launch SCO per resource; full SCORM 2004 sequencing and multi-SCO navigation are not orchestrated.</li>
+                            <li>Uses one launch SCO per content item; full SCORM 2004 sequencing and multi-SCO navigation are not orchestrated.</li>
                             <li>Limits: 100 MB ZIP, 1,000 archive entries, 100 MB per file, 250 MB expanded.</li>
                         </ul>
                     </div>
@@ -116,7 +116,7 @@
                                 <span class="tag-pill pill-default" id="total-count-badge">0 items</span>
                             </div>
                         </div>
-                        <div id="master-resources-grid" class="admin-grid-fill"></div>
+                        <div id="content-items-grid" class="admin-grid-fill"></div>
                     </div>
                 </div>
             </div>
@@ -200,15 +200,15 @@
                 <div class="admin-review-stack">
                     <div class="admin-summary-grid">
                         <div class="admin-summary-item">
-                            <div class="admin-summary-value" id="review-total-resources">0</div>
+                            <div class="admin-summary-value" id="review-total-content">0</div>
                             <div class="admin-summary-label">Total Content Items</div>
                         </div>
                         <div class="admin-summary-item">
-                            <div class="admin-summary-value" id="review-existing-resources">0</div>
-                            <div class="admin-summary-label">Existing Resources</div>
+                            <div class="admin-summary-value" id="review-existing-content">0</div>
+                            <div class="admin-summary-label">Existing Content</div>
                         </div>
                         <div class="admin-summary-item">
-                            <div class="admin-summary-value" id="review-new-resources">0</div>
+                            <div class="admin-summary-value" id="review-new-content">0</div>
                             <div class="admin-summary-label">New Uploads</div>
                         </div>
                     </div>
@@ -230,7 +230,7 @@
     </div>
 </div>
 
-<div id="popup-existing"></div>
+<div id="content-picker-popup"></div>
 
 @section Scripts {
     <script>
@@ -241,8 +241,8 @@
         const VERSION_CANCEL_URL = '@detailUrl';
 
         const VERSION_NOTE_HEIGHT = 90;
-        const MASTER_RESOURCE_GRID_HEIGHT = "100%";
-        const EXISTING_RESOURCE_GRID_HEIGHT = 520;
+        const CONTENT_GRID_HEIGHT = "100%";
+        const CONTENT_LIBRARY_GRID_HEIGHT = 520;
         const TOTAL_WIZARD_STEPS = 4;
         const VERSION_LEARNER_POLICY = {
             NewLearnersOnly: "NewLearnersOnly",
@@ -255,13 +255,13 @@
             ResetInProgress: "Reset In Progress"
         };
 
-        const resourcesStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
+        const contentLibraryStore = createDataStore(serviceUrl, 'admin/ResourcesCRUD', { key: 'id' });
 
         let formWidget;
         let masterGrid;
-        let gridExisting;
-        let unifiedResources = [];
-        let popupExisting;
+        let contentPickerGrid;
+        let contentItems = [];
+        let contentPickerPopup;
         let loadPanel;
         let reviewForm;
         let gridViewportController = null;
@@ -288,7 +288,7 @@
 
             initializeVersionForm({ courseId: COURSE_ID, isActive: true });
             initializeMasterGrid();
-            initializeExistingResourcesPopup();
+            initializeExistingContentPopup();
             initializeFileUploader();
             initializeReviewForm();
 
@@ -371,10 +371,10 @@
         }
 
         function initializeMasterGrid() {
-            masterGrid = initDxGrid("#master-resources-grid", {
-                dataSource: unifiedResources,
+            masterGrid = initDxGrid("#content-items-grid", {
+                dataSource: contentItems,
                 keyExpr: "uid",
-                height: MASTER_RESOURCE_GRID_HEIGHT,
+                height: CONTENT_GRID_HEIGHT,
                 rowAlternationEnabled: false,
                 hoverStateEnabled: true,
                 showRowLines: true,
@@ -396,15 +396,15 @@
                     showDragIcons: true,
                     onReorder: function(e) {
                         const visibleRows = e.component.getVisibleRows();
-                        const toIndex = unifiedResources.findIndex(function(item) {
+                        const toIndex = contentItems.findIndex(function(item) {
                             return item.uid === visibleRows[e.toIndex].data.uid;
                         });
-                        const fromIndex = unifiedResources.findIndex(function(item) {
+                        const fromIndex = contentItems.findIndex(function(item) {
                             return item.uid === e.itemData.uid;
                         });
 
-                        unifiedResources.splice(fromIndex, 1);
-                        unifiedResources.splice(toIndex, 0, e.itemData);
+                        contentItems.splice(fromIndex, 1);
+                        contentItems.splice(toIndex, 0, e.itemData);
                         e.component.refresh();
                         refreshMasterGrid();
                     }
@@ -434,7 +434,7 @@
                         }
                     },
                     {
-                        dataField: "typeId", caption: "Resource Type", width: 180, alignment: "center",
+                        dataField: "typeId", caption: "Content Type", width: 180, alignment: "center",
                         lookup: {
                             dataSource: [
                                 { id: 1, name: "Learn" },
@@ -445,9 +445,9 @@
                         },
                         cellTemplate: function(container, options) {
                             const data = options.data;
-                            const typeName = getResourceTypeLabel(data.typeId);
+                            const typeName = getContentTypeLabel(data.typeId);
                             const editHint = data.isNew ? '<i class="fas fa-caret-down ms-2 opacity-50"></i>' : '';
-                            const tooltip = data.isNew ? "Click to change resource type" : "Existing resource type cannot be changed here";
+                            const tooltip = data.isNew ? "Click to change content type" : "Existing content type cannot be changed here";
 
                             $('<div>').css(window.getAdminGridTextStyle(data.typeId === 1 ? 'captionAccent' : 'captionWarning', {
                                 cursor: data.isNew ? 'pointer' : 'default'
@@ -460,7 +460,7 @@
                     {
                         caption: "Status", width: 150, alignment: "center", allowEditing: false,
                         cellTemplate: function(container, options) {
-                            renderResourceReadinessCell(container, options.data);
+                            renderContentReadinessCell(container, options.data);
                         }
                     },
                     {
@@ -468,7 +468,7 @@
                         buttons: [{
                             icon: "trash", hint: "Remove from list",
                             onClick: function(e) {
-                                removeResource(e.row.data.uid);
+                                removeContentItem(e.row.data.uid);
                                 refreshMasterGrid();
                             }
                         }]
@@ -477,9 +477,9 @@
             });
         }
 
-        function initializeExistingResourcesPopup() {
-            popupExisting = $("#popup-existing").dxPopup({
-                title: "Select Existing Resources",
+        function initializeExistingContentPopup() {
+            contentPickerPopup = $("#content-picker-popup").dxPopup({
+                title: "Select Existing Content",
                 width: "90vw",
                 maxWidth: 1080,
                 height: "auto",
@@ -490,26 +490,26 @@
                 deferRendering: false,
                 wrapperAttr: { class: "shadow-lg rounded-4" },
                 onShown: function() {
-                    if (gridExisting) {
-                        gridExisting.updateDimensions();
+                    if (contentPickerGrid) {
+                        contentPickerGrid.updateDimensions();
                     }
                 },
                 contentTemplate: function(contentElement) {
-                    const gridContainer = $("<div id='grid-existing-pick'>").appendTo(contentElement);
-                    gridExisting = initDxGrid(gridContainer, {
+                    const gridContainer = $("<div id='content-library-grid'>").appendTo(contentElement);
+                    contentPickerGrid = initDxGrid(gridContainer, {
                         preset: "selectionGrid",
-                        dataSource: resourcesStore,
+                        dataSource: contentLibraryStore,
                         remoteOperations: true,
-                        height: EXISTING_RESOURCE_GRID_HEIGHT,
-                        searchPanel: { placeholder: "Search by name or resource type..." },
+                        height: CONTENT_LIBRARY_GRID_HEIGHT,
+                        searchPanel: { placeholder: "Search by name or content type..." },
                         sorting: { mode: "multiple" },
                         columns: [
                             {
-                                dataField: "name", caption: "Resource Name", minWidth: 200,
+                                dataField: "name", caption: "Content Name", minWidth: 200,
                                 cssClass: "fw-medium text-dark"
                             },
                             {
-                                dataField: "typeId", caption: "Resource Type", width: 110, alignment: "center",
+                                dataField: "typeId", caption: "Content Type", width: 110, alignment: "center",
                                 cellTemplate: function(container, options) {
                                     const isLearningType = options.value === 1;
                                     const text = isLearningType ? "Learn" : "Exam";
@@ -519,7 +519,7 @@
                             {
                                 caption: "Status", width: 130, alignment: "center",
                                 cellTemplate: function(container, options) {
-                                    renderResourceReadinessCell(container, options.data);
+                                    renderContentReadinessCell(container, options.data);
                                 }
                             },
                             {
@@ -549,10 +549,10 @@
                             text: "Add Selected", type: "default", stylingMode: "contained", icon: "check",
                             elementAttr: { class: "rounded-3 fw-medium px-4 shadow-sm" },
                             onClick: function() {
-                                addExistingResources(gridExisting.getSelectedRowsData());
+                                addExistingContentItems(contentPickerGrid.getSelectedRowsData());
                                 refreshMasterGrid();
-                                gridExisting.clearSelection();
-                                popupExisting.hide();
+                                contentPickerGrid.clearSelection();
+                                contentPickerPopup.hide();
                             }
                         }
                     }
@@ -560,7 +560,7 @@
             }).dxPopup("instance");
 
             $("#btn-show-existing").on("click", function() {
-                popupExisting.show();
+                contentPickerPopup.show();
             }).on("keydown", function(e) {
                 if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -626,8 +626,8 @@
         }
 
         function refreshMasterGrid() {
-            masterGrid.option("dataSource", unifiedResources);
-            $("#total-count-badge").text(window.formatAdminCountLabel(unifiedResources.length, 'item'));
+            masterGrid.option("dataSource", contentItems);
+            $("#total-count-badge").text(window.formatAdminCountLabel(contentItems.length, 'item'));
             updateVersionReview();
             renderVersionReview();
         }
@@ -711,8 +711,8 @@
         }
 
         function validateVersionContentStep() {
-            if (unifiedResources.length === 0) {
-                showToast("Please add at least one resource before reviewing the version.", "warning", 3000);
+            if (contentItems.length === 0) {
+                showToast("Please add at least one content item before reviewing the version.", "warning", 3000);
                 return false;
             }
 
@@ -738,8 +738,8 @@
                 return;
             }
 
-            if (unifiedResources.length === 0) {
-                showToast("Please add at least one resource.", "error", 4000);
+            if (contentItems.length === 0) {
+                showToast("Please add at least one content item.", "error", 4000);
                 return;
             }
 
@@ -805,7 +805,7 @@
                 invalidateVersionPolicyImpact();
                 renderVersionPolicyStep();
 
-                await loadExistingResources(detailData.resourceIds || []);
+                await loadLinkedContentItems(detailData.resourceIds || []);
             } catch (xhr) {
                 showToast(window.getApiErrorMessage(xhr, "Error loading version"), "error");
             } finally {
@@ -813,13 +813,13 @@
             }
         }
 
-        async function loadExistingResources(resourceIds) {
+        async function loadLinkedContentItems(resourceIds) {
             if (!resourceIds.length) {
                 return;
             }
 
             try {
-                const response = await resourcesStore.load();
+                const response = await contentLibraryStore.load();
                 const allResources = response.data || response || [];
 
                 resourceIds.forEach(function(resourceId) {
@@ -828,17 +828,17 @@
                     });
 
                     if (resource) {
-                        addExistingResources([resource]);
+                        addExistingContentItems([resource]);
                     }
                 });
 
                 refreshMasterGrid();
             } catch {
-                showToast("Error loading resource details", "error");
+                showToast("Error loading content details", "error");
             }
         }
 
-        function createExistingResource(resource) {
+        function createExistingContentItem(resource) {
             return {
                 uid: `EXISTING_${resource.id}`,
                 realId: resource.id,
@@ -850,7 +850,7 @@
             };
         }
 
-        function createNewResource(file, suffix) {
+        function createUploadedContentItem(file, suffix) {
             return {
                 uid: `NEW_${Date.now()}_${suffix}`,
                 name: file.name,
@@ -860,15 +860,15 @@
             };
         }
 
-        function addExistingResources(resources) {
+        function addExistingContentItems(resources) {
             resources.forEach(function(resource) {
                 const resourceId = resource.realId ?? resource.id;
-                const exists = unifiedResources.some(function(item) {
+                const exists = contentItems.some(function(item) {
                     return !item.isNew && item.realId === resourceId;
                 });
 
                 if (!exists) {
-                    unifiedResources.push(createExistingResource({
+                    contentItems.push(createExistingContentItem({
                         id: resourceId,
                         name: resource.name,
                         typeId: resource.typeId,
@@ -881,12 +881,12 @@
 
         function addNewFiles(files) {
             Array.from(files).forEach(function(file, index) {
-                unifiedResources.push(createNewResource(file, index));
+                contentItems.push(createUploadedContentItem(file, index));
             });
         }
 
-        function removeResource(uid) {
-            unifiedResources = unifiedResources.filter(function(resource) {
+        function removeContentItem(uid) {
+            contentItems = contentItems.filter(function(resource) {
                 return resource.uid !== uid;
             });
         }
@@ -899,7 +899,7 @@
             versionFormData.append("isActive", formData.isActive || false);
             versionFormData.append("learnerPolicy", learnerPolicy || VERSION_LEARNER_POLICY.NewLearnersOnly);
 
-            unifiedResources.forEach(function(resource) {
+            contentItems.forEach(function(resource) {
                 if (resource.isNew) {
                     versionFormData.append("Files", resource.fileRef);
                     versionFormData.append("ResourceIds", 0);
@@ -1075,7 +1075,7 @@
             });
         }
 
-        function getResourceReadinessState(resource) {
+        function getContentReadinessState(resource) {
             if (resource.isNew) {
                 return {
                     tone: "primary",
@@ -1088,7 +1088,7 @@
                 return {
                     tone: "danger",
                     text: "Not Ready",
-                    detail: "resource is not published"
+                    detail: "content item is not published"
                 };
             }
 
@@ -1107,24 +1107,24 @@
             };
         }
 
-        function renderResourceReadinessCell(container, resource) {
-            const state = getResourceReadinessState(resource || {});
+        function renderContentReadinessCell(container, resource) {
+            const state = getContentReadinessState(resource || {});
             window.renderAdminGridStatusCell(container, state.text, state.tone, { showDot: false });
         }
 
-        function getExistingResourceReadinessIssues() {
-            return unifiedResources
+        function getExistingContentReadinessIssues() {
+            return contentItems
                 .filter(function(resource) {
                     return !resource.isNew;
                 })
                 .map(function(resource) {
-                    const state = getResourceReadinessState(resource);
+                    const state = getContentReadinessState(resource);
                     if (state.text === "Published") {
                         return null;
                     }
 
                     return {
-                        name: resource.name || "Unnamed resource",
+                        name: resource.name || "Unnamed content item",
                         reason: state.detail
                     };
                 })
@@ -1133,12 +1133,12 @@
                 });
         }
 
-        function validateActiveVersionResourceReadiness() {
+        function validateActiveVersionContentReadiness() {
             if (!willSaveVersionAsActive()) {
                 return true;
             }
 
-            const issues = getExistingResourceReadinessIssues();
+            const issues = getExistingContentReadinessIssues();
             if (!issues.length) {
                 return true;
             }
@@ -1149,7 +1149,7 @@
 
         function getVersionReadinessErrorMessage(xhr) {
             const message = window.getApiErrorMessage(xhr, "") || "";
-            return /cannot activate this course version|learning resources are not ready|resource is not published|launch url is missing/i.test(message)
+            return /cannot activate this course version|learning (resources|content) are not ready|resource is not published|content item is not published|launch url is missing/i.test(message)
                 ? message
                 : "";
         }
@@ -1163,9 +1163,9 @@
                 title: "Version Not Ready",
                 messageHtml: `
                     <div class="text-start">
-                        <div class="u-fs-12 text-secondary mb-2">This version cannot be saved as active until these linked resources are ready.</div>
+                        <div class="u-fs-12 text-secondary mb-2">This version cannot be saved as active until these linked content items are ready.</div>
                         <ul class="ps-3 mb-3 u-fs-11">${issueItems}</ul>
-                        <div class="u-fs-11 text-secondary">Replace or remove the affected resources, or keep this version inactive until the resources are published.</div>
+                        <div class="u-fs-11 text-secondary">Replace or remove the affected content items, or keep this version inactive until the content is published.</div>
                     </div>`,
                 buttons: [
                     {
@@ -1195,7 +1195,7 @@
                 title: "Version Not Ready",
                 messageHtml: `
                     <div class="text-start">
-                        <div class="u-fs-12 text-secondary mb-2">The server could not make all linked resources ready for this active save.</div>
+                        <div class="u-fs-12 text-secondary mb-2">The server could not make all linked content items ready for this active save.</div>
                         <div class="u-fs-11 mb-3">${window.escapeHtml(message)}</div>
                         <div class="u-fs-11 text-secondary">Publish or replace the affected content, or keep this version inactive until the content is ready.</div>
                     </div>`,
@@ -1223,21 +1223,21 @@
         }
 
         function renderVersionReview() {
-            const existingCount = unifiedResources.filter(function(resource) {
+            const existingCount = contentItems.filter(function(resource) {
                 return !resource.isNew;
             }).length;
-            const newCount = unifiedResources.filter(function(resource) {
+            const newCount = contentItems.filter(function(resource) {
                 return resource.isNew;
             }).length;
 
-            $("#review-total-resources").text(unifiedResources.length);
-            $("#review-existing-resources").text(existingCount);
-            $("#review-new-resources").text(newCount);
+            $("#review-total-content").text(contentItems.length);
+            $("#review-existing-content").text(existingCount);
+            $("#review-new-content").text(newCount);
             $("#review-content-table").html(buildReviewContentTable());
         }
 
         function buildReviewContentTable() {
-            if (unifiedResources.length === 0) {
+            if (contentItems.length === 0) {
                 return `
                     <div class="admin-wizard-empty-state">
                         <i class="fas fa-folder-open"></i>
@@ -1245,10 +1245,10 @@
                     </div>`;
             }
 
-            const rows = unifiedResources.map(function(resource, index) {
-                const sourceText = resource.isNew ? "New upload" : "Resource library";
+            const rows = contentItems.map(function(resource, index) {
+                const sourceText = resource.isNew ? "New upload" : "Content library";
                 const sourceBadge = resource.isNew ? "pill-primary" : "pill-default";
-                const readinessState = getResourceReadinessState(resource);
+                const readinessState = getContentReadinessState(resource);
 
                 return `
                     <tr>
@@ -1257,7 +1257,7 @@
                             <div class="admin-student-name">${window.escapeHtml(resource.name)}</div>
                         </td>
                         <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
-                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getResourceTypeLabel(resource.typeId))}</span></td>
+                        <td><span class="tag-pill ${resource.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getContentTypeLabel(resource.typeId))}</span></td>
                         <td><span class="tag-pill pill-${window.escapeHtml(readinessState.tone)}">${window.escapeHtml(readinessState.text)}</span></td>
                     </tr>`;
             }).join('');
@@ -1269,7 +1269,7 @@
                             <th>Order</th>
                             <th>Content Name</th>
                             <th>Source</th>
-                            <th>Resource Type</th>
+                            <th>Content Type</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -1277,7 +1277,7 @@
                 </table>`;
         }
 
-        function getResourceTypeLabel(typeId) {
+        function getContentTypeLabel(typeId) {
             return typeId === 2 ? "Exam" : "Learn";
         }
 

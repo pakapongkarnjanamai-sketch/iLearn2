@@ -11,22 +11,22 @@
         line-height: 1.6;
         white-space: pre-wrap;
     }
-    .version-resource-stack { min-width: 0; }
-    .version-resource-line { min-width: 0; }
-    .version-resource-line .tag-pill { flex-shrink: 0; }
-    .version-resource-preview-btn {
+    .version-content-stack { min-width: 0; }
+    .version-content-line { min-width: 0; }
+    .version-content-line .tag-pill { flex-shrink: 0; }
+    .version-content-preview-btn {
         border: 0;
         background: transparent;
         color: var(--primary-color);
         padding: 0;
         line-height: 1;
     }
-    .version-resource-preview-btn:hover,
-    .version-resource-preview-btn:focus-visible {
+    .version-content-preview-btn:hover,
+    .version-content-preview-btn:focus-visible {
         color: var(--primary-hover);
         outline: none;
     }
-    .version-resource-more {
+    .version-content-more {
         font-size: var(--font-size-xs);
         color: var(--text-secondary);
     }
@@ -181,6 +181,9 @@
                 <div id="warningMsg" class="mt-3 pt-3 d-none u-border-top u-fs-11 u-text-warning">
                     <i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i> Cannot delete an active course.
                 </div>
+                <div id="publishAvailabilityMsg" class="mt-3 pt-3 d-none u-border-top u-fs-11 u-text-warning">
+                    <i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i> Course is not ready to publish.
+                </div>
             </div>
         </div>
 
@@ -230,6 +233,10 @@
         let categoryOptions = [];
         let courseTypeOptions = [];
         let activeVersionRequestId = null;
+        let publishAvailabilityState = {
+            canPublish: false,
+            message: 'Set one version as Active before publishing this course.'
+        };
         const versionReadinessCache = new Map();
         let dashboardKpi = {
             versionCount: 0,
@@ -264,10 +271,12 @@
                 const $publishIconBox = $("#publishIconBox");
                 const $publishBtnText = $("#publishBtnText");
                 const $publishBtnDesc = $("#publishBtnDesc");
+                const $btnTogglePublish = $("#btnTogglePublish");
                 const $btnDelete = $("#btnDeleteCourse");
                 const $btnAssignment = $("#btnAssignment");
                 const $statusBadge = $("#courseStatusBadge");
                 const $warnMsg = $("#warningMsg");
+                const $publishAvailabilityMsg = $("#publishAvailabilityMsg");
                 const $availability = $("#summary-availability");
 
                 if (isActive) {
@@ -278,22 +287,34 @@
                     $statusBadge.removeClass("pill-default pill-warning pill-danger pill-primary")
                                 .addClass("pill-success")
                                 .html('<i class="fas fa-check-circle me-1"></i> Active');
+                    setActionLinkState($btnTogglePublish, false);
                     setActionLinkState($btnDelete, true);
                     setActionLinkState($btnAssignment, false);
                     $availability.html('<span class="tag-pill pill-success"><i class="fas fa-check-circle me-1"></i> Available for assignment</span>');
                     $warnMsg.removeClass("d-none");
+                    $publishAvailabilityMsg.addClass("d-none");
                 } else {
                     $publishIcon.removeClass("fa-lock").addClass("fa-globe");
                     $publishIconBox.removeClass("qa-icon-warning").addClass("qa-icon-muted");
                     $publishBtnText.text("Publish Course");
-                    $publishBtnDesc.text("Make course available");
+                    $publishBtnDesc.text(publishAvailabilityState.canPublish
+                        ? "Make course available"
+                        : publishAvailabilityState.message);
                     $statusBadge.removeClass("pill-success pill-warning pill-danger pill-primary")
                                 .addClass("pill-default")
                                 .html('<i class="fas fa-lock me-1"></i> Closed');
+                    setActionLinkState($btnTogglePublish, !publishAvailabilityState.canPublish);
                     setActionLinkState($btnDelete, false);
                     setActionLinkState($btnAssignment, true);
-                    $availability.html('<span class="tag-pill pill-default"><i class="fas fa-lock me-1"></i> Closed to new learners</span>');
+                    $availability.html(publishAvailabilityState.canPublish
+                        ? '<span class="tag-pill pill-default"><i class="fas fa-lock me-1"></i> Closed to new learners</span>'
+                        : '<span class="tag-pill pill-warning"><i class="fas fa-exclamation-triangle me-1"></i> Not ready to publish</span>');
                     $warnMsg.addClass("d-none");
+                    if (publishAvailabilityState.canPublish) {
+                        $publishAvailabilityMsg.addClass("d-none");
+                    } else {
+                        $publishAvailabilityMsg.removeClass("d-none").html(`<i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i>${window.escapeHtml(publishAvailabilityState.message)}`);
+                    }
                 }
 
                 if (currentCourseData) {
@@ -445,12 +466,12 @@
                         },
                         {
                             dataField: "resources",
-                            caption: "Resources",
+                            caption: "Content",
                             minWidth: 300,
                             allowSorting: false,
                             allowFiltering: false,
                             cellTemplate: function(container, options) {
-                                renderVersionResourcesCell(container, options.value || []);
+                                renderVersionContentCell(container, options.value || []);
                             }
                         },
                         {
@@ -507,9 +528,9 @@
                 }
             }
 
-            window.viewContent = async function(resourceId, resourceName) {
-                const apiUrl = `${serviceUrl}/Resources/${resourceId}/content`;
-                if (!resourceName.toLowerCase().endsWith('.zip')) {
+            window.previewContentItem = async function(contentId, contentName) {
+                const apiUrl = `${serviceUrl}/Resources/${contentId}/content`;
+                if (!contentName.toLowerCase().endsWith('.zip')) {
                     window.open(apiUrl, '_blank');
                     return;
                 }
@@ -529,7 +550,7 @@
             background: #ffffff;
         }
 
-        .resource-preview-loading {
+        .content-preview-loading {
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -538,7 +559,7 @@
     </style>
 </head>
 <body>
-    <div class="resource-preview-loading">Processing content...</div>
+    <div class="content-preview-loading">Processing content...</div>
 </body>
 </html>`);
                     previewWindow.document.close();
@@ -694,20 +715,6 @@
                 return dialog.show();
             }
 
-            async function ensureVersionReadyForActivation(versionId) {
-                const readiness = await tryGetVersionReadiness(versionId);
-                if (!readiness) {
-                    return true;
-                }
-
-                if (readiness.isReady) {
-                    return true;
-                }
-
-                await showVersionReadinessDialog(versionId, readiness);
-                return false;
-            }
-
             async function tryGetVersionReadiness(versionId, forceRefresh) {
                 try {
                     return await getVersionReadiness(versionId, forceRefresh);
@@ -743,22 +750,60 @@
                 return readiness;
             }
 
+            async function updatePublishAvailabilityState(versions) {
+                publishAvailabilityState = await getPublishAvailabilityState(versions);
+                updateStatusUI(isCourseActive);
+            }
+
+            async function getPublishAvailabilityState(versions) {
+                const activeVersion = (versions || []).find(function(version) {
+                    return version.isActive;
+                });
+
+                if (!activeVersion) {
+                    return {
+                        canPublish: false,
+                        message: 'Set one version as Active before publishing this course.'
+                    };
+                }
+
+                try {
+                    const readiness = await tryGetVersionReadiness(activeVersion.id, true);
+                    if (readiness && !readiness.isReady) {
+                        return {
+                            canPublish: false,
+                            message: 'The active version still has content that is not ready.'
+                        };
+                    }
+                } catch {
+                    return {
+                        canPublish: true,
+                        message: ''
+                    };
+                }
+
+                return {
+                    canPublish: true,
+                    message: ''
+                };
+            }
+
             function showVersionReadinessDialog(versionId, readiness) {
                 const issues = Array.isArray(readiness?.issues) ? readiness.issues : [];
                 const issueItems = issues.length
                     ? issues.map(function(issue) {
-                        const resourceName = window.escapeHtml(issue.resourceName || 'Unnamed resource');
+                        const contentName = window.escapeHtml(issue.resourceName || 'Unnamed content item');
                         const reason = window.escapeHtml(issue.reason || 'Not ready');
-                        return `<li><strong>${resourceName}</strong> <span class="text-secondary">${reason}</span></li>`;
+                        return `<li><strong>${contentName}</strong> <span class="text-secondary">${reason}</span></li>`;
                     }).join('')
-                    : '<li><span class="text-secondary">This version has no published learning resources yet.</span></li>';
+                    : '<li><span class="text-secondary">This version has no published learning content yet.</span></li>';
 
                 const messageHtml = `
                     <div class="text-start">
-                        <div class="u-fs-12 text-secondary mb-2">This version still could not be activated after automatic preparation. Fix the listed resource issues first.</div>
+                        <div class="u-fs-12 text-secondary mb-2">This version still could not be activated after automatic preparation. Fix the listed content issues first.</div>
                         <div class="tag-pill pill-warning mb-3">${window.escapeHtml(window.formatAdminCountLabel(issues.length || readiness.resourceCount || 0, 'issue'))}</div>
                         <ul class="ps-3 mb-3 u-fs-11">${issueItems}</ul>
-                        <div class="u-fs-11 text-secondary">Open the version editor to replace the affected resources, or repair the stored SCORM package and try again.</div>
+                        <div class="u-fs-11 text-secondary">Open the version editor to replace the affected content items, or repair the stored SCORM package and try again.</div>
                     </div>`;
 
                 const dialog = DevExpress.ui.dialog.custom({
@@ -896,9 +941,9 @@
 
                     isCourseActive = courseData.isActive;
                     updateCourseHeader(courseData.courseName, courseData.courseCode);
-                    updateStatusUI(isCourseActive);
-                    renderCourseSummary(currentCourseData, dashboardKpi, versions);
                     renderVersionsGrid(versions);
+                    await updatePublishAvailabilityState(versions);
+                    renderCourseSummary(currentCourseData, dashboardKpi, versions);
                 } catch (xhr) {
                     showToast(`Error loading course: ${window.getApiErrorMessage(xhr, 'Unknown error')}`, 'error');
                     console.log(xhr);
@@ -921,7 +966,7 @@
                         ? `<span class="tag-pill pill-success">Version ${activeVersion.versionNumber}</span>`
                         : '<span class="tag-pill pill-default">No active version</span>'
                 );
-                $("#summary-resource-count").text(window.formatAdminCountLabel((activeVersion?.resources || []).length, 'resource'));
+                $("#summary-content-count").text(window.formatAdminCountLabel((activeVersion?.resources || []).length, 'content item', 'content items'));
 
                 $("#stat-version-count").text(kpi.versionCount ?? (versions || []).length);
                 $("#stat-assignment-count").text(kpi.assignmentCount ?? 0);
@@ -1163,10 +1208,10 @@
                 return window.formatAdminDate(value, EMPTY_TEXT);
             }
 
-            function renderVersionResourcesCell(container, resources) {
-                const items = Array.isArray(resources) ? resources : [];
+            function renderVersionContentCell(container, resources) {
+                const contentItems = Array.isArray(resources) ? resources : [];
 
-                if (!items.length) {
+                if (!contentItems.length) {
                     $("<span>")
                         .addClass('text-muted u-fs-11')
                         .text('No files attached')
@@ -1174,14 +1219,14 @@
                     return;
                 }
 
-                const $stack = $("<div>").addClass('d-flex flex-column gap-1 version-resource-stack');
+                const $stack = $("<div>").addClass('d-flex flex-column gap-1 version-content-stack');
 
-                items.slice(0, 2).forEach(function(resource, index) {
-                    const $row = $("<div>").addClass('d-flex align-items-center gap-2 version-resource-line');
-                    const typeTone = resource.typeId === 1 ? 'pill-primary' : 'pill-warning';
-                    const typeName = resource.typeName || (resource.typeId === 1 ? 'Learn' : 'Exam');
-                    const readinessTone = resource.isActive ? 'pill-success' : 'pill-danger';
-                    const readinessLabel = resource.isActive ? 'Published' : 'Not Ready';
+                contentItems.slice(0, 2).forEach(function(contentItem, index) {
+                    const $row = $("<div>").addClass('d-flex align-items-center gap-2 version-content-line');
+                    const typeTone = contentItem.typeId === 1 ? 'pill-primary' : 'pill-warning';
+                    const typeName = contentItem.typeName || (contentItem.typeId === 1 ? 'Learn' : 'Exam');
+                    const readinessTone = contentItem.isActive ? 'pill-success' : 'pill-danger';
+                    const readinessLabel = contentItem.isActive ? 'Published' : 'Not Ready';
 
                     $("<span>")
                         .addClass('u-fs-11 text-secondary')
@@ -1190,8 +1235,8 @@
 
                     $("<span>")
                         .addClass('text-truncate flex-grow-1 u-fs-11')
-                        .attr('title', resource.name || 'Unnamed resource')
-                        .text(resource.name || 'Unnamed resource')
+                        .attr('title', contentItem.name || 'Unnamed content item')
+                        .text(contentItem.name || 'Unnamed content item')
                         .appendTo($row);
 
                     $("<span>")
@@ -1204,13 +1249,13 @@
                         .text(readinessLabel)
                         .appendTo($row);
 
-                    if (resource.isActive) {
+                    if (contentItem.isActive) {
                         $("<button>")
                             .attr({ type: 'button', title: 'Preview' })
-                            .addClass('version-resource-preview-btn')
+                            .addClass('version-content-preview-btn')
                             .append($('<i>').addClass('fas fa-external-link-alt'))
                             .on('click', function() {
-                                window.viewContent(resource.id, resource.name || '');
+                                window.previewContentItem(contentItem.id, contentItem.name || '');
                             })
                             .appendTo($row);
                     }
@@ -1218,10 +1263,10 @@
                     $row.appendTo($stack);
                 });
 
-                if (items.length > 2) {
+                if (contentItems.length > 2) {
                     $("<div>")
-                        .addClass('version-resource-more')
-                        .text(`+${items.length - 2} more`)
+                    .addClass('version-content-more')
+                    .text(`+${contentItems.length - 2} more`)
                         .appendTo($stack);
                 }
 
@@ -1238,6 +1283,7 @@
 
                     renderVersionsGrid(response.data || []);
                     dashboardKpi.versionCount = (response.data || []).length;
+                    await updatePublishAvailabilityState(response.data || []);
                     renderCourseSummary(currentCourseData || {}, dashboardKpi, response.data || []);
                 } catch {
                     showToast('Error loading versions.', 'error');
