@@ -104,6 +104,14 @@ if ($PSCmdlet.ShouldProcess($deployPath, "Copy publish output from $resolvedPubl
     Copy-Item -Path (Join-Path $resolvedPublishOutput '*') -Destination $deployPath -Recurse -Force
 }
 
+$appSettingsFiles = Get-ChildItem -LiteralPath $resolvedPublishOutput -Filter 'appsettings*.json' -File -ErrorAction SilentlyContinue
+foreach ($appSettingsFile in $appSettingsFiles) {
+    $rootConfigPath = Join-Path $DeployRoot $appSettingsFile.Name
+    if ($PSCmdlet.ShouldProcess($rootConfigPath, "Sync config file from $($appSettingsFile.FullName)")) {
+        Copy-Item -LiteralPath $appSettingsFile.FullName -Destination $rootConfigPath -Force
+    }
+}
+
 [xml]$webConfig = Get-Content -LiteralPath $webConfigPath
 $aspNetCoreNode = $webConfig.SelectSingleNode('//aspNetCore')
 if ($null -eq $aspNetCoreNode) {
