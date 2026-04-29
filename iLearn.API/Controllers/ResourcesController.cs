@@ -148,7 +148,7 @@ namespace iLearn.API.Controllers
             try
             {
                 var resource = await _resourceRepo.GetByIdAsync(key);
-                if (resource == null) return NotFound("Resource not found");
+                if (resource == null) return NotFound("Content item not found");
 
                 var fileStorage = await _fileRepo.GetByIdAsync(resource.FileStorageId ?? 0);
                 if (fileStorage == null || fileStorage.Data == null)
@@ -195,14 +195,14 @@ namespace iLearn.API.Controllers
                     actionType: "PublishResource",
                     entityType: nameof(Resource),
                     entityId: resource.Id,
-                    title: $"Published resource {resource.Name}",
-                    description: $"Published resource '{resource.Name}'.");
+                    title: $"Published content item {resource.Name}",
+                    description: $"Published content item '{resource.Name}'.");
                 return Ok(resource.ToDto());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error activating resource");
-                return StatusCode(500, $"Error activating resource: {ex.Message}");
+                return StatusCode(500, $"Error publishing content item: {ex.Message}");
             }
         }
 
@@ -216,13 +216,13 @@ namespace iLearn.API.Controllers
                     .FirstOrDefaultAsync(r => r.Id == key);
 
                 if (resource == null)
-                    return NotFound(new { message = "Resource not found." });
+                    return NotFound(new { message = "Content item not found." });
 
                 if (!resource.IsActive)
-                    return BadRequest(new { message = "Resource is not published." });
+                    return BadRequest(new { message = "Content item is not published." });
 
                 if (resource.CourseResources.Any())
-                    return BadRequest(new { message = "Cannot unpublish a resource that is assigned to courses. Remove all course assignments first." });
+                    return BadRequest(new { message = "Cannot unpublish a content item that is used by courses. Remove it from all course versions first." });
 
                 if (!string.IsNullOrEmpty(resource.URL))
                 {
@@ -383,7 +383,7 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> BatchUnpublish([FromBody] List<int> ids)
         {
             if (ids == null || ids.Count == 0)
-                return BadRequest(new { message = "No resource IDs provided." });
+                return BadRequest(new { message = "No content items selected." });
 
             int success = 0;
             int failed = 0;
@@ -416,7 +416,7 @@ namespace iLearn.API.Controllers
                 }
             }
 
-            return Ok(new { success, failed, errors, message = $"Unpublished {success} resource(s). {failed} failed." });
+            return Ok(new { success, failed, errors, message = $"Unpublished {success} content item(s). {failed} failed." });
         }
 
         /// <summary>
@@ -426,7 +426,7 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> BatchPublish([FromBody] List<int> ids)
         {
             if (ids == null || ids.Count == 0)
-                return BadRequest(new { message = "No resource IDs provided." });
+                return BadRequest(new { message = "No content items selected." });
 
             int success = 0;
             int failed = 0;
@@ -465,7 +465,7 @@ namespace iLearn.API.Controllers
                 }
             }
 
-            return Ok(new { success, failed, errors, message = $"Published {success} resource(s). {failed} failed." });
+            return Ok(new { success, failed, errors, message = $"Published {success} content item(s). {failed} failed." });
         }
 
         [HttpPost("Admin/BatchPublishStream")]
@@ -482,7 +482,7 @@ namespace iLearn.API.Controllers
             var success = 0;
             var failed = 0;
             var operationId = _maintenanceStatusService.BeginOperation(
-                "Batch Publish Resources",
+                "Batch Publish Content",
                 ids?.Count ?? 0,
                 User.Identity?.Name ?? "SYSTEM");
 
@@ -499,15 +499,15 @@ namespace iLearn.API.Controllers
 
             if (ids == null || ids.Count == 0)
             {
-                _maintenanceStatusService.CompleteOperation(operationId, false, "No resource IDs provided", success, failed);
+                _maintenanceStatusService.CompleteOperation(operationId, false, "No content items selected", success, failed);
                 await WriteProgressAsync(new BulkOperationProgressDto
                 {
                     IsComplete = true,
-                    CurrentStep = "No resource IDs provided.",
+                    CurrentStep = "No content items selected.",
                     LatestResult = new BulkOperationItemDto
                     {
                         Success = false,
-                        ErrorMessage = "No resource IDs provided."
+                        ErrorMessage = "No content items selected."
                     },
                     ElapsedTime = stopwatch.Elapsed
                 });
@@ -534,12 +534,12 @@ namespace iLearn.API.Controllers
                     {
                         failed++;
                         progress.FailureCount = failed;
-                        progress.CurrentStep = "Resource not found";
+                        progress.CurrentStep = "Content item not found";
                         progress.LatestResult = new BulkOperationItemDto
                         {
                             ResourceId = resourceId,
                             Success = false,
-                            ErrorMessage = "Resource not found."
+                            ErrorMessage = "Content item not found."
                         };
                         _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                         await WriteProgressAsync(progress);
@@ -547,7 +547,7 @@ namespace iLearn.API.Controllers
                     }
 
                     progress.CurrentResourceName = resource.Name;
-                    progress.CurrentStep = "Loading resource";
+                    progress.CurrentStep = "Loading content item";
                     _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                     await WriteProgressAsync(progress);
 
@@ -555,13 +555,13 @@ namespace iLearn.API.Controllers
                     {
                         failed++;
                         progress.FailureCount = failed;
-                        progress.CurrentStep = "Skipped because the resource is already published";
+                        progress.CurrentStep = "Skipped because the content item is already published";
                         progress.LatestResult = new BulkOperationItemDto
                         {
                             ResourceId = resource.Id,
                             ResourceName = resource.Name,
                             Success = false,
-                            ErrorMessage = "Resource is already published."
+                            ErrorMessage = "Content item is already published."
                         };
                         _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                         await WriteProgressAsync(progress);
@@ -633,7 +633,7 @@ namespace iLearn.API.Controllers
                     }
                     else
                     {
-                        progress.CurrentStep = "Preparing non-SCORM resource";
+                        progress.CurrentStep = "Preparing non-SCORM content";
                         _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentResourceName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                         await WriteProgressAsync(progress);
                         itemResult.Details = $"File type {extension}";
@@ -692,7 +692,7 @@ namespace iLearn.API.Controllers
                 entityType: nameof(Resource),
                 entityId: null,
                 title: "Completed batch publish",
-                description: $"Batch published {success} resource(s) with {failed} failure(s).");
+                description: $"Batch published {success} content item(s) with {failed} failure(s).");
             await WriteProgressAsync(new BulkOperationProgressDto
             {
                 CurrentItem = ids.Count,
@@ -977,7 +977,7 @@ namespace iLearn.API.Controllers
 
                 _logger.LogWarning($"🚨 Starting Bulk Delete for {result.TotalProcessed} published resources");
                 operationId = _maintenanceStatusService.BeginOperation(
-                    "Unpublish All Published Resources",
+                    "Unpublish All Published Content",
                     result.TotalProcessed,
                     User.Identity?.Name ?? "SYSTEM");
                 _maintenanceStatusService.UpdateOperation(operationId, "Starting unpublish all", currentItem: 0, successCount: 0, failureCount: 0);
@@ -1024,7 +1024,7 @@ namespace iLearn.API.Controllers
                         result.SuccessCount++;
                         ResourceStatsCache.Invalidate(_cache);
                         result.Results.Add(itemResult);
-                        _maintenanceStatusService.UpdateOperation(operationId, "Updating resource to draft", resource.Name, currentItem, result.SuccessCount, result.FailureCount);
+                        _maintenanceStatusService.UpdateOperation(operationId, "Updating content item to draft", resource.Name, currentItem, result.SuccessCount, result.FailureCount);
 
                         _logger.LogInformation($"✅ [{result.SuccessCount}/{result.TotalProcessed}] {resource.Name} - {itemResult.Details}");
                     }
@@ -1050,8 +1050,8 @@ namespace iLearn.API.Controllers
                     actionType: "UnpublishAllResources",
                     entityType: nameof(Resource),
                     entityId: null,
-                    title: "Completed unpublish all published resources",
-                    description: $"Unpublished {result.SuccessCount} resource(s) with {result.FailureCount} failure(s).");
+                    title: "Completed unpublish all published content",
+                    description: $"Unpublished {result.SuccessCount} content item(s) with {result.FailureCount} failure(s).");
 
                 _logger.LogInformation($"🎉 Bulk Delete Completed: {result.Summary}");
 

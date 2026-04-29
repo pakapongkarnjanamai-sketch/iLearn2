@@ -622,7 +622,7 @@
         $("#member-summary-note").text(window.formatAdminCountLabel(preview.selectedMemberCount, "member"));
         $("#assignment-summary-note").text(preview.unenrollFromRelatedAssignments
             ? window.formatAdminCountLabel(preview.selectedAssignmentCount, "batch")
-            : "Not unenrolled");
+            : "No assignment links selected");
 
         $("#member-summary-table").html(buildMembersSummaryTable(preview.members || []));
         $("#assignment-summary-table").html(buildAssignmentsSummaryTable(preview.assignments || []));
@@ -641,7 +641,7 @@
             return `
                 <tr>
                     <td><div class="tag-pill pill-default fw-bold">${escapeHtml(member.studentCode || EMPTY_TEXT)}</div></td>
-                    <td><div class="admin-student-name">${escapeHtml(member.studentName || member.studentCode || EMPTY_TEXT)}</div></td>
+                    <td><div class="admin-review-item-name">${escapeHtml(member.studentName || member.studentCode || EMPTY_TEXT)}</div></td>
                     <td>${escapeHtml(member.position || EMPTY_TEXT)}</td>
                     <td>${enrollPill}</td>
                 </tr>`;

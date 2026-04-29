@@ -216,7 +216,7 @@
                         if (count === 0) {
                             window.renderAdminGridTextCell(container, "None", "captionMuted");
                         } else {
-                            window.renderAdminGridTextCell(container, count + " enrolled", "captionAccent");
+                            window.renderAdminGridTextCell(container, window.formatAdminCountLabel(count, "enrollment"), "captionAccent");
                         }
                     }
                 },

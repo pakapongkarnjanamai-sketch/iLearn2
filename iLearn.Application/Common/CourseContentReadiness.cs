@@ -19,12 +19,12 @@ namespace iLearn.Application.Common
         {
             if (resource == null)
             {
-                return new ResourceReadinessIssue(resourceId, $"Resource {resourceId}", "resource record is missing");
+                return new ResourceReadinessIssue(resourceId, $"Content item {resourceId}", "content item record is missing");
             }
 
             if (!resource.IsActive)
             {
-                return new ResourceReadinessIssue(resource.Id, resource.Name, "resource is not published");
+                return new ResourceReadinessIssue(resource.Id, resource.Name, "content item is not published");
             }
 
             if (string.IsNullOrWhiteSpace(resource.URL))
@@ -61,16 +61,16 @@ namespace iLearn.Application.Common
         {
             if (resourceCount == 0)
             {
-                return "Cannot activate this course version because it has no learning resources.";
+                return "Cannot activate this course version because it has no content items.";
             }
 
             var detail = string.Join("; ", issues.Take(5).Select(issue => $"{issue.ResourceName}: {issue.Reason}"));
             if (issues.Count > 5)
             {
-                detail += $"; and {issues.Count - 5} more resource(s)";
+                detail += $"; and {issues.Count - 5} more content item(s)";
             }
 
-            return $"Cannot activate this course version because its learning resources are not ready. {detail}";
+            return $"Cannot activate this course version because its content items are not ready. {detail}";
         }
 
         private static bool LooksLikeDirectLaunchUrl(string url)

@@ -533,7 +533,7 @@ namespace iLearn.API.Controllers
             var requestedStudentCodes = NormalizeStudentCodes(dto.EmployeeCodes);
             if (requestedStudentCodes.Count == 0)
             {
-                return BadRequest(new { message = "At least one student is required." });
+                return BadRequest(new { message = "At least one learner is required." });
             }
 
             var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
@@ -545,7 +545,7 @@ namespace iLearn.API.Controllers
 
             if (newStudentCodes.Count == 0)
             {
-                return Ok(new { success = true, message = "No new students were added.", addedCount = 0 });
+                return Ok(new { success = true, message = "No new learners were added.", addedCount = 0 });
             }
 
             var updatedStudentCodes = currentStudentCodes
@@ -576,7 +576,7 @@ namespace iLearn.API.Controllers
 
                 await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return Ok(new { success = true, message = "Students added successfully.", addedCount = newStudentCodes.Count });
+                return Ok(new { success = true, message = "Learners added successfully.", addedCount = newStudentCodes.Count });
             }
             catch
             {
@@ -600,7 +600,7 @@ namespace iLearn.API.Controllers
             var normalizedStudentCode = studentCode?.Trim();
             if (string.IsNullOrWhiteSpace(normalizedStudentCode))
             {
-                return BadRequest(new { message = "Student code is required." });
+                return BadRequest(new { message = "Learner code is required." });
             }
 
             var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
@@ -608,7 +608,7 @@ namespace iLearn.API.Controllers
             var currentStudentCodes = await GetBatchStudentCodesAsync(ruleIds, batchRules);
             if (!currentStudentCodes.Contains(normalizedStudentCode, StringComparer.OrdinalIgnoreCase))
             {
-                return NotFound(new { message = "Student is not assigned to this assignment." });
+                return NotFound(new { message = "Learner is not assigned to this assignment." });
             }
 
             var remainingStudentCodes = currentStudentCodes
@@ -638,7 +638,7 @@ namespace iLearn.API.Controllers
 
                 await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return Ok(new { success = true, message = "Student removed successfully." });
+                return Ok(new { success = true, message = "Learner removed successfully." });
             }
             catch
             {

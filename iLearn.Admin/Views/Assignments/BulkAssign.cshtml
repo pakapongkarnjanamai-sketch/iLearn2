@@ -1122,7 +1122,7 @@
                     return `<tr>
                         <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.EId || EMPTY_TEXT)}</span></td>
                         <td>
-                            <div class="admin-student-name">${window.escapeHtml(name)}</div>
+                            <div class="admin-review-item-name">${window.escapeHtml(name)}</div>
                         </td>
                         <td>${window.escapeHtml(row.Position || EMPTY_TEXT)}</td>
                     </tr>`;
@@ -1180,7 +1180,7 @@
                                     <span class="fw-medium">${c.courseTitle}</span>
                                     <span class="text-muted small ms-2"><i class="fas fa-check-circle me-1"></i>${window.formatAdminDate(c.completedDate, EMPTY_TEXT)}</span>
                                 </li>`).join('')}</ul>
-                            <div class="text-muted small mt-2">Previous history is retained and learners will be re-enrolled.</div>
+                            <div class="text-muted small mt-2">Previous history is retained and learners will be reassigned.</div>
                         </div>`);
                 }
 
