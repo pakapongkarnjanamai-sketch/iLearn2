@@ -80,22 +80,18 @@
 @section Scripts {
     <script>
         let gridInstance;
+        const LEARNER_STATUS_MAP = window.getAdminLearnerStatusMap();
         const statusOptions = [
             { id: 'all', name: 'All' },
-            { id: 'completed', name: 'Completed' },
-            { id: 'inprogress', name: 'In Progress' },
-            { id: 'enrolled', name: 'Not Started' }
+            { id: 'completed', name: LEARNER_STATUS_MAP.Completed.text },
+            { id: 'inprogress', name: LEARNER_STATUS_MAP.InProgress.text },
+            { id: 'enrolled', name: LEARNER_STATUS_MAP.NotStarted.text }
         ];
         const summaryKpiIds = ['kpi-total', 'kpi-completed', 'kpi-inprogress', 'kpi-enrolled', 'kpi-avgprogress'];
         const summaryStatsCacheTtlMs = 30000;
         let summaryStatsRequest = null;
         let summaryStatsCache = null;
         let summaryStatsCacheAt = 0;
-        const enrollmentStatusToneMap = {
-            Completed: "success",
-            "In Progress": "primary",
-            "Not Started": "default"
-        };
 
         let filterCourseId = null;
         let filterStatus = 'all';
@@ -325,15 +321,9 @@
                         caption: "Status", width: 120, alignment: "center",
                         allowEditing: false,
                         calculateCellValue: function(r) {
-                            if (r.isCompleted) return "Completed";
-                            if (r.progress > 0) return "In Progress";
-                            return "Not Started";
+                            return window.getAdminLearnerStatusKey(r.isCompleted, r.progress);
                         },
-                        cellTemplate: (container, options) => window.renderAdminGridStatusCell(
-                            container,
-                            options.value,
-                            enrollmentStatusToneMap[options.value] || "default"
-                        )
+                        cellTemplate: (container, options) => window.renderAdminStatusCell(container, options.value, LEARNER_STATUS_MAP)
                     },
                     {
                         dataField: "progress", caption: "Progress", width: 100, alignment: "center",

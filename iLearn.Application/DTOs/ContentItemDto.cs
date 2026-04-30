@@ -6,6 +6,8 @@
         public string Name { get; set; } = string.Empty;
         public int TypeId { get; set; } // 1=Learn, 2=Exam
         public bool IsActive { get; set; }
+        public bool IsPublished => IsActive;
+        public string PublishState => IsPublished ? "Published" : "Unpublished";
 
         // เราจะไม่ส่ง byte[] กลับไปใน DTO นี้ (เพราะมันใหญ่)
         // แต่จะส่ง URL หรือ Path ให้ Frontend เรียกแทน

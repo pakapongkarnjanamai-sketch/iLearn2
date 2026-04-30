@@ -106,13 +106,16 @@ namespace iLearn.API.Controllers
                 return validation.ErrorResult;
             }
 
-            var version = (await _versionRepo.GetAsync(v => v.Id == validation.VersionId, includeProperties: "CourseContentItems")).FirstOrDefault();
+            var version = (await _versionRepo.GetAsync(v => v.Id == validation.VersionId, includeProperties: "CourseContentItems.ContentItem")).FirstOrDefault();
             if (version?.CourseContentItems == null)
             {
                 return BadRequest(new ApiResponse<string> { Success = false, Message = "Course version contentItems were not found." });
             }
 
             var validContentItemIds = version.CourseContentItems.Select(cr => cr.ContentItemId).ToHashSet();
+            var contentTypeByContentItemId = version.CourseContentItems
+                .GroupBy(courseContentItem => courseContentItem.ContentItemId)
+                .ToDictionary(group => group.Key, group => group.First().ContentItem?.TypeId);
             var runtimeContentItems = input.ContentItems
                 .Where(contentItem => validContentItemIds.Contains(contentItem.ContentItemId))
                 .ToList();
@@ -124,7 +127,11 @@ namespace iLearn.API.Controllers
 
             var persistedStates = await _scormRuntimeStateService.UpsertAsync(input.EnrollmentId, runtimeContentItems);
             var progressUpdates = runtimeContentItems
-                .Select(MapRuntimeCommitToProgress)
+                .Select(contentItem =>
+                {
+                    contentTypeByContentItemId.TryGetValue(contentItem.ContentItemId, out var contentTypeId);
+                    return MapRuntimeCommitToProgress(contentItem, contentTypeId);
+                })
                 .ToList();
 
             await UpsertLearningLogsAsync(input.EnrollmentId, validation.VersionId, learnerCode, progressUpdates, incrementAttemptCount: false, resetAt: validation.Enrollment!.ResetAt);
@@ -430,7 +437,7 @@ namespace iLearn.API.Controllers
             AdminSummaryStatsCache.InvalidateEnrollments(_cache);
         }
 
-        private static ContentItemProgressUpdate MapRuntimeCommitToProgress(ScormRuntimeContentItemCommitDto contentItem)
+        private static ContentItemProgressUpdate MapRuntimeCommitToProgress(ScormRuntimeContentItemCommitDto contentItem, int? contentTypeId)
         {
             var scormVersion = ScormRuntimeFieldMap.NormalizeVersion(contentItem.ScormVersion);
             var normalizedCompletionStatus = IsScorm12(scormVersion)
@@ -439,11 +446,16 @@ namespace iLearn.API.Controllers
             var normalizedSuccessStatus = IsScorm12(scormVersion)
                 ? NormalizeScorm12SuccessStatus(contentItem.LessonStatus)
                 : ScormRuntimeFieldMap.NormalizeSuccessStatus(contentItem.LessonStatus, contentItem.SuccessStatus);
+            var resolvedStatus = ScormContentStatusPolicy.ResolveStatus(
+                contentTypeId,
+                contentItem.LessonStatus,
+                normalizedCompletionStatus,
+                normalizedSuccessStatus);
 
             return new ContentItemProgressUpdate(
                 contentItem.ContentItemId,
-                DeriveLegacyStatus(contentItem.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
-                DeriveLegacyProgress(contentItem.LessonStatus, normalizedCompletionStatus, normalizedSuccessStatus),
+                resolvedStatus,
+                ScormContentStatusPolicy.ResolveCompletionProgress(resolvedStatus),
                 contentItem.RawScore.HasValue ? (int)Math.Round(contentItem.RawScore.Value, MidpointRounding.AwayFromZero) : null,
                 contentItem.SessionTime);
         }
@@ -463,56 +475,6 @@ namespace iLearn.API.Controllers
                 "" => null,
                 _ => "unknown"
             };
-        }
-
-        private static string DeriveLegacyStatus(string? lessonStatus, string? completionStatus, string? successStatus)
-        {
-            if (string.Equals(successStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase))
-            {
-                return "failed";
-            }
-
-            if (string.Equals(successStatus, "passed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "passed", StringComparison.OrdinalIgnoreCase))
-            {
-                return "passed";
-            }
-
-            if (string.Equals(completionStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "browsed", StringComparison.OrdinalIgnoreCase))
-            {
-                return "completed";
-            }
-
-            return "incomplete";
-        }
-
-        private static double? DeriveLegacyProgress(string? lessonStatus, string? completionStatus, string? successStatus)
-        {
-            if (string.Equals(successStatus, "failed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "failed", StringComparison.OrdinalIgnoreCase))
-            {
-                return 0;
-            }
-
-            if (string.Equals(completionStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "completed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "passed", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "browsed", StringComparison.OrdinalIgnoreCase))
-            {
-                return 100;
-            }
-
-            if (string.Equals(completionStatus, "incomplete", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "incomplete", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(lessonStatus, "not attempted", StringComparison.OrdinalIgnoreCase))
-            {
-                return 0;
-            }
-
-            return null;
         }
 
         private sealed record ContentItemProgressUpdate(

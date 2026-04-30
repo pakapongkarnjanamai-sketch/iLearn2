@@ -248,6 +248,73 @@
 
             const latestResult = progress.latestResult || progress.LatestResult || null;
 
+
+        function previewBatchUnpublish(keys) {
+            return $.ajax({
+                url: `${serviceUrl}/ContentItems/Admin/PreviewBatchUnpublish`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(keys),
+                xhrFields: { withCredentials: true }
+            });
+        }
+
+        function renderBlockedUnpublishItems(blockedItems) {
+            if (!Array.isArray(blockedItems) || blockedItems.length === 0) {
+                return '';
+            }
+
+            const visibleItems = blockedItems.slice(0, 3).map(function(item) {
+                const linkedCourses = Array.isArray(item.linkedCourseCodes) && item.linkedCourseCodes.length > 0
+                    ? ` <span class="u-text-secondary-60">(${escapeAdminHtml(item.linkedCourseCodes.join(', '))})</span>`
+                    : '';
+                return `<li><strong>${escapeAdminHtml(item.name || `Content #${item.contentItemId}`)}</strong>${linkedCourses}</li>`;
+            }).join('');
+
+            const remainingCount = blockedItems.length - 3;
+            const remainingNote = remainingCount > 0
+                ? `<div class="dialog-body-sm u-text-secondary-60 mt-2">Plus ${window.formatAdminCountLabel(remainingCount, 'more blocked item', 'more blocked items')}.</div>`
+                : '';
+
+            return `
+                <div class="mt-2 text-start">
+                    <div class="dialog-body-sm u-text-danger mb-1">Blocked by current course-version usage:</div>
+                    <ul class="dialog-body-sm ps-3 mb-0">${visibleItems}</ul>
+                    ${remainingNote}
+                </div>`;
+        }
+
+        function buildBatchUnpublishPreviewHtml(preview, itemCount) {
+            const blockedItems = Array.isArray(preview.items)
+                ? preview.items.filter(function(item) { return !item.canUnpublish; })
+                : [];
+
+            return `
+                <div class="u-text-secondary-60 text-start">
+                    <p>This will remove extracted files from the server for <strong>${window.formatAdminCountLabel(preview.eligibleCount || 0, 'content item', 'content items')}</strong>.</p>
+                    <p>Original .zip files in the database will be kept.</p>
+                    ${preview.blockedCount > 0
+                        ? `<p class="dialog-body-sm u-text-danger">${window.formatAdminCountLabel(preview.blockedCount, 'selected item is', 'selected items are')} still used by course versions and will be skipped.</p>`
+                        : `<p class="dialog-body-sm">All ${window.formatAdminCountLabel(itemCount, 'selected item is', 'selected items are')} eligible for unpublish.</p>`}
+                    ${renderBlockedUnpublishItems(blockedItems)}
+                </div>`;
+        }
+
+        function buildUnpublishAllPreviewHtml(preview) {
+            const blockedItems = Array.isArray(preview.contentItems)
+                ? preview.contentItems.filter(function(item) { return !item.canUnpublish; })
+                : [];
+
+            return `
+                <div class="u-text-secondary-60 text-start">
+                    <p>This will unpublish <strong>${window.formatAdminCountLabel(preview.eligibleCount || 0, 'published content item', 'published content items')}</strong> through the shared content publication policy.</p>
+                    <p>Original .zip files in the database will be kept.</p>
+                    ${preview.blockedCount > 0
+                        ? `<p class="dialog-body-sm u-text-danger">${window.formatAdminCountLabel(preview.blockedCount, 'published item is', 'published items are')} still linked to course versions and will be skipped.</p>`
+                        : `<p class="dialog-body-sm">No linked course-version blockers were found.</p>`}
+                    ${renderBlockedUnpublishItems(blockedItems)}
+                </div>`;
+        }
             return {
                 currentItem: progress.currentItem ?? progress.CurrentItem ?? 0,
                 totalItems: progress.totalItems ?? progress.TotalItems ?? 0,
@@ -902,34 +969,44 @@
                 $("#btnBulkUnpublish").off("click").on("click", function() {
                     const keys = unusedGridInstance.getSelectedRowKeys();
                     if (keys.length === 0) { showToast("Select content items to unpublish.", "warning"); return; }
-                    showAdminConfirmDialog({
-                        title: `Unpublish ${window.formatAdminCountLabel(keys.length, 'content item', 'content items')}?`,
-                        messageHtml: `<div class="u-text-secondary-60">This will delete extracted files from the server for <strong>${window.formatAdminCountLabel(keys.length, 'content item', 'content items')}</strong>.<br>Original .zip files in the database will be kept.</div>`,
-                        icon: 'warning',
-                        confirmButtonText: `Unpublish ${window.formatAdminInteger(keys.length, '0')}`,
-                        cancelButtonText: 'Cancel',
-                        confirmType: 'danger'
-                    }).done(confirmed => {
-                        if (confirmed) {
+                    previewBatchUnpublish(keys).done(function(preview) {
+                        if (!preview || !preview.eligibleCount) {
+                            const blockedCount = preview?.blockedCount || keys.length;
+                            showToast(`${window.formatAdminCountLabel(blockedCount, 'selected content item is', 'selected content items are')} still used by course versions and cannot be unpublished.`, "warning", 4500);
+                            return;
+                        }
+
+                        showAdminConfirmDialog({
+                            title: `Unpublish ${window.formatAdminCountLabel(preview.eligibleCount, 'content item', 'content items')}?`,
+                            messageHtml: buildBatchUnpublishPreviewHtml(preview, keys.length),
+                            icon: 'warning',
+                            confirmButtonText: `Unpublish ${window.formatAdminInteger(preview.eligibleCount, '0')}`,
+                            cancelButtonText: 'Cancel',
+                            confirmType: 'danger'
+                        }).done(function(confirmed) {
+                            if (!confirmed) return;
+
                             setButtonLoading("#btnBulkUnpublish", true, "Processing...");
                             showProcessingDialog('Unpublishing Content', 'Removing published files from the server. Please wait.');
                             $.ajax({
                                 url: `${serviceUrl}/ContentItems/Admin/BatchUnpublish`,
                                 type: 'POST',
                                 contentType: 'application/json',
-                                data: JSON.stringify(keys),
+                                data: JSON.stringify(preview.eligibleIds || keys),
                                 xhrFields: { withCredentials: true }
-                            }).done(res => {
+                            }).done(function(res) {
                                 showToast(res.message, "success");
                                 loadOptimizeData();
                                 refreshAll();
-                            }).fail(xhr => {
+                            }).fail(function(xhr) {
                                 showToast(xhr.responseJSON?.message || "Batch unpublish failed.", "error");
-                            }).always(() => {
+                            }).always(function() {
                                 closeProcessingDialog();
                                 setButtonLoading("#btnBulkUnpublish", false);
                             });
-                        }
+                        });
+                    }).fail(function(xhr) {
+                        showToast(xhr.responseJSON?.message || "Failed to analyze selected content items.", "error");
                     });
                 });
 
@@ -953,37 +1030,49 @@
                 });
 
                 $("#btnUnpublishAllPublished").off("click").on("click", function() {
-                    showAdminConfirmDialog({
-                        title: 'Unpublish all published content?',
-                        messageHtml: `<div class="u-text-secondary-60 text-start">
-                                   <p>This will remove all published SCORM folders/files from the server.</p>
-                                   <p>All affected content records will be reverted to draft status.</p>
-                                   <p class="u-text-danger dialog-body-sm">This action impacts every published content item.</p>
-                               </div>`,
-                        icon: 'warning',
-                        confirmButtonText: 'Unpublish All',
-                        cancelButtonText: 'Cancel',
-                        confirmType: 'danger'
-                    }).done(function(confirmed) {
-                        if (!confirmed) return;
+                    $.ajax({
+                        url: `${serviceUrl}/ContentItems/Admin/BulkDeletePublished`,
+                        type: 'DELETE',
+                        xhrFields: { withCredentials: true }
+                    }).done(function(preview) {
+                        if (!preview || !preview.eligibleCount) {
+                            const blockedCount = preview?.blockedCount || 0;
+                            showToast(blockedCount > 0
+                                ? `${window.formatAdminCountLabel(blockedCount, 'published content item is', 'published content items are')} still linked to course versions and were left unchanged.`
+                                : 'No published content items were eligible to unpublish.', 'warning', 4500);
+                            return;
+                        }
 
-                        setButtonLoading("#btnUnpublishAllPublished", true, "Processing...");
-                        showProcessingDialog('Unpublishing All Content', 'Removing all published files and reverting content to draft.');
+                        showAdminConfirmDialog({
+                            title: 'Unpublish all eligible published content?',
+                            messageHtml: buildUnpublishAllPreviewHtml(preview),
+                            icon: 'warning',
+                            confirmButtonText: `Unpublish ${window.formatAdminInteger(preview.eligibleCount, '0')}`,
+                            cancelButtonText: 'Cancel',
+                            confirmType: 'danger'
+                        }).done(function(confirmed) {
+                            if (!confirmed) return;
 
-                        $.ajax({
-                            url: `${serviceUrl}/ContentItems/Admin/BulkDeletePublished?confirmDelete=true`,
-                            type: 'DELETE',
-                            xhrFields: { withCredentials: true }
-                        }).done(function(res) {
-                            showToast(res.summary || 'All published content was unpublished.', 'success', 3500);
-                            loadOptimizeData();
-                            refreshAll();
-                        }).fail(function(xhr) {
-                            showToast(xhr.responseJSON?.message || 'Failed to unpublish all published content.', 'error', 4000);
-                        }).always(function() {
-                            closeProcessingDialog();
-                            setButtonLoading("#btnUnpublishAllPublished", false);
+                            setButtonLoading("#btnUnpublishAllPublished", true, "Processing...");
+                            showProcessingDialog('Unpublishing All Content', 'Removing published files and reverting eligible content to draft.');
+
+                            $.ajax({
+                                url: `${serviceUrl}/ContentItems/Admin/BulkDeletePublished?confirmDelete=true`,
+                                type: 'DELETE',
+                                xhrFields: { withCredentials: true }
+                            }).done(function(res) {
+                                showToast(res.summary || 'Eligible published content was unpublished.', 'success', 4000);
+                                loadOptimizeData();
+                                refreshAll();
+                            }).fail(function(xhr) {
+                                showToast(xhr.responseJSON?.message || 'Failed to unpublish published content.', 'error', 4000);
+                            }).always(function() {
+                                closeProcessingDialog();
+                                setButtonLoading("#btnUnpublishAllPublished", false);
+                            });
                         });
+                    }).fail(function(xhr) {
+                        showToast(xhr.responseJSON?.message || 'Failed to analyze published content usage.', 'error', 4000);
                     });
                 });
 

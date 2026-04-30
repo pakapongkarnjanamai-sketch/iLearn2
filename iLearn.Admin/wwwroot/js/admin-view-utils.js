@@ -498,12 +498,87 @@
             )
             .appendTo(container);
     }
+    const adminStatusPillClassMap = {
+        default: 'pill-default',
+        primary: 'pill-primary',
+        success: 'pill-success',
+        warning: 'pill-warning',
+        danger: 'pill-danger'
+    };
+    function resolveAdminStatusDefinition(value, map) {
+        const fallbackText = value === null || value === undefined || value === '' ? '\u2014' : String(value);
+        const resolved = (map && map[value]) || {};
+        const tone = normalizeAdminGridTone(resolved.tone || resolved.cls || 'default');
+
+        return {
+            tone: tone,
+            text: resolved.text || fallbackText,
+            showDot: resolved.showDot !== false,
+            variant: resolved.variant,
+            iconClass: resolved.iconClass
+        };
+    }
+    function getAdminStatusPillClass(tone) {
+        const resolvedTone = normalizeAdminGridTone(tone);
+        return adminStatusPillClassMap[resolvedTone] || adminStatusPillClassMap.default;
+    }
+    function buildAdminStatusPillHtml(value, map, options) {
+        const opts = options || {};
+        const resolved = resolveAdminStatusDefinition(value, map);
+        const text = opts.text === null || opts.text === undefined ? resolved.text : opts.text;
+        const className = [getAdminStatusPillClass(resolved.tone), opts.extraClasses || ''].filter(Boolean).join(' ');
+
+        return `<span class="tag-pill ${className}">${escapeHtml(text)}</span>`;
+    }
+    function getAdminAssignmentStatusMap(options) {
+        const opts = $.extend({
+            expiredText: 'Overdue'
+        }, options || {});
+
+        return {
+            Completed: { tone: 'success', text: 'Completed' },
+            Upcoming: { tone: 'warning', text: 'Upcoming' },
+            Expired: { tone: 'danger', text: opts.expiredText },
+            InProgress: { tone: 'primary', text: 'In Progress' }
+        };
+    }
+    function getAdminLearnerStatusMap(options) {
+        const opts = $.extend({
+            overdueText: 'Overdue'
+        }, options || {});
+        const overdueText = opts.overdueText || opts.expiredText || 'Overdue';
+
+        return {
+            Completed: { tone: 'success', text: 'Completed' },
+            Upcoming: { tone: 'warning', text: 'Upcoming' },
+            Overdue: { tone: 'danger', text: overdueText },
+            InProgress: { tone: 'primary', text: 'In Progress' },
+            'In Progress': { tone: 'primary', text: 'In Progress' },
+            NotStarted: { tone: 'default', text: 'Not Started' },
+            'Not Started': { tone: 'default', text: 'Not Started' }
+        };
+    }
+    function getAdminLearnerStatusKey(isCompleted, progress) {
+        if (isCompleted) {
+            return 'Completed';
+        }
+
+        return progress > 0 ? 'InProgress' : 'NotStarted';
+    }
+    function renderAdminLearnerStatusCell(container, isCompleted, progress, options) {
+        renderAdminStatusCell(
+            container,
+            getAdminLearnerStatusKey(isCompleted, progress),
+            getAdminLearnerStatusMap(options)
+        );
+    }
     // Renders tagless status text using a status → { tone|cls, text } map.
     function renderAdminStatusCell(container, value, map) {
-        const status = (map && map[value]) || { tone: 'default', text: value || '\u2014' };
-        renderAdminGridStatusCell(container, status.text, status.tone || status.cls || 'default', {
-            showDot: status.showDot !== false,
-            variant: status.variant
+        const status = resolveAdminStatusDefinition(value, map);
+        renderAdminGridStatusCell(container, status.text, status.tone, {
+            showDot: status.showDot,
+            variant: status.variant,
+            iconClass: status.iconClass
         });
     }
     // Renders a date cell, highlighting overdue dates in danger color.
@@ -830,6 +905,11 @@
     window.renderAdminGridStatusCell = renderAdminGridStatusCell;
     window.truncateAdminText = truncateAdminText;
     window.renderAdminProgressCell = renderAdminProgressCell;
+    window.buildAdminStatusPillHtml = buildAdminStatusPillHtml;
+    window.getAdminAssignmentStatusMap = getAdminAssignmentStatusMap;
+    window.getAdminLearnerStatusMap = getAdminLearnerStatusMap;
+    window.getAdminLearnerStatusKey = getAdminLearnerStatusKey;
+    window.renderAdminLearnerStatusCell = renderAdminLearnerStatusCell;
     window.renderAdminStatusCell = renderAdminStatusCell;
     window.renderAdminDueDateCell = renderAdminDueDateCell;
     window.renderAdminCoursesCell = renderAdminCoursesCell;

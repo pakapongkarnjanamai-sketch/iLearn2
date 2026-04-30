@@ -706,16 +706,10 @@
             </div>`;
     }
 
-    function renderStatusPill(status) {
-        const map = {
-            Completed: { cls: "pill-success", text: "Completed" },
-            InProgress: { cls: "pill-primary", text: "In Progress" },
-            Upcoming: { cls: "pill-warning", text: "Upcoming" },
-            Expired: { cls: "pill-danger", text: "Expired" }
-        };
+    const ASSIGNMENT_STATUS_MAP = window.getAdminAssignmentStatusMap();
 
-        const resolved = map[status] || { cls: "pill-default", text: status || EMPTY_TEXT };
-        return `<span class="tag-pill ${resolved.cls}">${resolved.text}</span>`;
+    function renderStatusPill(status) {
+        return window.buildAdminStatusPillHtml(status, ASSIGNMENT_STATUS_MAP);
     }
 
     function toggleStatusOptions(enabled) {

@@ -32,6 +32,8 @@ namespace iLearn.API.Controllers
                     contentItem.TypeId,
                     TypeName = contentItem.TypeId == 2 ? "Exam" : "Learn",
                     contentItem.IsActive,
+                    IsPublished = contentItem.IsActive,
+                    PublishState = contentItem.IsActive ? "Published" : "Unpublished",
                     contentItem.URL,
                     contentItem.CreatedAt,
                     CourseIdsCount = contentItem.CourseContentItems

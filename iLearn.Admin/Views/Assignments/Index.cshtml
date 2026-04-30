@@ -1,4 +1,5 @@
-﻿@{
+﻿@using iLearn.Application.Common
+@{
     ViewBag.Title = "Assignment Management";
 }
 
@@ -41,33 +42,29 @@
 
 @section Scripts {
     <script>
+        const DUE_SOON_DAYS = @AssignmentStatusKeys.DueSoonWindowDays;
         const assignmentDetailUrl = '@Url.Action("Detail", "Assignments")';
         const assignmentsStore = createDataStore(serviceUrl, 'admin/AssignmentsCRUD', { key: 'id' });
         const QUICK_FILTER_ITEMS = [
             { key: "InProgress", label: "In Progress" },
             { key: "Upcoming", label: "Upcoming" },
-            { key: "Expired", label: "Expired" },
+            { key: "Expired", label: "Overdue" },
             { key: "Completed", label: "Completed" },
-            { key: "dueSoon", label: "Due in 7 days" }
+            { key: "dueSoon", label: `Due in ${DUE_SOON_DAYS} days` }
         ];
 
         const COUNTABLE_FILTER_KEYS = ["InProgress", "Upcoming", "Expired", "Completed", "dueSoon"];
         let assignmentCounts = {};
         let activeFilterKey = "InProgress";
 
-        const STATUS_MAP = {
-            "Completed": { tone: "success", text: "Completed" },
-            "Upcoming": { tone: "warning", text: "Upcoming" },
-            "Expired": { tone: "danger", text: "Expired" },
-            "InProgress": { tone: "primary", text: "In Progress" }
-        };
+        const STATUS_MAP = window.getAdminAssignmentStatusMap();
 
         const QUICK_FILTER_SUMMARY = {
             InProgress: "Showing assignments that are currently in progress",
             Upcoming: "Showing assignments that have not started yet",
-            Expired: "Showing expired assignments",
+            Expired: "Showing overdue assignments",
             Completed: "Showing completed assignments",
-            dueSoon: "Showing assignments due in the next 7 days"
+            dueSoon: `Showing assignments due in the next ${DUE_SOON_DAYS} days`
         };
 
         $(function () {
@@ -199,8 +196,8 @@
 
             function computeAssignmentCounts(rows) {
                 const today = startOfDay(new Date());
-                const next7 = startOfDay(new Date());
-                next7.setDate(next7.getDate() + 7);
+                const dueSoonCutoff = startOfDay(new Date());
+                dueSoonCutoff.setDate(dueSoonCutoff.getDate() + DUE_SOON_DAYS);
 
                 const counts = { InProgress: 0, Upcoming: 0, Expired: 0, Completed: 0, dueSoon: 0 };
                 rows.forEach(function (row) {
@@ -208,7 +205,7 @@
                         counts[row.status] += 1;
                     }
                     const due = row.dueDate ? startOfDay(new Date(row.dueDate)) : null;
-                    if (due && row.status !== "Completed" && due >= today && due <= next7) {
+                    if (due && row.status !== "Completed" && due >= today && due <= dueSoonCutoff) {
                         counts.dueSoon += 1;
                     }
 
@@ -226,8 +223,8 @@
 
             function applyQuickFilter(gridInstance, filterKey) {
                 const today = startOfDay(new Date());
-                const next7Days = startOfDay(new Date());
-                next7Days.setDate(next7Days.getDate() + 7);
+                const dueSoonCutoff = startOfDay(new Date());
+                dueSoonCutoff.setDate(dueSoonCutoff.getDate() + DUE_SOON_DAYS);
 
                 const result = window.applyAdminQuickFilter(gridInstance, filterKey, {
                     resolve: function (selectedFilterKey) {
@@ -239,7 +236,7 @@
                                 filter: [
                                     ["dueDate", ">=", today],
                                     "and",
-                                    ["dueDate", "<=", next7Days],
+                                    ["dueDate", "<=", dueSoonCutoff],
                                     "and",
                                     ["status", "<>", "Completed"]
                                 ]

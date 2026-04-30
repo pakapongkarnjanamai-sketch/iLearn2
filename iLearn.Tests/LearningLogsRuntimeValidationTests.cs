@@ -84,6 +84,39 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CommitRuntime_DoesNotCompleteExam_WhenCompletionCompletedButSuccessUnknown()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+
+            var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                ContentItems =
+                [
+                    new ScormRuntimeContentItemCommitDto
+                    {
+                        ContentItemId = 100,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm2004,
+                        CompletionStatus = "completed",
+                        SuccessStatus = "unknown",
+                        RawScore = 80,
+                        SessionTime = "00:00:11"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(result);
+            var examLog = Assert.Single(logRepo.Items, log => log.ContentItemId == 100);
+            Assert.Equal("incomplete", examLog.Status);
+            Assert.Equal(0, examLog.Progress);
+            Assert.Equal(80, examLog.Score);
+
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Equal(0, enrollment.Progress);
+        }
+
+        [Fact]
         public async Task CommitRuntime_DoesNotCompleteScorm12ContentItem_WhenLessonIncompleteButCompletionAliasIsStaleCompleted()
         {
             var controller = CreateController(out var logRepo, out var enrollmentRepo);
@@ -335,8 +368,8 @@ namespace iLearn.Tests
                     CourseId = 1,
                     CourseContentItems =
                     [
-                        new CourseContentItem { Id = 1, ContentItemId = 100 },
-                        new CourseContentItem { Id = 2, ContentItemId = 101 }
+                        CreateCourseContentItem(1, 100, 2),
+                        CreateCourseContentItem(2, 101, 1)
                     ]
                 }
             ]);
@@ -361,6 +394,21 @@ namespace iLearn.Tests
             };
 
             return controller;
+        }
+
+        private static CourseContentItem CreateCourseContentItem(int id, int contentItemId, int typeId)
+        {
+            return new CourseContentItem
+            {
+                Id = id,
+                ContentItemId = contentItemId,
+                ContentItem = new ContentItem
+                {
+                    Id = contentItemId,
+                    TypeId = typeId,
+                    Name = typeId == ScormContentStatusPolicy.ExamTypeId ? $"Exam {contentItemId}" : $"Learn {contentItemId}"
+                }
+            };
         }
 
         private sealed class FakeCurrentUserService : ICurrentUserService

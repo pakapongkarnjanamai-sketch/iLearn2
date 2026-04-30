@@ -141,6 +141,7 @@
         const INITIAL_ASSIGNMENT_ID = @(ViewBag.AssignmentId ?? 0);
         const INITIAL_ASSIGNMENT_NO = "@(ViewBag.AssignmentNo ?? "")";
         const serviceUrl    = "@apiBaseUrl";
+        const LEARNER_STATUS_MAP = window.getAdminLearnerStatusMap();
         let ASSIGNMENT_ID = INITIAL_ASSIGNMENT_ID;
 
         // Helper: Format Date
@@ -203,7 +204,7 @@
 
                 const cells = courses.map(c => {
                     const e = enrollments[c.assignmentRuleId];
-                    if (!e) return `<td class="text-center align-middle"><span class="status-pending">—</span></td>`;
+                    if (!e) return `<td class="text-center align-middle"><span class="status-muted">—</span></td>`;
 
                     if (e.isCompleted) {
                         completedCount++;
@@ -215,7 +216,7 @@
                     } else if (e.progress > 0) {
                         return `<td class="text-center align-middle status-active u-fs-11">${window.formatAdminPercentage(e.progress, '0%')}</td>`;
                     } else {
-                        return `<td class="text-center align-middle status-pending u-fs-11">Pending</td>`;
+                        return `<td class="text-center align-middle status-muted u-fs-11">${LEARNER_STATUS_MAP.NotStarted.text}</td>`;
                     }
                 }).join("");
 
@@ -484,9 +485,9 @@
                             height: summaryChartHeight
                         },
                         dataSource: [
-                            { status: "Completed",   count: cd.completed  },
-                            { status: "In Progress", count: cd.inProgress },
-                            { status: "Not Started", count: cd.notStarted }
+                            { status: LEARNER_STATUS_MAP.Completed.text,  count: cd.completed  },
+                            { status: LEARNER_STATUS_MAP.InProgress.text, count: cd.inProgress },
+                            { status: LEARNER_STATUS_MAP.NotStarted.text, count: cd.notStarted }
                         ],
                         series: [{
                             argumentField: "status", valueField: "count",
@@ -578,7 +579,7 @@
                     if (!e)            { row.push('—'); }
                     else if (e.isCompleted) { completedCount++; row.push(e.completedDate ? window.formatAdminDate(e.completedDate, '') : 'Done'); }
                     else if (e.progress > 0) { row.push(e.progress + '%'); }
-                    else               { row.push('Pending'); }
+                    else               { row.push(LEARNER_STATUS_MAP.NotStarted.text); }
                 });
                 row.push(`${completedCount} / ${courses.length}`);
                 ws.addRow(row);

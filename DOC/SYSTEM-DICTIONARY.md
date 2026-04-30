@@ -88,6 +88,8 @@ Last updated: 2026-04-29
 | Content Item | รายการเนื้อหา | item เดี่ยวใน Selected Content หรือ CourseVersion |
 | Content Library | คลังเนื้อหา | picker/grid ที่เลือก content ที่มีอยู่แล้วเข้ามาใน course/version |
 | Selected Content | เนื้อหาที่เลือก | list/grid ของ content ที่จะอยู่ใน course/version |
+| Publish State | สถานะการเผยแพร่ | field ใน DTO ของ content ว่า `Published` หรือ `Unpublished` |
+| Version State | สถานะเวอร์ชัน | field ใน DTO ของ course version ว่า `Active` หรือ `Inactive` |
 | ContentItem | รายการเนื้อหา | backend entity ของ SCORM package หรือ learning object |
 | ContentItem Type | ประเภท ContentItem | backend field `TypeId`; user-facing เรียก Content Type |
 | Content Type | ประเภทเนื้อหา | UI label สำหรับ Learn/Exam |
@@ -186,7 +188,7 @@ Last updated: 2026-04-29
 | Total Time Spent | เวลารวมที่ใช้เรียน | เวลาสะสมระดับ enrollment |
 | Total Seconds Played | จำนวนวินาทีที่เล่นรวม | time aggregate ใน LearningLog |
 | Attempt Count | จำนวนครั้งที่เรียน/พยายาม | จำนวน attempt ใน LearningLog |
-| Pending | รอเริ่ม | สถานะที่ learner ยังไม่เริ่มเรียน |
+| Pending | รอเริ่ม | คำเดิมของ learner not started; ใน contract ใหม่ควรใช้ `Not Started` / `NotStarted` |
 | Not Started | ยังไม่เริ่ม | dashboard/policy bucket สำหรับ learner ที่ยังไม่เริ่ม |
 | In Progress | กำลังเรียน | learner/enrollment เริ่มแล้วแต่ยังไม่ complete |
 | Completed | เสร็จสิ้น / เรียนจบ | learner/enrollment/contentItem complete แล้ว |
@@ -246,8 +248,8 @@ Last updated: 2026-04-29
 | Chart Data | ข้อมูลกราฟ | DTO/ชุดข้อมูลสำหรับ pie/bar/trend chart |
 | History | ประวัติ | รายการย้อนหลัง เช่น assignment history, group history |
 | Gantt | แผนภาพ Gantt | endpoint/report timeline ของ assignment |
-| Due Soon | ใกล้ครบกำหนด | filter/status สำหรับรายการที่กำลังจะถึง due date |
-| Overdue | เกินกำหนด | filter/status สำหรับรายการที่เลย due date |
+| Due Soon | ใกล้ครบกำหนด | filter/status สำหรับรายการที่ยังไม่ completed และมี due date อยู่ภายใน shared 7-day window |
+| Overdue | เกินกำหนด | filter/status สำหรับ learner/enrollment work ที่เลย due date |
 
 ## Version Activation Policy
 
@@ -337,11 +339,12 @@ Last updated: 2026-04-29
 | Published | เผยแพร่แล้ว | Content/ContentItem | พร้อมใช้งาน มี URL และ active |
 | Not Ready | ยังไม่พร้อม | Version/Content | ยังขาด contentItem, URL, active flag, หรือ SCORM metadata |
 | Queued Upload | รออัปโหลด | New Upload | รอ save/process SCORM |
-| Pending | รอดำเนินการ | Enrollment/Assignment | ยังไม่เริ่มหรือยังไม่ถึงสถานะเรียน |
+| Pending | รอดำเนินการ | Policy/UI waiting state | ใช้เฉพาะกรณีที่สถานะหมายถึงกำลังรอการประมวลผลหรือรอการตัดสินใจจริง ๆ |
 | In Progress | กำลังดำเนินการ | Enrollment/Assignment | เริ่มแล้วแต่ยังไม่ completed |
 | Completed | เสร็จสิ้น | Enrollment/Assignment/ContentItem | จบแล้วตาม rule ของระบบ |
-| Overdue | เกินกำหนด | Assignment/Enrollment | DueDate ผ่านไปแล้วยังไม่ completed |
-| Due Soon | ใกล้ครบกำหนด | Assignment/Enrollment | ใกล้ถึง DueDate |
+| Expired | หมดช่วง assignment | Assignment batch | DueDate ผ่านไปแล้วยังไม่ completed ในระดับ assignment batch |
+| Overdue | เกินกำหนด | Enrollment/Learner work | DueDate ผ่านไปแล้วยังไม่ completed ในระดับ learner หรือ enrollment |
+| Due Soon | ใกล้ครบกำหนด | Assignment/Enrollment | ยังไม่ completed และใกล้ถึง DueDate ภายใน shared 7-day window |
 | No Impact | ไม่กระทบ | Version policy | ไม่มี learner ที่ต้องย้าย/reset |
 | Action Required | ต้องเลือกการดำเนินการ | Version policy | มี learner ที่ต้องเลือก policy ก่อน save/activate |
 

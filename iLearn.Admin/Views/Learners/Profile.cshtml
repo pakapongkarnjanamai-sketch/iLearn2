@@ -291,8 +291,8 @@
         .status-done .status-dot { background: var(--success-color); }
         .status-active { color: var(--warning-color); }
         .status-active .status-dot { background: var(--warning-color); }
-        .status-pending { color: var(--text-secondary); }
-        .status-pending .status-dot { background: var(--border-strong); }
+        .status-muted { color: var(--text-secondary); }
+        .status-muted .status-dot { background: var(--border-strong); }
         .status-overdue { color: var(--danger-color); }
         .status-overdue .status-dot { background: var(--danger-color); }
         .status-cancelled { color: var(--text-secondary); opacity: 0.6; }
@@ -373,6 +373,7 @@
     <script>
         const STUDENT_CODE = '@learnerCode';
         const serviceUrl = "@apiBaseUrl";
+        const LEARNER_STATUS_MAP = window.getAdminLearnerStatusMap();
         let _profileData = null;
 
         // ─── Helpers ───
@@ -384,11 +385,11 @@
         function getStatus(e) {
             const now = new Date();
             if (e.isAssignmentCancelled) return { cls: "status-cancelled", label: "Cancelled", icon: "fa-ban" };
-            if (e.isCompleted)           return { cls: "status-done",      label: "Completed", icon: "fa-check-circle" };
+            if (e.isCompleted)           return { cls: "status-done",      label: LEARNER_STATUS_MAP.Completed.text, icon: "fa-check-circle" };
             if (!e.isCompleted && e.dueDate && new Date(e.dueDate) < now)
-                                         return { cls: "status-overdue",   label: "Overdue",   icon: "fa-exclamation-circle" };
-            if (e.progress > 0)          return { cls: "status-active",    label: "In Progress", icon: "fa-spinner" };
-            return                                { cls: "status-pending",   label: "Not Started", icon: "fa-circle" };
+                                         return { cls: "status-overdue",   label: LEARNER_STATUS_MAP.Overdue.text, icon: "fa-exclamation-circle" };
+            if (e.progress > 0)          return { cls: "status-active",    label: LEARNER_STATUS_MAP.InProgress.text, icon: "fa-spinner" };
+            return                                { cls: "status-muted",     label: LEARNER_STATUS_MAP.NotStarted.text, icon: "fa-circle" };
         }
 
         // ─── Load Profile ───
@@ -583,10 +584,10 @@
                         type: "doughnut",
                         innerRadius: 0.65,
                         dataSource: [
-                            { status: "Completed",   count: k.completedCourses },
-                            { status: "In Progress", count: k.inProgressCourses },
-                            { status: "Not Started", count: notStarted - overdue },
-                            { status: "Overdue",     count: overdue }
+                            { status: LEARNER_STATUS_MAP.Completed.text,  count: k.completedCourses },
+                            { status: LEARNER_STATUS_MAP.InProgress.text, count: k.inProgressCourses },
+                            { status: LEARNER_STATUS_MAP.NotStarted.text, count: notStarted - overdue },
+                            { status: LEARNER_STATUS_MAP.Overdue.text,    count: overdue }
                         ].filter(i => i.count > 0),
                         series: [{
                             argumentField: "status", valueField: "count",
@@ -656,10 +657,10 @@
             ws1.addRow({ field: 'Section', value: d.section || '' });
             ws1.addRow({ field: 'Position', value: d.position || '' });
             ws1.addRow({ field: 'Total Courses', value: d.kpi.totalCourses });
-            ws1.addRow({ field: 'Completed', value: d.kpi.completedCourses });
-            ws1.addRow({ field: 'In Progress', value: d.kpi.inProgressCourses });
+            ws1.addRow({ field: LEARNER_STATUS_MAP.Completed.text, value: d.kpi.completedCourses });
+            ws1.addRow({ field: LEARNER_STATUS_MAP.InProgress.text, value: d.kpi.inProgressCourses });
             const overdueCount = (d.enrollments || []).filter(e => !e.isCompleted && !e.isAssignmentCancelled && e.dueDate && new Date(e.dueDate) < now).length;
-            ws1.addRow({ field: 'Overdue', value: overdueCount });
+            ws1.addRow({ field: LEARNER_STATUS_MAP.Overdue.text, value: overdueCount });
             ws1.addRow({ field: 'Completion %', value: d.kpi.totalCourses > 0 ? Math.round((d.kpi.completedCourses / d.kpi.totalCourses) * 100) : 0 });
             styleHeaderRow(ws1);
 

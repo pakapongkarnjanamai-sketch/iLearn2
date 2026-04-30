@@ -3,6 +3,7 @@ using DevExtreme.AspNet.Mvc;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Mappings;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Services;
@@ -62,6 +63,18 @@ namespace iLearn.API.Controllers.Base
             return await GetFiltered(loadOptions, courseId);
         }
 
+        [HttpGet("Get/{id}")]
+        public override async Task<IActionResult> Get(int id)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(entity.ToDto());
+        }
+
         private async Task<IActionResult> GetFiltered(DataSourceLoadOptions loadOptions, int? courseId)
         {
             var baseQuery = _repository.GetQuery().AsQueryable();
@@ -75,6 +88,8 @@ namespace iLearn.API.Controllers.Base
                 r.Name,
                 r.TypeId,
                 r.IsActive,
+                IsPublished = r.IsActive,
+                PublishState = r.IsActive ? "Published" : "Unpublished",
                 r.URL,
                 r.FileStorageId,
                 r.CreatedAt,

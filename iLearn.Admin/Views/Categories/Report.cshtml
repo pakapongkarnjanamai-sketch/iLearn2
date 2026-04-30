@@ -70,6 +70,7 @@
         const CATEGORY_ID = @categoryId;
         const serviceUrl = "@apiBaseUrl";
         const API_URL = serviceUrl + "/admin/CategoriesCRUD";
+        const LEARNER_STATUS_MAP = window.getAdminLearnerStatusMap();
 
         let _reportData = null;
 
@@ -148,7 +149,7 @@
                     + '<td class="align-middle text-center">'
                         + (course.isActive
                             ? '<span class="status-done"><span class="status-dot"></span>Active</span>'
-                            : '<span class="status-pending"><span class="status-dot"></span>Inactive</span>')
+                            : '<span class="status-muted"><span class="status-dot"></span>Inactive</span>')
                     + '</td>'
                     + '<td class="align-middle text-center">' + course.enrollmentCount + '</td>'
                     + '<td class="align-middle text-center u-text-success">' + course.completedCount + '</td>'
@@ -174,7 +175,7 @@
             // Status label
             var statusLabel = c.isActive
                 ? '<span class="status-done"><span class="status-dot"></span>Active</span>'
-                : '<span class="status-pending"><span class="status-dot"></span>Inactive</span>';
+                : '<span class="status-muted"><span class="status-dot"></span>Inactive</span>';
 
             document.getElementById("report-content").innerHTML = ''
                 + '<div class="row g-4 mb-5">'
@@ -212,15 +213,15 @@
                 + '        </div>'
                 + '        <div class="stat-block">'
                 + '          <div class="stat-num" style="color:var(--success-color);">' + s.completedEnrollments + '</div>'
-                + '          <div class="stat-label">Completed</div>'
+                + '          <div class="stat-label">' + LEARNER_STATUS_MAP.Completed.text + '</div>'
                 + '        </div>'
                 + '        <div class="stat-block">'
                 + '          <div class="stat-num" style="color:var(--warning-color);">' + s.inProgressEnrollments + '</div>'
-                + '          <div class="stat-label">In Progress</div>'
+                + '          <div class="stat-label">' + LEARNER_STATUS_MAP.InProgress.text + '</div>'
                 + '        </div>'
                 + '        <div class="stat-block">'
                 + '          <div class="stat-num">' + s.notStartedEnrollments + '</div>'
-                + '          <div class="stat-label">Not Started</div>'
+                + '          <div class="stat-label">' + LEARNER_STATUS_MAP.NotStarted.text + '</div>'
                 + '        </div>'
                 + '        <div class="stat-block">'
                 + '          <div class="stat-num" style="color:var(--primary-color);">' + completionPct + '%</div>'
@@ -273,9 +274,9 @@
                         type: "doughnut",
                         innerRadius: 0.7,
                         dataSource: [
-                            { status: "Completed",   count: s.completedEnrollments },
-                            { status: "In Progress", count: s.inProgressEnrollments },
-                            { status: "Not Started", count: s.notStartedEnrollments }
+                            { status: LEARNER_STATUS_MAP.Completed.text,  count: s.completedEnrollments },
+                            { status: LEARNER_STATUS_MAP.InProgress.text, count: s.inProgressEnrollments },
+                            { status: LEARNER_STATUS_MAP.NotStarted.text, count: s.notStartedEnrollments }
                         ],
                         series: [{
                             argumentField: "status",
@@ -358,9 +359,9 @@
             ws.addRow({ metric: 'Total Courses', value: s.totalCourses });
             ws.addRow({ metric: 'Active Courses', value: s.activeCourses });
             ws.addRow({ metric: 'Total Enrollments', value: s.totalEnrollments });
-            ws.addRow({ metric: 'Completed', value: s.completedEnrollments });
-            ws.addRow({ metric: 'In Progress', value: s.inProgressEnrollments });
-            ws.addRow({ metric: 'Not Started', value: s.notStartedEnrollments });
+            ws.addRow({ metric: LEARNER_STATUS_MAP.Completed.text, value: s.completedEnrollments });
+            ws.addRow({ metric: LEARNER_STATUS_MAP.InProgress.text, value: s.inProgressEnrollments });
+            ws.addRow({ metric: LEARNER_STATUS_MAP.NotStarted.text, value: s.notStartedEnrollments });
             ws.addRow({ metric: 'Unique Learners', value: s.uniqueLearners });
             ws.addRow({ metric: 'Avg. Progress', value: s.avgProgress + '%' });
             styleHeaderRow(ws);

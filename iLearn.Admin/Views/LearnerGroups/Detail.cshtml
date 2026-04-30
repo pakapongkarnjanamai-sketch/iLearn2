@@ -275,12 +275,7 @@
                 {
                     dataField: "status", caption: "Status", width: 120, alignment: "center",
                     cellTemplate: function(container, options) {
-                        renderStatusCell(container, options.value, {
-                            Completed: { tone: "success", text: "Completed" },
-                            Upcoming: { tone: "warning", text: "Upcoming" },
-                            Expired: { tone: "danger", text: "Expired" },
-                            InProgress: { tone: "primary", text: "In Progress" }
-                        });
+                        renderStatusCell(container, options.value, window.getAdminAssignmentStatusMap());
                     }
                 },
                 {

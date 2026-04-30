@@ -16,8 +16,8 @@ namespace iLearn.Domain.Entities
         [ForeignKey("EnrollmentId")]
         public Enrollment? Enrollment { get; set; }
 
-        public string Status { get; set; } = "completed";
-        public double Progress { get; set; } = 100.0;
+        public string Status { get; set; } = "incomplete";
+        public double Progress { get; set; } = 0;
         public int? Score { get; set; }
 
         public string? SessionTime { get; set; }

@@ -1,5 +1,6 @@
 ﻿using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
@@ -969,7 +970,7 @@ namespace iLearn.API.Controllers
                         courseMap.TryGetValue(assignment.CourseId.Value, out course);
                     }
 
-                    var status = row.IsCompleted ? "Completed" : row.Progress > 0 ? "In Progress" : "Pending";
+                    var status = AssignmentStatusKeys.GetLearnerStatus(row.IsCompleted, row.Progress);
                     return new LearnerProgressDto
                     {
                         LearnerCode = row.LearnerCode,

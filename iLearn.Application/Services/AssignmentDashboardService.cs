@@ -1,4 +1,5 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -109,7 +110,7 @@ namespace iLearn.Application.Services
             var learnersProgress = enrollments.Select(e =>
             {
                 var course = e.Course ?? (ruleCourseMap.TryGetValue(e.AssignmentId, out var c) ? c : null);
-                var status = e.IsCompleted ? "Completed" : e.Progress > 0 ? "In Progress" : "Pending";
+                var status = AssignmentStatusKeys.GetLearnerStatus(e.IsCompleted, e.Progress);
                 return new LearnerProgressDto
                 {
                     LearnerCode      = e.LearnerCode,
@@ -259,10 +260,7 @@ namespace iLearn.Application.Services
             DateTime? dueDate,
             DateTime currentDate)
         {
-            if (hasEnrollments && allCompleted) return "Completed";
-            if (startDate.HasValue && startDate.Value > currentDate) return "Upcoming";
-            if (dueDate.HasValue && dueDate.Value < currentDate) return "Expired";
-            return "InProgress";
+            return AssignmentStatusKeys.GetBatchStatus(hasEnrollments, allCompleted, startDate, dueDate, currentDate);
         }
 
         private static AssignmentHistoryDto MapToHistoryDto(

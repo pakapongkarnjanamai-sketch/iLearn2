@@ -27,6 +27,8 @@ namespace iLearn.Application.DTOs
         public int TypeId { get; set; }
         public string TypeName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public bool IsPublished => IsActive;
+        public string PublishState => IsPublished ? "Published" : "Unpublished";
         public string? URL { get; set; }
     }
 
@@ -37,6 +39,7 @@ namespace iLearn.Application.DTOs
         public int VersionNumber { get; set; }
         public string Note { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public string VersionState => IsActive ? "Active" : "Inactive";
         public DateTime CreatedAt { get; set; }
         public List<CourseContentItemDto> ContentItems { get; set; } = new();
     }

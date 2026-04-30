@@ -928,33 +928,27 @@
             </div>`;
     }
 
+    const ASSIGNMENT_STATUS_MAP = window.getAdminAssignmentStatusMap();
+    const ASSIGNMENT_STATUS_KEYS = ["Completed", "InProgress", "Upcoming", "Expired"];
+
     function buildStatusOverview(assignments) {
         if (!assignments.length) {
             return '<span class="text-muted">No assignments yet</span>';
         }
 
-        const parts = [
-            { status: "Completed", label: "Completed", cls: "pill-success" },
-            { status: "InProgress", label: "In Progress", cls: "pill-primary" },
-            { status: "Upcoming", label: "Upcoming", cls: "pill-warning" },
-            { status: "Expired", label: "Expired", cls: "pill-danger" }
-        ].map(function(item) {
-            return `<span class="tag-pill ${item.cls} me-1 mb-1">${item.label}: ${countAssignmentsByStatus(item.status)}</span>`;
+        const parts = ASSIGNMENT_STATUS_KEYS.map(function(status) {
+            const resolved = ASSIGNMENT_STATUS_MAP[status];
+            return window.buildAdminStatusPillHtml(status, ASSIGNMENT_STATUS_MAP, {
+                text: `${resolved.text}: ${countAssignmentsByStatus(status)}`,
+                extraClasses: 'me-1 mb-1'
+            });
         });
 
         return parts.join("");
     }
 
     function renderStatusPill(status) {
-        const map = {
-            Completed: { cls: "pill-success", text: "Completed" },
-            InProgress: { cls: "pill-primary", text: "In Progress" },
-            Upcoming: { cls: "pill-warning", text: "Upcoming" },
-            Expired: { cls: "pill-danger", text: "Expired" }
-        };
-
-        const resolved = map[status] || { cls: "pill-default", text: status || EMPTY_TEXT };
-        return `<span class="tag-pill ${resolved.cls}">${resolved.text}</span>`;
+        return window.buildAdminStatusPillHtml(status, ASSIGNMENT_STATUS_MAP);
     }
 
     function toggleStatusOptions(enabled) {

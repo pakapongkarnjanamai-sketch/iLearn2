@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using iLearn.Application.Common;
 
 namespace iLearn.Application.DTOs
 {
@@ -52,7 +53,7 @@ namespace iLearn.Application.DTOs
         public string? CourseTitle { get; set; }
         public double Progress { get; set; }
         public bool IsCompleted { get; set; }
-        public string Status { get; set; } = "Pending";
+        public string Status { get; set; } = AssignmentStatusKeys.Learner.NotStarted;
         public DateTime? CompletedDate { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }

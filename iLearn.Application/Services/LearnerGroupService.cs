@@ -1,4 +1,5 @@
-﻿using iLearn.Application.DTOs;
+﻿using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -27,10 +28,10 @@ namespace iLearn.Application.Services
 
         private static readonly HashSet<string> AllowedAssignmentStatuses = new(StringComparer.OrdinalIgnoreCase)
         {
-            "Completed",
-            "InProgress",
-            "Upcoming",
-            "Expired"
+            AssignmentStatusKeys.Batch.Completed,
+            AssignmentStatusKeys.Batch.InProgress,
+            AssignmentStatusKeys.Batch.Upcoming,
+            AssignmentStatusKeys.Batch.Expired
         };
 
         public LearnerGroupService(

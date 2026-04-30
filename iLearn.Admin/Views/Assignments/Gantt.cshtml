@@ -1,4 +1,5 @@
-﻿@{
+﻿@using iLearn.Application.Common
+@{
     ViewBag.Title = "Assignment Timeline";
 }
 
@@ -63,15 +64,17 @@
 
 @section Scripts {
     <script>
+        const DUE_SOON_DAYS = @AssignmentStatusKeys.DueSoonWindowDays;
         const GANTT_URL = `${serviceUrl}/Assignments/gantt`;
         const DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
+        const ASSIGNMENT_STATUS_MAP = window.getAdminAssignmentStatusMap();
 
         const QUICK_FILTER_ITEMS = [
-            { key: "InProgress", label: "In Progress" },
-            { key: "Upcoming", label: "Upcoming" },
-            { key: "Expired", label: "Expired" },
-            { key: "Completed", label: "Completed" },
-            { key: "dueSoon", label: "Due in 7 days" }
+            { key: "InProgress", label: ASSIGNMENT_STATUS_MAP.InProgress.text },
+            { key: "Upcoming", label: ASSIGNMENT_STATUS_MAP.Upcoming.text },
+            { key: "Expired", label: ASSIGNMENT_STATUS_MAP.Expired.text },
+            { key: "Completed", label: ASSIGNMENT_STATUS_MAP.Completed.text },
+            { key: "dueSoon", label: `Due in ${DUE_SOON_DAYS} days` }
         ];
 
         let allTasks = [];
@@ -128,14 +131,14 @@
         /* ── quick filters ───────────────────────────── */
         function computeAssignmentCounts(tasks) {
             const today = startOfDay(new Date());
-            const next7 = startOfDay(new Date());
-            next7.setDate(next7.getDate() + 7);
+            const dueSoonCutoff = startOfDay(new Date());
+            dueSoonCutoff.setDate(dueSoonCutoff.getDate() + DUE_SOON_DAYS);
 
             const counts = { InProgress: 0, Upcoming: 0, Expired: 0, Completed: 0, dueSoon: 0 };
             tasks.forEach(t => {
                 if (counts[t.status] !== undefined) counts[t.status] += 1;
                 const due = t._end ? startOfDay(new Date(t._end)) : null;
-                if (due && t.status !== "Completed" && due >= today && due <= next7) {
+                if (due && t.status !== "Completed" && due >= today && due <= dueSoonCutoff) {
                     counts.dueSoon += 1;
                 }
             });
@@ -146,13 +149,13 @@
             currentFilter = filterKey || "InProgress";
 
             const today = startOfDay(new Date());
-            const next7 = startOfDay(new Date());
-            next7.setDate(next7.getDate() + 7);
+            const dueSoonCutoff = startOfDay(new Date());
+            dueSoonCutoff.setDate(dueSoonCutoff.getDate() + DUE_SOON_DAYS);
 
             filteredTasks = currentFilter === "dueSoon"
                 ? allTasks.filter(t => {
                     const due = t._end ? startOfDay(new Date(t._end)) : null;
-                    return due && t.status !== "Completed" && due >= today && due <= next7;
+                    return due && t.status !== "Completed" && due >= today && due <= dueSoonCutoff;
                 })
                 : allTasks.filter(t => t.status === currentFilter);
 
@@ -296,15 +299,14 @@
 
         /* ── tooltip ──────────────────────────────────── */
         function showTooltip(ev, task) {
-            const pillMap = { Completed: "pill-success", InProgress: "pill-primary", Upcoming: "pill-warning", Expired: "pill-danger" };
-            const pill = pillMap[task.status] || "pill-default";
+            const statusPill = window.buildAdminStatusPillHtml(task.status, ASSIGNMENT_STATUS_MAP);
 
             const html = `
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Assignment</span><span class="tl-tooltip-value">${task.assignmentNo || "—"}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Title</span><span class="tl-tooltip-value">${$("<span>").text(task.title || "—").html()}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Period</span><span class="tl-tooltip-value">${fmtDate(task._start)} — ${fmtDate(task._end)}</span></div>
                 <div class="tl-tooltip-row"><span class="tl-tooltip-label">Progress</span><span class="tl-tooltip-value">${window.formatAdminPercentage(task.progress, '0%')}</span></div>
-                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Status</span><span class="tag-pill ${pill}">${task.status}</span></div>
+                <div class="tl-tooltip-row"><span class="tl-tooltip-label">Status</span><span class="tl-tooltip-value">${statusPill}</span></div>
             `;
             $("#tl-tooltip").html(html).show();
             moveTooltip(ev);

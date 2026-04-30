@@ -821,11 +821,12 @@
         const now = new Date();
         const isPastDue = data.dueDate && new Date(data.dueDate) < now;
         const isFullyDone = (data.completionRate ?? 0) >= 1 && (data.totalLearners ?? data.totalEmployees ?? 0) > 0;
+        const assignmentStatusMap = window.getAdminAssignmentStatusMap();
         let badgeClass, badgeIcon, badgeText;
         if (isFullyDone) {
-            badgeClass = "pill-success";  badgeIcon = "fa-check-circle"; badgeText = "Completed";
+            badgeClass = "pill-success";  badgeIcon = "fa-check-circle"; badgeText = assignmentStatusMap.Completed.text;
         } else if (isPastDue) {
-            badgeClass = "pill-warning";  badgeIcon = "fa-clock";        badgeText = "Expired";
+            badgeClass = "pill-danger";   badgeIcon = "fa-exclamation-circle"; badgeText = assignmentStatusMap.Expired.text;
         } else {
             badgeClass = "pill-primary";  badgeIcon = "fa-circle-check"; badgeText = "Active";
         }
@@ -886,11 +887,14 @@
                 baseConfig: {
                     type: "doughnut",
                     innerRadius: 0.65,
-                    dataSource: [
-                        { status: "Completed", count: safeChartData.completed ?? 0 },
-                        { status: "In Progress", count: safeChartData.inProgress ?? 0 },
-                        { status: "Not Started", count: safeChartData.notStarted ?? 0 }
-                    ],
+                    dataSource: (function() {
+                        const learnerStatusMap = window.getAdminLearnerStatusMap();
+                        return [
+                            { status: learnerStatusMap.Completed.text,  count: safeChartData.completed ?? 0 },
+                            { status: learnerStatusMap.InProgress.text, count: safeChartData.inProgress ?? 0 },
+                            { status: learnerStatusMap.NotStarted.text, count: safeChartData.notStarted ?? 0 }
+                        ];
+                    })(),
                     series: [{
                         argumentField: "status",
                         valueField: "count",
@@ -1244,21 +1248,7 @@
     }
 
     function renderLearnerStatusCell(container, isCompleted, progress) {
-        let dotClass = "dot-default";
-        let label = "Pending";
-
-        if (isCompleted) {
-            dotClass = "dot-success";
-            label = "Completed";
-        } else if (progress > 0) {
-            dotClass = "dot-warning";
-            label = "In Progress";
-        }
-
-        $("<span>").css(window.getAdminGridTextStyle("captionMuted"))
-            .append($("<span>").addClass(`status-dot ${dotClass}`))
-            .append(label)
-            .appendTo(container);
+        window.renderAdminLearnerStatusCell(container, isCompleted, progress);
     }
 
     function confirmRemoveCourse(ruleId, title) {

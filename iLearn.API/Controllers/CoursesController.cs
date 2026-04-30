@@ -418,17 +418,12 @@ namespace iLearn.API.Controllers
                 var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
                 var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
 
-                string status;
-                if (e.IsCompleted)
-                    status = "Completed";
-                else if (effectiveStart.HasValue && effectiveStart > now)
-                    status = "Upcoming";
-                else if (effectiveDue.HasValue && effectiveDue < now)
-                    status = "Expired";
-                else if (e.Progress > 0)
-                    status = "InProgress";
-                else
-                    status = "NotStarted";
+                var status = AssignmentStatusKeys.GetScheduledLearnerStatus(
+                    e.IsCompleted,
+                    e.Progress,
+                    effectiveStart,
+                    effectiveDue,
+                    now);
 
                 return new
                 {

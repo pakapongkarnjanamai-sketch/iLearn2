@@ -372,6 +372,66 @@ namespace iLearn.Tests
                 });
         }
 
+        [Fact]
+        public async Task GetPlayerInfoByCourse_ExamCompletedWithoutPass_RemainsIncomplete()
+        {
+            var runtimeStateService = new FakeScormRuntimeStateService(
+            [
+                new ScormRuntimeStateDto
+                {
+                    EnrollmentId = 10,
+                    ContentItemId = 103,
+                    ScormVersion = ScormRuntimeFieldMap.Scorm2004,
+                    CompletionStatus = "completed",
+                    SuccessStatus = "unknown",
+                    RawScore = 75
+                }
+            ]);
+
+            var controller = CreateController(runtimeStateService,
+                enrollments:
+                [
+                    new Enrollment
+                    {
+                        Id = 10,
+                        CourseId = 5,
+                        LearnerCode = "490222",
+                        EnrolledCourseVersion = 20,
+                        Progress = 0,
+                        IsCompleted = false,
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course", Status = CourseStatus.Open }
+                    }
+                ],
+                versions:
+                [
+                    new CourseVersion
+                    {
+                        Id = 20,
+                        CourseId = 5,
+                        VersionNumber = 2,
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course", Status = CourseStatus.Open },
+                        CourseContentItems =
+                        [
+                            CreateCourseContentItem(4, 103, "Exam 2004", ScormContentStatusPolicy.ExamTypeId, "SCORM 2004")
+                        ]
+                    }
+                ],
+                logs: []);
+
+            var result = await controller.GetPlayerInfoByCourse(5);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ApiResponse<PlayerInfoDto>>(ok.Value);
+            var dto = Assert.IsType<PlayerInfoDto>(response.Data);
+            var contentItem = Assert.Single(dto.ContentItems);
+
+            Assert.Equal("Exam", contentItem.Type);
+            Assert.Equal("incomplete", contentItem.Status);
+            Assert.Equal(0, contentItem.Progress);
+            Assert.Equal(0, contentItem.ActivityProgress);
+            Assert.Equal(75m, contentItem.Score);
+        }
+
         private static EnrollmentsController CreateController(
             FakeScormRuntimeStateService runtimeStateService,
             IEnumerable<Enrollment> enrollments,

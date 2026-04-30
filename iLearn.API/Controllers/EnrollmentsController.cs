@@ -102,7 +102,6 @@ namespace iLearn.API.Controllers
             }
 
             var currentDate = _dateTime.Now;
-            var oneMonthAgo = currentDate.AddMonths(-1);
 
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => !e.IsDeleted && e.LearnerCode == learnerCode && e.Course != null
@@ -126,7 +125,7 @@ namespace iLearn.API.Controllers
 
                 if (e.IsCompleted)
                 {
-                    return e.CompletedDate.HasValue && e.CompletedDate >= oneMonthAgo;
+                    return EnrollmentVisibilityPolicy.ShouldShowCompletedEnrollment(e.CompletedDate, currentDate);
                 }
 
                 bool startOk = !schedule.StartDate.HasValue || schedule.StartDate <= currentDate;
@@ -249,7 +248,7 @@ namespace iLearn.API.Controllers
                         log.Status.ToLower() == "completed" ||
                         log.Status.ToLower() == "passed"
                     );
-                    var status = ResolvePlayerContentItemStatus(contentItemType, log, runtimeState, isDone);
+                    var status = ResolvePlayerContentItemStatus(contentItem.TypeId, log, runtimeState, isDone);
 
                     return new PlayerContentItemDto
                     {
@@ -288,38 +287,23 @@ namespace iLearn.API.Controllers
         }
 
         private static string ResolvePlayerContentItemStatus(
-            string contentItemType,
+            int contentItemTypeId,
             LearningLog? log,
             ScormRuntimeStateDto? runtimeState,
             bool isDone)
         {
-            var lessonStatus = NormalizeStatus(runtimeState?.LessonStatus);
-            var completionStatus = NormalizeStatus(runtimeState?.CompletionStatus);
-            var successStatus = NormalizeStatus(runtimeState?.SuccessStatus);
-            var logStatus = NormalizeStatus(log?.Status);
-            var isExamContentItem = string.Equals(contentItemType, "Exam", StringComparison.OrdinalIgnoreCase);
-
-            if (successStatus == "failed" || lessonStatus == "failed" || logStatus == "failed")
-            {
-                return "failed";
-            }
-
-            if (successStatus == "passed" || lessonStatus == "passed" || logStatus == "passed")
-            {
-                return "passed";
-            }
-
-            if (completionStatus == "completed" || lessonStatus == "completed" || lessonStatus == "browsed" || logStatus == "completed" || isDone)
-            {
-                return isExamContentItem ? "incomplete" : "completed";
-            }
-
-            return "incomplete";
+            return ScormContentStatusPolicy.ResolveStatus(
+                contentItemTypeId,
+                runtimeState?.LessonStatus,
+                runtimeState?.CompletionStatus,
+                runtimeState?.SuccessStatus,
+                log?.Status,
+                isDone);
         }
 
         private static double ResolvePlayerContentItemCompletionProgress(string status)
         {
-            return status is "passed" or "completed" ? 100 : 0;
+            return ScormContentStatusPolicy.ResolveCompletionProgress(status);
         }
 
         private static double ResolvePlayerContentItemActivityProgress(
@@ -370,11 +354,6 @@ namespace iLearn.API.Controllers
             }
 
             return "00:00:00";
-        }
-
-        private static string NormalizeStatus(string? status)
-        {
-            return string.IsNullOrWhiteSpace(status) ? string.Empty : status.Trim().ToLowerInvariant();
         }
 
         private static double ClampProgress(double value)

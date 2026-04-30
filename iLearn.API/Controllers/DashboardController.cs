@@ -1,4 +1,5 @@
 ﻿// File: iLearn.API/Controllers/DashboardController.cs
+using iLearn.Application.Common;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -63,7 +64,7 @@ namespace iLearn.API.Controllers
         {
             var now = _dateTime.Now;
             var today = now.Date;
-            var dueSoonCutoff = today.AddDays(14);
+            var dueSoonCutoff = AssignmentStatusKeys.GetDueSoonCutoff(today);
             var recentWindowStart = today.AddDays(-30);
             var previousWindowStart = today.AddDays(-60);
 
@@ -112,7 +113,7 @@ namespace iLearn.API.Controllers
 
             var completedTasks = taskRows.Count(t => t.IsCompleted);
             var overdueTasks = taskRows.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date < today);
-            var dueSoonTasks = taskRows.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date >= today && t.DueDate.Value.Date <= dueSoonCutoff);
+            var dueSoonTasks = taskRows.Count(t => AssignmentStatusKeys.IsDueSoon(t.IsCompleted, t.DueDate, today));
             var inProgressTasks = taskRows.Count(t => !t.IsCompleted && t.Progress > 0 && !(t.DueDate.HasValue && t.DueDate.Value.Date < today));
             var notStartedTasks = taskRows.Count(t => !t.IsCompleted && t.Progress <= 0 && !(t.DueDate.HasValue && t.DueDate.Value.Date < today));
             var totalTasks = taskRows.Count;
@@ -420,7 +421,7 @@ namespace iLearn.API.Controllers
                     var total = links.Count;
                     var completed = links.Count(t => t.IsCompleted);
                     var overdue = links.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date < today);
-                    var dueSoon = links.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date >= today && t.DueDate.Value.Date <= dueSoonCutoff);
+                    var dueSoon = links.Count(t => AssignmentStatusKeys.IsDueSoon(t.IsCompleted, t.DueDate, today));
                     var rate = total == 0 ? 0 : Math.Round((double)completed / total * 100, 1);
                     var earliestDueDate = links
                         .Select(t => t.DueDate)

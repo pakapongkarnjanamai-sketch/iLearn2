@@ -22,6 +22,7 @@ namespace iLearn.API.Controllers
     {
         private readonly IGenericRepository<ContentItem> _contentItemRepo;
         private readonly IGenericRepository<FileStorage> _fileRepo;
+        private readonly IContentPublicationService _contentPublicationService;
         private readonly IScormService _scormService;
         private readonly ILogger<ContentItemsController> _logger; // ✅ เพิ่ม Logger
         private readonly IMaintenanceStatusService _maintenanceStatusService;
@@ -31,6 +32,7 @@ namespace iLearn.API.Controllers
         public ContentItemsController(
             IGenericRepository<ContentItem> contentItemRepo,
             IGenericRepository<FileStorage> fileRepo,
+            IContentPublicationService contentPublicationService,
             IScormService scormService,
             ILogger<ContentItemsController> logger,
             IMaintenanceStatusService maintenanceStatusService,
@@ -39,6 +41,7 @@ namespace iLearn.API.Controllers
         {
             _contentItemRepo = contentItemRepo;
             _fileRepo = fileRepo;
+            _contentPublicationService = contentPublicationService;
             _scormService = scormService;
             _logger = logger; // ✅ กำหนดค่า Logger
             _maintenanceStatusService = maintenanceStatusService;
@@ -147,49 +150,7 @@ namespace iLearn.API.Controllers
         {
             try
             {
-                var contentItem = await _contentItemRepo.GetByIdAsync(key);
-                if (contentItem == null) return NotFound("Content item not found");
-
-                var fileStorage = await _fileRepo.GetByIdAsync(contentItem.FileStorageId ?? 0);
-                if (fileStorage == null || fileStorage.Data == null)
-                    return NotFound("Associated file not found");
-
-                string extension = Path.GetExtension(contentItem.Name).ToLower();
-
-                if (extension == ".zip")
-                {
-                    string folderName = Guid.NewGuid().ToString();
-
-                    try
-                    {
-                        var scormInfo = await _scormService.ExtractAndParseScormAsync(
-                            fileStorage.Data,
-                            folderName
-                        );
-
-                        contentItem.LaunchHref = scormInfo.LaunchHref;
-                        contentItem.SchemaVersion = scormInfo.SchemaVersion;
-                        contentItem.URL = scormInfo.FolderName;
-                        contentItem.IsActive = true;
-
-                        _logger.LogInformation($"✅ SCORM Activated: {scormInfo.FolderName}");
-                    }
-                    catch (InvalidScormPackageException ex)
-                    {
-                        _scormService.DeleteScormFolder(folderName);
-                        return BadRequest(new
-                        {
-                            error = "Invalid SCORM Package",
-                            message = ex.Message
-                        });
-                    }
-                }
-                else
-                {
-                    contentItem.IsActive = true;
-                }
-
-                await _contentItemRepo.UpdateAsync(contentItem);
+                var contentItem = await _contentPublicationService.PublishAsync(key);
                 ContentItemStatsCache.Invalidate(_cache);
                 await _adminActivityService.LogAsync(
                     actionType: "PublishContentItem",
@@ -197,7 +158,23 @@ namespace iLearn.API.Controllers
                     entityId: contentItem.Id,
                     title: $"Published content item {contentItem.Name}",
                     description: $"Published content item '{contentItem.Name}'.");
-                return Ok(contentItem.ToDto());
+                return Ok(contentItem);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidScormPackageException ex)
+            {
+                return BadRequest(new
+                {
+                    error = "Invalid SCORM Package",
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -211,33 +188,18 @@ namespace iLearn.API.Controllers
         {
             try
             {
-                var contentItem = await _contentItemRepo.GetQuery()
-                    .Include(r => r.CourseContentItems)
-                    .FirstOrDefaultAsync(r => r.Id == key);
-
-                if (contentItem == null)
-                    return NotFound(new { message = "Content item not found." });
-
-                if (!contentItem.IsActive)
-                    return BadRequest(new { message = "Content item is not published." });
-
-                if (contentItem.CourseContentItems.Any())
-                    return BadRequest(new { message = "Cannot unpublish a content item that is used by courses. Remove it from all course versions first." });
-
-                if (!string.IsNullOrEmpty(contentItem.URL))
-                {
-                    _scormService.DeleteScormFolder(contentItem.URL);
-                    _logger.LogInformation("SCORM folder deleted for unpublish: {Folder}", contentItem.URL);
-                }
-
-                contentItem.IsActive = false;
-                contentItem.URL = null;
-                contentItem.LaunchHref = null;
-                contentItem.SchemaVersion = null;
-
-                await _contentItemRepo.UpdateAsync(contentItem);
+                var contentItem = await _contentPublicationService.UnpublishAsync(key);
                 ContentItemStatsCache.Invalidate(_cache);
-                return Ok(new { message = "ContentItem unpublished. Extracted files removed from server." });
+                _logger.LogInformation("Content item unpublished: {ContentItemId}", contentItem.Id);
+                return Ok(new { message = "Content item unpublished. Extracted files removed from server." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -385,28 +347,37 @@ namespace iLearn.API.Controllers
             if (ids == null || ids.Count == 0)
                 return BadRequest(new { message = "No content items selected." });
 
+            var preview = await _contentPublicationService.PreviewBatchUnpublishAsync(ids);
             int success = 0;
-            int failed = 0;
+            int failed = preview.BlockedCount;
             var errors = new List<object>();
 
-            foreach (var id in ids)
+            foreach (var blockedItem in preview.Items.Where(item => !item.CanUnpublish))
+            {
+                errors.Add(new
+                {
+                    id = blockedItem.ContentItemId,
+                    error = blockedItem.BlockingReason,
+                    linkedCourseCodes = blockedItem.LinkedCourseCodes
+                });
+            }
+
+            foreach (var id in preview.EligibleIds)
             {
                 try
                 {
-                    var contentItem = await _contentItemRepo.GetByIdAsync(id);
-                    if (contentItem == null || !contentItem.IsActive) { failed++; continue; }
-
-                    if (!string.IsNullOrEmpty(contentItem.URL))
-                        _scormService.DeleteScormFolder(contentItem.URL);
-
-                    contentItem.IsActive = false;
-                    contentItem.URL = null;
-                    contentItem.LaunchHref = null;
-                    contentItem.SchemaVersion = null;
-
-                    await _contentItemRepo.UpdateAsync(contentItem);
-                    ContentItemStatsCache.Invalidate(_cache);
+                    await _contentPublicationService.UnpublishAsync(id);
                     success++;
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
                 }
                 catch (Exception ex)
                 {
@@ -416,7 +387,31 @@ namespace iLearn.API.Controllers
                 }
             }
 
-            return Ok(new { success, failed, errors, message = $"Unpublished {success} content item(s). {failed} failed." });
+            if (success > 0)
+            {
+                ContentItemStatsCache.Invalidate(_cache);
+            }
+
+            return Ok(new
+            {
+                success,
+                failed,
+                blocked = preview.BlockedCount,
+                errors,
+                eligibleIds = preview.EligibleIds,
+                message = $"Unpublished {success} content item(s). {failed} blocked or failed."
+            });
+        }
+
+        [HttpPost("Admin/PreviewBatchUnpublish")]
+        public async Task<IActionResult> PreviewBatchUnpublish([FromBody] List<int> ids)
+        {
+            if (ids == null || ids.Count == 0)
+            {
+                return BadRequest(new { message = "No content items selected." });
+            }
+
+            return Ok(await _contentPublicationService.PreviewBatchUnpublishAsync(ids));
         }
 
         /// <summary>
@@ -436,26 +431,23 @@ namespace iLearn.API.Controllers
             {
                 try
                 {
-                    var contentItem = await _contentItemRepo.GetByIdAsync(id);
-                    if (contentItem == null || contentItem.IsActive) { failed++; continue; }
-
-                    var fileStorage = await _fileRepo.GetByIdAsync(contentItem.FileStorageId ?? 0);
-                    if (fileStorage?.Data == null) { failed++; errors.Add(new { id, error = "No file data" }); continue; }
-
-                    string extension = Path.GetExtension(contentItem.Name).ToLower();
-                    if (extension == ".zip")
-                    {
-                        string folderName = Guid.NewGuid().ToString();
-                        var scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
-                        contentItem.LaunchHref = scormInfo.LaunchHref;
-                        contentItem.SchemaVersion = scormInfo.SchemaVersion;
-                        contentItem.URL = scormInfo.FolderName;
-                    }
-
-                    contentItem.IsActive = true;
-                    await _contentItemRepo.UpdateAsync(contentItem);
-                    ContentItemStatsCache.Invalidate(_cache);
+                    await _contentPublicationService.PublishAsync(id);
                     success++;
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
+                }
+                catch (InvalidScormPackageException ex)
+                {
+                    failed++;
+                    errors.Add(new { id, error = ex.Message });
                 }
                 catch (Exception ex)
                 {
@@ -463,6 +455,11 @@ namespace iLearn.API.Controllers
                     errors.Add(new { id, error = ex.Message });
                     _logger.LogError(ex, "BatchPublish failed for contentItem {Id}", id);
                 }
+            }
+
+            if (success > 0)
+            {
+                ContentItemStatsCache.Invalidate(_cache);
             }
 
             return Ok(new { success, failed, errors, message = $"Published {success} content item(s). {failed} failed." });
@@ -550,101 +547,18 @@ namespace iLearn.API.Controllers
                     progress.CurrentStep = "Loading content item";
                     _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                     await WriteProgressAsync(progress);
-
-                    if (contentItem.IsActive)
-                    {
-                        failed++;
-                        progress.FailureCount = failed;
-                        progress.CurrentStep = "Skipped because the content item is already published";
-                        progress.LatestResult = new BulkOperationItemDto
-                        {
-                            ContentItemId = contentItem.Id,
-                            ContentItemName = contentItem.Name,
-                            Success = false,
-                            ErrorMessage = "Content item is already published."
-                        };
-                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
-                        await WriteProgressAsync(progress);
-                        continue;
-                    }
-
-                    progress.CurrentStep = "Loading file from database";
+                    progress.CurrentStep = "Applying shared publication policy";
                     _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                     await WriteProgressAsync(progress);
 
-                    var fileStorage = await _fileRepo.GetByIdAsync(contentItem.FileStorageId ?? 0);
-                    if (fileStorage?.Data == null)
-                    {
-                        failed++;
-                        progress.FailureCount = failed;
-                        progress.CurrentStep = "File data was not found";
-                        progress.LatestResult = new BulkOperationItemDto
-                        {
-                            ContentItemId = contentItem.Id,
-                            ContentItemName = contentItem.Name,
-                            Success = false,
-                            ErrorMessage = "No file data."
-                        };
-                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
-                        await WriteProgressAsync(progress);
-                        continue;
-                    }
-
-                    var extension = Path.GetExtension(contentItem.Name).ToLowerInvariant();
                     var itemResult = new BulkOperationItemDto
                     {
                         ContentItemId = contentItem.Id,
                         ContentItemName = contentItem.Name
                     };
 
-                    if (extension == ".zip")
-                    {
-                        progress.CurrentStep = "Extracting and validating SCORM package";
-                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
-                        await WriteProgressAsync(progress);
-
-                        var folderName = Guid.NewGuid().ToString();
-
-                        try
-                        {
-                            var scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
-                            contentItem.LaunchHref = scormInfo.LaunchHref;
-                            contentItem.SchemaVersion = scormInfo.SchemaVersion;
-                            contentItem.URL = scormInfo.FolderName;
-                            itemResult.Details = $"SCORM {scormInfo.SchemaVersion} - {scormInfo.LaunchHref}";
-                        }
-                        catch (InvalidScormPackageException ex)
-                        {
-                            _scormService.DeleteScormFolder(folderName);
-                            failed++;
-                            progress.FailureCount = failed;
-                            progress.CurrentStep = "SCORM validation failed";
-                            progress.LatestResult = new BulkOperationItemDto
-                            {
-                                ContentItemId = contentItem.Id,
-                                ContentItemName = contentItem.Name,
-                                Success = false,
-                                ErrorMessage = $"Invalid SCORM package: {ex.Message}"
-                            };
-                            _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
-                            await WriteProgressAsync(progress);
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        progress.CurrentStep = "Preparing non-SCORM content";
-                        _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
-                        await WriteProgressAsync(progress);
-                        itemResult.Details = $"File type {extension}";
-                    }
-
-                    progress.CurrentStep = "Saving publish status";
-                    _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
-                    await WriteProgressAsync(progress);
-
-                    contentItem.IsActive = true;
-                    await _contentItemRepo.UpdateAsync(contentItem);
+                    await _contentPublicationService.PublishAsync(contentItemId);
+                    itemResult.Details = "Published through shared content publication policy";
 
                     success++;
                     ContentItemStatsCache.Invalidate(_cache);
@@ -660,6 +574,78 @@ namespace iLearn.API.Controllers
                     progress.ElapsedTime = stopwatch.Elapsed;
                     _maintenanceStatusService.UpdateOperation(operationId, progress.CurrentStep, progress.CurrentContentItemName, progress.CurrentItem, progress.SuccessCount, progress.FailureCount);
                     await WriteProgressAsync(progress);
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    failed++;
+                    var currentContentItemName = progress.CurrentContentItemName ?? string.Empty;
+                    var errorProgress = new BulkOperationProgressDto
+                    {
+                        CurrentItem = index + 1,
+                        TotalItems = ids.Count,
+                        SuccessCount = success,
+                        FailureCount = failed,
+                        CurrentContentItemName = currentContentItemName,
+                        CurrentStep = "Validation failed",
+                        ElapsedTime = stopwatch.Elapsed,
+                        LatestResult = new BulkOperationItemDto
+                        {
+                            ContentItemId = contentItemId,
+                            ContentItemName = currentContentItemName,
+                            Success = false,
+                            ErrorMessage = ex.Message
+                        }
+                    };
+                    _maintenanceStatusService.UpdateOperation(operationId, errorProgress.CurrentStep, errorProgress.CurrentContentItemName, errorProgress.CurrentItem, errorProgress.SuccessCount, errorProgress.FailureCount);
+                    await WriteProgressAsync(errorProgress);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    failed++;
+                    var currentContentItemName = progress.CurrentContentItemName ?? string.Empty;
+                    var errorProgress = new BulkOperationProgressDto
+                    {
+                        CurrentItem = index + 1,
+                        TotalItems = ids.Count,
+                        SuccessCount = success,
+                        FailureCount = failed,
+                        CurrentContentItemName = currentContentItemName,
+                        CurrentStep = "Validation failed",
+                        ElapsedTime = stopwatch.Elapsed,
+                        LatestResult = new BulkOperationItemDto
+                        {
+                            ContentItemId = contentItemId,
+                            ContentItemName = currentContentItemName,
+                            Success = false,
+                            ErrorMessage = ex.Message
+                        }
+                    };
+                    _maintenanceStatusService.UpdateOperation(operationId, errorProgress.CurrentStep, errorProgress.CurrentContentItemName, errorProgress.CurrentItem, errorProgress.SuccessCount, errorProgress.FailureCount);
+                    await WriteProgressAsync(errorProgress);
+                }
+                catch (InvalidScormPackageException ex)
+                {
+                    failed++;
+                    var currentContentItemName = progress.CurrentContentItemName ?? string.Empty;
+                    var errorProgress = new BulkOperationProgressDto
+                    {
+                        CurrentItem = index + 1,
+                        TotalItems = ids.Count,
+                        SuccessCount = success,
+                        FailureCount = failed,
+                        CurrentContentItemName = currentContentItemName,
+                        CurrentStep = "SCORM validation failed",
+                        ElapsedTime = stopwatch.Elapsed,
+                        LatestResult = new BulkOperationItemDto
+                        {
+                            ContentItemId = contentItemId,
+                            ContentItemName = currentContentItemName,
+                            Success = false,
+                            ErrorMessage = $"Invalid SCORM package: {ex.Message}"
+                        }
+                    };
+                    _maintenanceStatusService.UpdateOperation(operationId, errorProgress.CurrentStep, errorProgress.CurrentContentItemName, errorProgress.CurrentItem, errorProgress.SuccessCount, errorProgress.FailureCount);
+                    await WriteProgressAsync(errorProgress);
                 }
                 catch (Exception ex)
                 {
@@ -940,7 +926,8 @@ namespace iLearn.API.Controllers
                 );
 
                 var contentItemsList = activeContentItems.ToList();
-                result.TotalProcessed = contentItemsList.Count;
+                var preview = await _contentPublicationService.PreviewBatchUnpublishAsync(contentItemsList.Select(r => r.Id));
+                result.TotalProcessed = preview.RequestedCount;
 
                 if (result.TotalProcessed == 0)
                 {
@@ -950,27 +937,26 @@ namespace iLearn.API.Controllers
 
                 if (!confirmDelete)
                 {
-                    var scormCount = contentItemsList.Count(r => !string.IsNullOrEmpty(r.LaunchHref));
-                    var nonScormCount = result.TotalProcessed - scormCount;
-
                     return Ok(new
                     {
                         warning = "⚠️ คำเตือน: คุณกำลังจะลบ ContentItem ที่ SetPublic แล้ว",
                         totalContentItems = result.TotalProcessed,
+                        eligibleCount = preview.EligibleCount,
+                        blockedCount = preview.BlockedCount,
                         breakdown = new
                         {
-                            scormPackages = scormCount,
-                            regularFiles = nonScormCount
+                            eligibleToUnpublish = preview.EligibleCount,
+                            blockedByCourseUsage = preview.BlockedCount
                         },
                         message = "⚠️ กรุณาเพิ่ม ?confirmDelete=true เพื่อยืนยันการลบ",
-                        note = "การลบจะทำให้ ContentItem กลับเป็น Inactive และลบโฟลเดอร์ SCORM (ถ้ามี)",
-                        contentItems = contentItemsList.Select(r => new
+                        note = "รายการที่ยังถูกใช้โดย course versions จะถูกข้ามตาม shared content publication policy",
+                        contentItems = preview.Items.Select(item => new
                         {
-                            ContentItemId = r.Id, // ✅ แก้
-                            r.Name,
-                            r.URL,
-                            IsScorm = !string.IsNullOrEmpty(r.LaunchHref),
-                            r.SchemaVersion
+                            contentItemId = item.ContentItemId,
+                            item.Name,
+                            item.CanUnpublish,
+                            item.BlockingReason,
+                            item.LinkedCourseCodes
                         }).ToList()
                     });
                 }
@@ -978,51 +964,44 @@ namespace iLearn.API.Controllers
                 _logger.LogWarning($"🚨 Starting Bulk Delete for {result.TotalProcessed} published contentItems");
                 operationId = _maintenanceStatusService.BeginOperation(
                     "Unpublish All Published Content",
-                    result.TotalProcessed,
+                    preview.EligibleCount,
                     User.Identity?.Name ?? "SYSTEM");
                 _maintenanceStatusService.UpdateOperation(operationId, "Starting unpublish all", currentItem: 0, successCount: 0, failureCount: 0);
 
+                foreach (var blockedItem in preview.Items.Where(item => !item.CanUnpublish))
+                {
+                    result.FailureCount++;
+                    result.Results.Add(new BulkOperationItemDto
+                    {
+                        ContentItemId = blockedItem.ContentItemId,
+                        ContentItemName = blockedItem.Name,
+                        Success = false,
+                        ErrorMessage = blockedItem.BlockingReason,
+                        Details = blockedItem.LinkedCourseCodes.Count == 0
+                            ? null
+                            : $"Linked courses: {string.Join(", ", blockedItem.LinkedCourseCodes)}"
+                    });
+                }
+
                 var currentItem = 0;
-                foreach (var contentItem in contentItemsList)
+                foreach (var contentItemId in preview.EligibleIds)
                 {
                     currentItem++;
+                    var contentItem = contentItemsList.First(r => r.Id == contentItemId);
                     var itemResult = new BulkOperationItemDto
                     {
-                        ContentItemId = contentItem.Id, // ✅ แก้
+                        ContentItemId = contentItem.Id,
                         ContentItemName = contentItem.Name
                     };
 
                     try
                     {
-                        _maintenanceStatusService.UpdateOperation(operationId, "Removing published files", contentItem.Name, currentItem, result.SuccessCount, result.FailureCount);
-                        if (!string.IsNullOrEmpty(contentItem.URL) && !string.IsNullOrEmpty(contentItem.LaunchHref))
-                        {
-                            try
-                            {
-                                _scormService.DeleteScormFolder(contentItem.URL);
-                                itemResult.Details = $"ลบโฟลเดอร์ SCORM: {contentItem.URL}";
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning($"⚠️ Failed to delete SCORM folder {contentItem.URL}: {ex.Message}");
-                                itemResult.Details = $"⚠️ ลบโฟลเดอร์ไม่สำเร็จ: {ex.Message}";
-                            }
-                        }
-                        else
-                        {
-                            itemResult.Details = "ไฟล์ธรรมดา";
-                        }
-
-                        contentItem.IsActive = false;
-                        contentItem.URL = null;
-                        contentItem.LaunchHref = null;
-                        contentItem.SchemaVersion = null;
-
-                        await _contentItemRepo.UpdateAsync(contentItem); // ✅ แก้
+                        _maintenanceStatusService.UpdateOperation(operationId, "Applying shared publication policy", contentItem.Name, currentItem, result.SuccessCount, result.FailureCount);
+                        await _contentPublicationService.UnpublishAsync(contentItemId);
 
                         itemResult.Success = true;
+                        itemResult.Details = "Unpublished through shared content publication policy";
                         result.SuccessCount++;
-                        ContentItemStatsCache.Invalidate(_cache);
                         result.Results.Add(itemResult);
                         _maintenanceStatusService.UpdateOperation(operationId, "Updating content item to draft", contentItem.Name, currentItem, result.SuccessCount, result.FailureCount);
 
@@ -1040,10 +1019,15 @@ namespace iLearn.API.Controllers
                     }
                 }
 
+                if (result.SuccessCount > 0)
+                {
+                    ContentItemStatsCache.Invalidate(_cache);
+                }
+
                 stopwatch.Stop();
                 result.Duration = stopwatch.Elapsed;
                 result.Summary = $"✅ ลบสำเร็จ {result.SuccessCount}/{result.TotalProcessed} รายการ " +
-                                $"(❌ ล้มเหลว {result.FailureCount}) ⏱️ ใช้เวลา {result.Duration.TotalSeconds:F2} วินาที";
+                                $"(❌ blocked/failed {result.FailureCount}) ⏱️ ใช้เวลา {result.Duration.TotalSeconds:F2} วินาที";
                 if (operationId != Guid.Empty)
                     _maintenanceStatusService.CompleteOperation(operationId, result.FailureCount == 0, "Unpublish all completed", result.SuccessCount, result.FailureCount);
                 await _adminActivityService.LogAsync(
