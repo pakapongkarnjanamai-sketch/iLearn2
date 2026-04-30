@@ -6,7 +6,7 @@ Last updated: 2026-04-30
 
 ไฟล์นี้สรุป recommendation ที่ยังเปิดอยู่จากเอกสาร lifecycle ทั้งชุด และเรียงลำดับจากสำคัญมากไปน้อยตามผลกระทบต่อ data integrity, contract consistency, learner/admin behavior, และความเสี่ยงในการทำ regression
 
-Progress update: priorities 1, 2, and 5 were completed on 2026-04-30 by centralizing SCORM Exam/Learn outcome evaluation in `ScormContentStatusPolicy`, making `LearningLog` defaults safe, and unifying the shared `Due Soon` threshold. Priority 4 is now partially completed because `CourseVersionsCRUDController.Get/{id}` no longer returns a raw entity payload. Priority 6 is also completed in code by moving completed-history retention into `EnrollmentVisibilityPolicy`.
+Progress update: priorities 1, 2, 4, 5, 6, and 7 were completed on 2026-04-30 by centralizing SCORM Exam/Learn outcome evaluation in `ScormContentStatusPolicy`, making `LearningLog` defaults safe, eliminating the remaining raw lifecycle detail payloads, unifying the shared `Due Soon` threshold, moving completed-history retention into `EnrollmentVisibilityPolicy`, and aligning bulk content unpublish flows behind one shared policy/preview path. The main open decision gate is still priority 3 (`Retired` course policy). The main implementable follow-ups are priority 8 onward plus broader lifecycle invariant test coverage.
 
 ## Prioritization Rules
 
@@ -115,14 +115,14 @@ Outcome:
 
 Priority: High
 
-Why now:
-- Admin assignment quick filters ใช้ `Due in 7 days`
-- Dashboard API ใช้ `today.AddDays(14)`
-- ผู้ใช้จะเห็น KPI และ list filter ไม่ตรงกันในระบบเดียวกัน
+Why it mattered:
+- Admin assignment quick filters เคยใช้ `Due in 7 days`
+- Dashboard API เคยใช้ `today.AddDays(14)`
+- ผู้ใช้จึงเคยเห็น KPI และ list filter ไม่ตรงกันในระบบเดียวกัน
 
-Evidence:
-- `iLearn.Admin/Views/Assignments/Index.cshtml` และ `Gantt.cshtml` ใช้ 7 วัน
-- `iLearn.API/Controllers/DashboardController.cs` ใช้ 14 วัน
+Evidence now addressed:
+- `AssignmentStatusKeys.DueSoonWindowDays` เป็น owner กลางของ threshold นี้แล้ว
+- `DashboardController` และ Admin assignment filters ใช้ค่าเดียวกัน
 
 Goal:
 - มี threshold กลางเพียงค่าเดียวสำหรับ `Due Soon`
@@ -148,12 +148,13 @@ Outcome:
 
 Priority: Medium
 
-Why now:
-- learner dashboard visibility ของ completed enrollments ยังพึ่ง rule แบบ implicit หนึ่งเดือนใน controller
-- เป็น business rule จริง แต่ตอนนี้ยังไม่มี named constant/config ทำให้ drift ง่าย
+Why it mattered:
+- learner dashboard visibility ของ completed enrollments เคยพึ่ง rule แบบ implicit หนึ่งเดือนใน controller
+- เป็น business rule จริง จึงเสี่ยง drift ง่ายเมื่อไม่มี named owner
 
-Evidence:
-- `iLearn.API/Controllers/EnrollmentsController.cs` ใช้ `currentDate.AddMonths(-1)`
+Evidence now addressed:
+- `EnrollmentVisibilityPolicy` เป็น owner กลางของ completed-history retention แล้ว
+- `EnrollmentsController.GetMyCourses` ใช้ policy นี้แทน literal date math
 
 Goal:
 - retention window มี owner ชัด, เปลี่ยนได้, test ได้, และอธิบายได้ใน docs
@@ -181,7 +182,7 @@ Priority: Medium
 
 Why it mattered:
 - single/bulk publish-unpublish ถูก centralize แล้ว แต่ blocked bulk maintenance เคยตอบกลับแบบ hard-stop หรือ bypass policy ไปเลย
-- ฝั่ง Admin ยังไม่มี impact preview ที่บอกว่าอะไร block อยู่และเพราะอะไร ก่อนผู้ใช้กด maintenance
+- ฝั่ง Admin เคยยังไม่มี impact preview ที่บอกว่าอะไร block อยู่และเพราะอะไร ก่อนผู้ใช้กด maintenance
 
 Evidence now addressed:
 - `IContentPublicationService` และ `ContentPublicationService` now expose preview logic for batch unpublish
@@ -199,6 +200,30 @@ Implementation summary:
 Validation:
 - tests สำหรับ preview payload
 - Admin UX smoke check
+
+### 11. Lock Lifecycle Status Invariants With Focused Tests
+
+Priority: Medium
+
+Why now:
+- behavior-level recommendations หลักถูก implement ไปหลายจุดแล้ว แต่บาง invariant ยังพึ่งเอกสารกับการอ่านโค้ดมากกว่าการถูก lock ด้วย test โดยตรง
+- ถ้าจะพักงานไว้หนึ่งสัปดาห์ การมี focused regression coverage เพิ่มจะช่วยให้กลับมาทำต่อได้ปลอดภัยกว่า
+
+Evidence:
+- `LIFECYCLE-OVERVIEW.md` ยังแนะนำให้เพิ่ม tests สำหรับ course status transitions, assignment status priority, content readiness, และ SCORM precedence ที่ยังเหลือ
+- ตอนนี้มี focused tests บาง slice แล้ว แต่ยังไม่มีชุด guard กลางสำหรับ invariant dictionary เหล่านี้
+
+Goal:
+- ให้ lifecycle rules สำคัญถูก lock ด้วย tests ก่อนขยาย feature work รอบถัดไป
+- ลดการย้อนกลับไป re-audit เอกสารเมื่อกลับมาทำงานต่อ
+
+Implementation plan:
+1. เพิ่ม focused tests สำหรับ course status transitions และ retire/open edge cases ที่ไม่ต้องรอ force-flow decision
+2. เพิ่ม tests สำหรับ assignment status priority และ `No Learners` baseline behavior
+3. เพิ่ม tests สำหรับ content readiness / publish-state invariants และ SCORM precedence ที่ยังเหลือ
+
+Validation:
+- focused test runs by rule family
 
 ### 8. Add NoLearners Display Bucket For Assignment Batches
 
@@ -271,44 +296,37 @@ Validation:
 ### Phase 0: Decision Gates
 
 1. ตัดสิน Retired course policy
-2. ตัดสิน Due Soon threshold กลาง
 
-### Phase 1: Critical Correctness
+### Phase 1: Coverage And UX Clarity
 
-1. Remove dangerous LearningLog defaults
+1. Lock lifecycle status invariants with focused tests
+2. Add NoLearners display bucket
 
-### Phase 2: Contract Hardening
-
-1. Eliminate remaining raw entity / ambiguous lifecycle payloads
-2. Externalize completed learner history retention
-
-### Phase 3: Workflow Consistency
-
-1. Unify Due Soon threshold
-2. Extend shared content publication policy with impact preview
-3. Add NoLearners display bucket
-
-### Phase 4: Governance And Cleanup
+### Phase 2: Governance Hardening
 
 1. Harden master data impact checks
 2. Remove display-name-as-key dependencies
 3. Finalize learner group category deletion behavior
 
+### Phase 3: Product Decision Follow-Up
+
+1. Finalize the Retired course policy and align UI/API/docs with that decision
+
 ## Recommended Next Implementation Slice
 
 If only one slice is started next, start with:
 
-1. `remaining response payload audit`
+1. `lifecycle status invariant tests`
 
 Why:
-- เป็น next implementable high-priority item ที่ไม่ต้องรอ product decision
-- ช่วยปิด contract ambiguity ต่อจาก `CourseVersionsCRUDController.Get/{id}` ที่เพิ่ง align แล้ว
-- scope ยังพอแยกทำเป็น endpoint-by-endpoint พร้อม contract tests ได้
+- เป็น next implementable slice ที่ไม่ต้องรอ product decision
+- งาน behavior หลักเพิ่งถูก centralize หลายจุด การ lock ด้วย tests จะช่วยให้กลับมาทำต่อสัปดาห์หน้าได้ปลอดภัย
+- scope ยังแยกทำเป็น rule family ได้โดยไม่ต้องเปิด feature slice ใหม่
 
 If one smaller but lower-risk slice is needed before that, use:
 
-1. `CourseVersionsCRUDController` response shaping
+1. `NoLearners display bucket`
 
 Why:
-- แก้ contract ambiguity ชัดเจนและ scope แคบ
-- ไม่ต้องรอ product decision
+- เป็น UX-only follow-up ที่ไม่แตะ contract เดิมถ้าเริ่มจาก display bucket ฝั่ง Admin
+- ไม่ต้องรอ product decision และ validate ได้ด้วย focused UI/status tests
