@@ -101,7 +101,11 @@ if (-not (Test-Path -LiteralPath $resolvedPublishOutput)) {
 Write-Host "Copying publish output to $deployPath"
 if ($PSCmdlet.ShouldProcess($deployPath, "Copy publish output from $resolvedPublishOutput")) {
     New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
-    Copy-Item -Path (Join-Path $resolvedPublishOutput '*') -Destination $deployPath -Recurse -Force
+
+    $publishEntries = Get-ChildItem -LiteralPath $resolvedPublishOutput -Force
+    foreach ($publishEntry in $publishEntries) {
+        Copy-Item -LiteralPath $publishEntry.FullName -Destination $deployPath -Recurse -Force
+    }
 }
 
 $appSettingsFiles = Get-ChildItem -LiteralPath $resolvedPublishOutput -Filter 'appsettings*.json' -File -ErrorAction SilentlyContinue
@@ -109,6 +113,19 @@ foreach ($appSettingsFile in $appSettingsFiles) {
     $rootConfigPath = Join-Path $DeployRoot $appSettingsFile.Name
     if ($PSCmdlet.ShouldProcess($rootConfigPath, "Sync config file from $($appSettingsFile.FullName)")) {
         Copy-Item -LiteralPath $appSettingsFile.FullName -Destination $rootConfigPath -Force
+    }
+}
+
+$publishedWwwrootPath = Join-Path $resolvedPublishOutput 'wwwroot'
+if (Test-Path -LiteralPath $publishedWwwrootPath) {
+    $rootWwwrootPath = Join-Path $DeployRoot 'wwwroot'
+    if ($PSCmdlet.ShouldProcess($rootWwwrootPath, "Sync static web assets from $publishedWwwrootPath")) {
+        New-Item -ItemType Directory -Path $rootWwwrootPath -Force | Out-Null
+
+        $publishedWwwrootEntries = Get-ChildItem -LiteralPath $publishedWwwrootPath -Force
+        foreach ($publishedWwwrootEntry in $publishedWwwrootEntries) {
+            Copy-Item -LiteralPath $publishedWwwrootEntry.FullName -Destination $rootWwwrootPath -Recurse -Force
+        }
     }
 }
 

@@ -232,7 +232,8 @@
     <script>
         window.iLearnAdminConfig = {
             apiBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseUrl"] ?? string.Empty)),
-            clearAllCacheUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Url.Action("ClearAll", "Cache") ?? string.Empty))
+            clearAllCacheUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Url.Action("ClearAll", "Cache") ?? string.Empty)),
+            appBasePath: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Url.Content("~/")))
         };
     </script>
     <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>

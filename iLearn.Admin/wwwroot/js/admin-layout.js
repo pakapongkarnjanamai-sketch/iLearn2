@@ -13,7 +13,7 @@
     const gridPostRenderRefreshDelay = 120;
     const popupRefreshDelay = 0;
     const defaultToastDisplayTime = 3500;
-    const currentScriptElement = document.currentScript || document.querySelector('script[src*="/js/admin-layout.js"]');
+    const currentScriptElement = document.currentScript || document.querySelector('script[src*="admin-layout.js"]');
     const configuredAppBasePath = typeof config.appBasePath === 'string' ? config.appBasePath.trim() : '';
     const derivedAppBasePath = (function () {
         if (configuredAppBasePath) {

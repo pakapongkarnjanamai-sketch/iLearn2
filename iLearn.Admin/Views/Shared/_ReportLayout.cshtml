@@ -8,6 +8,7 @@
 <head>
     <meta charset="utf-8" />
     <title>@pageTitle</title>
+    <link rel="icon" href="~/favicon.ico" asp-append-version="true" />
     <link rel="preload" href="~/js/devextreme/dx.all.js" as="script" asp-append-version="true" />
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/devextreme/dx.light.css" rel="stylesheet" asp-append-version="true" />
@@ -348,6 +349,11 @@
 
     @RenderBody()
 
+    <script>
+        window.iLearnAdminConfig = Object.assign({}, window.iLearnAdminConfig, {
+            appBasePath: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Url.Content("~/")))
+        });
+    </script>
     <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>
     <script src="~/js/devextreme/dx.all.js" asp-append-version="true"></script>
     <script src="~/src/devextreme-license.js" asp-append-version="true"></script>
