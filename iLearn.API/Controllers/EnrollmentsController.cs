@@ -7,6 +7,7 @@ using iLearn.Application.Mappings;
 using iLearn.API.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -104,7 +105,8 @@ namespace iLearn.API.Controllers
             var oneMonthAgo = currentDate.AddMonths(-1);
 
             var enrollments = await _enrollmentRepo.GetAsync(
-                filter: e => !e.IsDeleted && e.LearnerCode == learnerCode && e.Course != null && e.Course.IsActive,
+                filter: e => !e.IsDeleted && e.LearnerCode == learnerCode && e.Course != null
+                    && (e.Course.Status == CourseStatus.Open || e.Course.Status == CourseStatus.Closed),
                 includeProperties: "Course.CourseType,Course.Versions.CourseContentItems.ContentItem,AssignmentLinks.Assignment",
                 ignoreQueryFilters: true
             );
@@ -213,8 +215,8 @@ namespace iLearn.API.Controllers
                 isReadOnly = true;
 
                 var activeVersions = await _versionRepo.GetAsync(
-                  filter: v => v.CourseId == courseId && v.IsActive,
-                                    includeProperties: "CourseContentItems.ContentItem,Course.CourseType,Course.Category"
+                    filter: v => v.CourseId == courseId && v.IsActive && v.Course != null && v.Course.Status == CourseStatus.Open,
+                    includeProperties: "CourseContentItems.ContentItem,Course.CourseType,Course.Category"
                 );
                 targetVersion = activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
             }
@@ -224,7 +226,11 @@ namespace iLearn.API.Controllers
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content not found or Course is not active" });
             }
 
-            if (targetVersion.Course?.IsActive != true || !CourseContentReadiness.IsVersionReady(targetVersion.CourseContentItems))
+            var canAccessCourse = enrollment != null
+                ? targetVersion.Course?.Status == CourseStatus.Open || targetVersion.Course?.Status == CourseStatus.Closed
+                : targetVersion.Course?.Status == CourseStatus.Open;
+
+            if (!canAccessCourse || !CourseContentReadiness.IsVersionReady(targetVersion.CourseContentItems))
             {
                 return NotFound(new ApiResponse<string> { Success = false, Message = "Content is not ready for learning." });
             }
@@ -395,7 +401,7 @@ namespace iLearn.API.Controllers
 
         private static bool IsEnrollmentContentReady(Enrollment enrollment)
         {
-            if (enrollment.Course?.IsActive != true)
+            if (enrollment.Course?.Status != CourseStatus.Open && enrollment.Course?.Status != CourseStatus.Closed)
             {
                 return false;
             }
@@ -599,7 +605,7 @@ namespace iLearn.API.Controllers
             var targetCourseIds = courseIds.Distinct().ToList();
             var courses = await _courseRepo.GetAsync(
                 c => targetCourseIds.Contains(c.Id)
-                    && c.IsActive
+                    && c.Status == CourseStatus.Open
                     && (!_currentUser.DivisionId.HasValue || c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value),
                 includeProperties: "Category,Versions.CourseContentItems.ContentItem"
             );

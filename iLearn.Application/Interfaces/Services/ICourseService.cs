@@ -1,4 +1,5 @@
 using iLearn.Application.DTOs;
+using iLearn.Domain.Enums;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -18,6 +19,8 @@ namespace iLearn.Application.Interfaces.Services
         // Update Operations
         Task<CourseDto> UpdateCourseAsync(int id, CourseCreateDto model);
         Task<bool> UpdateCourseStatusAsync(int id, bool isActive);
+        Task<CourseStatusResultDto> UpdateCourseStatusAsync(int id, CourseStatus status);
+        Task<CourseStatusImpactDto> GetCourseStatusImpactAsync(int id);
 
         // Delete Operations
         Task DeleteCourseAsync(int id);

@@ -316,6 +316,7 @@
         const initialCourseIds = '@preselectedCourseIds';
         const initialGroupId = '@preselectedGroupId';
         const initialDescription = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(preselectedDescription ?? ""))';
+        const ASSIGNMENT_LOOKUP_COURSES_URL = `${serviceUrl}/Assignments/lookup-courses`;
         const ASSIGNMENT_VALIDATE_URL = `${serviceUrl}/Assignments/validate-before-assign`;
         const BULK_ASSIGN_URL = `${serviceUrl}/Enrollments/BulkAssign`;
         const ASSIGNMENT_DETAIL_URL = `@Url.Action("Detail", "Assignments")`;
@@ -395,7 +396,10 @@
             }
 
             $(typeSel).dxSelectBox({
-                dataSource: window.createDataStore(svcUrl, 'admin/CourseTypesCRUD', { key: 'id' }),
+                dataSource: window.createDataStore(svcUrl, 'Courses', {
+                    key: 'id',
+                    loadUrl: `${svcUrl}/Courses/course-types-lookup`
+                }),
                 displayExpr: 'name',
                 valueExpr: 'id',
                 placeholder: 'All Types',
@@ -406,7 +410,10 @@
             });
 
             $(divSel).dxSelectBox({
-                dataSource: window.createDataStore(svcUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+                dataSource: window.createDataStore(svcUrl, 'Divisions', {
+                    key: 'id',
+                    loadUrl: `${svcUrl}/Divisions/lookup`
+                }),
                 displayExpr: 'name',
                 valueExpr: 'id',
                 placeholder: 'All Divisions',
@@ -418,9 +425,9 @@
                     catBox.option('value', null);
 
                     if (e.value) {
-                        catBox.option('dataSource', window.createDataStore(svcUrl, 'admin/CategoriesCRUD', {
+                        catBox.option('dataSource', window.createDataStore(svcUrl, 'Categories', {
                             key: 'id',
-                            action: 'Get',
+                            loadUrl: `${svcUrl}/Categories/lookup`,
                             filter: ['divisionId', '=', e.value]
                         }));
                         catBox.option('disabled', false);
@@ -705,7 +712,7 @@
                     height: SELECTION_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
                         key: "id",
-                        loadUrl: `${serviceUrl}/admin/CoursesCRUD/Get`,
+                        loadUrl: ASSIGNMENT_LOOKUP_COURSES_URL,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
                         }

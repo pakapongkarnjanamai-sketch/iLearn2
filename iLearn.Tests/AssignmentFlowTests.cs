@@ -5,6 +5,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using System.Linq.Expressions;
 
 namespace iLearn.Tests
@@ -20,6 +21,7 @@ namespace iLearn.Tests
             {
                 Id = 10,
                 IsActive = true,
+                Status = CourseStatus.Open,
                 Code = "C-10",
                 Title = "Course 10"
             };
@@ -58,12 +60,50 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task AssignCoursesToEmployees_ClosedCourse_DoesNotCreateEnrollment()
+        {
+            var course = new Course
+            {
+                Id = 11,
+                IsActive = false,
+                Status = CourseStatus.Closed,
+                Code = "C-11",
+                Title = "Closed Course"
+            };
+            var version = new CourseVersion
+            {
+                Id = 110,
+                CourseId = 11,
+                VersionNumber = 1,
+                IsActive = true
+            };
+
+            var service = CreateCourseAssignmentService(
+                courses: [course],
+                enrollments: [],
+                enrollmentAssignments: [],
+                assignments: [],
+                versions: [version]);
+
+            await service.AssignCoursesToEmployees(
+                new Dictionary<int, int> { [11] = 9002 },
+                ["490222"],
+                Now,
+                Now.AddDays(7),
+                forceReset: false);
+
+            Assert.Empty(service.EnrollmentRepository.Items);
+            Assert.Empty(service.EnrollmentAssignmentRepository.Items);
+        }
+
+        [Fact]
         public async Task AssignCoursesToEmployees_ReassignCompletedEnrollment_ResetsEnrollmentAndSnapshotsExistingLinks()
         {
             var course = new Course
             {
                 Id = 20,
                 IsActive = true,
+                Status = CourseStatus.Open,
                 Code = "C-20",
                 Title = "Course 20"
             };
@@ -289,7 +329,7 @@ namespace iLearn.Tests
 
             public Task<IEnumerable<Course>> GetActiveCoursesAsync()
             {
-                return Task.FromResult<IEnumerable<Course>>(Items.Where(c => c.IsActive).ToList());
+                return Task.FromResult<IEnumerable<Course>>(Items.Where(c => c.Status == CourseStatus.Open).ToList());
             }
 
             public Task<bool> IsCourseCodeUniqueAsync(string code)

@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 
 namespace iLearn.Application.Services
 {
@@ -465,7 +466,7 @@ namespace iLearn.Application.Services
         {
             var divisionId = _currentUser.DivisionId;
             var courses = await _courseRepo.GetAsync(
-                c => c.IsActive && (!divisionId.HasValue || c.Category != null && c.Category.DivisionId == divisionId.Value),
+                c => c.Status == CourseStatus.Open && (!divisionId.HasValue || c.Category != null && c.Category.DivisionId == divisionId.Value),
                 includeProperties: "Category,CourseType");
 
             return courses.Select(c => new LookupCourseDto

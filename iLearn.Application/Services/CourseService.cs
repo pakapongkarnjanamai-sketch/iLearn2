@@ -5,6 +5,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -77,8 +78,12 @@ namespace iLearn.Application.Services
 
         public async Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool isActive = true)
         {
+            var targetStatuses = isActive
+                ? new[] { CourseStatus.Open }
+                : new[] { CourseStatus.Draft, CourseStatus.Closed, CourseStatus.Retired };
+
             var courses = await _courseRepo.GetAsync(
-                filter: c => c.IsActive == isActive,
+                filter: c => targetStatuses.Contains(c.Status),
                 includeProperties: "Category,Versions,CourseType"
             );
 
@@ -87,10 +92,14 @@ namespace iLearn.Application.Services
 
         public async Task<IEnumerable<CourseDto>> GetCoursesByDivisionNameAsync(string divisionName, bool isActive = true)
         {
+            var targetStatuses = isActive
+                ? new[] { CourseStatus.Open }
+                : new[] { CourseStatus.Draft, CourseStatus.Closed, CourseStatus.Retired };
+
             // Course -> Category -> Division (ผ่าน Category.DivisionId)
             // กรองเฉพาะ Course ที่อยู่ใน Category ของ Division ที่ตรงกับชื่อ
             var courses = await _courseRepo.GetAsync(
-                filter: c => c.IsActive == isActive
+                filter: c => targetStatuses.Contains(c.Status)
                           && c.Category != null
                           && c.Category.Division != null
                           && c.Category.Division.Name == divisionName,
@@ -141,6 +150,9 @@ namespace iLearn.Application.Services
                 CourseType = course.CourseTypeId,
                 CategoryId = course.CategoryId,
                 IsActive = course.IsActive,
+                Status = course.Status,
+                CanAssign = course.CanAssign,
+                CanLearnerAccess = course.CanLearnerAccess,
                 ContentItems = contentItemList
             };
         }
@@ -159,7 +171,8 @@ namespace iLearn.Application.Services
                 CategoryId = model.CategoryId,
                 Description = model.Description,
                 CourseTypeId = model.CourseType,
-                IsActive = false
+                IsActive = false,
+                Status = CourseStatus.Draft
             };
 
             await _courseRepo.AddAsync(course);
@@ -203,7 +216,8 @@ namespace iLearn.Application.Services
                 Description = model.Description,
                 CategoryId = model.CategoryId,
                 CourseTypeId = model.CourseType,
-                IsActive = false // Draft status
+                IsActive = false,
+                Status = CourseStatus.Draft
             };
 
             await _courseRepo.AddAsync(course);
@@ -387,13 +401,18 @@ namespace iLearn.Application.Services
 
         public async Task<bool> UpdateCourseStatusAsync(int id, bool isActive)
         {
+            var result = await UpdateCourseStatusAsync(id, isActive ? CourseStatus.Open : CourseStatus.Closed);
+            return result.IsActive;
+        }
+
+        public async Task<CourseStatusResultDto> UpdateCourseStatusAsync(int id, CourseStatus status)
+        {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
                 throw new KeyNotFoundException($"Course with ID {id} was not found.");
 
-            if (isActive)
+            if (status == CourseStatus.Open)
             {
-                // 1. ตรวจสอบว่ามี CourseVersion ที่เปิดใช้งานอยู่หรือไม่
                 var activeVersions = await _courseVersionRepository.GetAsync(v => v.CourseId == id && v.IsActive);
                 var activeVersion = activeVersions.FirstOrDefault();
 
@@ -411,32 +430,94 @@ namespace iLearn.Application.Services
                     throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(readiness.ContentItemCount, issues));
                 }
             }
-            else
-            {
-                // 🔒 นับเฉพาะ Enrollment ที่ผู้เรียนเรียนจริงแล้ว โดยต้องผ่านทุกเงื่อนไขต่อไปนี้:
-                //   1. ยังไม่เสร็จ (IsCompleted = false)
-                //   2. เริ่มเรียนไปแล้ว (StartDate != null)
-                //   3. มี Progress จริง (Progress > 0) — กรอง "zombie enrollment" ออก
-                //      (Enrollment ที่ Assignment ถูกยกเลิกแต่ StartDate ถูก set ไว้แล้ว)
-                var activeEnrollments = await _enrollmentRepository.GetAsync(
-                    e => e.CourseId == id && !e.IsCompleted && e.StartDate != null && e.Progress > 0
-                );
 
-                if (activeEnrollments.Any())
+            if (status == CourseStatus.Retired)
+            {
+                var openEnrollmentCount = await _enrollmentRepository.CountAsync(
+                    e => e.CourseId == id && !e.IsCompleted && !e.IsDeleted);
+
+                if (openEnrollmentCount > 0)
                 {
-                    var count = activeEnrollments.Count();
                     throw new InvalidOperationException(
-                        $"Cannot deactivate the course because {count} learner(s) are currently in progress. " +
-                        $"Please wait until all learners complete or cancel the related enrollments first."
+                        $"Cannot retire the course because {openEnrollmentCount} learner(s) still have open enrollments. " +
+                        $"Close the course first, then wait for completion or cancel the related enrollments."
                     );
                 }
             }
 
-            course.IsActive = isActive;
+            var oldStatus = course.Status;
+            course.Status = status;
+            course.IsActive = status == CourseStatus.Open;
 
             await _courseRepo.UpdateAsync(course);
 
-            return course.IsActive;
+            await _adminActivityService.LogAsync(
+                actionType: "UpdateCourseStatus",
+                entityType: nameof(Course),
+                entityId: course.Id,
+                title: $"Changed course {course.Code} status to {status}",
+                description: $"Changed course '{course.Title}' from {oldStatus} to {status}.",
+                divisionId: _currentUser.DivisionId);
+
+            return new CourseStatusResultDto
+            {
+                CourseId = course.Id,
+                Status = course.Status,
+                IsActive = course.IsActive,
+                CanAssign = course.CanAssign,
+                CanLearnerAccess = course.CanLearnerAccess,
+                Impact = await GetCourseStatusImpactAsync(course.Id)
+            };
+        }
+
+        public async Task<CourseStatusImpactDto> GetCourseStatusImpactAsync(int id)
+        {
+            var course = await _courseRepo.GetByIdAsync(id);
+            if (course == null)
+                throw new KeyNotFoundException($"Course with ID {id} was not found.");
+
+            var enrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id && !e.IsDeleted);
+            var assignments = await _assignmentRepository.GetAsync(
+                a => !a.IsDeleted && (a.CourseId == id || a.AssignmentCourses.Any(ac => ac.CourseId == id && !ac.IsDeleted)),
+                includeProperties: "AssignmentCourses");
+            var now = _dateTime.Now;
+
+            var notStartedCount = enrollments.Count(e => !e.IsCompleted && e.Progress <= 0);
+            var inProgressCount = enrollments.Count(e => !e.IsCompleted && e.Progress > 0);
+            var completedCount = enrollments.Count(e => e.IsCompleted);
+            var activeAssignmentCount = assignments.Count(a =>
+                (!a.StartDate.HasValue || a.StartDate.Value <= now) &&
+                (!a.DueDate.HasValue || a.DueDate.Value >= now));
+            var futureAssignmentCount = assignments.Count(a => a.StartDate.HasValue && a.StartDate.Value > now);
+
+            return new CourseStatusImpactDto
+            {
+                CourseId = course.Id,
+                CurrentStatus = course.Status,
+                NotStartedCount = notStartedCount,
+                InProgressCount = inProgressCount,
+                CompletedCount = completedCount,
+                ActiveAssignmentCount = activeAssignmentCount,
+                FutureAssignmentCount = futureAssignmentCount,
+                CanOpen = await CanOpenCourseAsync(course.Id),
+                CanRetire = notStartedCount + inProgressCount == 0,
+                Message = course.Status == CourseStatus.Open
+                    ? "Closing this course stops new assignments. Existing assigned learners can continue learning."
+                    : "Opening this course makes it available for new assignments when the active version is ready."
+            };
+        }
+
+        private async Task<bool> CanOpenCourseAsync(int courseId)
+        {
+            var activeVersions = await _courseVersionRepository.GetAsync(v => v.CourseId == courseId && v.IsActive);
+            var activeVersion = activeVersions.FirstOrDefault();
+            if (activeVersion == null)
+            {
+                return false;
+            }
+
+            var readiness = await _versionService.GetVersionReadinessAsync(activeVersion.Id);
+            return readiness.IsReady;
         }
 
         // ── Dashboard / Aggregation Operations ─────────────────────────────

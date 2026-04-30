@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using iLearn.Domain.Enums;
 
 namespace iLearn.Application.DTOs
 {
@@ -12,6 +13,10 @@ namespace iLearn.Application.DTOs
         public int CourseType { get; set; }
         public int CategoryId { get; set; }
         public bool IsActive { get; set; }
+        public CourseStatus Status { get; set; }
+        public string StatusName => Status.ToString();
+        public bool CanAssign { get; set; }
+        public bool CanLearnerAccess { get; set; }
         public List<CourseContentItemDto> ContentItems { get; set; } = new();
     }
 

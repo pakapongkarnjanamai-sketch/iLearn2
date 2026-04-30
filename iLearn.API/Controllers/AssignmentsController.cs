@@ -1,9 +1,12 @@
-﻿using iLearn.Application.DTOs;
+﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Mvc;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -649,7 +652,7 @@ namespace iLearn.API.Controllers
 
         [Authorize(Policy = "AdminOnly")]
         [HttpGet("lookup-courses")]
-        public async Task<IActionResult> GetLookupCourses()
+        public async Task<IActionResult> GetLookupCourses(DataSourceLoadOptions loadOptions)
         {
             var courses = await GetAccessibleCoursesAsync([], includeCourseType: true);
 
@@ -662,9 +665,9 @@ namespace iLearn.API.Controllers
                 DivisionId   = c.Category?.DivisionId,
                 CourseTypeId = c.CourseTypeId,
                 CourseTypeName = c.CourseType?.Name
-            }).ToList();
+            }).AsQueryable();
 
-            return Ok(new { data = result });
+            return Ok(DataSourceLoader.Load(result, loadOptions));
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -686,7 +689,7 @@ namespace iLearn.API.Controllers
             var includeProperties = includeCourseType ? "Category,CourseType" : "Category";
 
             return await _courseRepo.GetAsync(
-                c => c.IsActive
+                c => c.Status == CourseStatus.Open
                     && (!targetCourseIds.Any() || targetCourseIds.Contains(c.Id))
                     && (!_currentUser.DivisionId.HasValue || c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value),
                 includeProperties: includeProperties

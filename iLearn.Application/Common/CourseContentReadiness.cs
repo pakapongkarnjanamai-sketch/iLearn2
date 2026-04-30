@@ -1,4 +1,5 @@
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -53,7 +54,7 @@ namespace iLearn.Application.Common
 
         public static bool HasReadyActiveVersion(Course? course)
         {
-            return course?.IsActive == true
+            return course?.Status == CourseStatus.Open
                 && course.Versions.Any(version => version.IsActive && IsVersionReady(version.CourseContentItems));
         }
 

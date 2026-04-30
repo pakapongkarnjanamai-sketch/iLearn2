@@ -25,7 +25,9 @@
     <script>
         let gridInstance;
         const dsRolesLookup = {
-            store: createDataStore(serviceUrl, 'admin/RolesCRUD'),
+            store: createDataStore(serviceUrl, 'Roles', {
+                loadUrl: `${serviceUrl}/Roles/lookup`
+            }),
             loadMode: 'raw',
             cacheRawData: true
         };
@@ -62,21 +64,95 @@
                 remoteOperations: true,
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'User_Accounts'),
-                editing: {
-                    mode: "popup",
+                editing: window.buildAdminPopupEditing({
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
-                    useIcons: true,
-                    popup: { title: "User Info", showTitle: true, width: 700, height: 450 },
+                    popup: {
+                        title: "User Account Details",
+                        width: 760
+                    },
                     form: {
+                        colCount: 2,
                         items: [
-                            { dataField: 'id', editorOptions: { disabled: true } },
-                            { dataField: 'nid' },
-                            { dataField: 'roleIds', label: { text: 'Roles' } }
+                            {
+                                itemType: 'group',
+                                caption: 'Account Access',
+                                colCount: 2,
+                                colSpan: 2,
+                                items: [
+                                    {
+                                        dataField: 'nid',
+                                        label: { text: 'National ID / Username' },
+                                        editorOptions: {
+                                            placeholder: 'Enter employee username...'
+                                        }
+                                    },
+                                    {
+                                        dataField: 'roleIds',
+                                        label: { text: 'Roles' },
+                                        editorType: 'dxTagBox',
+                                        editorOptions: {
+                                            dataSource: dsRolesLookup,
+                                            valueExpr: 'id',
+                                            displayExpr: 'name',
+                                            showSelectionControls: true,
+                                            searchEnabled: true,
+                                            placeholder: 'Select roles...'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                itemType: 'group',
+                                caption: 'Employee Details',
+                                colCount: 2,
+                                colSpan: 2,
+                                items: [
+                                    {
+                                        dataField: 'employeeId',
+                                        label: { text: 'Employee ID' },
+                                        editorOptions: { readOnly: true }
+                                    },
+                                    {
+                                        dataField: 'fullName',
+                                        label: { text: 'Full Name' },
+                                        colSpan: 2,
+                                        editorOptions: { readOnly: true }
+                                    },
+                                    {
+                                        dataField: 'email',
+                                        label: { text: 'Email' },
+                                        colSpan: 2,
+                                        editorOptions: { readOnly: true }
+                                    },
+                                    {
+                                        dataField: 'division',
+                                        label: { text: 'Division' },
+                                        editorOptions: { readOnly: true }
+                                    },
+                                    {
+                                        dataField: 'department',
+                                        label: { text: 'Department' },
+                                        editorOptions: { readOnly: true }
+                                    },
+                                    {
+                                        dataField: 'section',
+                                        label: { text: 'Section' },
+                                        colSpan: 2,
+                                        editorOptions: { readOnly: true }
+                                    },
+                                    {
+                                        dataField: 'position',
+                                        label: { text: 'Position' },
+                                        colSpan: 2,
+                                        editorOptions: { readOnly: true }
+                                    }
+                                ]
+                            }
                         ]
                     }
-                },
+                }),
                 columns: [
                     { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "nid", caption: "National ID / Username", minWidth: 200 },

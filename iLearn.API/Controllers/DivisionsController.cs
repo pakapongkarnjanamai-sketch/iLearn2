@@ -1,4 +1,6 @@
-﻿using iLearn.Application.DTOs;
+﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Mvc;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
@@ -28,6 +30,29 @@ namespace iLearn.API.Controllers
             _divisionRepo = divisionRepo;
             _categoryRepo = categoryRepo;
             _currentUser = currentUser;
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpGet("lookup")]
+        public async Task<IActionResult> GetLookup(DataSourceLoadOptions loadOptions)
+        {
+            var query = _divisionRepo.GetQuery().AsNoTracking();
+
+            if (_currentUser.DivisionId.HasValue)
+            {
+                query = query.Where(d => d.Id == _currentUser.DivisionId.Value);
+            }
+
+            var lookupQuery = query
+                .OrderBy(d => d.Name)
+                .Select(d => new DivisionDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    IsActive = d.IsActive
+                });
+
+            return Ok(await DataSourceLoader.LoadAsync(lookupQuery, loadOptions));
         }
 
         [Authorize(Policy = "AdminOnly")]

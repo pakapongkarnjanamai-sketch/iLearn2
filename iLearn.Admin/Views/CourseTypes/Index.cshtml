@@ -20,25 +20,25 @@
         <div class="col-6 col-md-3">
             <div class="kpi-card kpi-all h-100">
                 <div class="kpi-label">Total Types</div>
-                <div class="kpi-number" id="kpi-total">�</div>
+                <div class="kpi-number" id="kpi-total">-</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card kpi-accent h-100">
                 <div class="kpi-label">Total Courses</div>
-                <div class="kpi-number" id="kpi-courses">�</div>
+                <div class="kpi-number" id="kpi-courses">-</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card kpi-purple h-100">
                 <div class="kpi-label">Avg. Courses / Type</div>
-                <div class="kpi-number" id="kpi-avg">�</div>
+                <div class="kpi-number" id="kpi-avg">-</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="kpi-card kpi-warning h-100">
                 <div class="kpi-label">Unused Types</div>
-                <div class="kpi-number" id="kpi-unused">�</div>
+                <div class="kpi-number" id="kpi-unused">-</div>
             </div>
         </div>
     </div>
@@ -109,33 +109,23 @@
                 height: "100%",
                 dataSource: courseTypesStore,
                 remoteOperations: true,
-                editing: {
-                    mode: "popup",
+                editing: window.buildAdminPopupEditing({
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
-                    useIcons: true,
                     texts: {
                         confirmDeleteMessage: "Are you sure you want to delete this course type? Courses using it may be affected."
                     },
                     popup: {
                         title: "Course Type Details",
-                        showTitle: true,
-                        width: 480,
-                        height: "auto",
-                        position: { my: "center", at: "center", of: window },
-                        dragEnabled: true,
-                        hideOnOutsideClick: true
+                        width: 520
                     },
                     form: {
-                        labelLocation: "top",
-                        colCount: 1,
                         items: [
                             {
                                 itemType: "group",
                                 caption: "Course Type Details",
                                 items: [
-                                { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                                     {
                                         dataField: "name",
                                         label: { text: "Name" },
@@ -155,7 +145,7 @@
                             }
                         ]
                     }
-                },
+                }),
                 columns: [
                     {
                         dataField: "id",

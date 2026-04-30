@@ -1,4 +1,5 @@
 ﻿using iLearn.Domain.Common;
+using iLearn.Domain.Enums;
 namespace iLearn.Domain.Entities
 {
     public class Course : BaseEntity
@@ -13,6 +14,12 @@ namespace iLearn.Domain.Entities
 
         public int CategoryId { get; set; }
         public virtual Category? Category { get; set; }
+
+        public CourseStatus Status { get; set; } = CourseStatus.Draft;
+
+        public bool CanAssign => Status == CourseStatus.Open;
+        public bool CanLearnerAccess => Status == CourseStatus.Open || Status == CourseStatus.Closed;
+        public bool IsRetired => Status == CourseStatus.Retired;
 
         public ICollection<CourseVersion> Versions { get; set; } = new List<CourseVersion>();
 

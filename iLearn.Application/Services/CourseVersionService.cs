@@ -5,6 +5,7 @@ using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -668,9 +669,24 @@ namespace iLearn.Application.Services
 
         private async Task SetCourseActiveIfNeededAsync(Course course)
         {
-            if (!course.IsActive)
+            if (course.Status == CourseStatus.Draft)
+            {
+                course.Status = CourseStatus.Open;
+                course.IsActive = true;
+                await _courseRepository.UpdateAsync(course);
+                return;
+            }
+
+            if (course.Status == CourseStatus.Open && !course.IsActive)
             {
                 course.IsActive = true;
+                await _courseRepository.UpdateAsync(course);
+                return;
+            }
+
+            if ((course.Status == CourseStatus.Closed || course.Status == CourseStatus.Retired) && course.IsActive)
+            {
+                course.IsActive = false;
                 await _courseRepository.UpdateAsync(course);
             }
         }
@@ -693,8 +709,9 @@ namespace iLearn.Application.Services
             }
 
             var course = await _courseRepository.GetByIdAsync(courseId);
-            if (course != null && course.IsActive)
+            if (course != null && course.Status == CourseStatus.Open)
             {
+                course.Status = CourseStatus.Draft;
                 course.IsActive = false;
                 await _courseRepository.UpdateAsync(course);
             }

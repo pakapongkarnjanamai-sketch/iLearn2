@@ -109,27 +109,18 @@
                 height: "100%",
                 dataSource: divisionsStore,
                 remoteOperations: true,
-                editing: {
-                    mode: "popup",
+                editing: window.buildAdminPopupEditing({
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
-                    useIcons: true,
                     texts: {
                         confirmDeleteMessage: "Are you sure you want to delete this division? Categories and roles linked to it may be affected."
                     },
                     popup: {
                         title: "Division Details",
-                        showTitle: true,
-                        width: 450,
-                        height: "auto",
-                        position: { my: "center", at: "center", of: window },
-                        dragEnabled: true,
-                        hideOnOutsideClick: true
+                        width: 520
                     },
                     form: {
-                        labelLocation: "top",
-                        colCount: 1,
                         items: [
                             {
                                 itemType: "group",
@@ -154,7 +145,7 @@
                             }
                         ]
                     }
-                },
+                }),
                 columns: [
                     {
                         dataField: "id",

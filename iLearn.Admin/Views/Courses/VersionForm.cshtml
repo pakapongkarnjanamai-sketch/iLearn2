@@ -255,7 +255,10 @@
             ResetInProgress: "Reset In Progress"
         };
 
-        const contentLibraryStore = createDataStore(serviceUrl, 'admin/ContentItemsCRUD', { key: 'id' });
+        const contentLibraryStore = createDataStore(serviceUrl, 'ContentLibrary', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/ContentLibrary/lookup`
+        });
 
         let formWidget;
         let masterGrid;
@@ -509,10 +512,10 @@
                                 cssClass: "fw-medium text-dark"
                             },
                             {
-                                dataField: "typeId", caption: "Content Type", width: 110, alignment: "center",
+                                dataField: "typeName", caption: "Content Type", width: 110, alignment: "center",
                                 cellTemplate: function(container, options) {
-                                    const isLearningType = options.value === 1;
-                                    const text = isLearningType ? "Learn" : "Exam";
+                                    const isLearningType = options.data.typeId === 1;
+                                    const text = options.value || (isLearningType ? "Learn" : "Exam");
                                     window.renderAdminGridStatusCell(container, text, isLearningType ? 'primary' : 'warning', { showDot: false });
                                 }
                             },
@@ -523,12 +526,9 @@
                                 }
                             },
                             {
-                                caption: "Used In", width: 100, alignment: "center", allowSorting: true,
-                                calculateCellValue: function(data) {
-                                    return (data.courseContentItems || []).length;
-                                },
+                                dataField: "courseIdsCount", caption: "Used In", width: 100, alignment: "center", allowSorting: true,
                                 cellTemplate: function(container, options) {
-                                    const count = options.value;
+                                    const count = options.value || 0;
                                     window.renderAdminGridTextCell(container, count, count > 0 ? 'captionSuccess' : 'captionMuted');
                                 }
                             },
@@ -860,8 +860,8 @@
             };
         }
 
-        function addExistingContentItems(contentItems) {
-            contentItems.forEach(function(contentItem) {
+        function addExistingContentItems(selectedContentItems) {
+            selectedContentItems.forEach(function(contentItem) {
                 const contentItemId = contentItem.realId ?? contentItem.id;
                 const exists = contentItems.some(function(item) {
                     return !item.isNew && item.realId === contentItemId;

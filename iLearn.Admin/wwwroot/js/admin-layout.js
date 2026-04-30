@@ -240,6 +240,22 @@
     });
 
     const dxGridDefaults = dxGridPresets.defaultGrid;
+    const adminPopupEditingDefaultPopup = {
+        showTitle: true,
+        width: 520,
+        maxWidth: '92vw',
+        height: 'auto',
+        maxHeight: '85vh',
+        position: { my: 'center', at: 'center', of: window },
+        dragEnabled: true,
+        resizeEnabled: true,
+        hideOnOutsideClick: true
+    };
+    const adminPopupEditingDefaultForm = {
+        labelLocation: 'top',
+        colCount: 1,
+        showColonAfterLabel: false
+    };
 
     function getDxGridPreset(presetName) {
         return $.extend(true, {}, dxGridPresets[presetName] || dxGridPresets.defaultGrid);
@@ -1038,12 +1054,76 @@
         });
     }
 
+    function isAdminPopupIdField(dataField) {
+        return typeof dataField === 'string' && dataField.toLowerCase() === 'id';
+    }
+
+    function normalizeAdminPopupFormItems(items) {
+        if (!Array.isArray(items)) {
+            return items;
+        }
+
+        return items.reduce(function (normalizedItems, item) {
+            if (!item || isAdminPopupIdField(item.dataField)) {
+                return normalizedItems;
+            }
+
+            const nextItem = $.extend(true, {}, item);
+
+            if (Array.isArray(nextItem.items)) {
+                nextItem.items = normalizeAdminPopupFormItems(nextItem.items);
+            }
+
+            normalizedItems.push(nextItem);
+            return normalizedItems;
+        }, []);
+    }
+
+    function normalizeAdminPopupForm(formOptions) {
+        const normalizedForm = $.extend(true, {}, adminPopupEditingDefaultForm, formOptions || {});
+        const callerCustomizeItem = typeof normalizedForm.customizeItem === 'function'
+            ? normalizedForm.customizeItem
+            : null;
+
+        if (Array.isArray(normalizedForm.items)) {
+            normalizedForm.items = normalizeAdminPopupFormItems(normalizedForm.items);
+        }
+
+        normalizedForm.customizeItem = function (item) {
+            if (item && isAdminPopupIdField(item.dataField)) {
+                item.visible = false;
+                return;
+            }
+
+            if (callerCustomizeItem) {
+                callerCustomizeItem(item);
+            }
+        };
+
+        return normalizedForm;
+    }
+
+    function buildAdminPopupEditing(editingOptions) {
+        const normalizedEditing = $.extend(true, {}, editingOptions || {});
+
+        normalizedEditing.mode = 'popup';
+        normalizedEditing.useIcons = normalizedEditing.useIcons !== false;
+        normalizedEditing.popup = $.extend(true, {}, adminPopupEditingDefaultPopup, normalizedEditing.popup);
+        normalizedEditing.form = normalizeAdminPopupForm(normalizedEditing.form);
+
+        return normalizedEditing;
+    }
+
     function getDxGridOptions(pageOptions) {
         const normalizedPageOptions = pageOptions || {};
         const overrides = $.extend(true, {}, normalizedPageOptions);
         const presetName = overrides.preset || 'defaultGrid';
         delete overrides.preset;
         const resolvedOptions = $.extend(true, {}, getDxGridPreset(presetName), overrides);
+
+        if (resolvedOptions.editing && resolvedOptions.editing.mode === 'popup') {
+            resolvedOptions.editing = buildAdminPopupEditing(resolvedOptions.editing);
+        }
 
         // Allow callers to opt out of virtual scrolling by providing their own scrolling.mode
         // (e.g. wizard selection grids that use pager instead).
@@ -1472,7 +1552,10 @@
         }
 
         $(typeSel).dxSelectBox({
-            dataSource: createDataStore(svcUrl, 'admin/CourseTypesCRUD', { key: 'id' }),
+            dataSource: createDataStore(svcUrl, 'Courses', {
+                key: 'id',
+                loadUrl: `${svcUrl}/Courses/course-types-lookup`
+            }),
             displayExpr: 'name',
             valueExpr: 'id',
             placeholder: 'All Types',
@@ -1483,7 +1566,10 @@
         });
 
         $(divSel).dxSelectBox({
-            dataSource: createDataStore(svcUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+            dataSource: createDataStore(svcUrl, 'Divisions', {
+                key: 'id',
+                loadUrl: `${svcUrl}/Divisions/lookup`
+            }),
             displayExpr: 'name',
             valueExpr: 'id',
             placeholder: 'All Divisions',
@@ -1495,9 +1581,9 @@
                 catBox.option('value', null);
 
                 if (e.value) {
-                    catBox.option('dataSource', createDataStore(svcUrl, 'admin/CategoriesCRUD', {
+                    catBox.option('dataSource', createDataStore(svcUrl, 'Categories', {
                         key: 'id',
-                        action: 'Get',
+                        loadUrl: `${svcUrl}/Categories/lookup`,
                         filter: ['divisionId', '=', e.value]
                     }));
                     catBox.option('disabled', false);
@@ -1701,6 +1787,7 @@
     window.dxGridDefaults = dxGridDefaults;
     window.dxGridPresets = dxGridPresets;
     window.getDxGridPreset = getDxGridPreset;
+    window.buildAdminPopupEditing = buildAdminPopupEditing;
     window.getNoDataText = getNoDataText;
     window.createSelectionHintElement = createSelectionHintElement;
     window.setSelectionHint = setSelectionHint;

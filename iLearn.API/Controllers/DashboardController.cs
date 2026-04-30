@@ -2,6 +2,7 @@
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -72,8 +73,8 @@ namespace iLearn.API.Controllers
             var groupsQuery = ApplyLearnerGroupScope(_learnerGroupRepo.GetQuery().AsNoTracking());
             var learningLogsQuery = ApplyLearningLogScope(_learningLogRepo.GetQuery().AsNoTracking());
 
-            var activeCourses = await coursesQuery.CountAsync(c => c.IsActive, cancellationToken);
-            var draftCourses = await coursesQuery.CountAsync(c => !c.IsActive, cancellationToken);
+            var activeCourses = await coursesQuery.CountAsync(c => c.Status == CourseStatus.Open, cancellationToken);
+            var draftCourses = await coursesQuery.CountAsync(c => c.Status == CourseStatus.Draft, cancellationToken);
             var newCourses = await coursesQuery.CountAsync(c => c.CreatedAt >= recentWindowStart, cancellationToken);
             var contentItemCount = await contentItemsQuery.CountAsync(r => r.IsActive, cancellationToken);
             var learnerGroupCount = await groupsQuery.CountAsync(g => g.IsActive, cancellationToken);
@@ -128,7 +129,7 @@ namespace iLearn.API.Controllers
                 cancellationToken);
 
             var categoryMix = await coursesQuery
-                .Where(c => c.IsActive)
+                .Where(c => c.Status == CourseStatus.Open)
                 .GroupBy(c => new
                 {
                     c.CategoryId,
@@ -200,8 +201,8 @@ namespace iLearn.API.Controllers
         [HttpGet("Stats")]
         public async Task<IActionResult> GetStats()
         {
-            var activeCourses = await ApplyCourseScope(_courseRepo.GetQuery()).CountAsync(c => c.IsActive);
-            var draftCourses = await ApplyCourseScope(_courseRepo.GetQuery()).CountAsync(c => !c.IsActive);
+            var activeCourses = await ApplyCourseScope(_courseRepo.GetQuery()).CountAsync(c => c.Status == CourseStatus.Open);
+            var draftCourses = await ApplyCourseScope(_courseRepo.GetQuery()).CountAsync(c => c.Status == CourseStatus.Draft);
             var totalContentItems = await ApplyContentItemScope(_contentItemRepo.GetQuery()).CountAsync();
 
             var now = _dateTime.Now;

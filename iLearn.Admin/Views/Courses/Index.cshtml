@@ -143,6 +143,21 @@
                         }
                     },
                     {
+                        dataField: "statusName",
+                        caption: "Status",
+                        width: 110,
+                        alignment: "center",
+                        cellTemplate: (container, options) => {
+                            const text = options.value || (options.data.isActive ? "Open" : "Closed");
+                            const tone = text === "Open" ? "success"
+                                : text === "Draft" ? "warning"
+                                : text === "Retired" ? "danger"
+                                : "default";
+
+                            window.renderAdminGridStatusCell(container, text, tone, { showDot: false });
+                        }
+                    },
+                    {
                         dataField: "categoryName",
                         caption: "Category",
                         width: 200,
@@ -264,12 +279,12 @@
             async function loadCourseTypeFilters() {
                 try {
                     const response = await $.ajax({
-                        url: `${serviceUrl}/admin/CourseTypesCRUD/Get`,
+                        url: `${serviceUrl}/Courses/course-types-lookup`,
                         type: "GET",
                         xhrFields: { withCredentials: true }
                     });
 
-                    const loadedTypes = Array.isArray(response?.data) ? response.data : [];
+                    const loadedTypes = Array.isArray(response) ? response : [];
                     const availableTypes = loadedTypes.filter(function(item) {
                         return item && item.id && item.name;
                     });

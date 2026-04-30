@@ -11,6 +11,10 @@ namespace iLearn.Application.DTOs
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public bool IsActive { get; set; }
+        public CourseStatus Status { get; set; }
+        public string StatusName => Status.ToString();
+        public bool CanAssign { get; set; }
+        public bool CanLearnerAccess { get; set; }
 
         public string TypeName { get; set; } = string.Empty;
         public int CourseTypeId { get; set; }

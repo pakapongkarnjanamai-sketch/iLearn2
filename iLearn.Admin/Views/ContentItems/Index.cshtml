@@ -159,7 +159,7 @@
         let filterAssignment = 'all';
 
         // lookup column — raw+cached
-        const coursesLookupStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` });
+        const coursesLookupStore = createDataStore(serviceUrl, 'Courses', { loadUrl: `${serviceUrl}/Courses/lookup` });
         const dsCoursesLookup = {
             store: coursesLookupStore,
             loadMode: 'raw',
@@ -561,21 +561,13 @@
                 height: "100%",
                 dataSource: createContentItemsDataSource(),
                 remoteOperations: true,
-                editing: {
-                    mode: "popup", allowUpdating: true, allowDeleting: true, allowAdding: false, useIcons: true,
+                editing: window.buildAdminPopupEditing({ allowUpdating: true, allowDeleting: true, allowAdding: false,
                     texts: { confirmDeleteMessage: "Are you sure you want to delete this content item?" },
                     popup: {
                         title: "Edit Content",
-                        showTitle: true,
-                        width: 480,
-                        height: "auto",
-                        position: { my: "center", at: "center", of: window },
-                        dragEnabled: true,
-                        hideOnOutsideClick: true
+                        width: 520
                     },
                     form: {
-                        labelLocation: "top",
-                        colCount: 1,
                         items: [
                             {
                                 itemType: "group",
@@ -604,7 +596,7 @@
                             }
                         ]
                     }
-                },
+                }),
                 columns: [
                 { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "name", caption: "Content File Name", dataType: "string", minWidth: 200 },

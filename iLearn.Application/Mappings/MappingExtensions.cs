@@ -24,6 +24,9 @@ namespace iLearn.Application.Mappings
                 Title = entity.Title,
                 Description = entity.Description,
                 IsActive = entity.IsActive,
+                Status = entity.Status,
+                CanAssign = entity.CanAssign,
+                CanLearnerAccess = entity.CanLearnerAccess,
                 CourseTypeId = entity.CourseTypeId,
                 TypeName = entity.CourseType?.Name ?? string.Empty,
 
@@ -48,7 +51,8 @@ namespace iLearn.Application.Mappings
                 Title = dto.Title,
                 Description = dto.Description,
                 CourseTypeId = dto.CourseTypeId,
-                IsActive = true
+                IsActive = true,
+                Status = iLearn.Domain.Enums.CourseStatus.Open
             };
 
             // [New] สร้าง Version แรก (v1) ให้โดยอัตโนมัติเมื่อสร้างคอร์ส

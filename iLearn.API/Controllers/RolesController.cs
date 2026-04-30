@@ -1,10 +1,13 @@
-﻿using iLearn.Application.DTOs;
+﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Mvc;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Mappings;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace iLearn.API.Controllers
 {
@@ -20,6 +23,31 @@ namespace iLearn.API.Controllers
         {
             _repo = repo;
             _currentUser = currentUser;
+        }
+
+        [HttpGet("lookup")]
+        public async Task<IActionResult> GetLookup(DataSourceLoadOptions loadOptions)
+        {
+            var query = _repo.GetQuery().AsNoTracking();
+
+            if (_currentUser.DivisionId.HasValue)
+            {
+                var myDivId = _currentUser.DivisionId.Value;
+                query = query.Where(r => r.DivisionId == myDivId || r.DivisionId == null);
+            }
+
+            var lookupQuery = query
+                .OrderBy(r => r.Name)
+                .Select(r => new RoleDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    RoleType = r.RoleType,
+                    DivisionId = r.DivisionId,
+                    DivisionName = r.Division != null ? r.Division.Name : null
+                });
+
+            return Ok(await DataSourceLoader.LoadAsync(lookupQuery, loadOptions));
         }
 
         [HttpGet]

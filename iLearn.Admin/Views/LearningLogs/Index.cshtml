@@ -114,7 +114,7 @@
         let filterStatus = 'all';
 
         const logsStore = createDataStore(serviceUrl, 'admin/LearningLogsCRUD');
-        const coursesLookupStore = createDataStore(serviceUrl, 'admin/CoursesCRUD', { loadUrl: `${serviceUrl}/admin/CoursesCRUD/GetForLookup` });
+        const coursesLookupStore = createDataStore(serviceUrl, 'Courses', { loadUrl: `${serviceUrl}/Courses/lookup` });
 
         function formatTimeSpent(seconds) {
             return window.formatAdminDuration(seconds, '—', { includeSeconds: true });

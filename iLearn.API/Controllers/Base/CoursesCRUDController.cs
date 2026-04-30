@@ -5,6 +5,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,13 @@ namespace iLearn.API.Controllers.Base
                     c.Code,
                     c.Title,
                     c.IsActive,
+                    c.Status,
+                    StatusName = c.Status == CourseStatus.Open ? "Open"
+                        : c.Status == CourseStatus.Draft ? "Draft"
+                        : c.Status == CourseStatus.Retired ? "Retired"
+                        : "Closed",
+                    CanAssign = c.Status == CourseStatus.Open,
+                    CanLearnerAccess = c.Status == CourseStatus.Open || c.Status == CourseStatus.Closed,
                     c.CategoryId,
                     CategoryName = c.Category != null ? c.Category.Name : null,
                     DivisionId = c.Category != null ? c.Category.DivisionId : null,
@@ -66,7 +74,7 @@ namespace iLearn.API.Controllers.Base
                 .Include(c => c.Category).ThenInclude(cat => cat.Division)
                 .Include(c => c.CourseType)
                 .Include(c => c.Versions)
-                .Where(c => c.IsActive && c.Versions.Any(v => v.IsActive
+                .Where(c => c.Status == CourseStatus.Open && c.Versions.Any(v => v.IsActive
                     && v.CourseContentItems.Any()
                     && v.CourseContentItems.All(cr => cr.ContentItem != null
                         && cr.ContentItem.IsActive

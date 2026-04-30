@@ -3,6 +3,7 @@ using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,7 +71,7 @@ namespace iLearn.Application.Services
             ValidateAssignmentWindow(startDate, dueDate);
 
             var course = await _courseRepo.GetByIdAsync(courseId);
-            if (course == null || !course.IsActive) return;
+            if (course == null || course.Status != CourseStatus.Open) return;
 
             var activeVersion = await GetActiveVersionAsync(course.Id);
             if (activeVersion == null) return;
@@ -94,7 +95,7 @@ namespace iLearn.Application.Services
             ValidateAssignmentWindow(startDate, dueDate);
 
             var courseIds = assignmentRuleIdsByCourseId.Keys.Distinct().ToList();
-            var courses = await _courseRepo.GetAsync(c => courseIds.Contains(c.Id) && c.IsActive);
+            var courses = await _courseRepo.GetAsync(c => courseIds.Contains(c.Id) && c.Status == CourseStatus.Open);
             var activeCourses = courses.ToDictionary(c => c.Id);
             var activeVersions = await GetActiveVersionMapAsync(courseIds);
             var existingEnrollments = await GetExistingEnrollmentMapAsync(courseIds, employeeCodes);

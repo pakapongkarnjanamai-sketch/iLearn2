@@ -1,4 +1,6 @@
-﻿using iLearn.Application.Common;
+﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Mvc;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
@@ -6,9 +8,11 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 
 namespace iLearn.API.Controllers
 {
@@ -19,6 +23,7 @@ namespace iLearn.API.Controllers
     {
         private readonly ICourseService _courseService;
         private readonly ICourseVersionService _versionService;
+        private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<CourseType> _courseTypeRepo;
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<Assignment> _assignmentRepo;
@@ -30,6 +35,7 @@ namespace iLearn.API.Controllers
         public CoursesController(
             ICourseService courseService,
             ICourseVersionService versionService,
+            IGenericRepository<Course> courseRepo,
             IGenericRepository<CourseType> courseTypeRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Assignment> assignmentRepo,
@@ -40,6 +46,7 @@ namespace iLearn.API.Controllers
         {
             _courseService = courseService;
             _versionService = versionService;
+            _courseRepo = courseRepo;
             _courseTypeRepo = courseTypeRepo;
             _enrollmentRepo = enrollmentRepo;
             _assignmentRepo = assignmentRepo;
@@ -47,6 +54,35 @@ namespace iLearn.API.Controllers
             _learnerApiService = learnerApiService;
             _currentUser = currentUser;
             _dateTime = dateTime;
+        }
+
+        [HttpGet("lookup")]
+        public async Task<IActionResult> GetLookup(DataSourceLoadOptions loadOptions)
+        {
+            var query = _courseRepo.GetQuery()
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted);
+
+            if (_currentUser.DivisionId.HasValue)
+            {
+                query = query.Where(c => c.Category != null && c.Category.DivisionId == _currentUser.DivisionId.Value);
+            }
+
+            var lookupQuery = query
+                .OrderBy(c => c.Code)
+                .ThenBy(c => c.Title)
+                .Select(c => new LookupCourseDto
+                {
+                    Id = c.Id,
+                    Code = c.Code,
+                    Title = c.Title,
+                    CategoryId = c.CategoryId,
+                    DivisionId = c.Category != null ? c.Category.DivisionId : null,
+                    CourseTypeId = c.CourseTypeId,
+                    CourseTypeName = c.CourseType != null ? c.CourseType.Name : null
+                });
+
+            return Ok(await DataSourceLoader.LoadAsync(lookupQuery, loadOptions));
         }
 
         [HttpGet("course-types-lookup")]
@@ -485,17 +521,35 @@ namespace iLearn.API.Controllers
         {
             try
             {
-                var result = await _courseService.UpdateCourseStatusAsync(id, dto.IsActive);
-                return Ok(new ApiResponse<bool>
+                CourseStatus targetStatus;
+                if (dto.Status.HasValue)
+                {
+                    targetStatus = dto.Status.Value;
+                }
+                else if (dto.IsActive.HasValue)
+                {
+                    targetStatus = dto.IsActive.Value ? CourseStatus.Open : CourseStatus.Closed;
+                }
+                else
+                {
+                    return BadRequest(new ApiResponse<CourseStatusResultDto>
+                    {
+                        Success = false,
+                        Message = "Status or isActive is required."
+                    });
+                }
+
+                var result = await _courseService.UpdateCourseStatusAsync(id, targetStatus);
+                return Ok(new ApiResponse<CourseStatusResultDto>
                 {
                     Success = true,
-                    Message = dto.IsActive ? "Course activated successfully." : "Course deactivated successfully.",
+                    Message = $"Course status changed to {result.StatusName} successfully.",
                     Data = result
                 });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new ApiResponse<bool>
+                return BadRequest(new ApiResponse<CourseStatusResultDto>
                 {
                     Success = false,
                     Message = ex.Message
@@ -503,11 +557,25 @@ namespace iLearn.API.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new ApiResponse<bool>
+                return NotFound(new ApiResponse<CourseStatusResultDto>
                 {
                     Success = false,
                     Message = ex.Message
                 });
+            }
+        }
+
+        [HttpGet("{id}/status-impact")]
+        public async Task<IActionResult> GetStatusImpact(int id)
+        {
+            try
+            {
+                var impact = await _courseService.GetCourseStatusImpactAsync(id);
+                return Ok(new { success = true, data = impact });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
             }
         }
 

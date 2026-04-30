@@ -5,6 +5,7 @@ using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using System.Linq.Expressions;
 
 namespace iLearn.Tests
@@ -166,7 +167,7 @@ namespace iLearn.Tests
             bool contentItemReady = true,
             bool contentItemHasStoredPackage = false)
         {
-            var course = new Course { Id = 10, Code = "C-10", Title = "Course 10", IsActive = true };
+            var course = new Course { Id = 10, Code = "C-10", Title = "Course 10", IsActive = true, Status = CourseStatus.Open };
             var oldVersion = new CourseVersion { Id = 100, CourseId = 10, VersionNumber = 1, IsActive = true };
             var inactiveVersion = new CourseVersion { Id = 101, CourseId = 10, VersionNumber = 2, IsActive = false };
             var fileStorage = contentItemHasStoredPackage
@@ -377,7 +378,7 @@ namespace iLearn.Tests
             }
 
             public Task<IEnumerable<Course>> GetActiveCoursesAsync() =>
-                Task.FromResult<IEnumerable<Course>>(Items.Where(c => c.IsActive).ToList());
+                Task.FromResult<IEnumerable<Course>>(Items.Where(c => c.Status == CourseStatus.Open).ToList());
 
             public Task<bool> IsCourseCodeUniqueAsync(string code) =>
                 Task.FromResult(!Items.Any(c => string.Equals(c.Code, code, StringComparison.OrdinalIgnoreCase)));

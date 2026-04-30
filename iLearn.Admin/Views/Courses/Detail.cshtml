@@ -214,18 +214,28 @@
             MoveNotStarted: "MoveNotStarted",
             ResetInProgress: "ResetInProgress"
         };
+        const COURSE_STATUS = {
+            Draft: 0,
+            Open: 1,
+            Closed: 2,
+            Retired: 3
+        };
 
         const divisionsStore = createDataStore(serviceUrl, 'Divisions', {
             key: 'id',
             loadUrl: `${serviceUrl}/Divisions`
         });
-        const categoriesStore = createDataStore(serviceUrl, 'admin/CategoriesCRUD', { key: 'id' });
+        const categoriesStore = createDataStore(serviceUrl, 'Categories', {
+            key: 'id',
+            loadUrl: `${serviceUrl}/Categories/lookup`
+        });
         const courseTypesStore = createDataStore(serviceUrl, 'Courses', {
             key: 'id',
             loadUrl: `${serviceUrl}/Courses/course-types-lookup`
         });
 
         let isCourseActive = false;
+        let currentCourseStatus = COURSE_STATUS.Draft;
         let currentCourseData = null;
         let versionsData = [];
         let versionsGrid;
@@ -266,7 +276,12 @@
 
             await loadDashboardData();
 
-            function updateStatusUI(isActive) {
+            function updateStatusUI(status) {
+                const normalizedStatus = normalizeCourseStatus({ status: status, isActive: status === true });
+                const isOpen = normalizedStatus === COURSE_STATUS.Open;
+                const isClosed = normalizedStatus === COURSE_STATUS.Closed;
+                const isDraft = normalizedStatus === COURSE_STATUS.Draft;
+                const isRetired = normalizedStatus === COURSE_STATUS.Retired;
                 const $publishIcon = $("#publishIcon");
                 const $publishIconBox = $("#publishIconBox");
                 const $publishBtnText = $("#publishBtnText");
@@ -279,35 +294,53 @@
                 const $publishAvailabilityMsg = $("#publishAvailabilityMsg");
                 const $availability = $("#summary-availability");
 
-                if (isActive) {
+                if (isOpen) {
                     $publishIcon.removeClass("fa-globe").addClass("fa-lock");
                     $publishIconBox.removeClass("qa-icon-muted").addClass("qa-icon-warning");
                     $publishBtnText.text("Close Course");
-                    $publishBtnDesc.text("Deactivate — stop new learners");
+                    $publishBtnDesc.text("Stop new assignments");
                     $statusBadge.removeClass("pill-default pill-warning pill-danger pill-primary")
                                 .addClass("pill-success")
-                                .html('<i class="fas fa-check-circle me-1"></i> Active');
+                                .html('<i class="fas fa-check-circle me-1"></i> Open');
                     setActionLinkState($btnTogglePublish, false);
                     setActionLinkState($btnDelete, true);
                     setActionLinkState($btnAssignment, false);
                     $availability.html('<span class="tag-pill pill-success"><i class="fas fa-check-circle me-1"></i> Available for assignment</span>');
-                    $warnMsg.removeClass("d-none");
+                    $warnMsg.removeClass("d-none").html('<i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i> Cannot delete an open course.');
+                    $publishAvailabilityMsg.addClass("d-none");
+                } else if (isRetired) {
+                    $publishIcon.removeClass("fa-globe").addClass("fa-ban");
+                    $publishIconBox.removeClass("qa-icon-muted qa-icon-warning").addClass("qa-icon-danger");
+                    $publishBtnText.text("Retired");
+                    $publishBtnDesc.text("Learning access is stopped");
+                    $statusBadge.removeClass("pill-success pill-warning pill-primary pill-default")
+                                .addClass("pill-danger")
+                                .html('<i class="fas fa-ban me-1"></i> Retired');
+                    setActionLinkState($btnTogglePublish, true);
+                    setActionLinkState($btnDelete, true);
+                    setActionLinkState($btnAssignment, true);
+                    $availability.html('<span class="tag-pill pill-danger"><i class="fas fa-ban me-1"></i> Retired</span>');
+                    $warnMsg.removeClass("d-none").html('<i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i> Retired courses cannot be assigned or deleted here.');
                     $publishAvailabilityMsg.addClass("d-none");
                 } else {
                     $publishIcon.removeClass("fa-lock").addClass("fa-globe");
                     $publishIconBox.removeClass("qa-icon-warning").addClass("qa-icon-muted");
-                    $publishBtnText.text("Publish Course");
+                    $publishBtnText.text("Open Course");
                     $publishBtnDesc.text(publishAvailabilityState.canPublish
-                        ? "Make course available"
+                        ? "Allow new assignments"
                         : publishAvailabilityState.message);
                     $statusBadge.removeClass("pill-success pill-warning pill-danger pill-primary")
-                                .addClass("pill-default")
-                                .html('<i class="fas fa-lock me-1"></i> Closed');
+                                .addClass(isDraft ? "pill-warning" : "pill-default")
+                                .html(isDraft
+                                    ? '<i class="fas fa-pen me-1"></i> Draft'
+                                    : '<i class="fas fa-lock me-1"></i> Closed');
                     setActionLinkState($btnTogglePublish, !publishAvailabilityState.canPublish);
                     setActionLinkState($btnDelete, false);
                     setActionLinkState($btnAssignment, true);
                     $availability.html(publishAvailabilityState.canPublish
-                        ? '<span class="tag-pill pill-default"><i class="fas fa-lock me-1"></i> Closed to new learners</span>'
+                        ? (isClosed
+                            ? '<span class="tag-pill pill-default"><i class="fas fa-lock me-1"></i> Closed to new assignments</span>'
+                            : '<span class="tag-pill pill-warning"><i class="fas fa-pen me-1"></i> Draft</span>')
                         : '<span class="tag-pill pill-warning"><i class="fas fa-exclamation-triangle me-1"></i> Not ready to publish</span>');
                     $warnMsg.addClass("d-none");
                     if (publishAvailabilityState.canPublish) {
@@ -317,12 +350,15 @@
                     }
                 }
 
+                currentCourseStatus = normalizedStatus;
+                isCourseActive = isOpen;
                 if (currentCourseData) {
-                    currentCourseData.isActive = isActive;
+                    currentCourseData.isActive = isOpen;
+                    currentCourseData.status = normalizedStatus;
                 }
             }
 
-            $("#btnTogglePublish").on("click", function(e) {
+            $("#btnTogglePublish").on("click", async function(e) {
                 e.preventDefault();
                 const $btn = $(this);
 
@@ -332,10 +368,12 @@
 
                 setActionLinkState($btn, true, "opacity-50 pe-none");
 
-                const newState = !isCourseActive;
-                const confirmMsg = newState ? "Publish this course?" : "Close this course?";
+                const targetStatus = currentCourseStatus === COURSE_STATUS.Open
+                    ? COURSE_STATUS.Closed
+                    : COURSE_STATUS.Open;
 
-                DevExpress.ui.dialog.confirm(confirmMsg, "Confirm Status Change").done(async function(ok) {
+                try {
+                    const ok = await confirmCourseStatusChange(targetStatus);
                     if (!ok) {
                         setActionLinkState($btn, false, "opacity-50 pe-none");
                         return;
@@ -347,20 +385,24 @@
                             type: 'PUT',
                             contentType: 'application/json',
                             xhrFields: { withCredentials: true },
-                            data: JSON.stringify({ isActive: newState })
+                            data: JSON.stringify({ status: targetStatus })
                         });
 
-                        isCourseActive = newState;
-                        updateStatusUI(isCourseActive);
+                        const result = response.data || {};
+                        const status = normalizeCourseStatus(result);
+                        updateStatusUI(status);
 
-                        const successMessage = response.message || (newState ? "Course published!" : "Course closed.");
+                        const successMessage = response.message || (status === COURSE_STATUS.Open ? "Course opened." : "Course closed.");
                         showToast(successMessage, "success", 2000);
                     } catch (xhr) {
                         showToast(window.getApiErrorMessage(xhr, "Error updating status."), "error", 4000);
                     } finally {
                         setActionLinkState($btn, false, "opacity-50 pe-none");
                     }
-                });
+                } catch (xhr) {
+                    setActionLinkState($btn, false, "opacity-50 pe-none");
+                    showToast(window.getApiErrorMessage(xhr, "Error preparing status change."), "error", 4000);
+                }
             });
 
             $("#btnDeleteCourse").on("click", function(e) {
@@ -403,7 +445,7 @@
             $("#btnAssignment").on("click", function(e) {
                 e.preventDefault();
                 if ($(this).hasClass("disabled")) {
-                    showToast("Please publish the course before managing assignments.", "warning", 2500);
+                    showToast("Open the course before managing assignments.", "warning", 2500);
                     return;
                 }
                 window.location.href = `${assignmentFormUrl}?courseId=${courseId}`;
@@ -616,7 +658,7 @@
                     });
 
                     showToast('Active version updated.', 'success', 2000);
-                    await reloadVersions();
+                    await loadDashboardData();
                 } catch (xhr) {
                     if (xhr?.status === 409) {
                         const readiness = await tryGetVersionReadiness(versionId, true);
@@ -752,7 +794,95 @@
 
             async function updatePublishAvailabilityState(versions) {
                 publishAvailabilityState = await getPublishAvailabilityState(versions);
-                updateStatusUI(isCourseActive);
+                updateStatusUI(currentCourseStatus);
+            }
+
+            function normalizeCourseStatus(courseData) {
+                const rawStatus = courseData?.status;
+                if (typeof rawStatus === 'number') {
+                    return rawStatus;
+                }
+
+                if (typeof rawStatus === 'string') {
+                    const key = rawStatus.trim().toLowerCase();
+                    if (key === 'open') return COURSE_STATUS.Open;
+                    if (key === 'closed') return COURSE_STATUS.Closed;
+                    if (key === 'retired') return COURSE_STATUS.Retired;
+                    if (key === 'draft') return COURSE_STATUS.Draft;
+
+                    const parsed = Number(rawStatus);
+                    if (!Number.isNaN(parsed)) {
+                        return parsed;
+                    }
+                }
+
+                return courseData?.isActive ? COURSE_STATUS.Open : COURSE_STATUS.Closed;
+            }
+
+            async function confirmCourseStatusChange(targetStatus) {
+                if (targetStatus === COURSE_STATUS.Open) {
+                    return DevExpress.ui.dialog.confirm(
+                        'Open this course for new assignments?',
+                        'Confirm Status Change'
+                    );
+                }
+
+                const response = await $.ajax({
+                    url: `${courseApiUrl}/${courseId}/status-impact`,
+                    type: 'GET',
+                    xhrFields: { withCredentials: true }
+                });
+
+                const impact = response.data || {};
+                const messageHtml = `
+                    <div class="text-start">
+                        <div class="u-fs-12 text-secondary mb-3">Close Course will stop new assignments. Existing assigned learners can continue learning until completed or due date.</div>
+                        <div class="admin-summary-grid admin-summary-grid--cols-5 mb-3">
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${Number(impact.notStartedCount || 0)}</div>
+                                <div class="admin-summary-label">Not Started</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${Number(impact.inProgressCount || 0)}</div>
+                                <div class="admin-summary-label">In Progress</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${Number(impact.completedCount || 0)}</div>
+                                <div class="admin-summary-label">Completed</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${Number(impact.activeAssignmentCount || 0)}</div>
+                                <div class="admin-summary-label">Active Assignments</div>
+                            </div>
+                            <div class="admin-summary-item">
+                                <div class="admin-summary-value">${Number(impact.futureAssignmentCount || 0)}</div>
+                                <div class="admin-summary-label">Future Assignments</div>
+                            </div>
+                        </div>
+                        <div class="u-fs-11 text-secondary">Reports and learner history remain available after closing.</div>
+                    </div>`;
+
+                const dialog = DevExpress.ui.dialog.custom({
+                    title: 'Close Course',
+                    messageHtml,
+                    buttons: [
+                        {
+                            text: 'Close Course',
+                            type: 'danger',
+                            onClick: function() {
+                                return true;
+                            }
+                        },
+                        {
+                            text: 'Cancel',
+                            onClick: function() {
+                                return false;
+                            }
+                        }
+                    ]
+                });
+
+                return dialog.show();
             }
 
             async function getPublishAvailabilityState(versions) {
@@ -844,7 +974,7 @@
                         });
 
                         showToast('Version deleted.', 'success', 2000);
-                        await reloadVersions();
+                        await loadDashboardData();
                     } catch (xhr) {
                         showToast(window.getApiErrorMessage(xhr, 'Error deleting version.'), 'error');
                     }
@@ -899,7 +1029,7 @@
 
                 try {
                     const categoryData = await $.ajax({
-                        url: `${serviceUrl}/admin/CategoriesCRUD/Get/${courseData.categoryId}`,
+                        url: `${serviceUrl}/Categories/${courseData.categoryId}`,
                         type: 'GET',
                         xhrFields: { withCredentials: true }
                     });
@@ -936,10 +1066,13 @@
                         description: courseData.description,
                         categoryId: courseData.categoryId,
                         courseType: courseData.courseType,
-                        isActive: courseData.isActive
+                        isActive: courseData.isActive,
+                        status: normalizeCourseStatus(courseData),
+                        statusName: courseData.statusName
                     };
 
-                    isCourseActive = courseData.isActive;
+                    currentCourseStatus = normalizeCourseStatus(courseData);
+                    isCourseActive = currentCourseStatus === COURSE_STATUS.Open;
                     updateCourseHeader(courseData.courseName, courseData.courseCode);
                     renderVersionsGrid(versions);
                     await updatePublishAvailabilityState(versions);

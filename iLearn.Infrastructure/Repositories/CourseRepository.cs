@@ -1,6 +1,7 @@
 ﻿using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +17,7 @@ namespace iLearn.Infrastructure.Repositories
         {
             return await _dbSet
                 .Include(c => c.CourseType)
-                .Where(c => c.IsActive)
+                .Where(c => c.Status == CourseStatus.Open)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
         }

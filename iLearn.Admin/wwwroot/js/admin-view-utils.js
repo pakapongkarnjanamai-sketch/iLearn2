@@ -753,7 +753,10 @@
             applyCombinedFilter(grid, conditions);
         }
         $(typeSel).dxSelectBox({
-            dataSource: window.createDataStore(svcUrl, 'admin/CourseTypesCRUD', { key: 'id' }),
+            dataSource: window.createDataStore(svcUrl, 'Courses', {
+                key: 'id',
+                loadUrl: `${svcUrl}/Courses/course-types-lookup`
+            }),
             displayExpr: 'name',
             valueExpr: 'id',
             placeholder: 'All Types',
@@ -763,7 +766,10 @@
             onValueChanged: applyCourseFilters
         });
         $(divSel).dxSelectBox({
-            dataSource: window.createDataStore(svcUrl, 'admin/DivisionsCRUD', { key: 'id' }),
+            dataSource: window.createDataStore(svcUrl, 'Divisions', {
+                key: 'id',
+                loadUrl: `${svcUrl}/Divisions/lookup`
+            }),
             displayExpr: 'name',
             valueExpr: 'id',
             placeholder: 'All Divisions',
@@ -774,9 +780,9 @@
                 var catBox = $(catSel).dxSelectBox('instance');
                 catBox.option('value', null);
                 if (e.value) {
-                    catBox.option('dataSource', window.createDataStore(svcUrl, 'admin/CategoriesCRUD', {
+                    catBox.option('dataSource', window.createDataStore(svcUrl, 'Categories', {
                         key: 'id',
-                        action: 'Get',
+                        loadUrl: `${svcUrl}/Categories/lookup`,
                         filter: ['divisionId', '=', e.value]
                     }));
                     catBox.option('disabled', false);

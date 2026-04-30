@@ -29,7 +29,9 @@
             { id: 1, name: 'SuperAdmin' }
         ];
         const dsDivisionsLookup = {
-            store: createDataStore(serviceUrl, 'admin/DivisionsCRUD'),
+            store: createDataStore(serviceUrl, 'Divisions', {
+                loadUrl: `${serviceUrl}/Divisions/lookup`
+            }),
             loadMode: 'raw',
             cacheRawData: true
         };
@@ -42,14 +44,44 @@
                 remoteOperations: true,
                 export: { enabled: true },
                 onExporting: (e) => handleExporting(e, 'Roles_Data'),
-                editing: {
-                    mode: "popup",
+                editing: window.buildAdminPopupEditing({
                     allowUpdating: true,
                     allowDeleting: true,
                     allowAdding: true,
-                    useIcons: true,
-                    popup: { title: "Role Information", showTitle: true, width: 500, height: 'auto' }
-                },
+                    popup: {
+                        title: "Role Details",
+                        width: 520
+                    },
+                    form: {
+                        items: [
+                            {
+                                itemType: "group",
+                                caption: "Role Details",
+                                colCount: 2,
+                                items: [
+                                    {
+                                        dataField: "name",
+                                        colSpan: 2,
+                                        label: { text: "Role Name" },
+                                        editorOptions: { placeholder: "Enter role name..." },
+                                        validationRules: [{ type: "required", message: "Role name is required" }]
+                                    },
+                                    {
+                                        dataField: "divisionId",
+                                        label: { text: "Division" },
+                                        editorOptions: { placeholder: "Select division..." }
+                                    },
+                                    {
+                                        dataField: "roleType",
+                                        label: { text: "Role Type" },
+                                        editorOptions: { placeholder: "Select role type..." },
+                                        validationRules: [{ type: "required", message: "Role type is required" }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }),
                 columns: [
                     { dataField: "id", caption: "ID", width: 80, allowUpdating: false, alignment: "center" },
                     { dataField: "name", caption: "Role Name", minWidth: 200, validationRules: [{ type: "required" }] },

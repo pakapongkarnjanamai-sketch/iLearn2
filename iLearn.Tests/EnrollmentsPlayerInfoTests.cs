@@ -7,6 +7,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -22,7 +23,7 @@ namespace iLearn.Tests
         private static readonly DateTime Now = new(2026, 4, 27, 14, 0, 0, DateTimeKind.Utc);
 
         [Fact]
-        public async Task GetPlayerInfoByCourse_ReturnsPersistedRuntimeStateForResume()
+        public async Task GetPlayerInfoByCourse_ClosedAssignedCourse_ReturnsPersistedRuntimeStateForResume()
         {
             var runtimeStateService = new FakeScormRuntimeStateService(
             [
@@ -57,6 +58,7 @@ namespace iLearn.Tests
                             Id = 5,
                             Code = "C-05",
                             Title = "Safety Course",
+                            Status = CourseStatus.Closed,
                             Category = new Category { Id = 3, Name = "Safety" },
                             CourseType = new CourseType { Id = 4, Name = "Common" }
                         }
@@ -74,6 +76,7 @@ namespace iLearn.Tests
                             Id = 5,
                             Code = "C-05",
                             Title = "Safety Course",
+                            Status = CourseStatus.Closed,
                             Category = new Category { Id = 3, Name = "Safety" },
                             CourseType = new CourseType { Id = 4, Name = "Common" }
                         },
@@ -157,7 +160,7 @@ namespace iLearn.Tests
                         CourseId = 9,
                         VersionNumber = 3,
                         IsActive = true,
-                        Course = new Course { Id = 9, Code = "C-09", Title = "Preview Course" },
+                        Course = new Course { Id = 9, Code = "C-09", Title = "Preview Course", Status = CourseStatus.Open },
                         CourseContentItems =
                         [
                             new CourseContentItem
@@ -211,7 +214,7 @@ namespace iLearn.Tests
                         CourseId = 5,
                         LearnerCode = "490222",
                         EnrolledCourseVersion = 20,
-                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course", Status = CourseStatus.Open }
                     }
                 ],
                 versions:
@@ -221,7 +224,7 @@ namespace iLearn.Tests
                         Id = 20,
                         CourseId = 5,
                         VersionNumber = 2,
-                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course", Status = CourseStatus.Open },
                         CourseContentItems =
                         [
                             new CourseContentItem
@@ -287,7 +290,7 @@ namespace iLearn.Tests
                         EnrolledCourseVersion = 20,
                         Progress = 25,
                         IsCompleted = false,
-                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" }
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course", Status = CourseStatus.Open }
                     }
                 ],
                 versions:
@@ -297,7 +300,7 @@ namespace iLearn.Tests
                         Id = 20,
                         CourseId = 5,
                         VersionNumber = 2,
-                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course" },
+                        Course = new Course { Id = 5, Code = "C-05", Title = "Safety Course", Status = CourseStatus.Open },
                         CourseContentItems =
                         [
                             CreateCourseContentItem(1, 100, "Learn 1.2", 1, "SCORM 1.2"),

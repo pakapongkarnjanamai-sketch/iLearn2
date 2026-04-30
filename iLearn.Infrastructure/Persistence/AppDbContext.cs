@@ -2,6 +2,7 @@
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using iLearn.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -255,6 +256,11 @@ namespace iLearn.Infrastructure.Persistence
                 .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL");
 
             // Config Course <-> CourseType
+            modelBuilder.Entity<Course>()
+                .Property(c => c.Status)
+                .HasConversion<int>()
+                .HasDefaultValue(CourseStatus.Draft);
+
             modelBuilder.Entity<Course>()
                 .HasOne(c => c.CourseType)
                 .WithMany(ct => ct.Courses)
