@@ -1,20 +1,153 @@
 # Copilot Instructions — iLearn2
 
-## Project Overview
-**iLearn2**: ระบบ Internal e-Learning (LMS) รองรับมาตรฐาน SCORM 1.2/2004
-- `iLearn.API`: ASP.NET Core Web API (Backend)
-- `iLearn.Admin`: ASP.NET Core MVC (Admin UI - Brand Blue #0050b3)
-- `iLearn.User`: ASP.NET Core MVC + Razor Pages (Learner UI - Brand Teal #027d83)
+## 1. Project Overview & Business Context
 
-## Architecture & Tech Stack
-- **Clean Architecture**: Domain -> Application -> Infrastructure -> Presentation
-- **Stack**: .NET 9, C# 13, EF Core 9 (SQL Server), Windows Auth
-- **Frontend**: DevExtreme 25.2, Bootstrap 5, jQuery, DevExpress dialogs
+**iLearn2** คือระบบ Internal e-Learning / LMS สำหรับองค์กร รองรับการจัดการหลักสูตร การมอบหมายการเรียน การติดตามความคืบหน้า และการเล่น SCORM runtime สำหรับ SCORM 1.2 และ SCORM 2004
 
+ระบบนี้เป็น **enterprise internal training platform** ไม่ใช่ consumer learning app:
 
+- ผู้ใช้งานหลักมีประมาณหลักร้อยถึงหลักพันภายในองค์กร
+- ข้อมูลมีความสำคัญด้าน audit, compliance, assignment history, learner progress และ reporting
+- Business rule สำคัญกว่าความสวยงามของ feature เฉพาะหน้า
+- การแก้ไขต้องรักษาประวัติการเรียนและผลกระทบต่อผู้เรียนเดิมเสมอ
 
+## 2. Solution Map
 
+| Project | Responsibility |
+| --- | --- |
+| `iLearn.Domain` | Domain entities, enums, constants, shared domain policies, and domain-level state concepts. Must remain independent from presentation, EF Core, UI, and infrastructure details. |
+| `iLearn.Application` | Use cases, DTOs, service interfaces, application services, validation rules, and contracts consumed by presentation layers. |
+| `iLearn.Infrastructure` | EF Core SQL Server persistence, repository/unit-of-work implementations, storage/file handling, SCORM package processing support, caching, and external integration implementations. |
+| `iLearn.API` | ASP.NET Core Web API presentation layer for Admin/User clients. Controllers should contain HTTP concerns only and delegate business rules to Application services. |
+| `iLearn.Admin` | ASP.NET Core MVC Admin UI for HR/training/admin workflows. Uses DevExtreme, Bootstrap, jQuery, and the Admin design system. |
+| `iLearn.User` | ASP.NET Core MVC/Razor learner UI for assigned learning, course launch, progress display, and SCORM player flows. |
+| `iLearn.Tests` | xUnit regression tests for lifecycle rules, services, controllers, policies, and critical bug fixes. |
 
+## 3. Architecture & Tech Stack
+
+The project follows **Clean Architecture in a modular monolith style**: code is logically separated into projects/layers, but the system is deployed as a single unit. Do **not** describe it as microservices unless the repository is actually split into independently deployed services.
+
+### Architecture Rules
+
+- Dependency direction is `Domain -> Application -> Infrastructure/Presentation` conceptually, but source references must keep Domain independent.
+- Domain must not reference EF Core, ASP.NET Core MVC/Web API, DevExtreme, file system APIs, or infrastructure services.
+- Application can define interfaces/ports and DTO contracts, but should not depend on concrete infrastructure implementations.
+- Infrastructure implements Application interfaces and owns EF Core, SQL Server, file storage, caching, and package-processing implementation details.
+- Presentation projects (`iLearn.API`, `iLearn.Admin`, `iLearn.User`) compose dependencies and handle HTTP/UI concerns.
+- Controllers must not inject `AppDbContext` directly. Use Application services, repository abstractions, or `IUnitOfWork` according to existing patterns.
+- Transactions belong in service/application workflows or `IUnitOfWork`, not ad-hoc controller database calls.
+
+### Current Stack
+
+- **Runtime:** .NET 9 / C# 13
+- **Backend:** ASP.NET Core Web API (`iLearn.API`)
+- **Admin UI:** ASP.NET Core MVC + DevExtreme 25.2 + Bootstrap 5 + jQuery + DevExpress dialogs
+- **Learner UI:** ASP.NET Core MVC/Razor + JavaScript SCORM player integration
+- **Database:** SQL Server via EF Core 9
+- **Authentication:** Windows Authentication / Negotiate with role and division claims
+- **Testing:** xUnit in `iLearn.Tests`
+
+Do **not** assume React or PostgreSQL. If a future task proposes those, treat it as a migration requiring explicit architectural approval.
+
+## 4. Required Role For AI Assistance
+
+When working in this repository, act as a **Senior Software Engineer and SCORM-aware LMS reviewer**. Your responsibility is not only to make code compile, but to verify:
+
+1. The code structure follows Clean Architecture boundaries.
+2. Business logic matches the lifecycle documents.
+3. API/UI behavior preserves learner history, assignment history, and auditability.
+4. Security, authorization, and division-based data isolation are enforced server-side.
+5. The change is covered by focused validation or tests when it changes behavior.
+
+If requirements are ambiguous or conflict with lifecycle rules, stop and ask clarifying questions instead of inventing behavior.
+
+## 5. Source-Of-Truth Documents
+
+Before implementing business behavior, read the relevant source-of-truth document:
+
+| Area | Required Document |
+| --- | --- |
+| Lifecycle overview and cross-cutting recommendations | `DOC/LIFECYCLE-OVERVIEW.md` |
+| Course status and course availability | `DOC/COURSE-LIFECYCLE-RULES.md` |
+| Content item, SCORM package readiness, and course version activation | `DOC/CONTENT-LIFECYCLE-RULES.md` |
+| Assignment batches, enrollments, reassignment conflicts, progress rollup | `DOC/ASSIGNMENT-ENROLLMENT-LIFECYCLE-RULES.md` |
+| SCORM import, runtime commit, status normalization, player status | `DOC/SCORM-RUNTIME-LIFECYCLE-RULES.md` |
+| Division, category, course type, role, user, learner group, file storage, audit | `DOC/MASTER-DATA-LIFECYCLE-RULES.md` |
+| Canonical status names and aliases | `DOC/STATUS-DEFINITIONS.md` |
+| Product terminology and naming rules | `DOC/SYSTEM-DICTIONARY.md` |
+| CRUD, lookup, and audit conventions | `DOC/GENERIC-CRUD-LOOKUP-AUDIT.md` |
+| Contributor architecture/security rules | `CONTRIBUTING.md` |
+
+## 6. Core Business Rules
+
+### Course Management
+
+- Course lifecycle uses `Draft`, `Open`, `Closed`, and `Retired`.
+- Only `Open` courses can be assigned to learners.
+- `Closed` stops new assignments but allows existing assigned learners to continue when their enrolled version remains ready.
+- `Retired` blocks active learner launch access but must preserve reports, logs, enrollments, and learning history.
+- `Course.IsActive` is legacy compatibility. New business decisions should use `Course.Status` and derived capability properties such as `CanAssign` and `CanLearnerAccess`.
+- Opening a course requires a ready active course version.
+
+### Content And Course Version Management
+
+- Content readiness is derived; it is not only `IsActive`.
+- A ready content item must be published and have valid launch metadata.
+- SCORM packages must validate ZIP safety, manifest discovery, SCORM version, and launch resource before becoming launchable.
+- A course version must contain at least one ready content item before it can safely become active/open.
+- Activating a version must not silently invalidate learner history or move learners unless the selected learner version policy explicitly allows it.
+
+### Assignment And Enrollment
+
+- Assignment batches are represented by rows sharing an `AssignmentNo`.
+- Assignment status is computed, not manually edited: `Completed`, `Upcoming`, `Expired`, then `InProgress` by priority.
+- New assignments require Open courses, ready active versions, valid learners/groups, valid date ranges, and transaction-safe enrollment creation.
+- Existing in-progress or completed enrollments require explicit conflict handling before reset/reassign.
+- Reassignment must preserve completed history through `EnrollmentAssignment` snapshot fields.
+- Enrollment progress is rolled up from content item learning logs/runtime state for the enrolled version.
+- Logs before `Enrollment.ResetAt` are ignored for active progress.
+
+### SCORM Runtime
+
+- Support SCORM 1.2 and SCORM 2004 data model differences explicitly.
+- Runtime commits must validate learner identity, enrollment ownership, and content-item membership in the enrolled course version.
+- `ScormContentStatusPolicy` is the shared owner for Learn vs Exam completion behavior.
+- Exam content with `completed` but without `passed` remains incomplete for player display and enrollment rollup.
+- Preserve terminal runtime state: placeholder incomplete/not attempted commits must not overwrite meaningful passed/completed/failed data.
+- Persist diagnostic CMI snapshots carefully; do not expose sensitive or unnecessary raw runtime payloads to player responses.
+
+### Master Data, Security, And Audit
+
+- Generic `IsActive`/`IsDeleted` flags are acceptable for master data but must not replace richer business statuses.
+- Soft-deleted records may still be required for history, reports, and audit.
+- `SuperAdmin` can access all divisions; normal admins must be division-scoped.
+- Authorization must be enforced in controllers/endpoints, not only by hiding UI elements.
+- Do not commit live secrets. Use user-secrets or environment variables for connection strings and shared secrets.
+
+## 7. Implementation Rules For AI
+
+1. **Investigate first.** Read existing services, DTOs, controllers, views, tests, and lifecycle docs before changing behavior.
+2. **Make the smallest complete change.** Fix the requested problem fully without unrelated refactors.
+3. **Preserve architecture boundaries.** Do not move infrastructure concerns into Domain/Application or add controller-level business logic when a service/policy should own it.
+4. **Use existing patterns.** Follow current naming, DTO, service, EF Core, DevExtreme, and Razor patterns instead of inventing parallel abstractions.
+5. **No placeholders for core logic.** Do not leave TODO comments, stubbed branches, fake data, or partial lifecycle implementations.
+6. **Prefer explicit business names.** Use canonical terms from `SYSTEM-DICTIONARY.md` and statuses from `STATUS-DEFINITIONS.md`.
+7. **Validate behavior.** Run the narrowest relevant tests/builds after behavior changes; add or update tests for lifecycle, authorization, or SCORM rule changes.
+8. **Review security impact.** Check authorization, data isolation, file upload safety, path traversal, secrets, and over-broad data exposure.
+9. **Keep UI and API contracts aligned.** If a DTO/status changes, update Admin/User rendering, shared helpers, and tests together.
+10. **Ask when uncertain.** Especially for retired-course policy, completed learner retention, reassignment/reset semantics, and destructive content operations.
+
+## 8. Review Checklist For Changes
+
+Before finishing a task, confirm:
+
+- The relevant lifecycle document was considered.
+- Domain/Application/Infrastructure/Presentation boundaries were not weakened.
+- Learner progress, assignment snapshots, audit history, and reports remain consistent.
+- Authorization and division isolation still apply server-side.
+- Status names and user-facing terminology match the dictionary/status docs.
+- Existing tests pass or any known unrelated failures are documented.
+- No secrets, generated artifacts, or unrelated formatting churn were introduced.
 
 ## DevExpress MCP Server: Configure Your AI-powered Coding Assistant
 
