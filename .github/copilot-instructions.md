@@ -25,7 +25,7 @@
 
 ## 3. Architecture & Tech Stack
 
-The project follows **Clean Architecture in a modular monolith style**: the code is logically separated into projects/layers, but the system is not split into independently deployed services. Do **not** describe it as microservices unless the repository is actually split into separately deployed services.
+The project follows **Clean Architecture in a modular monolith style**: code is logically separated into projects/layers, but the system is deployed as a single unit. Do **not** describe it as microservices unless the repository is actually split into independently deployed services.
 
 ### Architecture Rules
 
@@ -86,7 +86,7 @@ Before implementing business behavior, read the relevant source-of-truth documen
 - Only `Open` courses can be assigned to learners.
 - `Closed` stops new assignments but allows existing assigned learners to continue when their enrolled version remains ready.
 - `Retired` blocks active learner launch access but must preserve reports, logs, enrollments, and learning history.
-- `Course.IsActive` is legacy compatibility. New business decisions should use `Course.Status`, `CanAssign`, and `CanLearnerAccess`.
+- `Course.IsActive` is legacy compatibility. New business decisions should use `Course.Status` and computed capability values such as `CanAssign` and `CanLearnerAccess`.
 - Opening a course requires a ready active course version.
 
 ### Content And Course Version Management
