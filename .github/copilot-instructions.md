@@ -86,7 +86,7 @@ Before implementing business behavior, read the relevant source-of-truth documen
 - Only `Open` courses can be assigned to learners.
 - `Closed` stops new assignments but allows existing assigned learners to continue when their enrolled version remains ready.
 - `Retired` blocks active learner launch access but must preserve reports, logs, enrollments, and learning history.
-- `Course.IsActive` is legacy compatibility. New business decisions should use `Course.Status` and computed capability values such as `CanAssign` and `CanLearnerAccess`.
+- `Course.IsActive` is legacy compatibility. New business decisions should use `Course.Status` and derived capability properties such as `CanAssign` and `CanLearnerAccess`.
 - Opening a course requires a ready active course version.
 
 ### Content And Course Version Management
