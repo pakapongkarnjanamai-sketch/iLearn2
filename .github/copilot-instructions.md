@@ -25,7 +25,7 @@
 
 ## 3. Architecture & Tech Stack
 
-The project follows **Clean Architecture in a modular monolith style**. Do **not** describe it as microservices unless the repository is actually split into separately deployed services.
+The project follows **Clean Architecture in a modular monolith style**: the code is logically separated into projects/layers, but the system is not split into independently deployed services. Do **not** describe it as microservices unless the repository is actually split into separately deployed services.
 
 ### Architecture Rules
 
@@ -39,7 +39,7 @@ The project follows **Clean Architecture in a modular monolith style**. Do **not
 
 ### Current Stack
 
-- **Runtime:** .NET 9 / C#
+- **Runtime:** .NET 9 / C# 13
 - **Backend:** ASP.NET Core Web API (`iLearn.API`)
 - **Admin UI:** ASP.NET Core MVC + DevExtreme 25.2 + Bootstrap 5 + jQuery + DevExpress dialogs
 - **Learner UI:** ASP.NET Core MVC/Razor + JavaScript SCORM player integration
