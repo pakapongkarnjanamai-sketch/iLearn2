@@ -1137,18 +1137,19 @@ else
                         <td>${index + 1}</td>
                         <td>
                             <div class="admin-review-item-name">${window.escapeHtml(contentItem.name)}</div>
-                            {
-                                dataField: "typeName", caption: "Content Type", width: 110, alignment: "center",
+                        </td>
+                        <td><span class="tag-pill ${sourceBadge}">${window.escapeHtml(sourceText)}</span></td>
                         <td><span class="tag-pill ${contentItem.typeId === 1 ? 'pill-learn' : 'pill-exam'}">${window.escapeHtml(getContentTypeLabel(contentItem.typeId))}</span></td>
-                                    const isLearningType = options.data.typeId === 1;
-                                    const text = options.value || (isLearningType ? "Learn" : "Exam");
+                        <td><span class="tag-pill pill-${window.escapeHtml(readinessState.tone)}">${window.escapeHtml(readinessState.text)}</span></td>
+                    </tr>`;
             }).join('');
 
             return `
                 <table class="admin-table">
-                                dataField: "courseIdsCount", caption: "Used In", width: 100, alignment: "center", allowSorting: true,
+                    <thead>
+                        <tr>
                             <th>Order</th>
-                                    const count = options.value || 0;
+                            <th>Content Name</th>
                             <th>Source</th>
                             <th>Content Type</th>
                             <th>Status</th>
