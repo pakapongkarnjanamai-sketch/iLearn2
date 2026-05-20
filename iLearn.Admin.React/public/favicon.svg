@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="iLearn Admin">
+  <rect width="64" height="64" rx="10" fill="#0050b3" />
+  <path d="M18 18h6v28h-6zM31 18h6v23h13v5H31z" fill="#fff" />
+</svg>

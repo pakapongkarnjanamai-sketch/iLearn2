@@ -52,6 +52,20 @@
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
             }
+        },
+        {
+            "name": "iLearn.Admin.React",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/iLearn.Admin.React",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "Local:\\s+(https?://\\S+)"
+            }
         }
     ],
     "compounds": [
@@ -61,6 +75,12 @@
                 "iLearn.API",
                 "iLearn.Admin",
                 "iLearn.User"
+            ]
+        },
+        {
+            "name": "Run React Admin Dev",
+            "configurations": [
+                "iLearn.Admin.React"
             ]
         }
     ]
