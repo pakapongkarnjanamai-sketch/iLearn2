@@ -33,10 +33,11 @@ export const createAdminDataSource = ({
   enableCrud = false,
 }: AdminDataSourceOptions) => {
   const basePath = `admin/${controller}`
+  const loadUrl = buildApiUrl(`${basePath}/Get`)
   const optionalLoadParams = loadParams === undefined ? {} : { loadParams }
   const baseOptions = {
     key,
-    loadUrl: buildApiUrl(basePath),
+    loadUrl,
     ...optionalLoadParams,
     onBeforeSend: withCredentials,
     onAjaxError: (event: { error: string | Error }) => {
@@ -51,8 +52,8 @@ export const createAdminDataSource = ({
 
   return createStore({
     ...baseOptions,
-    insertUrl: buildApiUrl(basePath),
-    updateUrl: buildApiUrl(basePath),
-    deleteUrl: buildApiUrl(basePath),
+    insertUrl: buildApiUrl(`${basePath}/Post`),
+    updateUrl: buildApiUrl(`${basePath}/Put`),
+    deleteUrl: buildApiUrl(`${basePath}/Delete`),
   })
 }

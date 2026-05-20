@@ -27,10 +27,10 @@ VITE_API_BASE_URL=https://ap-ntc2138-qawb/iLearnNew/Service/api
 VITE_SIGNALR_BASE_URL=https://ap-ntc2138-qawb/iLearnNew/Service
 VITE_ENABLE_SIGNALR=false
 VITE_ENABLE_SESSION_BOOTSTRAP=false
-VITE_DEVEXTREME_LICENSE_KEY=ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjQzMzdjY2M1LTA4ZjYtNDE2NS05NmJiLWU3MmY1NmY2MjA4MCIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjUyCn0=
+VITE_DEVEXTREME_LICENSE_KEY=ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjQzMzdjY2M1LTA4ZjYtNDE2NS05NmJiLWU3MmY1NmY2MjA4MCIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjUyCn0=.msUWqj0CLKKVTKUeCMJaSMQVVJywgLDSkWDBfPtwwreYLfwUyK/UvfODZGJNx7wAaZlPK4SIgVLQZGkGwaKEpGXSTkOp20qOjyy0xCUGBN73QilDt/zJHzjAFvDXkJcsEr6Pgg==
 ```
 
-The DevExtreme license key is **required** for production builds; it is base64-encoded and automatically decoded by the runtime. The decoded key grants access to DevExtreme v25.2 (maxVersionAllowed: 252). See `.env.example` for the canonical value.
+The DevExtreme license key should use the full signed key value, not only the base64 payload prefix. The app applies `VITE_DEVEXTREME_LICENSE_KEY` from `src/devextreme-license.ts`, with an embedded fallback that mirrors the working project pattern.
 
 For IIS deployment under `/iLearnNew/admin-react`, set `VITE_APP_BASE_PATH=/iLearnNew/admin-react/` before building. The static `public/web.config` contains the matching SPA fallback path.
 

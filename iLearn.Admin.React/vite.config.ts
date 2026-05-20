@@ -17,6 +17,16 @@ export default defineConfig(({ mode }) => {
   return {
     base: normalizeBasePath(env.VITE_APP_BASE_PATH),
     plugins: [react(), tailwindcss()],
+    server: {
+      proxy: {
+        '/api': {
+          target: 'https://localhost:7128',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '/api'),
+        },
+      },
+    },
     build: {
       sourcemap: true,
       rollupOptions: {

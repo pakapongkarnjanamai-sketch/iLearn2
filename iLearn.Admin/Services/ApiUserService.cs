@@ -104,11 +104,14 @@ namespace iLearn.Admin.Services
                 var accessToken = windowsIdentity.AccessToken;
                 if (!accessToken.IsInvalid)
                 {
-                    return WindowsIdentity.RunImpersonated(accessToken, () =>
-                    {
-                        using var content = CreateRequestContent(request);
-                        return _httpClient.PostAsync(requestUri, content).GetAwaiter().GetResult();
-                    });
+                    // Run impersonated operation on a thread pool thread to avoid blocking the async context
+                    return await Task.Run(() =>
+                        WindowsIdentity.RunImpersonated(accessToken, async () =>
+                        {
+                            using var content = CreateRequestContent(request);
+                            return await _httpClient.PostAsync(requestUri, content);
+                        })
+                    );
                 }
             }
 

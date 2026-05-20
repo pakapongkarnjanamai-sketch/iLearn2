@@ -74,7 +74,8 @@
             "configurations": [
                 "iLearn.API",
                 "iLearn.Admin",
-                "iLearn.User"
+                "iLearn.User",
+                 "iLearn.Admin.React"
             ]
         },
         {
