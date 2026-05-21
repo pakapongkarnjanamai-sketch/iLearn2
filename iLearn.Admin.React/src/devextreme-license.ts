@@ -4,7 +4,11 @@ const embeddedLicenseKey =
   'ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjQzMzdjY2M1LTA4ZjYtNDE2NS05NmJiLWU3MmY1NmY2MjA4MCIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjUyCn0=.msUWqj0CLKKVTKUeCMJaSMQVVJywgLDSkWDBfPtwwreYLfwUyK/UvfODZGJNx7wAaZlPK4SIgVLQZGkGwaKEpGXSTkOp20qOjyy0xCUGBN73QilDt/zJHzjAFvDXkJcsEr6Pgg=='
 
 export const licenseKey =
-  (import.meta.env.VITE_DEVEXTREME_LICENSE_KEY ?? embeddedLicenseKey).trim()
+  (
+    import.meta.env.VITE_ILEARN_ADMIN_DEVEXTREME_LICENSE_KEY ??
+    import.meta.env.VITE_DEVEXTREME_LICENSE_KEY ??
+    embeddedLicenseKey
+  ).trim()
 
 if (licenseKey) {
   config({ licenseKey })

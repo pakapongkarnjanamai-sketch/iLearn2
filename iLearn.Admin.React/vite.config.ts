@@ -2,6 +2,17 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
+const getEnv = (env: Record<string, string>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = env[key]
+    if (value && value.trim()) {
+      return value.trim()
+    }
+  }
+
+  return undefined
+}
+
 const normalizeBasePath = (value: string | undefined) => {
   if (!value || value === '/') {
     return '/'
@@ -15,18 +26,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    base: normalizeBasePath(env.VITE_APP_BASE_PATH),
+    base: normalizeBasePath(getEnv(env, 'VITE_ILEARN_ADMIN_APP_BASE_PATH', 'VITE_APP_BASE_PATH')),
     plugins: [react(), tailwindcss()],
-    server: {
-      proxy: {
-        '/api': {
-          target: 'https://localhost:7128',
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api/, '/api'),
-        },
-      },
-    },
     build: {
       sourcemap: true,
       rollupOptions: {

@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import 'devextreme/dist/css/dx.light.css'
 import './devextreme-license'
 import './index.css'
-import App from './App.tsx'
+import { App } from './App.tsx'
 import { appConfig } from './config/appConfig'
 
 createRoot(document.getElementById('root')!).render(

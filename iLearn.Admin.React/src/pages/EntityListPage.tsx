@@ -3,8 +3,7 @@ import DataGrid, {
   Column,
   FilterRow,
   HeaderFilter,
-  Pager,
-  Paging,
+  RemoteOperations,
   Scrolling,
   SearchPanel,
   Sorting,
@@ -56,27 +55,27 @@ export function EntityListPage({ config }: EntityListPageProps) {
         <DataGrid
           ref={gridRef}
           dataSource={dataSource}
-          remoteOperations
           allowColumnReordering
           allowColumnResizing
           columnAutoWidth
           columnResizingMode="widget"
           focusedRowEnabled
           height="100%"
+          noDataText={`No ${config.title.toLowerCase()} data`}
           repaintChangesOnly
+          rowAlternationEnabled={false}
           showBorders={false}
           showColumnLines={false}
-          showRowLines
+          showRowLines={true}
           wordWrapEnabled={false}
           onDataErrorOccurred={handleDataError}
         >
           <SearchPanel visible width={280} placeholder="Search" />
+          <RemoteOperations filtering paging sorting grouping={false} summary={false} />
           <FilterRow visible applyFilter="auto" />
           <HeaderFilter visible />
           <Sorting mode="multiple" />
           <Scrolling mode="virtual" rowRenderingMode="virtual" />
-          <Paging defaultPageSize={50} />
-          <Pager visible showInfo showNavigationButtons allowedPageSizes={[25, 50, 100]} showPageSizeSelector />
 
           {config.columns.map((column) => (
             <Column key={column.dataField} {...column} />

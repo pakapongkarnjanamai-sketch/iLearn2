@@ -6,7 +6,7 @@ import { EntityListPage } from './pages/EntityListPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { adminListConfigs } from './pages/moduleConfigs'
 
-function App() {
+export function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
@@ -24,5 +24,3 @@ function App() {
     </Routes>
   )
 }
-
-export default App
