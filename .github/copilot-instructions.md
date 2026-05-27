@@ -559,15 +559,30 @@ All buttons follow a consistent dimensional system:
 
 ### Detail Pages
 
-Detail pages (`CourseDetailPage`, `StudentGroupDetailPage`, `AssignmentDetailPage`) follow the **Card-Free Details Standard**:
+Detail pages (`CourseDetailPage`, `ContentItemDetailPage`, `AssignmentDetailPage`, `StudentGroupDetailPage`) follow the **Persistent Controls Standard**. `CourseDetailPage` is the canonical reference implementation.
 
-1. **No `bg-white` card wrappers** — content renders on the transparent page background
-2. **KPI row** — Single horizontal strip with metrics separated by vertical dividers
-3. **Metadata** — Flat `<dl>` descriptive lists with `border-b` between items
-4. **Tables** — Sit directly on page canvas, no surrounding card container
-5. **Sidebar panels** — Use thin `border-l-2` accent borders, not boxed cards
-6. **Section headers** — `border-b border-slate-200/60 pb-3` underline, not card headers
-7. **No PageHeader actions** — All actions consolidated into sidebar control panels (e.g. Course Control Hub)
+**Layout rules:**
+
+1. **No top resource `<header>` or title** — do not render a `<header>` element with the entity name above the content grid.
+2. **No `PageHeader` component** — do not import or render `<PageHeader>`. All actions belong in the Controls sidebar.
+3. **No KPI strip** — do not use `.admin-kpi-strip` / `.admin-kpi-item`. Surface key stats inline in the Controls card or metadata section only if essential.
+4. **Two-column layout** — `grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start`. Left: main content cards. Right: Controls sidebar.
+5. **Persistent Controls card** — right sidebar always renders a `Controls` section regardless of entity state. Actions do **not** disappear; they become `disabled` when unavailable (e.g. already in target state, busy, missing precondition).
+6. **Destructive actions visible** — Delete / Remove actions always render in Controls but are disabled when the entity is in a state that prevents the action.
+7. **`admin-card` wrapper for all content panels** — use `admin-card` + `admin-card-head` + `admin-card-head-title` for every card section (metadata, tables, Controls).
+
+**Helper patterns (from `CourseDetailPage`):**
+
+```tsx
+// Link that becomes a disabled button when not available
+function ControlLinkButton({ to, disabled, icon: Icon, children }) {
+  if (disabled) return <button disabled className="...neutral disabled...">{children}</button>
+  return <Link to={to}><button className="...active styles...">{children}</button></Link>
+}
+
+// Async action button with tone + disabled state
+function ControlActionButton({ onClick, disabled, tone, icon: Icon, children }) { ... }
+```
 
 ### List Pages
 
@@ -607,7 +622,7 @@ if (resp.success) {
 4. **No tracking utilities.** Do not use `tracking-wider` or `tracking-widest` in any Tailwind classes.
 5. **No card wrappers on Detail pages.** Do not add `bg-white border rounded shadow` containers. Use flat, transparent layouts.
 6. **Prune unused imports.** TypeScript strict mode errors on unused imports. Always clean up after refactoring.
-7. **Use existing components.** Prefer `AppButton`, `AppTable`, `PageHeader`, `SelectionTray`, `StatusText` over custom implementations.
+7. **Use existing components.** Prefer `AppButton`, `AppTable`, `SelectionTray`, `StatusText` over custom implementations. Do **not** use `PageHeader` on Detail pages — actions belong in the Controls sidebar.
 8. **Consistent font classes.** Labels are `text-xxs font-extrabold text-slate-400 uppercase`. Section headers are `text-sm font-extrabold text-slate-700`.
 9. **API calls via `fetchWithAccessControl()`.** Do not use raw `fetch()` or axios.
 10. **Toast notifications via `toast` from `src/lib/toast.ts`.** Do not use `alert()` or third-party toast libraries.

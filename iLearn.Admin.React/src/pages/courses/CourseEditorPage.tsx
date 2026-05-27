@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Check, FileArchive, Layers, RefreshCw, Save, Upload, X } from 'lucide-react'
-import { SelectionTray } from '../../components/ui/SelectionTray'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Check, FileArchive, RefreshCw, Save, Upload, X } from 'lucide-react'
+
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -146,7 +146,6 @@ export function CourseEditorPage() {
   const [saving, setSaving] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [activeEditTab, setActiveEditTab] = useState<'properties' | 'content'>('properties')
-  const [showSelectionPopup, setShowSelectionPopup] = useState(false)
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [categories, setCategories] = useState<CategoryLookup[]>([])
@@ -168,12 +167,7 @@ export function CourseEditorPage() {
     }
   }, [formData.courseCode, id, isEditMode, setLabel])
 
-  // Auto-close selection popup modal if queue becomes empty
-  useEffect(() => {
-    if (contentItems.length === 0) {
-      setShowSelectionPopup(false)
-    }
-  }, [contentItems.length])
+
 
   const loadLookups = useCallback(async () => {
     try {
@@ -810,51 +804,6 @@ export function CourseEditorPage() {
           )}
         </div>
       </form>
-
-      {/* Floating Selection Queue Badge */}
-      {contentItems.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowSelectionPopup(true)}
-          className="selected-floating-badge"
-          aria-label="View selected content"
-        >
-          <Layers className="h-4 w-4" />
-          <span className="font-bold text-xs">Selected ({contentItems.length})</span>
-        </button>
-      )}
-
-      {/* Backdrop-blurred Selection Modal Overlay */}
-      {showSelectionPopup && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSelectionPopup(false)}
-        >
-          <div
-            className="modal-window p-4 relative animate-scale-in"
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setShowSelectionPopup(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="pt-2">
-              <SelectionTray
-                selectedItems={contentItems}
-                getId={item => item.uid}
-                getLabel={item => item.name}
-                onRemove={removeContentItem}
-                onClear={() => setContentItems([])}
-                title="Selected Content"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }

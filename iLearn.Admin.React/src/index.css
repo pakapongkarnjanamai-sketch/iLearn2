@@ -930,6 +930,10 @@ a {
   animation: modal-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.modal-window-lg {
+  max-width: 780px !important;
+}
+
 @keyframes badge-fade-slide-in {
   from {
     opacity: 0;
