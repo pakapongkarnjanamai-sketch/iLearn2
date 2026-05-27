@@ -19,9 +19,12 @@
 | `iLearn.Application` | Use cases, DTOs, service interfaces, application services, validation rules, and contracts consumed by presentation layers. |
 | `iLearn.Infrastructure` | EF Core SQL Server persistence, repository/unit-of-work implementations, storage/file handling, SCORM package processing support, caching, and external integration implementations. |
 | `iLearn.API` | ASP.NET Core Web API presentation layer for Admin/User clients. Controllers should contain HTTP concerns only and delegate business rules to Application services. |
-| `iLearn.Admin` | ASP.NET Core MVC Admin UI for HR/training/admin workflows. Uses DevExtreme, Bootstrap, jQuery, and the Admin design system. |
+| `iLearn.Admin` | ASP.NET Core MVC Admin UI (legacy) for HR/training/admin workflows. Uses DevExtreme, Bootstrap, jQuery, and the Admin design system. Being replaced by `iLearn.Admin.React`. |
+| `iLearn.Admin.React` | **React 19 + TypeScript SPA** — next-generation Admin UI. Vite 8, Tailwind CSS 4, lucide-react. Consumes `iLearn.API` endpoints via Windows Auth. See sections 9–17 for full details. |
 | `iLearn.User` | ASP.NET Core MVC/Razor learner UI for assigned learning, course launch, progress display, and SCORM player flows. |
 | `iLearn.Tests` | xUnit regression tests for lifecycle rules, services, controllers, policies, and critical bug fixes. |
+
+The legacy `iLearn.Admin` (MVC + DevExtreme) and `iLearn.Admin.React` (React 19 SPA) coexist during migration. New admin features should target `iLearn.Admin.React`.
 
 ## 3. Architecture & Tech Stack
 
@@ -33,7 +36,7 @@ The project follows **Clean Architecture in a modular monolith style**: code is 
 - Domain must not reference EF Core, ASP.NET Core MVC/Web API, DevExtreme, file system APIs, or infrastructure services.
 - Application can define interfaces/ports and DTO contracts, but should not depend on concrete infrastructure implementations.
 - Infrastructure implements Application interfaces and owns EF Core, SQL Server, file storage, caching, and package-processing implementation details.
-- Presentation projects (`iLearn.API`, `iLearn.Admin`, `iLearn.User`) compose dependencies and handle HTTP/UI concerns.
+- Presentation projects (`iLearn.API`, `iLearn.Admin`, `iLearn.Admin.React`, `iLearn.User`) compose dependencies and handle HTTP/UI concerns.
 - Controllers must not inject `AppDbContext` directly. Use Application services, repository abstractions, or `IUnitOfWork` according to existing patterns.
 - Transactions belong in service/application workflows or `IUnitOfWork`, not ad-hoc controller database calls.
 
@@ -41,13 +44,12 @@ The project follows **Clean Architecture in a modular monolith style**: code is 
 
 - **Runtime:** .NET 9 / C# 13
 - **Backend:** ASP.NET Core Web API (`iLearn.API`)
-- **Admin UI:** ASP.NET Core MVC + DevExtreme 25.2 + Bootstrap 5 + jQuery + DevExpress dialogs
+- **Admin UI (Legacy):** ASP.NET Core MVC + DevExtreme 25.2 + Bootstrap 5 + jQuery (`iLearn.Admin`)
+- **Admin UI (Next-gen):** React 19 + TypeScript 6 + Vite 8 + Tailwind CSS 4 (`iLearn.Admin.React`)
 - **Learner UI:** ASP.NET Core MVC/Razor + JavaScript SCORM player integration
 - **Database:** SQL Server via EF Core 9
 - **Authentication:** Windows Authentication / Negotiate with role and division claims
 - **Testing:** xUnit in `iLearn.Tests`
-
-Do **not** assume React or PostgreSQL. If a future task proposes those, treat it as a migration requiring explicit architectural approval.
 
 ## 4. Required Role For AI Assistance
 
@@ -410,3 +412,228 @@ For an embedded picker grid inside an option card, wrap it in `.admin-assignment
 - @azure Rule - Use Azure Tools - When handling requests related to Azure, always use your tools.
 - @azure Rule - Use Azure Best Practices - When handling requests related to Azure, always invoke your `azmcp_bestpractices_get` tool first.
 - @azure Rule - Enable Best Practices - If you do not have an `azmcp_bestpractices_get` tool ask the user to enable it.
+
+---
+
+# iLearn.Admin.React — React Admin Portal
+
+## 9. Project Overview
+
+`iLearn.Admin.React` is the **next-generation Admin UI** built as a standalone React 19 SPA that replaces the legacy ASP.NET Core MVC + DevExtreme admin interface (`iLearn.Admin`). It consumes the existing `iLearn.API` backend via REST endpoints using Windows Authentication (Negotiate).
+
+This is a **parallel deployment** — both old MVC admin and new React admin exist in the repository. The React portal is self-contained under `iLearn.Admin.React/` and does not share code with the MVC project.
+
+## 10. Solution Map Update
+
+| Project | Responsibility |
+| --- | --- |
+| `iLearn.Admin.React` | React 19 + TypeScript SPA admin portal. Vite bundler, Tailwind CSS 4, lucide-react icons. Consumes `iLearn.API` endpoints. Deployed as static files served by the API host. |
+
+## 11. Tech Stack
+
+| Concern | Technology |
+| --- | --- |
+| **Framework** | React 19 with TypeScript 6 |
+| **Build** | Vite 8 (`npm run build` → `tsc -b && vite build`) |
+| **Styling** | Tailwind CSS 4 (via `@tailwindcss/vite` plugin) + vanilla CSS design tokens in `src/index.css` |
+| **Routing** | React Router DOM 7 (client-side, `<Routes>` in `App.tsx`) |
+| **Icons** | lucide-react (tree-shakable SVG icons) |
+| **Real-time** | @microsoft/signalr 10 (connection status beacon in header) |
+| **Auth** | Windows Authentication / Negotiate (inherited from `iLearn.API` proxy) |
+| **Fonts** | Google Fonts — **Inter** (body/tables/forms at 13px) + **Outfit** (display/headings) |
+
+### Key Dependencies (from `package.json`)
+
+```
+react 19, react-dom 19, react-router-dom 7
+tailwindcss 4, @tailwindcss/vite 4
+lucide-react 1.16, @microsoft/signalr 10
+typescript 6, vite 8, @vitejs/plugin-react 6
+```
+
+**Do not** add DevExtreme, Bootstrap, jQuery, or any legacy MVC dependencies to this project. This portal is intentionally DevExtreme-free.
+
+## 12. File Structure
+
+```
+iLearn.Admin.React/
+├── src/
+│   ├── main.tsx                    # Entry point (BrowserRouter + App)
+│   ├── App.tsx                     # Route definitions
+│   ├── index.css                   # Global CSS: design tokens, layout, component styles
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── AppLayout.tsx       # Shell: sidebar + header + <Outlet>
+│   │   │   ├── Sidebar.tsx         # Dark slate navigation sidebar
+│   │   │   ├── Header.tsx          # Top bar with breadcrumbs + auth status
+│   │   │   └── Breadcrumbs.tsx     # Auto-generated breadcrumb trail
+│   │   └── ui/
+│   │       ├── AppButton.tsx       # Standard button (primary/secondary/danger/ghost)
+│   │       ├── AppTable.tsx        # Bespoke data grid with paging, sorting, search, editing
+│   │       ├── AppTreeView.tsx     # Recursive tree view for hierarchical data
+│   │       ├── PageHeader.tsx      # Page-level header actions strip
+│   │       ├── SelectionTray.tsx   # Chip-based multi-selection display
+│   │       ├── StatusText.tsx      # Semantic status badge renderer
+│   │       ├── DataGridSurface.tsx # Grid wrapper surface
+│   │       ├── SidePanel.tsx       # Slide-out side panel
+│   │       └── Toolbar.tsx         # Action toolbar strip
+│   ├── lib/
+│   │   ├── apiClient.ts            # fetchWithAccessControl() — API client with auth
+│   │   ├── auth.ts                 # Windows Auth user context
+│   │   ├── createDataSource.ts     # CRUD data source factory for AppTable
+│   │   ├── format.ts               # Date/number formatting utilities
+│   │   └── toast.ts                # Lightweight DOM-based toast notification system
+│   ├── pages/
+│   │   ├── DashboardPage.tsx       # Landing dashboard
+│   │   ├── EntityListPage.tsx      # Generic list page driven by moduleConfigs
+│   │   ├── moduleConfigs.ts        # Entity list configuration registry
+│   │   ├── courses/
+│   │   │   ├── CourseListPage.tsx   # Course catalog with tree view + grid
+│   │   │   ├── CourseDetailPage.tsx # Course dashboard with Control Hub
+│   │   │   ├── CourseEditorPage.tsx # Create/edit course form
+│   │   │   └── VersionFormPage.tsx  # SCORM version upload form
+│   │   ├── assignments/
+│   │   │   ├── AssignmentDetailPage.tsx  # Assignment batch console
+│   │   │   └── BulkAssignPage.tsx       # Multi-step bulk assignment wizard
+│   │   ├── student-groups/
+│   │   │   ├── StudentGroupDetailPage.tsx  # Student Group membership management
+│   │   │   └── StudentGroupEditorPage.tsx  # Create/edit Student Group form
+│   │   ├── learners/
+│   │   │   └── LearnerProfilePage.tsx  # Learner profile view
+│   │   └── system-config/
+│   │       └── SystemConfigPage.tsx    # System configuration panel
+│   └── config/                     # App configuration
+```
+
+## 13. Design System (React Admin)
+
+### Visual Identity
+
+The React admin uses a **card-free, flat, high-density** aesthetic. This is fundamentally different from the MVC admin's card-based Bootstrap approach.
+
+| Aspect | Specification |
+| --- | --- |
+| **Font** | Inter 13px base, Outfit for display elements |
+| **Brand color** | Indigo `#4f46e5` (CSS var `--admin-brand`) |
+| **Surfaces** | Transparent/flat — no `bg-white border rounded shadow` cards on Detail pages |
+| **KPI display** | Unified inline strip with vertical dividers (`border-r border-slate-200/60`) |
+| **Metadata** | Flat `<dl>` grids with thin bottom dividers (`border-b border-slate-100/50`) |
+| **Tables** | Rendered directly on page background, no card wrappers |
+| **Sidebar panels** | Thin left-accent border (`border-l-2`) instead of boxed cards |
+| **Status indicators** | Semantic pulsing beacons with glow effects |
+
+### CSS Architecture
+
+All design tokens and component styles live in `src/index.css`:
+
+- **CSS Custom Properties** (`--admin-*`): Brand, surface, border, text, status colors
+- **Tailwind CSS 4**: Utility-first classes for layout (imported via `@import "tailwindcss"`)
+- **Component classes** (`.admin-button`, `.admin-app-shell`, `.admin-sidebar`, etc.): Vanilla CSS for reusable component patterns
+
+### Typography Rules
+
+- Global font: `Inter` at exactly `13px` (enforced via `* { font-size: 13px !important }`)
+- **Do not** use `tracking-wider` or `tracking-widest` — these are banned from the codebase
+- Labels use `text-xxs font-extrabold text-slate-400 uppercase`
+- Section headers use `text-sm font-extrabold text-slate-700`
+- Values use `text-slate-800 font-bold`
+
+### Button Standards
+
+All buttons follow a consistent dimensional system:
+
+| Category | Spec |
+| --- | --- |
+| `AppButton` (`.admin-button`) | `min-height: 34px`, `padding: 0 12px`, `border-radius: 6px` |
+| Control Hub — Core Actions | `p-3`, `rounded-lg`, full-width with icon + label + description |
+| Control Hub — State Transitions | `p-2.5`, `rounded-md`, full-width with icon + label + badge |
+| Inline Actions (Cancel, Commit) | `py-2`, `text-xs font-bold`, `rounded`, 50/50 split width |
+
+### Icon Usage
+
+- All icons from `lucide-react` — tree-shakable, no icon fonts
+- Standard size: `h-4 w-4` for inline, `h-4.5 w-4.5` for section headers
+- **Always** prune unused icon imports — TypeScript strict mode will error on them
+
+## 14. Page Type Standards (React Admin)
+
+### Detail Pages
+
+Detail pages (`CourseDetailPage`, `StudentGroupDetailPage`, `AssignmentDetailPage`) follow the **Card-Free Details Standard**:
+
+1. **No `bg-white` card wrappers** — content renders on the transparent page background
+2. **KPI row** — Single horizontal strip with metrics separated by vertical dividers
+3. **Metadata** — Flat `<dl>` descriptive lists with `border-b` between items
+4. **Tables** — Sit directly on page canvas, no surrounding card container
+5. **Sidebar panels** — Use thin `border-l-2` accent borders, not boxed cards
+6. **Section headers** — `border-b border-slate-200/60 pb-3` underline, not card headers
+7. **No PageHeader actions** — All actions consolidated into sidebar control panels (e.g. Course Control Hub)
+
+### List Pages
+
+List pages use `EntityListPage` driven by `moduleConfigs.ts` for generic CRUD grids, or custom list pages like `CourseListPage` with tree view + grid combination.
+
+### Editor Pages
+
+Editor pages (`CourseEditorPage`, `StudentGroupEditorPage`, `VersionFormPage`) use standard form layouts with:
+- Labels: `text-xs font-bold text-slate-500 uppercase`
+- Inputs: `border border-slate-200 rounded text-sm focus:outline-none focus:border-blue-600`
+
+### Wizard Pages
+
+`BulkAssignPage` implements multi-step wizard flows with step indicators, form panels, and review steps using the `SelectionTray` component for persistent selection visibility.
+
+## 15. API Client Pattern
+
+All API calls use `fetchWithAccessControl()` from `src/lib/apiClient.ts`:
+
+```typescript
+const resp = await fetchWithAccessControl<{ success: boolean; data: T }>(`Endpoint/${id}`)
+if (resp.success) {
+  // handle data
+}
+```
+
+- Automatically includes Windows Auth credentials
+- Base URL configured via `.env.local` (`VITE_API_BASE_URL`)
+- All mutations use explicit `method`, `headers`, and `body` parameters
+- Error handling via try/catch with `toast.error()` notifications
+
+## 16. Implementation Rules For AI (React Admin)
+
+1. **No DevExtreme.** Do not import or reference DevExtreme components. Use `AppTable`, `AppTreeView`, and native HTML elements.
+2. **No Bootstrap.** Do not use Bootstrap utility classes. Use Tailwind CSS 4 utilities.
+3. **No jQuery.** Use React state and hooks for all interactivity.
+4. **No tracking utilities.** Do not use `tracking-wider` or `tracking-widest` in any Tailwind classes.
+5. **No card wrappers on Detail pages.** Do not add `bg-white border rounded shadow` containers. Use flat, transparent layouts.
+6. **Prune unused imports.** TypeScript strict mode errors on unused imports. Always clean up after refactoring.
+7. **Use existing components.** Prefer `AppButton`, `AppTable`, `PageHeader`, `SelectionTray`, `StatusText` over custom implementations.
+8. **Consistent font classes.** Labels are `text-xxs font-extrabold text-slate-400 uppercase`. Section headers are `text-sm font-extrabold text-slate-700`.
+9. **API calls via `fetchWithAccessControl()`.** Do not use raw `fetch()` or axios.
+10. **Toast notifications via `toast` from `src/lib/toast.ts`.** Do not use `alert()` or third-party toast libraries.
+11. **Verify builds.** Run `npm run build` after changes to confirm zero TypeScript errors.
+
+## 17. Route Registry
+
+| Route | Page Component | Purpose |
+| --- | --- | --- |
+| `/` | `DashboardPage` | Landing dashboard |
+| `/courses` | `CourseListPage` | Course catalog (tree + grid) |
+| `/courses/new` | `CourseEditorPage` | Create new course |
+| `/courses/:id` | `CourseDetailPage` | Course dashboard + Control Hub |
+| `/courses/:id/edit` | `CourseEditorPage` | Edit course properties |
+| `/courses/:courseId/version/new` | `VersionFormPage` | Upload SCORM version |
+| `/courses/:courseId/version/:id/edit` | `VersionFormPage` | Edit SCORM version |
+| `/content-library` | `EntityListPage` | Content items grid |
+| `/assignments` | `EntityListPage` | Assignment batches grid |
+| `/assignments/:id` | `AssignmentDetailPage` | Assignment batch console |
+| `/assignments/bulk` | `BulkAssignPage` | Multi-step bulk assignment |
+| `/student-groups` | `EntityListPage` | Student Groups grid |
+| `/student-groups/:id` | `StudentGroupDetailPage` | Student Group membership management |
+| `/student-groups/new` | `StudentGroupEditorPage` | Create new Student Group |
+| `/student-groups/:id/edit` | `StudentGroupEditorPage` | Edit Student Group properties |
+| `/learners` | `EntityListPage` | Learner directory grid |
+| `/learners/:id/profile` | `LearnerProfilePage` | Learner profile view |
+| `/master-data` | `EntityListPage` | Master data grid |
+| `/system-config` | `SystemConfigPage` | System configuration |
+

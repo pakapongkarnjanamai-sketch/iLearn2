@@ -10,6 +10,7 @@ using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 
@@ -66,13 +67,49 @@ namespace iLearn.API.Controllers.Base
         [HttpGet("Get/{id}")]
         public override async Task<IActionResult> Get(int id)
         {
-            var entity = await _repository.GetByIdAsync(id);
+            var query = _repository.GetQuery()
+                .Where(r => r.Id == id)
+                .Select(r => new ContentItemDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    TypeId = r.TypeId,
+                    IsActive = r.IsActive,
+                    LaunchHref = r.LaunchHref,
+                    SchemaVersion = r.SchemaVersion,
+                    Url = r.URL,
+                    FileStorageId = r.FileStorageId,
+                    ContentUrl = $"/api/contentItems/{r.Id}/content",
+                    FileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt,
+                    CourseContentItems = r.CourseContentItems
+                        .Where(cr => cr.CourseVersion != null && cr.CourseVersion.Course != null)
+                        .Select(cr => new ContentItemCourseReferenceDto
+                    {
+                        CourseId = cr.CourseVersion!.CourseId,
+                        CourseTitle = cr.CourseVersion.Course!.Title,
+                        CourseCode = cr.CourseVersion.Course!.Code,
+                        CourseVersionId = cr.CourseVersionId,
+                        VersionNumber = cr.CourseVersion!.VersionNumber
+                    }).ToList(),
+                    CourseIdsCount = r.CourseContentItems
+                        .Where(cr => cr.CourseVersion != null)
+                        .Select(cr => cr.CourseVersion!.CourseId)
+                        .Distinct()
+                        .Count()
+                });
+
+            var entity = query.Provider is IAsyncQueryProvider
+                ? await query.FirstOrDefaultAsync()
+                : query.FirstOrDefault();
+
             if (entity == null)
             {
                 return NotFound();
             }
 
-            return Ok(entity.ToDto());
+            return Ok(entity);
         }
 
         private async Task<IActionResult> GetFiltered(DataSourceLoadOptions loadOptions, int? courseId)
@@ -80,7 +117,7 @@ namespace iLearn.API.Controllers.Base
             var baseQuery = _repository.GetQuery().AsQueryable();
 
             if (courseId.HasValue)
-                baseQuery = baseQuery.Where(r => r.CourseContentItems.Any(cr => cr.CourseVersion.CourseId == courseId.Value));
+                baseQuery = baseQuery.Where(r => r.CourseContentItems.Any(cr => cr.CourseVersion != null && cr.CourseVersion.CourseId == courseId.Value));
 
             var query = baseQuery.Select(r => new
             {
@@ -94,11 +131,17 @@ namespace iLearn.API.Controllers.Base
                 r.FileStorageId,
                 r.CreatedAt,
                 fileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
-                courseContentItems = r.CourseContentItems.Select(cr => new
+                courseContentItems = r.CourseContentItems
+                    .Where(cr => cr.CourseVersion != null)
+                    .Select(cr => new
                 {
-                    courseId = cr.CourseVersion.CourseId
+                    courseId = cr.CourseVersion!.CourseId
                 }).ToList(),
-                courseIdsCount = r.CourseContentItems.Select(cr => cr.CourseVersion.CourseId).Distinct().Count()
+                courseIdsCount = r.CourseContentItems
+                    .Where(cr => cr.CourseVersion != null)
+                    .Select(cr => cr.CourseVersion!.CourseId)
+                    .Distinct()
+                    .Count()
             });
 
             return Ok(DataSourceLoader.Load(query, loadOptions));

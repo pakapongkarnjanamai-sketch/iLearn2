@@ -1,0 +1,278 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { Download, Loader2, Printer } from 'lucide-react'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { AppButton } from '../../components/ui/AppButton'
+import { StatusText } from '../../components/ui/StatusText'
+import { fetchWithAccessControl } from '../../lib/apiClient'
+import { toast } from '../../lib/toast'
+import { formatDate } from '../../lib/format'
+
+type LearnerRow = {
+  id: number
+  learnerCode: string
+  learnerName: string
+  division?: string
+  department?: string
+  progress: number
+  isCompleted: boolean
+  completedDate: string | null
+  status: string
+}
+
+type CourseRow = {
+  id: number
+  ruleId: number
+  title: string
+  code: string
+}
+
+type AssignmentDashboard = {
+  id: number
+  assignmentNo: string
+  description: string
+  startDate: string
+  dueDate: string
+  status: string
+  completedEnrollmentCount: number
+  totalEnrollmentCount: number
+  completionPct: number
+  courseNames: string
+  courses: CourseRow[]
+  learners: LearnerRow[]
+}
+
+const STATUS_BUCKETS = ['Completed', 'In Progress', 'Not Started', 'Overdue'] as const
+
+export function AssignmentReportPage() {
+  const { id } = useParams()
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<AssignmentDashboard | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('All')
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    fetchWithAccessControl<{ success: boolean; data: AssignmentDashboard }>(
+      `Assignments/dashboard/${id}`,
+    )
+      .then((resp) => {
+        if (cancelled) return
+        if (resp.success) setData(resp.data)
+      })
+      .catch(() => toast.error('Failed to load assignment report'))
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  const filtered = useMemo(() => {
+    if (!data) return []
+    const q = search.trim().toLowerCase()
+    return data.learners.filter((row) => {
+      if (statusFilter !== 'All' && row.status !== statusFilter) return false
+      if (!q) return true
+      return (
+        row.learnerCode.toLowerCase().includes(q) ||
+        row.learnerName.toLowerCase().includes(q) ||
+        (row.division ?? '').toLowerCase().includes(q) ||
+        (row.department ?? '').toLowerCase().includes(q)
+      )
+    })
+  }, [data, statusFilter, search])
+
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { All: data?.learners.length ?? 0 }
+    STATUS_BUCKETS.forEach((s) => {
+      map[s] = data?.learners.filter((l) => l.status === s).length ?? 0
+    })
+    return map
+  }, [data])
+
+  const exportCsv = () => {
+    if (!data) return
+    const header = ['Learner Code', 'Name', 'Division', 'Department', 'Status', 'Progress %', 'Completed Date']
+    const rows = filtered.map((l) => [
+      l.learnerCode,
+      l.learnerName,
+      l.division ?? '',
+      l.department ?? '',
+      l.status,
+      String(Math.round(l.progress)),
+      l.completedDate ? formatDate(l.completedDate) : '',
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `assignment-${data.assignmentNo || data.id}-report.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 p-8 text-sm text-slate-500">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading assignment report...
+      </div>
+    )
+  }
+
+  if (!data) {
+    return <div className="p-8 text-sm text-slate-500">Assignment not found.</div>
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={data.assignmentNo || `Assignment ${data.id}`}
+        eyebrow="Assignment Report"
+        actions={
+          <div className="flex items-center gap-2">
+            <AppButton variant="secondary" icon={Printer} onClick={() => window.print()}>
+              Print
+            </AppButton>
+            <AppButton variant="primary" icon={Download} onClick={exportCsv}>
+              Export CSV
+            </AppButton>
+          </div>
+        }
+      />
+
+      <header className="mb-3">
+        <div className="text-xxs font-extrabold uppercase text-slate-400">Assignment Report</div>
+        <h1 className="text-2xl font-extrabold text-slate-900">{data.assignmentNo || `Assignment ${data.id}`}</h1>
+      </header>
+
+      {/* KPI strip */}
+      <div className="admin-card admin-kpi-strip mb-4">
+        {[
+          { label: 'Total Learners', value: data.totalEnrollmentCount },
+          { label: 'Completed', value: data.completedEnrollmentCount },
+          {
+            label: 'Completion',
+            value: `${Math.round(data.completionPct)}%`,
+          },
+          { label: 'Start', value: data.startDate ? formatDate(data.startDate) : '—' },
+          { label: 'Due', value: data.dueDate ? formatDate(data.dueDate) : '—' },
+          { label: 'Courses', value: data.courses.length },
+        ].map((kpi) => (
+          <div
+            key={kpi.label}
+            className="admin-kpi-item"
+          >
+            <div className="admin-kpi-label">{kpi.label}</div>
+            <div className="mt-1 text-base font-bold text-slate-800">{kpi.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <section className="admin-card admin-table-card">
+        {/* Filter bar */}
+        <div className="admin-card-head flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
+            {(['All', ...STATUS_BUCKETS] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                className={`rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  statusFilter === s
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {s} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="w-72 rounded border border-slate-200 px-2 py-1 text-sm focus:outline-none focus:border-blue-600"
+          />
+        </div>
+
+        {/* Courses summary */}
+        {data.courses.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-1.5 text-xs font-extrabold uppercase text-slate-500">Courses</div>
+            <div className="flex flex-wrap gap-1.5">
+              {data.courses.map((c, index) => (
+                <span
+                  key={`${c.ruleId}-${c.id}-${c.code}-${index}`}
+                  className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs"
+                >
+                  <span className="font-mono text-slate-500">{c.code}</span>
+                  <span className="font-semibold text-slate-700">{c.title}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Learner table */}
+        <div className="admin-table-card-scroll border-t border-slate-200/60">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="text-left text-xxs font-extrabold uppercase text-slate-500">
+              <th className="border-b border-slate-200/60 py-2 pr-3">Learner</th>
+              <th className="border-b border-slate-200/60 py-2 pr-3">Division</th>
+              <th className="border-b border-slate-200/60 py-2 pr-3">Department</th>
+              <th className="border-b border-slate-200/60 py-2 pr-3">Status</th>
+              <th className="border-b border-slate-200/60 py-2 pr-3 text-right">Progress</th>
+              <th className="border-b border-slate-200/60 py-2 pr-3">Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((row, index) => (
+              <tr key={`${row.id}-${row.learnerCode}-${index}`} className="border-b border-slate-100/60 hover:bg-slate-50/60">
+                <td className="py-1.5 pr-3">
+                  <div className="font-semibold text-slate-800">{row.learnerName}</div>
+                  <div className="font-mono text-xs text-slate-500">{row.learnerCode}</div>
+                </td>
+                <td className="py-1.5 pr-3 text-slate-600">{row.division ?? '—'}</td>
+                <td className="py-1.5 pr-3 text-slate-600">{row.department ?? '—'}</td>
+                <td className="py-1.5 pr-3">
+                  <StatusText
+                    tone={
+                      row.status === 'Completed'
+                        ? 'success'
+                        : row.status === 'Overdue'
+                        ? 'danger'
+                        : row.status === 'In Progress'
+                        ? 'warning'
+                        : 'neutral'
+                    }
+                  >
+                    {row.status}
+                  </StatusText>
+                </td>
+                <td className="py-1.5 pr-3 text-right font-mono">{Math.round(row.progress)}%</td>
+                <td className="py-1.5 pr-3 text-slate-600">
+                  {row.completedDate ? formatDate(row.completedDate) : '—'}
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td className="py-6 text-center text-slate-400" colSpan={6}>
+                  No learners.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        </div>
+      </section>
+    </>
+  )
+}

@@ -7,15 +7,11 @@ type PageHeaderProps = {
   actions?: ReactNode
 }
 
-export function PageHeader({ title, eyebrow, description, actions }: PageHeaderProps) {
+export function PageHeader({ actions }: PageHeaderProps) {
+  if (!actions) return null
   return (
-    <div className="admin-page-header">
-      <div className="admin-page-title-block">
-        {eyebrow ? <p className="admin-page-eyebrow">{eyebrow}</p> : null}
-        <h1 className="admin-page-title">{title}</h1>
-        {description ? <p className="admin-page-description">{description}</p> : null}
-      </div>
-      {actions ? <div className="admin-page-actions">{actions}</div> : null}
+    <div className="flex justify-end mb-3.5 shrink-0 select-none">
+      <div className="admin-page-actions">{actions}</div>
     </div>
   )
 }

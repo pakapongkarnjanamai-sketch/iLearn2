@@ -126,6 +126,28 @@ namespace iLearn.Application.Mappings
                 Name = entity.Name,
                 TypeId = entity.TypeId,
                 IsActive = entity.IsActive,
+                LaunchHref = entity.LaunchHref,
+                SchemaVersion = entity.SchemaVersion,
+                Url = entity.URL,
+                FileStorageId = entity.FileStorageId,
+                FileLength = entity.FileStorage?.Length ?? 0,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt,
+                CourseIdsCount = entity.CourseContentItems
+                    .Where(courseContentItem => courseContentItem.CourseVersion != null)
+                    .Select(courseContentItem => courseContentItem.CourseVersion!.CourseId)
+                    .Distinct()
+                    .Count(),
+                CourseContentItems = entity.CourseContentItems
+                    .Where(courseContentItem => courseContentItem.CourseVersion?.Course != null)
+                    .Select(courseContentItem => new ContentItemCourseReferenceDto
+                {
+                    CourseId = courseContentItem.CourseVersion!.CourseId,
+                    CourseTitle = courseContentItem.CourseVersion.Course!.Title,
+                    CourseCode = courseContentItem.CourseVersion.Course!.Code,
+                    CourseVersionId = courseContentItem.CourseVersionId,
+                    VersionNumber = courseContentItem.CourseVersion!.VersionNumber
+                }).ToList(),
                 ContentUrl = $"/api/contentItems/{entity.Id}/content"
             };
         }

@@ -1,7 +1,7 @@
-import { Bell, Menu, RefreshCw, Search } from 'lucide-react'
-import { AppButton } from '../ui/AppButton'
+import { Bell, Menu } from 'lucide-react'
 import { StatusText } from '../ui/StatusText'
 import type { CurrentAdminUser } from '../../lib/auth'
+import { Breadcrumbs } from './Breadcrumbs'
 
 type HeaderProps = {
   currentUser: CurrentAdminUser | null
@@ -28,23 +28,23 @@ export function Header({ currentUser, sessionState, onMenuClick }: HeaderProps) 
 
   return (
     <header className="admin-topbar">
-      <div className="admin-topbar-left">
-        <button type="button" className="admin-icon-button admin-mobile-menu" onClick={onMenuClick} aria-label="Toggle navigation">
+      <div className="admin-topbar-left flex items-center">
+        <button type="button" className="admin-icon-button admin-mobile-menu mr-2" onClick={onMenuClick} aria-label="Toggle navigation">
           <Menu aria-hidden="true" />
         </button>
-        <label className="admin-search-box">
-          <Search aria-hidden="true" />
-          <input type="search" placeholder="Search courses, learners, assignments" />
-        </label>
+        <div className="h-4 w-px bg-slate-200 mx-3 hidden md:block" />
+        <Breadcrumbs />
       </div>
 
-      <div className="admin-topbar-right">
-        <StatusText tone={sessionState === 'ready' ? 'success' : 'warning'}>
-          {sessionState === 'ready' ? 'Windows Auth' : 'Session pending'}
-        </StatusText>
-        <AppButton variant="ghost" icon={RefreshCw} onClick={() => window.location.reload()}>
-          Refresh
-        </AppButton>
+      <div className="admin-topbar-right flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          {sessionState === 'ready' && (
+            <span className="h-2 w-2 rounded-full bg-emerald-500 neon-glow-dot shrink-0" title="Real-time session active" />
+          )}
+          <StatusText tone={sessionState === 'ready' ? 'success' : 'warning'}>
+            {sessionState === 'ready' ? 'Windows Auth' : 'Session pending'}
+          </StatusText>
+        </div>
         <button type="button" className="admin-icon-button" aria-label="Notifications">
           <Bell aria-hidden="true" />
         </button>

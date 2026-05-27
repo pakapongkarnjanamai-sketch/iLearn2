@@ -5,7 +5,9 @@ export type CurrentAdminUser = {
   isAuthenticated: boolean
   nid: string
   displayName: string
+  divisionId?: number | null
   divisionName?: string
+  isSuperAdmin: boolean
   roles: string[]
   isFallback?: boolean
 }
@@ -14,8 +16,10 @@ const fallbackAdminUser: CurrentAdminUser = {
   isAuthenticated: true,
   nid: 'windows-user',
   displayName: 'Windows Admin',
+  divisionId: null,
   divisionName: 'Current division',
-  roles: ['Admin'],
+  isSuperAdmin: true,
+  roles: ['SuperAdmin', 'Admin'],
   isFallback: true,
 }
 
