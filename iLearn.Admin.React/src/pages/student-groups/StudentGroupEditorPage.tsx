@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Plus, RefreshCw, Save, Users, X } from 'lucide-react'
-import { SelectionTray } from '../../components/ui/SelectionTray'
+
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
@@ -279,7 +279,7 @@ export function StudentGroupEditorPage() {
   )
 
   const renderMembersStep = () => (
-    <div className="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="min-h-0">
       <div className="admin-card p-5">
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -330,15 +330,6 @@ export function StudentGroupEditorPage() {
           </table>
         </div>
       </div>
-
-      <SelectionTray
-        selectedItems={selectedLearnerCodes.map(code => ({ code }))}
-        getId={item => item.code}
-        getLabel={item => item.code}
-        onRemove={removeMemberCode}
-        onClear={() => setSelectedLearnerCodes([])}
-        title="Selected Learners"
-      />
     </div>
   )
 

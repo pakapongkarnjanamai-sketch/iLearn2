@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Check, FileArchive, RefreshCw, Save, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Check, FileArchive, Plus, RefreshCw, Save, Search, Upload, X } from 'lucide-react'
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -66,6 +66,10 @@ type CourseApiResponse<T = CourseDetailData> = {
 }
 
 
+
+type ContentLibraryItem = CourseContentApiItem & {
+  courseIdsCount?: number
+}
 
 type SelectedContentItem = {
   uid: string
@@ -146,6 +150,9 @@ export function CourseEditorPage() {
   const [saving, setSaving] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [activeEditTab, setActiveEditTab] = useState<'properties' | 'content'>('properties')
+  const [showLibraryPopup, setShowLibraryPopup] = useState(false)
+  const [contentSearch, setContentSearch] = useState('')
+  const [contentLibrary, setContentLibrary] = useState<ContentLibraryItem[]>([])
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [categories, setCategories] = useState<CategoryLookup[]>([])
@@ -171,20 +178,42 @@ export function CourseEditorPage() {
 
   const loadLookups = useCallback(async () => {
     try {
-      const [typesData, catData, divisionData] = await Promise.all([
+      const [typesData, catData, divisionData, libraryData] = await Promise.all([
         fetchWithAccessControl<LoadResult<CourseTypeLookup>>('Courses/course-types-lookup'),
         fetchWithAccessControl<LoadResult<CategoryLookup>>('Categories/lookup'),
-        fetchWithAccessControl<LoadResult<DivisionLookup>>('Divisions/lookup')
+        fetchWithAccessControl<LoadResult<DivisionLookup>>('Divisions/lookup'),
+        fetchWithAccessControl<LoadResult<ContentLibraryItem>>('ContentLibrary/lookup')
       ])
 
       setCourseTypes(unwrapList(typesData))
       setCategories(unwrapList(catData))
       setDivisions(unwrapList(divisionData))
+      setContentLibrary(unwrapList(libraryData))
     } catch (err) {
       console.error('Failed to load lookup data', err)
       toast.error('Failed to load dynamic dropdown options')
     }
   }, [])
+
+  const visibleContentLibrary = useMemo(() => {
+    const normalizedSearch = contentSearch.trim().toLowerCase()
+    const selectedIds = new Set(contentItems.filter(item => item.source === 'library').map(item => item.id))
+
+    return contentLibrary
+      .filter(item => !selectedIds.has(item.id))
+      .filter(item => {
+        if (!normalizedSearch) return true
+        return `${item.name} ${item.typeName || ''} ${item.publishState || ''}`.toLowerCase().includes(normalizedSearch)
+      })
+      .slice(0, 50)
+  }, [contentLibrary, contentItems, contentSearch])
+
+  const addExistingContent = (item: ContentLibraryItem) => {
+    setContentItems(prev => {
+      if (prev.some(contentItem => contentItem.source === 'library' && contentItem.id === item.id)) return prev
+      return [...prev, createLibrarySelection(item)]
+    })
+  }
 
   const loadCourseData = useCallback(async () => {
     if (!id) return
@@ -639,8 +668,8 @@ export function CourseEditorPage() {
         <span className="border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
-      <div className="mb-4">
-        <label className="flex cursor-pointer items-center justify-center gap-2 border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-white">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <label className="flex cursor-pointer items-center justify-center gap-2 border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-white hover:border-slate-300 transition duration-150">
           <Upload className="h-5 w-5 text-blue-600" />
           <span>Upload New SCORM</span>
           <input
@@ -654,6 +683,18 @@ export function CourseEditorPage() {
             }}
           />
         </label>
+
+        <button
+          type="button"
+          onClick={() => {
+            setContentSearch('')
+            setShowLibraryPopup(true)
+          }}
+          className="flex cursor-pointer items-center justify-center gap-2 border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-white hover:border-slate-300 transition duration-150"
+        >
+          <BookOpen className="h-5 w-5 text-indigo-600" />
+          <span>Select Existing Content</span>
+        </button>
       </div>
 
       {renderContentRows()}
@@ -804,6 +845,73 @@ export function CourseEditorPage() {
           )}
         </div>
       </form>
+
+      {/* Backdrop-blurred Library Picker Modal Overlay */}
+      {showLibraryPopup && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowLibraryPopup(false)}
+        >
+          <div
+            className="modal-window modal-window-lg p-5 relative animate-scale-in"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowLibraryPopup(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8">
+              <BookOpen className="h-5 w-5 text-indigo-600" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Select Existing Content</h3>
+                <p className="text-xxs font-medium text-slate-400">Choose from SCORM packages in the Content Library</p>
+              </div>
+            </div>
+
+            <div className="mb-4 flex items-center gap-2 border border-slate-200 bg-white px-3 py-2.5">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                value={contentSearch}
+                onChange={event => setContentSearch(event.target.value)}
+                placeholder="Search Content Library..."
+                className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-800 outline-none"
+              />
+            </div>
+
+            <div className="max-h-96 divide-y divide-slate-100 overflow-y-auto border border-slate-200 custom-scrollbar">
+              {visibleContentLibrary.length === 0 ? (
+                <div className="px-3 py-8 text-center text-sm font-semibold text-slate-400">No content found matching search</div>
+              ) : visibleContentLibrary.map(item => {
+                const readiness = getContentReadiness(createLibrarySelection(item))
+                return (
+                  <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2.5 hover:bg-slate-50/50 transition">
+                    <div className="min-w-0">
+                      <div className="truncate font-bold text-slate-800">{item.name}</div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+                        <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                        <span className={`border px-1.5 py-0.5 font-bold ${readiness.className}`}>{readiness.label}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addExistingContent(item)}
+                      className="rounded-md border border-indigo-100 p-2 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
+                      aria-label="Add content"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
