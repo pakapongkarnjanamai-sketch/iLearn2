@@ -229,12 +229,10 @@ export function BulkAssignPage() {
   }
 
   const renderChooseCoursesStep = () => (
-    <div className="flex flex-col gap-3.5 h-[calc(100vh-270px)] min-h-[420px]">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2 shrink-0 select-none">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-xs font-bold text-slate-800">Select Syllabus Courses</h2>
-        </div>
+    <div className="flex flex-col gap-4 h-[calc(100vh-270px)] min-h-105">
+      <div className="wiz-section">
+        <BookOpen />
+        <h2 className="wiz-section-title">Select Syllabus Courses</h2>
       </div>
       
       <div className="flex-1 flex flex-col sm:flex-row gap-3 min-h-0">
@@ -331,13 +329,13 @@ export function BulkAssignPage() {
   )
 
   const renderTargetScopeStep = () => (
-    <div className="space-y-3.5">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <Users className="h-4 w-4 text-indigo-500" />
-        <h2 className="text-xs font-bold text-slate-800">Define Target Scope</h2>
+    <div className="space-y-4">
+      <div className="wiz-section">
+        <Users />
+        <h2 className="wiz-section-title">Define Target Scope</h2>
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xxs max-w-xs select-none">
+      <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xs max-w-xs select-none">
         <button
           type="button"
           onClick={() => setTargetMode('group')}
@@ -359,15 +357,13 @@ export function BulkAssignPage() {
       </div>
 
       {targetMode === 'group' ? (
-        <div className="space-y-1 max-w-sm select-none">
-          <label htmlFor="groupId" className="block text-xxs font-extrabold text-slate-400 uppercase">
-            Select Learner Group
-          </label>
+        <div className="space-y-1.5 max-w-sm select-none">
+          <label htmlFor="groupId" className="wiz-label">Select Learner Group</label>
           <select
             id="groupId"
             value={selectedGroupId}
             onChange={(e) => setSelectedGroupId(Number(e.target.value))}
-            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+            className="wiz-input"
           >
             <option value={0}>-- Select Group --</option>
             {groups.map(g => (
@@ -378,17 +374,15 @@ export function BulkAssignPage() {
           </select>
         </div>
       ) : (
-        <div className="space-y-1">
-          <label htmlFor="customEids" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
-            Custom Employee EIds
-          </label>
+        <div className="space-y-1.5">
+          <label htmlFor="customEids" className="wiz-label">Custom Employee EIds</label>
           <textarea
             id="customEids"
             rows={5}
             value={customEidsInput}
             onChange={(e) => setCustomEidsInput(e.target.value)}
             placeholder="Enter employee EIds separated by comma or new lines (e.g. N130812, N142715)"
-            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-700 focus:outline-none focus:border-indigo-500 bg-slate-50/10"
+            className="wiz-input font-mono bg-slate-50/10 resize-y"
           />
         </div>
       )}
@@ -396,15 +390,15 @@ export function BulkAssignPage() {
   )
 
   const renderScheduleStep = () => (
-    <div className="space-y-3.5">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <Calendar className="h-4 w-4 text-indigo-500" />
-        <h2 className="text-xs font-bold text-slate-800">Set Dates & Schedules</h2>
+    <div className="space-y-4">
+      <div className="wiz-section">
+        <Calendar />
+        <h2 className="wiz-section-title">Set Dates & Schedules</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-w-md">
-        <div className="space-y-1">
-          <label htmlFor="startDate" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+        <div className="space-y-1.5">
+          <label htmlFor="startDate" className="wiz-label">
             Start Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -412,12 +406,12 @@ export function BulkAssignPage() {
             id="startDate"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white cursor-pointer focus:outline-none focus:border-indigo-500"
+            className="wiz-input cursor-pointer"
           />
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="dueDate" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+        <div className="space-y-1.5">
+          <label htmlFor="dueDate" className="wiz-label">
             Due / Expiry Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -425,13 +419,13 @@ export function BulkAssignPage() {
             id="dueDate"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white cursor-pointer focus:outline-none focus:border-indigo-500"
+            className="wiz-input cursor-pointer"
           />
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="desc" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+      <div className="space-y-1.5">
+        <label htmlFor="desc" className="wiz-label">
           Batch Description / Memo
         </label>
         <textarea
@@ -440,7 +434,7 @@ export function BulkAssignPage() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="e.g. Mandatory Cybersecurity training 2026"
-          className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white focus:outline-none focus:border-indigo-500 resize-y"
+          className="wiz-input resize-y"
         />
       </div>
     </div>
@@ -450,9 +444,9 @@ export function BulkAssignPage() {
     if (!validationResult) return null
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-          <ShieldCheck className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-xs font-bold text-slate-800">Conflict Validation Preview</h2>
+        <div className="wiz-section">
+          <ShieldCheck />
+          <h2 className="wiz-section-title">Conflict Validation Preview</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 select-none">
@@ -591,7 +585,7 @@ export function BulkAssignPage() {
 
       {/* Show full blocking screen validation indicator when running async validation between step 3 and 4 */}
       {validating && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[9999] animate-fade-in select-none">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-9999 animate-fade-in select-none">
           <div className="bg-white p-5 rounded-lg border border-slate-100 flex flex-col items-center gap-3 shadow-lg max-w-xs">
             <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
             <div className="text-center">

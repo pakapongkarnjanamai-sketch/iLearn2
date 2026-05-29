@@ -226,14 +226,14 @@ export function LearnerGroupEditorPage() {
   }
 
   const renderInformationStep = () => (
-    <div className="space-y-3.5">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <Users className="h-4 w-4 text-indigo-500" />
-        <h2 className="text-xs font-bold text-slate-800">Group Information</h2>
+    <div className="space-y-4">
+      <div className="wiz-section">
+        <Users />
+        <h2 className="wiz-section-title">Group Information</h2>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="name" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+      <div className="space-y-1.5">
+        <label htmlFor="name" className="wiz-label">
           Group Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -243,26 +243,26 @@ export function LearnerGroupEditorPage() {
           value={formData.name}
           onChange={handleChange}
           placeholder="e.g. New Hires 2026 Q1"
-          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+          className="wiz-input"
         />
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="categoryId" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">Category</label>
+      <div className="space-y-1.5">
+        <label htmlFor="categoryId" className="wiz-label">Category</label>
         <select
           id="categoryId"
           name="categoryId"
           value={formData.categoryId}
           onChange={handleChange}
-          className="w-full max-w-md rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
+          className="wiz-input max-w-md"
         >
           <option value={0}>No category (root)</option>
           {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
         </select>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="description" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+      <div className="space-y-1.5">
+        <label htmlFor="description" className="wiz-label">
           Description <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -272,22 +272,21 @@ export function LearnerGroupEditorPage() {
           onChange={handleChange}
           rows={4}
           placeholder="Brief description of this group's purpose"
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+          className="wiz-input resize-y"
         />
       </div>
     </div>
   )
 
   const renderMembersStep = () => (
-    <div className="min-h-0 flex-1 flex flex-col gap-3.5">
-      <div className="flex flex-col min-h-0 flex-1 gap-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2.5 shrink-0 select-none">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-indigo-500" />
-            <h2 className="text-xs font-bold text-slate-800">Add Group Members</h2>
-          </div>
-          
-          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xxs">
+    <div className="space-y-4">
+      <div className="wiz-section justify-between flex-wrap">
+        <div className="flex items-center gap-2">
+          <Users />
+          <h2 className="wiz-section-title">Add Group Members</h2>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xs">
             <button
               type="button"
               onClick={() => setActiveTab('picker')}
@@ -312,8 +311,8 @@ export function LearnerGroupEditorPage() {
         {activeTab === 'picker' ? (
           <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
         ) : (
-          <div className="space-y-3.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1">
-            <p className="text-xxs font-semibold text-slate-400 select-none leading-relaxed">
+          <div className="space-y-3.5">
+            <p className="text-xs font-semibold text-slate-400 select-none leading-relaxed">
               Bulk paste employee EIds here. They will be integrated directly into your selection workspace.
             </p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
@@ -322,13 +321,13 @@ export function LearnerGroupEditorPage() {
                 onChange={event => setMemberInput(event.target.value)}
                 rows={5}
                 placeholder="Paste employee EIds separated by comma, space, or new line (e.g. N130812, N142715)"
-                className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs text-slate-700 focus:border-indigo-500 focus:outline-none bg-slate-50/10"
+                className="wiz-input resize-y font-mono bg-slate-50/10"
               />
               <button
                 type="button"
                 onClick={addMemberCodes}
                 disabled={!memberInput.trim()}
-                className="inline-flex items-center gap-[7px] rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 cursor-pointer self-start text-xxs font-extrabold shadow-3xs disabled:opacity-55"
+                className="inline-flex items-center gap-1.75 rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700 cursor-pointer self-start text-xs font-extrabold shadow-3xs disabled:opacity-55"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Import Codes</span>
@@ -337,16 +336,16 @@ export function LearnerGroupEditorPage() {
 
             {/* List of currently selected ones for preview */}
             <div className="border border-slate-200 rounded overflow-hidden">
-              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-400 uppercase select-none">
+              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xs font-extrabold text-slate-400 uppercase select-none">
                 <span>Selected Codes Ledger</span>
                 <span>{selectedLearners.length} Users</span>
               </div>
               <div className="max-h-56 overflow-y-auto custom-scrollbar bg-white divide-y divide-slate-100">
                 {selectedLearners.length === 0 ? (
-                  <div className="px-3 py-6 text-center text-slate-400 text-xxs font-bold select-none">No initial members selected</div>
+                  <div className="px-3 py-6 text-center text-slate-400 text-xs font-bold select-none">No initial members selected</div>
                 ) : (
                   selectedLearners.map((learner, index) => (
-                    <div key={learner.code} className="px-3 py-1.5 text-xxs flex items-center justify-between font-semibold">
+                    <div key={learner.code} className="px-3 py-1.5 text-xs flex items-center justify-between font-semibold">
                       <div className="flex gap-3 items-center">
                         <span className="font-extrabold text-slate-400 w-6">{index + 1}</span>
                         <span className="font-mono text-slate-800 font-bold">{learner.code}</span>
@@ -368,46 +367,44 @@ export function LearnerGroupEditorPage() {
             </div>
           </div>
         )}
-      </div>
     </div>
   )
 
   const renderReviewStep = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{selectedLearners.length}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Initial Members</div>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 sm:col-span-2">
-          <div className="text-lg font-extrabold text-slate-800">{selectedCategoryName}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Category</div>
-        </div>
+      <div className="wiz-section">
+        <Users />
+        <h2 className="wiz-section-title">Review &amp; Confirm</h2>
       </div>
 
-      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Group Details</div>
-        <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
-          <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Group Name</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Description</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
-          </div>
-        </dl>
-      </div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
+          <dt className="wiz-label">Group Name</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Category</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedCategoryName}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Initial Members</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedLearners.length}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
+          <dt className="wiz-label">Description</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
+        </div>
+      </dl>
 
-      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Initial Members</div>
+      <div>
+        <div className="mb-2 text-[13px] font-bold text-slate-800 select-none">Initial Members</div>
         <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
           {selectedLearners.length === 0 ? (
-            <span className="font-semibold text-slate-400 text-xxs select-none">No initial members selected</span>
+            <span className="font-semibold text-slate-400 text-xs select-none">No initial members selected</span>
           ) : selectedLearners.map(learner => (
             <span
               key={learner.code}
-              className="border border-slate-200 bg-white px-2 py-0.5 font-mono text-xxs font-extrabold text-slate-700 rounded-sm select-none"
+              className="border border-slate-200 bg-white px-2 py-0.5 font-mono text-xs font-extrabold text-slate-700 rounded-sm select-none"
               title={learner.name}
             >
               {learner.code}
@@ -470,7 +467,7 @@ export function LearnerGroupEditorPage() {
             <button 
               type="button" 
               onClick={() => navigate(`/learner-groups/${id}`)} 
-              className="inline-flex items-center gap-[7px] rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xxs font-extrabold shadow-3xs"
+              className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 font-extrabold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xs shadow-3xs"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Cancel</span>
@@ -478,7 +475,7 @@ export function LearnerGroupEditorPage() {
             <button 
               type="submit" 
               disabled={saving} 
-              className="inline-flex items-center gap-[7px] rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 cursor-pointer text-xxs font-extrabold shadow-3xs disabled:opacity-55"
+              className="inline-flex items-center gap-1.75 rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-extrabold text-white hover:bg-indigo-700 cursor-pointer text-xs shadow-3xs disabled:opacity-55"
             >
               {saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

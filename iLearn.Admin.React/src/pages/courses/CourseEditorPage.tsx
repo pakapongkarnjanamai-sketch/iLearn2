@@ -282,12 +282,6 @@ export function CourseEditorPage() {
     categories.find(item => item.id === formData.categoryId)?.name || 'No category'
   ), [categories, formData.categoryId])
 
-  const contentSummary = useMemo(() => ({
-    total: contentItems.length,
-    existing: contentItems.filter(item => item.source === 'library').length,
-    uploads: contentItems.filter(item => item.source === 'upload').length
-  }), [contentItems])
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     const numericFields = ['divisionId', 'categoryId', 'courseType']
@@ -463,15 +457,15 @@ export function CourseEditorPage() {
   }
 
   const renderInformationStep = () => (
-    <div className="space-y-3.5">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <BookOpen className="h-4 w-4 text-indigo-500" />
-        <h2 className="text-xs font-bold text-slate-800">Course Information</h2>
+    <div className="space-y-4">
+      <div className="wiz-section">
+        <BookOpen />
+        <h2 className="wiz-section-title">Course Information</h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
-        <div className="space-y-1">
-          <label htmlFor="courseType" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label htmlFor="courseType" className="wiz-label">
             Course Type <span className="text-red-500">*</span>
           </label>
           <select
@@ -479,15 +473,15 @@ export function CourseEditorPage() {
             name="courseType"
             value={formData.courseType}
             onChange={handleChange}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
+            className="wiz-input"
           >
             <option value={0}>Select Type</option>
             {courseTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
           </select>
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="courseCode" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+        <div className="space-y-1.5">
+          <label htmlFor="courseCode" className="wiz-label">
             Course Code <span className="text-red-500">*</span>
           </label>
           <input
@@ -497,12 +491,12 @@ export function CourseEditorPage() {
             value={formData.courseCode}
             onChange={handleChange}
             placeholder="e.g. CS-101"
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+            className="wiz-input"
           />
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="courseName" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+        <div className="space-y-1.5 sm:col-span-2">
+          <label htmlFor="courseName" className="wiz-label">
             Course Title <span className="text-red-500">*</span>
           </label>
           <input
@@ -512,28 +506,28 @@ export function CourseEditorPage() {
             value={formData.courseName}
             onChange={handleChange}
             placeholder="e.g. Intro to Cybersecurity"
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+            className="wiz-input"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-        <div className="space-y-1">
-          <label htmlFor="divisionId" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">Division</label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label htmlFor="divisionId" className="wiz-label">Division</label>
           <select
             id="divisionId"
             name="divisionId"
             value={formData.divisionId}
             onChange={handleChange}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
+            className="wiz-input"
           >
             <option value={0}>Select Division</option>
             {divisions.map(division => <option key={division.id} value={division.id}>{division.name}</option>)}
           </select>
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="categoryId" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+        <div className="space-y-1.5">
+          <label htmlFor="categoryId" className="wiz-label">
             Category <span className="text-red-500">*</span>
           </label>
           <select
@@ -542,7 +536,7 @@ export function CourseEditorPage() {
             value={formData.categoryId}
             onChange={handleChange}
             disabled={formData.divisionId > 0 && filteredCategories.length === 0}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
+            className="wiz-input"
           >
             <option value={0}>Select Category</option>
             {filteredCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -550,16 +544,16 @@ export function CourseEditorPage() {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="description" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">Description</label>
+      <div className="space-y-1.5">
+        <label htmlFor="description" className="wiz-label">Description</label>
         <textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleChange}
-          rows={4}
+          rows={6}
           placeholder="Course summary and objectives..."
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+          className="wiz-input resize-y"
         />
       </div>
     </div>
@@ -568,7 +562,7 @@ export function CourseEditorPage() {
   const renderContentRows = () => {
     if (contentItems.length === 0) {
       return (
-        <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-xs font-semibold text-slate-400 select-none py-6">
+        <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-[13px] font-semibold text-slate-400 select-none py-6">
           No content selected
         </div>
       )
@@ -576,15 +570,15 @@ export function CourseEditorPage() {
 
     return (
       <div className="overflow-x-auto border border-slate-200 rounded">
-        <table className="min-w-full divide-y divide-slate-200 text-xs">
-          <thead className="bg-slate-50 text-xxs font-extrabold uppercase text-slate-500 select-none">
+        <table className="min-w-full divide-y divide-slate-200 text-[13px]">
+          <thead className="bg-slate-50 text-xs font-extrabold uppercase text-slate-500 select-none">
             <tr>
-              <th className="w-12 px-3 py-1.5 text-left">Order</th>
-              <th className="px-3 py-1.5 text-left">Content Name</th>
-              <th className="w-28 px-3 py-1.5 text-left">Source</th>
-              <th className="w-36 px-3 py-1.5 text-left">Content Type</th>
-              <th className="w-28 px-3 py-1.5 text-left">Status</th>
-              <th className="w-28 px-3 py-1.5 text-right">Actions</th>
+              <th className="w-12 px-3 py-2 text-left">Order</th>
+              <th className="px-3 py-2 text-left">Content Name</th>
+              <th className="w-28 px-3 py-2 text-left">Source</th>
+              <th className="w-36 px-3 py-2 text-left">Content Type</th>
+              <th className="w-28 px-3 py-2 text-left">Status</th>
+              <th className="w-28 px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -592,15 +586,15 @@ export function CourseEditorPage() {
               const readiness = getContentReadiness(item)
               return (
                 <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
-                  <td className="px-3 py-1.5 font-bold text-slate-400">{index + 1}</td>
-                  <td className="px-3 py-1.5 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
-                  <td className="px-3 py-1.5 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
+                  <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
+                  <td className="px-3 py-2 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
+                  <td className="px-3 py-2">
                     {item.source === 'upload' ? (
                       <select
                         value={item.typeId}
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
-                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                        className="wiz-input py-1"
                       >
                         {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
@@ -608,19 +602,19 @@ export function CourseEditorPage() {
                       <span className="font-semibold text-slate-600">{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
                     )}
                   </td>
-                  <td className="px-3 py-1.5 select-none">
+                  <td className="px-3 py-2 select-none">
                     <span className={`inline-flex border px-1.5 py-0.5 text-xxs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
                   </td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
                       <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content up">
-                        <ArrowUp className="h-3 w-3" />
+                        <ArrowUp className="h-3.5 w-3.5" />
                       </button>
                       <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content down">
-                        <ArrowDown className="h-3 w-3" />
+                        <ArrowDown className="h-3.5 w-3.5" />
                       </button>
                       <button type="button" onClick={() => removeContentItem(item.uid)} className="rounded border border-slate-200 p-1 text-red-500 hover:text-red-700 hover:border-red-200 transition cursor-pointer" aria-label="Remove content">
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </td>
@@ -634,19 +628,20 @@ export function CourseEditorPage() {
   }
 
   const renderContentStep = () => (
-    <div className="min-h-0 flex flex-col gap-3.5">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 select-none">
+    <div className="space-y-4">
+      <div className="wiz-section justify-between">
         <div className="flex items-center gap-2">
-          <FileArchive className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-xs font-bold text-slate-800">Course Content</h2>
+          <FileArchive />
+          <h2 className="wiz-section-title">Course Content</h2>
         </div>
-        <span className="border border-slate-200 px-2 py-0.5 rounded text-xxs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <span className="border border-slate-200 px-2 py-0.5 rounded text-xs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 select-none">
-        <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
-          <Upload className="h-4 w-4 text-indigo-500" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
+          <Upload className="h-5 w-5 text-indigo-500" />
           <span>Upload New SCORM</span>
+          <span className="text-xs font-semibold text-slate-400">.zip packages · multiple allowed</span>
           <input
             type="file"
             accept=".zip"
@@ -665,14 +660,15 @@ export function CourseEditorPage() {
             setContentSearch('')
             setShowLibraryPopup(true)
           }}
-          className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
+          className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
         >
-          <BookOpen className="h-4 w-4 text-indigo-600" />
+          <BookOpen className="h-5 w-5 text-indigo-600" />
           <span>Select Existing Content</span>
+          <span className="text-xs font-semibold text-slate-400">Reuse packages from the Content Library</span>
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      <div>
         {renderContentRows()}
       </div>
     </div>
@@ -680,59 +676,50 @@ export function CourseEditorPage() {
 
   const renderReviewStep = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{contentSummary.total}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Total Content Items</div>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{contentSummary.existing}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Existing Content</div>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{contentSummary.uploads}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">New Uploads</div>
-        </div>
+      <div className="wiz-section">
+        <BookOpen />
+        <h2 className="wiz-section-title">Review &amp; Confirm</h2>
       </div>
 
-      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Course Details</div>
-        <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Course Type</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{selectedCourseTypeName}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Course Code</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{formData.courseCode || 'Not set'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Course Title</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{formData.courseName || 'Not set'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Division</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{selectedDivisionName}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Category</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{selectedCategoryName}</dd>
-          </div>
-        </dl>
-      </div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Course Type</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedCourseTypeName}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Course Code</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.courseCode || 'Not set'}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
+          <dt className="wiz-label">Course Title</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.courseName || 'Not set'}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Division</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedDivisionName}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Category</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedCategoryName}</dd>
+        </div>
+      </dl>
 
-      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Content Review</div>
-        {renderContentRows()}
+      <div className="flex items-center justify-between pt-1 select-none">
+        <span className="wiz-label">Content Items</span>
+        <span className="text-[13px] font-semibold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
+      {renderContentRows()}
     </div>
   )
 
-  const steps: WizardStep[] = useMemo(() => [
-    { label: 'Information', validate: () => validateDetails(), render: () => renderInformationStep() },
-    { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
-    { label: 'Review', render: () => renderReviewStep() }
-  ], [formData, contentItems, divisions, categories, courseTypes, contentLibrary])
+  const steps = useMemo<WizardStep[]>(
+    () => [
+      { label: 'Information', validate: () => validateDetails(), render: () => renderInformationStep() },
+      { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
+      { label: 'Review', render: () => renderReviewStep() }
+    ],
+    [formData, contentItems, divisions, categories, courseTypes, contentLibrary]
+  )
 
   if (loading) {
     return (
@@ -896,7 +883,7 @@ export function CourseEditorPage() {
           <button
             type="button"
             onClick={() => navigate(`/courses/${id}`)}
-            className="inline-flex items-center gap-[7px] rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xxs font-extrabold shadow-3xs"
+            className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xxs font-extrabold shadow-3xs"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Cancel</span>
@@ -905,7 +892,7 @@ export function CourseEditorPage() {
           <button 
             type="submit" 
             disabled={saving} 
-            className="inline-flex items-center gap-[7px] rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 cursor-pointer text-xxs font-extrabold shadow-3xs disabled:opacity-55"
+            className="inline-flex items-center gap-1.75 rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700 cursor-pointer text-xxs font-extrabold shadow-3xs disabled:opacity-55"
           >
             {saving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

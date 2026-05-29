@@ -252,12 +252,6 @@ export function VersionFormPage() {
     void loadVersionData()
   }, [id])
 
-  const contentSummary = useMemo(() => ({
-    total: contentItems.length,
-    existing: contentItems.filter(item => item.source === 'library').length,
-    uploads: contentItems.filter(item => item.source === 'upload').length
-  }), [contentItems])
-
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -369,13 +363,13 @@ export function VersionFormPage() {
   }
 
   const renderDetailsStep = () => (
-    <div className="space-y-3.5">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <Upload className="h-4 w-4 text-indigo-500" />
-        <h2 className="text-xs font-bold text-slate-800">Version Details</h2>
+    <div className="space-y-4">
+      <div className="wiz-section">
+        <Upload />
+        <h2 className="wiz-section-title">Version Details</h2>
       </div>
-      <div className="space-y-1">
-        <label htmlFor="note" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
+      <div className="space-y-1.5">
+        <label htmlFor="note" className="wiz-label">
           Version Name / Note <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -385,7 +379,7 @@ export function VersionFormPage() {
           onChange={handleChange}
           rows={4}
           placeholder="e.g. Added new V2 materials"
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+          className="wiz-input resize-y"
         />
       </div>
       <div className="flex items-center gap-3 border border-slate-200 bg-slate-50/20 p-3 rounded select-none">
@@ -397,7 +391,7 @@ export function VersionFormPage() {
           onChange={handleCheckboxChange}
           className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400 cursor-pointer"
         />
-        <label htmlFor="isActive" className="text-xs font-extrabold text-slate-600 uppercase cursor-pointer">Set as Active Version</label>
+        <label htmlFor="isActive" className="text-[13px] font-extrabold text-slate-600 uppercase cursor-pointer">Set as Active Version</label>
       </div>
     </div>
   )
@@ -405,7 +399,7 @@ export function VersionFormPage() {
   const renderContentRows = () => {
     if (contentItems.length === 0) {
       return (
-        <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-xs font-semibold text-slate-400 select-none py-6">
+        <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-[13px] font-semibold text-slate-400 select-none py-6">
           No content selected
         </div>
       )
@@ -413,15 +407,15 @@ export function VersionFormPage() {
 
     return (
       <div className="overflow-x-auto border border-slate-200 rounded">
-        <table className="min-w-full divide-y divide-slate-200 text-xs">
-          <thead className="bg-slate-50 text-xxs font-extrabold uppercase text-slate-500 select-none">
+        <table className="min-w-full divide-y divide-slate-200 text-[13px]">
+          <thead className="bg-slate-50 text-xs font-extrabold uppercase text-slate-500 select-none">
             <tr>
-              <th className="w-12 px-3 py-1.5 text-left">Order</th>
-              <th className="px-3 py-1.5 text-left">Content Name</th>
-              <th className="w-28 px-3 py-1.5 text-left">Source</th>
-              <th className="w-36 px-3 py-1.5 text-left">Content Type</th>
-              <th className="w-28 px-3 py-1.5 text-left">Status</th>
-              <th className="w-28 px-3 py-1.5 text-right">Actions</th>
+              <th className="w-12 px-3 py-2 text-left">Order</th>
+              <th className="px-3 py-2 text-left">Content Name</th>
+              <th className="w-28 px-3 py-2 text-left">Source</th>
+              <th className="w-36 px-3 py-2 text-left">Content Type</th>
+              <th className="w-28 px-3 py-2 text-left">Status</th>
+              <th className="w-28 px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -429,15 +423,15 @@ export function VersionFormPage() {
               const readiness = getContentReadiness(item)
               return (
                 <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
-                  <td className="px-3 py-1.5 font-bold text-slate-400">{index + 1}</td>
-                  <td className="px-3 py-1.5 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
-                  <td className="px-3 py-1.5 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
+                  <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
+                  <td className="px-3 py-2 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
+                  <td className="px-3 py-2">
                     {item.source === 'upload' ? (
                       <select
                         value={item.typeId}
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
-                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                        className="wiz-input py-1"
                       >
                         {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
@@ -445,19 +439,19 @@ export function VersionFormPage() {
                       <span className="font-semibold text-slate-600">{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
                     )}
                   </td>
-                  <td className="px-3 py-1.5 select-none">
+                  <td className="px-3 py-2 select-none">
                     <span className={`inline-flex border px-1.5 py-0.5 text-xxs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
                   </td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
                       <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content up">
-                        <ArrowUp className="h-3 w-3" />
+                        <ArrowUp className="h-3.5 w-3.5" />
                       </button>
                       <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content down">
-                        <ArrowDown className="h-3 w-3" />
+                        <ArrowDown className="h-3.5 w-3.5" />
                       </button>
                       <button type="button" onClick={() => removeContentItem(item.uid)} className="rounded border border-slate-200 p-1 text-red-500 hover:text-red-700 hover:border-red-200 transition cursor-pointer" aria-label="Remove content">
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </td>
@@ -471,19 +465,20 @@ export function VersionFormPage() {
   }
 
   const renderContentStep = () => (
-    <div className="min-h-0 flex flex-col gap-3.5">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 select-none">
+    <div className="space-y-4">
+      <div className="wiz-section justify-between">
         <div className="flex items-center gap-2">
-          <FileArchive className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-xs font-bold text-slate-800">Version Content</h2>
+          <FileArchive />
+          <h2 className="wiz-section-title">Version Content</h2>
         </div>
-        <span className="border border-slate-200 px-2 py-0.5 rounded text-xxs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <span className="border border-slate-200 px-2 py-0.5 rounded text-xs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 select-none">
-        <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
-          <Upload className="h-4 w-4 text-indigo-500" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
+          <Upload className="h-5 w-5 text-indigo-500" />
           <span>Upload New SCORM</span>
+          <span className="text-xs font-semibold text-slate-400">.zip packages · multiple allowed</span>
           <input
             type="file"
             accept=".zip"
@@ -502,46 +497,47 @@ export function VersionFormPage() {
             setContentSearch('')
             setShowLibraryPopup(true)
           }}
-          className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
+          className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
         >
-          <BookOpen className="h-4 w-4 text-indigo-600" />
+          <BookOpen className="h-5 w-5 text-indigo-600" />
           <span>Select Existing Content</span>
+          <span className="text-xs font-semibold text-slate-400">Reuse packages from the Content Library</span>
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      <div>
         {renderContentRows()}
       </div>
     </div>
   )
 
   const renderOptionsStep = () => (
-    <div className="space-y-3.5 select-none">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1">
-        <Settings2 className="h-4 w-4 text-indigo-500" />
-        <h2 className="text-xs font-bold text-slate-800">Learner Version Policy</h2>
+    <div className="space-y-4 select-none">
+      <div className="wiz-section">
+        <Settings2 />
+        <h2 className="wiz-section-title">Learner Version Policy</h2>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 select-none">
-        <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
-          <div className="text-base font-extrabold text-slate-800">{impact?.notStartedCount ?? 0}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Not Started</div>
+        <div className="border border-slate-200 rounded p-3 bg-slate-50/10">
+          <div className="text-lg font-extrabold text-slate-800">{impact?.notStartedCount ?? 0}</div>
+          <div className="text-xs font-extrabold uppercase text-slate-400">Not Started</div>
         </div>
-        <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
-          <div className="text-base font-extrabold text-slate-800">{impact?.inProgressCount ?? 0}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">In Progress</div>
+        <div className="border border-slate-200 rounded p-3 bg-slate-50/10">
+          <div className="text-lg font-extrabold text-slate-800">{impact?.inProgressCount ?? 0}</div>
+          <div className="text-xs font-extrabold uppercase text-slate-400">In Progress</div>
         </div>
-        <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
-          <div className="text-base font-extrabold text-slate-800">{impact?.completedCount ?? 0}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Completed</div>
+        <div className="border border-slate-200 rounded p-3 bg-slate-50/10">
+          <div className="text-lg font-extrabold text-slate-800">{impact?.completedCount ?? 0}</div>
+          <div className="text-xs font-extrabold uppercase text-slate-400">Completed</div>
         </div>
-        <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
-          <div className="text-base font-extrabold text-slate-800">{impact?.otherOpenCount ?? 0}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Other Open</div>
+        <div className="border border-slate-200 rounded p-3 bg-slate-50/10">
+          <div className="text-lg font-extrabold text-slate-800">{impact?.otherOpenCount ?? 0}</div>
+          <div className="text-xs font-extrabold uppercase text-slate-400">Other Open</div>
         </div>
       </div>
 
-      <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 select-none">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 select-none">
         {learnerPolicyOptions.map(option => (
           <label key={option.value} className={`flex cursor-pointer gap-2.5 border rounded p-3 transition-all duration-150 ${formData.learnerPolicy === option.value ? 'border-blue-500 bg-indigo-50/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
             <input
@@ -554,8 +550,8 @@ export function VersionFormPage() {
               className="mt-0.5 h-3.5 w-3.5 border-slate-300 text-indigo-500 focus:ring-indigo-400 disabled:opacity-40 cursor-pointer"
             />
             <span>
-              <span className="block text-xs font-bold text-slate-800">{option.title}</span>
-              <span className="mt-1 block text-xxs font-semibold text-slate-400 leading-normal">{option.note}</span>
+              <span className="block text-[13px] font-bold text-slate-800">{option.title}</span>
+              <span className="mt-1 block text-xs font-semibold text-slate-400 leading-normal">{option.note}</span>
             </span>
           </label>
         ))}
@@ -565,43 +561,31 @@ export function VersionFormPage() {
 
   const renderReviewStep = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{contentSummary.total}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Total Content Items</div>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{contentSummary.existing}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Existing Content</div>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <div className="text-lg font-extrabold text-slate-800">{contentSummary.uploads}</div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">New Uploads</div>
-        </div>
+      <div className="wiz-section">
+        <Settings2 />
+        <h2 className="wiz-section-title">Review &amp; Confirm</h2>
       </div>
 
-      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Version Details</div>
-        <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
-          <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Version Name / Note</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{formData.note || 'Not set'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Status</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{formData.isActive ? 'Active Version' : 'Inactive Version'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Learner Policy</dt>
-            <dd className="mt-1 font-semibold text-slate-700">{learnerPolicyOptions.find(option => option.value === formData.learnerPolicy)?.title}</dd>
-          </div>
-        </dl>
-      </div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
+          <dt className="wiz-label">Version Name / Note</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.note || 'Not set'}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Status</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.isActive ? 'Active Version' : 'Inactive Version'}</dd>
+        </div>
+        <div className="border-b border-slate-100 pb-2.5">
+          <dt className="wiz-label">Learner Policy</dt>
+          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{learnerPolicyOptions.find(option => option.value === formData.learnerPolicy)?.title}</dd>
+        </div>
+      </dl>
 
-      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Content Review</div>
-        {renderContentRows()}
+      <div className="flex items-center justify-between pt-1 select-none">
+        <span className="wiz-label">Content Items</span>
+        <span className="text-[13px] font-semibold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
+      {renderContentRows()}
     </div>
   )
 

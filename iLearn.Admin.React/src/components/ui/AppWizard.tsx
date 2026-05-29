@@ -97,9 +97,9 @@ export function AppWizard({
           {/* Left: title cluster */}
           <div className="min-w-0">
             {eyebrow && (
-              <span className="text-xxs font-bold uppercase tracking-wider text-slate-400">{eyebrow}</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{eyebrow}</span>
             )}
-            <h1 className="text-sm font-bold text-slate-800 leading-tight truncate">{title}</h1>
+            <h1 className="text-base font-bold text-slate-800 leading-tight truncate">{title}</h1>
           </div>
 
           {/* Center: step track */}
@@ -113,7 +113,7 @@ export function AppWizard({
                   key={step.label}
                   type="button"
                   onClick={() => void handleStepClick(i)}
-                  className={`flex items-center gap-1.5 rounded-md border-none bg-transparent px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide cursor-pointer whitespace-nowrap transition-all duration-150 ${
+                  className={`flex items-center gap-1.5 rounded-md border-none bg-transparent px-3 py-1.5 text-xs font-bold uppercase tracking-wide cursor-pointer whitespace-nowrap transition-all duration-150 ${
                     isActive
                       ? 'bg-indigo-100 text-indigo-600'
                       : isComplete
@@ -122,7 +122,7 @@ export function AppWizard({
                   }`}
                   aria-current={isActive ? 'step' : undefined}
                 >
-                  <span className={`inline-flex h-[18px] w-[18px] items-center justify-center rounded text-[10px] font-extrabold leading-none ${
+                  <span className={`inline-flex h-4.5 w-4.5 items-center justify-center rounded text-[10px] font-extrabold leading-none ${
                     isActive
                       ? 'bg-indigo-600 text-white'
                       : isComplete
@@ -148,15 +148,17 @@ export function AppWizard({
 
         {/* ── Step content ── */}
         <div className="min-h-0 flex-1 flex flex-col relative">
-          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-5">
-            {steps[currentStep - 1]?.render()}
+          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
+            <div className="mx-auto w-full max-w-3xl">
+              {steps[currentStep - 1]?.render()}
+            </div>
           </div>
 
           {isSubmitting && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
               <div className="flex flex-col items-center gap-2.5">
                 <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
-                <span className="text-xxs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Processing…</span>
+                <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Processing…</span>
               </div>
             </div>
           )}
@@ -165,7 +167,7 @@ export function AppWizard({
         {/* ── Pinned footer ── */}
         <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-3 shrink-0">
           {/* Left: step indicator */}
-          <span className="text-xxs font-semibold text-slate-400">
+          <span className="text-xs font-semibold text-slate-400">
             Step {currentStep} of {steps.length}
             {description && (
               <span className="hidden sm:inline text-slate-300 ml-2">— {description}</span>
@@ -178,9 +180,9 @@ export function AppWizard({
               <button
                 type="button"
                 onClick={() => onStepChange(currentStep - 1)}
-                className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-3 py-1.5 text-xxs font-extrabold uppercase tracking-wide text-slate-500 cursor-pointer transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 cursor-pointer transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
               >
-                <ArrowLeft className="h-3.5 w-3.5" />
+                <ArrowLeft className="h-4 w-4" />
                 <span>{prevLabel}</span>
               </button>
             )}
@@ -189,23 +191,23 @@ export function AppWizard({
               <button
                 type="button"
                 onClick={handleContinue}
-                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-3 py-1.5 text-xxs font-extrabold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700"
+                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700"
               >
                 <span>{nextLabel}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-4 w-4" />
               </button>
             ) : (
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-3 py-1.5 text-xxs font-extrabold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700 disabled:opacity-55"
+                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700 disabled:opacity-55"
               >
                 {isSubmitting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : submitIcon ? (
                   submitIcon
                 ) : (
-                  <Check className="h-3.5 w-3.5" />
+                  <Check className="h-4 w-4" />
                 )}
                 <span>{submitLabel}</span>
               </button>
