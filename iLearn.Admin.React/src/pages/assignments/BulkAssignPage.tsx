@@ -3,10 +3,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft,
   Check, 
-  BookOpen, 
-  Users, 
-  Calendar, 
-  ShieldCheck,
   X,
   Plus,
   Loader2,
@@ -244,18 +240,14 @@ export function BulkAssignPage() {
   }
 
   const renderChooseCoursesStep = () => (
-    <div className="flex flex-col gap-4 h-[calc(100vh-270px)] min-h-105">
-      <div className="wiz-section">
-        <BookOpen />
-        <h2 className="wiz-section-title">Select Syllabus Courses</h2>
-      </div>
+    <div className="flex flex-col gap-4 h-[calc(100vh-340px)] min-h-[360px]">
       
       <div className="flex-1 flex flex-col sm:flex-row gap-3 min-h-0">
         {/* Left Column: Available Catalog */}
         <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-extrabold text-xxs text-slate-400 uppercase tracking-wider">Syllabus Catalog</span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xxs font-extrabold text-slate-600">{availableCourses.length}</span>
+            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Syllabus Catalog</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xs font-bold text-slate-600">{availableCourses.length}</span>
           </div>
           
           <div className="p-1.5 border-b border-slate-100 shrink-0 select-none">
@@ -264,7 +256,7 @@ export function BulkAssignPage() {
               placeholder="Search catalog by title or code..."
               value={courseSearch}
               onChange={e => setCourseSearch(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
+              className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
             />
           </div>
           
@@ -281,8 +273,8 @@ export function BulkAssignPage() {
                   className="p-2.5 text-left rounded border border-slate-200 hover:border-blue-500 hover:bg-indigo-50/5 cursor-pointer transition flex items-center justify-between group"
                 >
                   <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-slate-855 font-bold text-xs leading-tight truncate">{c.title}</span>
-                    <span className="text-slate-400 font-mono text-xxs mt-0.5 font-bold">{c.code}</span>
+                    <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
+                    <span className="text-slate-400 font-mono text-xs mt-0.5 font-bold">{c.code}</span>
                   </div>
                   <span className="h-5 w-5 shrink-0 rounded border border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:bg-indigo-50/5 transition">
                     <Plus className="h-3 w-3" />
@@ -296,14 +288,14 @@ export function BulkAssignPage() {
         {/* Right Column: Selected Courses */}
         <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-extrabold text-xxs text-slate-400 uppercase tracking-wider">Selected Courses</span>
+            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Selected Courses</span>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-blue-100 text-xxs font-extrabold text-blue-700">{selectedCourseIds.length}</span>
+              <span className="px-2 py-0.5 rounded bg-blue-100 text-xs font-bold text-blue-700">{selectedCourseIds.length}</span>
               {selectedCourseIds.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setSelectedCourseIds([])}
-                  className="text-xxs font-extrabold text-red-600 hover:text-red-700 cursor-pointer"
+                  className="text-xs font-bold text-red-600 hover:text-red-700 cursor-pointer"
                 >
                   Clear
                 </button>
@@ -323,8 +315,8 @@ export function BulkAssignPage() {
                   className="p-2.5 text-left rounded border border-indigo-100 bg-indigo-50/5 flex items-center justify-between"
                 >
                   <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-slate-855 font-bold text-xs leading-tight truncate">{c.title}</span>
-                    <span className="text-slate-400 font-mono text-xxs mt-0.5 font-bold">{c.code}</span>
+                    <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
+                    <span className="text-slate-400 font-mono text-xs mt-0.5 font-bold">{c.code}</span>
                   </div>
                   <button
                     type="button"
@@ -344,11 +336,7 @@ export function BulkAssignPage() {
   )
 
   const renderTargetScopeStep = () => (
-    <div className="flex flex-col gap-4 h-[calc(100vh-270px)] min-h-105">
-      <div className="wiz-section">
-        <Users />
-        <h2 className="wiz-section-title">Define Target Scope</h2>
-      </div>
+    <div className="flex flex-col gap-4 h-[calc(100vh-340px)] min-h-[360px]">
 
       {/* Mode toggle */}
       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg max-w-xs select-none shrink-0">
@@ -435,10 +423,6 @@ export function BulkAssignPage() {
 
   const renderScheduleStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <Calendar />
-        <h2 className="wiz-section-title">Set Dates & Schedules</h2>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
         <div className="space-y-1.5">
@@ -488,29 +472,25 @@ export function BulkAssignPage() {
     if (!validationResult) return null
     return (
       <div className="space-y-4">
-        <div className="wiz-section">
-          <ShieldCheck />
-          <h2 className="wiz-section-title">Conflict Validation Preview</h2>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 select-none">
           <div className="bg-emerald-50/30 border border-emerald-100 p-3 rounded text-center">
-            <span className="block text-xxs font-extrabold text-emerald-600 uppercase">Ready to Enroll</span>
+            <span className="block text-xs font-bold text-emerald-600 uppercase">Ready to Enroll</span>
             <span className="block text-xl font-extrabold text-emerald-700 mt-0.5">{validationResult.resolvedCount}</span>
           </div>
           <div className="bg-amber-50/30 border border-amber-100 p-3 rounded text-center">
-            <span className="block text-xxs font-extrabold text-amber-600 uppercase">In Progress Attempts</span>
+            <span className="block text-xs font-bold text-amber-600 uppercase">In Progress Attempts</span>
             <span className="block text-xl font-extrabold text-amber-700 mt-0.5">{validationResult.inProgressConflicts.length}</span>
           </div>
           <div className="bg-slate-50/40 border border-slate-200 p-3 rounded text-center">
-            <span className="block text-xxs font-extrabold text-slate-400 uppercase">Already Completed</span>
+            <span className="block text-xs font-bold text-slate-400 uppercase">Already Completed</span>
             <span className="block text-xl font-extrabold text-slate-700 mt-0.5">{validationResult.completedConflicts.length}</span>
           </div>
         </div>
 
         {/* Overrides */}
         <div className="space-y-3 bg-slate-50/15 p-4 rounded border border-slate-200 select-none">
-          <span className="block text-xxs font-extrabold text-slate-400 uppercase">Conflict Overrides Required</span>
+          <span className="block text-xs font-bold text-slate-400 uppercase">Conflict Overrides Required</span>
           
           <div className="flex items-center gap-2.5">
             <input
@@ -520,7 +500,7 @@ export function BulkAssignPage() {
               onChange={(e) => setConfirmReassignInProgress(e.target.checked)}
               className="h-4 w-4 rounded text-indigo-500 focus:ring-indigo-400 cursor-pointer"
             />
-            <label htmlFor="confirmReassignInProgress" className="text-xs font-semibold text-slate-500 cursor-pointer">
+            <label htmlFor="confirmReassignInProgress" className="text-sm font-semibold text-slate-500 cursor-pointer">
               Force reset and reassign learners with active in-progress attempts.
             </label>
           </div>
@@ -533,7 +513,7 @@ export function BulkAssignPage() {
               onChange={(e) => setConfirmReassignCompleted(e.target.checked)}
               className="h-4 w-4 rounded text-indigo-500 focus:ring-indigo-400 cursor-pointer"
             />
-            <label htmlFor="confirmReassignCompleted" className="text-xs font-semibold text-slate-500 cursor-pointer">
+            <label htmlFor="confirmReassignCompleted" className="text-sm font-semibold text-slate-500 cursor-pointer">
               Force reassign and reset learners who already completed the course catalog before.
             </label>
           </div>
@@ -589,22 +569,22 @@ export function BulkAssignPage() {
 
   if (assignmentNo) {
     return (
-      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white pt-5 px-6 justify-center items-center py-12 text-center">
+      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs justify-center items-center py-12 px-6 text-center">
         <div className="h-12 w-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-3xs select-none">
           <Check className="h-6 w-6" />
         </div>
-        <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">Deployment Successful!</h1>
-        <p className="text-xxs font-semibold text-slate-400 mt-1 max-w-sm select-none leading-relaxed">
+        <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-tight select-none">Deployment Successful!</h1>
+        <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm select-none leading-relaxed">
           Your courses have been successfully dispatched. Enrolled learners can now access training logs immediately.
         </p>
         <div className="mt-5 bg-slate-50 border border-slate-200 p-3 rounded font-mono text-xs max-w-xs w-full select-none">
-          <span className="block text-xxs text-slate-400 font-sans uppercase font-extrabold mb-1">Assignment Batch No.</span>
+          <span className="block text-xs text-slate-400 font-sans uppercase font-bold mb-1">Assignment Batch No.</span>
           <span className="font-bold text-indigo-500 text-sm">{assignmentNo}</span>
         </div>
         <button
           type="button"
           onClick={() => navigate('/assignments')}
-          className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer mt-6 text-xxs font-extrabold shadow-3xs"
+          className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer mt-6 text-xs font-bold shadow-3xs"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Back to Assignment Registry</span>
@@ -636,7 +616,7 @@ export function BulkAssignPage() {
             <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
             <div className="text-center">
               <p className="text-xs font-bold text-slate-800">Analyzing Syllabus Scope</p>
-              <p className="text-xxs font-semibold text-slate-400 mt-0.5 leading-relaxed">
+              <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-relaxed">
                 Checking for existing completion logs, in-progress attempts, and enrollments...
               </p>
             </div>

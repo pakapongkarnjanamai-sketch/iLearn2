@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { 
   Plus, 
   Save, 
-  Users, 
   X,
   Loader2
 } from 'lucide-react'
@@ -227,10 +226,6 @@ export function LearnerGroupEditorPage() {
 
   const renderInformationStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <Users />
-        <h2 className="wiz-section-title">Group Information</h2>
-      </div>
 
       <div className="space-y-1.5">
         <label htmlFor="name" className="wiz-label">
@@ -280,33 +275,28 @@ export function LearnerGroupEditorPage() {
 
   const renderMembersStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section justify-between flex-wrap">
-        <div className="flex items-center gap-2">
-          <Users />
-          <h2 className="wiz-section-title">Add Group Members</h2>
+      <div className="flex justify-end mb-1 select-none">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg text-xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab('picker')}
+            className={`px-2.5 py-1 text-center font-extrabold rounded-md transition cursor-pointer ${
+              activeTab === 'picker' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Directory Search
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('bulk')}
+            className={`px-2.5 py-1 text-center font-extrabold rounded-md transition cursor-pointer ${
+              activeTab === 'bulk' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Bulk Import (EIds)
+          </button>
         </div>
-        
-        <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab('picker')}
-              className={`px-2.5 py-1 text-center font-extrabold rounded transition cursor-pointer ${
-                activeTab === 'picker' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Directory Search
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('bulk')}
-              className={`px-2.5 py-1 text-center font-extrabold rounded transition cursor-pointer ${
-                activeTab === 'bulk' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Bulk Import (EIds)
-            </button>
-          </div>
-        </div>
+      </div>
 
         {activeTab === 'picker' ? (
           <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
@@ -336,7 +326,7 @@ export function LearnerGroupEditorPage() {
 
             {/* List of currently selected ones for preview */}
             <div className="border border-slate-200 rounded overflow-hidden">
-              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xs font-extrabold text-slate-400 uppercase select-none">
+              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-400 uppercase select-none">
                 <span>Selected Codes Ledger</span>
                 <span>{selectedLearners.length} Users</span>
               </div>
@@ -372,32 +362,28 @@ export function LearnerGroupEditorPage() {
 
   const renderReviewStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <Users />
-        <h2 className="wiz-section-title">Review &amp; Confirm</h2>
-      </div>
 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
         <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
           <dt className="wiz-label">Group Name</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Category</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedCategoryName}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedCategoryName}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Initial Members</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedLearners.length}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedLearners.length}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
           <dt className="wiz-label">Description</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
         </div>
       </dl>
 
       <div>
-        <div className="mb-2 text-[13px] font-bold text-slate-800 select-none">Initial Members</div>
+        <div className="mb-2 text-sm font-bold text-slate-800 select-none">Initial Members</div>
         <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
           {selectedLearners.length === 0 ? (
             <span className="font-semibold text-slate-400 text-xs select-none">No initial members selected</span>
@@ -434,25 +420,31 @@ export function LearnerGroupEditorPage() {
 
   if (isEditMode) {
     return (
-      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white pt-5 px-6">
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4 max-w-3xl">
-          <div className="flex items-center justify-between gap-3 shrink-0">
+      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          {/* Header with Title */}
+          <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
             <div>
-              <div className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 select-none">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Learner Directory
               </div>
-              <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">
+              <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
                 Edit Learner Group
               </h1>
-              <p className="text-xxs font-semibold text-slate-400 mt-0.5 leading-normal select-none">
+              <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
                 Adjust group names, descriptive categories, and targets.
               </p>
             </div>
           </div>
           
-          <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1 relative">
-            {renderInformationStep()}
-
+          {/* Content Panel Zone */}
+          <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
+            <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
+              <div className="w-full h-full flex flex-col">
+                {renderInformationStep()}
+              </div>
+            </div>
+            
             {saving && (
               <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
                 <div className="flex flex-col items-center gap-2.5 select-none">
@@ -463,24 +455,25 @@ export function LearnerGroupEditorPage() {
             )}
           </div>
           
-          <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3 shrink-0">
+          {/* Navigation Buttons Pinned Footer */}
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
             <button 
               type="button" 
               onClick={() => navigate(`/learner-groups/${id}`)} 
-              className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 font-extrabold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xs shadow-3xs"
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 cursor-pointer text-xs shadow-3xs"
             >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              <X className="h-4 w-4" aria-hidden="true" />
               <span>Cancel</span>
             </button>
             <button 
               type="submit" 
               disabled={saving} 
-              className="inline-flex items-center gap-1.75 rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-extrabold text-white hover:bg-indigo-700 cursor-pointer text-xs shadow-3xs disabled:opacity-55"
+              className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 font-bold text-white hover:bg-indigo-700 cursor-pointer text-xs shadow-3xs disabled:opacity-55"
             >
               {saving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
-                <Save className="h-3.5 w-3.5" aria-hidden="true" />
+                <Save className="h-4 w-4" aria-hidden="true" />
               )}
               <span>Save Changes</span>
             </button>

@@ -5,6 +5,7 @@ import { AppButton } from '../components/ui/AppButton'
 import { DataGridSurface } from '../components/ui/DataGridSurface'
 import { AppTable } from '../components/ui/AppTable'
 import { createAdminDataSource } from '../lib/createDataSource'
+import { createRestDataSource } from '../lib/createRestDataSource'
 import type { AdminListConfig } from './moduleConfigs'
 
 type EntityListPageProps = {
@@ -25,15 +26,28 @@ export function EntityListPage({ config }: EntityListPageProps) {
   const isReadOnly =
     config.controller === 'LearningLogsCRUD' || config.controller === 'EnrollmentsCRUD'
 
-  const store = useMemo(
-    () => createAdminDataSource<any>({ 
-      controller: config.controller, 
+  const store = useMemo(() => {
+    if (config.controller === 'ContentItemsCRUD') {
+      return createRestDataSource<any>({
+        controller: 'ContentItems',
+        key: config.key,
+        enableCrud: isCrudEnabled,
+      })
+    }
+    if (config.controller === 'LearnerGroupsCRUD') {
+      return createRestDataSource<any>({
+        controller: 'LearnerGroups',
+        key: config.key,
+        enableCrud: isCrudEnabled,
+      })
+    }
+    return createAdminDataSource<any>({
+      controller: config.controller,
       key: config.key,
       enableCrud: isCrudEnabled,
       ...(config.basePath ? { basePath: config.basePath } : {}),
-    }),
-    [config.controller, config.key, isCrudEnabled, config.basePath],
-  )
+    })
+  }, [config.controller, config.key, isCrudEnabled, config.basePath])
 
   const getRoutePrefix = (controller: string) => {
     if (controller === 'CoursesCRUD') return '/courses'

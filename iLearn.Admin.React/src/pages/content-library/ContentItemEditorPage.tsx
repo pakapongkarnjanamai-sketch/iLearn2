@@ -4,8 +4,6 @@ import {
   Upload, 
   Loader2, 
   Check, 
-  Library, 
-  Info, 
   FileArchive,
   X 
 } from 'lucide-react'
@@ -135,10 +133,6 @@ export function ContentItemEditorPage() {
 
   const renderMetadataStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <Library />
-        <h2 className="wiz-section-title">Content Item Specifications</h2>
-      </div>
 
       <div className="space-y-1.5">
         <label className="wiz-label">
@@ -172,10 +166,6 @@ export function ContentItemEditorPage() {
 
   const renderUploadStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <Upload />
-        <h2 className="wiz-section-title">SCORM Package Upload</h2>
-      </div>
 
       <div className="space-y-1.5">
         <label className="wiz-label">SCORM Package (.zip)</label>
@@ -183,7 +173,7 @@ export function ContentItemEditorPage() {
           type="file"
           accept=".zip,application/zip"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="block w-full rounded border border-dashed border-slate-300 px-3 py-5 text-[13px] text-slate-500 bg-slate-50/20 hover:bg-slate-50 hover:border-blue-500 transition cursor-pointer"
+          className="block w-full rounded border border-dashed border-slate-300 px-3 py-5 text-sm text-slate-500 bg-slate-50/20 hover:bg-slate-50 hover:border-blue-500 transition cursor-pointer"
         />
         <p className="mt-1 text-xs text-slate-400 font-medium leading-relaxed">
           Supports SCORM 1.2 and SCORM 2004 standards. Maximum bundle size limit is 100 MB or 1,000 internal directory entries.
@@ -195,7 +185,7 @@ export function ContentItemEditorPage() {
           <div className="flex items-center gap-2.5">
             <FileArchive className="h-6 w-6 text-indigo-500 shrink-0" />
             <div className="min-w-0">
-              <p className="text-[13px] font-bold text-slate-700 truncate">{file.name}</p>
+              <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
               <p className="text-xs font-mono text-slate-400 mt-0.5">{Math.round(file.size / 1024)} KB</p>
             </div>
           </div>
@@ -215,12 +205,8 @@ export function ContentItemEditorPage() {
     const selectedTypeName = TYPE_OPTIONS.find(o => o.value === form.typeId)?.label || 'Instructional Content'
     return (
       <div className="space-y-4">
-        <div className="wiz-section">
-          <Info />
-          <h2 className="wiz-section-title">Review Specifications</h2>
-        </div>
 
-        <dl className="divide-y divide-slate-100 text-[13px] select-none">
+        <dl className="divide-y divide-slate-100 text-sm select-none">
           <div className="grid grid-cols-3 py-2.5 font-semibold">
             <dt className="wiz-label">Display Name</dt>
             <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || (file ? file.name : '—') || 'Unnamed package'}</dd>

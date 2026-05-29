@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 
@@ -54,6 +55,80 @@ namespace iLearn.API.Controllers
         {
             var contentItems = await _contentItemRepo.GetAllAsync();
             return Ok(contentItems.Select(r => r.ToDto()));
+        }
+
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged([FromQuery] PaginationParams p)
+        {
+            var query = _contentItemRepo.GetQuery()
+                .Include(r => r.FileStorage)
+                .Include(r => r.CourseContentItems)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(p.Search))
+            {
+                var search = p.Search.Trim().ToLower();
+                query = query.Where(r => r.Name.ToLower().Contains(search) || 
+                                         (r.LaunchHref != null && r.LaunchHref.ToLower().Contains(search)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(p.Status))
+            {
+                if (p.Status.Equals("Published", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(r => r.IsActive);
+                }
+                else if (p.Status.Equals("Draft", StringComparison.OrdinalIgnoreCase) || p.Status.Equals("Unpublished", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(r => !r.IsActive);
+                }
+            }
+
+            // Sorting
+            if (!string.IsNullOrWhiteSpace(p.SortBy))
+            {
+                var sortBy = p.SortBy.Trim().ToLower();
+                if (sortBy == "name")
+                {
+                    query = p.SortDescending ? query.OrderByDescending(r => r.Name) : query.OrderBy(r => r.Name);
+                }
+                else if (sortBy == "typeid")
+                {
+                    query = p.SortDescending ? query.OrderByDescending(r => r.TypeId) : query.OrderBy(r => r.TypeId);
+                }
+                else if (sortBy == "schemaversion")
+                {
+                    query = p.SortDescending ? query.OrderByDescending(r => r.SchemaVersion) : query.OrderBy(r => r.SchemaVersion);
+                }
+                else if (sortBy == "isactive" || sortBy == "ispublished")
+                {
+                    query = p.SortDescending ? query.OrderByDescending(r => r.IsActive) : query.OrderBy(r => r.IsActive);
+                }
+                else if (sortBy == "updatedat")
+                {
+                    query = p.SortDescending ? query.OrderByDescending(r => r.UpdatedAt) : query.OrderBy(r => r.UpdatedAt);
+                }
+                else
+                {
+                    query = p.SortDescending ? query.OrderByDescending(r => r.Id) : query.OrderBy(r => r.Id);
+                }
+            }
+            else
+            {
+                query = query.OrderByDescending(r => r.Id);
+            }
+
+            int totalCount = query.Provider is IAsyncQueryProvider
+                ? await query.CountAsync()
+                : query.Count();
+
+            var items = query.Provider is IAsyncQueryProvider
+                ? await query.Skip((p.Page - 1) * p.PageSize).Take(p.PageSize).ToListAsync()
+                : query.Skip((p.Page - 1) * p.PageSize).Take(p.PageSize).ToList();
+
+            var dtos = items.Select(r => r.ToDto()).ToList();
+
+            return Ok(new { success = true, data = dtos, totalCount });
         }
 
         [HttpGet("{id}")]

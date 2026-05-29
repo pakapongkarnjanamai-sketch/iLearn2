@@ -4,7 +4,6 @@ import {
   ArrowDown, 
   ArrowUp, 
   BookOpen, 
-  FileArchive, 
   Plus, 
   Save, 
   Search, 
@@ -458,10 +457,6 @@ export function CourseEditorPage() {
 
   const renderInformationStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <BookOpen />
-        <h2 className="wiz-section-title">Course Information</h2>
-      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -570,8 +565,8 @@ export function CourseEditorPage() {
 
     return (
       <div className="overflow-x-auto border border-slate-200 rounded">
-        <table className="min-w-full divide-y divide-slate-200 text-[13px]">
-          <thead className="bg-slate-50 text-xs font-extrabold uppercase text-slate-500 select-none">
+        <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
             <tr>
               <th className="w-12 px-3 py-2 text-left">Order</th>
               <th className="px-3 py-2 text-left">Content Name</th>
@@ -603,7 +598,7 @@ export function CourseEditorPage() {
                     )}
                   </td>
                   <td className="px-3 py-2 select-none">
-                    <span className={`inline-flex border px-1.5 py-0.5 text-xxs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
+                    <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
@@ -629,16 +624,12 @@ export function CourseEditorPage() {
 
   const renderContentStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section justify-between">
-        <div className="flex items-center gap-2">
-          <FileArchive />
-          <h2 className="wiz-section-title">Course Content</h2>
-        </div>
-        <span className="border border-slate-200 px-2 py-0.5 rounded text-xs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+      <div className="flex justify-end mb-1 select-none">
+        <span className="border border-slate-200 bg-white px-2 py-0.5 rounded text-xs font-bold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
           <Upload className="h-5 w-5 text-indigo-500" />
           <span>Upload New SCORM</span>
           <span className="text-xs font-semibold text-slate-400">.zip packages · multiple allowed</span>
@@ -660,7 +651,7 @@ export function CourseEditorPage() {
             setContentSearch('')
             setShowLibraryPopup(true)
           }}
-          className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
+          className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
         >
           <BookOpen className="h-5 w-5 text-indigo-600" />
           <span>Select Existing Content</span>
@@ -676,37 +667,33 @@ export function CourseEditorPage() {
 
   const renderReviewStep = () => (
     <div className="space-y-4">
-      <div className="wiz-section">
-        <BookOpen />
-        <h2 className="wiz-section-title">Review &amp; Confirm</h2>
-      </div>
 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Course Type</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedCourseTypeName}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedCourseTypeName}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Course Code</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.courseCode || 'Not set'}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{formData.courseCode || 'Not set'}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
           <dt className="wiz-label">Course Title</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{formData.courseName || 'Not set'}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{formData.courseName || 'Not set'}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Division</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedDivisionName}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedDivisionName}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Category</dt>
-          <dd className="mt-1 text-[13px] font-semibold text-slate-700">{selectedCategoryName}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedCategoryName}</dd>
         </div>
       </dl>
 
       <div className="flex items-center justify-between pt-1 select-none">
         <span className="wiz-label">Content Items</span>
-        <span className="text-[13px] font-semibold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <span className="text-sm font-semibold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
       {renderContentRows()}
     </div>
@@ -819,53 +806,57 @@ export function CourseEditorPage() {
   }
 
   return (
-    <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white pt-5 px-6">
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         {/* Header with Title and Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div>
-            <div className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 select-none">
-              Course Catalog
+        <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Course Catalog
+              </div>
+              <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
+                Edit Course
+              </h1>
+              <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
+                Update course properties and learning packages.
+              </p>
             </div>
-            <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">
-              Edit Course
-            </h1>
-            <p className="text-xxs font-semibold text-slate-400 mt-0.5 leading-normal select-none">
-              Update course properties and learning packages.
-            </p>
+          </div>
+
+          {/* Tab Controls for Edit Mode */}
+          <div className="flex gap-4 mt-2">
+            <button
+              type="button"
+              onClick={() => setActiveEditTab('properties')}
+              className={`pb-1 font-bold text-xs uppercase tracking-wider transition relative cursor-pointer ${
+                activeEditTab === 'properties'
+                  ? 'text-indigo-500 border-b-2 border-indigo-500'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Course Properties
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveEditTab('content')}
+              className={`pb-1 font-bold text-xs uppercase tracking-wider transition relative cursor-pointer ${
+                activeEditTab === 'content'
+                  ? 'text-indigo-500 border-b-2 border-indigo-500'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              SCORM Content & Library
+            </button>
           </div>
         </div>
 
-        {/* Tab Controls for Edit Mode */}
-        <div className="border-b border-slate-200 mb-1 flex gap-4 shrink-0 select-none">
-          <button
-            type="button"
-            onClick={() => setActiveEditTab('properties')}
-            className={`pb-2 font-extrabold text-xxs uppercase tracking-wider transition relative cursor-pointer ${
-              activeEditTab === 'properties'
-                ? 'text-indigo-500 border-b-2 border-indigo-500'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Course Properties
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveEditTab('content')}
-            className={`pb-2 font-extrabold text-xxs uppercase tracking-wider transition relative cursor-pointer ${
-              activeEditTab === 'content'
-                ? 'text-indigo-500 border-b-2 border-indigo-500'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            SCORM Content & Library
-          </button>
-        </div>
-
         {/* Content Panel Zone */}
-        <div className="min-h-0 flex-1 flex flex-col relative">
-          <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-            {activeEditTab === 'properties' ? renderInformationStep() : renderContentStep()}
+        <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
+          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
+            <div className="w-full h-full flex flex-col">
+              {activeEditTab === 'properties' ? renderInformationStep() : renderContentStep()}
+            </div>
           </div>
           
           {saving && (
@@ -879,25 +870,25 @@ export function CourseEditorPage() {
         </div>
 
         {/* Navigation Buttons Pinned Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3 shrink-0">
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
           <button
             type="button"
             onClick={() => navigate(`/courses/${id}`)}
-            className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xxs font-extrabold shadow-3xs"
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 cursor-pointer text-xs font-bold shadow-3xs"
           >
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
+            <X className="h-4 w-4" aria-hidden="true" />
             <span>Cancel</span>
           </button>
 
           <button 
             type="submit" 
             disabled={saving} 
-            className="inline-flex items-center gap-1.75 rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700 cursor-pointer text-xxs font-extrabold shadow-3xs disabled:opacity-55"
+            className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 cursor-pointer text-xs font-bold shadow-3xs disabled:opacity-55"
           >
             {saving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+              <Save className="h-4 w-4" aria-hidden="true" />
             )}
             <span>Save Changes</span>
           </button>
@@ -926,8 +917,8 @@ export function CourseEditorPage() {
             <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
               <BookOpen className="h-5 w-5 text-indigo-600" />
               <div>
-                <h3 className="text-xs font-bold text-slate-800">Select Existing Content</h3>
-                <p className="text-xxs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+                <h3 className="text-sm font-bold text-slate-800">Select Existing Content</h3>
+                <p className="text-xs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
               </div>
             </div>
 
@@ -949,8 +940,8 @@ export function CourseEditorPage() {
                 return (
                   <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
                     <div className="min-w-0">
-                      <div className="truncate font-bold text-slate-800 text-xs">{item.name}</div>
-                      <div className="mt-0.5 flex items-center gap-2 text-xxs text-slate-500 font-semibold">
+                      <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
                         <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
                         <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>{readiness.label}</span>
                       </div>
