@@ -6,14 +6,13 @@ import {
   Settings, 
   UserPlus, 
   UserMinus, 
-  RefreshCw, 
+  Loader2, 
   AlertTriangle,
   Layers,
   X,
   Check,
   Plus
 } from 'lucide-react'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -307,7 +306,7 @@ export function LearnerGroupDetailPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
   }
@@ -327,37 +326,12 @@ export function LearnerGroupDetailPage() {
 
   return (
     <>
-      <PageHeader
-        actions={
-          <div className="flex items-center gap-2">
-            <Link to={`/learner-groups/${id}/edit`}>
-              <AppButton variant="secondary" icon={Settings}>
-                Edit Group Properties
-              </AppButton>
-            </Link>
-            <AppButton variant="primary" icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>
-              Add Members
-            </AppButton>
-            {selectedMemberIds.length > 0 && (
-              <AppButton variant="danger" icon={UserMinus} onClick={handlePreviewRemove}>
-                Remove Selected ({selectedMemberIds.length})
-              </AppButton>
-            )}
-          </div>
-        }
-      />
-
-      <header className="mb-3">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Learner Group</div>
-        <h1 className="text-2xl font-extrabold text-slate-900">{group.name}</h1>
-      </header>
-
       {/* Main Grid display vs Overlay Operations Drawer */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+
         {/* Members List Table Grid */}
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs lg:col-span-2">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
+        <section className="min-w-0">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
             <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Users aria-hidden="true" />Members ({group.members.length})</h2>
           </div>
 
@@ -400,7 +374,7 @@ export function LearnerGroupDetailPage() {
                         <td className="p-3 text-center">
                           <button
                             onClick={() => handleRemoveSingleMember(m.id)}
-                            className="p-1 text-slate-400 hover:text-red-650 rounded transition cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
                             title="Remove member"
                           >
                             <UserMinus className="h-4 w-4" />
@@ -416,10 +390,27 @@ export function LearnerGroupDetailPage() {
         </section>
 
         {/* Dynamic Sidebar Controls based on mode selection */}
-        <aside className="lg:col-span-1 space-y-6">
-          
+        <aside className="space-y-5 xl:sticky xl:top-5">
+
+          {/* Persistent Controls */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Settings aria-hidden="true" />Controls</h2>
+            </div>
+            <span className="block text-xxs font-extrabold text-slate-400 uppercase">Management Actions</span>
+            <Link to={`/learner-groups/${id}/edit`} className="block">
+              <AppButton variant="secondary" icon={Settings} className="w-full">Edit Group Properties</AppButton>
+            </Link>
+            <AppButton variant="primary" icon={UserPlus} className="w-full" onClick={() => { setManagerMode('add'); setAddPreview(null); }}>
+              Add Members
+            </AppButton>
+            <AppButton variant="danger" icon={UserMinus} className="w-full" disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove}>
+              Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
+            </AppButton>
+          </div>
+
           {managerMode !== 'remove' ? (
-            <section className="space-y-4 p-4">
+            <section className="space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
                 <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Properties</h2>
               </div>
@@ -473,18 +464,12 @@ export function LearnerGroupDetailPage() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => { setManagerMode('none'); setRemovePreview(null); }}
-                      className="flex-1 text-center py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-semibold transition cursor-pointer"
-                    >
+                    <AppButton variant="secondary" className="flex-1" onClick={() => { setManagerMode('none'); setRemovePreview(null); }}>
                       Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmRemove}
-                      className="flex-1 text-center py-2 bg-red-650 hover:bg-red-750 text-white rounded text-xs font-bold transition shadow-xs cursor-pointer"
-                    >
+                    </AppButton>
+                    <AppButton variant="danger" icon={UserMinus} className="flex-1" onClick={handleConfirmRemove}>
                       Commit Removal
-                    </button>
+                    </AppButton>
                   </div>
                 </div>
               </section>
@@ -498,7 +483,7 @@ export function LearnerGroupDetailPage() {
       {/* Add Members Overlay Drawer Premium Modal dialog */}
       {managerMode === 'add' && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-fade-in">
-          <div className="bg-white border border-slate-250 rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col p-6 gap-4 animate-scale-up">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col p-6 gap-4 animate-scale-up">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 shrink-0 select-none">
@@ -513,7 +498,7 @@ export function LearnerGroupDetailPage() {
                     type="button"
                     onClick={() => setActiveTab('picker')}
                     className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                      activeTab === 'picker' ? 'bg-white text-blue-705 shadow-xs' : 'text-slate-505 hover:text-slate-800'
+                      activeTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     Directory Search
@@ -522,7 +507,7 @@ export function LearnerGroupDetailPage() {
                     type="button"
                     onClick={() => setActiveTab('bulk')}
                     className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                      activeTab === 'bulk' ? 'bg-white text-blue-705 shadow-xs' : 'text-slate-550 hover:text-slate-805'
+                      activeTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     Bulk Import (EIds)
@@ -532,7 +517,7 @@ export function LearnerGroupDetailPage() {
 
               <button
                 onClick={() => { setManagerMode('none'); setAddPreview(null); setPendingAddLearners([]); }}
-                className="text-slate-400 hover:text-slate-650 rounded-full hover:bg-slate-50 p-1 transition cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 p-1 transition cursor-pointer"
                 title="Close"
               >
                 <X className="h-5 w-5" />
@@ -561,15 +546,16 @@ export function LearnerGroupDetailPage() {
                         placeholder="Paste employee EIds here (e.g. N130812, N142715)..."
                         className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50"
                       />
-                      <button
+                      <AppButton
                         type="button"
+                        variant="primary"
+                        icon={Plus}
                         onClick={handleImportCodes}
                         disabled={!learnerCodesInput.trim()}
-                        className="inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 self-start shadow-xs disabled:opacity-55"
+                        className="self-start"
                       >
-                        <Plus aria-hidden="true" />
-                        <span>Add to Queue</span>
-                      </button>
+                        Add to Queue
+                      </AppButton>
                     </div>
 
                     {/* Queued codes view */}
@@ -580,7 +566,7 @@ export function LearnerGroupDetailPage() {
                           <button
                             type="button"
                             onClick={() => setPendingAddLearners([])}
-                            className="text-red-500 hover:text-red-750 font-bold cursor-pointer"
+                            className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
                           >
                             Clear Queue
                           </button>
@@ -696,18 +682,12 @@ export function LearnerGroupDetailPage() {
                     Review and confirm additions to commit group membership
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setAddPreview(null)}
-                      className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-bold transition cursor-pointer"
-                    >
+                    <AppButton variant="secondary" onClick={() => setAddPreview(null)}>
                       Back
-                    </button>
-                    <button
-                      onClick={handleConfirmAdd}
-                      className="px-5 py-2 bg-emerald-650 hover:bg-emerald-700 text-white rounded text-xs font-bold transition cursor-pointer shadow-xs"
-                    >
+                    </AppButton>
+                    <AppButton variant="primary" icon={Check} onClick={handleConfirmAdd}>
                       Commit Changes
-                    </button>
+                    </AppButton>
                   </div>
                 </>
               )}

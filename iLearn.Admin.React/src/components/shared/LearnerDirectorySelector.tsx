@@ -457,7 +457,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                         <td className="p-3 w-28 font-mono font-bold text-slate-800 truncate">{l.code}</td>
                         <td className="p-3 font-semibold text-slate-900 truncate">
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-650 text-xxs font-extrabold uppercase shrink-0 shadow-3xs select-none">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-xxs font-extrabold uppercase shrink-0 shadow-3xs select-none">
                               {getInitials(l.name)}
                             </div>
                             <span className="truncate">{l.name || '—'}</span>
@@ -488,7 +488,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                   Showing <strong className="text-slate-800">{learners.length}</strong> of{" "}
                   <strong className="text-slate-800">{totalCount}</strong> learners
                   {learners.length < totalCount ? (
-                    <span className="text-slate-450 font-normal"> (Scroll down to load more)</span>
+                    <span className="text-slate-400 font-normal"> (Scroll down to load more)</span>
                   ) : (
                     <span className="text-emerald-600 font-bold"> (All records loaded)</span>
                   )}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import type { LucideIcon } from 'lucide-react'
 import { 
   ArrowLeft, 
   Settings, 
@@ -7,7 +8,7 @@ import {
   Users, 
   FileText,
   Plus,
-  RefreshCw,
+  Loader2,
   Trash2,
   AlertTriangle,
   Edit3,
@@ -18,6 +19,8 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { AppButton } from '../../components/ui/AppButton'
+import { StatusText } from '../../components/ui/StatusText'
 
 type CourseDetail = {
   id: number
@@ -250,7 +253,7 @@ export function CourseDetailPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
   }
@@ -320,11 +323,10 @@ export function CourseDetailPage() {
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs border-t border-slate-100 pt-5">
                   <div>
                     <dt className="text-slate-400 font-bold uppercase tracking-wider">Status</dt>
-                    <dd className="mt-1 font-bold text-slate-800 flex items-center gap-1.5">
-                      <span className={`h-1.5 w-1.5 rounded-full ${
-                        isOpen ? 'bg-emerald-500' : isDraft ? 'bg-amber-500' : 'bg-rose-500'
-                      }`} />
-                      <span>{course.statusName}</span>
+                    <dd className="mt-1">
+                      <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
+                        {course.statusName}
+                      </StatusText>
                     </dd>
                   </div>
                   <div>
@@ -448,7 +450,7 @@ export function CourseDetailPage() {
 
             {loadingLearners ? (
               <div className="flex h-32 items-center justify-center">
-                <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -524,7 +526,7 @@ export function CourseDetailPage() {
 
             {loadingAssignments ? (
               <div className="flex h-32 items-center justify-center">
-                <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -625,18 +627,18 @@ function CourseControls({
       {/* Primary Actions */}
       <div className="space-y-3">
         <span className="block text-xxs font-extrabold text-slate-400 uppercase">Management Actions</span>
-        <ControlLinkButton to={`/courses/${courseId}/version/new`} icon={<Plus aria-hidden="true" />} variant="primary">
+        <ControlLinkButton to={`/courses/${courseId}/version/new`} icon={Plus} variant="primary">
           Add Version Package
         </ControlLinkButton>
         <ControlLinkButton
           to={`/assignments/bulk?courseId=${courseId}`}
-          icon={<UserPlus aria-hidden="true" />}
+          icon={UserPlus}
           disabled={!isOpen}
           title={isOpen ? undefined : 'Only Open courses can be assigned'}
         >
           Bulk Assign
         </ControlLinkButton>
-        <ControlLinkButton to={`/courses/${courseId}/edit`} icon={<Edit3 aria-hidden="true" />}>
+        <ControlLinkButton to={`/courses/${courseId}/edit`} icon={Edit3}>
           Edit Properties
         </ControlLinkButton>
       </div>
@@ -677,14 +679,9 @@ function CourseControls({
 
       {/* Destructive actions & Directory Link */}
       <div className="border-t border-slate-200 pt-4 space-y-3">
-        <button
-          type="button"
-          onClick={onDeleteCourse}
-          className="inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 bg-red-600 text-white hover:bg-red-700 w-full flex items-center justify-center gap-2 text-xs font-bold transition"
-        >
-          <Trash2 className="h-4 w-4" />
-          <span>Delete Course</span>
-        </button>
+        <AppButton type="button" variant="danger" icon={Trash2} onClick={onDeleteCourse} className="w-full">
+          Delete Course
+        </AppButton>
 
         <Link 
           to="/courses" 
@@ -700,7 +697,7 @@ function CourseControls({
 
 type ControlLinkButtonProps = {
   to: string
-  icon: ReactNode
+  icon: LucideIcon
   children: ReactNode
   disabled?: boolean
   title?: string | undefined
@@ -716,15 +713,9 @@ function ControlLinkButton({
   variant = 'secondary',
 }: ControlLinkButtonProps) {
   const button = (
-    <button
-      type="button"
-      disabled={disabled}
-      title={title}
-      className={`inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 w-full ${variant === 'primary' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50'}`}
-    >
-      {icon}
-      <span>{children}</span>
-    </button>
+    <AppButton type="button" variant={variant} icon={icon} disabled={disabled} title={title} className="w-full">
+      {children}
+    </AppButton>
   )
 
   return disabled ? button : <Link to={to} className="block">{button}</Link>

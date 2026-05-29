@@ -543,7 +543,7 @@ export function VersionFormPage() {
 
       <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 select-none">
         {learnerPolicyOptions.map(option => (
-          <label key={option.value} className={`flex cursor-pointer gap-2.5 border rounded p-3 transition-all duration-150 ${formData.learnerPolicy === option.value ? 'border-blue-500 bg-indigo-50/20' : 'border-slate-200 bg-white hover:border-slate-350'}`}>
+          <label key={option.value} className={`flex cursor-pointer gap-2.5 border rounded p-3 transition-all duration-150 ${formData.learnerPolicy === option.value ? 'border-blue-500 bg-indigo-50/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
             <input
               type="radio"
               name="learnerPolicy"

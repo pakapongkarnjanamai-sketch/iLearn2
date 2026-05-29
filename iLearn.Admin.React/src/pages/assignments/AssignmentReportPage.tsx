@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Download, Loader2, Printer } from 'lucide-react'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
 import { StatusText } from '../../components/ui/StatusText'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -129,51 +128,63 @@ export function AssignmentReportPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        actions={
-          <div className="flex items-center gap-2">
-            <AppButton variant="secondary" icon={Printer} onClick={() => window.print()}>
-              Print
-            </AppButton>
-            <AppButton variant="primary" icon={Download} onClick={exportCsv}>
-              Export CSV
-            </AppButton>
-          </div>
-        }
-      />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+        <div className="min-w-0">
+          <div className="text-xxs font-extrabold uppercase tracking-wider text-slate-400">Assignment Report</div>
+          <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{data.assignmentNo || `Assignment ${data.id}`}</h1>
+          {data.description && <p className="mt-1 text-xs text-slate-500">{data.description}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          <AppButton variant="secondary" icon={Printer} onClick={() => window.print()}>
+            Print
+          </AppButton>
+          <AppButton variant="primary" icon={Download} onClick={exportCsv}>
+            Export CSV
+          </AppButton>
+        </div>
+      </div>
 
-      <header className="mb-3">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Assignment Report</div>
-        <h1 className="text-2xl font-extrabold text-slate-900">{data.assignmentNo || `Assignment ${data.id}`}</h1>
-      </header>
-
-      {/* KPI strip */}
-      <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-4">
+      {/* Summary stats */}
+      <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-5 text-xs">
         {[
           { label: 'Total Learners', value: data.totalEnrollmentCount },
           { label: 'Completed', value: data.completedEnrollmentCount },
-          {
-            label: 'Completion',
-            value: `${Math.round(data.completionPct)}%`,
-          },
+          { label: 'Completion', value: `${Math.round(data.completionPct)}%` },
           { label: 'Start', value: data.startDate ? formatDate(data.startDate) : '—' },
           { label: 'Due', value: data.dueDate ? formatDate(data.dueDate) : '—' },
           { label: 'Courses', value: data.courses.length },
         ].map((kpi) => (
-          <div
-            key={kpi.label}
-            className="min-w-0 border-r border-slate-200 p-4 last:border-r-0"
-          >
-            <div className="text-[11px] font-extrabold uppercase text-slate-400">{kpi.label}</div>
-            <div className="mt-1 text-base font-bold text-slate-800">{kpi.value}</div>
+          <div key={kpi.label} className="min-w-0">
+            <dt className="text-slate-400 font-bold uppercase tracking-wider">{kpi.label}</dt>
+            <dd className="mt-1 font-bold text-slate-800">{kpi.value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
 
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+      {/* Courses summary */}
+      {data.courses.length > 0 && (
+        <div className="border-t border-slate-100 pt-5">
+          <div className="mb-1.5 text-xxs font-extrabold uppercase tracking-wider text-slate-400">Courses</div>
+          <div className="flex flex-wrap gap-1.5">
+            {data.courses.map((c, index) => (
+              <span
+                key={`${c.ruleId}-${c.id}-${c.code}-${index}`}
+                className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs"
+              >
+                <span className="font-mono text-slate-500">{c.code}</span>
+                <span className="font-semibold text-slate-700">{c.title}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Learner table */}
+      <section className="border-t border-slate-100 pt-5 space-y-3">
         {/* Filter bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {(['All', ...STATUS_BUCKETS] as const).map((s) => (
               <button
@@ -199,26 +210,7 @@ export function AssignmentReportPage() {
           />
         </div>
 
-        {/* Courses summary */}
-        {data.courses.length > 0 && (
-          <div className="mb-4">
-            <div className="mb-1.5 text-xs font-extrabold uppercase text-slate-500">Courses</div>
-            <div className="flex flex-wrap gap-1.5">
-              {data.courses.map((c, index) => (
-                <span
-                  key={`${c.ruleId}-${c.id}-${c.code}-${index}`}
-                  className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs"
-                >
-                  <span className="font-mono text-slate-500">{c.code}</span>
-                  <span className="font-semibold text-slate-700">{c.title}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Learner table */}
-        <div className="overflow-x-auto border-t border-slate-200/60">
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="text-left text-xxs font-extrabold uppercase text-slate-500">
@@ -271,6 +263,6 @@ export function AssignmentReportPage() {
         </table>
         </div>
       </section>
-    </>
+    </div>
   )
 }

@@ -241,7 +241,7 @@ export function BulkAssignPage() {
         {/* Left Column: Available Catalog */}
         <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-extrabold text-xxs text-slate-450 uppercase tracking-wider">Syllabus Catalog</span>
+            <span className="font-extrabold text-xxs text-slate-400 uppercase tracking-wider">Syllabus Catalog</span>
             <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xxs font-extrabold text-slate-600">{availableCourses.length}</span>
           </div>
           
@@ -283,7 +283,7 @@ export function BulkAssignPage() {
         {/* Right Column: Selected Courses */}
         <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-extrabold text-xxs text-slate-450 uppercase tracking-wider">Selected Courses</span>
+            <span className="font-extrabold text-xxs text-slate-400 uppercase tracking-wider">Selected Courses</span>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded bg-blue-100 text-xxs font-extrabold text-blue-700">{selectedCourseIds.length}</span>
               {selectedCourseIds.length > 0 && (
@@ -464,8 +464,8 @@ export function BulkAssignPage() {
             <span className="block text-xxs font-extrabold text-amber-600 uppercase">In Progress Attempts</span>
             <span className="block text-xl font-extrabold text-amber-700 mt-0.5">{validationResult.inProgressConflicts.length}</span>
           </div>
-          <div className="bg-slate-50/40 border border-slate-150 p-3 rounded text-center">
-            <span className="block text-xxs font-extrabold text-slate-450 uppercase">Already Completed</span>
+          <div className="bg-slate-50/40 border border-slate-200 p-3 rounded text-center">
+            <span className="block text-xxs font-extrabold text-slate-400 uppercase">Already Completed</span>
             <span className="block text-xl font-extrabold text-slate-700 mt-0.5">{validationResult.completedConflicts.length}</span>
           </div>
         </div>
@@ -564,7 +564,7 @@ export function BulkAssignPage() {
         <button
           type="button"
           onClick={() => navigate('/assignments')}
-          className="inline-flex items-center gap-[7px] rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer mt-6 text-xxs font-extrabold shadow-3xs"
+          className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer mt-6 text-xxs font-extrabold shadow-3xs"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Back to Assignment Registry</span>

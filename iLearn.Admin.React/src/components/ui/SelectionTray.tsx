@@ -21,7 +21,7 @@ export function SelectionTray<T>({
 }: SelectionTrayProps<T>) {
   if (selectedItems.length === 0) {
     return (
-      <div className="flex items-center justify-between premium-glass-card p-2.5 text-slate-400 text-xs">
+      <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2.5 text-slate-400 text-xs">
         <span className="font-medium">No items selected yet.</span>
       </div>
     )
@@ -31,7 +31,7 @@ export function SelectionTray<T>({
   const overflowCount = Math.max(0, selectedItems.length - maxChipsToShow)
 
   return (
-    <div className="flex flex-col gap-1.5 premium-glass-card p-2.5">
+    <div className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-slate-50 p-2.5">
       <div className="flex items-center justify-between pb-1 border-b border-slate-100">
         <span className="font-bold text-slate-700">
           {title} ({selectedItems.length})
@@ -51,13 +51,13 @@ export function SelectionTray<T>({
           return (
             <span
               key={id}
-              className="inline-flex items-center gap-1.5 bg-linear-to-r from-indigo-50 to-indigo-100/50 border border-indigo-100 text-indigo-900 text-xs font-semibold px-2 py-0.5 rounded-md hover:scale-102 transition-transform duration-100"
+              className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded"
             >
               <span className="truncate max-w-37.5">{getLabel(item)}</span>
               <button
                 type="button"
                 onClick={() => onRemove(id)}
-                className="hover:text-red-600 transition focus:outline-none cursor-pointer p-0.5 rounded-full hover:bg-indigo-200/50"
+                className="hover:text-red-600 transition focus:outline-none cursor-pointer p-0.5 rounded-full hover:bg-slate-100"
                 aria-label="Remove item"
               >
                 <X className="h-3 w-3" />

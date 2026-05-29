@@ -6,6 +6,7 @@ import {
   Terminal, 
   Trash2, 
   RefreshCw,
+  Loader2,
   Server
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -89,7 +90,7 @@ export function SystemConfigPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
           <span className="text-sm text-gray-500 font-medium">Loading system configuration...</span>
         </div>
       </div>

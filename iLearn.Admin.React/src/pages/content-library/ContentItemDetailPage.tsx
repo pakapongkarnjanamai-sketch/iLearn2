@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
-  CheckCircle2,
   Download,
   Edit3,
   ExternalLink,
@@ -9,10 +8,11 @@ import {
   Loader2,
   PowerOff,
   Power,
+  Settings,
   Trash2,
 } from 'lucide-react'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
+import { StatusText } from '../../components/ui/StatusText'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/format'
@@ -174,125 +174,118 @@ export function ContentItemDetailPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        actions={
-          <div className="flex items-center gap-2">
-            <Link to={`/content-library/${item.id}/edit`}>
-              <AppButton variant="secondary" icon={Edit3}>
-                Edit
-              </AppButton>
-            </Link>
-          </div>
-        }
-      />
-
-      <header className="mb-3">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Content Library</div>
-        <h1 className="font-display text-2xl font-bold text-slate-900">{item.name}</h1>
-      </header>
-
-      {/* KPI strip */}
-      <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-4">
-        {[
-          { label: 'Type', value: TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}` },
-          {
-            label: 'Status',
-            value: item.isActive ? (
-              <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" /> Published
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                Draft
-              </span>
-            ),
-          },
-          { label: 'SCORM', value: item.schemaVersion || '—' },
-          { label: 'Package Size', value: fmtBytes(item.fileLength) },
-          { label: 'Courses Linked', value: item.courseIdsCount ?? 0 },
-        ].map((kpi) => (
-          <div
-            key={kpi.label}
-             className="min-w-0 border-r border-slate-200 p-4 last:border-r-0"
-          >
-            <div className="text-[11px] font-extrabold uppercase text-slate-400">{kpi.label}</div>
-            <div className="mt-1 text-base font-bold text-slate-800">{kpi.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Main: metadata */}
-        <section className="lg:col-span-3">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+      <div className="min-w-0">
+        <section className="space-y-6">
           <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Metadata</h2>
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Content Overview</h2>
           </div>
-          <dl className="grid grid-cols-2 gap-3.5">
-            {[
-              { label: 'Launch Resource', value: item.launchHref || '—' },
-              { label: 'Server Path', value: item.url || '—' },
-              { label: 'File Storage Id', value: item.fileStorageId ?? '—' },
-              { label: 'SCORM Version', value: item.schemaVersion || '—' },
-              { label: 'Created', value: item.createdAt ? formatDateTime(item.createdAt) : '—' },
-              { label: 'Updated', value: item.updatedAt ? formatDateTime(item.updatedAt) : '—' },
-            ].map((row) => (
-              <div
-                key={row.label}
-                className="min-w-0 border-b border-slate-200/70 pb-2"
-              >
-                <dt className="text-[11px] font-extrabold uppercase text-slate-400">{row.label}</dt>
-                <dd className="mt-1 font-bold text-slate-900 overflow-wrap-anywhere text-sm">
-                  {row.value}
-                </dd>
-              </div>
-            ))}
+
+          {/* Minimalist Title */}
+          <div>
+            <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{item.name}</h1>
+            <span className="inline-block mt-1 font-mono text-xs text-slate-400">{TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}</span>
+          </div>
+
+          {/* Quick facts */}
+          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs border-t border-slate-100 pt-5">
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Status</dt>
+              <dd className="mt-1">
+                <StatusText tone={item.isActive ? 'success' : 'neutral'}>
+                  {item.isActive ? 'Published' : 'Draft'}
+                </StatusText>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Type</dt>
+              <dd className="mt-1 font-semibold text-slate-700">{TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">SCORM Version</dt>
+              <dd className="mt-1 font-semibold text-slate-700">{item.schemaVersion || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Package Size</dt>
+              <dd className="mt-1 font-bold text-slate-800">{fmtBytes(item.fileLength)}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Courses Linked</dt>
+              <dd className="mt-1 font-bold text-slate-800">{item.courseIdsCount ?? 0}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">File Storage Id</dt>
+              <dd className="mt-1 font-semibold text-slate-700">{item.fileStorageId ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Created</dt>
+              <dd className="mt-1 font-semibold text-slate-700">{item.createdAt ? formatDateTime(item.createdAt) : '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Updated</dt>
+              <dd className="mt-1 font-semibold text-slate-700">{item.updatedAt ? formatDateTime(item.updatedAt) : '—'}</dd>
+            </div>
+          </dl>
+
+          {/* Technical paths */}
+          <dl className="grid grid-cols-1 gap-4 text-xs border-t border-slate-100 pt-5">
+            <div className="min-w-0">
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Launch Resource</dt>
+              <dd className="mt-1 font-mono text-slate-700 wrap-break-word">{item.launchHref || '—'}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-slate-400 font-bold uppercase tracking-wider">Server Path</dt>
+              <dd className="mt-1 font-mono text-slate-700 wrap-break-word">{item.url || '—'}</dd>
+            </div>
           </dl>
         </section>
-
-        {/* Sidebar: control hub */}
-        <aside className="lg:col-span-1">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">Controls</h2>
-            </div>
-            <div className="flex flex-col gap-2">
-              {item.isActive ? (
-                <>
-                  {item.url && (
-                    <AppButton
-                      variant="secondary"
-                      icon={ExternalLink}
-                      disabled={busy}
-                      onClick={handleOpenContent}
-                    >
-                      Open SCORM Player
-                    </AppButton>
-                  )}
-                  <AppButton variant="danger" icon={PowerOff} disabled={busy} onClick={handleUnpublish}>
-                    Unpublish
-                  </AppButton>
-                </>
-              ) : (
-                <AppButton variant="primary" icon={Power} disabled={busy} onClick={handlePublish}>
-                  Publish
-                </AppButton>
-              )}
-              {!item.isActive && item.fileStorageId && (
-                <a
-                  href={buildApiUrl(`ContentItems/${item.id}/content`)}
-                  className="inline-flex items-center justify-center gap-2 rounded border border-slate-200 px-2 py-2 text-xs font-bold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <Download className="h-4 w-4" /> Download ZIP
-                </a>
-              )}
-              {!item.isActive && (
-                <AppButton variant="ghost" icon={Trash2} disabled={busy} onClick={handleDelete}>
-                  Delete
-                </AppButton>
-              )}
-            </div>
-        </aside>
       </div>
-    </>
+
+      {/* Controls sidebar */}
+      <aside className="space-y-5 xl:sticky xl:top-5">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+          <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Settings aria-hidden="true" />Controls</h2>
+        </div>
+
+        <div className="space-y-3">
+          <span className="block text-xxs font-extrabold text-slate-400 uppercase">Management Actions</span>
+          <Link to={`/content-library/${item.id}/edit`} className="block">
+            <AppButton variant="secondary" icon={Edit3} className="w-full">Edit Metadata</AppButton>
+          </Link>
+          {item.isActive ? (
+            <>
+              {item.url && (
+                <AppButton variant="secondary" icon={ExternalLink} disabled={busy} onClick={handleOpenContent} className="w-full">
+                  Open SCORM Player
+                </AppButton>
+              )}
+              <AppButton variant="danger" icon={PowerOff} disabled={busy} onClick={handleUnpublish} className="w-full">
+                Unpublish
+              </AppButton>
+            </>
+          ) : (
+            <AppButton variant="primary" icon={Power} disabled={busy} onClick={handlePublish} className="w-full">
+              Publish
+            </AppButton>
+          )}
+          {!item.isActive && item.fileStorageId && (
+            <a
+              href={buildApiUrl(`ContentItems/${item.id}/content`)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+            >
+              <Download className="h-4 w-4" /> Download ZIP
+            </a>
+          )}
+        </div>
+
+        {!item.isActive && (
+          <div className="border-t border-slate-200 pt-4">
+            <AppButton variant="danger" icon={Trash2} disabled={busy} onClick={handleDelete} className="w-full">
+              Delete
+            </AppButton>
+          </div>
+        )}
+      </aside>
+    </div>
   )
 }

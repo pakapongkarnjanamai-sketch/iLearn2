@@ -178,7 +178,7 @@ export function AppWizard({
               <button
                 type="button"
                 onClick={() => onStepChange(currentStep - 1)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 py-[7px] text-[11px] font-bold text-slate-500 cursor-pointer transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-3 py-1.5 text-xxs font-extrabold uppercase tracking-wide text-slate-500 cursor-pointer transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>{prevLabel}</span>
@@ -189,7 +189,7 @@ export function AppWizard({
               <button
                 type="button"
                 onClick={handleContinue}
-                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-3.5 py-[7px] text-[11px] font-bold text-white cursor-pointer transition-all duration-150 hover:bg-indigo-700"
+                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-3 py-1.5 text-xxs font-extrabold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700"
               >
                 <span>{nextLabel}</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -198,7 +198,7 @@ export function AppWizard({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-3.5 py-[7px] text-[11px] font-bold text-white cursor-pointer transition-all duration-150 hover:bg-indigo-700 disabled:opacity-55"
+                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-3 py-1.5 text-xxs font-extrabold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700 disabled:opacity-55"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
