@@ -233,19 +233,9 @@ The Learner experience should feel welcoming, approachable, and motivating, with
 6. **Minimal motion.** No non-essential animation. Transitions (0.2s ease) only for state changes (active/complete steps, hover feedback). Respect `prefers-reduced-motion`.
 7. **Accessibility as baseline.** WCAG AA is the quality bar, not a follow-up task. High contrast, keyboard navigation, focus rings, semantic markup.
 
-### Current UX Priorities (April 2026)
-
-- **Primary redesign scope**: `Assignments/BulkAssign` (Course Selection + Learner Selection), `StudentGroups/AddMembers`, and `StudentGroups/Editor` (Initial Members).
-- **Critical pain point #1**: Users lose confidence about what is currently selected when moving across paged DataGrid results.
-- **Critical pain point #2**: Cascading filters are not clear enough in behavior and state, especially after value changes and resets.
-- **Selection policy**: Keep `allPages` selection behavior, but always expose a visible, immediately scannable list of selected items.
-- **Data scale target**: Typical usage is mid-size datasets (~500 to 5,000 rows), so configuration should balance density, scan speed, and responsiveness.
-- **Layout success criteria**: Keep key task context within one screen whenever possible and avoid stacked/nested scroll areas that force users to track state in multiple places.
-- **Outcome metric**: Users should not lose track of current selections during assignment workflows.
-
 ---
 
-## Existing Design System (Admin)
+## Existing Design System (Admin — Legacy MVC)
 
 ### Tokens (`admin-tokens.css`)
 - **Colors**: 45 primitive + semantic tokens. Brand blue (#0050b3), 9-step neutral scale (#fafafa → #262626), semantic status palette (success #52c41a, warning #faad14, danger #ff4d4f, purple #722ed1).
@@ -271,9 +261,11 @@ The Learner experience should feel welcoming, approachable, and motivating, with
 
 ---
 
-## Wizard Page Pattern (Admin)
+## Wizard Page Pattern (Legacy Admin — MVC)
 
-All multi-step wizard pages (`Assignments/BulkAssign`, `StudentGroups/AddMembers`, `StudentGroups/RemoveMembers`, `StudentGroups/Editor`, etc.) **must** use the shared classes from `admin-wizard.css`. Do **not** re-implement these as inline `<style>` blocks or with Bootstrap utility classes.
+All multi-step wizard pages in `iLearn.Admin` (`Assignments/BulkAssign`, `StudentGroups/AddMembers`, `StudentGroups/RemoveMembers`, `StudentGroups/Editor`, etc.) **must** use the shared classes from `admin-wizard.css`. Do **not** re-implement these as inline `<style>` blocks or with Bootstrap utility classes.
+
+> **Note:** The React Admin (`iLearn.Admin.React`) uses the `AppWizard` component instead — see Section 14.
 
 ### Page Skeleton
 ```html
@@ -309,66 +301,6 @@ All multi-step wizard pages (`Assignments/BulkAssign`, `StudentGroups/AddMembers
 </div>
 ```
 
-### Selection Step (Filter + Grid + Tray)
-```html
-<div class="admin-selection-layout">
-    <div class="admin-filter-shell d-flex flex-column gap-3">
-        <h6 class="admin-filter-section-title"><i class="fas fa-filter" aria-hidden="true"></i>Filters</h6>
-        <div>
-            <label class="admin-filter-label">Division</label>
-            <div id="filter-div"></div>
-        </div>
-        …
-        <button type="button" id="btn-clear-filter" class="admin-filter-clear-btn">
-            <i class="fas fa-times me-1" aria-hidden="true"></i> Clear Filters
-        </button>
-    </div>
-    <div class="admin-grid-shell">
-        <div class="admin-grid-head">
-            <div class="admin-grid-title">Directory Title</div>
-            <span class="tag-pill pill-default" id="x-selection-note">0 item</span>
-        </div>
-        <div id="grid-x" class="admin-grid-fill"></div>
-    </div>
-</div>
-<div class="admin-selection-tray">
-    <div class="admin-selection-tray-label">Selected</div>
-    <div class="admin-selection-tray-chips" id="x-chips"></div>
-    <button type="button" class="admin-selection-tray-clear is-disabled" id="x-clear">
-        <i class="fas fa-eraser me-1" aria-hidden="true"></i>Clear
-    </button>
-</div>
-```
-
-### Options Step — Status Option Cards
-```html
-<div class="admin-status-options">
-    <div class="admin-status-option" data-status-option="InProgress">
-        <label for="status-inprogress">
-            <div>
-                <div class="admin-status-option-title">In Progress</div>
-                <div class="admin-status-option-note">Helper text.</div>
-            </div>
-            <input class="form-check-input" type="checkbox" id="status-inprogress" value="InProgress">
-        </label>
-    </div>
-    …
-</div>
-```
-
-For an embedded picker grid inside an option card, wrap it in `.admin-assignment-grid-shell`.
-
-### Review Step — Scrollable Tables
-```html
-<div class="admin-table-shell">
-    <div class="admin-table-head">
-        <div class="admin-table-title">Section Title</div>
-        <span class="tag-pill pill-default"></span>
-    </div>
-    <div class="admin-table-wrap admin-review-table-wrap" id="x-summary-table"></div>
-</div>
-```
-
 ### Standard Class Vocabulary (do not invent alternatives)
 | Concern | Class |
 | --- | --- |
@@ -378,34 +310,13 @@ For an embedded picker grid inside an option card, wrap it in `.admin-assignment
 | Action button | `.action-link` (`.primary` / `.danger` modifiers) |
 | Wizard shell | `.admin-wizard-shell.admin-wizard-shell--fill.admin-review-flow.admin-viewport-layout` |
 | Selection panel | `.admin-wizard-panel.admin-wizard-panel--selection-fill` (`data-step-layout="wide"`) |
-| Form/options panel | `.admin-wizard-panel` (`data-step-layout="form"`) — wider canvas via `.admin-review-flow.is-form-step` (auto-applied) |
+| Form/options panel | `.admin-wizard-panel` (`data-step-layout="form"`) |
 | Review panel | `.admin-wizard-panel` (`data-step-layout="review"`) |
 | Filter sidebar | `.admin-filter-shell` |
-| Filter heading | `.admin-filter-section-title` |
-| Filter field label | `.admin-filter-label` |
-| Filter clear button | `.admin-filter-clear-btn` |
 | Grid card | `.admin-grid-shell` + `.admin-grid-head` + `.admin-grid-title` + `.admin-grid-fill` |
-| Persistent selection tray | `.admin-selection-tray` + `.admin-selection-tray-label` + `.admin-selection-tray-chips` + `.admin-selection-tray-clear` |
-| Selection chip | `.admin-selection-chip` (+ `.is-overflow`) |
-| Option card | `.admin-option-card` (+ `.is-disabled`) |
-| Status option grid | `.admin-status-options` |
-| Status option card | `.admin-status-option` (+ `.disabled`) |
-| Status option title / note | `.admin-status-option-title` / `.admin-status-option-note` |
-| Embedded picker grid | `.admin-assignment-grid-shell` |
+| Persistent selection tray | `.admin-selection-tray` + `.admin-selection-tray-chips` + `.admin-selection-tray-clear` |
 | Review table card | `.admin-table-shell` + `.admin-table-head` + `.admin-table-title` |
-| Scrollable review table body | `.admin-table-wrap.admin-review-table-wrap` |
 | Summary card grid | `.admin-summary-grid` (cols via `.admin-summary-grid--cols-2/3/4/5` modifier) |
-| Form card (single-column form sizing) | `.admin-form-card` (size via `.admin-form-card--sm/md/lg` modifier) |
-
-### Wizard Authoring Rules
-1. **No per-page `<style>` block for filter, status, review-table, or option styling.** Use the shared classes above. Page-only styles should be limited to genuinely unique concerns and namespaced.
-2. **Do not use Bootstrap utility classes for filter chrome** (`small fw-bold text-muted`, `btn btn-sm btn-outline-secondary`, `<h6 class="fw-bold">`). Use the `.admin-filter-*` classes.
-3. **Buttons in the wizard header always use `.action-link`** (with `.primary` or `.danger`), never raw Bootstrap `.btn` variants.
-4. **Selection step always exposes a persistent `.admin-selection-tray`** so users never lose track of selections across paged grids (per UX priority).
-5. **Step cards, panels, and `data-step-layout` values must match the skeleton above** so `toggleAdminViewportLayout()` and `is-selection-step` / `is-form-step` rules apply correctly.
-6. **Final-step action button class** mirrors the action's destructiveness: `primary` for create/assign/save, `danger` for remove/delete.
-7. **Section titles inside panels** use `.admin-section-header` + `.section-title.admin-section-title-fill` + `.admin-section-divider` — not ad-hoc headings.
-8. **No inline `style="..."` attributes.** Use shared classes / modifiers (`.admin-summary-grid--cols-4`, `.admin-form-card--md`, etc.). Inline `style` is allowed only for runtime-computed values inside JS template strings (e.g. dynamic widths in progress bars).
 
 ---
 
@@ -440,7 +351,7 @@ This is a **parallel deployment** — both old MVC admin and new React admin exi
 | **Icons** | lucide-react (tree-shakable SVG icons) |
 | **Real-time** | @microsoft/signalr 10 (connection status beacon in header) |
 | **Auth** | Windows Authentication / Negotiate (inherited from `iLearn.API` proxy) |
-| **Fonts** | Google Fonts — **Inter** (body/tables/forms at 13px) + **Outfit** (display/headings) |
+| **Fonts** | Google Fonts — **Inter** (body/tables/forms) + **Outfit** (display/headings) |
 
 ### Key Dependencies (from `package.json`)
 
@@ -462,48 +373,66 @@ iLearn.Admin.React/
 │   ├── App.tsx                     # Route definitions
 │   ├── index.css                   # Global CSS: design tokens, layout, component styles
 │   ├── components/
+│   │   ├── auth/
+│   │   │   └── RequireRole.tsx     # Role-based route guard (SuperAdmin check)
 │   │   ├── layout/
 │   │   │   ├── AppLayout.tsx       # Shell: sidebar + header + <Outlet>
 │   │   │   ├── Sidebar.tsx         # Dark slate navigation sidebar
 │   │   │   ├── Header.tsx          # Top bar with breadcrumbs + auth status
 │   │   │   └── Breadcrumbs.tsx     # Auto-generated breadcrumb trail
+│   │   ├── shared/
+│   │   │   └── LearnerDirectorySelector.tsx  # Reusable searchable learner picker with infinite scroll
 │   │   └── ui/
 │   │       ├── AppButton.tsx       # Standard button (primary/secondary/danger/ghost)
-│   │       ├── AppTable.tsx        # Bespoke data grid with paging, sorting, search, editing
+│   │       ├── AppTable.tsx        # Bespoke data grid with infinite scroll, sorting, search, inline editing
 │   │       ├── AppTreeView.tsx     # Recursive tree view for hierarchical data
+│   │       ├── AppWizard.tsx       # ★ Reusable multi-step wizard engine (see Section 14)
+│   │       ├── DataGridSurface.tsx # Grid wrapper surface
 │   │       ├── PageHeader.tsx      # Page-level header actions strip
 │   │       ├── SelectionTray.tsx   # Chip-based multi-selection display
-│   │       ├── StatusText.tsx      # Semantic status badge renderer
-│   │       ├── DataGridSurface.tsx # Grid wrapper surface
 │   │       ├── SidePanel.tsx       # Slide-out side panel
+│   │       ├── StatusText.tsx      # Semantic status badge renderer
 │   │       └── Toolbar.tsx         # Action toolbar strip
 │   ├── lib/
 │   │   ├── apiClient.ts            # fetchWithAccessControl() — API client with auth
 │   │   ├── auth.ts                 # Windows Auth user context
+│   │   ├── breadcrumbContext.ts    # Breadcrumb label override context
 │   │   ├── createDataSource.ts     # CRUD data source factory for AppTable
 │   │   ├── format.ts               # Date/number formatting utilities
 │   │   └── toast.ts                # Lightweight DOM-based toast notification system
 │   ├── pages/
-│   │   ├── DashboardPage.tsx       # Landing dashboard
+│   │   ├── AccessDeniedPage.tsx    # 403 access denied
+│   │   ├── DashboardPage.tsx       # Landing dashboard with org-wide KPIs
 │   │   ├── EntityListPage.tsx      # Generic list page driven by moduleConfigs
+│   │   ├── NotFoundPage.tsx        # 404 not found
 │   │   ├── moduleConfigs.ts        # Entity list configuration registry
 │   │   ├── courses/
-│   │   │   ├── CourseListPage.tsx   # Course catalog with tree view + grid
-│   │   │   ├── CourseDetailPage.tsx # Course dashboard with Control Hub
-│   │   │   ├── CourseEditorPage.tsx # Create/edit course form
-│   │   │   └── VersionFormPage.tsx  # SCORM version upload form
+│   │   │   ├── CourseListPage.tsx      # Course catalog with tree view + grid
+│   │   │   ├── CourseDetailPage.tsx    # Course dashboard with Control Hub
+│   │   │   ├── CourseEditorPage.tsx    # ★ Create (AppWizard 3-step) / Edit (tab view) course
+│   │   │   └── VersionFormPage.tsx     # ★ Create/edit SCORM version (AppWizard 4-step)
 │   │   ├── assignments/
-│   │   │   ├── AssignmentDetailPage.tsx  # Assignment batch console
-│   │   │   └── BulkAssignPage.tsx       # Multi-step bulk assignment wizard
-│   │   ├── student-groups/
-│   │   │   ├── StudentGroupDetailPage.tsx  # Student Group membership management
-│   │   │   └── StudentGroupEditorPage.tsx  # Create/edit Student Group form
+│   │   │   ├── AssignmentDetailPage.tsx    # Assignment batch console
+│   │   │   ├── AssignmentGanttPage.tsx     # Gantt timeline view
+│   │   │   ├── AssignmentReportPage.tsx    # Assignment completion report
+│   │   │   └── BulkAssignPage.tsx          # ★ Multi-step bulk assignment (AppWizard 4-step)
+│   │   ├── content-library/
+│   │   │   ├── ContentItemDetailPage.tsx   # Content item details and launch testing
+│   │   │   └── ContentItemEditorPage.tsx   # ★ Upload/edit SCORM package (AppWizard 2–3 step)
+│   │   ├── learner-groups/
+│   │   │   ├── LearnerGroupDetailPage.tsx  # Learner group membership management
+│   │   │   └── LearnerGroupEditorPage.tsx  # ★ Create (AppWizard 3-step) / Edit group
 │   │   ├── learners/
-│   │   │   └── LearnerProfilePage.tsx  # Learner profile view
-│   │   └── system-config/
-│   │       └── SystemConfigPage.tsx    # System configuration panel
-│   └── config/                     # App configuration
+│   │   │   └── LearnerProfilePage.tsx      # Learner profile view
+│   │   ├── master-data/
+│   │   │   └── LearnerGroupCategoriesPage.tsx  # Learner group category management
+│   │   ├── system-config/
+│   │   │   └── SystemConfigPage.tsx         # System configuration panel
+│   │   └── dashboard/                       # Dashboard sub-views
+│   └── config/                              # App configuration
 ```
+
+> Pages marked with ★ use the `AppWizard` component for their create/edit flows.
 
 ## 13. Design System (React Admin)
 
@@ -513,7 +442,8 @@ The React admin uses a **card-free, flat, high-density** aesthetic. This is fund
 
 | Aspect | Specification |
 | --- | --- |
-| **Font** | Inter 13px base, Outfit for display elements |
+| **Font** | Inter base, Outfit for display elements |
+| **Base font size** | `13px` on `body` / `:root` — **not enforced by `!important` wildcard** |
 | **Brand color** | Indigo `#4f46e5` (CSS var `--admin-brand`) |
 | **Surfaces** | Transparent/flat — no `bg-white border rounded shadow` cards on Detail pages |
 | **KPI display** | Unified inline strip with vertical dividers (`border-r border-slate-200/60`) |
@@ -529,14 +459,31 @@ All design tokens and component styles live in `src/index.css`:
 - **CSS Custom Properties** (`--admin-*`): Brand, surface, border, text, status colors
 - **Tailwind CSS 4**: Utility-first classes for layout (imported via `@import "tailwindcss"`)
 - **Component classes** (`.admin-button`, `.admin-app-shell`, `.admin-sidebar`, etc.): Vanilla CSS for reusable component patterns
+- **Layout classes** (`.admin-grid-surface`): Height-constrained flex surface for all editor and wizard pages
 
 ### Typography Rules
 
-- Global font: `Inter` at exactly `13px` (enforced via `* { font-size: 13px !important }`)
-- **Do not** use `tracking-wider` or `tracking-widest` — these are banned from the codebase
-- Labels use `text-xxs font-extrabold text-slate-400 uppercase`
-- Section headers use `text-sm font-extrabold text-slate-700`
-- Values use `text-slate-800 font-bold`
+- **Base font**: `Inter` at `13px` on `body` and `:root` (no `!important` wildcard — see critical note below)
+- **Dense form/wizard pages**: Use `text-xs` (12px) for inputs, labels, and table cells; `text-xxs` (10px) for micro-labels and badges
+- **Labels**: `text-[10px] font-extrabold text-slate-400 uppercase`
+- **Section headers**: `text-xs font-bold text-slate-800`
+- **Values / inputs**: `text-xs text-slate-700`
+- **Eyebrow / module labels**: `text-[10px] font-extrabold uppercase tracking-wider text-slate-400`
+- **Do not** use `tracking-wider` or `tracking-widest` on body text — reserve for uppercase micro-labels only
+
+> **Critical — Typography Override Removed (May 2026):**
+> The former `* { font-size: 13px !important; }` wildcard selector has been **removed** from `index.css`.
+> The `13px` default is now set only on `body` and `:root` **without** `!important`.
+> This means Tailwind size utilities (`text-xs`, `text-xxs`, `text-sm`, etc.) now work correctly at their designed sizes.
+> **Do not re-introduce the wildcard `!important` override.** Dense wizard/form views depend on smaller type sizes to maximize workspace.
+
+### Infinite Scroll (AppTable)
+
+All data grids in the React Admin use **Infinite Scroll** — not pagination. `AppTable` appends rows as the user scrolls to the bottom.
+
+- No page number controls are rendered.
+- Sorting and filtering trigger a full dataset reload.
+- Inline editing (create/update/delete) for simple master data (Divisions, Categories, Course Types, Roles, Learner Group Categories) is handled directly inside `AppTable` — **no wizard is needed** for single-field models.
 
 ### Button Standards
 
@@ -545,21 +492,22 @@ All buttons follow a consistent dimensional system:
 | Category | Spec |
 | --- | --- |
 | `AppButton` (`.admin-button`) | `min-height: 34px`, `padding: 0 12px`, `border-radius: 6px` |
+| Wizard footer buttons | `py-1.5 px-3 text-xxs font-extrabold rounded shadow-3xs` |
 | Control Hub — Core Actions | `p-3`, `rounded-lg`, full-width with icon + label + description |
 | Control Hub — State Transitions | `p-2.5`, `rounded-md`, full-width with icon + label + badge |
-| Inline Actions (Cancel, Commit) | `py-2`, `text-xs font-bold`, `rounded`, 50/50 split width |
 
 ### Icon Usage
 
 - All icons from `lucide-react` — tree-shakable, no icon fonts
-- Standard size: `h-4 w-4` for inline, `h-4.5 w-4.5` for section headers
-- **Always** prune unused icon imports — TypeScript strict mode will error on them
+- Standard size: `h-4 w-4` for inline, `h-3.5 w-3.5` for wizard footer buttons
+- **Always** prune unused icon imports — TypeScript strict mode (`verbatimModuleSyntax`) will error on unused imports
+- **Always** use `import type` for type-only imports (e.g. `import type { ReactNode } from 'react'`)
 
 ## 14. Page Type Standards (React Admin)
 
 ### Detail Pages
 
-Detail pages (`CourseDetailPage`, `ContentItemDetailPage`, `AssignmentDetailPage`, `StudentGroupDetailPage`) follow the **Persistent Controls Standard**. `CourseDetailPage` is the canonical reference implementation.
+Detail pages (`CourseDetailPage`, `ContentItemDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`) follow the **Persistent Controls Standard**. `CourseDetailPage` is the canonical reference implementation.
 
 **Layout rules:**
 
@@ -567,36 +515,116 @@ Detail pages (`CourseDetailPage`, `ContentItemDetailPage`, `AssignmentDetailPage
 2. **No `PageHeader` component** — do not import or render `<PageHeader>`. All actions belong in the Controls sidebar.
 3. **No KPI strip** — do not use `.admin-kpi-strip` / `.admin-kpi-item`. Surface key stats inline in the Controls card or metadata section only if essential.
 4. **Two-column layout** — `grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start`. Left: main content cards. Right: Controls sidebar.
-5. **Persistent Controls card** — right sidebar always renders a `Controls` section regardless of entity state. Actions do **not** disappear; they become `disabled` when unavailable (e.g. already in target state, busy, missing precondition).
+5. **Persistent Controls card** — right sidebar always renders a `Controls` section regardless of entity state. Actions do **not** disappear; they become `disabled` when unavailable.
 6. **Destructive actions visible** — Delete / Remove actions always render in Controls but are disabled when the entity is in a state that prevents the action.
-7. **`admin-card` wrapper for all content panels** — use `admin-card` + `admin-card-head` + `admin-card-head-title` for every card section (metadata, tables, Controls).
-
-**Helper patterns (from `CourseDetailPage`):**
-
-```tsx
-// Link that becomes a disabled button when not available
-function ControlLinkButton({ to, disabled, icon: Icon, children }) {
-  if (disabled) return <button disabled className="...neutral disabled...">{children}</button>
-  return <Link to={to}><button className="...active styles...">{children}</button></Link>
-}
-
-// Async action button with tone + disabled state
-function ControlActionButton({ onClick, disabled, tone, icon: Icon, children }) { ... }
-```
+7. **`admin-card` wrapper for all content panels** — use `admin-card` + `admin-card-head` + `admin-card-head-title` for every card section.
 
 ### List Pages
 
-List pages use `EntityListPage` driven by `moduleConfigs.ts` for generic CRUD grids, or custom list pages like `CourseListPage` with tree view + grid combination.
+List pages use `EntityListPage` driven by `moduleConfigs.ts` for generic infinite-scroll CRUD grids, or custom list pages like `CourseListPage` with tree view + grid combination.
 
-### Editor Pages
+**Simple Master Data (inline grid editing):**
 
-Editor pages (`CourseEditorPage`, `StudentGroupEditorPage`, `VersionFormPage`) use standard form layouts with:
-- Labels: `text-xs font-bold text-slate-500 uppercase`
-- Inputs: `border border-slate-200 rounded text-sm focus:outline-none focus:border-blue-600`
+Divisions, Categories, Course Types, Roles, and Learner Group Categories use `AppTable`'s built-in inline create/edit/delete. A multi-step wizard is **not** appropriate for single-textbox models.
 
-### Wizard Pages
+### Wizard / Editor Pages — AppWizard Pattern
 
-`BulkAssignPage` implements multi-step wizard flows with step indicators, form panels, and review steps using the `SelectionTray` component for persistent selection visibility.
+All create and complex-edit flows use the shared `AppWizard` component from `src/components/ui/AppWizard.tsx`. This is the **single canonical pattern** — do not re-implement steppers, navigation buttons, or scroll containers inline.
+
+#### AppWizard Component API
+
+```tsx
+import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+
+export type WizardStep = {
+  label: string
+  validate?: () => boolean | Promise<boolean>
+  render: () => ReactNode
+}
+
+// Usage:
+<AppWizard
+  title="New Course"
+  description="Create the course, attach content, then review before saving."
+  eyebrow="Course Catalog"             // optional module label above title
+  steps={steps}                        // WizardStep[]
+  currentStep={currentStep}            // 1-based
+  onStepChange={setCurrentStep}
+  onCancel={() => navigate('/courses')}
+  onSubmit={handleSubmit}              // () => void | Promise<void>
+  submitLabel="Create Course"
+  isSubmitting={saving}
+  submitIcon={<Check className="h-3.5 w-3.5" />}  // optional
+/>
+```
+
+#### AppWizard Behavior
+
+- **Stepper breadcrumbs**: Horizontal progress buttons at top-right. Active = blue, complete = emerald, pending = slate.
+- **Sequential forward validation**: Clicking a future step or "Continue" calls the current step's `validate()`. Navigation is blocked if validation returns false.
+- **Free backward navigation**: Clicking any completed step navigates backward without validation.
+- **Scroll containment**: Each step's `render()` output is wrapped in an independently scrolling container — the page layout never gets a double scrollbar.
+- **Pinned footer**: Cancel / Previous / Continue / Submit buttons are `shrink-0` and always visible at the bottom regardless of step content height.
+- **Loading overlay**: When `isSubmitting` is true, a blurred overlay with spinner covers the step content.
+- **Form wrapper**: `AppWizard` renders its own `<form onSubmit={...}>` — do not nest another form inside step renders.
+
+#### AppWizard Layout Boundary
+
+`AppWizard` renders inside `.admin-grid-surface` — a height-constrained flex column that fills the page viewport minus sidebar/header. This prevents double scrollbars and keeps the footer pinned. Every wizard and complex editor page must be a child of this surface.
+
+```css
+.admin-grid-surface {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  overflow: hidden;
+}
+```
+
+#### Wizard vs. Edit-Tab Pattern
+
+| Mode | Pattern | Rationale |
+| --- | --- | --- |
+| **Create** | `<AppWizard>` with steps | Guides user through sequential data entry with validation gates |
+| **Edit (complex)** | `admin-grid-surface` + tab switcher + pinned footer | Allows fast access to any property without re-walking all steps |
+| **Edit (simple)** | Inline `AppTable` row editing | Single-field models (Divisions, Categories, etc.) need no wizard |
+
+`CourseEditorPage` is the canonical reference: creation uses AppWizard (3 steps: Information → Content → Review), while edit mode uses two tab buttons (Course Properties / SCORM Content & Library) with a shared Save footer.
+
+#### Current Wizard Implementations
+
+| Page | Route | Mode | Steps |
+| --- | --- | --- | --- |
+| `ContentItemEditorPage` | `/content-library/new` | Create | Metadata → Package Upload → Review |
+| `ContentItemEditorPage` | `/content-library/:id/edit` | Edit | Metadata → Review |
+| `CourseEditorPage` | `/courses/new` | Create | Information → Content → Review |
+| `CourseEditorPage` | `/courses/:id/edit` | Edit (tabs) | Properties tab / SCORM Content tab |
+| `VersionFormPage` | `/courses/:courseId/version/new` | Create | Details → Content → Options → Review |
+| `VersionFormPage` | `/courses/:courseId/version/:id/edit` | Edit (wizard) | Details → Content → Options → Review |
+| `LearnerGroupEditorPage` | `/learner-groups/new` | Create | Information → Members → Review |
+| `LearnerGroupEditorPage` | `/learner-groups/:id/edit` | Edit (form) | Single-form + Save footer |
+| `BulkAssignPage` | `/assignments/bulk` | Wizard | Choose Courses → Target Scope → Schedule → Conflict Preview |
+
+#### Authoring Rules for Wizard Steps
+
+1. **Step `render()` functions** must return self-contained content. Do not render navigation buttons inside them — `AppWizard` owns the footer.
+2. **Step `validate()`** must return a boolean (or `Promise<boolean>`). Show a `toast.error()` before returning `false`.
+3. **Form inputs** use `text-xs` for values and `text-[10px] font-extrabold text-slate-400 uppercase` for labels, with `py-1.5` padding — optimized for density.
+4. **Content panels** that might overflow use `overflow-y-auto custom-scrollbar flex-1 pr-1` so they scroll internally within the step zone.
+5. **Async validation** (e.g., server-side conflict checks in BulkAssign) can be performed inside `validate()` — it supports `Promise<boolean>`.
+6. **Modal overlays** (e.g., the Content Library picker modal in CourseEditorPage and VersionFormPage) are rendered as siblings of `<AppWizard>` — not inside step renders — to avoid nesting inside the form.
+
+### LearnerDirectorySelector
+
+`src/components/shared/LearnerDirectorySelector.tsx` is a reusable searchable learner picker used in `LearnerGroupEditorPage` (Members step) and other member-selection contexts.
+
+- Supports infinite scroll for large directories (7,000+ employee records).
+- Filters by division, department, and search query.
+- Emits `LearnerSelection[]` via `onChange` callback.
+- Selected learners are displayed in a persistent chip tray.
 
 ## 15. API Client Pattern
 
@@ -619,36 +647,55 @@ if (resp.success) {
 1. **No DevExtreme.** Do not import or reference DevExtreme components. Use `AppTable`, `AppTreeView`, and native HTML elements.
 2. **No Bootstrap.** Do not use Bootstrap utility classes. Use Tailwind CSS 4 utilities.
 3. **No jQuery.** Use React state and hooks for all interactivity.
-4. **No tracking utilities.** Do not use `tracking-wider` or `tracking-widest` in any Tailwind classes.
+4. **No tracking utilities on body text.** Do not use `tracking-wider` or `tracking-widest` on non-uppercase labels.
 5. **No card wrappers on Detail pages.** Do not add `bg-white border rounded shadow` containers. Use flat, transparent layouts.
-6. **Prune unused imports.** TypeScript strict mode errors on unused imports. Always clean up after refactoring.
-7. **Use existing components.** Prefer `AppButton`, `AppTable`, `SelectionTray`, `StatusText` over custom implementations. Do **not** use `PageHeader` on Detail pages — actions belong in the Controls sidebar.
-8. **Consistent font classes.** Labels are `text-xxs font-extrabold text-slate-400 uppercase`. Section headers are `text-sm font-extrabold text-slate-700`.
-9. **API calls via `fetchWithAccessControl()`.** Do not use raw `fetch()` or axios.
-10. **Toast notifications via `toast` from `src/lib/toast.ts`.** Do not use `alert()` or third-party toast libraries.
-11. **Verify builds.** Run `npm run build` after changes to confirm zero TypeScript errors.
+6. **Prune unused imports.** TypeScript strict mode (`verbatimModuleSyntax`) errors on unused imports. Type imports must use `import type`. Always clean up after refactoring.
+7. **Use existing components.** Prefer `AppWizard`, `AppTable`, `AppTreeView`, `SelectionTray`, `StatusText` over custom implementations. Do **not** use `PageHeader` on Detail pages — actions belong in the Controls sidebar.
+8. **Wizard = AppWizard.** All multi-step create/edit flows must use `AppWizard`. Do not build bespoke steppers, navigation buttons, or step panels.
+9. **Consistent dense typography.** Wizard and form inputs use `text-xs py-1.5` with `text-[10px] font-extrabold text-slate-400 uppercase` labels. Do **not** re-introduce `text-sm py-2` on form inputs inside wizard steps.
+10. **No `!important` typography overrides.** Do not restore `* { font-size: 13px !important }`. The base is set on `body`/`:root` only.
+11. **Infinite scroll grids.** All list pages use `AppTable`'s infinite scroll. Do not add page-number controls.
+12. **API calls via `fetchWithAccessControl()`.** Do not use raw `fetch()` or axios.
+13. **Toast notifications via `toast` from `src/lib/toast.ts`.** Do not use `alert()` or third-party toast libraries.
+14. **Verify builds.** Run `npx tsc --noEmit` then `npm run build` after changes to confirm zero TypeScript errors. Both must pass clean.
 
 ## 17. Route Registry
 
-| Route | Page Component | Purpose |
-| --- | --- | --- |
-| `/` | `DashboardPage` | Landing dashboard |
-| `/courses` | `CourseListPage` | Course catalog (tree + grid) |
-| `/courses/new` | `CourseEditorPage` | Create new course |
-| `/courses/:id` | `CourseDetailPage` | Course dashboard + Control Hub |
-| `/courses/:id/edit` | `CourseEditorPage` | Edit course properties |
-| `/courses/:courseId/version/new` | `VersionFormPage` | Upload SCORM version |
-| `/courses/:courseId/version/:id/edit` | `VersionFormPage` | Edit SCORM version |
-| `/content-library` | `EntityListPage` | Content items grid |
-| `/assignments` | `EntityListPage` | Assignment batches grid |
-| `/assignments/:id` | `AssignmentDetailPage` | Assignment batch console |
-| `/assignments/bulk` | `BulkAssignPage` | Multi-step bulk assignment |
-| `/student-groups` | `EntityListPage` | Student Groups grid |
-| `/student-groups/:id` | `StudentGroupDetailPage` | Student Group membership management |
-| `/student-groups/new` | `StudentGroupEditorPage` | Create new Student Group |
-| `/student-groups/:id/edit` | `StudentGroupEditorPage` | Edit Student Group properties |
-| `/learners` | `EntityListPage` | Learner directory grid |
-| `/learners/:id/profile` | `LearnerProfilePage` | Learner profile view |
-| `/master-data` | `EntityListPage` | Master data grid |
-| `/system-config` | `SystemConfigPage` | System configuration |
-
+| Route | Page Component | Auth | Purpose |
+| --- | --- | --- | --- |
+| `/` | `DashboardPage` | Admin | Landing dashboard with org-wide KPIs |
+| `/courses` | `CourseListPage` | Admin | Course catalog (tree + infinite-scroll grid) |
+| `/courses/new` | `CourseEditorPage` | Admin | Create new course (AppWizard 3-step) |
+| `/courses/:id` | `CourseDetailPage` | Admin | Course dashboard + Control Hub |
+| `/courses/:id/edit` | `CourseEditorPage` | Admin | Edit course (tab view) |
+| `/courses/:courseId/version/new` | `VersionFormPage` | Admin | Upload SCORM version (AppWizard 4-step) |
+| `/courses/:courseId/version/:id/edit` | `VersionFormPage` | Admin | Edit SCORM version (AppWizard 4-step) |
+| `/content-library` | `EntityListPage` | Admin | Content items infinite-scroll grid |
+| `/content-library/new` | `ContentItemEditorPage` | Admin | Upload SCORM package (AppWizard 3-step) |
+| `/content-library/:id` | `ContentItemDetailPage` | Admin | Content item details + launch test |
+| `/content-library/:id/edit` | `ContentItemEditorPage` | Admin | Edit content item (AppWizard 2-step) |
+| `/assignments` | `EntityListPage` | Admin | Assignment batches infinite-scroll grid |
+| `/assignments/bulk` | `BulkAssignPage` | Admin | Bulk course dispatch (AppWizard 4-step) |
+| `/assignments/gantt` | `AssignmentGanttPage` | Admin | Gantt timeline view |
+| `/assignments/:id` | `AssignmentDetailPage` | Admin | Assignment batch console |
+| `/assignments/:id/report` | `AssignmentReportPage` | Admin | Assignment completion report |
+| `/learner-groups` | `EntityListPage` | Admin | Learner groups infinite-scroll grid |
+| `/learner-groups/new` | `LearnerGroupEditorPage` | Admin | Create learner group (AppWizard 3-step) |
+| `/learner-groups/:id` | `LearnerGroupDetailPage` | Admin | Group membership management |
+| `/learner-groups/:id/edit` | `LearnerGroupEditorPage` | Admin | Edit group properties |
+| `/student-groups/*` | _(redirect)_ | Admin | Legacy redirect → `/learner-groups/*` |
+| `/learners` | `EntityListPage` | Admin | Learner directory infinite-scroll grid |
+| `/learners/:id/profile` | `LearnerProfilePage` | Admin | Learner profile view |
+| `/learning-logs` | `EntityListPage` | Admin | Learning log viewer |
+| `/enrollments` | `EntityListPage` | **SuperAdmin** | Enrollment records grid |
+| `/users` | `EntityListPage` | **SuperAdmin** | Admin user management |
+| `/master-data` | _(redirect)_ | **SuperAdmin** | Redirects to `/master-data/divisions` |
+| `/master-data/divisions` | `EntityListPage` | **SuperAdmin** | Division master data (inline edit) |
+| `/master-data/categories` | `EntityListPage` | **SuperAdmin** | Category master data (inline edit) |
+| `/master-data/course-types` | `EntityListPage` | **SuperAdmin** | Course type master data (inline edit) |
+| `/master-data/roles` | `EntityListPage` | **SuperAdmin** | Role master data (inline edit) |
+| `/master-data/learner-group-categories` | `LearnerGroupCategoriesPage` | **SuperAdmin** | Learner group categories (inline edit) |
+| `/master-data/student-group-categories` | _(redirect)_ | **SuperAdmin** | Legacy redirect → learner-group-categories |
+| `/system-config` | `SystemConfigPage` | **SuperAdmin** | System configuration panel |
+| `/access-denied` | `AccessDeniedPage` | Public | 403 access denied |
+| `/not-found` | `NotFoundPage` | Public | 404 not found |

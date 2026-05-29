@@ -10,10 +10,12 @@ import {
   ShieldCheck,
   RefreshCw,
   X,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 
 type LookupCourse = {
   id: number
@@ -39,8 +41,6 @@ type ValidateResult = {
   completedConflicts: ConflictItem[]
   resolvedCount: number
 }
-
-const stepLabels = ['Choose Courses', 'Target Scope', 'Schedule', 'Conflict Preview', 'Dispatched']
 
 export function BulkAssignPage() {
   const navigate = useNavigate()
@@ -137,11 +137,11 @@ export function BulkAssignPage() {
         .map(c => c.trim())
         .filter(c => c.length > 0)
     }
-    return [] // API resolves Learner Group members server-side when groupId is sent
+    return []
   }
 
   // Step 4: Validate Conflicts before sending BulkAssign
-  const runConflictValidation = async () => {
+  const runConflictValidation = async (): Promise<boolean> => {
     setValidating(true)
     const codes = getTargetCodes()
     
@@ -159,11 +159,13 @@ export function BulkAssignPage() {
       })
       if (resp.success) {
         setValidationResult(resp)
-        setCurrentStep(4)
+        return true
       }
+      return false
     } catch (err: any) {
       console.error(err)
       toast.error(err.message || 'Validation failed. Check date parameters.')
+      return false
     } finally {
       setValidating(false)
     }
@@ -192,7 +194,6 @@ export function BulkAssignPage() {
       
       if (resp.assignmentNo) {
         setAssignmentNo(resp.assignmentNo)
-        setCurrentStep(5)
         toast.success(resp.message || 'Courses assigned successfully!')
       }
     } catch (err: any) {
@@ -209,431 +210,401 @@ export function BulkAssignPage() {
     )
   }
 
-  const renderStepButton = (label: string, index: number) => {
-    const stepNum = index + 1
-    const isActive = currentStep === stepNum
-    const isComplete = currentStep > stepNum
+  const validateCourses = () => {
+    if (selectedCourseIds.length === 0) {
+      toast.error('Select at least one course to assign')
+      return false
+    }
+    return true
+  }
 
+  const validateScope = () => {
+    if (targetMode === 'group' && selectedGroupId === 0) {
+      toast.error('Select a target Learner Group')
+      return false
+    }
+    if (targetMode === 'custom' && getTargetCodes().length === 0) {
+      toast.error('Enter at least one employee EId')
+      return false
+    }
+    return true
+  }
+
+  const renderChooseCoursesStep = () => (
+    <div className="flex flex-col gap-3.5 h-[calc(100vh-270px)] min-h-[420px]">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2 shrink-0 select-none">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-blue-600" />
+          <h2 className="text-xs font-bold text-slate-800">Select Syllabus Courses</h2>
+        </div>
+      </div>
+      
+      <div className="flex-1 flex flex-col sm:flex-row gap-3 min-h-0">
+        {/* Left Column: Available Catalog */}
+        <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
+          <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
+            <span className="font-extrabold text-[10px] text-slate-450 uppercase tracking-wider">Syllabus Catalog</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-[10px] font-extrabold text-slate-600">{availableCourses.length}</span>
+          </div>
+          
+          <div className="p-1.5 border-b border-slate-100 shrink-0 select-none">
+            <input
+              type="text"
+              placeholder="Search catalog by title or code..."
+              value={courseSearch}
+              onChange={e => setCourseSearch(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-blue-600"
+            />
+          </div>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
+            {visibleAvailableCourses.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
+                {courseSearch ? 'No matching courses found' : 'All courses selected'}
+              </div>
+            ) : (
+              visibleAvailableCourses.map(c => (
+                <div
+                  key={c.id}
+                  onClick={() => handleToggleCourse(c.id)}
+                  className="p-2.5 text-left rounded border border-slate-200 hover:border-blue-500 hover:bg-blue-50/5 cursor-pointer transition flex items-center justify-between group"
+                >
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-slate-855 font-bold text-xs leading-tight truncate">{c.title}</span>
+                    <span className="text-slate-400 font-mono text-[10px] mt-0.5 font-bold">{c.code}</span>
+                  </div>
+                  <span className="h-5 w-5 shrink-0 rounded border border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:bg-blue-50/5 transition">
+                    <Plus className="h-3 w-3" />
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Selected Courses */}
+        <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
+          <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
+            <span className="font-extrabold text-[10px] text-slate-450 uppercase tracking-wider">Selected Courses</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-blue-100 text-[10px] font-extrabold text-blue-700">{selectedCourseIds.length}</span>
+              {selectedCourseIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCourseIds([])}
+                  className="text-[10px] font-extrabold text-red-600 hover:text-red-700 cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
+            {selectedCourses.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
+                No courses selected.
+              </div>
+            ) : (
+              selectedCourses.map(c => (
+                <div
+                  key={c.id}
+                  className="p-2.5 text-left rounded border border-blue-100 bg-blue-50/5 flex items-center justify-between"
+                >
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-slate-855 font-bold text-xs leading-tight truncate">{c.title}</span>
+                    <span className="text-slate-400 font-mono text-[10px] mt-0.5 font-bold">{c.code}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCourse(c.id)}
+                    className="h-5 w-5 shrink-0 rounded border border-red-100 text-red-600 flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition cursor-pointer"
+                    aria-label="Remove course"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderTargetScopeStep = () => (
+    <div className="admin-card p-4 space-y-3.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
+        <Users className="h-4 w-4 text-blue-600" />
+        <h2 className="text-xs font-bold text-slate-800">Define Target Scope</h2>
+      </div>
+
+      <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xxs max-w-xs select-none">
+        <button
+          type="button"
+          onClick={() => setTargetMode('group')}
+          className={`flex-1 py-1 text-center font-extrabold rounded transition cursor-pointer ${
+            targetMode === 'group' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Learner Group
+        </button>
+        <button
+          type="button"
+          onClick={() => setTargetMode('custom')}
+          className={`flex-1 py-1 text-center font-extrabold rounded transition cursor-pointer ${
+            targetMode === 'custom' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Custom EIds List
+        </button>
+      </div>
+
+      {targetMode === 'group' ? (
+        <div className="space-y-1 max-w-sm select-none">
+          <label htmlFor="groupId" className="block text-[10px] font-extrabold text-slate-400 uppercase">
+            Select Learner Group
+          </label>
+          <select
+            id="groupId"
+            value={selectedGroupId}
+            onChange={(e) => setSelectedGroupId(Number(e.target.value))}
+            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white focus:outline-none focus:border-blue-600 cursor-pointer"
+          >
+            <option value={0}>-- Select Group --</option>
+            {groups.map(g => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.memberCount} members)
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <label htmlFor="customEids" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+            Custom Employee EIds
+          </label>
+          <textarea
+            id="customEids"
+            rows={5}
+            value={customEidsInput}
+            onChange={(e) => setCustomEidsInput(e.target.value)}
+            placeholder="Enter employee EIds separated by comma or new lines (e.g. N130812, N142715)"
+            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-700 focus:outline-none focus:border-blue-600 bg-slate-50/10"
+          />
+        </div>
+      )}
+    </div>
+  )
+
+  const renderScheduleStep = () => (
+    <div className="admin-card p-4 space-y-3.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
+        <Calendar className="h-4 w-4 text-blue-600" />
+        <h2 className="text-xs font-bold text-slate-800">Set Dates & Schedules</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-w-md">
+        <div className="space-y-1">
+          <label htmlFor="startDate" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+            Start Date <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            id="startDate"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white cursor-pointer focus:outline-none focus:border-blue-600"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="dueDate" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+            Due / Expiry Date <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            id="dueDate"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white cursor-pointer focus:outline-none focus:border-blue-600"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="desc" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+          Batch Description / Memo
+        </label>
+        <textarea
+          id="desc"
+          rows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. Mandatory Cybersecurity training 2026"
+          className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs text-slate-700 bg-white focus:outline-none focus:border-blue-600 resize-y"
+        />
+      </div>
+    </div>
+  )
+
+  const renderConflictPreviewStep = () => {
+    if (!validationResult) return null
     return (
-      <button
-        key={label}
-        type="button"
-        onClick={() => {
-          if (stepNum <= currentStep || (
-            (stepNum === 2 && selectedCourseIds.length > 0) ||
-            (stepNum === 3 && selectedCourseIds.length > 0 && (targetMode === 'custom' ? getTargetCodes().length > 0 : selectedGroupId > 0)) ||
-            (stepNum === 4 && selectedCourseIds.length > 0 && (targetMode === 'custom' ? getTargetCodes().length > 0 : selectedGroupId > 0) && startDate && dueDate)
-          )) {
-            if (stepNum === 4) {
-              void runConflictValidation()
-            } else {
-              setCurrentStep(stepNum)
-            }
-          }
-        }}
-        className={`flex min-w-31 items-center gap-2 border px-3 py-2 text-left text-xs font-bold ${isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : isComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
-        aria-current={isActive ? 'step' : undefined}
-      >
-        <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-current text-xxs">{stepNum}</span>
-        <span>{label}</span>
-      </button>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
+          <ShieldCheck className="h-4 w-4 text-blue-600" />
+          <h2 className="text-xs font-bold text-slate-800">Conflict Validation Preview</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 select-none">
+          <div className="bg-emerald-50/30 border border-emerald-100 p-3 rounded text-center">
+            <span className="block text-[10px] font-extrabold text-emerald-600 uppercase">Ready to Enroll</span>
+            <span className="block text-xl font-extrabold text-emerald-700 mt-0.5">{validationResult.resolvedCount}</span>
+          </div>
+          <div className="bg-amber-50/30 border border-amber-100 p-3 rounded text-center">
+            <span className="block text-[10px] font-extrabold text-amber-600 uppercase">In Progress Attempts</span>
+            <span className="block text-xl font-extrabold text-amber-700 mt-0.5">{validationResult.inProgressConflicts.length}</span>
+          </div>
+          <div className="bg-slate-50/40 border border-slate-150 p-3 rounded text-center">
+            <span className="block text-[10px] font-extrabold text-slate-450 uppercase">Already Completed</span>
+            <span className="block text-xl font-extrabold text-slate-700 mt-0.5">{validationResult.completedConflicts.length}</span>
+          </div>
+        </div>
+
+        {/* Overrides */}
+        <div className="space-y-3 bg-slate-50/15 p-4 rounded border border-slate-200 select-none">
+          <span className="block text-[10px] font-extrabold text-slate-400 uppercase">Conflict Overrides Required</span>
+          
+          <div className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              id="confirmReassignInProgress"
+              checked={confirmReassignInProgress}
+              onChange={(e) => setConfirmReassignInProgress(e.target.checked)}
+              className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <label htmlFor="confirmReassignInProgress" className="text-xs font-semibold text-slate-500 cursor-pointer">
+              Force reset and reassign learners with active in-progress attempts.
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              id="confirmReassignCompleted"
+              checked={confirmReassignCompleted}
+              onChange={(e) => setConfirmReassignCompleted(e.target.checked)}
+              className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <label htmlFor="confirmReassignCompleted" className="text-xs font-semibold text-slate-500 cursor-pointer">
+              Force reassign and reset learners who already completed the course catalog before.
+            </label>
+          </div>
+        </div>
+      </div>
     )
   }
+
+  const steps: WizardStep[] = useMemo(() => [
+    { label: 'Choose Courses', validate: () => validateCourses(), render: () => renderChooseCoursesStep() },
+    { label: 'Target Scope', validate: () => validateScope(), render: () => renderTargetScopeStep() },
+    { 
+      label: 'Schedule', 
+      validate: async () => {
+        if (!startDate || !dueDate) {
+          toast.error('Start and Due dates are required')
+          return false
+        }
+        return await runConflictValidation()
+      }, 
+      render: () => renderScheduleStep() 
+    },
+    { label: 'Conflict Preview', render: () => renderConflictPreviewStep() }
+  ], [
+    courses, 
+    groups, 
+    selectedCourseIds, 
+    courseSearch, 
+    targetMode, 
+    selectedGroupId, 
+    customEidsInput, 
+    startDate, 
+    dueDate, 
+    description, 
+    confirmReassignInProgress, 
+    confirmReassignCompleted, 
+    validationResult,
+    validating
+  ])
 
   if (loadingLookups) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <div className="flex flex-col items-center gap-3 select-none">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-xs text-slate-500 font-bold">Loading assignment configurations...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (assignmentNo) {
+    return (
+      <div className="admin-grid-surface flex flex-col justify-center items-center py-12 text-center">
+        <div className="h-12 w-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-3xs select-none">
+          <Check className="h-6 w-6" />
+        </div>
+        <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">Deployment Successful!</h1>
+        <p className="text-xxs font-semibold text-slate-400 mt-1 max-w-sm select-none leading-relaxed">
+          Your courses have been successfully dispatched. Enrolled learners can now access training logs immediately.
+        </p>
+        <div className="mt-5 bg-slate-50 border border-slate-200 p-3 rounded font-mono text-xs max-w-xs w-full select-none">
+          <span className="block text-[10px] text-slate-400 font-sans uppercase font-extrabold mb-1">Assignment Batch No.</span>
+          <span className="font-bold text-blue-600 text-sm">{assignmentNo}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/assignments')}
+          className="admin-button admin-button--secondary mt-6 text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Back to Assignment Registry</span>
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="admin-grid-surface">
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
-      {/* Header and Stepper Progress */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-xxs font-extrabold uppercase text-slate-400">Assignments</div>
-          <h1 className="text-xl font-extrabold text-slate-800">Bulk Assign</h1>
-          <p className="text-sm font-medium text-slate-500">Choose catalog courses, define target audience scope, then review and dispatch.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {stepLabels.map(renderStepButton)}
-        </div>
-      </div>
+    <>
+      <AppWizard
+        title="Bulk Assign"
+        description="Choose catalog courses, define target audience scope, then review and dispatch."
+        eyebrow="Assignments"
+        steps={steps}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+        onCancel={() => navigate('/assignments')}
+        onSubmit={handleCommitAssignment}
+        submitLabel="Dispatch Assignment"
+        isSubmitting={submitting}
+        submitIcon={<Check className="h-3.5 w-3.5" />}
+      />
 
-      {/* Stepper Panels */}
-      <div className="min-h-0 flex-1">
-        <div className="admin-card p-5">
-          {/* Step 1: Choose Courses */}
-          {currentStep === 1 && (
-            <div className="flex flex-col gap-4 h-[calc(100vh-280px)] min-h-[480px]">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-blue-600" />
-                  <h2 className="text-sm font-bold text-slate-800">Select Syllabus Courses</h2>
-                </div>
-                <p className="text-xs text-slate-500 hidden sm:block">Choose catalog courses to assign to your target audience.</p>
-              </div>
-              
-              <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-                {/* Left Column: Available Catalog */}
-                <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
-                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
-                    <span className="font-bold text-xs text-slate-500 uppercase tracking-wider">Syllabus Catalog</span>
-                    <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xxs font-bold text-slate-600">{availableCourses.length}</span>
-                  </div>
-                  
-                  <div className="p-2 border-b border-slate-100 shrink-0">
-                    <input
-                      type="text"
-                      placeholder="Search catalog by title or code..."
-                      value={courseSearch}
-                      onChange={e => setCourseSearch(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-blue-600"
-                    />
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2 min-h-0">
-                    {visibleAvailableCourses.length === 0 ? (
-                      <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center">
-                        {courseSearch ? 'No matching courses found' : 'All courses selected'}
-                      </div>
-                    ) : (
-                      visibleAvailableCourses.map(c => (
-                        <div
-                          key={c.id}
-                          onClick={() => handleToggleCourse(c.id)}
-                          className="p-3 text-left rounded border border-slate-200 hover:border-blue-500 hover:bg-blue-50/10 cursor-pointer transition flex items-center justify-between group"
-                        >
-                          <div className="flex flex-col min-w-0 pr-2">
-                            <span className="text-slate-800 font-bold text-sm leading-tight truncate">{c.title}</span>
-                            <span className="text-slate-400 font-mono text-xxs mt-0.5">{c.code}</span>
-                          </div>
-                          <span className="h-5 w-5 shrink-0 rounded border border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:bg-blue-50 transition">
-                            <Plus className="h-3 w-3" />
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Column: Selected Courses */}
-                <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
-                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
-                    <span className="font-bold text-xs text-slate-500 uppercase tracking-wider">Selected Courses</span>
-                    <div className="flex items-center gap-3">
-                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-xxs font-bold text-blue-700">{selectedCourseIds.length}</span>
-                      {selectedCourseIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCourseIds([])}
-                          className="text-xxs font-bold text-red-600 hover:text-red-700 cursor-pointer"
-                        >
-                          Clear All
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2 min-h-0">
-                    {selectedCourses.length === 0 ? (
-                      <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center">
-                        No courses selected yet. Click items in the catalog to select them.
-                      </div>
-                    ) : (
-                      selectedCourses.map(c => (
-                        <div
-                          key={c.id}
-                          className="p-3 text-left rounded border border-blue-100 bg-blue-50/5 flex items-center justify-between"
-                        >
-                          <div className="flex flex-col min-w-0 pr-2">
-                            <span className="text-slate-800 font-bold text-sm leading-tight truncate">{c.title}</span>
-                            <span className="text-slate-400 font-mono text-xxs mt-0.5">{c.code}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleCourse(c.id)}
-                            className="h-5 w-5 shrink-0 rounded border border-red-200 text-red-600 flex items-center justify-center hover:bg-red-50 hover:border-red-300 transition cursor-pointer"
-                            aria-label="Remove course"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Choose Target Scope */}
-          {currentStep === 2 && (
-            <div className="space-y-5 flex-1">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Users className="h-5 w-5 text-blue-600" />
-                <h2 className="text-sm font-bold text-slate-800">Define Target Scope</h2>
-              </div>
-
-              <div className="flex items-center gap-4 bg-slate-50 p-2.5 rounded border border-slate-100 max-w-sm">
-                <button
-                  type="button"
-                  onClick={() => setTargetMode('group')}
-                  className={`flex-1 py-1.5 text-center text-xs font-bold rounded transition ${
-                    targetMode === 'group' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Learner Group
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTargetMode('custom')}
-                  className={`flex-1 py-1.5 text-center text-xs font-bold rounded transition ${
-                    targetMode === 'custom' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Custom EIds List
-                </button>
-              </div>
-
-              {targetMode === 'group' ? (
-                <div className="space-y-2 max-w-md">
-                  <label htmlFor="groupId" className="block text-xs font-bold text-slate-500 uppercase">
-                    Select Learner Group
-                  </label>
-                  <select
-                    id="groupId"
-                    value={selectedGroupId}
-                    onChange={(e) => setSelectedGroupId(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-800 bg-white focus:outline-none focus:border-blue-600"
-                  >
-                    <option value={0}>-- Select Group --</option>
-                    {groups.map(g => (
-                      <option key={g.id} value={g.id}>
-                        {g.name} ({g.memberCount} members)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <label htmlFor="customEids" className="block text-xs font-bold text-slate-500 uppercase">
-                    Custom Employee EIds
-                  </label>
-                  <textarea
-                    id="customEids"
-                    rows={5}
-                    value={customEidsInput}
-                    onChange={(e) => setCustomEidsInput(e.target.value)}
-                    placeholder="Enter employee EIds separated by comma or new lines:&#10;N130812&#10;N142715"
-                    className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-blue-600"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3: Date Schedules */}
-          {currentStep === 3 && (
-            <div className="space-y-5 flex-1">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <h2 className="text-sm font-bold text-slate-800">Set Dates & Schedules</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-xl">
-                <div className="space-y-1.5">
-                  <label htmlFor="startDate" className="block text-xs font-bold text-slate-500 uppercase">
-                    Start Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="startDate"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-800 bg-white"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="dueDate" className="block text-xs font-bold text-slate-500 uppercase">
-                    Due / Expiry Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="dueDate"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-800 bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-1.5">
-                <label htmlFor="desc" className="block text-xs font-bold text-slate-500 uppercase">
-                  Batch Description / Memo
-                </label>
-                <textarea
-                  id="desc"
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. Mandatory Cybersecurity training 2026"
-                  className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-800 bg-white focus:outline-none focus:border-blue-600 resize-none"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Preview & Conflict Handling */}
-          {currentStep === 4 && validationResult && (
-            <div className="space-y-5 flex-1">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <ShieldCheck className="h-5 w-5 text-blue-600" />
-                <h2 className="text-sm font-bold text-slate-800">Conflict Validation Preview</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded text-center">
-                  <span className="block text-xxs font-bold text-emerald-600 uppercase">Ready to Enroll</span>
-                  <span className="block text-3xl font-extrabold text-emerald-700 mt-1">{validationResult.resolvedCount}</span>
-                </div>
-                <div className="bg-amber-50 border border-amber-100 p-4 rounded text-center">
-                  <span className="block text-xxs font-bold text-amber-600 uppercase">In Progress Attempts</span>
-                  <span className="block text-3xl font-extrabold text-amber-700 mt-1">{validationResult.inProgressConflicts.length}</span>
-                </div>
-                <div className="bg-slate-50 border border-slate-100 p-4 rounded text-center">
-                  <span className="block text-xxs font-bold text-slate-500 uppercase">Already Completed</span>
-                  <span className="block text-3xl font-extrabold text-slate-700 mt-1">{validationResult.completedConflicts.length}</span>
-                </div>
-              </div>
-
-              {/* Overrides */}
-              <div className="space-y-3 bg-slate-50 p-4 rounded border border-slate-200">
-                <span className="block text-xs font-bold text-slate-700 uppercase mb-1">Conflict Overrides Required</span>
-                
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    id="confirmReassignInProgress"
-                    checked={confirmReassignInProgress}
-                    onChange={(e) => setConfirmReassignInProgress(e.target.checked)}
-                    className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
-                  />
-                  <label htmlFor="confirmReassignInProgress" className="text-xs font-semibold text-slate-600 select-none cursor-pointer">
-                    Force reset and reassign learners with active in-progress attempts.
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    id="confirmReassignCompleted"
-                    checked={confirmReassignCompleted}
-                    onChange={(e) => setConfirmReassignCompleted(e.target.checked)}
-                    className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
-                  />
-                  <label htmlFor="confirmReassignCompleted" className="text-xs font-semibold text-slate-600 select-none cursor-pointer">
-                    Force reassign and reset learners who already completed the course catalog before.
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Completed Screen */}
-          {currentStep === 5 && (
-            <div className="text-center py-8 space-y-4 flex-1 flex flex-col justify-center items-center">
-              <div className="h-14 w-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2 shadow-xs">
-                <Check className="h-8 w-8" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800">Deployment Successful!</h2>
-              <p className="text-sm text-slate-500 max-w-sm">
-                Your courses have been successfully dispatched. Enrolled learners can now access training logs immediately.
+      {/* Show full blocking screen validation indicator when running async validation between step 3 and 4 */}
+      {validating && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[9999] animate-fade-in select-none">
+          <div className="bg-white p-5 rounded-lg border border-slate-100 flex flex-col items-center gap-3 shadow-lg max-w-xs">
+            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+            <div className="text-center">
+              <p className="text-xs font-bold text-slate-800">Analyzing Syllabus Scope</p>
+              <p className="text-[10px] font-semibold text-slate-400 mt-0.5 leading-relaxed">
+                Checking for existing completion logs, in-progress attempts, and enrollments...
               </p>
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm max-w-xs w-full">
-                <span className="block text-xxs text-slate-400 font-sans uppercase font-bold mb-1">Assignment Batch No.</span>
-                <span className="font-extrabold text-blue-600 text-base">{assignmentNo}</span>
-              </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-
-      {/* Footer Navigation Buttons */}
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
-        {currentStep < 5 && (
-          <button
-            type="button"
-            onClick={() => navigate('/assignments')}
-            className="admin-button admin-button--secondary"
-          >
-            <X aria-hidden="true" />
-            <span>Cancel</span>
-          </button>
-        )}
-
-        {currentStep > 1 && currentStep < 5 && (
-          <button
-            type="button"
-            onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-            className="admin-button admin-button--secondary"
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span>Previous</span>
-          </button>
-        )}
-
-        {currentStep < 3 ? (
-          <button
-            type="button"
-            onClick={() => setCurrentStep(prev => Math.min(stepLabels.length, prev + 1))}
-            disabled={
-              (currentStep === 1 && selectedCourseIds.length === 0) ||
-              (currentStep === 2 && targetMode === 'group' && selectedGroupId === 0) ||
-              (currentStep === 2 && targetMode === 'custom' && getTargetCodes().length === 0)
-            }
-            className="admin-button admin-button--primary"
-          >
-            <ArrowRight aria-hidden="true" />
-            <span>Continue</span>
-          </button>
-        ) : currentStep === 3 ? (
-          <button
-            type="button"
-            onClick={runConflictValidation}
-            disabled={validating}
-            className="admin-button admin-button--primary disabled:opacity-55"
-          >
-            {validating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-            <span>Analyze Conflicts</span>
-          </button>
-        ) : currentStep === 4 ? (
-          <button
-            type="button"
-            onClick={handleCommitAssignment}
-            disabled={submitting}
-            className="admin-button admin-button--primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 disabled:opacity-55"
-          >
-            {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            <span>Dispatch Assignment</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => navigate('/assignments')}
-            className="admin-button admin-button--secondary"
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span>Back to Assignment Registry</span>
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
+      )}
+    </>
   )
 }

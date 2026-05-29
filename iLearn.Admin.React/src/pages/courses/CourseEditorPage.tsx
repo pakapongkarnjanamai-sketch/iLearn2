@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Check, FileArchive, Plus, RefreshCw, Save, Search, Upload, X } from 'lucide-react'
+import { 
+  ArrowDown, 
+  ArrowLeft, 
+  ArrowRight, 
+  ArrowUp, 
+  BookOpen, 
+  Check, 
+  FileArchive, 
+  Plus, 
+  RefreshCw, 
+  Save, 
+  Search, 
+  Upload, 
+  X,
+  Loader2 
+} from 'lucide-react'
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -65,8 +81,6 @@ type CourseApiResponse<T = CourseDetailData> = {
   data?: T
 }
 
-
-
 type ContentLibraryItem = CourseContentApiItem & {
   courseIdsCount?: number
 }
@@ -87,8 +101,6 @@ type CourseVersion = {
   id: number
   isActive?: boolean
 }
-
-const stepLabels = ['Information', 'Content', 'Review']
 
 const contentTypeOptions = [
   { id: 1, name: 'Learn' },
@@ -173,8 +185,6 @@ export function CourseEditorPage() {
       setLabel(String(id), formData.courseCode)
     }
   }, [formData.courseCode, id, isEditMode, setLabel])
-
-
 
   const loadLookups = useCallback(async () => {
     try {
@@ -276,8 +286,6 @@ export function CourseEditorPage() {
     categories.find(item => item.id === formData.categoryId)?.name || 'No category'
   ), [categories, formData.categoryId])
 
-
-
   const contentSummary = useMemo(() => ({
     total: contentItems.length,
     existing: contentItems.filter(item => item.source === 'library').length,
@@ -325,14 +333,6 @@ export function CourseEditorPage() {
 
     return true
   }
-
-  const goNext = () => {
-    if (currentStep === 1 && !validateDetails()) return
-    if (currentStep === 2 && !validateContent()) return
-    setCurrentStep(prev => Math.min(stepLabels.length, prev + 1))
-  }
-
-
 
   const addUploadedFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -445,8 +445,10 @@ export function CourseEditorPage() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault()
+    }
 
     if (!validateDetails() || !validateContent()) return
 
@@ -464,39 +466,16 @@ export function CourseEditorPage() {
     }
   }
 
-  const renderStepButton = (label: string, index: number) => {
-    const step = index + 1
-    const isActive = currentStep === step
-    const isComplete = currentStep > step
-
-    return (
-      <button
-        key={label}
-        type="button"
-        onClick={() => {
-          if (step <= currentStep || (step === 2 && validateDetails()) || (step === 3 && validateDetails() && validateContent())) {
-            setCurrentStep(step)
-          }
-        }}
-        className={`flex min-w-31 items-center gap-2 border px-3 py-2 text-left text-xs font-bold ${isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : isComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
-        aria-current={isActive ? 'step' : undefined}
-      >
-        <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-current text-xxs">{step}</span>
-        <span>{label}</span>
-      </button>
-    )
-  }
-
   const renderInformationStep = () => (
-    <div className="admin-card p-5">
-      <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-        <BookOpen className="h-5 w-5 text-blue-600" />
-        <h2 className="text-sm font-bold text-slate-800">Course Information</h2>
+    <div className="admin-card p-4 space-y-3.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
+        <BookOpen className="h-4 w-4 text-blue-600" />
+        <h2 className="text-xs font-bold text-slate-800">Course Information</h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <div className="space-y-1.5">
-          <label htmlFor="courseType" className="block text-xs font-bold text-slate-500 uppercase">
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+        <div className="space-y-1">
+          <label htmlFor="courseType" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
             Course Type <span className="text-red-500">*</span>
           </label>
           <select
@@ -504,15 +483,15 @@ export function CourseEditorPage() {
             name="courseType"
             value={formData.courseType}
             onChange={handleChange}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
           >
             <option value={0}>Select Type</option>
             {courseTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
           </select>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="courseCode" className="block text-xs font-bold text-slate-500 uppercase">
+        <div className="space-y-1">
+          <label htmlFor="courseCode" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
             Course Code <span className="text-red-500">*</span>
           </label>
           <input
@@ -522,12 +501,12 @@ export function CourseEditorPage() {
             value={formData.courseCode}
             onChange={handleChange}
             placeholder="e.g. CS-101"
-            className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="courseName" className="block text-xs font-bold text-slate-500 uppercase">
+        <div className="space-y-1">
+          <label htmlFor="courseName" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
             Course Title <span className="text-red-500">*</span>
           </label>
           <input
@@ -537,28 +516,28 @@ export function CourseEditorPage() {
             value={formData.courseName}
             onChange={handleChange}
             placeholder="e.g. Intro to Cybersecurity"
-            className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
           />
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label htmlFor="divisionId" className="block text-xs font-bold text-slate-500 uppercase">Division</label>
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+        <div className="space-y-1">
+          <label htmlFor="divisionId" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">Division</label>
           <select
             id="divisionId"
             name="divisionId"
             value={formData.divisionId}
             onChange={handleChange}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
           >
             <option value={0}>Select Division</option>
             {divisions.map(division => <option key={division.id} value={division.id}>{division.name}</option>)}
           </select>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="categoryId" className="block text-xs font-bold text-slate-500 uppercase">
+        <div className="space-y-1">
+          <label htmlFor="categoryId" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
             Category <span className="text-red-500">*</span>
           </label>
           <select
@@ -567,7 +546,7 @@ export function CourseEditorPage() {
             value={formData.categoryId}
             onChange={handleChange}
             disabled={formData.divisionId > 0 && filteredCategories.length === 0}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
           >
             <option value={0}>Select Category</option>
             {filteredCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -575,16 +554,16 @@ export function CourseEditorPage() {
         </div>
       </div>
 
-      <div className="mt-5 space-y-1.5">
-        <label htmlFor="description" className="block text-xs font-bold text-slate-500 uppercase">Description</label>
+      <div className="space-y-1">
+        <label htmlFor="description" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">Description</label>
         <textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleChange}
-          rows={5}
+          rows={4}
           placeholder="Course summary and objectives..."
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
         />
       </div>
     </div>
@@ -593,59 +572,59 @@ export function CourseEditorPage() {
   const renderContentRows = () => {
     if (contentItems.length === 0) {
       return (
-        <div className="flex min-h-36 items-center justify-center border border-dashed border-slate-200 text-sm font-semibold text-slate-400">
+        <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-xs font-semibold text-slate-400 select-none py-6">
           No content selected
         </div>
       )
     }
 
     return (
-      <div className="overflow-x-auto border border-slate-200">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500">
+      <div className="overflow-x-auto border border-slate-200 rounded">
+        <table className="min-w-full divide-y divide-slate-200 text-xs">
+          <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 select-none">
             <tr>
-              <th className="w-16 px-3 py-2 text-left">Order</th>
-              <th className="px-3 py-2 text-left">Content Name</th>
-              <th className="w-36 px-3 py-2 text-left">Source</th>
-              <th className="w-40 px-3 py-2 text-left">Content Type</th>
-              <th className="w-36 px-3 py-2 text-left">Status</th>
-              <th className="w-32 px-3 py-2 text-right">Actions</th>
+              <th className="w-12 px-3 py-1.5 text-left">Order</th>
+              <th className="px-3 py-1.5 text-left">Content Name</th>
+              <th className="w-28 px-3 py-1.5 text-left">Source</th>
+              <th className="w-36 px-3 py-1.5 text-left">Content Type</th>
+              <th className="w-28 px-3 py-1.5 text-left">Status</th>
+              <th className="w-28 px-3 py-1.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
             {contentItems.map((item, index) => {
               const readiness = getContentReadiness(item)
               return (
-                <tr key={item.uid}>
-                  <td className="px-3 py-2 font-bold text-slate-500">{index + 1}</td>
-                  <td className="px-3 py-2 font-semibold text-slate-800">{item.name}</td>
-                  <td className="px-3 py-2 text-slate-500">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
-                  <td className="px-3 py-2">
+                <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
+                  <td className="px-3 py-1.5 font-bold text-slate-400">{index + 1}</td>
+                  <td className="px-3 py-1.5 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
+                  <td className="px-3 py-1.5 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
+                  <td className="px-3 py-1.5">
                     {item.source === 'upload' ? (
                       <select
                         value={item.typeId}
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
-                        className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-sm focus:border-blue-600 focus:outline-none"
+                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
                       >
                         {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
                     ) : (
-                      <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                      <span className="font-semibold text-slate-600">{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2">
-                    <span className={`inline-flex border px-2 py-0.5 text-xs font-bold ${readiness.className}`}>{readiness.label}</span>
+                  <td className="px-3 py-1.5 select-none">
+                    <span className={`inline-flex border px-1.5 py-0.5 text-[10px] font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-1.5">
                     <div className="flex justify-end gap-1">
-                      <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="rounded border border-slate-200 p-1 text-slate-500 disabled:opacity-30" aria-label="Move content up">
-                        <ArrowUp className="h-3.5 w-3.5" />
+                      <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content up">
+                        <ArrowUp className="h-3 w-3" />
                       </button>
-                      <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="rounded border border-slate-200 p-1 text-slate-500 disabled:opacity-30" aria-label="Move content down">
-                        <ArrowDown className="h-3.5 w-3.5" />
+                      <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content down">
+                        <ArrowDown className="h-3 w-3" />
                       </button>
-                      <button type="button" onClick={() => removeContentItem(item.uid)} className="rounded border border-slate-200 p-1 text-red-600" aria-label="Remove content">
-                        <X className="h-3.5 w-3.5" />
+                      <button type="button" onClick={() => removeContentItem(item.uid)} className="rounded border border-slate-200 p-1 text-red-500 hover:text-red-700 hover:border-red-200 transition cursor-pointer" aria-label="Remove content">
+                        <X className="h-3 w-3" />
                       </button>
                     </div>
                   </td>
@@ -659,18 +638,18 @@ export function CourseEditorPage() {
   }
 
   const renderContentStep = () => (
-    <div className="admin-card min-h-0 p-5">
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+    <div className="admin-card min-h-0 p-4 flex flex-col gap-3.5">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 select-none">
         <div className="flex items-center gap-2">
-          <FileArchive className="h-5 w-5 text-blue-600" />
-          <h2 className="text-sm font-bold text-slate-800">Course Content</h2>
+          <FileArchive className="h-4 w-4 text-blue-600" />
+          <h2 className="text-xs font-bold text-slate-800">Course Content</h2>
         </div>
-        <span className="border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <span className="border border-slate-200 px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <label className="flex cursor-pointer items-center justify-center gap-2 border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-white hover:border-slate-300 transition duration-150">
-          <Upload className="h-5 w-5 text-blue-600" />
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 select-none">
+        <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
+          <Upload className="h-4 w-4 text-blue-600" />
           <span>Upload New SCORM</span>
           <input
             type="file"
@@ -690,179 +669,255 @@ export function CourseEditorPage() {
             setContentSearch('')
             setShowLibraryPopup(true)
           }}
-          className="flex cursor-pointer items-center justify-center gap-2 border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-white hover:border-slate-300 transition duration-150"
+          className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
         >
-          <BookOpen className="h-5 w-5 text-indigo-600" />
+          <BookOpen className="h-4 w-4 text-indigo-600" />
           <span>Select Existing Content</span>
         </button>
       </div>
 
-      {renderContentRows()}
-    </div>
-  )
-
-  const renderReviewStep = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="admin-card p-4">
-          <div className="text-xl font-bold text-slate-800">{contentSummary.total}</div>
-          <div className="text-xs font-bold uppercase text-slate-500">Total Content Items</div>
-        </div>
-        <div className="admin-card p-4">
-          <div className="text-xl font-bold text-slate-800">{contentSummary.existing}</div>
-          <div className="text-xs font-bold uppercase text-slate-500">Existing Content</div>
-        </div>
-        <div className="admin-card p-4">
-          <div className="text-xl font-bold text-slate-800">{contentSummary.uploads}</div>
-          <div className="text-xs font-bold uppercase text-slate-500">New Uploads</div>
-        </div>
-      </div>
-
-      <div className="admin-card p-5">
-        <div className="mb-3 text-sm font-bold text-slate-800">Course Details</div>
-        <dl className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2">
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Course Type</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{selectedCourseTypeName}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Course Code</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{formData.courseCode || 'Not set'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Course Title</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{formData.courseName || 'Not set'}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Division</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{selectedDivisionName}</dd>
-          </div>
-          <div className="border-b border-slate-100 pb-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Category</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{selectedCategoryName}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="admin-card p-5">
-        <div className="mb-3 text-sm font-bold text-slate-800">Content Review</div>
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         {renderContentRows()}
       </div>
     </div>
   )
 
+  const renderReviewStep = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
+        <div className="admin-card p-4">
+          <div className="text-lg font-extrabold text-slate-800">{contentSummary.total}</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">Total Content Items</div>
+        </div>
+        <div className="admin-card p-4">
+          <div className="text-lg font-extrabold text-slate-800">{contentSummary.existing}</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">Existing Content</div>
+        </div>
+        <div className="admin-card p-4">
+          <div className="text-lg font-extrabold text-slate-800">{contentSummary.uploads}</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">New Uploads</div>
+        </div>
+      </div>
+
+      <div className="admin-card p-4">
+        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Course Details</div>
+        <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
+          <div className="border-b border-slate-100 pb-2">
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Course Type</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{selectedCourseTypeName}</dd>
+          </div>
+          <div className="border-b border-slate-100 pb-2">
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Course Code</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{formData.courseCode || 'Not set'}</dd>
+          </div>
+          <div className="border-b border-slate-100 pb-2 md:col-span-2">
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Course Title</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{formData.courseName || 'Not set'}</dd>
+          </div>
+          <div className="border-b border-slate-100 pb-2">
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Division</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{selectedDivisionName}</dd>
+          </div>
+          <div className="border-b border-slate-100 pb-2">
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Category</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{selectedCategoryName}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="admin-card p-4">
+        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Content Review</div>
+        {renderContentRows()}
+      </div>
+    </div>
+  )
+
+  const steps: WizardStep[] = useMemo(() => [
+    { label: 'Information', validate: () => validateDetails(), render: () => renderInformationStep() },
+    { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
+    { label: 'Review', render: () => renderReviewStep() }
+  ], [formData, contentItems, divisions, categories, courseTypes, contentLibrary])
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <div className="flex flex-col items-center gap-3 select-none">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-xs text-slate-500 font-bold">Loading course details...</span>
+        </div>
       </div>
+    )
+  }
+
+  if (!isEditMode) {
+    return (
+      <>
+        <AppWizard
+          title="New Course"
+          description="Create the course, attach content, then review before saving."
+          eyebrow="Course Catalog"
+          steps={steps}
+          currentStep={currentStep}
+          onStepChange={setCurrentStep}
+          onCancel={() => navigate('/courses')}
+          onSubmit={handleSubmit}
+          submitLabel="Create Course"
+          isSubmitting={saving}
+        />
+
+        {/* Backdrop-blurred Library Picker Modal Overlay */}
+        {showLibraryPopup && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowLibraryPopup(false)}
+          >
+            <div
+              className="modal-window modal-window-lg p-5 relative animate-scale-in"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setShowLibraryPopup(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
+                aria-label="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
+                <BookOpen className="h-5 w-5 text-indigo-600" />
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800">Select Existing Content</h3>
+                  <p className="text-[10px] font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+                </div>
+              </div>
+
+              <div className="mb-3.5 flex items-center gap-2 border border-slate-200 bg-white px-2.5 py-1.5 rounded text-xs select-none">
+                <Search className="h-4 w-4 text-slate-400" />
+                <input
+                  value={contentSearch}
+                  onChange={event => setContentSearch(event.target.value)}
+                  placeholder="Search Content Library..."
+                  className="min-w-0 flex-1 border-0 bg-transparent text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto border border-slate-200 rounded custom-scrollbar select-none">
+                {visibleContentLibrary.length === 0 ? (
+                  <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">No content found matching search</div>
+                ) : visibleContentLibrary.map(item => {
+                  const readiness = getContentReadiness(createLibrarySelection(item))
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
+                      <div className="min-w-0">
+                        <div className="truncate font-bold text-slate-800 text-xs">{item.name}</div>
+                        <div className="mt-0.5 flex items-center gap-2 text-xxs text-slate-500 font-semibold">
+                          <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                          <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>{readiness.label}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => addExistingContent(item)}
+                        className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
+                        aria-label="Add content"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     )
   }
 
   return (
     <div className="admin-grid-surface">
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Header with Title and Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
-            <h1 className="text-xl font-extrabold text-slate-800">{isEditMode ? 'Edit Course' : 'New Course'}</h1>
-            <p className="text-sm font-medium text-slate-500">{isEditMode ? 'Update course properties and learning packages.' : 'Create the course, attach content, then review before saving.'}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {!isEditMode ? stepLabels.map(renderStepButton) : null}
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 select-none">
+              Course Catalog
+            </div>
+            <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">
+              Edit Course
+            </h1>
+            <p className="text-xxs font-semibold text-slate-400 mt-0.5 leading-normal select-none">
+              Update course properties and learning packages.
+            </p>
           </div>
         </div>
 
         {/* Tab Controls for Edit Mode */}
-        {isEditMode && (
-          <div className="border-b border-slate-200 mb-2 flex gap-4">
-            <button
-              type="button"
-              onClick={() => setActiveEditTab('properties')}
-              className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition relative cursor-pointer ${
-                activeEditTab === 'properties'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Course Properties
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveEditTab('content')}
-              className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition relative cursor-pointer ${
-                activeEditTab === 'content'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              SCORM Content & Library
-            </button>
-          </div>
-        )}
+        <div className="border-b border-slate-200 mb-1 flex gap-4 shrink-0 select-none">
+          <button
+            type="button"
+            onClick={() => setActiveEditTab('properties')}
+            className={`pb-2 font-extrabold text-xxs uppercase tracking-wider transition relative cursor-pointer ${
+              activeEditTab === 'properties'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Course Properties
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveEditTab('content')}
+            className={`pb-2 font-extrabold text-xxs uppercase tracking-wider transition relative cursor-pointer ${
+              activeEditTab === 'content'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            SCORM Content & Library
+          </button>
+        </div>
 
-        <div className="min-h-0 flex-1 flex flex-col">
-          {!isEditMode ? (
-            <>
-              {currentStep === 1 ? (
-                <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-                  {renderInformationStep()}
-                </div>
-              ) : null}
-              {currentStep === 2 ? (
-                <div className="min-h-0 flex-1 flex flex-col">
-                  {renderContentStep()}
-                </div>
-              ) : null}
-              {currentStep === 3 ? (
-                <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-                  {renderReviewStep()}
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <>
-              {activeEditTab === 'properties' ? (
-                <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-                  {renderInformationStep()}
-                </div>
-              ) : null}
-              {activeEditTab === 'content' ? (
-                <div className="min-h-0 flex-1 flex flex-col mt-1">
-                  {renderContentStep()}
-                </div>
-              ) : null}
-            </>
+        {/* Content Panel Zone */}
+        <div className="min-h-0 flex-1 flex flex-col relative">
+          <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+            {activeEditTab === 'properties' ? renderInformationStep() : renderContentStep()}
+          </div>
+          
+          {saving && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
+              <div className="flex flex-col items-center gap-2.5 select-none">
+                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
+        {/* Navigation Buttons Pinned Footer */}
+        <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3 shrink-0">
           <button
             type="button"
-            onClick={() => navigate(isEditMode && id ? `/courses/${id}` : '/courses')}
-            className="admin-button admin-button--secondary"
+            onClick={() => navigate(`/courses/${id}`)}
+            className="admin-button admin-button--secondary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
           >
-            <X aria-hidden="true" />
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Cancel</span>
           </button>
 
-          {!isEditMode && currentStep > 1 ? (
-            <button type="button" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className="admin-button admin-button--secondary">
-              <ArrowLeft aria-hidden="true" />
-              <span>Previous</span>
-            </button>
-          ) : null}
-
-          {!isEditMode && currentStep < stepLabels.length ? (
-            <button type="button" onClick={event => { event.preventDefault(); event.stopPropagation(); goNext() }} className="admin-button admin-button--primary">
-              <ArrowRight aria-hidden="true" />
-              <span>Continue</span>
-            </button>
-          ) : (
-            <button type="submit" disabled={saving} className="admin-button admin-button--primary disabled:opacity-55">
-              {saving ? <RefreshCw className="animate-spin" aria-hidden="true" /> : isEditMode ? <Save aria-hidden="true" /> : <Check aria-hidden="true" />}
-              <span>{isEditMode ? 'Save Changes' : 'Create Course'}</span>
-            </button>
-          )}
+          <button 
+            type="submit" 
+            disabled={saving} 
+            className="admin-button admin-button--primary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
+          >
+            {saving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            <span>Save Changes</span>
+          </button>
         </div>
       </form>
 
@@ -879,51 +934,51 @@ export function CourseEditorPage() {
             <button
               type="button"
               onClick={() => setShowLibraryPopup(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
               aria-label="Close modal"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8">
+            <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
               <BookOpen className="h-5 w-5 text-indigo-600" />
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Select Existing Content</h3>
-                <p className="text-xxs font-medium text-slate-400">Choose from SCORM packages in the Content Library</p>
+                <h3 className="text-xs font-bold text-slate-800">Select Existing Content</h3>
+                <p className="text-[10px] font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
               </div>
             </div>
 
-            <div className="mb-4 flex items-center gap-2 border border-slate-200 bg-white px-3 py-2.5">
+            <div className="mb-3.5 flex items-center gap-2 border border-slate-200 bg-white px-2.5 py-1.5 rounded text-xs select-none">
               <Search className="h-4 w-4 text-slate-400" />
               <input
                 value={contentSearch}
                 onChange={event => setContentSearch(event.target.value)}
                 placeholder="Search Content Library..."
-                className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-800 outline-none"
+                className="min-w-0 flex-1 border-0 bg-transparent text-xs text-slate-800 outline-none"
               />
             </div>
 
-            <div className="max-h-96 divide-y divide-slate-100 overflow-y-auto border border-slate-200 custom-scrollbar">
+            <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto border border-slate-200 rounded custom-scrollbar select-none">
               {visibleContentLibrary.length === 0 ? (
-                <div className="px-3 py-8 text-center text-sm font-semibold text-slate-400">No content found matching search</div>
+                <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">No content found matching search</div>
               ) : visibleContentLibrary.map(item => {
                 const readiness = getContentReadiness(createLibrarySelection(item))
                 return (
-                  <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2.5 hover:bg-slate-50/50 transition">
+                  <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
                     <div className="min-w-0">
-                      <div className="truncate font-bold text-slate-800">{item.name}</div>
-                      <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+                      <div className="truncate font-bold text-slate-800 text-xs">{item.name}</div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xxs text-slate-500 font-semibold">
                         <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
-                        <span className={`border px-1.5 py-0.5 font-bold ${readiness.className}`}>{readiness.label}</span>
+                        <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>{readiness.label}</span>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => addExistingContent(item)}
-                      className="rounded-md border border-indigo-100 p-2 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
+                      className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
                       aria-label="Add content"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 )

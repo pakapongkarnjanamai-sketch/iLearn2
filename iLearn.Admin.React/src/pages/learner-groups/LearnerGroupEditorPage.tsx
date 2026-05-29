@@ -1,10 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, Plus, RefreshCw, Save, Users, X } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Check, 
+  Plus, 
+  RefreshCw, 
+  Save, 
+  Users, 
+  X,
+  Loader2
+} from 'lucide-react'
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
+import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -24,8 +35,6 @@ type GroupApiResponse<T = GroupFormData & { id: number }> = {
   message?: string
   data?: T
 }
-
-const stepLabels = ['Information', 'Members', 'Review']
 
 function unwrapList<T>(value: LoadResult<T> | undefined): T[] {
   if (!value) return []
@@ -143,11 +152,6 @@ export function LearnerGroupEditorPage() {
     return true
   }
 
-  const goNext = () => {
-    if (currentStep === 1 && !validateInformation()) return
-    setCurrentStep(prev => Math.min(stepLabels.length, prev + 1))
-  }
-
   const addMemberCodes = () => {
     const parsedCodes = parseLearnerCodes(memberInput)
     if (parsedCodes.length === 0) {
@@ -182,8 +186,10 @@ export function LearnerGroupEditorPage() {
     learnerCodes: selectedLearnerCodes
   })
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const handleSubmit = async (event?: React.FormEvent) => {
+    if (event) {
+      event.preventDefault()
+    }
     if (!validateInformation()) return
 
     setSaving(true)
@@ -223,38 +229,15 @@ export function LearnerGroupEditorPage() {
     }
   }
 
-  const renderStepButton = (label: string, index: number) => {
-    const step = index + 1
-    const isActive = currentStep === step
-    const isComplete = currentStep > step
-
-    return (
-      <button
-        key={label}
-        type="button"
-        onClick={() => {
-          if (step <= currentStep || validateInformation()) {
-            setCurrentStep(step)
-          }
-        }}
-        className={`flex min-w-31 items-center gap-2 border px-3 py-2 text-left text-xs font-bold ${isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : isComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
-        aria-current={isActive ? 'step' : undefined}
-      >
-        <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-current text-xxs">{step}</span>
-        <span>{label}</span>
-      </button>
-    )
-  }
-
   const renderInformationStep = () => (
-    <div className="admin-card p-5">
-      <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-        <Users className="h-5 w-5 text-blue-600" />
-        <h2 className="text-sm font-bold text-slate-800">Group Information</h2>
+    <div className="admin-card p-4 space-y-3.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
+        <Users className="h-4 w-4 text-blue-600" />
+        <h2 className="text-xs font-bold text-slate-800">Group Information</h2>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="name" className="block text-xs font-bold text-slate-500 uppercase">
+      <div className="space-y-1">
+        <label htmlFor="name" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
           Group Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -264,26 +247,26 @@ export function LearnerGroupEditorPage() {
           value={formData.name}
           onChange={handleChange}
           placeholder="e.g. New Hires 2026 Q1"
-          className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
         />
       </div>
 
-      <div className="mt-5 space-y-1.5">
-        <label htmlFor="categoryId" className="block text-xs font-bold text-slate-500 uppercase">Category</label>
+      <div className="space-y-1">
+        <label htmlFor="categoryId" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">Category</label>
         <select
           id="categoryId"
           name="categoryId"
           value={formData.categoryId}
           onChange={handleChange}
-          className="w-full max-w-lg rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+          className="w-full max-w-md rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
         >
           <option value={0}>No category (root)</option>
           {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
         </select>
       </div>
 
-      <div className="mt-5 space-y-1.5">
-        <label htmlFor="description" className="block text-xs font-bold text-slate-500 uppercase">
+      <div className="space-y-1">
+        <label htmlFor="description" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
           Description <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -291,29 +274,29 @@ export function LearnerGroupEditorPage() {
           name="description"
           value={formData.description}
           onChange={handleChange}
-          rows={5}
+          rows={4}
           placeholder="Brief description of this group's purpose"
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
         />
       </div>
     </div>
   )
 
   const renderMembersStep = () => (
-    <div className="min-h-0 flex-1 flex flex-col gap-4">
-      <div className="admin-card p-5 flex flex-col min-h-0 flex-1">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 shrink-0">
+    <div className="min-h-0 flex-1 flex flex-col gap-3.5">
+      <div className="admin-card p-4 flex flex-col min-h-0 flex-1 gap-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2.5 shrink-0 select-none">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-600" />
-            <h2 className="text-sm font-bold text-slate-800">Add Group Members</h2>
+            <Users className="h-4 w-4 text-blue-600" />
+            <h2 className="text-xs font-bold text-slate-800">Add Group Members</h2>
           </div>
           
-          <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100 select-none">
+          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xxs">
             <button
               type="button"
               onClick={() => setActiveTab('picker')}
-              className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                activeTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-850'
+              className={`px-2.5 py-1 text-center font-extrabold rounded transition cursor-pointer ${
+                activeTab === 'picker' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Directory Search
@@ -321,8 +304,8 @@ export function LearnerGroupEditorPage() {
             <button
               type="button"
               onClick={() => setActiveTab('bulk')}
-              className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                activeTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-850'
+              className={`px-2.5 py-1 text-center font-extrabold rounded transition cursor-pointer ${
+                activeTab === 'bulk' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Bulk Import (EIds)
@@ -333,52 +316,52 @@ export function LearnerGroupEditorPage() {
         {activeTab === 'picker' ? (
           <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
         ) : (
-          <div className="space-y-4">
-            <p className="text-xs font-medium text-slate-500">
+          <div className="space-y-3.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1">
+            <p className="text-xxs font-semibold text-slate-400 select-none leading-relaxed">
               Bulk paste employee EIds here. They will be integrated directly into your selection workspace.
             </p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
               <textarea
                 value={memberInput}
                 onChange={event => setMemberInput(event.target.value)}
-                rows={7}
+                rows={5}
                 placeholder="Paste employee EIds separated by comma, space, or new line (e.g. N130812, N142715)"
-                className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-slate-800 focus:border-blue-600 focus:outline-none bg-slate-50/50"
+                className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs text-slate-700 focus:border-blue-600 focus:outline-none bg-slate-50/10"
               />
               <button
                 type="button"
                 onClick={addMemberCodes}
                 disabled={!memberInput.trim()}
-                className="admin-button admin-button--primary self-start shadow-xs disabled:opacity-55"
+                className="admin-button admin-button--primary self-start text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
               >
-                <Plus aria-hidden="true" />
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Import Codes</span>
               </button>
             </div>
 
             {/* List of currently selected ones for preview */}
-            <div className="mt-4 border border-slate-200 rounded overflow-hidden">
-              <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-500 uppercase">
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-[10px] font-extrabold text-slate-400 uppercase select-none">
                 <span>Selected Codes Ledger</span>
                 <span>{selectedLearners.length} Users</span>
               </div>
-              <div className="max-h-60 overflow-y-auto custom-scrollbar bg-white divide-y divide-slate-100">
+              <div className="max-h-56 overflow-y-auto custom-scrollbar bg-white divide-y divide-slate-100">
                 {selectedLearners.length === 0 ? (
-                  <div className="px-3 py-6 text-center text-slate-400 text-xs font-semibold">No initial members selected</div>
+                  <div className="px-3 py-6 text-center text-slate-400 text-xxs font-bold select-none">No initial members selected</div>
                 ) : (
                   selectedLearners.map((learner, index) => (
-                    <div key={learner.code} className="px-4 py-2 text-xs flex items-center justify-between font-medium">
-                      <div className="flex gap-4 items-center">
-                        <span className="font-bold text-slate-400 w-8">{index + 1}</span>
-                        <span className="font-mono text-slate-800 font-semibold">{learner.code}</span>
+                    <div key={learner.code} className="px-3 py-1.5 text-xxs flex items-center justify-between font-semibold">
+                      <div className="flex gap-3 items-center">
+                        <span className="font-extrabold text-slate-400 w-6">{index + 1}</span>
+                        <span className="font-mono text-slate-800 font-bold">{learner.code}</span>
                         {learner.name !== learner.code && (
-                          <span className="text-slate-500 truncate">({learner.name})</span>
+                          <span className="text-slate-400 truncate font-semibold">({learner.name})</span>
                         )}
                       </div>
                       <button
                         type="button"
                         onClick={() => removeMemberCode(learner.code)}
-                        className="text-red-500 hover:text-red-750 font-semibold"
+                        className="text-red-500 hover:text-red-700 font-bold transition cursor-pointer"
                       >
                         Remove
                       </button>
@@ -395,40 +378,40 @@ export function LearnerGroupEditorPage() {
 
   const renderReviewStep = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
         <div className="admin-card p-4">
-          <div className="text-xl font-bold text-slate-800">{selectedLearners.length}</div>
-          <div className="text-xs font-bold uppercase text-slate-500">Initial Members</div>
+          <div className="text-lg font-extrabold text-slate-800">{selectedLearners.length}</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">Initial Members</div>
         </div>
-        <div className="admin-card p-4 md:col-span-2">
-          <div className="text-xl font-bold text-slate-800">{selectedCategoryName}</div>
-          <div className="text-xs font-bold uppercase text-slate-500">Category</div>
+        <div className="admin-card p-4 sm:col-span-2">
+          <div className="text-lg font-extrabold text-slate-800">{selectedCategoryName}</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">Category</div>
         </div>
       </div>
 
-      <div className="admin-card p-5">
-        <div className="mb-3 text-sm font-bold text-slate-800">Group Details</div>
-        <dl className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2">
+      <div className="admin-card p-4">
+        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Group Details</div>
+        <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
           <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Group Name</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{formData.name || 'Not set'}</dd>
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Group Name</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-xs font-bold uppercase text-slate-500">Description</dt>
-            <dd className="mt-1 font-semibold text-slate-800">{formData.description || 'Not set'}</dd>
+            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Description</dt>
+            <dd className="mt-1 font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
           </div>
         </dl>
       </div>
 
-      <div className="admin-card p-5">
-        <div className="mb-3 text-sm font-bold text-slate-800">Initial Members</div>
-        <div className="flex flex-wrap gap-2">
+      <div className="admin-card p-4">
+        <div className="mb-3 text-xs font-bold text-slate-800 select-none">Initial Members</div>
+        <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
           {selectedLearners.length === 0 ? (
-            <span className="font-semibold text-slate-400">No initial members selected</span>
+            <span className="font-semibold text-slate-400 text-xxs select-none">No initial members selected</span>
           ) : selectedLearners.map(learner => (
             <span
               key={learner.code}
-              className="border border-slate-200 bg-white px-2 py-1 font-mono text-sm font-semibold text-slate-700 rounded-sm"
+              className="border border-slate-200 bg-white px-2 py-0.5 font-mono text-xxs font-extrabold text-slate-700 rounded-sm select-none"
               title={learner.name}
             >
               {learner.code}
@@ -439,10 +422,19 @@ export function LearnerGroupEditorPage() {
     </div>
   )
 
+  const steps: WizardStep[] = useMemo(() => [
+    { label: 'Information', validate: () => validateInformation(), render: () => renderInformationStep() },
+    { label: 'Members', render: () => renderMembersStep() },
+    { label: 'Review', render: () => renderReviewStep() }
+  ], [formData, selectedLearners, categories, activeTab, memberInput])
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <div className="flex flex-col items-center gap-3 select-none">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-xs text-slate-500 font-bold">Loading group details...</span>
+        </div>
       </div>
     )
   }
@@ -452,20 +444,51 @@ export function LearnerGroupEditorPage() {
       <div className="admin-grid-surface">
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4 max-w-3xl">
           <div className="flex items-center justify-between gap-3 shrink-0">
-            <h1 className="text-xl font-extrabold text-slate-800">Edit Learner Group</h1>
+            <div>
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 select-none">
+                Learner Directory
+              </div>
+              <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">
+                Edit Learner Group
+              </h1>
+              <p className="text-xxs font-semibold text-slate-400 mt-0.5 leading-normal select-none">
+                Adjust group names, descriptive categories, and targets.
+              </p>
+            </div>
           </div>
           
-          <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
+          <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1 relative">
             {renderInformationStep()}
+
+            {saving && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
+                <div className="flex flex-col items-center gap-2.5 select-none">
+                  <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                  <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
+                </div>
+              </div>
+            )}
           </div>
           
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
-            <button type="button" onClick={() => navigate(`/learner-groups/${id}`)} className="admin-button admin-button--secondary">
-              <X aria-hidden="true" />
+          <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3 shrink-0">
+            <button 
+              type="button" 
+              onClick={() => navigate(`/learner-groups/${id}`)} 
+              className="admin-button admin-button--secondary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Cancel</span>
             </button>
-            <button type="submit" disabled={saving} className="admin-button admin-button--primary disabled:opacity-55">
-              {saving ? <RefreshCw className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />}
+            <button 
+              type="submit" 
+              disabled={saving} 
+              className="admin-button admin-button--primary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
+            >
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Save className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
               <span>Save Changes</span>
             </button>
           </div>
@@ -475,62 +498,17 @@ export function LearnerGroupEditorPage() {
   }
 
   return (
-    <div className="admin-grid-surface">
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-800">New Learner Group</h1>
-            <p className="text-sm font-medium text-slate-500">Create the group, add optional initial members, then review before saving.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {stepLabels.map(renderStepButton)}
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 flex flex-col">
-          {currentStep === 1 ? (
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-              {renderInformationStep()}
-            </div>
-          ) : null}
-          {currentStep === 2 ? (
-            <div className="min-h-0 flex-1 flex flex-col">
-              {renderMembersStep()}
-            </div>
-          ) : null}
-          {currentStep === 3 ? (
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-              {renderReviewStep()}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
-          <button type="button" onClick={() => navigate('/learner-groups')} className="admin-button admin-button--secondary">
-            <X aria-hidden="true" />
-            <span>Cancel</span>
-          </button>
-
-          {currentStep > 1 ? (
-            <button type="button" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className="admin-button admin-button--secondary">
-              <ArrowLeft aria-hidden="true" />
-              <span>Previous</span>
-            </button>
-          ) : null}
-
-          {currentStep < stepLabels.length ? (
-            <button type="button" onClick={event => { event.preventDefault(); event.stopPropagation(); goNext() }} className="admin-button admin-button--primary">
-              <ArrowRight aria-hidden="true" />
-              <span>Continue</span>
-            </button>
-          ) : (
-            <button type="submit" disabled={saving} className="admin-button admin-button--primary disabled:opacity-55">
-              {saving ? <RefreshCw className="animate-spin" aria-hidden="true" /> : <Check aria-hidden="true" />}
-              <span>Create Group</span>
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
+    <AppWizard
+      title="New Learner Group"
+      description="Create the group, add optional initial members, then review before saving."
+      eyebrow="Learner Directory"
+      steps={steps}
+      currentStep={currentStep}
+      onStepChange={setCurrentStep}
+      onCancel={() => navigate('/learner-groups')}
+      onSubmit={handleSubmit}
+      submitLabel="Create Group"
+      isSubmitting={saving}
+    />
   )
 }

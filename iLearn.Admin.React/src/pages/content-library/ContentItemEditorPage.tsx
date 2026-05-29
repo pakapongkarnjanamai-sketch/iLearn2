@@ -1,18 +1,17 @@
 import { useEffect, useState, useMemo, type FormEvent } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { 
-  ArrowLeft, 
-  ArrowRight,
   Upload, 
   Loader2, 
   Check, 
-  X, 
   Library, 
   Info, 
-  FileArchive 
+  FileArchive,
+  X 
 } from 'lucide-react'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 
 const TYPE_OPTIONS = [
   { value: 1, label: 'Learn — instructional content' },
@@ -38,12 +37,6 @@ export function ContentItemEditorPage() {
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1)
 
-  const stepLabels = useMemo(() => (
-    isCreate 
-      ? ['Metadata', 'Package Upload', 'Review']
-      : ['Metadata', 'Review']
-  ), [isCreate])
-
   useEffect(() => {
     if (isCreate) return
     let cancelled = false
@@ -61,8 +54,7 @@ export function ContentItemEditorPage() {
     }
   }, [id, isCreate])
 
-  const handleUpload = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleUpload = async () => {
     if (!file) {
       toast.error('Please choose a SCORM .zip file')
       return
@@ -100,8 +92,7 @@ export function ContentItemEditorPage() {
     }
   }
 
-  const handleSave = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSave = async () => {
     if (!id) return
     if (!form.name.trim()) {
       toast.error('Name is required')
@@ -142,50 +133,15 @@ export function ContentItemEditorPage() {
     return true
   }
 
-  const goNext = () => {
-    if (currentStep === 1 && !validateMetadata()) return
-    if (isCreate && currentStep === 2 && !validateUpload()) return
-    setCurrentStep(prev => Math.min(stepLabels.length, prev + 1))
-  }
-
-  const renderStepButton = (label: string, index: number) => {
-    const step = index + 1
-    const isActive = currentStep === step
-    const isComplete = currentStep > step
-
-    return (
-      <button
-        key={label}
-        type="button"
-        onClick={() => {
-          if (step <= currentStep || (currentStep === 1 && validateMetadata()) || (isCreate && currentStep === 2 && validateUpload())) {
-            setCurrentStep(step)
-          }
-        }}
-        className={`flex min-w-31 items-center gap-2 border px-3 py-2 text-left text-xs font-bold rounded transition cursor-pointer select-none ${
-          isActive 
-            ? 'border-blue-500 bg-blue-50 text-blue-700' 
-            : isComplete 
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-              : 'border-slate-200 bg-white text-slate-500'
-        }`}
-        aria-current={isActive ? 'step' : undefined}
-      >
-        <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-current text-xxs">{step}</span>
-        <span>{label}</span>
-      </button>
-    )
-  }
-
   const renderMetadataStep = () => (
-    <div className="admin-card p-5 max-w-2xl space-y-4">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
-        <Library className="h-5 w-5 text-blue-600" />
-        <h2 className="text-sm font-bold text-slate-800">Content Item Specifications</h2>
+    <div className="admin-card p-4 max-w-xl space-y-3.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1.5">
+        <Library className="h-4 w-4 text-blue-600" />
+        <h2 className="text-xs font-bold text-slate-800">Content Item Specifications</h2>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="block text-xs font-bold text-slate-500 uppercase">
+      <div className="space-y-1">
+        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">
           Display Name {!isCreate && <span className="text-red-500">*</span>}
         </label>
         <input
@@ -193,16 +149,16 @@ export function ContentItemEditorPage() {
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder={isCreate ? 'Leave blank to use ZIP filename as fallback' : 'Required'}
-          className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
         />
       </div>
 
-      <div className="space-y-1.5">
-        <label className="block text-xs font-bold text-slate-500 uppercase">Content Type</label>
+      <div className="space-y-1">
+        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Content Type</label>
         <select
           value={form.typeId}
           onChange={(e) => setForm((f) => ({ ...f, typeId: Number(e.target.value) }))}
-          className="w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-600 focus:outline-none cursor-pointer"
+          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
         >
           {TYPE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -215,29 +171,29 @@ export function ContentItemEditorPage() {
   )
 
   const renderUploadStep = () => (
-    <div className="admin-card p-5 max-w-2xl space-y-4">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
-        <Upload className="h-5 w-5 text-blue-600" />
-        <h2 className="text-sm font-bold text-slate-800">SCORM Package Upload</h2>
+    <div className="admin-card p-4 max-w-xl space-y-3.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1.5">
+        <Upload className="h-4 w-4 text-blue-600" />
+        <h2 className="text-xs font-bold text-slate-800">SCORM Package Upload</h2>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="block text-xs font-bold text-slate-500 uppercase">SCORM Package (.zip)</label>
+      <div className="space-y-1">
+        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">SCORM Package (.zip)</label>
         <input
           type="file"
           accept=".zip,application/zip"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="block w-full rounded border border-dashed border-slate-300 px-4 py-6 text-xs text-slate-600 bg-slate-50/30 hover:bg-slate-50 hover:border-blue-500 transition cursor-pointer"
+          className="block w-full rounded border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 bg-slate-50/20 hover:bg-slate-50 hover:border-blue-500 transition cursor-pointer"
         />
-        <p className="mt-1.5 text-xxs text-slate-400 font-semibold leading-relaxed">
+        <p className="mt-1 text-[10px] text-slate-400 font-medium leading-relaxed">
           Supports SCORM 1.2 and SCORM 2004 standards. Maximum bundle size limit is 100 MB or 1,000 internal directory entries.
         </p>
       </div>
 
       {file && (
-        <div className="mt-4 p-4 border border-blue-100 bg-blue-50/20 rounded flex items-center justify-between select-none">
-          <div className="flex items-center gap-3">
-            <FileArchive className="h-8 w-8 text-blue-600 shrink-0" />
+        <div className="mt-3 p-3 border border-blue-100 bg-blue-50/15 rounded flex items-center justify-between select-none">
+          <div className="flex items-center gap-2.5">
+            <FileArchive className="h-6 w-6 text-blue-600 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
               <p className="text-[10px] font-mono text-slate-400 mt-0.5">{Math.round(file.size / 1024)} KB</p>
@@ -246,9 +202,9 @@ export function ContentItemEditorPage() {
           <button 
             type="button" 
             onClick={() => setFile(null)}
-            className="p-1 rounded-full text-slate-400 hover:bg-slate-150 hover:text-slate-600 transition"
+            className="p-1 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
@@ -258,26 +214,26 @@ export function ContentItemEditorPage() {
   const renderReviewStep = () => {
     const selectedTypeName = TYPE_OPTIONS.find(o => o.value === form.typeId)?.label || 'Instructional Content'
     return (
-      <div className="max-w-2xl space-y-4">
-        <div className="admin-card p-5">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
-            <Info className="h-5 w-5 text-blue-600" />
-            <h2 className="text-sm font-bold text-slate-800">Review Specifications</h2>
+      <div className="max-w-xl space-y-3.5">
+        <div className="admin-card p-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-3">
+            <Info className="h-4 w-4 text-blue-600" />
+            <h2 className="text-xs font-bold text-slate-800">Review Specifications</h2>
           </div>
 
           <dl className="divide-y divide-slate-100 text-xs select-none">
-            <div className="grid grid-cols-3 py-3 font-semibold">
-              <dt className="text-slate-500 uppercase font-bold">Display Name</dt>
-              <dd className="col-span-2 text-slate-800 font-bold">{form.name.trim() || (file ? file.name : '—') || 'Unnamed package'}</dd>
+            <div className="grid grid-cols-3 py-2 font-semibold">
+              <dt className="text-slate-400 uppercase font-bold text-[10px]">Display Name</dt>
+              <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || (file ? file.name : '—') || 'Unnamed package'}</dd>
             </div>
-            <div className="grid grid-cols-3 py-3 font-semibold">
-              <dt className="text-slate-500 uppercase font-bold">Content Type</dt>
-              <dd className="col-span-2 text-slate-800">{selectedTypeName}</dd>
+            <div className="grid grid-cols-3 py-2 font-semibold">
+              <dt className="text-slate-400 uppercase font-bold text-[10px]">Content Type</dt>
+              <dd className="col-span-2 text-slate-700">{selectedTypeName}</dd>
             </div>
             {isCreate && (
-              <div className="grid grid-cols-3 py-3 font-semibold">
-                <dt className="text-slate-500 uppercase font-bold">Target SCORM Package</dt>
-                <dd className="col-span-2 text-slate-800 font-mono">
+              <div className="grid grid-cols-3 py-2 font-semibold">
+                <dt className="text-slate-400 uppercase font-bold text-[10px]">Target SCORM Package</dt>
+                <dd className="col-span-2 text-slate-700 font-mono">
                   {file ? `${file.name} (${Math.round(file.size / 1024)} KB)` : 'No file selected'}
                 </dd>
               </div>
@@ -285,7 +241,7 @@ export function ContentItemEditorPage() {
           </dl>
         </div>
 
-        <div className="p-4 border border-blue-100 bg-blue-50/20 rounded-lg text-xs leading-relaxed text-blue-700 font-semibold select-none">
+        <div className="p-3 border border-blue-100 bg-blue-50/15 rounded-lg text-xxs leading-relaxed text-blue-600 font-semibold select-none">
           {isCreate ? (
             <p>
               Upon clicking "Upload Package", the SCORM zip package will be processed, uploaded, and extracted on the server. The content starts in Draft status. You can publish and test launch it immediately from the details view page.
@@ -300,88 +256,44 @@ export function ContentItemEditorPage() {
     )
   }
 
+  const steps: WizardStep[] = useMemo(() => {
+    if (isCreate) {
+      return [
+        { label: 'Metadata', validate: validateMetadata, render: renderMetadataStep },
+        { label: 'Package Upload', validate: validateUpload, render: renderUploadStep },
+        { label: 'Review', render: renderReviewStep }
+      ]
+    }
+    return [
+      { label: 'Metadata', validate: validateMetadata, render: renderMetadataStep },
+      { label: 'Review', render: renderReviewStep }
+    ]
+  }, [isCreate, form, file])
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="text-sm text-slate-500 font-medium">Loading content item...</span>
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-xs text-slate-500 font-medium">Loading content item...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="admin-grid-surface">
-      <form onSubmit={isCreate ? handleUpload : handleSave} className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-800">
-              {isCreate ? 'Upload SCORM Package' : 'Edit Content Item'}
-            </h1>
-            <p className="text-sm font-medium text-slate-500">
-              {isCreate
-                ? 'Upload a SCORM 1.2 or SCORM 2004 ZIP package. Review details before uploading.'
-                : 'Adjust display name and content type lookup values.'}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 select-none">
-            {stepLabels.map(renderStepButton)}
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 flex flex-col">
-          {currentStep === 1 ? (
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-              {renderMetadataStep()}
-            </div>
-          ) : null}
-          {isCreate && currentStep === 2 ? (
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-              {renderUploadStep()}
-            </div>
-          ) : null}
-          {((isCreate && currentStep === 3) || (!isCreate && currentStep === 2)) ? (
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
-              {renderReviewStep()}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
-          <Link to={isCreate ? '/content-library' : `/content-library/${id}`}>
-            <button type="button" className="admin-button admin-button--secondary">
-              <X aria-hidden="true" />
-              <span>Cancel</span>
-            </button>
-          </Link>
-
-          {currentStep > 1 ? (
-            <button type="button" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className="admin-button admin-button--secondary">
-              <ArrowLeft aria-hidden="true" />
-              <span>Previous</span>
-            </button>
-          ) : null}
-
-          {currentStep < stepLabels.length ? (
-            <button type="button" onClick={event => { event.preventDefault(); event.stopPropagation(); goNext() }} className="admin-button admin-button--primary">
-              <ArrowRight aria-hidden="true" />
-              <span>Continue</span>
-            </button>
-          ) : (
-            <button type="submit" disabled={saving || uploading} className="admin-button admin-button--primary disabled:opacity-55">
-              {uploading || saving ? (
-                <Loader2 className="animate-spin" aria-hidden="true" />
-              ) : isCreate ? (
-                <Upload aria-hidden="true" />
-              ) : (
-                <Check aria-hidden="true" />
-              )}
-              <span>{isCreate ? (uploading ? 'Uploading...' : 'Upload Package') : saving ? 'Saving...' : 'Save Changes'}</span>
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
+    <AppWizard
+      title={isCreate ? 'Upload SCORM Package' : 'Edit Content Item'}
+      description={isCreate ? 'Upload a SCORM 1.2 or SCORM 2004 ZIP package.' : 'Adjust display name and content type lookup values.'}
+      eyebrow="Content Library"
+      steps={steps}
+      currentStep={currentStep}
+      onStepChange={setCurrentStep}
+      onCancel={() => navigate(isCreate ? '/content-library' : `/content-library/${id}`)}
+      onSubmit={isCreate ? handleUpload : handleSave}
+      submitLabel={isCreate ? 'Upload Package' : 'Save Changes'}
+      isSubmitting={saving || uploading}
+      submitIcon={isCreate ? <Upload className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+    />
   )
 }
