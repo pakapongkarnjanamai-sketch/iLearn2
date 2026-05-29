@@ -63,7 +63,7 @@ export function BulkAssignPage() {
   const [courseSearch, setCourseSearch] = useState('')
   const [targetMode, setTargetMode] = useState<'group' | 'custom'>('group')
   const [selectedGroupId, setSelectedGroupId] = useState<number>(0)
-  const [customNidsInput, setCustomNidsInput] = useState('')
+  const [customEidsInput, setCustomEidsInput] = useState('')
   
   // Date scheduling states
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
@@ -132,7 +132,7 @@ export function BulkAssignPage() {
 
   const getTargetCodes = (): string[] => {
     if (targetMode === 'custom') {
-      return customNidsInput
+      return customEidsInput
         .split(/[\n,]+/)
         .map(c => c.trim())
         .filter(c => c.length > 0)
@@ -394,7 +394,7 @@ export function BulkAssignPage() {
                     targetMode === 'custom' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  Custom NIDs List
+                  Custom EIds List
                 </button>
               </div>
 
@@ -419,15 +419,15 @@ export function BulkAssignPage() {
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  <label htmlFor="customNids" className="block text-xs font-bold text-slate-500 uppercase">
-                    Custom Employee NIDs
+                  <label htmlFor="customEids" className="block text-xs font-bold text-slate-500 uppercase">
+                    Custom Employee EIds
                   </label>
                   <textarea
-                    id="customNids"
+                    id="customEids"
                     rows={5}
-                    value={customNidsInput}
-                    onChange={(e) => setCustomNidsInput(e.target.value)}
-                    placeholder="Enter employee codes separated by comma or new lines:&#10;500124&#10;500125"
+                    value={customEidsInput}
+                    onChange={(e) => setCustomEidsInput(e.target.value)}
+                    placeholder="Enter employee EIds separated by comma or new lines:&#10;N130812&#10;N142715"
                     className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-blue-600"
                   />
                 </div>

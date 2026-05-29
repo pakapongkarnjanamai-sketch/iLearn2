@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
-  ChevronsRight, 
   Search, 
   Trash2, 
   Edit3, 
@@ -109,6 +105,11 @@ export function AppTable<T extends TableRecord>({
     }
   }, [searchValue])
 
+  // Reset page to 1 when external filters change
+  useEffect(() => {
+    setPage(1)
+  }, [externalFilterKey])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     const skip = (page - 1) * pageSize
@@ -127,15 +128,16 @@ export function AppTable<T extends TableRecord>({
       filter: JSON.parse(externalFilterKey) as FilterExpression
     })
 
-    const nextTotalPages = Math.max(1, Math.ceil(result.totalCount / take))
-    if (page > nextTotalPages) {
-      setPage(nextTotalPages)
-      setLoading(false)
-      return
-    }
-
     startTransition(() => {
-      setData(result.data)
+      if (page > 1) {
+        setData(prev => {
+          const existingKeys = new Set(prev.map(x => x[store.key]))
+          const uniqueNew = result.data.filter(x => !existingKeys.has(x[store.key]))
+          return [...prev, ...uniqueNew]
+        })
+      } else {
+        setData(result.data)
+      }
       setTotalCount(result.totalCount)
       setLoading(false)
     })
@@ -234,10 +236,27 @@ export function AppTable<T extends TableRecord>({
     setInsertValues(prev => ({ ...prev, [field]: val } as Partial<T>))
   }
 
-  // Calculated pagination helpers
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
-  const startRecord = totalCount === 0 ? 0 : (page - 1) * pageSize + 1
-  const endRecord = Math.min(totalCount, page * pageSize)
+  // Infinite Scroll Handler
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const threshold = target.scrollHeight - target.scrollTop - target.clientHeight
+    if (threshold <= 20 && !loading && data.length < totalCount) {
+      setPage(prev => prev + 1)
+    }
+  }
+
+  // Automatically load next page if the loaded data does not fill the viewport height
+  // and there are still more records to fetch.
+  useEffect(() => {
+    const viewport = tableViewportRef.current
+    if (!viewport || loading || data.length === 0 || data.length >= totalCount) return
+
+    // If scrollHeight is less than or equal to clientHeight, there is no scrollbar
+    // but we still have more records to load!
+    if (viewport.scrollHeight <= viewport.clientHeight) {
+      setPage(prev => prev + 1)
+    }
+  }, [data.length, totalCount, loading])
 
   const visibleColumns = columns.filter(col => col.visible !== false)
 
@@ -252,7 +271,6 @@ export function AppTable<T extends TableRecord>({
       const nextPageSize = Math.max(5, Math.min(100, Math.floor(usableHeight / rowHeight)))
 
       setPageSize(prev => (prev === nextPageSize ? prev : nextPageSize))
-      setPage(prev => (prev === 1 ? prev : 1))
     }
 
     updateAutoPageSize()
@@ -291,7 +309,11 @@ export function AppTable<T extends TableRecord>({
       </div>
 
       {/* Grid Table Workspace */}
-      <div ref={tableViewportRef} className="relative flex-1 min-h-0 overflow-auto custom-scrollbar">
+      <div 
+        ref={tableViewportRef} 
+        onScroll={handleScroll}
+        className="relative flex-1 min-h-0 overflow-auto custom-scrollbar"
+      >
         <table className="min-w-full divide-y divide-slate-100 text-left">
           
           {/* Table Headers */}
@@ -537,73 +559,31 @@ export function AppTable<T extends TableRecord>({
         )}
       </div>
 
-      {/* Pagination Footer */}
+      {/* Infinite Scroll Footer */}
       <footer className="flex flex-col sm:flex-row items-center sm:justify-between p-4 gap-3 border-t border-slate-100 bg-slate-50/50 text-xs font-semibold text-slate-500">
-        
-        {/* Record count indicator */}
         <div className="select-none">
           {totalCount > 0 ? (
-            <span>Showing <strong className="text-slate-800">{startRecord}</strong> to <strong className="text-slate-800">{endRecord}</strong> of <strong className="text-slate-800">{totalCount}</strong> records</span>
+            <span>
+              Showing <strong className="text-slate-800">{data.length}</strong> of{" "}
+              <strong className="text-slate-800">{totalCount}</strong> records
+              {data.length < totalCount ? (
+                <span className="text-slate-400 font-normal"> (Scroll down to load more)</span>
+              ) : (
+                <span className="text-emerald-600 font-bold"> (All records loaded)</span>
+              )}
+            </span>
           ) : (
-            <span>No records loaded</span>
+            <span>No records found</span>
           )}
         </div>
 
-        {/* Navigation / Dropdowns */}
-        <div className="flex items-center gap-4 flex-wrap">
-          
-          {/* Auto page sizing */}
-          <div className="flex items-center gap-1.5">
-            <span className="select-none">Rows per page:</span>
-            <span className="rounded border border-slate-200 bg-white px-2 py-1 font-bold text-slate-700 shadow-2xs">
-              Auto {pageSize}
-            </span>
+        {loading && data.length > 0 && (
+          <div className="flex items-center gap-1.5 text-blue-600 text-[10px] uppercase font-bold tracking-wider animate-pulse">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Loading more...</span>
           </div>
-
-          {/* Navigation arrow buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-              className="p-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:hover:bg-white cursor-pointer select-none"
-              title="First Page"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setPage(prev => Math.max(1, prev - 1))}
-              disabled={page === 1}
-              className="p-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:hover:bg-white cursor-pointer select-none"
-              title="Previous Page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <div className="px-2 font-bold text-slate-700 select-none">
-              Page {page} of {totalPages}
-            </div>
-
-            <button
-              onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={page === totalPages}
-              className="p-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:hover:bg-white cursor-pointer select-none"
-              title="Next Page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-              className="p-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:hover:bg-white cursor-pointer select-none"
-              title="Last Page"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </button>
-          </div>
-
-        </div>
+        )}
       </footer>
-
     </div>
   )
 }

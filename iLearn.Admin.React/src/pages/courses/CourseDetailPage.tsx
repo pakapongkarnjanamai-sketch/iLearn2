@@ -455,7 +455,7 @@ export function CourseDetailPage() {
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                      <th className="p-3">Learner Code / NID</th>
+                      <th className="p-3">Learner Code (EId)</th>
                       <th className="p-3">Name</th>
                       <th className="p-3">Department</th>
                       <th className="p-3">Progress</th>
