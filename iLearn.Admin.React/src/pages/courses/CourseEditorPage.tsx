@@ -760,7 +760,7 @@ export function CourseEditorPage() {
   }
 
   return (
-    <>
+    <div className="admin-grid-surface">
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -800,22 +800,42 @@ export function CourseEditorPage() {
           </div>
         )}
 
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 flex flex-col">
           {!isEditMode ? (
             <>
-              {currentStep === 1 ? renderInformationStep() : null}
-              {currentStep === 2 ? renderContentStep() : null}
-              {currentStep === 3 ? renderReviewStep() : null}
+              {currentStep === 1 ? (
+                <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  {renderInformationStep()}
+                </div>
+              ) : null}
+              {currentStep === 2 ? (
+                <div className="min-h-0 flex-1 flex flex-col">
+                  {renderContentStep()}
+                </div>
+              ) : null}
+              {currentStep === 3 ? (
+                <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  {renderReviewStep()}
+                </div>
+              ) : null}
             </>
           ) : (
             <>
-              {activeEditTab === 'properties' ? renderInformationStep() : null}
-              {activeEditTab === 'content' ? <div className="mt-1">{renderContentStep()}</div> : null}
+              {activeEditTab === 'properties' ? (
+                <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  {renderInformationStep()}
+                </div>
+              ) : null}
+              {activeEditTab === 'content' ? (
+                <div className="min-h-0 flex-1 flex flex-col mt-1">
+                  {renderContentStep()}
+                </div>
+              ) : null}
             </>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
           <button
             type="button"
             onClick={() => navigate(isEditMode && id ? `/courses/${id}` : '/courses')}
@@ -912,6 +932,6 @@ export function CourseEditorPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }

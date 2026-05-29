@@ -637,7 +637,7 @@ export function VersionFormPage() {
   }
 
   return (
-    <>
+    <div className="admin-grid-surface">
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -649,14 +649,30 @@ export function VersionFormPage() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1">
-          {currentStep === 1 ? renderDetailsStep() : null}
-          {currentStep === 2 ? renderContentStep() : null}
-          {currentStep === 3 ? renderOptionsStep() : null}
-          {currentStep === 4 ? renderReviewStep() : null}
+        <div className="min-h-0 flex-1 flex flex-col">
+          {currentStep === 1 ? (
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+              {renderDetailsStep()}
+            </div>
+          ) : null}
+          {currentStep === 2 ? (
+            <div className="min-h-0 flex-1 flex flex-col">
+              {renderContentStep()}
+            </div>
+          ) : null}
+          {currentStep === 3 ? (
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+              {renderOptionsStep()}
+            </div>
+          ) : null}
+          {currentStep === 4 ? (
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+              {renderReviewStep()}
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
           <button
             type="button"
             onClick={() => navigate(`/courses/${parsedCourseId}`)}
@@ -753,6 +769,6 @@ export function VersionFormPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }

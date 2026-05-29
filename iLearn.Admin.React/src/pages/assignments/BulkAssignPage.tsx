@@ -249,7 +249,8 @@ export function BulkAssignPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="admin-grid-surface">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Header and Stepper Progress */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -564,7 +565,7 @@ export function BulkAssignPage() {
       </div>
 
       {/* Footer Navigation Buttons */}
-      <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
+      <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3 shrink-0">
         {currentStep < 5 && (
           <button
             type="button"
@@ -633,5 +634,6 @@ export function BulkAssignPage() {
         )}
       </div>
     </div>
+  </div>
   )
 }
