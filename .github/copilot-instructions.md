@@ -390,15 +390,16 @@ iLearn.Admin.React/
 │   │       ├── DataGridSurface.tsx # Grid wrapper surface
 │   │       ├── PageHeader.tsx      # Page-level header actions strip
 │   │       ├── SelectionTray.tsx   # Chip-based multi-selection display
-│   │       ├── SidePanel.tsx       # Slide-out side panel
+│   │       ├── SidePanel.tsx       # Static card panel (title + content, no overlay)
 │   │       ├── StatusText.tsx      # Semantic status badge renderer
 │   │       └── Toolbar.tsx         # Action toolbar strip
 │   ├── lib/
 │   │   ├── apiClient.ts            # fetchWithAccessControl() — API client with auth
-│   │   ├── auth.ts                 # Windows Auth user context
-│   │   ├── breadcrumbContext.ts    # Breadcrumb label override context
-│   │   ├── createDataSource.ts     # CRUD data source factory for AppTable
+│   │   ├── auth.ts                 # Windows Auth user context + CurrentAdminUser type
+│   │   ├── breadcrumbContext.tsx    # Breadcrumb label override context
+│   │   ├── createDataSource.ts     # CRUD data source factory for AppTable (supports basePath override)
 │   │   ├── format.ts               # Date/number formatting utilities
+│   │   ├── sessionContext.tsx       # Session bootstrap provider (auth + SignalR)
 │   │   └── toast.ts                # Lightweight DOM-based toast notification system
 │   ├── pages/
 │   │   ├── AccessDeniedPage.tsx    # 403 access denied
@@ -424,12 +425,16 @@ iLearn.Admin.React/
 │   │   │   └── LearnerGroupEditorPage.tsx  # ★ Create (AppWizard 3-step) / Edit group
 │   │   ├── learners/
 │   │   │   └── LearnerProfilePage.tsx      # Learner profile view
+│   │   ├── users/
+│   │   │   └── AdminUsersPage.tsx           # Admin user management with role editing (SuperAdmin)
 │   │   ├── master-data/
 │   │   │   └── LearnerGroupCategoriesPage.tsx  # Learner group category management
 │   │   ├── system-config/
 │   │   │   └── SystemConfigPage.tsx         # System configuration panel
 │   │   └── dashboard/                       # Dashboard sub-views
-│   └── config/                              # App configuration
+│   └── config/
+│       ├── appConfig.ts                 # Environment-driven app configuration
+│       └── navigation.ts               # Sidebar navigation definitions
 ```
 
 > Pages marked with ★ use the `AppWizard` component for their create/edit flows.
@@ -684,11 +689,11 @@ if (resp.success) {
 | `/learner-groups/:id` | `LearnerGroupDetailPage` | Admin | Group membership management |
 | `/learner-groups/:id/edit` | `LearnerGroupEditorPage` | Admin | Edit group properties |
 | `/student-groups/*` | _(redirect)_ | Admin | Legacy redirect → `/learner-groups/*` |
-| `/learners` | `EntityListPage` | Admin | Learner directory infinite-scroll grid |
+| `/learners` | `EntityListPage` | Admin | Employee directory (corporate employee API, not admin users) |
 | `/learners/:id/profile` | `LearnerProfilePage` | Admin | Learner profile view |
 | `/learning-logs` | `EntityListPage` | Admin | Learning log viewer |
 | `/enrollments` | `EntityListPage` | **SuperAdmin** | Enrollment records grid |
-| `/users` | `EntityListPage` | **SuperAdmin** | Admin user management |
+| `/users` | `AdminUsersPage` | **SuperAdmin** | Admin user management with role editing |
 | `/master-data` | _(redirect)_ | **SuperAdmin** | Redirects to `/master-data/divisions` |
 | `/master-data/divisions` | `EntityListPage` | **SuperAdmin** | Division master data (inline edit) |
 | `/master-data/categories` | `EntityListPage` | **SuperAdmin** | Category master data (inline edit) |

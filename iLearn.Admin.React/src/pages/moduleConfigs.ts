@@ -17,6 +17,10 @@ export type AdminListConfig = {
   gridTitle: string
   gridNote: string
   columns: AdminGridColumn[]
+  /** Override the default `admin/{controller}` API base path */
+  basePath?: string
+  /** Column fields used for text search */
+  searchExpr?: string[]
 }
 
 export const adminListConfigs = {
@@ -90,16 +94,22 @@ export const adminListConfigs = {
   learners: {
     title: 'Learners',
     eyebrow: 'People Directory',
-    description: 'Admin users and learner identities resolved through the existing Windows-auth API contracts.',
-    controller: 'UsersCRUD',
-    key: 'id',
-    gridTitle: 'User Directory',
-    gridNote: 'Role and division claims remain enforced by the API.',
+    description: 'All employees from the corporate employee directory. Click a row to view learner profile.',
+    controller: 'Learners',
+    basePath: 'Learners',
+    key: 'Id',
+    gridTitle: 'Employee Directory',
+    gridNote: 'Data sourced from the corporate employee directory service.',
+    searchExpr: ['NID', 'EnglishFirstName', 'EnglishLastName', 'EId'],
     columns: [
-      { dataField: 'nid', caption: 'NID', width: 160 },
-      { dataField: 'lastLogin', caption: 'Last Login', dataType: 'datetime', width: 190 },
-      { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'EId', caption: 'Employee ID', width: 130 },
+      { dataField: 'NID', caption: 'NID', width: 120 },
+      { dataField: 'EnglishFirstName', caption: 'First Name', minWidth: 160 },
+      { dataField: 'EnglishLastName', caption: 'Last Name', minWidth: 160 },
+      { dataField: 'Division', caption: 'Division', width: 160 },
+      { dataField: 'Department', caption: 'Department', width: 160 },
+      { dataField: 'Section', caption: 'Section', width: 160 },
+      { dataField: 'Position', caption: 'Position', minWidth: 180 },
     ],
   },
   users: {

@@ -10,8 +10,8 @@ function AppLayoutInner() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth > 1120)
   const { user, state } = useSession()
 
-  const headerState: 'loading' | 'ready' | 'fallback' =
-    state === 'ready' ? 'ready' : state === 'fallback' ? 'fallback' : 'loading'
+  const headerState: 'loading' | 'ready' | 'fallback' | 'unauthenticated' =
+    state === 'ready' ? 'ready' : state === 'unauthenticated' ? 'unauthenticated' : state === 'fallback' ? 'fallback' : 'loading'
 
   return (
     <div className={`grid min-h-screen transition-[grid-template-columns] duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? 'grid-cols-[252px_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1fr)]'}`}>

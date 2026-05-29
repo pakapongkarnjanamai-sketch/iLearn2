@@ -1,5 +1,6 @@
 ﻿using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using iLearn.API.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +44,8 @@ namespace iLearn.API.Middleware
 
         public async Task InvokeAsync(
             HttpContext context,
-            IGenericRepository<User> userRepo)
+            IGenericRepository<User> userRepo,
+            ILearnerApiService learnerApiService)
         {
             // Skip swagger/health/static and any unauthenticated request.
             if (context.User.Identity?.IsAuthenticated != true ||
@@ -136,6 +138,18 @@ namespace iLearn.API.Middleware
 
                 if (!string.IsNullOrWhiteSpace(primaryDivisionName))
                     claims.Add(new SC.Claim("Division", primaryDivisionName));
+
+                // DisplayName — resolve from external employee directory (best effort)
+                try
+                {
+                    var employees = await learnerApiService.GetEmployeesByNidsAsync(new[] { nid });
+                    if (employees.TryGetValue(nid, out var emp) && !string.IsNullOrWhiteSpace(emp.FullName))
+                        claims.Add(new SC.Claim("DisplayName", emp.FullName));
+                }
+                catch (Exception empEx)
+                {
+                    _logger.LogDebug(empEx, "ApiClaimsEnrich: could not resolve DisplayName for {Nid}", nid);
+                }
 
                 var identity  = new SC.ClaimsIdentity(claims, context.User.Identity!.AuthenticationType);
                 var principal = new SC.ClaimsPrincipal(identity);

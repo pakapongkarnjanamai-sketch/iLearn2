@@ -21,6 +21,7 @@ import { BulkAssignPage } from './pages/assignments/BulkAssignPage'
 import { ContentItemDetailPage } from './pages/content-library/ContentItemDetailPage'
 import { ContentItemEditorPage } from './pages/content-library/ContentItemEditorPage'
 import { LearnerGroupCategoriesPage } from './pages/master-data/LearnerGroupCategoriesPage'
+import { AdminUsersPage } from './pages/users/AdminUsersPage'
 
 function LegacyStudentGroupsRedirect() {
   const location = useLocation()
@@ -82,7 +83,7 @@ export function App() {
           path="users"
           element={
             <RequireRole superAdminOnly>
-              <EntityListPage config={adminListConfigs.users} />
+              <AdminUsersPage />
             </RequireRole>
           }
         />

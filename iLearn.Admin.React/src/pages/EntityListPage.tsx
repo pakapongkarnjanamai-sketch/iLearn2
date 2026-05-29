@@ -29,9 +29,10 @@ export function EntityListPage({ config }: EntityListPageProps) {
     () => createAdminDataSource<any>({ 
       controller: config.controller, 
       key: config.key,
-      enableCrud: isCrudEnabled
+      enableCrud: isCrudEnabled,
+      ...(config.basePath ? { basePath: config.basePath } : {}),
     }),
-    [config.controller, config.key, isCrudEnabled],
+    [config.controller, config.key, isCrudEnabled, config.basePath],
   )
 
   const getRoutePrefix = (controller: string) => {
@@ -39,7 +40,8 @@ export function EntityListPage({ config }: EntityListPageProps) {
     if (controller === 'ContentItemsCRUD') return '/content-library'
     if (controller === 'AssignmentsCRUD') return '/assignments'
     if (controller === 'LearnerGroupsCRUD') return '/learner-groups'
-    if (controller === 'UsersCRUD') return '/learners'
+    if (controller === 'UsersCRUD') return '/users'
+    if (controller === 'Learners') return '/learners'
     if (controller === 'LearningLogsCRUD') return '/learning-logs'
     if (controller === 'EnrollmentsCRUD') return '/enrollments'
     if (controller === 'CategoriesCRUD') return '/master-data/categories'
@@ -52,8 +54,11 @@ export function EntityListPage({ config }: EntityListPageProps) {
     if (!e.data) return
     const prefix = getRoutePrefix(config.controller)
     
-    if (config.controller === 'UsersCRUD') {
-      if (e.data.nid) navigate(`${prefix}/${e.data.nid}/profile`)
+    if (config.controller === 'Learners') {
+      const code = e.data.NID || e.data.EId
+      if (code) navigate(`${prefix}/${code}/profile`)
+    } else if (config.controller === 'UsersCRUD') {
+      if (e.data.nid) navigate(`${prefix}/${e.data.nid}`)
     } else if (config.controller !== 'DivisionsCRUD' && e.data.id) {
       navigate(`${prefix}/${e.data.id}`)
     }
@@ -74,8 +79,11 @@ export function EntityListPage({ config }: EntityListPageProps) {
       onClick: (e: { row: { data: any } }) => {
         if (!e.row?.data) return
         const prefix = getRoutePrefix(config.controller)
-        if (config.controller === 'UsersCRUD') {
-          if (e.row.data.nid) navigate(`${prefix}/${e.row.data.nid}/profile`)
+        if (config.controller === 'Learners') {
+          const code = e.row.data.NID || e.row.data.EId
+          if (code) navigate(`${prefix}/${code}/profile`)
+        } else if (config.controller === 'UsersCRUD') {
+          if (e.row.data.nid) navigate(`${prefix}/${e.row.data.nid}`)
         } else if (e.row.data.id) {
           navigate(`${prefix}/${e.row.data.id}`)
         }
@@ -125,6 +133,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
           noDataText={`No ${config.title.toLowerCase()} data found`}
           onRowDblClick={handleRowDoubleClick}
           searchPlaceholder="Search records..."
+          searchExpr={config.searchExpr}
           actionButtons={actionButtons}
         />
       </DataGridSurface>

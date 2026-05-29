@@ -24,13 +24,13 @@ Create a local `.env.local` from `.env.example` when the API base path or deploy
 ```text
 VITE_ILEARN_ADMIN_APP_BASE_PATH=/
 VITE_ILEARN_ADMIN_API_BASE_URL=/api
-VITE_ILEARN_ADMIN_SIGNALR_BASE_URL=/hubs/admin-activity
+VITE_ILEARN_ADMIN_SIGNALR_BASE_URL=
 VITE_ILEARN_ADMIN_ENABLE_SIGNALR=false
-VITE_ILEARN_ADMIN_ENABLE_SESSION_BOOTSTRAP=false
+VITE_ILEARN_ADMIN_ENABLE_SESSION_BOOTSTRAP=true
 VITE_ILEARN_ADMIN_DEVEXTREME_LICENSE_KEY=ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjQzMzdjY2M1LTA4ZjYtNDE2NS05NmJiLWU3MmY1NmY2MjA4MCIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjUyCn0=.msUWqj0CLKKVTKUeCMJaSMQVVJywgLDSkWDBfPtwwreYLfwUyK/UvfODZGJNx7wAaZlPK4SIgVLQZGkGwaKEpGXSTkOp20qOjyy0xCUGBN73QilDt/zJHzjAFvDXkJcsEr6Pgg==
 ```
 
-For localhost development, point `VITE_ILEARN_ADMIN_API_BASE_URL` at the absolute API origin because the Vite proxy does not relay NTLM/Negotiate correctly. In deployed IIS environments, relative values such as `/api` and `/hubs/admin-activity` are preferred.
+For localhost development, point `VITE_ILEARN_ADMIN_API_BASE_URL` at the absolute API origin because the Vite proxy does not relay NTLM/Negotiate correctly. In deployed IIS environments, relative values such as `/api` are preferred. Leave `VITE_ILEARN_ADMIN_SIGNALR_BASE_URL` empty to auto-derive from the API base URL.
 
 The DevExtreme license key should use the full signed key value, not only the base64 payload prefix. The app applies `VITE_ILEARN_ADMIN_DEVEXTREME_LICENSE_KEY` from `src/devextreme-license.ts`, with a legacy fallback for older env files.
 

@@ -1,11 +1,10 @@
 import { Bell, Menu } from 'lucide-react'
-import { StatusText } from '../ui/StatusText'
 import type { CurrentAdminUser } from '../../lib/auth'
 import { Breadcrumbs } from './Breadcrumbs'
 
 type HeaderProps = {
   currentUser: CurrentAdminUser | null
-  sessionState: 'loading' | 'ready' | 'fallback'
+  sessionState: 'loading' | 'ready' | 'fallback' | 'unauthenticated'
   onMenuClick: () => void
 }
 
@@ -22,7 +21,7 @@ const getInitials = (name: string | undefined) => {
     .join('')
 }
 
-export function Header({ currentUser, sessionState, onMenuClick }: HeaderProps) {
+export function Header({ currentUser, sessionState: _sessionState, onMenuClick }: HeaderProps) {
   const displayName = currentUser?.displayName ?? 'Loading user'
   const divisionName = currentUser?.divisionName ?? 'Admin console'
 
@@ -37,14 +36,6 @@ export function Header({ currentUser, sessionState, onMenuClick }: HeaderProps) 
       </div>
 
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          {sessionState === 'ready' && (
-            <span className="h-2 w-2 rounded-full bg-emerald-500 neon-glow-dot shrink-0" title="Real-time session active" />
-          )}
-          <StatusText tone={sessionState === 'ready' ? 'success' : 'warning'}>
-            {sessionState === 'ready' ? 'Windows Auth' : 'Session pending'}
-          </StatusText>
-        </div>
         <button type="button" className="inline-grid h-[34px] w-[34px] place-items-center rounded-md border border-slate-200 bg-white text-slate-500 cursor-pointer [&_svg]:w-[17px] [&_svg]:h-[17px]" aria-label="Notifications">
           <Bell aria-hidden="true" />
         </button>

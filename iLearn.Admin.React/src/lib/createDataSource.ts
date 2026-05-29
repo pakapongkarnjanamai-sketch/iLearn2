@@ -21,6 +21,8 @@ export type AdminDataSourceOptions = {
   key?: string | string[]
   loadParams?: Record<string, string | number | boolean | null | undefined>
   enableCrud?: boolean
+  /** Override the default `admin/{controller}` base path. Use for non-CRUD controllers (e.g. `Learners`). */
+  basePath?: string | undefined
 }
 
 export const createAdminDataSource = <T>({
@@ -28,8 +30,9 @@ export const createAdminDataSource = <T>({
   key = 'id',
   loadParams,
   enableCrud = false,
+  basePath: customBasePath,
 }: AdminDataSourceOptions): AppClientStore<T> => {
-  const basePath = `admin/${controller}`
+  const basePath = customBasePath ?? `admin/${controller}`
   const loadUrl = buildApiUrl(`${basePath}/Get`)
   const insertUrl = buildApiUrl(`${basePath}/Post`)
   const updateUrl = buildApiUrl(`${basePath}/Put`)

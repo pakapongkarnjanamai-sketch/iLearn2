@@ -16,7 +16,7 @@ Phases delivered:
 - ✅ **Phase D — Content Library editor**: `/content-library/new` (SCORM .zip upload → `POST ContentItems/upload?typeId=`), `/content-library/:id` (flat detail with Publish/Unpublish/Download Control Hub), `/content-library/:id/edit` (name + typeId).
 - ✅ **Phase E — LearnerGroup membership**: Add / remove preview + confirm flows live inline in `GroupDetailPage` (`/LearnerGroups/{id}/members/preview|confirm|remove/preview|remove/confirm`). Standalone wizard routes intentionally skipped — drawer-based flow achieves functional parity.
 - ✅ **Phase F — Master Data multi-screen**: `/master-data/{divisions|categories|course-types|roles|learner-group-categories}` routes (SuperAdmin-only), nested sidebar.
-- ✅ **Phase G1 / G3 / G4 — Operations grids**: `/users` (admin users, SA-only), `/learning-logs`, `/enrollments` (SA-only, read-only) via `EntityListPage`.
+- ✅ **Phase G1 / G3 / G4 — Operations grids**: `/users` (admin users via dedicated `AdminUsersPage`, SA-only with role editing), `/learning-logs`, `/enrollments` (SA-only, read-only) via `EntityListPage`. `/learners` now correctly uses the corporate employee directory API.
 - ✅ **Phase G2 — LearnerProfile enrichment**: `LearnerProfilePage` already renders the full enrollment table (course identity, progress bar, score, time spent, timeline, operational tag) — feature-equivalent to MVC report.
 - ✅ **LearnerGroupCategories**: custom `/master-data/learner-group-categories` screen with tree-aware grid + create/edit/delete modal (custom data source, not `EntityListPage`).
 - ✅ **Build verification**: `npm run build` green (216 kB main, Recharts + SignalR chunks split).
@@ -83,7 +83,7 @@ Legend — **State**:
 
 | MVC View | React Page | State | Notes |
 | --- | --- | --- | --- |
-| `Learners/Index` | `/learners` → `EntityListPage` (mapped to `UsersCRUD`) | 🟡 Stub | Wrong backing controller — MVC uses `LearnersController`, React `EntityListPage` config points to `UsersCRUD`. Needs verification. |
+| `Learners/Index` | `/learners` → `EntityListPage` (mapped to `Learners` controller) | ✅ Done | Fixed: now uses `api/Learners/Get` (corporate employee directory) with Employee ID, NID, Name, Division, Department, Section, Position columns. |
 | `Learners/Profile` | `/learners/:id/profile` → `LearnerProfilePage` | ✅ Done | |
 | `Learners/Report` | — | ❌ Missing | Per-learner progress report. |
 
@@ -109,7 +109,7 @@ Legend — **State**:
 
 | MVC View | React Page | State | Notes |
 | --- | --- | --- | --- |
-| `Users/Index` | — (folded into `/learners`?) | ❌ Missing | Admin user management (roles, division, IsActive). Distinct from Learners. |
+| `Users/Index` | `/users` → `AdminUsersPage` | ✅ Done | Dedicated SuperAdmin page with admin user grid (NID, FullName, Division, Roles badges, LastLogin), slide-out role editor panel, and Add User panel. Uses `UsersCRUD` controller. |
 | `SystemConfig/Index` | `/system-config` → `SystemConfigPage` | ✅ Done | Verify parity. |
 | `Enrollments/Index` | — | ❌ Missing | Direct enrollment grid (used for ops/debugging). |
 
@@ -154,7 +154,7 @@ These decisions block multiple migration phases. Please confirm before Phase 1 s
    - **Recommendation**: (a) — license is already paid, ban appears to apply to *legacy MVC widgets*, not React charts.
 2. **Gantt component.** Same trade-off; DevExtreme React `Gantt` is the lowest-effort path.
 3. **Master-data routing.** Replace single `/master-data` with `/master-data/divisions`, `/master-data/categories`, etc., each driven by `EntityListPage` config — OR build a single page with a sub-sidebar (matches the design system's optional `SubSidebar`).
-4. **Learners vs Users.** Are these two pages (employee directory + admin users) or one? The current React `EntityListPage` config conflates them (`UsersCRUD` controller for the `/learners` route).
+4. **Learners vs Users.** ✅ RESOLVED — Split into two separate pages: `/learners` (Employee Directory via `api/Learners/Get`) and `/users` (Admin Users via `UsersCRUD`, SuperAdmin-only, with dedicated `AdminUsersPage`).
 5. **Role-aware navigation.** Filter `navigationItems` by session roles loaded in `AppLayout`, and add an `<RequireRole>` guard component.
 6. **Export.** Drop client-side Excel/PDF export and add API endpoints, or port ExcelJS/FileSaver into the React bundle?
 7. **Deployment URL.** Keep `/iLearnNew/admin-react/` (parallel) until parity, then swap to `/iLearnNew/admin/` and retire MVC? Or run forever side-by-side?
@@ -202,7 +202,7 @@ F3. Each page reuses `EntityListPage` + inline editor (use `AppTable` editing mo
 
 ### Phase G — Learners / Users / Logs
 
-G1. Split `/learners` (Employee Directory, `LearnersCRUD`) from `/users` (Admin Users, `UsersCRUD`).  
+~~G1. Split `/learners` (Employee Directory) from `/users` (Admin Users, `UsersCRUD`).~~ ✅ Done (May 2026).  
 G2. `/learners/:id/report` — per-learner progress report.  
 G3. `/learning-logs` — SCORM runtime audit grid.  
 G4. `/enrollments` — direct enrollment ops grid (gated by SuperAdmin).

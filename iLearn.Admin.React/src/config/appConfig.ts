@@ -87,5 +87,5 @@ export const appConfig = {
   enableSignalR:
     getEnv('VITE_ILEARN_ADMIN_ENABLE_SIGNALR', 'VITE_ENABLE_SIGNALR') === 'true',
   enableSessionBootstrap:
-    getEnv('VITE_ILEARN_ADMIN_ENABLE_SESSION_BOOTSTRAP', 'VITE_ENABLE_SESSION_BOOTSTRAP') === 'true',
+    getEnv('VITE_ILEARN_ADMIN_ENABLE_SESSION_BOOTSTRAP', 'VITE_ENABLE_SESSION_BOOTSTRAP') !== 'false',
 } as const
