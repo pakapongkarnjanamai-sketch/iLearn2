@@ -21,6 +21,9 @@ param(
 
     [string]$Stamp = (Get-Date -Format 'yyyyMMddHHmmss'),
 
+    [ValidateRange(1, 100)]
+    [int]$KeepDeployments = 3,
+
     [switch]$SkipPublish
 )
 
@@ -140,6 +143,41 @@ if ($PSCmdlet.ShouldProcess($webConfigPath, "Set aspNetCore arguments to $webCon
     $webConfig.Save($webConfigPath)
 }
 
+# --- Cleanup old deploy folders, keeping the $KeepDeployments most recent ---
+$allDeployDirs = Get-ChildItem -LiteralPath $DeployRoot -Directory -Filter "$DeployFolderPrefix*" |
+    Sort-Object Name -Descending
+
+$removedCount = 0
+if ($allDeployDirs.Count -gt $KeepDeployments) {
+    $staleDeployDirs = $allDeployDirs | Select-Object -Skip $KeepDeployments
+    foreach ($staleDir in $staleDeployDirs) {
+        if ($PSCmdlet.ShouldProcess($staleDir.FullName, "Remove stale deploy folder")) {
+            try {
+                # Use cmd /c rd for UNC paths — Remove-Item hits "directory not empty"
+                # race conditions on network shares
+                & cmd /c rd /s /q $staleDir.FullName 2>&1 | Out-Null
+                if (Test-Path -LiteralPath $staleDir.FullName) {
+                    # Retry once after a short pause if the first pass left remnants
+                    Start-Sleep -Milliseconds 500
+                    & cmd /c rd /s /q $staleDir.FullName 2>&1 | Out-Null
+                }
+                if (-not (Test-Path -LiteralPath $staleDir.FullName)) {
+                    $removedCount++
+                }
+                else {
+                    Write-Warning "Partially removed stale deploy folder: $($staleDir.FullName)"
+                }
+            }
+            catch {
+                Write-Warning "Could not remove stale deploy folder: $($staleDir.FullName) — $($_.Exception.Message)"
+            }
+        }
+    }
+    if ($removedCount -gt 0) {
+        Write-Host "Cleaned up $removedCount stale deploy folder(s), kept $KeepDeployments most recent." -ForegroundColor DarkGray
+    }
+}
+
 [pscustomobject]@{
     ProjectPath        = $resolvedProjectPath
     PublishOutput      = $resolvedPublishOutput
@@ -149,4 +187,5 @@ if ($PSCmdlet.ShouldProcess($webConfigPath, "Set aspNetCore arguments to $webCon
     WebConfigArguments = $webConfigArguments
     Stamp              = $Stamp
     SkippedPublish     = [bool]$SkipPublish
+    RemovedStale       = $removedCount
 } | Format-List
