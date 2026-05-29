@@ -11,8 +11,8 @@ import { CourseListPage } from './pages/courses/CourseListPage'
 import { CourseDetailPage } from './pages/courses/CourseDetailPage'
 import { CourseEditorPage } from './pages/courses/CourseEditorPage'
 import { VersionFormPage } from './pages/courses/VersionFormPage'
-import { StudentGroupDetailPage } from './pages/student-groups/StudentGroupDetailPage'
-import { StudentGroupEditorPage } from './pages/student-groups/StudentGroupEditorPage'
+import { LearnerGroupDetailPage } from './pages/learner-groups/LearnerGroupDetailPage'
+import { LearnerGroupEditorPage } from './pages/learner-groups/LearnerGroupEditorPage'
 import { LearnerProfilePage } from './pages/learners/LearnerProfilePage'
 import { AssignmentDetailPage } from './pages/assignments/AssignmentDetailPage'
 import { AssignmentReportPage } from './pages/assignments/AssignmentReportPage'
@@ -20,11 +20,11 @@ import { AssignmentGanttPage } from './pages/assignments/AssignmentGanttPage'
 import { BulkAssignPage } from './pages/assignments/BulkAssignPage'
 import { ContentItemDetailPage } from './pages/content-library/ContentItemDetailPage'
 import { ContentItemEditorPage } from './pages/content-library/ContentItemEditorPage'
-import { StudentGroupCategoriesPage } from './pages/master-data/StudentGroupCategoriesPage'
+import { LearnerGroupCategoriesPage } from './pages/master-data/LearnerGroupCategoriesPage'
 
 function LegacyStudentGroupsRedirect() {
   const location = useLocation()
-  const nextPath = location.pathname.replace(/^\/learner-groups/, '/student-groups')
+  const nextPath = location.pathname.replace(/^\/student-groups/, '/learner-groups')
   return <Navigate to={`${nextPath}${location.search}${location.hash}`} replace />
 }
 
@@ -55,12 +55,12 @@ export function App() {
         <Route path="assignments/:id" element={<AssignmentDetailPage />} />
         <Route path="assignments/:id/report" element={<AssignmentReportPage />} />
 
-        {/* Student Groups */}
-        <Route path="student-groups" element={<EntityListPage config={adminListConfigs.studentGroups} />} />
-        <Route path="student-groups/new" element={<StudentGroupEditorPage />} />
-        <Route path="student-groups/:id" element={<StudentGroupDetailPage />} />
-        <Route path="student-groups/:id/edit" element={<StudentGroupEditorPage />} />
-        <Route path="learner-groups/*" element={<LegacyStudentGroupsRedirect />} />
+        {/* Learner Groups */}
+        <Route path="learner-groups" element={<EntityListPage config={adminListConfigs.learnerGroups} />} />
+        <Route path="learner-groups/new" element={<LearnerGroupEditorPage />} />
+        <Route path="learner-groups/:id" element={<LearnerGroupDetailPage />} />
+        <Route path="learner-groups/:id/edit" element={<LearnerGroupEditorPage />} />
+        <Route path="student-groups/*" element={<LegacyStudentGroupsRedirect />} />
 
         {/* Learners */}
         <Route path="learners" element={<EntityListPage config={adminListConfigs.learners} />} />
@@ -125,16 +125,16 @@ export function App() {
           }
         />
         <Route
-          path="master-data/student-group-categories"
+          path="master-data/learner-group-categories"
           element={
             <RequireRole superAdminOnly>
-              <StudentGroupCategoriesPage />
+              <LearnerGroupCategoriesPage />
             </RequireRole>
           }
         />
         <Route
-          path="master-data/learner-group-categories"
-          element={<Navigate to="/master-data/student-group-categories" replace />}
+          path="master-data/student-group-categories"
+          element={<Navigate to="/master-data/learner-group-categories" replace />}
         />
 
         <Route

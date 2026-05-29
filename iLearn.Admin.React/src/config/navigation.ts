@@ -40,7 +40,7 @@ export const navigationItems: NavigationItem[] = [
       { label: 'Bulk Assign', path: '/assignments/bulk', icon: ClipboardList },
     ],
   },
-  { label: 'Student Groups', path: '/student-groups', icon: Users },
+  { label: 'Learner Groups', path: '/learner-groups', icon: Users },
   { label: 'Learners', path: '/learners', icon: UserRound },
   {
     label: 'Operations',
@@ -61,7 +61,7 @@ export const navigationItems: NavigationItem[] = [
       { label: 'Categories', path: '/master-data/categories', icon: Database },
       { label: 'Course Types', path: '/master-data/course-types', icon: Database },
       { label: 'Roles', path: '/master-data/roles', icon: Database },
-      { label: 'Student Group Categories', path: '/master-data/student-group-categories', icon: Database },
+      { label: 'Learner Group Categories', path: '/master-data/learner-group-categories', icon: Database },
     ],
   },
   { label: 'Admin Users', path: '/users', icon: UserCog, superAdminOnly: true },

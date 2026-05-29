@@ -5,7 +5,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
-type StudentGroupCategory = {
+type LearnerGroupCategory = {
   id: number
   name: string
   description?: string | null
@@ -32,17 +32,17 @@ type FormState = {
 
 const EMPTY_FORM: FormState = { name: '', description: '', parentId: '' }
 
-export function StudentGroupCategoriesPage() {
+export function LearnerGroupCategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
-  const [items, setItems] = useState<StudentGroupCategory[]>([])
+  const [items, setItems] = useState<LearnerGroupCategory[]>([])
   const [form, setForm] = useState<FormState | null>(null)
 
   const load = async () => {
     setLoading(true)
     try {
       const result = await fetchWithAccessControl<
-        StudentGroupCategory[] | ApiListResponse<StudentGroupCategory[]>
+        LearnerGroupCategory[] | ApiListResponse<LearnerGroupCategory[]>
       >('LearnerGroupCategories')
       setItems(Array.isArray(result) ? result : result.data)
     } catch {
@@ -57,7 +57,7 @@ export function StudentGroupCategoriesPage() {
     const run = async () => {
       try {
         const result = await fetchWithAccessControl<
-          StudentGroupCategory[] | ApiListResponse<StudentGroupCategory[]>
+          LearnerGroupCategory[] | ApiListResponse<LearnerGroupCategory[]>
         >('LearnerGroupCategories')
         if (!cancelled) setItems(Array.isArray(result) ? result : result.data)
       } catch {
@@ -73,7 +73,7 @@ export function StudentGroupCategoriesPage() {
   }, [])
 
   const openCreate = () => setForm({ ...EMPTY_FORM })
-  const openEdit = (c: StudentGroupCategory) =>
+  const openEdit = (c: LearnerGroupCategory) =>
     setForm({
       id: c.id,
       name: c.name,
@@ -120,13 +120,13 @@ export function StudentGroupCategoriesPage() {
     }
   }
 
-  const handleDelete = async (c: StudentGroupCategory) => {
+  const handleDelete = async (c: LearnerGroupCategory) => {
     if (c.hasChildren) {
       toast.error('Cannot delete: category has child categories')
       return
     }
     if (c.learnerGroupCount > 0) {
-      toast.error(`Cannot delete: ${c.learnerGroupCount} student group(s) reference this category`)
+      toast.error(`Cannot delete: ${c.learnerGroupCount} learner group(s) reference this category`)
       return
     }
     if (!window.confirm(`Delete category "${c.name}"?`)) return
@@ -157,7 +157,7 @@ export function StudentGroupCategoriesPage() {
 
       <div className="mb-4">
         <div className="text-xxs font-extrabold uppercase text-slate-400">Master Data</div>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Student Group Categories</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900">Learner Group Categories</h1>
       </div>
 
       {loading ? (
@@ -180,7 +180,7 @@ export function StudentGroupCategoriesPage() {
                 <th className="p-2.5">Parent</th>
                 <th className="p-2.5 text-center">Depth</th>
                 <th className="p-2.5 text-center">Children</th>
-                <th className="p-2.5 text-center">Student Groups</th>
+                <th className="p-2.5 text-center">Learner Groups</th>
                 <th className="p-2.5 text-right">Actions</th>
               </tr>
             </thead>

@@ -107,7 +107,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to delete this course. It may have active assignments or enrolled students.')
+      toast.error('Failed to delete this course. It may have active assignments or enrolled learners.')
     }
   }
   const [data, setData] = useState<CourseDashboardData | null>(null)
@@ -243,7 +243,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Cannot delete this version. It may have enrolled students.')
+      toast.error('Cannot delete this version. It may have enrolled learners.')
     }
   }
 

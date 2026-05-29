@@ -4,14 +4,14 @@ import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 
 const SEGMENT_MAP: Record<string, string> = {
   'courses': 'Courses',
-  'student-groups': 'Student Groups',
-  'learner-groups': 'Student Groups',
+  'student-groups': 'Learner Groups',
+  'learner-groups': 'Learner Groups',
   'assignments': 'Assignments',
   'content-library': 'Content Library',
   'learners': 'Learners',
   'master-data': 'Master Data',
-  'student-group-categories': 'Student Group Categories',
-  'learner-group-categories': 'Student Group Categories',
+  'student-group-categories': 'Learner Group Categories',
+  'learner-group-categories': 'Learner Group Categories',
   'system-config': 'System Config',
   'new': 'Create',
   'edit': 'Modify',

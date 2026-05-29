@@ -22,7 +22,7 @@ type LookupCourse = {
   courseTypeName?: string
 }
 
-type StudentGroupLookup = {
+type LearnerGroupLookup = {
   id: number
   name: string
   memberCount: number
@@ -55,7 +55,7 @@ export function BulkAssignPage() {
 
   // System options state
   const [courses, setCourses] = useState<LookupCourse[]>([])
-  const [groups, setGroups] = useState<StudentGroupLookup[]>([])
+  const [groups, setGroups] = useState<LearnerGroupLookup[]>([])
   const [loadingLookups, setLoadingLookups] = useState(true)
 
   // Selection states
@@ -105,7 +105,7 @@ export function BulkAssignPage() {
       const coursesList = Array.isArray(coursesData) ? coursesData : (coursesData.data || [])
       setCourses(coursesList)
 
-      // Fetch Student Groups
+      // Fetch Learner Groups
       const groupsData = await fetchWithAccessControl<any>('LearnerGroups')
       const groupsList = Array.isArray(groupsData) ? groupsData : (groupsData.data || [])
       setGroups(groupsList)
@@ -137,7 +137,7 @@ export function BulkAssignPage() {
         .map(c => c.trim())
         .filter(c => c.length > 0)
     }
-    return [] // API resolves Student Group members server-side when groupId is sent
+    return [] // API resolves Learner Group members server-side when groupId is sent
   }
 
   // Step 4: Validate Conflicts before sending BulkAssign
@@ -385,7 +385,7 @@ export function BulkAssignPage() {
                     targetMode === 'group' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  Student Group
+                  Learner Group
                 </button>
                 <button
                   type="button"
@@ -401,7 +401,7 @@ export function BulkAssignPage() {
               {targetMode === 'group' ? (
                 <div className="space-y-2 max-w-md">
                   <label htmlFor="groupId" className="block text-xs font-bold text-slate-500 uppercase">
-                    Select Student Group
+                    Select Learner Group
                   </label>
                   <select
                     id="groupId"

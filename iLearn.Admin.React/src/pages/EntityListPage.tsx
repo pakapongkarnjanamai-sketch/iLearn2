@@ -38,7 +38,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
     if (controller === 'CoursesCRUD') return '/courses'
     if (controller === 'ContentItemsCRUD') return '/content-library'
     if (controller === 'AssignmentsCRUD') return '/assignments'
-    if (controller === 'LearnerGroupsCRUD') return '/student-groups'
+    if (controller === 'LearnerGroupsCRUD') return '/learner-groups'
     if (controller === 'UsersCRUD') return '/learners'
     if (controller === 'LearningLogsCRUD') return '/learning-logs'
     if (controller === 'EnrollmentsCRUD') return '/enrollments'
@@ -91,7 +91,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
   const gridActions = hasGridActions ? (
     <div className="flex items-center gap-2">
       {config.controller === 'LearnerGroupsCRUD' && (
-        <Link to="/student-groups/new">
+        <Link to="/learner-groups/new">
           <AppButton variant="primary" icon={Plus}>
             Create Group
           </AppButton>

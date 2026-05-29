@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { 
   ArrowLeft, 
@@ -8,7 +8,10 @@ import {
   UserMinus, 
   RefreshCw, 
   AlertTriangle,
-  Layers
+  Layers,
+  Search,
+  Plus,
+  X
 } from 'lucide-react'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
@@ -16,7 +19,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 
-type StudentGroupMember = {
+type LearnerGroupMember = {
   id: number
   learnerCode: string
   learnerName: string
@@ -26,14 +29,23 @@ type StudentGroupMember = {
   position?: string
 }
 
-type StudentGroupDetail = {
+type LearnerGroupDetail = {
   id: number
   name: string
   description: string
   createdBy: string
   categoryId?: number
   categoryName?: string
-  members: StudentGroupMember[]
+  members: LearnerGroupMember[]
+}
+
+type LearnerSelection = {
+  code: string
+  name: string
+  division?: string
+  department?: string
+  section?: string
+  position?: string
 }
 
 type PreviewAddResult = {
@@ -76,12 +88,12 @@ type PreviewRemoveResult = {
   }>
 }
 
-export function StudentGroupDetailPage() {
+export function LearnerGroupDetailPage() {
   const { id } = useParams()
   const { setLabel } = useBreadcrumbs()
 
   const [loading, setLoading] = useState(true)
-  const [group, setGroup] = useState<StudentGroupDetail | null>(null)
+  const [group, setGroup] = useState<LearnerGroupDetail | null>(null)
 
   useEffect(() => {
     if (group?.name) {
@@ -94,6 +106,13 @@ export function StudentGroupDetailPage() {
 
   // Modal / Operations drawers
   const [managerMode, setManagerMode] = useState<'none' | 'add' | 'remove'>('none')
+  
+  // Member additions workspace state
+  const [activeTab, setActiveTab] = useState<'picker' | 'bulk'>('picker')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<LearnerSelection[]>([])
+  const [pendingAddLearners, setPendingAddLearners] = useState<LearnerSelection[]>([])
   
   // Bulk Add form state
   const [learnerCodesInput, setLearnerCodesInput] = useState('')
@@ -108,14 +127,14 @@ export function StudentGroupDetailPage() {
   const loadGroupDetails = async () => {
     setLoading(true)
     try {
-      const resp = await fetchWithAccessControl<{ success: boolean; data: StudentGroupDetail }>(`LearnerGroups/${id}`)
+      const resp = await fetchWithAccessControl<{ success: boolean; data: LearnerGroupDetail }>(`LearnerGroups/${id}`)
       if (resp.success) {
         setGroup(resp.data)
         setSelectedMemberIds([])
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load student group details')
+      toast.error('Failed to load learner group details')
     } finally {
       setLoading(false)
     }
@@ -125,11 +144,118 @@ export function StudentGroupDetailPage() {
     loadGroupDetails()
   }, [id])
 
+  // Search directory API caller
+  const handleSearch = async () => {
+    const query = searchQuery.trim()
+    if (!query) {
+      toast.error('Please enter a name or NID to search')
+      return
+    }
+
+    setSearching(true)
+    try {
+      const filter = [
+        ['name', 'contains', query],
+        'or',
+        ['code', 'contains', query]
+      ]
+      const url = `Learners/Get?take=20&filter=${encodeURIComponent(JSON.stringify(filter))}`
+      const response = await fetchWithAccessControl<any>(url)
+
+      let list: any[] = []
+      if (response) {
+        if (Array.isArray(response)) {
+          list = response
+        } else if (response.data && Array.isArray(response.data)) {
+          list = response.data
+        }
+      }
+
+      const formattedResults = list.map(item => {
+        const code = String(item.code || item.eId || item.eid || item.nid || item.EId || '').trim()
+        const name = String(item.name || item.fullName || (item.englishFirstName ? `${item.englishFirstName} ${item.englishLastName || ''}`.trim() : '') || item.thaiFirstName || '').trim()
+        const division = item.division || ''
+        const department = item.department || ''
+        const section = item.section || ''
+        const position = item.position || ''
+
+        return { code, name, division, department, section, position }
+      }).filter(item => item.code)
+
+      setSearchResults(formattedResults)
+      if (formattedResults.length === 0) {
+        toast.info('No learners found matching search criteria')
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to search learners directory')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const addPendingLearner = (learner: LearnerSelection) => {
+    if (group?.members.some(m => m.learnerCode === learner.code)) {
+      toast.warning(`${learner.name} is already a member of this group`)
+      return
+    }
+    setPendingAddLearners(prev => {
+      if (prev.some(item => item.code === learner.code)) {
+        toast.warning(`${learner.name} is already in the queue`)
+        return prev
+      }
+      return [...prev, learner]
+    })
+  }
+
+  const removePendingLearner = (code: string) => {
+    setPendingAddLearners(prev => prev.filter(item => item.code !== code))
+  }
+
+  const parseLearnerCodes = (value: string) => {
+    return Array.from(new Set(
+      value
+        .split(/[\n,;\s]+/)
+        .map(code => code.trim())
+        .filter(Boolean)
+        .map(code => code.toUpperCase())
+    ))
+  }
+
+  const handleImportCodes = () => {
+    const parsedCodes = parseLearnerCodes(learnerCodesInput)
+    if (parsedCodes.length === 0) {
+      toast.error('Enter at least one NID code')
+      return
+    }
+
+    const newSelections = parsedCodes.map(code => ({
+      code,
+      name: code, // fallback to code
+      division: '',
+      department: ''
+    }))
+
+    setPendingAddLearners(prev => {
+      const existingCodes = new Set(prev.map(l => l.code))
+      const groupCodes = new Set(group?.members.map(m => m.learnerCode) || [])
+      
+      const uniqueNew = newSelections.filter(l => !existingCodes.has(l.code) && !groupCodes.has(l.code))
+      const duplicateCount = parsedCodes.length - uniqueNew.length
+      if (duplicateCount > 0) {
+        toast.info(`${duplicateCount} code(s) were skipped (already selected or in the group)`)
+      }
+      return [...prev, ...uniqueNew]
+    })
+    setLearnerCodesInput('')
+    toast.success(`Imported ${parsedCodes.length} learner code(s) to queue`)
+  }
+
   // Bulk Add Preview Handler
   const handlePreviewAdd = async () => {
-    const codes = learnerCodesInput.split(/[\n,]+/).map(c => c.trim()).filter(c => c.length > 0)
+    const codes = pendingAddLearners.map(l => l.code)
     if (codes.length === 0) {
-      toast.error('Please input at least one NID employee code')
+      toast.error('Please add at least one learner to the queue')
       return
     }
 
@@ -171,7 +297,7 @@ export function StudentGroupDetailPage() {
       if (resp.success) {
         toast.success(resp.message || 'Group membership updated successfully!')
         setManagerMode('none')
-        setLearnerCodesInput('')
+        setPendingAddLearners([])
         setAddPreview(null)
         loadGroupDetails()
       }
@@ -269,10 +395,10 @@ export function StudentGroupDetailPage() {
     return (
       <div className="text-center py-12">
         <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-700 mt-4">Student Group Not Found</h2>
-        <p className="text-slate-400 mt-2">The requested student group does not exist.</p>
-        <Link to="/student-groups" className="mt-6 inline-flex items-center text-blue-600 font-semibold hover:underline">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Student Groups
+        <h2 className="text-lg font-bold text-slate-700 mt-4">Learner Group Not Found</h2>
+        <p className="text-slate-400 mt-2">The requested learner group does not exist.</p>
+        <Link to="/learner-groups" className="mt-6 inline-flex items-center text-blue-600 font-semibold hover:underline">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Learner Groups
         </Link>
       </div>
     )
@@ -282,15 +408,15 @@ export function StudentGroupDetailPage() {
     <>
       <PageHeader
         title={group.name}
-        eyebrow="Student Groups"
+        eyebrow="Learner Groups"
         actions={
           <div className="flex items-center gap-2">
-            <Link to={`/student-groups/${id}/edit`}>
+            <Link to={`/learner-groups/${id}/edit`}>
               <AppButton variant="secondary" icon={Settings}>
                 Edit Group Properties
               </AppButton>
             </Link>
-            <AppButton variant="primary" icon={UserPlus} onClick={() => setManagerMode('add')}>
+            <AppButton variant="primary" icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>
               Add Members
             </AppButton>
             {selectedMemberIds.length > 0 && (
@@ -303,7 +429,7 @@ export function StudentGroupDetailPage() {
       />
 
       <header className="mb-3">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Student Group</div>
+        <div className="text-xxs font-extrabold uppercase text-slate-400">Learner Group</div>
         <h1 className="text-2xl font-extrabold text-slate-900">{group.name}</h1>
       </header>
 
@@ -355,7 +481,7 @@ export function StudentGroupDetailPage() {
                         <td className="p-3 text-center">
                           <button
                             onClick={() => handleRemoveSingleMember(m.id)}
-                            className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                            className="p-1 text-slate-400 hover:text-red-650 rounded transition"
                             title="Remove member"
                           >
                             <UserMinus className="h-4 w-4" />
@@ -396,28 +522,152 @@ export function StudentGroupDetailPage() {
             <section className="admin-card space-y-4 border-l-2 border-blue-500">
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                 <h2 className="font-extrabold text-slate-700 text-sm uppercase">Add Group Members</h2>
-                <button onClick={() => { setManagerMode('none'); setAddPreview(null); }} className="text-slate-400 hover:text-slate-600 text-xs font-semibold">
+                <button onClick={() => { setManagerMode('none'); setAddPreview(null); setPendingAddLearners([]); }} className="text-slate-400 hover:text-slate-600 text-xs font-semibold">
                   Close
                 </button>
               </div>
 
               {!addPreview ? (
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="learnerCodes" className="block text-xxs font-extrabold text-slate-400 uppercase">
-                      Employee NIDs / Codes
-                    </label>
-                    <textarea
-                      id="learnerCodes"
-                      rows={5}
-                      value={learnerCodesInput}
-                      onChange={(e) => setLearnerCodesInput(e.target.value)}
-                      placeholder="Enter one code per line or comma-separated:&#10;500124&#10;500125"
-                      className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-slate-50/50"
-                    />
+                  {/* Tabs */}
+                  <div className="flex bg-slate-50 p-1 rounded border border-slate-100 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('picker')}
+                      className={`flex-1 py-1.5 text-center text-xs font-bold rounded transition ${
+                        activeTab === 'picker' ? 'bg-white text-blue-750 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Directory Search
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('bulk')}
+                      className={`flex-1 py-1.5 text-center text-xs font-bold rounded transition ${
+                        activeTab === 'bulk' ? 'bg-white text-blue-750 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Bulk Import
+                    </button>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  {activeTab === 'picker' ? (
+                    <div className="space-y-3">
+                      <div className="flex gap-1.5">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Name or NID..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleSearch(); } }}
+                            className="w-full pl-7 pr-2 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSearch}
+                          disabled={searching}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold transition disabled:opacity-55"
+                        >
+                          {searching ? <RefreshCw className="h-3 w-3 animate-spin" /> : 'Search'}
+                        </button>
+                      </div>
+
+                      {/* Directory results */}
+                      <div className="max-h-50 overflow-y-auto custom-scrollbar border border-slate-100 rounded bg-slate-50/20 p-1.5 space-y-1.5">
+                        {searchResults.length === 0 ? (
+                          <div className="text-center py-6 text-slate-400 text-xxs font-medium">Search to see directory results</div>
+                        ) : (
+                          searchResults.map(l => {
+                            const isAlreadySelected = pendingAddLearners.some(p => p.code === l.code)
+                            const isGroupMember = group.members.some(gm => gm.learnerCode === l.code)
+                            const isDisabled = isAlreadySelected || isGroupMember
+
+                            return (
+                              <div key={l.code} className="p-2 rounded bg-white border border-slate-200 flex justify-between items-center text-xs">
+                                <div className="min-w-0 pr-1 flex flex-col">
+                                  <span className="font-bold text-slate-800 truncate leading-tight">{l.name}</span>
+                                  <span className="text-slate-400 font-mono text-xxs mt-0.5">{l.code} {l.division ? `• ${l.division}` : ''}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={isDisabled}
+                                  onClick={() => addPendingLearner(l)}
+                                  className={`h-6 px-2 rounded font-bold text-xxs transition ${
+                                    isDisabled
+                                      ? 'bg-slate-100 text-slate-400 cursor-default'
+                                      : 'bg-blue-50 text-blue-750 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  {isGroupMember ? 'In Group' : isAlreadySelected ? 'Queued' : 'Add'}
+                                </button>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <textarea
+                        id="learnerCodes"
+                        rows={4}
+                        value={learnerCodesInput}
+                        onChange={(e) => setLearnerCodesInput(e.target.value)}
+                        placeholder="NID codes separated by comma or new lines..."
+                        className="w-full px-3 py-2 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-600 bg-slate-50/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleImportCodes}
+                        disabled={!learnerCodesInput.trim()}
+                        className="w-full py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-xs font-bold transition disabled:opacity-55"
+                      >
+                        Add to Queue
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Queued Learners (Pending additions) */}
+                  <div className="border border-slate-200 rounded overflow-hidden">
+                    <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-500 uppercase tracking-wider">
+                      <span>Add Queue ({pendingAddLearners.length})</span>
+                      {pendingAddLearners.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingAddLearners([])}
+                          className="text-red-500 hover:text-red-750 font-bold"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-40 overflow-y-auto custom-scrollbar divide-y divide-slate-100 bg-white">
+                      {pendingAddLearners.length === 0 ? (
+                        <div className="text-center py-6 text-slate-400 text-xxs font-semibold">Queue is empty</div>
+                      ) : (
+                        pendingAddLearners.map(l => (
+                          <div key={l.code} className="px-3 py-1.5 flex justify-between items-center text-xs font-medium">
+                            <div className="min-w-0 flex items-center gap-2">
+                              <span className="font-mono text-slate-800 font-semibold">{l.code}</span>
+                              {l.name !== l.code && <span className="text-slate-500 truncate text-xxs">({l.name})</span>}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removePendingLearner(l.code)}
+                              className="text-red-500 hover:text-red-700 font-bold text-xxs"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 border-t border-slate-100 pt-2.5">
                     <input
                       type="checkbox"
                       id="enrollToAssignments"
@@ -432,7 +682,7 @@ export function StudentGroupDetailPage() {
 
                   <button
                     onClick={handlePreviewAdd}
-                    disabled={loadingPreview || !learnerCodesInput.trim()}
+                    disabled={loadingPreview || pendingAddLearners.length === 0}
                     className="w-full text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold transition disabled:opacity-55 shadow-xs"
                   >
                     {loadingPreview ? 'Analyzing...' : 'Analyze & Preview'}

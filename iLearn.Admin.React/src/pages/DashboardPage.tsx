@@ -479,9 +479,9 @@ export function DashboardPage() {
               />
             )}
             <ReportLink
-              to="/student-groups"
+              to="/learner-groups"
               icon={Users}
-              title="Student Groups"
+              title="Learner Groups"
             />
             {isSuperAdmin && (
               <ReportLink
