@@ -149,7 +149,7 @@ export function AppWizard({
         {/* ── Step content ── */}
         <div className="min-h-0 flex-1 flex flex-col relative">
           <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
-            <div className="mx-auto w-full max-w-3xl">
+            <div className="w-full">
               {steps[currentStep - 1]?.render()}
             </div>
           </div>

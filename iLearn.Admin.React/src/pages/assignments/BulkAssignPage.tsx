@@ -9,11 +9,13 @@ import {
   ShieldCheck,
   X,
   Plus,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 
 type LookupCourse = {
   id: number
@@ -61,7 +63,9 @@ export function BulkAssignPage() {
   const [courseSearch, setCourseSearch] = useState('')
   const [targetMode, setTargetMode] = useState<'group' | 'custom'>('group')
   const [selectedGroupId, setSelectedGroupId] = useState<number>(0)
-  const [customEidsInput, setCustomEidsInput] = useState('')
+  const [customEidsInput] = useState('')
+  const [groupSearch, setGroupSearch] = useState('')
+  const [selectedLearners, setSelectedLearners] = useState<LearnerSelection[]>([])
   
   // Date scheduling states
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
@@ -94,6 +98,12 @@ export function BulkAssignPage() {
   const selectedCourses = useMemo(() => (
     courses.filter(c => selectedCourseIds.includes(c.id))
   ), [courses, selectedCourseIds])
+
+  const filteredGroups = useMemo(() => {
+    const q = groupSearch.trim().toLowerCase()
+    if (!q) return groups
+    return groups.filter(g => g.name.toLowerCase().includes(q))
+  }, [groups, groupSearch])
 
   const loadLookups = async () => {
     setLoadingLookups(true)
@@ -130,6 +140,11 @@ export function BulkAssignPage() {
 
   const getTargetCodes = (): string[] => {
     if (targetMode === 'custom') {
+      // Use selected learners from the directory search
+      if (selectedLearners.length > 0) {
+        return selectedLearners.map(l => l.code)
+      }
+      // Fallback: parse customEidsInput if any
       return customEidsInput
         .split(/[\n,]+/)
         .map(c => c.trim())
@@ -221,8 +236,8 @@ export function BulkAssignPage() {
       toast.error('Select a target Learner Group')
       return false
     }
-    if (targetMode === 'custom' && getTargetCodes().length === 0) {
-      toast.error('Enter at least one employee EId')
+    if (targetMode === 'custom' && selectedLearners.length === 0 && getTargetCodes().length === 0) {
+      toast.error('Select at least one learner')
       return false
     }
     return true
@@ -329,18 +344,19 @@ export function BulkAssignPage() {
   )
 
   const renderTargetScopeStep = () => (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4 h-[calc(100vh-270px)] min-h-105">
       <div className="wiz-section">
         <Users />
         <h2 className="wiz-section-title">Define Target Scope</h2>
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-50 p-1 rounded border border-slate-200 text-xs max-w-xs select-none">
+      {/* Mode toggle */}
+      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg max-w-xs select-none shrink-0">
         <button
           type="button"
           onClick={() => setTargetMode('group')}
-          className={`flex-1 py-1 text-center font-extrabold rounded transition cursor-pointer ${
-            targetMode === 'group' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+          className={`flex-1 py-2 px-3 text-center text-sm font-bold rounded-md transition cursor-pointer ${
+            targetMode === 'group' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           Learner Group
@@ -348,42 +364,70 @@ export function BulkAssignPage() {
         <button
           type="button"
           onClick={() => setTargetMode('custom')}
-          className={`flex-1 py-1 text-center font-extrabold rounded transition cursor-pointer ${
-            targetMode === 'custom' ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+          className={`flex-1 py-2 px-3 text-center text-sm font-bold rounded-md transition cursor-pointer ${
+            targetMode === 'custom' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          Custom EIds List
+          Individual Learners
         </button>
       </div>
 
+      {/* Dual-panel content */}
       {targetMode === 'group' ? (
-        <div className="space-y-1.5 max-w-sm select-none">
-          <label htmlFor="groupId" className="wiz-label">Select Learner Group</label>
-          <select
-            id="groupId"
-            value={selectedGroupId}
-            onChange={(e) => setSelectedGroupId(Number(e.target.value))}
-            className="wiz-input"
-          >
-            <option value={0}>-- Select Group --</option>
-            {groups.map(g => (
-              <option key={g.id} value={g.id}>
-                {g.name} ({g.memberCount} members)
-              </option>
-            ))}
-          </select>
+        <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
+          <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
+            <span className="font-bold text-xs text-slate-500 uppercase tracking-wide">Available Learner Groups</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xs font-bold text-slate-600">{groups.length}</span>
+          </div>
+
+          <div className="p-2 border-b border-slate-100 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search groups..."
+                value={groupSearch}
+                onChange={e => setGroupSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 min-h-0">
+            {filteredGroups.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-slate-400 py-12 text-center select-none">
+                {groupSearch ? 'No matching groups' : 'No groups available'}
+              </div>
+            ) : (
+              filteredGroups.map(g => (
+                <div
+                  key={g.id}
+                  onClick={() => setSelectedGroupId(g.id)}
+                  className={`p-3 rounded-md border cursor-pointer transition flex items-center justify-between group ${
+                    selectedGroupId === g.id
+                      ? 'border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200'
+                      : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/20'
+                  }`}
+                >
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-sm font-semibold text-slate-800 leading-tight truncate">{g.name}</span>
+                    <span className="text-xs text-slate-400 mt-0.5">{g.memberCount} members</span>
+                  </div>
+                  <div className={`h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center transition ${
+                    selectedGroupId === g.id
+                      ? 'border-indigo-500 bg-indigo-500'
+                      : 'border-slate-300 group-hover:border-indigo-400'
+                  }`}>
+                    {selectedGroupId === g.id && <Check className="h-3 w-3 text-white" />}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          <label htmlFor="customEids" className="wiz-label">Custom Employee EIds</label>
-          <textarea
-            id="customEids"
-            rows={5}
-            value={customEidsInput}
-            onChange={(e) => setCustomEidsInput(e.target.value)}
-            placeholder="Enter employee EIds separated by comma or new lines (e.g. N130812, N142715)"
-            className="wiz-input font-mono bg-slate-50/10 resize-y"
-          />
+        <div className="flex-1 flex flex-col min-h-0">
+          <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
         </div>
       )}
     </div>
@@ -520,6 +564,8 @@ export function BulkAssignPage() {
     courseSearch, 
     targetMode, 
     selectedGroupId, 
+    selectedLearners,
+    groupSearch,
     customEidsInput, 
     startDate, 
     dueDate, 
