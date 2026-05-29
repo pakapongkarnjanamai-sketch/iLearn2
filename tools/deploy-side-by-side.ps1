@@ -24,6 +24,12 @@ param(
     [ValidateRange(1, 100)]
     [int]$KeepDeployments = 3,
 
+    [string]$AppPoolName,
+
+    [string]$IisHost,
+
+    [pscredential]$IisCredential,
+
     [switch]$SkipPublish
 )
 
@@ -143,6 +149,39 @@ if ($PSCmdlet.ShouldProcess($webConfigPath, "Set aspNetCore arguments to $webCon
     $webConfig.Save($webConfigPath)
 }
 
+# --- Recycle app pool (optional, requires AppPoolName + IisHost) ---
+$recycledAppPool = $false
+if ($AppPoolName -and $IisHost) {
+    if ($PSCmdlet.ShouldProcess($AppPoolName, "Recycle app pool on $IisHost")) {
+        try {
+            $remoteParams = @{
+                ComputerName = $IisHost
+                ScriptBlock  = {
+                    param($PoolName)
+                    Import-Module WebAdministration
+                    if (Get-WebAppPoolState -Name $PoolName -ErrorAction SilentlyContinue) {
+                        Restart-WebAppPool -Name $PoolName
+                        Write-Output "Recycled app pool: $PoolName"
+                    }
+                    else {
+                        Write-Warning "App pool not found: $PoolName"
+                    }
+                }
+                ArgumentList = $AppPoolName
+            }
+            if ($IisCredential) {
+                $remoteParams.Credential = $IisCredential
+            }
+            $recycleResult = Invoke-Command @remoteParams
+            Write-Host $recycleResult -ForegroundColor DarkGray
+            $recycledAppPool = $true
+        }
+        catch {
+            Write-Warning "Could not recycle app pool '$AppPoolName' on ${IisHost}: $($_.Exception.Message)"
+        }
+    }
+}
+
 # --- Cleanup old deploy folders, keeping the $KeepDeployments most recent ---
 $allDeployDirs = Get-ChildItem -LiteralPath $DeployRoot -Directory -Filter "$DeployFolderPrefix*" |
     Sort-Object Name -Descending
@@ -187,5 +226,6 @@ if ($allDeployDirs.Count -gt $KeepDeployments) {
     WebConfigArguments = $webConfigArguments
     Stamp              = $Stamp
     SkippedPublish     = [bool]$SkipPublish
+    RecycledAppPool    = $recycledAppPool
     RemovedStale       = $removedCount
 } | Format-List

@@ -7,6 +7,12 @@ param(
 
     [string]$Stamp,
 
+    [string]$AppPoolName = 'iLearnNew.Admin',
+
+    [string]$IisHost = 'AP-NTC2138-QAWB',
+
+    [pscredential]$IisCredential,
+
     [switch]$SkipPublish
 )
 
@@ -22,6 +28,13 @@ $params = @{
 
 if ($PSBoundParameters.ContainsKey('Stamp')) {
     $params.Stamp = $Stamp
+}
+if ($AppPoolName) {
+    $params.AppPoolName = $AppPoolName
+    $params.IisHost = $IisHost
+}
+if ($IisCredential) {
+    $params.IisCredential = $IisCredential
 }
 
 & (Join-Path $PSScriptRoot 'deploy-side-by-side.ps1') @params -WhatIf:$WhatIfPreference
