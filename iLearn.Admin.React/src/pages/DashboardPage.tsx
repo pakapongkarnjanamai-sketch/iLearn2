@@ -194,10 +194,7 @@ export function DashboardPage() {
       <header className="flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-slate-200/60">
         <div>
           <div className="text-xxs font-extrabold text-slate-400 uppercase mb-1">iLearn Admin</div>
-          <h1
-            className="text-2xl font-extrabold text-slate-800"
-            style={{ fontFamily: 'Outfit, Inter, sans-serif' }}
-          >
+          <h1 className="text-2xl font-extrabold text-slate-800">
             Operational summary
           </h1>
           <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
@@ -325,17 +322,19 @@ export function DashboardPage() {
       </section>
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-        <SectionHeader
-          title="Priority Assignment Reports"
-          trailing={
-            <Link
-              to="/assignments"
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
-            >
-              View all →
-            </Link>
-          }
-        />
+        <div className="p-4 pb-0">
+          <SectionHeader
+            title="Priority Assignment Reports"
+            trailing={
+              <Link
+                to="/assignments"
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
+              >
+                View all →
+              </Link>
+            }
+          />
+        </div>
         {priorityAssignments.length === 0 ? (
           <EmptyRow label="No assignments need attention right now." />
         ) : (
@@ -395,9 +394,11 @@ export function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs lg:col-span-2">
-          <SectionHeader
-            title="Courses Needing Attention"
-          />
+          <div className="p-4 pb-0">
+            <SectionHeader
+              title="Courses Needing Attention"
+            />
+          </div>
           {courseAttention.length === 0 ? (
             <EmptyRow label="All courses are on track." />
           ) : (
@@ -555,10 +556,7 @@ function KpiTile({
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {label}
       </div>
-      <div
-        className="text-3xl font-extrabold text-slate-800 tabular-nums leading-tight"
-        style={{ fontFamily: 'Outfit, Inter, sans-serif' }}
-      >
+      <div className="text-3xl font-extrabold text-slate-800 tabular-nums leading-tight">
         {value}
       </div>
       {meta && <div className="text-xs text-slate-500">{meta}</div>}
@@ -610,7 +608,7 @@ function SectionHeader({
 function Th({ children, align = 'left' }: { children: ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`text-xxs font-extrabold uppercase py-2 ${
+      className={`text-xxs font-extrabold uppercase px-4 py-3 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >
@@ -621,7 +619,7 @@ function Th({ children, align = 'left' }: { children: ReactNode; align?: 'left' 
 
 function Td({ children, align = 'left' }: { children: ReactNode; align?: 'left' | 'right' }) {
   return (
-    <td className={`py-2 align-middle ${align === 'right' ? 'text-right' : ''}`}>{children}</td>
+    <td className={`px-4 py-3 align-middle text-slate-700 font-semibold ${align === 'right' ? 'text-right' : ''}`}>{children}</td>
   )
 }
 

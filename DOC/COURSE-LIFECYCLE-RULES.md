@@ -34,7 +34,7 @@ Course lifecycle status must separate assignment policy from learner access. In 
 ### Open or Closed to Retired
 - Blocks new assignments and active learner launch access.
 - Should be used only when the course is no longer valid.
-- If open enrollments exist, admins should resolve them before retiring or explicitly accept that active learning access will stop.
+- **Strict Hard Block**: If open enrollments exist, the system strictly blocks retiring the course. Admins must close the course first, then wait for completion or cancel/delete the related active enrollments.
 - Reports, logs, enrollments, and learning history must remain available.
 
 ## Learner Access Rules

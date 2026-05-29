@@ -19,7 +19,6 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
-import { AppButton } from '../../components/ui/AppButton'
 import { StatusText } from '../../components/ui/StatusText'
 
 type CourseDetail = {
@@ -278,18 +277,18 @@ export function CourseDetailPage() {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
         <div className="min-w-0">
           {/* Tab controls */}
-          <div className="border-b border-slate-200 mb-6 flex gap-4">
+          <div className="border-b border-slate-200 mb-6 flex gap-1">
             {(['overview', 'versions', 'learners', 'assignments'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 font-semibold text-sm transition relative ${
+                className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
                   activeTab === tab 
-                    ? 'text-indigo-500 font-bold border-b-2 border-indigo-500' 
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'text-indigo-600 font-bold border-b-2 border-indigo-500' 
+                    : 'text-slate-400 hover:text-slate-700'
                 }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -301,28 +300,24 @@ export function CourseDetailPage() {
           <main className="space-y-6">
             
             {activeTab === 'overview' && (
-              <section className="space-y-6">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-                  <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">Course Overview</h2>
-                </div>
-                
-                {/* Minimalist Title */}
+              <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5">
+                {/* Course Title & Code */}
                 <div>
                   <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{course.courseName || course.title}</h1>
                   <span className="inline-block mt-1 font-mono text-xs text-slate-400">{course.courseCode || course.code}</span>
                 </div>
 
-                {/* Minimalist Description */}
+                {/* Description */}
                 {course.description && (
-                  <p className="text-slate-500 text-xs leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
+                  <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
                     {course.description}
                   </p>
                 )}
 
-                {/* Clean Horizontal Grid */}
-                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs border-t border-slate-100 pt-5">
+                {/* Metadata Grid */}
+                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm border-t border-slate-100 pt-5">
                   <div>
-                    <dt className="text-slate-400 font-bold uppercase tracking-wider">Status</dt>
+                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Status</dt>
                     <dd className="mt-1">
                       <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
                         {course.statusName}
@@ -330,30 +325,30 @@ export function CourseDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-slate-400 font-bold uppercase tracking-wider">Category</dt>
+                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Category</dt>
                     <dd className="mt-1 font-semibold text-slate-700">{course.categoryName || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-400 font-bold uppercase tracking-wider">Division</dt>
+                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Division</dt>
                     <dd className="mt-1 font-semibold text-slate-700">{course.divisionName || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-400 font-bold uppercase tracking-wider">Course Type</dt>
+                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Course Type</dt>
                     <dd className="mt-1 font-semibold text-slate-700">{course.courseTypeName || '-'}</dd>
                   </div>
                   {data.kpi && (
                     <>
                       <div>
-                        <dt className="text-slate-400 font-bold uppercase tracking-wider">Versions</dt>
-                        <dd className="mt-1 font-bold text-slate-800">{data.kpi.versionCount}</dd>
+                        <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Versions</dt>
+                        <dd className="mt-1 font-bold text-slate-800 text-lg">{data.kpi.versionCount}</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-400 font-bold uppercase tracking-wider">Active Learners</dt>
-                        <dd className="mt-1 font-bold text-slate-800">{data.kpi.learnerCount}</dd>
+                        <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Active Learners</dt>
+                        <dd className="mt-1 font-bold text-slate-800 text-lg">{data.kpi.learnerCount}</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-400 font-bold uppercase tracking-wider">Assignment Batches</dt>
-                        <dd className="mt-1 font-bold text-slate-800">{data.kpi.assignmentCount}</dd>
+                        <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Assignment Batches</dt>
+                        <dd className="mt-1 font-bold text-slate-800 text-lg">{data.kpi.assignmentCount}</dd>
                       </div>
                     </>
                   )}
@@ -362,18 +357,18 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'versions' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
-              <div className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">
-                <FileText aria-hidden="true" />
-                <h2>Versions</h2>
-              </div>
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                <FileText className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+                Versions
+              </h2>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
                     <th className="p-3">Version No.</th>
                     <th className="p-3">Status</th>
                     <th className="p-3">SCORM Metadata</th>
@@ -440,12 +435,12 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'learners' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
-              <div className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">
-                <Users aria-hidden="true" />
-                <h2>Learners</h2>
-              </div>
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                <Users className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+                Learners
+              </h2>
             </div>
 
             {loadingLearners ? (
@@ -456,7 +451,7 @@ export function CourseDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
                       <th className="p-3">Learner Code (EId)</th>
                       <th className="p-3">Name</th>
                       <th className="p-3">Department</th>
@@ -490,15 +485,15 @@ export function CourseDetailPage() {
                                     style={{ width: `${l.progress}%` }}
                                   ></div>
                                 </div>
-                                <span className="font-bold text-xxs text-slate-600 shrink-0">{l.progress}%</span>
+                                <span className="font-bold text-xs text-slate-600 shrink-0">{l.progress}%</span>
                               </div>
                             </td>
-                            <td className="p-3 text-slate-400 text-xxs">
+                            <td className="p-3 text-slate-400 text-xs">
                               <div>Start: {new Date(l.startDate).toLocaleDateString()}</div>
                               <div className="mt-0.5">Due: {new Date(l.dueDate).toLocaleDateString()}</div>
                             </td>
                             <td className="p-3">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-xxs font-bold ${
+                              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
                                 l.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
                                   : l.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
                                   : 'bg-slate-100 text-slate-700'
@@ -516,12 +511,12 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'assignments' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
-              <div className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">
-                <Calendar aria-hidden="true" />
-                <h2>Assignments</h2>
-              </div>
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                <Calendar className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+                Assignments
+              </h2>
             </div>
 
             {loadingAssignments ? (
@@ -532,7 +527,7 @@ export function CourseDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
                       <th className="p-3">Batch No</th>
                       <th className="p-3">Description</th>
                       <th className="p-3">Start Date</th>
@@ -560,14 +555,14 @@ export function CourseDetailPage() {
                           <td className="p-3 text-slate-400 text-xs">{new Date(a.startDate).toLocaleDateString()}</td>
                           <td className="p-3 text-slate-400 text-xs">{new Date(a.dueDate).toLocaleDateString()}</td>
                           <td className="p-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded text-xxs font-bold ${
+                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
                               a.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
                                 : a.status === 'Enrolling' || a.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
                                 : 'bg-slate-100 text-slate-700'
                             }`}>{a.status}</span>
                           </td>
                           <td className="p-3">
-                            <div className="flex flex-col font-bold text-xxs text-slate-600">
+                            <div className="flex flex-col font-bold text-xs text-slate-600">
                               <span>{a.completedEnrollmentCount} / {a.totalEnrollmentCount} Learner</span>
                               <span className="text-slate-400 font-normal mt-0.5">({a.completionPct}% completed)</span>
                             </div>
@@ -619,73 +614,58 @@ function CourseControls({
   onDeleteCourse,
 }: CourseControlsProps) {
   return (
-    <aside className="space-y-5 xl:sticky xl:top-5">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-        <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Settings aria-hidden="true" />Course Control Hub</h2>
+    <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+      <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
+        <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+        <h2 className="text-sm font-bold text-slate-800">Controls</h2>
       </div>
 
-      {/* Primary Actions */}
-      <div className="space-y-3">
-        <span className="block text-xxs font-extrabold text-slate-400 uppercase">Management Actions</span>
-        <ControlLinkButton to={`/courses/${courseId}/version/new`} icon={Plus} variant="primary">
-          Add Version Package
-        </ControlLinkButton>
-        <ControlLinkButton
-          to={`/assignments/bulk?courseId=${courseId}`}
-          icon={UserPlus}
-          disabled={!isOpen}
-          title={isOpen ? undefined : 'Only Open courses can be assigned'}
-        >
-          Bulk Assign
-        </ControlLinkButton>
-        <ControlLinkButton to={`/courses/${courseId}/edit`} icon={Edit3}>
-          Edit Properties
-        </ControlLinkButton>
-      </div>
+      <ControlLinkButton to={`/courses/${courseId}/version/new`} icon={Plus}>
+        Add Version Package
+      </ControlLinkButton>
+      <ControlLinkButton
+        to={`/assignments/bulk?courseId=${courseId}`}
+        icon={UserPlus}
+        disabled={!isOpen}
+        title={isOpen ? undefined : 'Only Open courses can be assigned'}
+      >
+        Bulk Assign
+      </ControlLinkButton>
+      <ControlLinkButton to={`/courses/${courseId}/edit`} icon={Edit3}>
+        Edit Properties
+      </ControlLinkButton>
+      <ControlButton
+        icon={Power}
+        disabled={isOpen || mutatingStatus}
+        title={isOpen ? 'Course is already Open' : undefined}
+        onClick={() => onStatusChange(1)}
+      >
+        Publish Course
+      </ControlButton>
+      <ControlButton
+        icon={Lock}
+        disabled={isRetired || mutatingStatus}
+        title={isRetired ? 'Course is already Retired' : undefined}
+        onClick={() => onStatusChange(2)}
+      >
+        Retire Course
+      </ControlButton>
+      <ControlButton
+        icon={FileText}
+        disabled={isDraft || mutatingStatus}
+        title={isDraft ? 'Course is already Draft' : undefined}
+        onClick={() => onStatusChange(0)}
+      >
+        Revert to Draft
+      </ControlButton>
+      <ControlButton icon={Trash2} onClick={onDeleteCourse} variant="danger">
+        Delete Course
+      </ControlButton>
 
-      {/* Lifecycle Status Transitions */}
-      <div className="space-y-3 pt-1">
-        <span className="block text-xxs font-extrabold text-slate-400 uppercase">Transitions</span>
-        <div className="space-y-2">
-          <ControlActionButton
-            icon={<Power aria-hidden="true" />}
-            label="Publish Course"
-            tag="Open"
-            tone="success"
-            disabled={isOpen || mutatingStatus}
-            title={isOpen ? 'Course is already Open' : undefined}
-            onClick={() => onStatusChange(1)}
-          />
-          <ControlActionButton
-            icon={<Lock aria-hidden="true" />}
-            label="Retire Course"
-            tag="Retired"
-            tone="danger"
-            disabled={isRetired || mutatingStatus}
-            title={isRetired ? 'Course is already Retired' : undefined}
-            onClick={() => onStatusChange(2)}
-          />
-          <ControlActionButton
-            icon={<FileText aria-hidden="true" />}
-            label="Revert to Draft"
-            tag="Draft"
-            tone="neutral"
-            disabled={isDraft || mutatingStatus}
-            title={isDraft ? 'Course is already Draft' : undefined}
-            onClick={() => onStatusChange(0)}
-          />
-        </div>
-      </div>
-
-      {/* Destructive actions & Directory Link */}
-      <div className="border-t border-slate-200 pt-4 space-y-3">
-        <AppButton type="button" variant="danger" icon={Trash2} onClick={onDeleteCourse} className="w-full">
-          Delete Course
-        </AppButton>
-
+      <div className="pt-2 border-t border-slate-100">
         <Link 
           to="/courses" 
-          className="w-full flex items-center justify-center gap-1 text-slate-500 hover:text-slate-800 transition font-bold text-xs pt-1.5"
+          className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back to Directory</span>
@@ -701,64 +681,105 @@ type ControlLinkButtonProps = {
   children: ReactNode
   disabled?: boolean
   title?: string | undefined
-  variant?: 'primary' | 'secondary'
 }
 
 function ControlLinkButton({
   to,
-  icon,
+  icon: Icon,
   children,
   disabled = false,
   title,
-  variant = 'secondary',
 }: ControlLinkButtonProps) {
-  const button = (
-    <AppButton type="button" variant={variant} icon={icon} disabled={disabled} title={title} className="w-full">
-      {children}
-    </AppButton>
-  )
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
 
-  return disabled ? button : <Link to={to} className="block">{button}</Link>
+  return (
+    <Link
+      to={to}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+      title={title}
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </Link>
+  )
 }
 
-type ControlActionButtonProps = {
-  icon: ReactNode
-  label: string
-  tag: string
-  tone: 'success' | 'danger' | 'neutral'
-  disabled: boolean
+type ControlButtonProps = {
+  icon: LucideIcon
+  children: ReactNode
+  disabled?: boolean
   title?: string | undefined
   onClick: () => void
+  variant?: 'default' | 'danger'
 }
 
-function ControlActionButton({
-  icon,
-  label,
-  tag,
-  tone,
-  disabled,
+function ControlButton({
+  icon: Icon,
+  children,
+  disabled = false,
   title,
   onClick,
-}: ControlActionButtonProps) {
-  const toneClasses = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
-    danger: 'border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100',
-    neutral: 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100',
-  }[tone]
+  variant = 'default',
+}: ControlButtonProps) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
+
+  if (variant === 'danger') {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
+      </button>
+    )
+  }
 
   return (
     <button
       type="button"
-      disabled={disabled}
-      title={title}
       onClick={onClick}
-      className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-xs font-bold transition ${toneClasses} disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 disabled:opacity-60`}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+      title={title}
     >
-      <span className="flex items-center gap-2">
-        {icon}
-        <span>{label}</span>
-      </span>
-      <span className="text-xxs font-extrabold uppercase opacity-70">{tag}</span>
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
     </button>
   )
 }

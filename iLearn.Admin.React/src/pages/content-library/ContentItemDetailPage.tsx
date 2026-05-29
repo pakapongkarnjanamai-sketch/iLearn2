@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
+import type { LucideIcon } from 'lucide-react'
 import {
+  ArrowLeft,
   Download,
   Edit3,
   ExternalLink,
@@ -11,7 +13,6 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react'
-import { AppButton } from '../../components/ui/AppButton'
 import { StatusText } from '../../components/ui/StatusText'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -174,7 +175,7 @@ export function ContentItemDetailPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
       <div className="min-w-0">
         <section className="space-y-6">
           <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
@@ -242,50 +243,142 @@ export function ContentItemDetailPage() {
       </div>
 
       {/* Controls sidebar */}
-      <aside className="space-y-5 xl:sticky xl:top-5">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-          <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Settings aria-hidden="true" />Controls</h2>
+      <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+        <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
+          <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+          <h2 className="text-sm font-bold text-slate-800">Controls</h2>
         </div>
 
-        <div className="space-y-3">
-          <span className="block text-xxs font-extrabold text-slate-400 uppercase">Management Actions</span>
-          <Link to={`/content-library/${item.id}/edit`} className="block">
-            <AppButton variant="secondary" icon={Edit3} className="w-full">Edit Metadata</AppButton>
+        <CIControlLink to={`/content-library/${item.id}/edit`} icon={Edit3}>Edit Metadata</CIControlLink>
+        <CIControlBtn icon={ExternalLink} disabled={!item.isActive || !item.url || busy} onClick={handleOpenContent} title={!item.isActive ? 'Content must be published' : !item.url ? 'No launch URL' : undefined}>Open SCORM Player</CIControlBtn>
+        <CIControlBtn icon={item.isActive ? PowerOff : Power} disabled={busy} onClick={item.isActive ? handleUnpublish : handlePublish}>
+          {item.isActive ? 'Unpublish' : 'Publish'}
+        </CIControlBtn>
+        <CIControlBtn icon={Download} disabled={!item.fileStorageId} onClick={() => { if (item.fileStorageId) window.open(buildApiUrl(`ContentItems/${item.id}/content`), '_blank') }} title={!item.fileStorageId ? 'No file available' : undefined}>
+          Download ZIP
+        </CIControlBtn>
+        <CIControlBtn icon={Trash2} disabled={item.isActive || busy} onClick={handleDelete} variant="danger" title={item.isActive ? 'Unpublish before deleting' : undefined}>
+          Delete
+        </CIControlBtn>
+
+        <div className="pt-2 border-t border-slate-100">
+          <Link to="/content-library" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Library</span>
           </Link>
-          {item.isActive ? (
-            <>
-              {item.url && (
-                <AppButton variant="secondary" icon={ExternalLink} disabled={busy} onClick={handleOpenContent} className="w-full">
-                  Open SCORM Player
-                </AppButton>
-              )}
-              <AppButton variant="danger" icon={PowerOff} disabled={busy} onClick={handleUnpublish} className="w-full">
-                Unpublish
-              </AppButton>
-            </>
-          ) : (
-            <AppButton variant="primary" icon={Power} disabled={busy} onClick={handlePublish} className="w-full">
-              Publish
-            </AppButton>
-          )}
-          {!item.isActive && item.fileStorageId && (
-            <a
-              href={buildApiUrl(`ContentItems/${item.id}/content`)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-            >
-              <Download className="h-4 w-4" /> Download ZIP
-            </a>
-          )}
         </div>
-
-        {!item.isActive && (
-          <div className="border-t border-slate-200 pt-4">
-            <AppButton variant="danger" icon={Trash2} disabled={busy} onClick={handleDelete} className="w-full">
-              Delete
-            </AppButton>
-          </div>
-        )}
       </aside>
     </div>
+  )
+}
+
+/* ── Uniform control buttons ── */
+
+type CIControlLinkProps = {
+  to: string
+  icon: LucideIcon
+  children: React.ReactNode
+  disabled?: boolean
+  title?: string | undefined
+}
+
+function CIControlLink({
+  to,
+  icon: Icon,
+  children,
+  disabled = false,
+  title,
+}: CIControlLinkProps) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
+
+  return (
+    <Link
+      to={to}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+      title={title}
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </Link>
+  )
+}
+
+type CIControlBtnProps = {
+  icon: LucideIcon
+  children: React.ReactNode
+  disabled?: boolean
+  title?: string | undefined
+  onClick: () => void
+  variant?: 'default' | 'danger'
+}
+
+function CIControlBtn({
+  icon: Icon,
+  children,
+  disabled = false,
+  title,
+  onClick,
+  variant = 'default',
+}: CIControlBtnProps) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
+
+  if (variant === 'danger') {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
+      </button>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+      title={title}
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </button>
   )
 }

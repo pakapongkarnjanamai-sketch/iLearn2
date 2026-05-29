@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft, 
-  Calendar, 
   Users, 
   BookOpen, 
   AlertTriangle,
   RefreshCw,
+  Settings,
   Trash2,
   UserPlus,
-  FileBarChart
+  FileBarChart,
+  CalendarClock,
+  X
 } from 'lucide-react'
-import { PageHeader } from '../../components/ui/PageHeader'
-import { AppButton } from '../../components/ui/AppButton'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -64,6 +64,7 @@ export function AssignmentDetailPage() {
   // Operational states
   const [extendingDate, setExtendingDate] = useState(false)
   const [newDueDateInput, setNewDueDateInput] = useState('')
+  const [showDueDateModal, setShowDueDateModal] = useState(false)
   
   const [addingLearners, setAddingLearners] = useState(false)
   const [newLearnersInput, setNewLearnersInput] = useState('')
@@ -235,28 +236,6 @@ export function AssignmentDetailPage() {
 
   return (
     <>
-      <PageHeader
-        actions={
-          <div className="flex items-center gap-2">
-            <Link to={`/assignments/${id}/report`}>
-              <AppButton variant="ghost" icon={FileBarChart}>
-                Open Report
-              </AppButton>
-            </Link>
-            <AppButton variant="secondary" icon={UserPlus} onClick={() => setAddingLearners(true)}>
-              Add More Learners
-            </AppButton>
-            <button
-              onClick={handleDeleteBatch}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded text-xs font-bold transition shadow-xs"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Delete Batch</span>
-            </button>
-          </div>
-        }
-      />
-
       <header className="mb-3">
         <div className="text-xxs font-extrabold uppercase text-slate-400">Assignment</div>
         <h1 className="text-2xl font-extrabold text-slate-900">{assignment.assignmentNo}</h1>
@@ -291,10 +270,10 @@ export function AssignmentDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
         
         {/* Main Left Side Panels */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8 min-w-0">
           
           {/* Linked courses */}
           <section>
@@ -394,82 +373,185 @@ export function AssignmentDetailPage() {
         </div>
 
         {/* Right Sidebar controls */}
-        <aside className="space-y-8">
-          
-          {/* Add Learners Dialog overlay */}
-          {addingLearners && (
-            <section className="space-y-4 border-l-2 border-blue-500 p-4">
-              <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                <h2 className="font-extrabold text-slate-700 text-sm uppercase">Add Cohort Learners</h2>
-                <button onClick={() => setAddingLearners(false)} className="text-slate-400 hover:text-slate-600 text-xs font-semibold">Close</button>
-              </div>
+        <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+          <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
+            <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+            <h2 className="text-sm font-bold text-slate-800">Controls</h2>
+          </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="newCodes" className="block text-xxs font-extrabold text-slate-400 uppercase">Employee NID Codes</label>
-                  <textarea
-                    id="newCodes"
-                    rows={4}
-                    value={newLearnersInput}
-                    onChange={(e) => setNewLearnersInput(e.target.value)}
-                    placeholder="Enter codes separated by comma or newlines..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/50"
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <button onClick={() => setAddingLearners(false)} className="flex-1 py-1.5 text-center border border-slate-200 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
-                  <button onClick={handleAddLearners} disabled={savingLearners || !newLearnersInput.trim()} className="flex-1 py-1.5 text-center bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold disabled:opacity-55 shadow-xs transition">
-                    {savingLearners ? 'Saving...' : 'Add Learners'}
-                  </button>
-                </div>
-              </div>
-            </section>
-          )}
+          <AssignCtrlLink to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</AssignCtrlLink>
+          <AssignCtrlBtn icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</AssignCtrlBtn>
+          <AssignCtrlBtn icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</AssignCtrlBtn>
+          <AssignCtrlBtn icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</AssignCtrlBtn>
 
-          {/* Schedule extend controls */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Calendar aria-hidden="true" />Schedule</h2>
-            </div>
-            
-            <dl className="grid grid-cols-2 gap-3 text-sm py-1.5">
-              <div className="border-b border-slate-100/50 pb-2">
-                <span className="text-slate-400 font-extrabold text-xxs uppercase block">Start Date</span>
+          {/* Schedule info */}
+          <div className="pt-2 border-t border-slate-100">
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-slate-400 font-bold text-xs uppercase block">Start Date</span>
                 <span className="block font-semibold text-slate-700 mt-1">{new Date(assignment.startDate).toLocaleDateString()}</span>
               </div>
-              <div className="border-b border-slate-100/50 pb-2">
-                <span className="text-slate-400 font-extrabold text-xxs uppercase block">Due Date</span>
+              <div>
+                <span className="text-slate-400 font-bold text-xs uppercase block">Due Date</span>
                 <span className="block font-semibold text-slate-700 mt-1">{new Date(assignment.dueDate).toLocaleDateString()}</span>
               </div>
             </dl>
+          </div>
 
-            <div className="space-y-3 pt-2">
+          {/* Add Learners Panel */}
+          {addingLearners && (
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 uppercase">Add Learners</span>
+                <button onClick={() => setAddingLearners(false)} className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer">Close</button>
+              </div>
+              <textarea
+                id="newCodes"
+                rows={4}
+                value={newLearnersInput}
+                onChange={(e) => setNewLearnersInput(e.target.value)}
+                placeholder="Enter NID codes, comma or newline separated..."
+                className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/50"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setAddingLearners(false)} className="flex-1 py-1.5 text-center border border-slate-200 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
+                <button onClick={handleAddLearners} disabled={savingLearners || !newLearnersInput.trim()} className="flex-1 py-1.5 text-center bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold disabled:opacity-55 transition cursor-pointer">
+                  {savingLearners ? 'Saving...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-slate-100">
+            <Link to="/assignments" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Assignments</span>
+            </Link>
+          </div>
+        </aside>
+
+      </div>
+
+      {/* Extend Due Date Modal */}
+      {showDueDateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowDueDateModal(false)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-base font-bold text-slate-800">Extend Due Date</h3>
+              </div>
+              <button onClick={() => setShowDueDateModal(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-5 space-y-4">
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <span className="text-slate-400 font-semibold">Current:</span>
+                <span className="font-semibold text-slate-800">{new Date(assignment.dueDate).toLocaleDateString()}</span>
+              </div>
+
               <div className="space-y-1.5">
-                <label htmlFor="newDue" className="block text-xxs font-extrabold text-slate-400 uppercase">Extend Due Date</label>
+                <label htmlFor="newDue" className="block text-xs font-bold text-slate-500 uppercase">New Due Date</label>
                 <input
                   type="date"
                   id="newDue"
                   value={newDueDateInput}
                   onChange={(e) => setNewDueDateInput(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-800 bg-slate-50/50 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 bg-slate-50/50 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400"
                 />
               </div>
+            </div>
 
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
               <button
                 type="button"
-                onClick={handleExtendDueDate}
-                disabled={extendingDate}
-                className="w-full text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold transition disabled:opacity-55 shadow-xs"
+                onClick={() => setShowDueDateModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
-                {extendingDate ? 'Extending...' : 'Extend Due Date'}
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={extendingDate || !newDueDateInput}
+                onClick={async () => {
+                  await handleExtendDueDate()
+                  setShowDueDateModal(false)
+                }}
+                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+              >
+                {extendingDate ? 'Extending...' : 'Confirm'}
               </button>
             </div>
-          </section>
-
-        </aside>
-
-      </div>
+          </div>
+        </div>
+      )}
     </>
+  )
+}
+
+/* ── Uniform control buttons ── */
+
+function AssignCtrlLink({ to, icon: Icon, children }: {
+  to: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode
+}) {
+  return (
+    <Link
+      to={to}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </Link>
+  )
+}
+
+function AssignCtrlBtn({ icon: Icon, children, disabled, onClick, variant = 'default' }: {
+  icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; disabled?: boolean; onClick: () => void; variant?: 'default' | 'danger'
+}) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
+
+  if (variant === 'danger') {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
+      >
+        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+        </div>
+        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
+      </button>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </button>
   )
 }

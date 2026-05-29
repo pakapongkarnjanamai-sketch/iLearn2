@@ -314,7 +314,7 @@ export function AppTable<T extends TableRecord>({
         onScroll={handleScroll}
         className="relative flex-1 min-h-0 overflow-auto custom-scrollbar"
       >
-        <table className="min-w-full divide-y divide-slate-100 text-left">
+        <table className="min-w-full divide-y divide-slate-100 text-left text-xs sm:text-[13px]">
           
           {/* Table Headers */}
           <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
@@ -464,11 +464,11 @@ export function AppTable<T extends TableRecord>({
                               </span>
                             </div>
                           ) : col.dataType === 'datetime' || col.dataType === 'date' ? (
-                            <span className="text-slate-400 font-medium text-xs">
+                            <span className="text-slate-400 font-medium text-xs sm:text-[13px]">
                               {formatDateValue(val)}
                             </span>
                           ) : (
-                            <span className={`text-slate-700 font-semibold ${
+                            <span className={`text-slate-700 font-semibold text-xs sm:text-[13px] ${
                               col.alignment === 'center' ? 'block text-center' : col.alignment === 'right' ? 'block text-right' : 'block text-left'
                             }`}>
                               {val !== undefined && val !== null ? String(val) : '—'}

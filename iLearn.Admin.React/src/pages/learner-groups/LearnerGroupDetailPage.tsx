@@ -8,7 +8,6 @@ import {
   UserMinus, 
   Loader2, 
   AlertTriangle,
-  Layers,
   X,
   Check,
   Plus
@@ -327,7 +326,7 @@ export function LearnerGroupDetailPage() {
   return (
     <>
       {/* Main Grid display vs Overlay Operations Drawer */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
 
         {/* Members List Table Grid */}
         <section className="min-w-0">
@@ -390,92 +389,79 @@ export function LearnerGroupDetailPage() {
         </section>
 
         {/* Dynamic Sidebar Controls based on mode selection */}
-        <aside className="space-y-5 xl:sticky xl:top-5">
-
-          {/* Persistent Controls */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Settings aria-hidden="true" />Controls</h2>
-            </div>
-            <span className="block text-xxs font-extrabold text-slate-400 uppercase">Management Actions</span>
-            <Link to={`/learner-groups/${id}/edit`} className="block">
-              <AppButton variant="secondary" icon={Settings} className="w-full">Edit Group Properties</AppButton>
-            </Link>
-            <AppButton variant="primary" icon={UserPlus} className="w-full" onClick={() => { setManagerMode('add'); setAddPreview(null); }}>
-              Add Members
-            </AppButton>
-            <AppButton variant="danger" icon={UserMinus} className="w-full" disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove}>
-              Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
-            </AppButton>
+        <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+          <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
+            <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+            <h2 className="text-sm font-bold text-slate-800">Controls</h2>
           </div>
 
-          {managerMode !== 'remove' ? (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-                <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Properties</h2>
+          <LGCtrlLink to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</LGCtrlLink>
+          <LGCtrlBtn icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</LGCtrlBtn>
+          <LGCtrlBtn icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
+            Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
+          </LGCtrlBtn>
+
+          {/* Properties info */}
+          <div className="pt-2 border-t border-slate-100 space-y-3">
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-slate-400 font-bold text-xs uppercase">LMS Category</dt>
+                <dd className="text-slate-800 font-bold mt-1">{group.categoryName || '-'}</dd>
               </div>
-              <dl className="space-y-3 text-sm">
-                <div className="border-b border-slate-100/50 pb-2">
-                  <dt className="text-slate-400 font-extrabold text-xxs uppercase">LMS Category</dt>
-                  <dd className="text-slate-800 font-bold mt-1">{group.categoryName || '-'}</dd>
-                </div>
-                <div className="border-b border-slate-100/50 pb-2">
-                  <dt className="text-slate-400 font-extrabold text-xxs uppercase">Owner / Creator</dt>
-                  <dd className="text-slate-800 font-mono font-bold mt-1">{group.createdBy || 'System Admin'}</dd>
-                </div>
-              </dl>
-            </section>
-          ) : (
-            /* Remove Members Preview drawer Panel */
-            removePreview && (
-              <section className="space-y-4 border-l-2 border-red-500 p-4">
-                <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                  <h2 className="font-extrabold text-slate-700 text-sm uppercase">Remove Group Members</h2>
-                  <button onClick={() => { setManagerMode('none'); setRemovePreview(null); }} className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer">
-                    Close
-                  </button>
-                </div>
+              <div>
+                <dt className="text-slate-400 font-bold text-xs uppercase">Owner / Creator</dt>
+                <dd className="text-slate-800 font-mono font-bold mt-1">{group.createdBy || 'System Admin'}</dd>
+              </div>
+            </dl>
+          </div>
 
-                <div className="space-y-4 text-sm">
-                  <p className="text-xs text-slate-500 leading-relaxed">Remove selected members and optional enrollments.</p>
+          {/* Remove Members Preview drawer Panel */}
+          {managerMode === 'remove' && removePreview && (
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 uppercase">Confirm Removal</span>
+                <button onClick={() => { setManagerMode('none'); setRemovePreview(null); }} className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer">Close</button>
+              </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="unenrollFromAssignments"
-                      checked={unenrollFromAssignments}
-                      onChange={(e) => setUnenrollFromAssignments(e.target.checked)}
-                      className="h-4 w-4 rounded text-red-600 border-slate-300 focus:ring-red-500 cursor-pointer"
-                    />
-                    <label htmlFor="unenrollFromAssignments" className="text-xs font-semibold text-slate-700 select-none cursor-pointer">
-                      Unenroll from Group Assignments
-                    </label>
-                  </div>
+              <p className="text-xs text-slate-500 leading-relaxed">Remove selected members and optional enrollments.</p>
 
-                  <div className="bg-slate-50/60 border border-slate-100 p-3 rounded space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-semibold uppercase text-xxs">Selected for Removal:</span>
-                      <span className="font-bold text-red-600">{removePreview.selectedMemberCount} Users</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-slate-700 border-t border-slate-200/40 pt-2 mt-2">
-                      <span className="text-slate-400 font-semibold uppercase text-xxs">Stripped Course Enrollments:</span>
-                      <span className="text-red-600">{removePreview.estimatedUnenrollmentCount}</span>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="unenrollFromAssignments"
+                  checked={unenrollFromAssignments}
+                  onChange={(e) => setUnenrollFromAssignments(e.target.checked)}
+                  className="h-4 w-4 rounded text-red-600 border-slate-300 focus:ring-red-500 cursor-pointer"
+                />
+                <label htmlFor="unenrollFromAssignments" className="text-xs font-semibold text-slate-700 select-none cursor-pointer">
+                  Unenroll from Group Assignments
+                </label>
+              </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <AppButton variant="secondary" className="flex-1" onClick={() => { setManagerMode('none'); setRemovePreview(null); }}>
-                      Cancel
-                    </AppButton>
-                    <AppButton variant="danger" icon={UserMinus} className="flex-1" onClick={handleConfirmRemove}>
-                      Commit Removal
-                    </AppButton>
-                  </div>
+              <div className="bg-slate-50/60 border border-slate-100 p-3 rounded space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-semibold uppercase text-xs">Selected:</span>
+                  <span className="font-bold text-red-600">{removePreview.selectedMemberCount} Users</span>
                 </div>
-              </section>
-            )
+                <div className="flex justify-between font-bold text-slate-700 border-t border-slate-200/40 pt-2 mt-2">
+                  <span className="text-slate-400 font-semibold uppercase text-xs">Enrollments:</span>
+                  <span className="text-red-600">{removePreview.estimatedUnenrollmentCount}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setManagerMode('none'); setRemovePreview(null); }} className="flex-1 py-1.5 text-center border border-slate-200 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
+                <button onClick={handleConfirmRemove} className="flex-1 py-1.5 text-center bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold transition cursor-pointer">Commit</button>
+              </div>
+            </div>
           )}
 
+          <div className="pt-2 border-t border-slate-100">
+            <Link to="/learner-groups" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Groups</span>
+            </Link>
+          </div>
         </aside>
 
       </div>
@@ -697,5 +683,116 @@ export function LearnerGroupDetailPage() {
         </div>
       )}
     </>
+  )
+}
+
+/* ── Uniform control buttons ── */
+
+type LGCtrlLinkProps = {
+  to: string
+  icon: React.ComponentType<{ className?: string }>
+  children: React.ReactNode
+  disabled?: boolean
+  title?: string | undefined
+}
+
+function LGCtrlLink({
+  to,
+  icon: Icon,
+  children,
+  disabled = false,
+  title,
+}: LGCtrlLinkProps) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
+
+  return (
+    <Link
+      to={to}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+      title={title}
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </Link>
+  )
+}
+
+type LGCtrlBtnProps = {
+  icon: React.ComponentType<{ className?: string }>
+  children: React.ReactNode
+  disabled?: boolean
+  title?: string | undefined
+  onClick: () => void
+  variant?: 'default' | 'danger'
+}
+
+function LGCtrlBtn({
+  icon: Icon,
+  children,
+  disabled = false,
+  title,
+  onClick,
+  variant = 'default',
+}: LGCtrlBtnProps) {
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold">{children}</span>
+      </button>
+    )
+  }
+
+  if (variant === 'danger') {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
+        title={title}
+      >
+        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        </div>
+        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
+      </button>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
+      title={title}
+    >
+      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
+        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      </div>
+      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
+    </button>
   )
 }

@@ -22,7 +22,7 @@ export function AppButton({ children, icon, variant = 'secondary', className = '
   return (
     <button
       type={type}
-      className={`inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&_svg]:h-4 [&_svg]:w-4 ${variantStyles[variant]} ${className}`.trim()}
+      className={`inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 text-xs sm:text-[13px] font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&_svg]:h-4 [&_svg]:w-4 ${variantStyles[variant]} ${className}`.trim()}
       {...props}
     >
       {Icon ? <Icon aria-hidden="true" /> : null}

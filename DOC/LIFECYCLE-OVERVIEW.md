@@ -48,11 +48,9 @@ Last updated: 2026-04-30
 
 ## Analysis And Recommendations
 
-### 1. Retired Course Rule Needs One Final Product Decision
+### 1. Retired Course Rule Finalized as Hard Block
 
-`COURSE-LIFECYCLE-RULES.md` says admins should resolve open enrollments before retiring or explicitly accept the impact. The current service behavior blocks Retired when open enrollments exist. Choose one policy and make the document, API response, and Admin confirmation match.
-
-Recommended default: keep the hard block for now. It is safer for learner access and avoids silently removing active learning tasks.
+The Retired Course Policy has been finalized as a strict **Hard Block** to preserve learner progress and data integrity. If open enrollments exist, the system blocks retiring the course. Admins must close the course first, then wait for completion or cancel/delete the related active enrollments. The documentation, API responses, and Admin confirmation flows are aligned to this safe default.
 
 ### 2. Separate Assignment Expired From Learner Overdue
 
