@@ -1,0 +1,127 @@
+- generic [ref=e3]:
+  - complementary "Admin navigation" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: iL
+      - generic [ref=e7]:
+        - strong [ref=e8]: iLearn Admin
+        - generic [ref=e9]: Enterprise LMS
+    - navigation [ref=e10]:
+      - link "Dashboard" [ref=e12] [cursor=pointer]:
+        - /url: /
+        - img [ref=e13]
+        - generic [ref=e16]: Dashboard
+      - link "Courses" [ref=e18] [cursor=pointer]:
+        - /url: /courses
+        - img [ref=e19]
+        - generic [ref=e21]: Courses
+      - link "Content Library" [ref=e23] [cursor=pointer]:
+        - /url: /content-library
+        - img [ref=e24]
+        - generic [ref=e26]: Content Library
+      - generic [ref=e27]:
+        - link "Assignments" [ref=e28] [cursor=pointer]:
+          - /url: /assignments
+          - img [ref=e29]
+          - generic [ref=e32]: Assignments
+        - generic [ref=e33]:
+          - link "Batches" [ref=e34] [cursor=pointer]:
+            - /url: /assignments
+          - link "Schedule (Gantt)" [ref=e35] [cursor=pointer]:
+            - /url: /assignments/gantt
+          - link "Bulk Assign" [ref=e36] [cursor=pointer]:
+            - /url: /assignments/bulk
+      - link "Learner Groups" [ref=e38] [cursor=pointer]:
+        - /url: /learner-groups
+        - img [ref=e39]
+        - generic [ref=e44]: Learner Groups
+      - link "Learners" [ref=e46] [cursor=pointer]:
+        - /url: /learners
+        - img [ref=e47]
+        - generic [ref=e50]: Learners
+      - link "Operations" [ref=e52] [cursor=pointer]:
+        - /url: /learning-logs
+        - img [ref=e53]
+        - generic [ref=e56]: Operations
+      - link "Master Data" [ref=e58] [cursor=pointer]:
+        - /url: /master-data/divisions
+        - img [ref=e59]
+        - generic [ref=e63]: Master Data
+      - link "Admin Users" [ref=e65] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e66]
+        - generic [ref=e78]: Admin Users
+      - link "System Config" [ref=e80] [cursor=pointer]:
+        - /url: /system-config
+        - img [ref=e81]
+        - generic [ref=e84]: System Config
+      - link "Access Control" [ref=e86] [cursor=pointer]:
+        - /url: /access-denied
+        - img [ref=e87]
+        - generic [ref=e90]: Access Control
+    - generic [ref=e91]: React console running side by side
+  - main [ref=e92]:
+    - generic [ref=e93]:
+      - generic [ref=e94]:
+        - button "Toggle navigation" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+        - navigation [ref=e98]:
+          - link "Dashboard Home" [ref=e99] [cursor=pointer]:
+            - /url: /
+            - img [ref=e100]
+          - img [ref=e103]
+          - generic [ref=e106]: Assignments
+      - generic [ref=e107]:
+        - generic [ref=e109]: Session pending
+        - button "Notifications" [ref=e110] [cursor=pointer]:
+          - img [ref=e111]
+        - generic [ref=e114]:
+          - generic [ref=e115]: WA
+          - generic [ref=e116]:
+            - strong [ref=e117]: Windows Admin
+            - generic [ref=e118]: Current division
+    - generic [ref=e120]:
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - heading "Assignment Batches" [level=2] [ref=e123]
+          - paragraph [ref=e124]: Assignment status is computed server-side; React only presents the result.
+        - link "Bulk Assignment" [ref=e127] [cursor=pointer]:
+          - /url: /assignments/bulk
+          - button "Bulk Assignment" [ref=e128]:
+            - img [ref=e129]
+            - generic [ref=e130]: Bulk Assignment
+      - generic [ref=e132]:
+        - generic [ref=e134]:
+          - img [ref=e135]
+          - textbox "Search records..." [ref=e138]
+        - generic [ref=e139]:
+          - table [ref=e140]:
+            - rowgroup [ref=e141]:
+              - row "Assignment No. Description Course Division Start Date Due Date Actions" [ref=e142]:
+                - columnheader "Assignment No." [ref=e143] [cursor=pointer]:
+                  - generic [ref=e144]:
+                    - generic [ref=e145]: Assignment No.
+                    - img [ref=e146]
+                - columnheader "Description" [ref=e149] [cursor=pointer]:
+                  - generic [ref=e150]:
+                    - generic [ref=e151]: Description
+                    - img [ref=e152]
+                - columnheader "Course" [ref=e155] [cursor=pointer]:
+                  - generic [ref=e156]:
+                    - generic [ref=e157]: Course
+                    - img [ref=e158]
+                - columnheader "Division" [ref=e161] [cursor=pointer]:
+                  - generic [ref=e162]:
+                    - generic [ref=e163]: Division
+                    - img [ref=e164]
+                - columnheader "Start Date" [ref=e167] [cursor=pointer]:
+                  - generic [ref=e168]:
+                    - generic [ref=e169]: Start Date
+                    - img [ref=e170]
+                - columnheader "Due Date" [ref=e173] [cursor=pointer]:
+                  - generic [ref=e174]:
+                    - generic [ref=e175]: Due Date
+                    - img [ref=e176]
+                - columnheader "Actions" [ref=e179]
+            - rowgroup
+          - img [ref=e181]
+        - generic [ref=e184]: No records found

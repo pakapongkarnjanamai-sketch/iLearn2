@@ -1,0 +1,132 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary "Admin navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: iL
+        - generic [ref=e7]:
+          - strong [ref=e8]: iLearn Admin
+          - generic [ref=e9]: Enterprise LMS
+      - navigation [ref=e10]:
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /
+          - img [ref=e13]
+          - generic [ref=e16]: Dashboard
+        - link "Courses" [ref=e18] [cursor=pointer]:
+          - /url: /courses
+          - img [ref=e19]
+          - generic [ref=e21]: Courses
+        - link "Content Library" [ref=e23] [cursor=pointer]:
+          - /url: /content-library
+          - img [ref=e24]
+          - generic [ref=e26]: Content Library
+        - link "Assignments" [ref=e28] [cursor=pointer]:
+          - /url: /assignments
+          - img [ref=e29]
+          - generic [ref=e32]: Assignments
+        - link "Learner Groups" [ref=e34] [cursor=pointer]:
+          - /url: /learner-groups
+          - img [ref=e35]
+          - generic [ref=e40]: Learner Groups
+        - link "Learners" [ref=e42] [cursor=pointer]:
+          - /url: /learners
+          - img [ref=e43]
+          - generic [ref=e46]: Learners
+        - link "Operations" [ref=e48] [cursor=pointer]:
+          - /url: /learning-logs
+          - img [ref=e49]
+          - generic [ref=e52]: Operations
+        - link "Master Data" [ref=e54] [cursor=pointer]:
+          - /url: /master-data/divisions
+          - img [ref=e55]
+          - generic [ref=e59]: Master Data
+        - link "Admin Users" [ref=e61] [cursor=pointer]:
+          - /url: /users
+          - img [ref=e62]
+          - generic [ref=e74]: Admin Users
+        - link "System Config" [ref=e76] [cursor=pointer]:
+          - /url: /system-config
+          - img [ref=e77]
+          - generic [ref=e80]: System Config
+        - link "Access Control" [ref=e82] [cursor=pointer]:
+          - /url: /access-denied
+          - img [ref=e83]
+          - generic [ref=e86]: Access Control
+      - generic [ref=e87]: React console running side by side
+    - main [ref=e88]:
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - button "Toggle navigation" [ref=e91] [cursor=pointer]:
+            - img [ref=e92]
+          - navigation [ref=e94]:
+            - link "Dashboard Home" [ref=e95] [cursor=pointer]:
+              - /url: /
+              - img [ref=e96]
+            - img [ref=e99]
+            - generic [ref=e102]: Courses
+        - generic [ref=e103]:
+          - generic [ref=e105]: Session pending
+          - button "Notifications" [ref=e106] [cursor=pointer]:
+            - img [ref=e107]
+          - generic [ref=e110]:
+            - generic [ref=e111]: WA
+            - generic [ref=e112]:
+              - strong [ref=e113]: Windows Admin
+              - generic [ref=e114]: Current division
+      - generic [ref=e116]:
+        - complementary [ref=e117]:
+          - generic [ref=e118]:
+            - img [ref=e119]
+            - heading "Course Categories" [level=2] [ref=e123]
+          - generic [ref=e124]:
+            - generic:
+              - list
+        - main [ref=e125]:
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e128]:
+                - heading "Course Directory" [level=2] [ref=e129]
+                - paragraph [ref=e130]: Double-click any row to view complete details, manage versions, and preview training files.
+              - link "Create Course" [ref=e132] [cursor=pointer]:
+                - /url: /courses/new
+                - button "Create Course" [ref=e133]:
+                  - img [ref=e134]
+                  - generic [ref=e135]: Create Course
+            - generic [ref=e137]:
+              - generic [ref=e138]:
+                - generic [ref=e139]:
+                  - img [ref=e140]
+                  - textbox "Search by course name or code..." [ref=e143]
+                - generic [ref=e144]:
+                  - generic [ref=e145]:
+                    - img [ref=e146]
+                    - generic [ref=e147]: Course Type
+                  - button "All Types" [ref=e148]
+              - generic [ref=e149]:
+                - table [ref=e150]:
+                  - rowgroup [ref=e151]:
+                    - row "Course Identity Course Type Status Category / Department Actions" [ref=e152]:
+                      - columnheader "Course Identity" [ref=e153] [cursor=pointer]:
+                        - generic [ref=e154]:
+                          - generic [ref=e155]: Course Identity
+                          - img [ref=e156]
+                      - columnheader "Course Type" [ref=e159] [cursor=pointer]:
+                        - generic [ref=e160]:
+                          - generic [ref=e161]: Course Type
+                          - img [ref=e162]
+                      - columnheader "Status" [ref=e165] [cursor=pointer]:
+                        - generic [ref=e166]:
+                          - generic [ref=e167]: Status
+                          - img [ref=e168]
+                      - columnheader "Category / Department" [ref=e171] [cursor=pointer]:
+                        - generic [ref=e172]:
+                          - generic [ref=e173]: Category / Department
+                          - img [ref=e174]
+                      - columnheader "Actions" [ref=e177]
+                  - rowgroup
+                - img [ref=e179]
+              - generic [ref=e182]: No records found
+  - generic [ref=e183]:
+    - img [ref=e185]
+    - paragraph [ref=e188]: Unable to load category hierarchy
+    - button "Close Notification" [ref=e189] [cursor=pointer]:
+      - img [ref=e190]

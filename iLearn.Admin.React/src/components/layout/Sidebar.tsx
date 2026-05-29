@@ -54,7 +54,13 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
               <NavLink
                 to={item.path}
                 end={item.path === '/'}
-                className="flex items-center gap-2.5 min-h-[38px] rounded-md px-2.5 text-blue-100 font-medium [&_svg]:w-[17px] [&_svg]:h-[17px] [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white focus-visible:outline-none [&.active]:bg-white [&.active]:text-slate-800 [&.active_svg]:text-indigo-600"
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 min-h-[38px] rounded-md px-2.5 font-medium [&_svg]:w-[17px] [&_svg]:h-[17px] focus-visible:outline-none ${
+                    isActive
+                      ? 'bg-white text-slate-800 [&_svg]:text-indigo-600'
+                      : 'text-blue-100 [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white'
+                  }`
+                }
                 onClick={onNavigate}
               >
                 <Icon aria-hidden="true" />

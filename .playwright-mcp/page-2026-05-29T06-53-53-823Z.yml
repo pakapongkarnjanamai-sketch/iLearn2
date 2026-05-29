@@ -1,0 +1,74 @@
+- generic [ref=e3]:
+  - complementary "Admin navigation" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: iL
+      - generic [ref=e7]:
+        - strong [ref=e8]: iLearn Admin
+        - generic [ref=e9]: Enterprise LMS
+    - navigation [ref=e10]:
+      - link "Dashboard" [ref=e12] [cursor=pointer]:
+        - /url: /
+        - img [ref=e13]
+        - generic [ref=e16]: Dashboard
+      - link "Courses" [ref=e18] [cursor=pointer]:
+        - /url: /courses
+        - img [ref=e19]
+        - generic [ref=e21]: Courses
+      - link "Content Library" [ref=e23] [cursor=pointer]:
+        - /url: /content-library
+        - img [ref=e24]
+        - generic [ref=e26]: Content Library
+      - link "Assignments" [ref=e28] [cursor=pointer]:
+        - /url: /assignments
+        - img [ref=e29]
+        - generic [ref=e32]: Assignments
+      - link "Learner Groups" [ref=e34] [cursor=pointer]:
+        - /url: /learner-groups
+        - img [ref=e35]
+        - generic [ref=e40]: Learner Groups
+      - link "Learners" [ref=e42] [cursor=pointer]:
+        - /url: /learners
+        - img [ref=e43]
+        - generic [ref=e46]: Learners
+      - link "Operations" [ref=e48] [cursor=pointer]:
+        - /url: /learning-logs
+        - img [ref=e49]
+        - generic [ref=e52]: Operations
+      - link "Master Data" [ref=e54] [cursor=pointer]:
+        - /url: /master-data/divisions
+        - img [ref=e55]
+        - generic [ref=e59]: Master Data
+      - link "Admin Users" [ref=e61] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e62]
+        - generic [ref=e74]: Admin Users
+      - link "System Config" [ref=e76] [cursor=pointer]:
+        - /url: /system-config
+        - img [ref=e77]
+        - generic [ref=e80]: System Config
+      - link "Access Control" [ref=e82] [cursor=pointer]:
+        - /url: /access-denied
+        - img [ref=e83]
+        - generic [ref=e86]: Access Control
+    - generic [ref=e87]: React console running side by side
+  - main [ref=e88]:
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - button "Toggle navigation" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+        - navigation [ref=e94]:
+          - link "Dashboard Home" [ref=e95] [cursor=pointer]:
+            - /url: /
+            - img [ref=e96]
+      - generic [ref=e99]:
+        - generic [ref=e101]: Session pending
+        - button "Notifications" [ref=e102] [cursor=pointer]:
+          - img [ref=e103]
+        - generic [ref=e106]:
+          - generic [ref=e107]: WA
+          - generic [ref=e108]:
+            - strong [ref=e109]: Windows Admin
+            - generic [ref=e110]: Current division
+    - generic [ref=e112]:
+      - img [ref=e113]
+      - text: Loading dashboard…

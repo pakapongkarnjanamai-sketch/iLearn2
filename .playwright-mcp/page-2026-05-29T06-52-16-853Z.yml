@@ -1,0 +1,119 @@
+- generic [ref=e3]:
+  - complementary "Admin navigation" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: iL
+      - generic [ref=e7]:
+        - strong [ref=e8]: iLearn Admin
+        - generic [ref=e9]: Enterprise LMS
+    - navigation [ref=e10]:
+      - link "Dashboard" [ref=e12] [cursor=pointer]:
+        - /url: /
+        - img [ref=e13]
+        - generic [ref=e16]: Dashboard
+      - link "Courses" [ref=e18] [cursor=pointer]:
+        - /url: /courses
+        - img [ref=e19]
+        - generic [ref=e21]: Courses
+      - link "Content Library" [ref=e23] [cursor=pointer]:
+        - /url: /content-library
+        - img [ref=e24]
+        - generic [ref=e26]: Content Library
+      - link "Assignments" [ref=e28] [cursor=pointer]:
+        - /url: /assignments
+        - img [ref=e29]
+        - generic [ref=e32]: Assignments
+      - link "Learner Groups" [ref=e34] [cursor=pointer]:
+        - /url: /learner-groups
+        - img [ref=e35]
+        - generic [ref=e40]: Learner Groups
+      - link "Learners" [ref=e42] [cursor=pointer]:
+        - /url: /learners
+        - img [ref=e43]
+        - generic [ref=e46]: Learners
+      - link "Operations" [ref=e48] [cursor=pointer]:
+        - /url: /learning-logs
+        - img [ref=e49]
+        - generic [ref=e52]: Operations
+      - link "Master Data" [ref=e54] [cursor=pointer]:
+        - /url: /master-data/divisions
+        - img [ref=e55]
+        - generic [ref=e59]: Master Data
+      - link "Admin Users" [ref=e61] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e62]
+        - generic [ref=e74]: Admin Users
+      - link "System Config" [ref=e76] [cursor=pointer]:
+        - /url: /system-config
+        - img [ref=e77]
+        - generic [ref=e80]: System Config
+      - link "Access Control" [ref=e82] [cursor=pointer]:
+        - /url: /access-denied
+        - img [ref=e83]
+        - generic [ref=e86]: Access Control
+    - generic [ref=e87]: React console running side by side
+  - main [ref=e88]:
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - button "Toggle navigation" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+        - navigation [ref=e94]:
+          - link "Dashboard Home" [ref=e95] [cursor=pointer]:
+            - /url: /
+            - img [ref=e96]
+          - img [ref=e99]
+          - generic [ref=e102]: Content Library
+      - generic [ref=e103]:
+        - generic [ref=e105]: Session pending
+        - button "Notifications" [ref=e106] [cursor=pointer]:
+          - img [ref=e107]
+        - generic [ref=e110]:
+          - generic [ref=e111]: WA
+          - generic [ref=e112]:
+            - strong [ref=e113]: Windows Admin
+            - generic [ref=e114]: Current division
+    - generic [ref=e116]:
+      - generic [ref=e117]:
+        - generic [ref=e118]:
+          - heading "Content Items" [level=2] [ref=e119]
+          - paragraph [ref=e120]: Readiness details stay owned by the API and lifecycle services.
+        - link "Upload SCORM" [ref=e123] [cursor=pointer]:
+          - /url: /content-library/new
+          - button "Upload SCORM" [ref=e124]:
+            - img [ref=e125]
+            - generic [ref=e126]: Upload SCORM
+      - generic [ref=e128]:
+        - generic [ref=e130]:
+          - img [ref=e131]
+          - textbox "Search records..." [ref=e134]
+        - generic [ref=e135]:
+          - table [ref=e136]:
+            - rowgroup [ref=e137]:
+              - row "Content Name Content Type SCORM Published Launch Resource Updated Actions" [ref=e138]:
+                - columnheader "Content Name" [ref=e139] [cursor=pointer]:
+                  - generic [ref=e140]:
+                    - generic [ref=e141]: Content Name
+                    - img [ref=e142]
+                - columnheader "Content Type" [ref=e145] [cursor=pointer]:
+                  - generic [ref=e146]:
+                    - generic [ref=e147]: Content Type
+                    - img [ref=e148]
+                - columnheader "SCORM" [ref=e151] [cursor=pointer]:
+                  - generic [ref=e152]:
+                    - generic [ref=e153]: SCORM
+                    - img [ref=e154]
+                - columnheader "Published" [ref=e157] [cursor=pointer]:
+                  - generic [ref=e158]:
+                    - generic [ref=e159]: Published
+                    - img [ref=e160]
+                - columnheader "Launch Resource" [ref=e163] [cursor=pointer]:
+                  - generic [ref=e164]:
+                    - generic [ref=e165]: Launch Resource
+                    - img [ref=e166]
+                - columnheader "Updated" [ref=e169] [cursor=pointer]:
+                  - generic [ref=e170]:
+                    - generic [ref=e171]: Updated
+                    - img [ref=e172]
+                - columnheader "Actions" [ref=e175]
+            - rowgroup
+          - img [ref=e177]
+        - generic [ref=e180]: No records found
