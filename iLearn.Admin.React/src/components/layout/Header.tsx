@@ -27,16 +27,16 @@ export function Header({ currentUser, sessionState, onMenuClick }: HeaderProps) 
   const divisionName = currentUser?.divisionName ?? 'Admin console'
 
   return (
-    <header className="admin-topbar">
-      <div className="admin-topbar-left flex items-center">
-        <button type="button" className="admin-icon-button admin-mobile-menu mr-2" onClick={onMenuClick} aria-label="Toggle navigation">
+    <header className="sticky top-0 z-10 flex min-h-[64px] items-center justify-between gap-4 border-b border-slate-200 bg-white/96 px-6">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <button type="button" className="inline-grid h-[34px] w-[34px] place-items-center rounded-md border border-slate-200 bg-white text-slate-500 cursor-pointer [&_svg]:w-[17px] [&_svg]:h-[17px] mr-2" onClick={onMenuClick} aria-label="Toggle navigation">
           <Menu aria-hidden="true" />
         </button>
         <div className="h-4 w-px bg-slate-200 mx-3 hidden md:block" />
         <Breadcrumbs />
       </div>
 
-      <div className="admin-topbar-right flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="flex items-center gap-1.5">
           {sessionState === 'ready' && (
             <span className="h-2 w-2 rounded-full bg-emerald-500 neon-glow-dot shrink-0" title="Real-time session active" />
@@ -45,16 +45,16 @@ export function Header({ currentUser, sessionState, onMenuClick }: HeaderProps) 
             {sessionState === 'ready' ? 'Windows Auth' : 'Session pending'}
           </StatusText>
         </div>
-        <button type="button" className="admin-icon-button" aria-label="Notifications">
+        <button type="button" className="inline-grid h-[34px] w-[34px] place-items-center rounded-md border border-slate-200 bg-white text-slate-500 cursor-pointer [&_svg]:w-[17px] [&_svg]:h-[17px]" aria-label="Notifications">
           <Bell aria-hidden="true" />
         </button>
-        <div className="admin-user-block">
-          <div className="admin-user-avatar" aria-hidden="true">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-indigo-100 text-indigo-600 font-bold" aria-hidden="true">
             {getInitials(displayName)}
           </div>
-          <div className="admin-user-copy">
-            <strong>{displayName}</strong>
-            <span>{divisionName}</span>
+          <div className="flex min-w-0 flex-col">
+            <strong className="max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold">{displayName}</strong>
+            <span className="max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500">{divisionName}</span>
           </div>
         </div>
       </div>

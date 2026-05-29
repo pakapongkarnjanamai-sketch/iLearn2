@@ -176,7 +176,6 @@ export function ContentItemDetailPage() {
   return (
     <>
       <PageHeader
-        title=""
         actions={
           <div className="flex items-center gap-2">
             <Link to={`/content-library/${item.id}/edit`}>
@@ -194,7 +193,7 @@ export function ContentItemDetailPage() {
       </header>
 
       {/* KPI strip */}
-      <div className="admin-card admin-kpi-strip mb-4">
+      <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-4">
         {[
           { label: 'Type', value: TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}` },
           {
@@ -215,9 +214,9 @@ export function ContentItemDetailPage() {
         ].map((kpi) => (
           <div
             key={kpi.label}
-            className="admin-kpi-item"
+             className="min-w-0 border-r border-slate-200 p-4 last:border-r-0"
           >
-            <div className="admin-kpi-label">{kpi.label}</div>
+            <div className="text-[11px] font-extrabold uppercase text-slate-400">{kpi.label}</div>
             <div className="mt-1 text-base font-bold text-slate-800">{kpi.value}</div>
           </div>
         ))}
@@ -225,11 +224,11 @@ export function ContentItemDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         {/* Main: metadata */}
-        <section className="admin-card lg:col-span-3">
-          <div className="admin-card-head">
-            <h2 className="admin-card-head-title"><Layers aria-hidden="true" />Metadata</h2>
+        <section className="lg:col-span-3">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Metadata</h2>
           </div>
-          <dl className="admin-card-meta-grid">
+          <dl className="grid grid-cols-2 gap-3.5">
             {[
               { label: 'Launch Resource', value: item.launchHref || '—' },
               { label: 'Server Path', value: item.url || '—' },
@@ -240,10 +239,10 @@ export function ContentItemDetailPage() {
             ].map((row) => (
               <div
                 key={row.label}
-                className="admin-card-meta-item"
+                className="min-w-0 border-b border-slate-200/70 pb-2"
               >
-                <dt className="admin-card-meta-label">{row.label}</dt>
-                <dd className="admin-card-meta-value text-sm">
+                <dt className="text-[11px] font-extrabold uppercase text-slate-400">{row.label}</dt>
+                <dd className="mt-1 font-bold text-slate-900 overflow-wrap-anywhere text-sm">
                   {row.value}
                 </dd>
               </div>
@@ -252,9 +251,9 @@ export function ContentItemDetailPage() {
         </section>
 
         {/* Sidebar: control hub */}
-        <aside className="admin-card lg:col-span-1">
-            <div className="admin-card-head">
-              <h2 className="admin-card-head-title">Controls</h2>
+        <aside className="lg:col-span-1">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">Controls</h2>
             </div>
             <div className="flex flex-col gap-2">
               {item.isActive ? (

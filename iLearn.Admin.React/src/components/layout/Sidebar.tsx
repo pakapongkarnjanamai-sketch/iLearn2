@@ -32,18 +32,18 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   }
 
   return (
-    <aside className={`admin-sidebar${isOpen ? ' is-open' : ''}`} aria-label="Admin navigation">
-      <div className="admin-sidebar-brand">
-        <div className="admin-sidebar-mark" aria-hidden="true">
+    <aside className={`sticky top-0 flex h-screen w-[252px] min-w-0 flex-col overflow-hidden border-r border-[#1d3554] bg-slate-900 text-blue-50 transition-[transform,width,visibility] duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] max-[1120px]:fixed max-[1120px]:z-30 max-[1120px]:w-[252px] ${isOpen ? 'max-[1120px]:translate-x-0' : 'max-[1120px]:translate-x-full min-[1121px]:w-0 min-[1121px]:-translate-x-full min-[1121px]:invisible min-[1121px]:border-r-0'}`} aria-label="Admin navigation">
+      <div className="flex min-h-[64px] items-center gap-2.5 border-b border-[#1d3554] px-5">
+        <div className="grid h-[34px] w-[34px] place-items-center rounded-md bg-indigo-600 text-white text-[15px] font-bold" aria-hidden="true">
           iL
         </div>
-        <div className="admin-sidebar-title">
-          <strong>{appConfig.appName}</strong>
-          <span>Enterprise LMS</span>
+        <div className="flex flex-col gap-px">
+          <strong className="text-white text-[15px] font-bold">{appConfig.appName}</strong>
+          <span className="text-slate-400 text-xs">Enterprise LMS</span>
         </div>
       </div>
 
-      <nav className="admin-sidebar-nav">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-3.5 px-2.5">
         {visibleItems.map((item) => {
           const Icon = item.icon
           const visibleChildren = item.children?.filter(isVisible) ?? []
@@ -54,7 +54,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
               <NavLink
                 to={item.path}
                 end={item.path === '/'}
-                className="admin-nav-link"
+                className="flex items-center gap-2.5 min-h-[38px] rounded-md px-2.5 text-blue-100 font-medium [&_svg]:w-[17px] [&_svg]:h-[17px] [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white focus-visible:outline-none [&.active]:bg-white [&.active]:text-slate-800 [&.active_svg]:text-indigo-600"
                 onClick={onNavigate}
               >
                 <Icon aria-hidden="true" />
@@ -86,7 +86,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
         })}
       </nav>
 
-      <div className="admin-sidebar-footer">React console running side by side</div>
+      <div className="border-t border-[#1d3554] px-5 py-3 text-slate-400 text-xs">React console running side by side</div>
     </aside>
   )
 }

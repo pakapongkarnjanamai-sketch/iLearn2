@@ -87,7 +87,7 @@ export function LearnerProfilePage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
   }
@@ -98,7 +98,7 @@ export function LearnerProfilePage() {
         <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
         <h2 className="text-lg font-bold text-slate-700 mt-4">Learner Profile Missing</h2>
         <p className="text-slate-400 mt-2">The learner's corporate identity could not be verified.</p>
-        <Link to="/learners" className="mt-6 inline-flex items-center text-blue-600 font-semibold hover:underline">
+        <Link to="/learners" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Directory
         </Link>
       </div>
@@ -126,9 +126,9 @@ export function LearnerProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
         
         {/* Info Column Card */}
-        <aside className="admin-card lg:col-span-1 space-y-4">
+        <aside className="lg:col-span-1 space-y-4 p-4">
           <div className="flex flex-col items-center text-center pb-4 border-b border-slate-100">
-            <div className="h-14 w-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3">
+            <div className="h-14 w-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
               <User className="h-7 w-7" />
             </div>
             <h2 className="text-base font-bold text-slate-800 leading-tight">{profile.name}</h2>
@@ -161,40 +161,40 @@ export function LearnerProfilePage() {
         <main className="lg:col-span-3 space-y-6 flex flex-col justify-between h-full">
           
           {/* KPI strip cards */}
-          <div className="admin-card admin-kpi-strip">
-            <article className="admin-kpi-item flex items-center justify-between">
+          <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <article className="min-w-0 border-r border-slate-200 p-4 last:border-r-0 flex items-center justify-between">
               <div>
-                <span className="admin-kpi-label">Courses</span>
-                <span className="admin-kpi-value">{profile.kpi.totalCourses}</span>
+                <span className="block text-[11px] font-extrabold uppercase text-slate-400">Courses</span>
+                <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{profile.kpi.totalCourses}</span>
               </div>
-              <div className="bg-blue-50 p-2 rounded-full shrink-0">
-                <BookOpen className="h-4 w-4 text-blue-600" />
+              <div className="bg-indigo-50 p-2 rounded-full shrink-0">
+                <BookOpen className="h-4 w-4 text-indigo-500" />
               </div>
             </article>
 
-            <article className="admin-kpi-item flex items-center justify-between">
+            <article className="min-w-0 border-r border-slate-200 p-4 last:border-r-0 flex items-center justify-between">
               <div>
-                <span className="admin-kpi-label">Completed</span>
-                <span className="admin-kpi-value">{profile.kpi.completedCourses}</span>
+                <span className="block text-[11px] font-extrabold uppercase text-slate-400">Completed</span>
+                <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{profile.kpi.completedCourses}</span>
               </div>
               <div className="bg-emerald-50 p-2 rounded-full shrink-0">
                 <CheckCircle className="h-4 w-4 text-emerald-600" />
               </div>
             </article>
 
-            <article className="admin-kpi-item flex items-center justify-between">
+            <article className="min-w-0 border-r border-slate-200 p-4 last:border-r-0 flex items-center justify-between">
               <div>
-                <span className="admin-kpi-label">In Progress</span>
-                <span className="admin-kpi-value">{profile.kpi.inProgressCourses}</span>
+                <span className="block text-[11px] font-extrabold uppercase text-slate-400">In Progress</span>
+                <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{profile.kpi.inProgressCourses}</span>
               </div>
               <div className="bg-amber-50 p-2 rounded-full shrink-0">
                 <TrendingUp className="h-4 w-4 text-amber-600" />
               </div>
             </article>
 
-            <article className="admin-kpi-item flex items-center justify-between">
+            <article className="min-w-0 border-r border-slate-200 p-4 last:border-r-0 flex items-center justify-between">
               <div>
-                <span className="admin-kpi-label">Hours</span>
+                <span className="block text-[11px] font-extrabold uppercase text-slate-400">Hours</span>
                 <span className="mt-2 block text-lg font-bold leading-none text-slate-800">{formatTimeSpent(profile.kpi.totalTimeSpentSeconds)}</span>
               </div>
               <div className="bg-purple-50 p-2 rounded-full shrink-0">
@@ -204,12 +204,12 @@ export function LearnerProfilePage() {
           </div>
 
           {/* Transcript History list */}
-          <section className="admin-card admin-table-card flex-1">
-            <div className="admin-card-head">
-              <h2 className="admin-card-head-title"><FileBadge aria-hidden="true" />Transcript</h2>
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs flex-1">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
+              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><FileBadge aria-hidden="true" />Transcript</h2>
             </div>
 
-            <div className="admin-table-card-scroll max-h-115 custom-scrollbar">
+            <div className="overflow-x-auto max-h-115 custom-scrollbar">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">

@@ -300,7 +300,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
         {/* Left Column: FILTERS Cascading panel */}
         <div className="w-60 shrink-0 bg-white border border-slate-200 rounded-lg p-4 flex flex-col gap-3.5 text-xs font-semibold shadow-2xs">
           <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2 mb-0.5">
-            <Filter className="h-4 w-4 text-blue-600" />
+            <Filter className="h-4 w-4 text-indigo-500" />
             <span className="text-slate-800 font-extrabold uppercase tracking-wider text-xxs">Filters</span>
           </div>
           
@@ -309,7 +309,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
             <select
               value={selectedDiv}
               onChange={e => { setSelectedDiv(e.target.value); setPageIndex(0); }}
-              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 cursor-pointer"
             >
               <option value="">All Divisions</option>
               {divisions.map(d => <option key={d} value={d}>{d}</option>)}
@@ -322,7 +322,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
               value={selectedDept}
               onChange={e => { setSelectedDept(e.target.value); setPageIndex(0); }}
               disabled={!selectedDiv}
-              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
+              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
             >
               <option value="">{selectedDiv ? 'All Departments' : 'Select Division first'}</option>
               {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -335,7 +335,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
               value={selectedSec}
               onChange={e => { setSelectedSec(e.target.value); setPageIndex(0); }}
               disabled={!selectedDept}
-              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
+              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
             >
               <option value="">{selectedDept ? 'All Sections' : 'Select Department first'}</option>
               {sections.map(s => <option key={s} value={s}>{s}</option>)}
@@ -347,7 +347,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
             <select
               value={selectedPos}
               onChange={e => { setSelectedPos(e.target.value); setPageIndex(0); }}
-              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="w-full px-2.5 py-2 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 cursor-pointer"
             >
               <option value="">All Positions</option>
               {positions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -370,7 +370,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
           <div className="px-4 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0 select-none">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">Learner Directory</span>
-              <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs">
+              <span className="bg-indigo-50 text-blue-700 border border-indigo-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs">
                 {totalCount} learner(s)
               </span>
             </div>
@@ -383,7 +383,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                 placeholder="Search Name or Employee ID (EId)..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition shadow-3xs"
+                className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-3xs"
               />
               {searchTerm && (
                 <button
@@ -410,7 +410,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                       type="checkbox"
                       checked={isPageAllSelected}
                       onChange={handleToggleSelectAll}
-                      className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
                     />
                   </th>
                   <th className="p-3 w-28">ID (EId)</th>
@@ -425,7 +425,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                 {loading && learners.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-12 text-center text-slate-400 font-semibold">
-                      <RefreshCw className="h-6 w-6 animate-spin text-blue-600 mx-auto mb-2" />
+                      <RefreshCw className="h-6 w-6 animate-spin text-indigo-500 mx-auto mb-2" />
                       <span>Loading learners directory...</span>
                     </td>
                   </tr>
@@ -443,7 +443,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                         key={l.code}
                         onClick={() => handleToggleRow(l)}
                         className={`hover:bg-slate-50/70 border-b border-slate-100/50 transition cursor-pointer select-none ${
-                          isChecked ? 'bg-blue-50/20' : ''
+                          isChecked ? 'bg-indigo-50/20' : ''
                         }`}
                       >
                         <td className="p-3 w-12 text-center" onClick={e => e.stopPropagation()}>
@@ -451,13 +451,13 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => handleToggleRow(l)}
-                            className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
                           />
                         </td>
                         <td className="p-3 w-28 font-mono font-bold text-slate-800 truncate">{l.code}</td>
                         <td className="p-3 font-semibold text-slate-900 truncate">
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-650 text-[10px] font-extrabold uppercase shrink-0 shadow-3xs select-none">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-650 text-xxs font-extrabold uppercase shrink-0 shadow-3xs select-none">
                               {getInitials(l.name)}
                             </div>
                             <span className="truncate">{l.name || '—'}</span>
@@ -475,7 +475,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
             
             {loading && learners.length > 0 && (
               <div className="absolute inset-0 bg-white/45 flex items-center justify-center z-10 transition duration-150">
-                <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+                <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
               </div>
             )}
           </div>
@@ -499,7 +499,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
             </div>
             
             {loading && learners.length > 0 && (
-              <div className="flex items-center gap-1.5 text-blue-600 text-[10px] uppercase font-bold tracking-wider animate-pulse">
+              <div className="flex items-center gap-1.5 text-indigo-500 text-xxs uppercase font-bold tracking-wider animate-pulse">
                 <RefreshCw className="h-3 w-3 animate-spin" />
                 <span>Loading more...</span>
               </div>
@@ -530,7 +530,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
             selectedLearners.map(learner => (
               <span
                 key={learner.code}
-                className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 text-xs font-semibold rounded-full hover:bg-blue-100/70 transition shadow-3xs"
+                className="inline-flex items-center gap-1.5 bg-indigo-50 text-blue-700 border border-blue-200 px-3 py-1 text-xs font-semibold rounded-full hover:bg-blue-100/70 transition shadow-3xs"
               >
                 <span>{learner.name === learner.code ? learner.code : `${learner.name} (${learner.code})`}</span>
                 <button

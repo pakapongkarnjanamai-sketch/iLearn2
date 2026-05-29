@@ -8,5 +8,5 @@ type ToolbarProps = {
 export function Toolbar({ children, align = 'start' }: ToolbarProps) {
   const alignmentClass = align === 'between' ? 'justify-between' : align === 'end' ? 'justify-end' : 'justify-start'
 
-  return <div className={`admin-toolbar ${alignmentClass}`}>{children}</div>
+  return <div className={`flex items-center gap-2 ${alignmentClass}`}>{children}</div>
 }

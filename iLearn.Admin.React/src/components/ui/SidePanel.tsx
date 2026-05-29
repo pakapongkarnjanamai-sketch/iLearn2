@@ -8,14 +8,14 @@ type SidePanelProps = {
 
 export function SidePanel({ title, note, children }: SidePanelProps) {
   return (
-    <aside className="admin-side-panel">
-      <div className="admin-side-panel-head">
+    <aside className="rounded-lg border border-slate-200 bg-white shadow-xs">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white p-3.5">
         <div>
-          <h2 className="admin-side-panel-title">{title}</h2>
-          {note ? <p className="admin-side-panel-note">{note}</p> : null}
+          <h2 className="text-sm font-bold">{title}</h2>
+          {note ? <p className="mt-0.5 text-xs text-slate-500">{note}</p> : null}
         </div>
       </div>
-      <div className="admin-side-panel-body">{children}</div>
+      <div className="p-3.5">{children}</div>
     </aside>
   )
 }

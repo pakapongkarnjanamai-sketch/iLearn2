@@ -45,13 +45,11 @@ export function AppWizard({
     const targetStep = targetIndex + 1
     if (targetStep === currentStep) return
 
-    // Going backwards is always allowed
     if (targetStep < currentStep) {
       onStepChange(targetStep)
       return
     }
 
-    // Going forward requires sequential step validations
     let stepToValidate = currentStep
     while (stepToValidate < targetStep) {
       const stepConfig = steps[stepToValidate - 1]
@@ -80,7 +78,6 @@ export function AppWizard({
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Validate final step before submission
     const currentStepConfig = steps[currentStep - 1]
     if (currentStepConfig?.validate) {
       const isValid = await currentStepConfig.validate()
@@ -89,128 +86,131 @@ export function AppWizard({
     await onSubmit()
   }
 
-  const renderStepButton = (stepConfig: WizardStep, index: number) => {
-    const stepNum = index + 1
-    const isActive = currentStep === stepNum
-    const isComplete = currentStep > stepNum
-
-    return (
-      <button
-        key={stepConfig.label}
-        type="button"
-        onClick={() => void handleStepClick(index)}
-        className={`flex min-w-28 sm:min-w-31 items-center gap-1.5 border px-2.5 py-1.5 text-left text-xxs font-extrabold uppercase tracking-wide rounded transition-all duration-150 cursor-pointer select-none ${
-          isActive 
-            ? 'border-blue-500 bg-blue-50/50 text-blue-700 shadow-3xs' 
-            : isComplete 
-              ? 'border-emerald-200 bg-emerald-50/40 text-emerald-700' 
-              : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'
-        }`}
-        aria-current={isActive ? 'step' : undefined}
-      >
-        <span className={`flex h-4 w-4 items-center justify-center rounded-sm border text-[10px] font-mono shrink-0 ${
-          isActive 
-            ? 'border-blue-500 bg-blue-600 text-white' 
-            : isComplete 
-              ? 'border-emerald-500 bg-emerald-600 text-white' 
-              : 'border-slate-200 bg-slate-50 text-slate-400'
-        }`}>
-          {stepNum}
-        </span>
-        <span className="truncate">{stepConfig.label}</span>
-      </button>
-    )
-  }
+  const isLastStep = currentStep === steps.length
 
   return (
-    <div className="admin-grid-surface">
-      <form onSubmit={handleSubmitForm} className="flex min-h-0 flex-1 flex-col gap-4">
-        {/* Header with Title and Stepper Breadcrumbs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div>
+    <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white pt-5 px-6">
+      <form onSubmit={handleSubmitForm} className="flex min-h-0 flex-1 flex-col">
+
+        {/* ── Wizard Top Bar ── */}
+        <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-3 shrink-0">
+          {/* Left: title cluster */}
+          <div className="min-w-0">
             {eyebrow && (
-              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                {eyebrow}
-              </div>
+              <span className="text-xxs font-bold uppercase tracking-wider text-slate-400">{eyebrow}</span>
             )}
-            <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
-              {title}
-            </h1>
-            {description && (
-              <p className="text-xxs font-semibold text-slate-400 mt-0.5 leading-normal">
-                {description}
-              </p>
-            )}
+            <h1 className="text-sm font-bold text-slate-800 leading-tight truncate">{title}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 select-none">
-            {steps.map(renderStepButton)}
-          </div>
+
+          {/* Center: step track */}
+          <nav className="flex items-center gap-0.5 ml-auto" aria-label="Progress steps">
+            {steps.map((step, i) => {
+              const num = i + 1
+              const isActive = currentStep === num
+              const isComplete = currentStep > num
+              return (
+                <button
+                  key={step.label}
+                  type="button"
+                  onClick={() => void handleStepClick(i)}
+                  className={`flex items-center gap-1.5 rounded-md border-none bg-transparent px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide cursor-pointer whitespace-nowrap transition-all duration-150 ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : isComplete
+                        ? 'text-emerald-600 hover:bg-slate-100'
+                        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                  }`}
+                  aria-current={isActive ? 'step' : undefined}
+                >
+                  <span className={`inline-flex h-[18px] w-[18px] items-center justify-center rounded text-[10px] font-extrabold leading-none ${
+                    isActive
+                      ? 'bg-indigo-600 text-white'
+                      : isComplete
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-100 text-slate-500'
+                  }`}>{isComplete ? '✓' : num}</span>
+                  <span className="hidden md:inline">{step.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* Right: cancel shortcut */}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="grid h-7 w-7 place-items-center ml-2 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-all duration-150 hover:bg-red-50 hover:text-red-600"
+            aria-label={cancelLabel}
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Content workspace wrapper with independent scroll */}
+        {/* ── Step content ── */}
         <div className="min-h-0 flex-1 flex flex-col relative">
-          <div className="overflow-y-auto custom-scrollbar flex-1 pr-1">
+          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-5">
             {steps[currentStep - 1]?.render()}
           </div>
 
-          {/* Inline Loading / Saving Overlay */}
           {isSubmitting && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
               <div className="flex flex-col items-center gap-2.5">
-                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
-                <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Processing...</span>
+                <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+                <span className="text-xxs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Processing…</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Navigation Buttons Pinned Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3 shrink-0">
-          <button 
-            type="button" 
-            onClick={onCancel} 
-            className="admin-button admin-button--secondary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
-          >
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{cancelLabel}</span>
-          </button>
+        {/* ── Pinned footer ── */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-3 shrink-0">
+          {/* Left: step indicator */}
+          <span className="text-xxs font-semibold text-slate-400">
+            Step {currentStep} of {steps.length}
+            {description && (
+              <span className="hidden sm:inline text-slate-300 ml-2">— {description}</span>
+            )}
+          </span>
 
-          {currentStep > 1 && (
-            <button 
-              type="button" 
-              onClick={() => onStepChange(currentStep - 1)} 
-              className="admin-button admin-button--secondary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{prevLabel}</span>
-            </button>
-          )}
+          {/* Right: action buttons */}
+          <div className="flex items-center gap-2">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={() => onStepChange(currentStep - 1)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 py-[7px] text-[11px] font-bold text-slate-500 cursor-pointer transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>{prevLabel}</span>
+              </button>
+            )}
 
-          {currentStep < steps.length ? (
-            <button 
-              type="button" 
-              onClick={handleContinue} 
-              className="admin-button admin-button--primary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
-            >
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{nextLabel}</span>
-            </button>
-          ) : (
-            <button 
-              type="submit" 
-              disabled={isSubmitting} 
-              className="admin-button admin-button--primary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-              ) : submitIcon ? (
-                submitIcon
-              ) : (
-                <Check className="h-3.5 w-3.5" aria-hidden="true" />
-              )}
-              <span>{submitLabel}</span>
-            </button>
-          )}
+            {!isLastStep ? (
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-3.5 py-[7px] text-[11px] font-bold text-white cursor-pointer transition-all duration-150 hover:bg-indigo-700"
+              >
+                <span>{nextLabel}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-3.5 py-[7px] text-[11px] font-bold text-white cursor-pointer transition-all duration-150 hover:bg-indigo-700 disabled:opacity-55"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : submitIcon ? (
+                  submitIcon
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+                <span>{submitLabel}</span>
+              </button>
+            )}
+          </div>
         </div>
       </form>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, type FormEvent } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
   Upload, 
@@ -134,14 +134,14 @@ export function ContentItemEditorPage() {
   }
 
   const renderMetadataStep = () => (
-    <div className="admin-card p-4 max-w-xl space-y-3.5">
+    <div className="max-w-xl space-y-3.5">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1.5">
-        <Library className="h-4 w-4 text-blue-600" />
+        <Library className="h-4 w-4 text-indigo-500" />
         <h2 className="text-xs font-bold text-slate-800">Content Item Specifications</h2>
       </div>
 
       <div className="space-y-1">
-        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">
+        <label className="block text-xxs font-extrabold text-slate-400 uppercase">
           Display Name {!isCreate && <span className="text-red-500">*</span>}
         </label>
         <input
@@ -149,16 +149,16 @@ export function ContentItemEditorPage() {
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder={isCreate ? 'Leave blank to use ZIP filename as fallback' : 'Required'}
-          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Content Type</label>
+        <label className="block text-xxs font-extrabold text-slate-400 uppercase">Content Type</label>
         <select
           value={form.typeId}
           onChange={(e) => setForm((f) => ({ ...f, typeId: Number(e.target.value) }))}
-          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
+          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
         >
           {TYPE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -171,32 +171,32 @@ export function ContentItemEditorPage() {
   )
 
   const renderUploadStep = () => (
-    <div className="admin-card p-4 max-w-xl space-y-3.5">
+    <div className="max-w-xl space-y-3.5">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1.5">
-        <Upload className="h-4 w-4 text-blue-600" />
+        <Upload className="h-4 w-4 text-indigo-500" />
         <h2 className="text-xs font-bold text-slate-800">SCORM Package Upload</h2>
       </div>
 
       <div className="space-y-1">
-        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">SCORM Package (.zip)</label>
+        <label className="block text-xxs font-extrabold text-slate-400 uppercase">SCORM Package (.zip)</label>
         <input
           type="file"
           accept=".zip,application/zip"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="block w-full rounded border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 bg-slate-50/20 hover:bg-slate-50 hover:border-blue-500 transition cursor-pointer"
         />
-        <p className="mt-1 text-[10px] text-slate-400 font-medium leading-relaxed">
+        <p className="mt-1 text-xxs text-slate-400 font-medium leading-relaxed">
           Supports SCORM 1.2 and SCORM 2004 standards. Maximum bundle size limit is 100 MB or 1,000 internal directory entries.
         </p>
       </div>
 
       {file && (
-        <div className="mt-3 p-3 border border-blue-100 bg-blue-50/15 rounded flex items-center justify-between select-none">
+        <div className="mt-3 p-3 border border-indigo-100 bg-indigo-50/15 rounded flex items-center justify-between select-none">
           <div className="flex items-center gap-2.5">
-            <FileArchive className="h-6 w-6 text-blue-600 shrink-0" />
+            <FileArchive className="h-6 w-6 text-indigo-500 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
-              <p className="text-[10px] font-mono text-slate-400 mt-0.5">{Math.round(file.size / 1024)} KB</p>
+              <p className="text-xxs font-mono text-slate-400 mt-0.5">{Math.round(file.size / 1024)} KB</p>
             </div>
           </div>
           <button 
@@ -215,24 +215,24 @@ export function ContentItemEditorPage() {
     const selectedTypeName = TYPE_OPTIONS.find(o => o.value === form.typeId)?.label || 'Instructional Content'
     return (
       <div className="max-w-xl space-y-3.5">
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-3">
-            <Info className="h-4 w-4 text-blue-600" />
+            <Info className="h-4 w-4 text-indigo-500" />
             <h2 className="text-xs font-bold text-slate-800">Review Specifications</h2>
           </div>
 
           <dl className="divide-y divide-slate-100 text-xs select-none">
             <div className="grid grid-cols-3 py-2 font-semibold">
-              <dt className="text-slate-400 uppercase font-bold text-[10px]">Display Name</dt>
+              <dt className="text-slate-400 uppercase font-bold text-xxs">Display Name</dt>
               <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || (file ? file.name : '—') || 'Unnamed package'}</dd>
             </div>
             <div className="grid grid-cols-3 py-2 font-semibold">
-              <dt className="text-slate-400 uppercase font-bold text-[10px]">Content Type</dt>
+              <dt className="text-slate-400 uppercase font-bold text-xxs">Content Type</dt>
               <dd className="col-span-2 text-slate-700">{selectedTypeName}</dd>
             </div>
             {isCreate && (
               <div className="grid grid-cols-3 py-2 font-semibold">
-                <dt className="text-slate-400 uppercase font-bold text-[10px]">Target SCORM Package</dt>
+                <dt className="text-slate-400 uppercase font-bold text-xxs">Target SCORM Package</dt>
                 <dd className="col-span-2 text-slate-700 font-mono">
                   {file ? `${file.name} (${Math.round(file.size / 1024)} KB)` : 'No file selected'}
                 </dd>
@@ -241,7 +241,7 @@ export function ContentItemEditorPage() {
           </dl>
         </div>
 
-        <div className="p-3 border border-blue-100 bg-blue-50/15 rounded-lg text-xxs leading-relaxed text-blue-600 font-semibold select-none">
+        <div className="p-3 border border-indigo-100 bg-indigo-50/15 rounded-lg text-xxs leading-relaxed text-indigo-500 font-semibold select-none">
           {isCreate ? (
             <p>
               Upon clicking "Upload Package", the SCORM zip package will be processed, uploaded, and extracted on the server. The content starts in Draft status. You can publish and test launch it immediately from the details view page.
@@ -274,7 +274,7 @@ export function ContentItemEditorPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
           <span className="text-xs text-slate-500 font-medium">Loading content item...</span>
         </div>
       </div>

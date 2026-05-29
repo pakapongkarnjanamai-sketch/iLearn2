@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Server
 } from 'lucide-react'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
@@ -90,7 +89,7 @@ export function SystemConfigPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+          <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
           <span className="text-sm text-gray-500 font-medium">Loading system configuration...</span>
         </div>
       </div>
@@ -99,19 +98,14 @@ export function SystemConfigPage() {
 
   return (
     <>
-      <PageHeader
-        title="System Configuration"
-        eyebrow="LMS Infrastructure"
-      />
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Columns */}
         <div className="lg:col-span-2 space-y-6">
           
           {/* Database Details */}
-          <section className="admin-card">
+          <section className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
-              <Database className="h-5 w-5 text-blue-600" />
+              <Database className="h-5 w-5 text-indigo-500" />
               <h2 className="text-base font-bold text-slate-800">Database Context</h2>
             </div>
             {config ? (
@@ -147,9 +141,9 @@ export function SystemConfigPage() {
           </section>
 
           {/* File Storage Details */}
-          <section className="admin-card">
+          <section className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
-              <FolderSync className="h-5 w-5 text-blue-600" />
+              <FolderSync className="h-5 w-5 text-indigo-500" />
               <h2 className="text-base font-bold text-slate-800">Content Storage & Directories</h2>
             </div>
             {config ? (
@@ -193,9 +187,9 @@ export function SystemConfigPage() {
           </section>
 
           {/* HR / Employee Sync Details */}
-          <section className="admin-card">
+          <section className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
-              <ShieldCheck className="h-5 w-5 text-blue-600" />
+              <ShieldCheck className="h-5 w-5 text-indigo-500" />
               <h2 className="text-base font-bold text-slate-800">HR Services & Authentication</h2>
             </div>
             {config ? (
@@ -220,7 +214,7 @@ export function SystemConfigPage() {
         <div className="space-y-6">
           
           {/* Operations & Cache Panel */}
-          <section className="admin-card">
+          <section className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
               <Trash2 className="h-5 w-5 text-red-500" />
               <h2 className="text-base font-bold text-slate-800">Admin Maintenance</h2>
@@ -252,7 +246,7 @@ export function SystemConfigPage() {
           </section>
 
           {/* Web Service Environment Details */}
-          <section className="admin-card">
+          <section className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
               <Server className="h-5 w-5 text-slate-700" />
               <h2 className="text-base font-bold text-slate-800">API Runtime Stats</h2>
@@ -290,7 +284,7 @@ export function SystemConfigPage() {
           </section>
 
           {/* Logging Configuration */}
-          <section className="admin-card">
+          <section className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
               <Terminal className="h-5 w-5 text-slate-700" />
               <h2 className="text-base font-bold text-slate-800">Logging Thresholds</h2>

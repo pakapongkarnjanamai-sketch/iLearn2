@@ -250,7 +250,7 @@ export function CourseDetailPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
   }
@@ -261,7 +261,7 @@ export function CourseDetailPage() {
         <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
         <h2 className="text-lg font-bold text-slate-700 mt-4">Course Not Found</h2>
         <p className="text-slate-400 mt-2">The requested course catalog identity is missing or has been deleted.</p>
-        <Link to="/courses" className="mt-6 inline-flex items-center text-blue-600 font-semibold hover:underline">
+        <Link to="/courses" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to courses
         </Link>
       </div>
@@ -285,7 +285,7 @@ export function CourseDetailPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`pb-3 font-semibold text-sm transition relative ${
                   activeTab === tab 
-                    ? 'text-blue-600 font-bold border-b-2 border-blue-600' 
+                    ? 'text-indigo-500 font-bold border-b-2 border-indigo-500' 
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -298,9 +298,9 @@ export function CourseDetailPage() {
           <main className="space-y-6">
             
             {activeTab === 'overview' && (
-              <section className="admin-card space-y-6">
-                <div className="admin-card-head">
-                  <h2 className="admin-card-head-title">Course Overview</h2>
+              <section className="space-y-6">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+                  <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">Course Overview</h2>
                 </div>
                 
                 {/* Minimalist Title */}
@@ -360,15 +360,15 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'versions' && (
-              <section className="admin-card admin-table-card">
-            <div className="admin-card-head">
-              <div className="admin-card-head-title">
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
+              <div className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">
                 <FileText aria-hidden="true" />
                 <h2>Versions</h2>
               </div>
             </div>
 
-            <div className="admin-table-card-scroll">
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
@@ -408,7 +408,7 @@ export function CourseDetailPage() {
                             {!v.isActive && (
                               <button
                                 onClick={() => handleSetActiveVersion(v.id)}
-                                className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded text-xs font-semibold hover:bg-blue-100 transition"
+                                className="px-2 py-1 bg-indigo-50 text-indigo-500 border border-blue-200 rounded text-xs font-semibold hover:bg-blue-100 transition"
                               >
                                 Set Active
                               </button>
@@ -438,9 +438,9 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'learners' && (
-              <section className="admin-card admin-table-card">
-            <div className="admin-card-head">
-              <div className="admin-card-head-title">
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
+              <div className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">
                 <Users aria-hidden="true" />
                 <h2>Learners</h2>
               </div>
@@ -451,7 +451,7 @@ export function CourseDetailPage() {
                 <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
               </div>
             ) : (
-              <div className="admin-table-card-scroll">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
@@ -514,9 +514,9 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'assignments' && (
-              <section className="admin-card admin-table-card">
-            <div className="admin-card-head">
-              <div className="admin-card-head-title">
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
+              <div className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600">
                 <Calendar aria-hidden="true" />
                 <h2>Assignments</h2>
               </div>
@@ -527,7 +527,7 @@ export function CourseDetailPage() {
                 <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
               </div>
             ) : (
-              <div className="admin-table-card-scroll">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
@@ -549,7 +549,7 @@ export function CourseDetailPage() {
                     ) : (
                       assignments.map(a => (
                         <tr key={a.id} className="hover:bg-slate-50 transition">
-                          <td className="p-3 font-mono font-bold text-blue-600">
+                          <td className="p-3 font-mono font-bold text-indigo-500">
                             <Link to={`/assignments/${a.id}`} className="hover:underline">
                               {a.assignmentNo}
                             </Link>
@@ -617,9 +617,9 @@ function CourseControls({
   onDeleteCourse,
 }: CourseControlsProps) {
   return (
-    <aside className="admin-card space-y-5 xl:sticky xl:top-5">
-      <div className="admin-card-head">
-        <h2 className="admin-card-head-title"><Settings aria-hidden="true" />Course Control Hub</h2>
+    <aside className="space-y-5 xl:sticky xl:top-5">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+        <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Settings aria-hidden="true" />Course Control Hub</h2>
       </div>
 
       {/* Primary Actions */}
@@ -680,7 +680,7 @@ function CourseControls({
         <button
           type="button"
           onClick={onDeleteCourse}
-          className="admin-button admin-button--danger w-full flex items-center justify-center gap-2 border border-red-200 text-xs font-bold transition hover:bg-red-50 hover:text-red-700"
+          className="inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 bg-red-600 text-white hover:bg-red-700 w-full flex items-center justify-center gap-2 text-xs font-bold transition"
         >
           <Trash2 className="h-4 w-4" />
           <span>Delete Course</span>
@@ -720,7 +720,7 @@ function ControlLinkButton({
       type="button"
       disabled={disabled}
       title={title}
-      className={`admin-button admin-button--${variant} w-full`}
+      className={`inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 w-full ${variant === 'primary' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50'}`}
     >
       {icon}
       <span>{children}</span>

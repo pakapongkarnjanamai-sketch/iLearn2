@@ -17,8 +17,8 @@ const TONE_CLASSES = {
     progress: 'bg-rose-500'
   },
   info: {
-    iconBg: 'text-blue-600 bg-blue-50/70 border border-blue-100/50',
-    progress: 'bg-blue-500'
+    iconBg: 'text-indigo-500 bg-indigo-50/70 border border-indigo-100/50',
+    progress: 'bg-indigo-500'
   },
   warning: {
     iconBg: 'text-amber-600 bg-amber-50/70 border border-amber-100/50',

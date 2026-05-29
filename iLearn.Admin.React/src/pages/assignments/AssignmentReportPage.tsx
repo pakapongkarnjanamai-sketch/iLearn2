@@ -131,8 +131,6 @@ export function AssignmentReportPage() {
   return (
     <>
       <PageHeader
-        title={data.assignmentNo || `Assignment ${data.id}`}
-        eyebrow="Assignment Report"
         actions={
           <div className="flex items-center gap-2">
             <AppButton variant="secondary" icon={Printer} onClick={() => window.print()}>
@@ -151,7 +149,7 @@ export function AssignmentReportPage() {
       </header>
 
       {/* KPI strip */}
-      <div className="admin-card admin-kpi-strip mb-4">
+      <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-4">
         {[
           { label: 'Total Learners', value: data.totalEnrollmentCount },
           { label: 'Completed', value: data.completedEnrollmentCount },
@@ -165,17 +163,17 @@ export function AssignmentReportPage() {
         ].map((kpi) => (
           <div
             key={kpi.label}
-            className="admin-kpi-item"
+            className="min-w-0 border-r border-slate-200 p-4 last:border-r-0"
           >
-            <div className="admin-kpi-label">{kpi.label}</div>
+            <div className="text-[11px] font-extrabold uppercase text-slate-400">{kpi.label}</div>
             <div className="mt-1 text-base font-bold text-slate-800">{kpi.value}</div>
           </div>
         ))}
       </div>
 
-      <section className="admin-card admin-table-card">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
         {/* Filter bar */}
-        <div className="admin-card-head flex-wrap">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
           <div className="flex flex-wrap items-center gap-2">
             {(['All', ...STATUS_BUCKETS] as const).map((s) => (
               <button
@@ -197,7 +195,7 @@ export function AssignmentReportPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search..."
-            className="w-72 rounded border border-slate-200 px-2 py-1 text-sm focus:outline-none focus:border-blue-600"
+            className="w-72 rounded border border-slate-200 px-2 py-1 text-sm focus:outline-none focus:border-indigo-500"
           />
         </div>
 
@@ -220,7 +218,7 @@ export function AssignmentReportPage() {
         )}
 
         {/* Learner table */}
-        <div className="admin-table-card-scroll border-t border-slate-200/60">
+        <div className="overflow-x-auto border-t border-slate-200/60">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="text-left text-xxs font-extrabold uppercase text-slate-500">

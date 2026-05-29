@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Check, 
   Plus, 
-  RefreshCw, 
   Save, 
   Users, 
   X,
@@ -230,14 +226,14 @@ export function LearnerGroupEditorPage() {
   }
 
   const renderInformationStep = () => (
-    <div className="admin-card p-4 space-y-3.5">
+    <div className="space-y-3.5">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <Users className="h-4 w-4 text-blue-600" />
+        <Users className="h-4 w-4 text-indigo-500" />
         <h2 className="text-xs font-bold text-slate-800">Group Information</h2>
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="name" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+        <label htmlFor="name" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
           Group Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -247,18 +243,18 @@ export function LearnerGroupEditorPage() {
           value={formData.name}
           onChange={handleChange}
           placeholder="e.g. New Hires 2026 Q1"
-          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="categoryId" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">Category</label>
+        <label htmlFor="categoryId" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">Category</label>
         <select
           id="categoryId"
           name="categoryId"
           value={formData.categoryId}
           onChange={handleChange}
-          className="w-full max-w-md rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
+          className="w-full max-w-md rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
         >
           <option value={0}>No category (root)</option>
           {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -266,7 +262,7 @@ export function LearnerGroupEditorPage() {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="description" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+        <label htmlFor="description" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
           Description <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -276,7 +272,7 @@ export function LearnerGroupEditorPage() {
           onChange={handleChange}
           rows={4}
           placeholder="Brief description of this group's purpose"
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
         />
       </div>
     </div>
@@ -284,10 +280,10 @@ export function LearnerGroupEditorPage() {
 
   const renderMembersStep = () => (
     <div className="min-h-0 flex-1 flex flex-col gap-3.5">
-      <div className="admin-card p-4 flex flex-col min-h-0 flex-1 gap-3.5">
+      <div className="flex flex-col min-h-0 flex-1 gap-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2.5 shrink-0 select-none">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-blue-600" />
+            <Users className="h-4 w-4 text-indigo-500" />
             <h2 className="text-xs font-bold text-slate-800">Add Group Members</h2>
           </div>
           
@@ -326,13 +322,13 @@ export function LearnerGroupEditorPage() {
                 onChange={event => setMemberInput(event.target.value)}
                 rows={5}
                 placeholder="Paste employee EIds separated by comma, space, or new line (e.g. N130812, N142715)"
-                className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs text-slate-700 focus:border-blue-600 focus:outline-none bg-slate-50/10"
+                className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs text-slate-700 focus:border-indigo-500 focus:outline-none bg-slate-50/10"
               />
               <button
                 type="button"
                 onClick={addMemberCodes}
                 disabled={!memberInput.trim()}
-                className="admin-button admin-button--primary self-start text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
+                className="inline-flex items-center gap-[7px] rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 cursor-pointer self-start text-xxs font-extrabold shadow-3xs disabled:opacity-55"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Import Codes</span>
@@ -341,7 +337,7 @@ export function LearnerGroupEditorPage() {
 
             {/* List of currently selected ones for preview */}
             <div className="border border-slate-200 rounded overflow-hidden">
-              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-[10px] font-extrabold text-slate-400 uppercase select-none">
+              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-400 uppercase select-none">
                 <span>Selected Codes Ledger</span>
                 <span>{selectedLearners.length} Users</span>
               </div>
@@ -379,31 +375,31 @@ export function LearnerGroupEditorPage() {
   const renderReviewStep = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{selectedLearners.length}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Initial Members</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Initial Members</div>
         </div>
-        <div className="admin-card p-4 sm:col-span-2">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 sm:col-span-2">
           <div className="text-lg font-extrabold text-slate-800">{selectedCategoryName}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Category</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Category</div>
         </div>
       </div>
 
-      <div className="admin-card p-4">
+      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
         <div className="mb-3 text-xs font-bold text-slate-800 select-none">Group Details</div>
         <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
           <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Group Name</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Group Name</dt>
             <dd className="mt-1 font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Description</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Description</dt>
             <dd className="mt-1 font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
           </div>
         </dl>
       </div>
 
-      <div className="admin-card p-4">
+      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
         <div className="mb-3 text-xs font-bold text-slate-800 select-none">Initial Members</div>
         <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
           {selectedLearners.length === 0 ? (
@@ -432,7 +428,7 @@ export function LearnerGroupEditorPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3 select-none">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
           <span className="text-xs text-slate-500 font-bold">Loading group details...</span>
         </div>
       </div>
@@ -441,11 +437,11 @@ export function LearnerGroupEditorPage() {
 
   if (isEditMode) {
     return (
-      <div className="admin-grid-surface">
+      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white pt-5 px-6">
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4 max-w-3xl">
           <div className="flex items-center justify-between gap-3 shrink-0">
             <div>
-              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 select-none">
+              <div className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 select-none">
                 Learner Directory
               </div>
               <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">
@@ -463,7 +459,7 @@ export function LearnerGroupEditorPage() {
             {saving && (
               <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
                 <div className="flex flex-col items-center gap-2.5 select-none">
-                  <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                  <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
                   <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
                 </div>
               </div>
@@ -474,7 +470,7 @@ export function LearnerGroupEditorPage() {
             <button 
               type="button" 
               onClick={() => navigate(`/learner-groups/${id}`)} 
-              className="admin-button admin-button--secondary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
+              className="inline-flex items-center gap-[7px] rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xxs font-extrabold shadow-3xs"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Cancel</span>
@@ -482,7 +478,7 @@ export function LearnerGroupEditorPage() {
             <button 
               type="submit" 
               disabled={saving} 
-              className="admin-button admin-button--primary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
+              className="inline-flex items-center gap-[7px] rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 cursor-pointer text-xxs font-extrabold shadow-3xs disabled:opacity-55"
             >
               {saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

@@ -65,7 +65,7 @@ function TreeViewItem({ node, selectedId, onSelect, level }: TreeViewItemProps) 
 
   // Choose dynamic premium icon based on node specifications
   const getIcon = () => {
-    if (node.isRoot) return <Layers className="h-4 w-4 text-blue-600 shrink-0" />
+    if (node.isRoot) return <Layers className="h-4 w-4 text-indigo-500 shrink-0" />
     if (node.isDivision) return <Shield className="h-3.5 w-3.5 text-purple-500 shrink-0" />
     return hasChildren 
       ? (expanded ? <FolderOpen className="h-3.5 w-3.5 text-amber-500 shrink-0" /> : <Folder className="h-3.5 w-3.5 text-amber-500 shrink-0" />)
@@ -79,7 +79,7 @@ function TreeViewItem({ node, selectedId, onSelect, level }: TreeViewItemProps) 
         style={{ paddingLeft: `${level * 16 + 8}px` }}
         className={`flex items-center gap-2 py-1.5 pr-2 rounded-lg cursor-pointer transition-all duration-150 relative overflow-hidden group ${
           isSelected
-            ? 'bg-blue-50/70 text-blue-700 font-bold border-l-3 border-l-blue-600 pl-[5px]'
+            ? 'bg-indigo-50/70 text-blue-700 font-bold border-l-3 border-l-blue-600 pl-[5px]'
             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
         }`}
       >

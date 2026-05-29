@@ -115,8 +115,8 @@ export function AssignmentGanttPage() {
         <h1 className="text-2xl font-extrabold text-slate-900">Assignment Schedule</h1>
       </header>
 
-      <section className="admin-card admin-table-card">
-        <div className="admin-card-head flex-wrap">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
           <div className="flex flex-wrap items-center gap-2">
             {STATUS_FILTERS.map((s) => (
               <button
@@ -148,7 +148,7 @@ export function AssignmentGanttPage() {
             Loading schedule...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="admin-card-empty">No assignments.</div>
+          <div className="p-6 text-center text-slate-400 text-[13px] font-medium">No assignments.</div>
         ) : (
           <div>
           <div className="flex">
@@ -197,7 +197,7 @@ export function AssignmentGanttPage() {
                     return (
                       <div
                         key={i}
-                        className={`text-center text-[10px] leading-7 ${
+                        className={`text-center text-xxs leading-7 ${
                           isWeekend ? 'bg-slate-50 text-slate-400' : 'text-slate-500'
                         } ${isToday ? 'bg-indigo-50 font-bold text-indigo-700' : ''}`}
                         style={{ width: DAY_PX }}
@@ -231,7 +231,7 @@ export function AssignmentGanttPage() {
                         style={{ height: ROW_PX }}
                       >
                         <div
-                          className="absolute top-1.5 flex items-center overflow-hidden rounded text-[10px] font-bold text-white shadow-sm"
+                          className="absolute top-1.5 flex items-center overflow-hidden rounded text-xxs font-bold text-white shadow-sm"
                           style={{
                             left,
                             width,

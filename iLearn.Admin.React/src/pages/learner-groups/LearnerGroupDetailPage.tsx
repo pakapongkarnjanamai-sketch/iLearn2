@@ -307,7 +307,7 @@ export function LearnerGroupDetailPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
   }
@@ -318,7 +318,7 @@ export function LearnerGroupDetailPage() {
         <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
         <h2 className="text-lg font-bold text-slate-700 mt-4">Learner Group Not Found</h2>
         <p className="text-slate-400 mt-2">The requested learner group does not exist.</p>
-        <Link to="/learner-groups" className="mt-6 inline-flex items-center text-blue-600 font-semibold hover:underline">
+        <Link to="/learner-groups" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Learner Groups
         </Link>
       </div>
@@ -328,8 +328,6 @@ export function LearnerGroupDetailPage() {
   return (
     <>
       <PageHeader
-        title={group.name}
-        eyebrow="Learner Groups"
         actions={
           <div className="flex items-center gap-2">
             <Link to={`/learner-groups/${id}/edit`}>
@@ -358,12 +356,12 @@ export function LearnerGroupDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* Members List Table Grid */}
-        <section className="admin-card admin-table-card lg:col-span-2">
-          <div className="admin-card-head">
-            <h2 className="admin-card-head-title"><Users aria-hidden="true" />Members ({group.members.length})</h2>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs lg:col-span-2">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Users aria-hidden="true" />Members ({group.members.length})</h2>
           </div>
 
-          <div className="admin-table-card-scroll max-h-140 custom-scrollbar">
+          <div className="overflow-x-auto max-h-140 custom-scrollbar">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
@@ -385,13 +383,13 @@ export function LearnerGroupDetailPage() {
                   group.members.map(m => {
                     const isChecked = selectedMemberIds.includes(m.id)
                     return (
-                      <tr key={m.id} className={`hover:bg-slate-50/60 transition ${isChecked ? 'bg-blue-50/20' : ''}`}>
+                      <tr key={m.id} className={`hover:bg-slate-50/60 transition ${isChecked ? 'bg-indigo-50/20' : ''}`}>
                         <td className="p-3 w-10">
                           <input
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => handleToggleSelectMember(m.id)}
-                            className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
                           />
                         </td>
                         <td className="p-3 font-mono font-bold text-slate-800">{m.learnerCode}</td>
@@ -421,9 +419,9 @@ export function LearnerGroupDetailPage() {
         <aside className="lg:col-span-1 space-y-6">
           
           {managerMode !== 'remove' ? (
-            <section className="admin-card space-y-4 shadow-2xs">
-              <div className="admin-card-head">
-                <h2 className="admin-card-head-title"><Layers aria-hidden="true" />Properties</h2>
+            <section className="space-y-4 p-4">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
+                <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Properties</h2>
               </div>
               <dl className="space-y-3 text-sm">
                 <div className="border-b border-slate-100/50 pb-2">
@@ -439,7 +437,7 @@ export function LearnerGroupDetailPage() {
           ) : (
             /* Remove Members Preview drawer Panel */
             removePreview && (
-              <section className="admin-card space-y-4 border-l-2 border-red-500 shadow-2xs">
+              <section className="space-y-4 border-l-2 border-red-500 p-4">
                 <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                   <h2 className="font-extrabold text-slate-700 text-sm uppercase">Remove Group Members</h2>
                   <button onClick={() => { setManagerMode('none'); setRemovePreview(null); }} className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer">
@@ -505,7 +503,7 @@ export function LearnerGroupDetailPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 shrink-0 select-none">
               <div className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-blue-600" />
+                <UserPlus className="h-5 w-5 text-indigo-500" />
                 <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Add Group Members</h2>
               </div>
               
@@ -561,13 +559,13 @@ export function LearnerGroupDetailPage() {
                         value={learnerCodesInput}
                         onChange={(e) => setLearnerCodesInput(e.target.value)}
                         placeholder="Paste employee EIds here (e.g. N130812, N142715)..."
-                        className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-blue-600 bg-slate-50/50"
+                        className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50"
                       />
                       <button
                         type="button"
                         onClick={handleImportCodes}
                         disabled={!learnerCodesInput.trim()}
-                        className="admin-button admin-button--primary self-start shadow-xs disabled:opacity-55 cursor-pointer"
+                        className="inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 font-semibold cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 self-start shadow-xs disabled:opacity-55"
                       >
                         <Plus aria-hidden="true" />
                         <span>Add to Queue</span>
@@ -669,7 +667,7 @@ export function LearnerGroupDetailPage() {
                       id="enrollToAssignmentsModal"
                       checked={enrollToAssignments}
                       onChange={(e) => setEnrollToAssignments(e.target.checked)}
-                      className="h-4 w-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      className="h-4 w-4 rounded text-indigo-500 border-slate-300 focus:ring-indigo-400 cursor-pointer"
                     />
                     <label htmlFor="enrollToAssignmentsModal" className="text-xs font-semibold text-slate-700 select-none cursor-pointer">
                       Auto-enroll to Active Assignments

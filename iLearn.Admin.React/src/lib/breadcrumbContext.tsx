@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 
 type BreadcrumbContextType = {
   labels: Record<string, string>
@@ -7,7 +7,7 @@ type BreadcrumbContextType = {
 
 const BreadcrumbContext = createContext<BreadcrumbContextType | undefined>(undefined)
 
-export function BreadcrumbProvider({ children }: { children: React.ReactNode }) {
+export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   const [labels, setLabels] = useState<Record<string, string>>({})
 
   const setLabel = useCallback((key: string, label: string) => {

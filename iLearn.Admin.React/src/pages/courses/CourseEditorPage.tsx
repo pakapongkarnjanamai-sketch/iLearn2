@@ -2,14 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { 
   ArrowDown, 
-  ArrowLeft, 
-  ArrowRight, 
   ArrowUp, 
   BookOpen, 
-  Check, 
   FileArchive, 
   Plus, 
-  RefreshCw, 
   Save, 
   Search, 
   Upload, 
@@ -138,7 +134,7 @@ function createLibrarySelection(contentItem: CourseContentApiItem): SelectedCont
 
 function getContentReadiness(item: SelectedContentItem) {
   if (item.source === 'upload') {
-    return { label: 'Queued Upload', className: 'bg-blue-50 text-blue-700 border-blue-100' }
+    return { label: 'Queued Upload', className: 'bg-indigo-50 text-blue-700 border-indigo-100' }
   }
 
   if (!item.isActive) {
@@ -467,15 +463,15 @@ export function CourseEditorPage() {
   }
 
   const renderInformationStep = () => (
-    <div className="admin-card p-4 space-y-3.5">
+    <div className="space-y-3.5">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <BookOpen className="h-4 w-4 text-blue-600" />
+        <BookOpen className="h-4 w-4 text-indigo-500" />
         <h2 className="text-xs font-bold text-slate-800">Course Information</h2>
       </div>
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
         <div className="space-y-1">
-          <label htmlFor="courseType" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+          <label htmlFor="courseType" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
             Course Type <span className="text-red-500">*</span>
           </label>
           <select
@@ -483,7 +479,7 @@ export function CourseEditorPage() {
             name="courseType"
             value={formData.courseType}
             onChange={handleChange}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
           >
             <option value={0}>Select Type</option>
             {courseTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
@@ -491,7 +487,7 @@ export function CourseEditorPage() {
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="courseCode" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+          <label htmlFor="courseCode" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
             Course Code <span className="text-red-500">*</span>
           </label>
           <input
@@ -501,12 +497,12 @@ export function CourseEditorPage() {
             value={formData.courseCode}
             onChange={handleChange}
             placeholder="e.g. CS-101"
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="courseName" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+          <label htmlFor="courseName" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
             Course Title <span className="text-red-500">*</span>
           </label>
           <input
@@ -516,20 +512,20 @@ export function CourseEditorPage() {
             value={formData.courseName}
             onChange={handleChange}
             placeholder="e.g. Intro to Cybersecurity"
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor="divisionId" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">Division</label>
+          <label htmlFor="divisionId" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">Division</label>
           <select
             id="divisionId"
             name="divisionId"
             value={formData.divisionId}
             onChange={handleChange}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
           >
             <option value={0}>Select Division</option>
             {divisions.map(division => <option key={division.id} value={division.id}>{division.name}</option>)}
@@ -537,7 +533,7 @@ export function CourseEditorPage() {
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="categoryId" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+          <label htmlFor="categoryId" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
             Category <span className="text-red-500">*</span>
           </label>
           <select
@@ -546,7 +542,7 @@ export function CourseEditorPage() {
             value={formData.categoryId}
             onChange={handleChange}
             disabled={formData.divisionId > 0 && filteredCategories.length === 0}
-            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
+            className="w-full rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
           >
             <option value={0}>Select Category</option>
             {filteredCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -555,7 +551,7 @@ export function CourseEditorPage() {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="description" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">Description</label>
+        <label htmlFor="description" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">Description</label>
         <textarea
           id="description"
           name="description"
@@ -563,7 +559,7 @@ export function CourseEditorPage() {
           onChange={handleChange}
           rows={4}
           placeholder="Course summary and objectives..."
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
         />
       </div>
     </div>
@@ -581,7 +577,7 @@ export function CourseEditorPage() {
     return (
       <div className="overflow-x-auto border border-slate-200 rounded">
         <table className="min-w-full divide-y divide-slate-200 text-xs">
-          <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 select-none">
+          <thead className="bg-slate-50 text-xxs font-extrabold uppercase text-slate-500 select-none">
             <tr>
               <th className="w-12 px-3 py-1.5 text-left">Order</th>
               <th className="px-3 py-1.5 text-left">Content Name</th>
@@ -604,7 +600,7 @@ export function CourseEditorPage() {
                       <select
                         value={item.typeId}
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
-                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
+                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
                       >
                         {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
@@ -613,7 +609,7 @@ export function CourseEditorPage() {
                     )}
                   </td>
                   <td className="px-3 py-1.5 select-none">
-                    <span className={`inline-flex border px-1.5 py-0.5 text-[10px] font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
+                    <span className={`inline-flex border px-1.5 py-0.5 text-xxs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
                   </td>
                   <td className="px-3 py-1.5">
                     <div className="flex justify-end gap-1">
@@ -638,18 +634,18 @@ export function CourseEditorPage() {
   }
 
   const renderContentStep = () => (
-    <div className="admin-card min-h-0 p-4 flex flex-col gap-3.5">
+    <div className="min-h-0 flex flex-col gap-3.5">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 select-none">
         <div className="flex items-center gap-2">
-          <FileArchive className="h-4 w-4 text-blue-600" />
+          <FileArchive className="h-4 w-4 text-indigo-500" />
           <h2 className="text-xs font-bold text-slate-800">Course Content</h2>
         </div>
-        <span className="border border-slate-200 px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <span className="border border-slate-200 px-2 py-0.5 rounded text-xxs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 select-none">
         <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
-          <Upload className="h-4 w-4 text-blue-600" />
+          <Upload className="h-4 w-4 text-indigo-500" />
           <span>Upload New SCORM</span>
           <input
             type="file"
@@ -685,47 +681,47 @@ export function CourseEditorPage() {
   const renderReviewStep = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{contentSummary.total}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Total Content Items</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Total Content Items</div>
         </div>
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{contentSummary.existing}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Existing Content</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Existing Content</div>
         </div>
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{contentSummary.uploads}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">New Uploads</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">New Uploads</div>
         </div>
       </div>
 
-      <div className="admin-card p-4">
+      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
         <div className="mb-3 text-xs font-bold text-slate-800 select-none">Course Details</div>
         <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Course Type</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Course Type</dt>
             <dd className="mt-1 font-semibold text-slate-700">{selectedCourseTypeName}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Course Code</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Course Code</dt>
             <dd className="mt-1 font-semibold text-slate-700">{formData.courseCode || 'Not set'}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Course Title</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Course Title</dt>
             <dd className="mt-1 font-semibold text-slate-700">{formData.courseName || 'Not set'}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Division</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Division</dt>
             <dd className="mt-1 font-semibold text-slate-700">{selectedDivisionName}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Category</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Category</dt>
             <dd className="mt-1 font-semibold text-slate-700">{selectedCategoryName}</dd>
           </div>
         </dl>
       </div>
 
-      <div className="admin-card p-4">
+      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
         <div className="mb-3 text-xs font-bold text-slate-800 select-none">Content Review</div>
         {renderContentRows()}
       </div>
@@ -742,7 +738,7 @@ export function CourseEditorPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3 select-none">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
           <span className="text-xs text-slate-500 font-bold">Loading course details...</span>
         </div>
       </div>
@@ -788,7 +784,7 @@ export function CourseEditorPage() {
                 <BookOpen className="h-5 w-5 text-indigo-600" />
                 <div>
                   <h3 className="text-xs font-bold text-slate-800">Select Existing Content</h3>
-                  <p className="text-[10px] font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+                  <p className="text-xxs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
                 </div>
               </div>
 
@@ -836,12 +832,12 @@ export function CourseEditorPage() {
   }
 
   return (
-    <div className="admin-grid-surface">
+    <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white pt-5 px-6">
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
         {/* Header with Title and Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 select-none">
+            <div className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 select-none">
               Course Catalog
             </div>
             <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight select-none">
@@ -860,7 +856,7 @@ export function CourseEditorPage() {
             onClick={() => setActiveEditTab('properties')}
             className={`pb-2 font-extrabold text-xxs uppercase tracking-wider transition relative cursor-pointer ${
               activeEditTab === 'properties'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-indigo-500 border-b-2 border-indigo-500'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -871,7 +867,7 @@ export function CourseEditorPage() {
             onClick={() => setActiveEditTab('content')}
             className={`pb-2 font-extrabold text-xxs uppercase tracking-wider transition relative cursor-pointer ${
               activeEditTab === 'content'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-indigo-500 border-b-2 border-indigo-500'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -888,7 +884,7 @@ export function CourseEditorPage() {
           {saving && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
               <div className="flex flex-col items-center gap-2.5 select-none">
-                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
                 <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
               </div>
             </div>
@@ -900,7 +896,7 @@ export function CourseEditorPage() {
           <button
             type="button"
             onClick={() => navigate(`/courses/${id}`)}
-            className="admin-button admin-button--secondary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs"
+            className="inline-flex items-center gap-[7px] rounded-md border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer text-xxs font-extrabold shadow-3xs"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Cancel</span>
@@ -909,7 +905,7 @@ export function CourseEditorPage() {
           <button 
             type="submit" 
             disabled={saving} 
-            className="admin-button admin-button--primary text-xxs font-extrabold py-1.5 px-3 rounded shadow-3xs disabled:opacity-55"
+            className="inline-flex items-center gap-[7px] rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 cursor-pointer text-xxs font-extrabold shadow-3xs disabled:opacity-55"
           >
             {saving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -944,7 +940,7 @@ export function CourseEditorPage() {
               <BookOpen className="h-5 w-5 text-indigo-600" />
               <div>
                 <h3 className="text-xs font-bold text-slate-800">Select Existing Content</h3>
-                <p className="text-[10px] font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+                <p className="text-xxs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
               </div>
             </div>
 

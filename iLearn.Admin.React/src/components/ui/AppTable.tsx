@@ -286,7 +286,7 @@ export function AppTable<T extends TableRecord>({
   }, [visibleColumns.length, inserting])
 
   return (
-    <div className="admin-table-shell flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-white">
       
       <div className="flex flex-col gap-3 border-b border-slate-100/50 bg-slate-50/30 p-4 lg:flex-row lg:items-center">
         
@@ -297,7 +297,7 @@ export function AppTable<T extends TableRecord>({
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 shadow-xs transition focus:border-blue-600 focus:outline-none"
+            className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 shadow-xs transition focus:border-indigo-500 focus:outline-none"
           />
         </div>
 
@@ -331,7 +331,7 @@ export function AppTable<T extends TableRecord>({
                   }`}>
                     <span>{col.caption}</span>
                     {sortField === col.dataField ? (
-                      sortDesc ? <ArrowDown className="h-3 w-3 text-blue-600 shrink-0" /> : <ArrowUp className="h-3 w-3 text-blue-600 shrink-0" />
+                      sortDesc ? <ArrowDown className="h-3 w-3 text-indigo-500 shrink-0" /> : <ArrowUp className="h-3 w-3 text-indigo-500 shrink-0" />
                     ) : (
                       <ArrowUpDown className="h-3 w-3 text-slate-300 shrink-0 opacity-0 group-hover:opacity-100 transition" />
                     )}
@@ -351,7 +351,7 @@ export function AppTable<T extends TableRecord>({
             
             {/* Inline Inserting Row */}
             {inserting && (
-              <tr className="bg-blue-50/20 border-b border-blue-100">
+              <tr className="bg-indigo-50/20 border-b border-indigo-100">
                 {visibleColumns.map(col => {
                   const insertValue = insertValues[col.dataField]
                   return (
@@ -362,7 +362,7 @@ export function AppTable<T extends TableRecord>({
                           type="checkbox"
                           checked={Boolean(insertValue)}
                           onChange={(e) => handleInsertChange(col.dataField, e.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400"
                         />
                       </div>
                     ) : col.dataType === 'number' ? (
@@ -370,14 +370,14 @@ export function AppTable<T extends TableRecord>({
                         type="number"
                         value={asInputValue(insertValue)}
                         onChange={(e) => handleInsertChange(col.dataField, e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-600"
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
                       />
                     ) : (
                       <input
                         type="text"
                         value={asInputValue(insertValue)}
                         onChange={(e) => handleInsertChange(col.dataField, e.target.value)}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-600"
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
                       />
                     )}
                   </td>
@@ -435,7 +435,7 @@ export function AppTable<T extends TableRecord>({
                                   type="checkbox"
                                   checked={Boolean(editValue)}
                                   onChange={(e) => handleEditChange(col.dataField, e.target.checked)}
-                                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                  className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400"
                                 />
                               </div>
                             ) : col.dataType === 'number' ? (
@@ -443,14 +443,14 @@ export function AppTable<T extends TableRecord>({
                                 type="number"
                                 value={asInputValue(editValue)}
                                 onChange={(e) => handleEditChange(col.dataField, e.target.value === '' ? '' : Number(e.target.value))}
-                                className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-600"
+                                className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
                               />
                             ) : (
                               <input
                                 type="text"
                                 value={asInputValue(editValue)}
                                 onChange={(e) => handleEditChange(col.dataField, e.target.value)}
-                                className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-600"
+                                className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
                               />
                             )
                           ) : col.cellRender ? (
@@ -508,7 +508,7 @@ export function AppTable<T extends TableRecord>({
                                     e.stopPropagation()
                                     btn.onClick({ row: { data: row } })
                                   }}
-                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
+                                  className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
                                   title={btn.hint}
                                 >
                                   {btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
@@ -520,7 +520,7 @@ export function AppTable<T extends TableRecord>({
                                     e.stopPropagation()
                                     handleStartEdit(row)
                                   }}
-                                  className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
+                                  className="p-1 text-slate-500 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
                                   title="Edit Inline"
                                 >
                                   <Edit3 className="h-3.5 w-3.5" />
@@ -554,7 +554,7 @@ export function AppTable<T extends TableRecord>({
         {/* Spinner Overlay */}
         {loading && (
           <div className="absolute inset-0 bg-white/45 backdrop-blur-xs flex items-center justify-center z-10 transition duration-150">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
           </div>
         )}
       </div>
@@ -578,7 +578,7 @@ export function AppTable<T extends TableRecord>({
         </div>
 
         {loading && data.length > 0 && (
-          <div className="flex items-center gap-1.5 text-blue-600 text-[10px] uppercase font-bold tracking-wider animate-pulse">
+          <div className="flex items-center gap-1.5 text-indigo-500 text-xxs uppercase font-bold tracking-wider animate-pulse">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span>Loading more...</span>
           </div>

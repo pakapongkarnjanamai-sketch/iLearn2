@@ -226,7 +226,7 @@ export function DashboardPage() {
       </header>
 
       {maintenance?.hasActiveMaintenance && maintenance.operations.length > 0 && (
-        <div className="admin-card border-amber-200 bg-amber-50/60 flex flex-col gap-1.5">
+        <div className="border border-amber-200 rounded-lg bg-amber-50/60 shadow-xs p-4 flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
             Maintenance in progress
@@ -245,7 +245,7 @@ export function DashboardPage() {
 
       <section
         aria-label="Key performance indicators"
-        className="admin-card admin-kpi-strip"
+        className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs"
       >
         <KpiTile
           icon={BookOpen}
@@ -308,11 +308,11 @@ export function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="admin-card lg:col-span-2">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 lg:col-span-2">
           <SectionHeader title="Learning Activity Trends" subtitle="Last 6 months" />
           <LearningActivityChart data={learningActivity} />
         </div>
-        <div className="admin-card">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <SectionHeader
             title="Task Status"
             subtitle={`${formatNumber(kpi.totalLearningTasks)} total tasks`}
@@ -324,7 +324,7 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="admin-card admin-table-card">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
         <SectionHeader
           title="Priority Assignment Reports"
           trailing={
@@ -339,7 +339,7 @@ export function DashboardPage() {
         {priorityAssignments.length === 0 ? (
           <EmptyRow label="No assignments need attention right now." />
         ) : (
-          <div className="admin-table-card-scroll">
+          <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200/60">
@@ -394,14 +394,14 @@ export function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="admin-card admin-table-card lg:col-span-2">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs lg:col-span-2">
           <SectionHeader
             title="Courses Needing Attention"
           />
           {courseAttention.length === 0 ? (
             <EmptyRow label="All courses are on track." />
           ) : (
-            <div className="admin-table-card-scroll">
+            <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-slate-500 border-b border-slate-200/60">
@@ -446,14 +446,14 @@ export function DashboardPage() {
             </div>
           )}
         </div>
-        <div className="admin-card">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <SectionHeader title="Course Categories" subtitle="Top 6 by course count" />
           <CategoryMixChart data={categoryMix} />
         </div>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="admin-card lg:col-span-2">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 lg:col-span-2">
           <SectionHeader title="Report Hub" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             <ReportLink
@@ -497,7 +497,7 @@ export function DashboardPage() {
             />
           </div>
         </div>
-        <div className="admin-card">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <SectionHeader title="Recent Admin Activity" subtitle={`${activities.length} item(s)`} />
           {activities.length === 0 ? (
             <EmptyRow label="No recent activity." />
@@ -550,7 +550,7 @@ function KpiTile({
   to?: string
 }) {
   const content = (
-    <div className="admin-kpi-item flex flex-col gap-1">
+    <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0 flex flex-col gap-1">
       <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase">
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {label}

@@ -16,7 +16,7 @@ export function RequireRole({ roles, superAdminOnly, children }: RequireRoleProp
   const { state, isSuperAdmin, hasAnyRole } = useSession()
 
   if (state === 'loading') {
-    return <div className="admin-empty-state" aria-busy="true">Loading session…</div>
+    return <div className="grid min-h-[360px] place-items-center rounded-lg border border-slate-200 bg-white p-6 text-center shadow-xs" aria-busy="true">Loading session…</div>
   }
 
   if (superAdminOnly && !isSuperAdmin) {

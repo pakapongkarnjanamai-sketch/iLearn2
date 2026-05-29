@@ -218,7 +218,7 @@ export function CourseListPage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-5 md:grid-cols-4">
         
         {/* Categories Tree Column */}
-        <aside className="admin-card flex min-h-0 flex-col p-4 md:col-span-1">
+        <aside className="border border-slate-200 rounded-lg bg-white shadow-xs flex min-h-0 flex-col p-4 md:col-span-1">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3 select-none">
             <Layers className="h-4 w-4 text-slate-600" />
             <h2 className="text-sm font-bold text-slate-700">Course Categories</h2>
@@ -272,7 +272,7 @@ export function CourseListPage() {
                       onClick={() => handleChipSelect(chip.key)}
                       className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         selectedTypeKey === chip.key
-                          ? 'border-blue-600 bg-blue-600 text-white'
+                          ? 'border-indigo-500 bg-blue-600 text-white'
                           : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >

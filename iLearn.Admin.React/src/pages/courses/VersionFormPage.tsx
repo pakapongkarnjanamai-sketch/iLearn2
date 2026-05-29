@@ -2,15 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
   ArrowDown, 
-  ArrowLeft, 
-  ArrowRight, 
   ArrowUp, 
   BookOpen, 
-  Check, 
   FileArchive, 
   Plus, 
-  RefreshCw, 
-  Save, 
   Search, 
   Settings2, 
   Upload, 
@@ -129,7 +124,7 @@ function createLibrarySelection(contentItem: CourseContentApiItem): SelectedCont
 
 function getContentReadiness(item: SelectedContentItem) {
   if (item.source === 'upload') {
-    return { label: 'Queued Upload', className: 'bg-blue-50 text-blue-700 border-blue-100' }
+    return { label: 'Queued Upload', className: 'bg-indigo-50 text-blue-700 border-indigo-100' }
   }
 
   if (!item.isActive) {
@@ -374,13 +369,13 @@ export function VersionFormPage() {
   }
 
   const renderDetailsStep = () => (
-    <div className="admin-card p-4 space-y-3.5">
+    <div className="space-y-3.5">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1 select-none">
-        <Upload className="h-4 w-4 text-blue-600" />
+        <Upload className="h-4 w-4 text-indigo-500" />
         <h2 className="text-xs font-bold text-slate-800">Version Details</h2>
       </div>
       <div className="space-y-1">
-        <label htmlFor="note" className="block text-[10px] font-extrabold text-slate-400 uppercase select-none">
+        <label htmlFor="note" className="block text-xxs font-extrabold text-slate-400 uppercase select-none">
           Version Name / Note <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -390,7 +385,7 @@ export function VersionFormPage() {
           onChange={handleChange}
           rows={4}
           placeholder="e.g. Added new V2 materials"
-          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none"
+          className="w-full resize-y rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
         />
       </div>
       <div className="flex items-center gap-3 border border-slate-200 bg-slate-50/20 p-3 rounded select-none">
@@ -400,7 +395,7 @@ export function VersionFormPage() {
           name="isActive"
           checked={formData.isActive}
           onChange={handleCheckboxChange}
-          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400 cursor-pointer"
         />
         <label htmlFor="isActive" className="text-xs font-extrabold text-slate-600 uppercase cursor-pointer">Set as Active Version</label>
       </div>
@@ -419,7 +414,7 @@ export function VersionFormPage() {
     return (
       <div className="overflow-x-auto border border-slate-200 rounded">
         <table className="min-w-full divide-y divide-slate-200 text-xs">
-          <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 select-none">
+          <thead className="bg-slate-50 text-xxs font-extrabold uppercase text-slate-500 select-none">
             <tr>
               <th className="w-12 px-3 py-1.5 text-left">Order</th>
               <th className="px-3 py-1.5 text-left">Content Name</th>
@@ -442,7 +437,7 @@ export function VersionFormPage() {
                       <select
                         value={item.typeId}
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
-                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-blue-600 focus:outline-none cursor-pointer"
+                        className="w-full rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer"
                       >
                         {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
@@ -451,7 +446,7 @@ export function VersionFormPage() {
                     )}
                   </td>
                   <td className="px-3 py-1.5 select-none">
-                    <span className={`inline-flex border px-1.5 py-0.5 text-[10px] font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
+                    <span className={`inline-flex border px-1.5 py-0.5 text-xxs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
                   </td>
                   <td className="px-3 py-1.5">
                     <div className="flex justify-end gap-1">
@@ -476,18 +471,18 @@ export function VersionFormPage() {
   }
 
   const renderContentStep = () => (
-    <div className="admin-card min-h-0 p-4 flex flex-col gap-3.5">
+    <div className="min-h-0 flex flex-col gap-3.5">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 select-none">
         <div className="flex items-center gap-2">
-          <FileArchive className="h-4 w-4 text-blue-600" />
+          <FileArchive className="h-4 w-4 text-indigo-500" />
           <h2 className="text-xs font-bold text-slate-800">Version Content</h2>
         </div>
-        <span className="border border-slate-200 px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <span className="border border-slate-200 px-2 py-0.5 rounded text-xxs font-extrabold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 select-none">
         <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-3 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
-          <Upload className="h-4 w-4 text-blue-600" />
+          <Upload className="h-4 w-4 text-indigo-500" />
           <span>Upload New SCORM</span>
           <input
             type="file"
@@ -521,34 +516,34 @@ export function VersionFormPage() {
   )
 
   const renderOptionsStep = () => (
-    <div className="admin-card p-4 space-y-3.5 select-none">
+    <div className="space-y-3.5 select-none">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5 mb-1">
-        <Settings2 className="h-4 w-4 text-blue-600" />
+        <Settings2 className="h-4 w-4 text-indigo-500" />
         <h2 className="text-xs font-bold text-slate-800">Learner Version Policy</h2>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 select-none">
         <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
           <div className="text-base font-extrabold text-slate-800">{impact?.notStartedCount ?? 0}</div>
-          <div className="text-[9px] font-extrabold uppercase text-slate-400">Not Started</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Not Started</div>
         </div>
         <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
           <div className="text-base font-extrabold text-slate-800">{impact?.inProgressCount ?? 0}</div>
-          <div className="text-[9px] font-extrabold uppercase text-slate-400">In Progress</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">In Progress</div>
         </div>
         <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
           <div className="text-base font-extrabold text-slate-800">{impact?.completedCount ?? 0}</div>
-          <div className="text-[9px] font-extrabold uppercase text-slate-400">Completed</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Completed</div>
         </div>
         <div className="border border-slate-200 rounded p-2.5 bg-slate-50/10">
           <div className="text-base font-extrabold text-slate-800">{impact?.otherOpenCount ?? 0}</div>
-          <div className="text-[9px] font-extrabold uppercase text-slate-400">Other Open</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Other Open</div>
         </div>
       </div>
 
       <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 select-none">
         {learnerPolicyOptions.map(option => (
-          <label key={option.value} className={`flex cursor-pointer gap-2.5 border rounded p-3 transition-all duration-150 ${formData.learnerPolicy === option.value ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200 bg-white hover:border-slate-350'}`}>
+          <label key={option.value} className={`flex cursor-pointer gap-2.5 border rounded p-3 transition-all duration-150 ${formData.learnerPolicy === option.value ? 'border-blue-500 bg-indigo-50/20' : 'border-slate-200 bg-white hover:border-slate-350'}`}>
             <input
               type="radio"
               name="learnerPolicy"
@@ -556,11 +551,11 @@ export function VersionFormPage() {
               checked={formData.learnerPolicy === option.value}
               onChange={() => setFormData(prev => ({ ...prev, learnerPolicy: option.value }))}
               disabled={!formData.isActive}
-              className="mt-0.5 h-3.5 w-3.5 border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40 cursor-pointer"
+              className="mt-0.5 h-3.5 w-3.5 border-slate-300 text-indigo-500 focus:ring-indigo-400 disabled:opacity-40 cursor-pointer"
             />
             <span>
               <span className="block text-xs font-bold text-slate-800">{option.title}</span>
-              <span className="mt-1 block text-[10px] font-semibold text-slate-400 leading-normal">{option.note}</span>
+              <span className="mt-1 block text-xxs font-semibold text-slate-400 leading-normal">{option.note}</span>
             </span>
           </label>
         ))}
@@ -571,39 +566,39 @@ export function VersionFormPage() {
   const renderReviewStep = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 select-none">
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{contentSummary.total}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Total Content Items</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Total Content Items</div>
         </div>
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{contentSummary.existing}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Existing Content</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">Existing Content</div>
         </div>
-        <div className="admin-card p-4">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <div className="text-lg font-extrabold text-slate-800">{contentSummary.uploads}</div>
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">New Uploads</div>
+          <div className="text-xxs font-extrabold uppercase text-slate-400">New Uploads</div>
         </div>
       </div>
 
-      <div className="admin-card p-4">
+      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
         <div className="mb-3 text-xs font-bold text-slate-800 select-none">Version Details</div>
         <dl className="grid grid-cols-1 gap-x-5 gap-y-3.5 md:grid-cols-2 text-xs">
           <div className="border-b border-slate-100 pb-2 md:col-span-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Version Name / Note</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Version Name / Note</dt>
             <dd className="mt-1 font-semibold text-slate-700">{formData.note || 'Not set'}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Status</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Status</dt>
             <dd className="mt-1 font-semibold text-slate-700">{formData.isActive ? 'Active Version' : 'Inactive Version'}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-[10px] font-extrabold uppercase text-slate-400 select-none">Learner Policy</dt>
+            <dt className="text-xxs font-extrabold uppercase text-slate-400 select-none">Learner Policy</dt>
             <dd className="mt-1 font-semibold text-slate-700">{learnerPolicyOptions.find(option => option.value === formData.learnerPolicy)?.title}</dd>
           </div>
         </dl>
       </div>
 
-      <div className="admin-card p-4">
+      <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
         <div className="mb-3 text-xs font-bold text-slate-800 select-none">Content Review</div>
         {renderContentRows()}
       </div>
@@ -621,7 +616,7 @@ export function VersionFormPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3 select-none">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
           <span className="text-xs text-slate-500 font-bold">Loading version details...</span>
         </div>
       </div>
@@ -666,7 +661,7 @@ export function VersionFormPage() {
               <BookOpen className="h-5 w-5 text-indigo-600" />
               <div>
                 <h3 className="text-xs font-bold text-slate-800">Select Existing Content</h3>
-                <p className="text-[10px] font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+                <p className="text-xxs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
               </div>
             </div>
 

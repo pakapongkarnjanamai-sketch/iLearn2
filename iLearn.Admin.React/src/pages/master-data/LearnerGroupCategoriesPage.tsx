@@ -147,7 +147,6 @@ export function LearnerGroupCategoriesPage() {
   return (
     <>
       <PageHeader
-        title=""
         actions={
           <AppButton variant="primary" icon={Plus} onClick={openCreate}>
             New Category
@@ -165,13 +164,13 @@ export function LearnerGroupCategoriesPage() {
           <Loader2 className="h-4 w-4 animate-spin" /> Loading categories...
         </div>
       ) : items.length === 0 ? (
-        <div className="admin-card flex flex-col items-center gap-2 p-12 text-sm text-slate-400">
+        <div className="border border-slate-200 rounded-lg bg-white shadow-xs flex flex-col items-center gap-2 p-12 text-sm text-slate-400">
           <FolderTree className="h-8 w-8" />
           <p>No categories.</p>
         </div>
       ) : (
-        <div className="admin-card admin-table-card">
-        <div className="admin-table-card-scroll">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xxs font-extrabold uppercase text-slate-500">
@@ -257,7 +256,7 @@ export function LearnerGroupCategoriesPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-blue-600 focus:outline-none"
+                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
                   autoFocus
                   required
                 />
@@ -268,7 +267,7 @@ export function LearnerGroupCategoriesPage() {
                   type="text"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-blue-600 focus:outline-none"
+                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
                 />
               </div>
               <div>
@@ -278,7 +277,7 @@ export function LearnerGroupCategoriesPage() {
                   onChange={(e) =>
                     setForm({ ...form, parentId: e.target.value === '' ? '' : Number(e.target.value) })
                   }
-                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-blue-600 focus:outline-none"
+                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="">— Root (no parent) —</option>
                   {parentOptions.map((p) => (
