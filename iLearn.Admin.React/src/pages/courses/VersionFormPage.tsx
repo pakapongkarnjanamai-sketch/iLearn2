@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, Check, FileArchive, Plus, RefreshCw, Save, Search, Settings2, Upload, X } from 'lucide-react'
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -384,7 +384,7 @@ export function VersionFormPage() {
             setCurrentStep(step)
           }
         }}
-        className={`flex min-w-29.5 items-center gap-2 border px-3 py-2 text-left text-xs font-bold ${isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : isComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
+        className={`flex min-w-31 items-center gap-2 border px-3 py-2 text-left text-xs font-bold ${isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : isComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
         aria-current={isActive ? 'step' : undefined}
       >
         <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-current text-xxs">{step}</span>
@@ -641,7 +641,7 @@ export function VersionFormPage() {
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-extrabold text-slate-800">{isEditMode ? 'Edit Course Version' : 'Create New Version'}</h1>
+            <h1 className="text-xl font-extrabold text-slate-800">{isEditMode ? 'Edit Course Version' : 'Create New Version'}</h1>
             <p className="text-sm font-medium text-slate-500">Prepare version details, content, learner impact options, and review before saving.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -657,10 +657,14 @@ export function VersionFormPage() {
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
-          <Link to={`/courses/${parsedCourseId}`} className="admin-button admin-button--secondary">
+          <button
+            type="button"
+            onClick={() => navigate(`/courses/${parsedCourseId}`)}
+            className="admin-button admin-button--secondary"
+          >
             <X aria-hidden="true" />
             <span>Cancel</span>
-          </Link>
+          </button>
 
           {currentStep > 1 ? (
             <button type="button" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className="admin-button admin-button--secondary">

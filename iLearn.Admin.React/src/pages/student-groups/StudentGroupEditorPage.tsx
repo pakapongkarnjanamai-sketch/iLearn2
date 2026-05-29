@@ -385,7 +385,7 @@ export function StudentGroupEditorPage() {
     return (
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-lg font-extrabold text-slate-800">Edit Student Group</h1>
+          <h1 className="text-xl font-extrabold text-slate-800">Edit Student Group</h1>
         </div>
         {renderInformationStep()}
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
@@ -406,7 +406,7 @@ export function StudentGroupEditorPage() {
     <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-extrabold text-slate-800">New Student Group</h1>
+          <h1 className="text-xl font-extrabold text-slate-800">New Student Group</h1>
           <p className="text-sm font-medium text-slate-500">Create the group, add optional initial members, then review before saving.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

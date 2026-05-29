@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft,
+  ArrowRight,
   Check, 
-  ChevronRight, 
   BookOpen, 
   Users, 
   Calendar, 
@@ -43,6 +43,7 @@ type ValidateResult = {
 const stepLabels = ['Choose Courses', 'Target Scope', 'Schedule', 'Conflict Preview', 'Dispatched']
 
 export function BulkAssignPage() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   
   // URL context defaults
@@ -60,7 +61,6 @@ export function BulkAssignPage() {
   // Selection states
   const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([])
   const [courseSearch, setCourseSearch] = useState('')
-  const [groupSearch, setGroupSearch] = useState('')
   const [targetMode, setTargetMode] = useState<'group' | 'custom'>('group')
   const [selectedGroupId, setSelectedGroupId] = useState<number>(0)
   const [customNidsInput, setCustomNidsInput] = useState('')
@@ -254,7 +254,7 @@ export function BulkAssignPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xxs font-extrabold uppercase text-slate-400">Assignments</div>
-          <h1 className="text-lg font-extrabold text-slate-800">Bulk Assign</h1>
+          <h1 className="text-xl font-extrabold text-slate-800">Bulk Assign</h1>
           <p className="text-sm font-medium text-slate-500">Choose catalog courses, define target audience scope, then review and dispatch.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -565,16 +565,18 @@ export function BulkAssignPage() {
 
       {/* Footer Navigation Buttons */}
       <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
-        {currentStep < 5 ? (
-          <Link to="/assignments" className="mr-auto">
-            <button type="button" className="admin-button admin-button--secondary">
-              <X aria-hidden="true" />
-              <span>Cancel</span>
-            </button>
-          </Link>
-        ) : null}
+        {currentStep < 5 && (
+          <button
+            type="button"
+            onClick={() => navigate('/assignments')}
+            className="admin-button admin-button--secondary"
+          >
+            <X aria-hidden="true" />
+            <span>Cancel</span>
+          </button>
+        )}
 
-        {currentStep > 1 && currentStep < 5 ? (
+        {currentStep > 1 && currentStep < 5 && (
           <button
             type="button"
             onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
@@ -583,7 +585,7 @@ export function BulkAssignPage() {
             <ArrowLeft aria-hidden="true" />
             <span>Previous</span>
           </button>
-        ) : null}
+        )}
 
         {currentStep < 3 ? (
           <button
@@ -596,8 +598,8 @@ export function BulkAssignPage() {
             }
             className="admin-button admin-button--primary"
           >
+            <ArrowRight aria-hidden="true" />
             <span>Continue</span>
-            <ChevronRight className="h-4 w-4" />
           </button>
         ) : currentStep === 3 ? (
           <button
@@ -606,7 +608,7 @@ export function BulkAssignPage() {
             disabled={validating}
             className="admin-button admin-button--primary disabled:opacity-55"
           >
-            {validating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
+            {validating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             <span>Analyze Conflicts</span>
           </button>
         ) : currentStep === 4 ? (
@@ -620,12 +622,14 @@ export function BulkAssignPage() {
             <span>Dispatch Assignment</span>
           </button>
         ) : (
-          <Link to="/assignments">
-            <button type="button" className="admin-button admin-button--secondary">
-              <ArrowLeft aria-hidden="true" />
-              <span>Back to Assignment Registry</span>
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => navigate('/assignments')}
+            className="admin-button admin-button--secondary"
+          >
+            <ArrowLeft aria-hidden="true" />
+            <span>Back to Assignment Registry</span>
+          </button>
         )}
       </div>
     </div>
