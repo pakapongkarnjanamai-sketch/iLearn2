@@ -79,8 +79,6 @@ const showToast = (message: string, type: ToastType) => {
     })
   }
 
-  let dismissTimeout: any
-
   const dismissToast = () => {
     card.classList.remove('translate-x-0', 'opacity-100')
     card.classList.add('translate-x-[400px]', 'opacity-0')
@@ -94,6 +92,9 @@ const showToast = (message: string, type: ToastType) => {
     }, 300)
   }
 
+  // Auto-dismiss after 3200ms
+  const dismissTimeout = setTimeout(dismissToast, 3200)
+
   // Bind close button click
   const closeBtn = card.querySelector('button')
   if (closeBtn) {
@@ -102,9 +103,6 @@ const showToast = (message: string, type: ToastType) => {
       dismissToast()
     })
   }
-
-  // Auto-dismiss after 3200ms
-  dismissTimeout = setTimeout(dismissToast, 3200)
 }
 
 export const toast = {
