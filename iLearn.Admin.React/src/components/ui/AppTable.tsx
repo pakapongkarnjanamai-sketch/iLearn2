@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { 
-  Search, 
   Trash2, 
   Edit3, 
   Check, 
@@ -12,6 +11,9 @@ import {
   Info
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
+import { AppTableSearch } from './table/AppTableSearch'
+import { AppTableEditingRow } from './table/AppTableEditingRow'
+import { AppTableFooter } from './table/AppTableFooter'
 
 type TableRecord = Record<string, unknown>
 type TableValue = string | number | boolean | Date | null | undefined
@@ -288,25 +290,12 @@ export function AppTable<T extends TableRecord>({
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-white">
       
-      <div className="flex flex-col gap-3 border-b border-slate-100/50 bg-slate-50/30 p-4 lg:flex-row lg:items-center">
-        
-        <div className="relative w-full sm:max-w-lg lg:max-w-xl">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 shadow-xs transition focus:border-indigo-500 focus:outline-none"
-          />
-        </div>
-
-        {toolbarContent && (
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            {toolbarContent}
-          </div>
-        )}
-      </div>
+      <AppTableSearch
+        value={searchValue}
+        onChange={setSearchValue}
+        placeholder={searchPlaceholder}
+        toolbarContent={toolbarContent}
+      />
 
       {/* Grid Table Workspace */}
       <div 
@@ -351,56 +340,14 @@ export function AppTable<T extends TableRecord>({
             
             {/* Inline Inserting Row */}
             {inserting && (
-              <tr className="bg-indigo-50/20 border-b border-indigo-100">
-                {visibleColumns.map(col => {
-                  const insertValue = insertValues[col.dataField]
-                  return (
-                  <td key={col.dataField} className="px-4 py-2">
-                    {col.dataType === 'boolean' ? (
-                      <div className="flex justify-center">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(insertValue)}
-                          onChange={(e) => handleInsertChange(col.dataField, e.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400"
-                        />
-                      </div>
-                    ) : col.dataType === 'number' ? (
-                      <input
-                        type="number"
-                        value={asInputValue(insertValue)}
-                        onChange={(e) => handleInsertChange(col.dataField, e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={asInputValue(insertValue)}
-                        onChange={(e) => handleInsertChange(col.dataField, e.target.value)}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
-                      />
-                    )}
-                  </td>
-                )})}
-                <td className="px-4 py-2 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button
-                      onClick={handleSaveInsert}
-                      className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
-                      title="Save New Row"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={handleCancelInsert}
-                      className="p-1 text-slate-400 hover:bg-slate-50 rounded-md transition cursor-pointer"
-                      title="Cancel Addition"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              <AppTableEditingRow
+                visibleColumns={visibleColumns}
+                values={insertValues}
+                onChange={handleInsertChange}
+                onSave={handleSaveInsert}
+                onCancel={handleCancelInsert}
+                asInputValue={asInputValue}
+              />
             )}
 
             {/* Main Data Rows */}
@@ -560,30 +507,11 @@ export function AppTable<T extends TableRecord>({
       </div>
 
       {/* Infinite Scroll Footer */}
-      <footer className="flex flex-col sm:flex-row items-center sm:justify-between p-4 gap-3 border-t border-slate-100 bg-slate-50/50 text-xs font-semibold text-slate-500">
-        <div className="select-none">
-          {totalCount > 0 ? (
-            <span>
-              Showing <strong className="text-slate-800">{data.length}</strong> of{" "}
-              <strong className="text-slate-800">{totalCount}</strong> records
-              {data.length < totalCount ? (
-                <span className="text-slate-400 font-normal"> (Scroll down to load more)</span>
-              ) : (
-                <span className="text-emerald-600 font-bold"> (All records loaded)</span>
-              )}
-            </span>
-          ) : (
-            <span>No records found</span>
-          )}
-        </div>
-
-        {loading && data.length > 0 && (
-          <div className="flex items-center gap-1.5 text-indigo-500 text-xxs uppercase font-bold tracking-wider animate-pulse">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Loading more...</span>
-          </div>
-        )}
-      </footer>
+      <AppTableFooter
+        loadedCount={data.length}
+        totalCount={totalCount}
+        loading={loading}
+      />
     </div>
   )
 }
