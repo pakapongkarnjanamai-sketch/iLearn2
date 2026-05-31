@@ -32,7 +32,19 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   }
 
   return (
-    <aside className={`sticky top-0 flex h-screen w-[252px] min-w-0 flex-col overflow-hidden border-r border-[#1d3554] bg-slate-900 text-blue-50 transition-[transform,width,visibility] duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] max-[1120px]:fixed max-[1120px]:z-30 max-[1120px]:w-[252px] ${isOpen ? 'max-[1120px]:translate-x-0' : 'max-[1120px]:translate-x-full min-[1121px]:w-0 min-[1121px]:-translate-x-full min-[1121px]:invisible min-[1121px]:border-r-0'}`} aria-label="Admin navigation">
+    <aside
+      className={`
+        flex h-screen flex-col overflow-hidden border-r border-[#1d3554] bg-slate-900 text-blue-50 
+        transition-all duration-200 ease-in-out shrink-0
+        
+        min-[1121px]:sticky min-[1121px]:top-0
+        ${isOpen ? 'min-[1121px]:w-[252px] min-[1121px]:opacity-100' : 'min-[1121px]:w-0 min-[1121px]:opacity-0 min-[1121px]:invisible min-[1121px]:border-r-0'}
+        
+        max-[1120px]:fixed max-[1120px]:top-0 max-[1120px]:bottom-0 max-[1120px]:left-0 max-[1120px]:z-30 max-[1120px]:w-[252px]
+        ${isOpen ? 'max-[1120px]:translate-x-0' : 'max-[1120px]:-translate-x-full'}
+      `.replace(/\s+/g, ' ').trim()}
+      aria-label="Admin navigation"
+    >
       <div className="flex min-h-[64px] items-center gap-2.5 border-b border-[#1d3554] px-5">
         <div className="grid h-[34px] w-[34px] place-items-center rounded-md bg-indigo-600 text-white text-[15px] font-bold" aria-hidden="true">
           iL

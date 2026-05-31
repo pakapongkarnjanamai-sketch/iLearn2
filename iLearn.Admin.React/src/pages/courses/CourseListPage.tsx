@@ -41,6 +41,7 @@ export function CourseListPage() {
   ])
   const [selectedTypeKey, setSelectedTypeKey] = useState('all')
   const [selectedTreeNode, setSelectedTreeNode] = useState<TreeViewNode | null>(null)
+  const [isTreeExpanded, setIsTreeExpanded] = useState(false)
   
   // Declarative query filter state
   const [gridFilters, setGridFilters] = useState<any[]>([])
@@ -123,6 +124,7 @@ export function CourseListPage() {
     const node = e.itemData
     setSelectedTreeNode(node)
     applyGridFilters(node, selectedTypeKey)
+    setIsTreeExpanded(false) // Collapse on mobile after selection
   }
 
   // Handle Quick chip filtering
@@ -218,7 +220,9 @@ export function CourseListPage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-5 md:grid-cols-4">
         
         {/* Categories Tree Column */}
-        <aside className="border border-slate-200 rounded-lg bg-white shadow-xs flex min-h-0 flex-col p-4 md:col-span-1">
+        <aside className={`border border-slate-200 rounded-lg bg-white shadow-xs flex min-h-0 flex-col p-4 md:col-span-1 transition-all ${
+          isTreeExpanded ? 'flex max-md:max-h-[300px]' : 'hidden md:flex'
+        }`}>
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3 select-none">
             <Layers className="h-4 w-4 text-slate-600" />
             <h2 className="text-sm font-bold text-slate-700">Course Categories</h2>
@@ -244,11 +248,21 @@ export function CourseListPage() {
             title={selectedTreeNode ? `Filter: ${selectedTreeNode.text}` : 'Course Directory'} 
             note="Double-click any row to view complete details, manage versions, and preview training files."
             actions={
-              <Link to="/courses/new">
-                <AppButton variant="primary" icon={Plus}>
-                  Create Course
+              <div className="flex items-center gap-2">
+                <AppButton 
+                  variant="secondary" 
+                  icon={Layers} 
+                  className="md:hidden" 
+                  onClick={() => setIsTreeExpanded(!isTreeExpanded)}
+                >
+                  {isTreeExpanded ? 'Hide Categories' : 'Categories'}
                 </AppButton>
-              </Link>
+                <Link to="/courses/new">
+                  <AppButton variant="primary" icon={Plus}>
+                    Create Course
+                  </AppButton>
+                </Link>
+              </div>
             }
           >
             <AppTable
@@ -260,8 +274,8 @@ export function CourseListPage() {
               searchExpr={['title', 'code']}
               externalFilters={gridFilters}
               toolbarContent={
-                <>
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-slate-500">
+                <div className="flex w-full min-w-0 flex-wrap items-center gap-2 max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1.5 custom-scrollbar">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-slate-500 shrink-0">
                     <Sliders className="h-4 w-4 text-slate-500" aria-hidden="true" />
                     <span>Course Type</span>
                   </div>
@@ -270,7 +284,7 @@ export function CourseListPage() {
                       key={chip.key}
                       type="button"
                       onClick={() => handleChipSelect(chip.key)}
-                      className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 ${
                         selectedTypeKey === chip.key
                           ? 'border-indigo-500 bg-blue-600 text-white'
                           : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
@@ -279,7 +293,7 @@ export function CourseListPage() {
                       {chip.label}
                     </button>
                   ))}
-                </>
+                </div>
               }
               actionButtons={actionButtons}
             />

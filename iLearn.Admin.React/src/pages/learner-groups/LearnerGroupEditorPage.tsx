@@ -274,8 +274,8 @@ export function LearnerGroupEditorPage() {
   )
 
   const renderMembersStep = () => (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-1 select-none">
+    <div className="flex flex-col gap-3 h-[calc(100vh-340px)] min-h-[360px] w-full">
+      <div className="flex justify-end select-none shrink-0">
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg text-xs">
           <button
             type="button"
@@ -298,10 +298,13 @@ export function LearnerGroupEditorPage() {
         </div>
       </div>
 
+      <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === 'picker' ? (
-          <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
+          <div className="flex-1 flex flex-col min-h-0">
+            <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
+          </div>
         ) : (
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
             <p className="text-xs font-semibold text-slate-400 select-none leading-relaxed">
               Bulk paste employee EIds here. They will be integrated directly into your selection workspace.
             </p>
@@ -357,6 +360,7 @@ export function LearnerGroupEditorPage() {
             </div>
           </div>
         )}
+      </div>
     </div>
   )
 

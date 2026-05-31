@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
@@ -6,15 +6,22 @@ import { SessionProvider, useSession } from '../../lib/sessionContext'
 import { BreadcrumbProvider } from '../../lib/breadcrumbContext'
 
 function AppLayoutInner() {
-  // Desktop has sidebar open by default (width > 1120px)
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth > 1120)
   const { user, state } = useSession()
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSidebarOpen(window.innerWidth > 1120)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const headerState: 'loading' | 'ready' | 'fallback' | 'unauthenticated' =
     state === 'ready' ? 'ready' : state === 'unauthenticated' ? 'unauthenticated' : state === 'fallback' ? 'fallback' : 'loading'
 
   return (
-    <div className={`grid min-h-screen transition-[grid-template-columns] duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? 'grid-cols-[252px_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1fr)]'}`}>
+    <div className="flex min-h-screen bg-slate-50/60">
       <Sidebar 
         isOpen={isSidebarOpen} 
         onNavigate={() => {
@@ -25,11 +32,11 @@ function AppLayoutInner() {
       />
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-25 hidden max-[1120px]:block bg-slate-900/40 backdrop-blur-xs animate-[fade-in-backdrop_0.2s_ease-out_forwards]" 
+          className="fixed inset-0 z-20 block min-[1121px]:hidden bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200" 
           onClick={() => setIsSidebarOpen(false)} 
         />
       )}
-      <main className="flex min-w-0 min-h-screen flex-col">
+      <main className="flex flex-1 min-w-0 flex-col min-h-screen">
         <Header
           currentUser={user}
           sessionState={headerState}

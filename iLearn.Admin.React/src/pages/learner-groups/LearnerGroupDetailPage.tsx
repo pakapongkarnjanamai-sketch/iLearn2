@@ -511,15 +511,17 @@ export function LearnerGroupDetailPage() {
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 min-h-0 flex flex-col">
               {!addPreview ? (
                 activeTab === 'picker' ? (
-                  <LearnerDirectorySelector
-                    selectedLearners={pendingAddLearners}
-                    onChange={setPendingAddLearners}
-                  />
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <LearnerDirectorySelector
+                      selectedLearners={pendingAddLearners}
+                      onChange={setPendingAddLearners}
+                    />
+                  </div>
                 ) : (
-                  <div className="space-y-4 h-full flex flex-col justify-start">
+                  <div className="space-y-4 h-full flex flex-col justify-start overflow-y-auto custom-scrollbar pr-1">
                     <p className="text-xs font-medium text-slate-500">
                       Bulk import employee EIds separated by commas, spaces, or new lines. Duplicate or current group codes will be skipped automatically.
                     </p>
