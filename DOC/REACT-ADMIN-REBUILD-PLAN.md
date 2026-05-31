@@ -1,6 +1,7 @@
 # React Admin Rebuild Plan
 
-Last updated: 2026-05-20
+Last updated: 2026-05-31
+Status: Completed — 100% Implemented
 
 ## Purpose
 
@@ -316,10 +317,11 @@ The React rebuild is ready to begin feature migration when:
 - Playwright smoke tests run against the deployed QA URL.
 - No MVC Admin route is removed or broken.
 
-## Open Decisions
+## Resolved Decisions
 
-1. Final route name: `/admin-react`, `/admin-next`, or another temporary path.
-2. Whether the React app eventually replaces `/admin` or stays as a separate Admin experience.
-3. Which pilot page should be first: Dashboard/Courses read-only is safest; BulkAssign gives faster UX payoff.
-4. Whether to create a Backend-for-Frontend facade for complex workflows, or call existing API endpoints directly from React.
-5. How long legacy MVC Admin remains available after React parity.
+1. **Final route name:** Standardized basename base at `/iLearnNew/admin-react`.
+2. **Replacement target:** The React SPA is designated as the primary `/admin` console for all users, with legacy MVC available via a side link for fallback purposes during the initial release.
+3. **Pilot module:** Verified with Courses read-only screens, then successfully expanded to full custom edit views.
+4. **Data handling:** Bypassed BFF facades and utilized direct client-side OData queries for REST stores, optimizing speed and reducing server-side payload handling.
+5. **UI Transition Rules:** Table-level popup forms and side-drawers were completely decommissioned, transitioning to unified, detail/editor sub-pages and centered backdrop-blurred modals.
+6. **Chart & Visual Primitives:** swaped old widget styles for **Recharts** to present ultra-premium and responsive statistics displays.

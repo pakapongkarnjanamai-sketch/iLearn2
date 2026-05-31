@@ -17,10 +17,6 @@ export function EntityListPage({ config }: EntityListPageProps) {
   
   const crudControllers = new Set([
     'LearnerGroupsCRUD',
-    'DivisionsCRUD',
-    'CategoriesCRUD',
-    'CourseTypesCRUD',
-    'RolesCRUD',
   ])
   const isCrudEnabled = crudControllers.has(config.controller)
   const isReadOnly =
@@ -58,6 +54,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
     if (controller === 'Learners') return '/learners'
     if (controller === 'LearningLogsCRUD') return '/learning-logs'
     if (controller === 'EnrollmentsCRUD') return '/enrollments'
+    if (controller === 'DivisionsCRUD') return '/master-data/divisions'
     if (controller === 'CategoriesCRUD') return '/master-data/categories'
     if (controller === 'CourseTypesCRUD') return '/master-data/course-types'
     if (controller === 'RolesCRUD') return '/master-data/roles'
@@ -73,7 +70,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
       if (code) navigate(`${prefix}/${code}/profile`)
     } else if (config.controller === 'UsersCRUD') {
       if (e.data.nid) navigate(`${prefix}/${e.data.nid}`)
-    } else if (config.controller !== 'DivisionsCRUD' && e.data.id) {
+    } else if (e.data.id) {
       navigate(`${prefix}/${e.data.id}`)
     }
   }
@@ -105,13 +102,28 @@ export function EntityListPage({ config }: EntityListPageProps) {
     }]
   }, [config.controller, navigate, isCrudEnabled, isReadOnly])
 
+  const isMasterData =
+    config.controller === 'DivisionsCRUD' ||
+    config.controller === 'CategoriesCRUD' ||
+    config.controller === 'CourseTypesCRUD' ||
+    config.controller === 'RolesCRUD'
+
   const hasGridActions =
     config.controller === 'LearnerGroupsCRUD' ||
     config.controller === 'AssignmentsCRUD' ||
-    config.controller === 'ContentItemsCRUD'
+    config.controller === 'ContentItemsCRUD' ||
+    isMasterData
 
   const gridActions = hasGridActions ? (
     <div className="flex items-center gap-2">
+      {isMasterData && (
+        <Link to={`${getRoutePrefix(config.controller)}/new`}>
+          <AppButton variant="primary" icon={Plus}>
+            Create {config.title.replace(/s$/, '')}
+          </AppButton>
+        </Link>
+      )}
+
       {config.controller === 'LearnerGroupsCRUD' && (
         <Link to="/learner-groups/new">
           <AppButton variant="primary" icon={Plus}>

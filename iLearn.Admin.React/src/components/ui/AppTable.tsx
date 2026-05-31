@@ -1,22 +1,16 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { 
-  Trash2, 
-  Edit3, 
-  Check, 
-  X, 
-  Loader2, 
   ArrowUpDown, 
   ArrowUp, 
   ArrowDown,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
 import { AppTableSearch } from './table/AppTableSearch'
-import { AppTableEditingRow } from './table/AppTableEditingRow'
 import { AppTableFooter } from './table/AppTableFooter'
 
 type TableRecord = Record<string, unknown>
-type TableValue = string | number | boolean | Date | null | undefined
 type FilterExpression = unknown[]
 
 export type AdminGridColumn<T extends TableRecord = TableRecord> = {
@@ -82,12 +76,6 @@ export function AppTable<T extends TableRecord>({
   const [sortField, setSortField] = useState<string | null>(null)
   const [sortDesc, setSortDesc] = useState(false)
   const externalFilterKey = JSON.stringify(externalFilters)
-
-  // Inline CRUD states
-  const [editingKey, setEditingKey] = useState<unknown | null>(null)
-  const [editValues, setEditValues] = useState<Partial<T>>({})
-  const [inserting, setInserting] = useState(false)
-  const [insertValues, setInsertValues] = useState<Partial<T>>({})
 
   // Debounce search input
   const searchTimeoutRef = useRef<number | null>(null)
@@ -170,74 +158,6 @@ export function AppTable<T extends TableRecord>({
     }
   }
 
-  // Cancel edit row
-  const handleCancelEdit = () => {
-    setEditingKey(null)
-    setEditValues({})
-  }
-
-  // Save inline edit changes
-  const handleSaveEdit = async (row: T) => {
-    const keyVal = row[store.key]
-    if (keyVal === undefined || keyVal === null) return
-    try {
-      setLoading(true)
-      await store.update!(keyVal, editValues as Partial<T>)
-      setEditingKey(null)
-      setEditValues({})
-      void fetchData()
-    } catch {
-      setLoading(false)
-    }
-  }
-
-  // Start inline editing
-  const handleStartEdit = (row: T) => {
-    setEditingKey(row[store.key])
-    setEditValues({ ...row })
-  }
-
-  // Cancel insert inline
-  const handleCancelInsert = () => {
-    setInserting(false)
-    setInsertValues({})
-  }
-
-  // Save new record inline
-  const handleSaveInsert = async () => {
-    try {
-      setLoading(true)
-      await store.insert!(insertValues as Partial<T>)
-      setInserting(false)
-      setInsertValues({})
-      void fetchData()
-    } catch {
-      setLoading(false)
-    }
-  }
-
-  // Delete record with inline confirmation
-  const handleDeleteRow = async (row: T) => {
-    const keyVal = row[store.key]
-    if (keyVal === undefined || keyVal === null) return
-    if (!window.confirm('Are you absolutely sure you want to delete this record? This action cannot be undone.')) return
-    try {
-      setLoading(true)
-      await store.remove!(keyVal)
-      void fetchData()
-    } catch {
-      setLoading(false)
-    }
-  }
-
-  const handleEditChange = (field: string, val: TableValue) => {
-    setEditValues(prev => ({ ...prev, [field]: val } as Partial<T>))
-  }
-
-  const handleInsertChange = (field: string, val: TableValue) => {
-    setInsertValues(prev => ({ ...prev, [field]: val } as Partial<T>))
-  }
-
   // Infinite Scroll Handler
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget
@@ -285,7 +205,7 @@ export function AppTable<T extends TableRecord>({
       observer.disconnect()
       window.removeEventListener('resize', updateAutoPageSize)
     }
-  }, [visibleColumns.length, inserting])
+  }, [visibleColumns.length])
 
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-white">
@@ -327,7 +247,7 @@ export function AppTable<T extends TableRecord>({
                   </div>
                 </th>
               ))}
-              {(store.update || store.remove || actionButtons) && (
+              {actionButtons && (
                 <th className="px-4 py-3 text-xxs font-extrabold text-slate-500 uppercase text-center w-24 select-none">
                   Actions
                 </th>
@@ -338,23 +258,11 @@ export function AppTable<T extends TableRecord>({
           {/* Table Body */}
           <tbody className="divide-y divide-slate-100 bg-white relative">
             
-            {/* Inline Inserting Row */}
-            {inserting && (
-              <AppTableEditingRow
-                visibleColumns={visibleColumns}
-                values={insertValues}
-                onChange={handleInsertChange}
-                onSave={handleSaveInsert}
-                onCancel={handleCancelInsert}
-                asInputValue={asInputValue}
-              />
-            )}
-
             {/* Main Data Rows */}
             {data.length === 0 && !loading ? (
               <tr>
                 <td
-                  colSpan={visibleColumns.length + ((store.update || store.remove || actionButtons) ? 1 : 0)}
+                  colSpan={visibleColumns.length + (actionButtons ? 1 : 0)}
                   className="px-4 py-12 text-center text-slate-400 font-medium"
                 >
                   {noDataText}
@@ -363,7 +271,6 @@ export function AppTable<T extends TableRecord>({
             ) : (
               data.map((row, index) => {
                 const rowKey = row[store.key]
-                const isEditing = editingKey === rowKey
                 return (
                   <tr
                     key={asInputValue(rowKey) || index}
@@ -372,35 +279,9 @@ export function AppTable<T extends TableRecord>({
                   >
                     {visibleColumns.map(col => {
                       const val = row[col.dataField]
-                      const editValue = editValues[col.dataField]
                       return (
                         <td key={col.dataField} className="px-4 py-3">
-                          {isEditing ? (
-                            col.dataType === 'boolean' ? (
-                              <div className="flex justify-center">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(editValue)}
-                                  onChange={(e) => handleEditChange(col.dataField, e.target.checked)}
-                                  className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400"
-                                />
-                              </div>
-                            ) : col.dataType === 'number' ? (
-                              <input
-                                type="number"
-                                value={asInputValue(editValue)}
-                                onChange={(e) => handleEditChange(col.dataField, e.target.value === '' ? '' : Number(e.target.value))}
-                                className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                value={asInputValue(editValue)}
-                                onChange={(e) => handleEditChange(col.dataField, e.target.value)}
-                                className="w-full px-2.5 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-indigo-500"
-                              />
-                            )
-                          ) : col.cellRender ? (
+                          {col.cellRender ? (
                             col.cellRender({ value: val, data: row, index })
                           ) : col.dataType === 'boolean' ? (
                             <div className="flex justify-center">
@@ -426,67 +307,22 @@ export function AppTable<T extends TableRecord>({
                     })}
                     
                     {/* Action Column */}
-                    {(store.update || store.remove || actionButtons) && (
+                    {actionButtons && (
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1.5 opacity-70 group-hover:opacity-100 transition">
-                          {isEditing ? (
-                            <>
-                              <button
-                                onClick={() => handleSaveEdit(row)}
-                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer animate-pulse"
-                                title="Save Row Changes"
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={handleCancelEdit}
-                                className="p-1 text-slate-400 hover:bg-slate-50 rounded-md transition cursor-pointer"
-                                title="Cancel Modifications"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              {actionButtons && actionButtons.map((btn, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    btn.onClick({ row: { data: row } })
-                                  }}
-                                  className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                                  title={btn.hint}
-                                >
-                                  {btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
-                                </button>
-                              ))}
-                              {store.update && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleStartEdit(row)
-                                  }}
-                                  className="p-1 text-slate-500 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                                  title="Edit Inline"
-                                >
-                                  <Edit3 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                              {store.remove && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleDeleteRow(row)
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition cursor-pointer"
-                                  title="Delete Record"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </>
-                          )}
+                          {actionButtons.map((btn, idx) => (
+                            <button
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                btn.onClick({ row: { data: row } })
+                              }}
+                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                              title={btn.hint}
+                            >
+                              {btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
+                            </button>
+                          ))}
                         </div>
                       </td>
                     )}

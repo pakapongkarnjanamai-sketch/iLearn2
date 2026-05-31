@@ -21,6 +21,7 @@ import { BulkAssignPage } from './pages/assignments/BulkAssignPage'
 import { ContentItemDetailPage } from './pages/content-library/ContentItemDetailPage'
 import { ContentItemEditorPage } from './pages/content-library/ContentItemEditorPage'
 import { LearnerGroupCategoriesPage } from './pages/master-data/LearnerGroupCategoriesPage'
+import { MasterDataDetailPage } from './pages/master-data/MasterDataDetailPage'
 import { AdminUsersPage } from './pages/users/AdminUsersPage'
 
 function LegacyStudentGroupsRedirect() {
@@ -136,6 +137,22 @@ export function App() {
         <Route
           path="master-data/student-group-categories"
           element={<Navigate to="/master-data/learner-group-categories" replace />}
+        />
+        <Route
+          path="master-data/:type/new"
+          element={
+            <RequireRole superAdminOnly>
+              <MasterDataDetailPage isNew={true} />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="master-data/:type/:id"
+          element={
+            <RequireRole superAdminOnly>
+              <MasterDataDetailPage />
+            </RequireRole>
+          }
         />
 
         <Route

@@ -398,30 +398,6 @@ export function AssignmentDetailPage() {
             </dl>
           </div>
 
-          {/* Add Learners Panel */}
-          {addingLearners && (
-            <div className="pt-2 border-t border-slate-100 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 uppercase">Add Learners</span>
-                <button onClick={() => setAddingLearners(false)} className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer">Close</button>
-              </div>
-              <textarea
-                id="newCodes"
-                rows={4}
-                value={newLearnersInput}
-                onChange={(e) => setNewLearnersInput(e.target.value)}
-                placeholder="Enter NID codes, comma or newline separated..."
-                className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/50"
-              />
-              <div className="flex gap-2">
-                <button onClick={() => setAddingLearners(false)} className="flex-1 py-1.5 text-center border border-slate-200 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-                <button onClick={handleAddLearners} disabled={savingLearners || !newLearnersInput.trim()} className="flex-1 py-1.5 text-center bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold disabled:opacity-55 transition cursor-pointer">
-                  {savingLearners ? 'Saving...' : 'Confirm'}
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="pt-2 border-t border-slate-100">
             <Link to="/assignments" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -434,41 +410,41 @@ export function AssignmentDetailPage() {
 
       {/* Extend Due Date Modal */}
       {showDueDateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowDueDateModal(false)}>
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in" onClick={() => setShowDueDateModal(false)}>
+          <div className="bg-white border border-slate-100 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scale-up duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <CalendarClock className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-base font-bold text-slate-800">Extend Due Date</h3>
+                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Extend Due Date</h3>
               </div>
-              <button onClick={() => setShowDueDateModal(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
+              <button onClick={() => setShowDueDateModal(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="px-5 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <span className="text-slate-400 font-semibold">Current:</span>
-                <span className="font-semibold text-slate-800">{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                <span className="text-slate-400 font-semibold uppercase text-xs">Current Due Date:</span>
+                <span className="font-bold text-slate-800">{new Date(assignment.dueDate).toLocaleDateString()}</span>
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="newDue" className="block text-xs font-bold text-slate-500 uppercase">New Due Date</label>
+                <label htmlFor="newDue" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">New Due Date</label>
                 <input
                   type="date"
                   id="newDue"
                   value={newDueDateInput}
                   onChange={(e) => setNewDueDateInput(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 bg-slate-50/50 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 bg-slate-50/50 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 transition duration-150"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => setShowDueDateModal(false)}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -479,7 +455,7 @@ export function AssignmentDetailPage() {
                   await handleExtendDueDate()
                   setShowDueDateModal(false)
                 }}
-                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 {extendingDate ? 'Extending...' : 'Confirm'}
               </button>
@@ -487,6 +463,63 @@ export function AssignmentDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Add Learners Modal */}
+      {addingLearners && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in" onClick={() => setAddingLearners(false)}>
+          <div className="bg-white border border-slate-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-scale-up duration-200" onClick={(e) => e.stopPropagation()}>
+            
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Add More Learners</h3>
+              </div>
+              <button onClick={() => setAddingLearners(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-3.5">
+              <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                Bulk add employee EId codes (e.g., N130812, N142715) separated by commas, spaces, or new lines.
+              </p>
+              <div className="space-y-1.5">
+                <label htmlFor="newCodes" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">Employee Codes</label>
+                <textarea
+                  id="newCodes"
+                  rows={4}
+                  value={newLearnersInput}
+                  onChange={(e) => setNewLearnersInput(e.target.value)}
+                  placeholder="Paste employee codes here..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/50 transition duration-150"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setAddingLearners(false)}
+                className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingLearners || !newLearnersInput.trim()}
+                onClick={async () => {
+                  await handleAddLearners()
+                }}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                {savingLearners ? 'Saving...' : 'Add Learners'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </>
   )
 }
