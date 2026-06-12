@@ -23,7 +23,40 @@ const SEGMENT_MAP: Record<string, string> = {
 export function Breadcrumbs() {
   const location = useLocation()
   const pathnames = location.pathname.split('/').filter(x => x)
-  const { labels } = useBreadcrumbs()
+  const { labels, customCrumbs } = useBreadcrumbs()
+
+  if (customCrumbs && customCrumbs.length > 0) {
+    return (
+      <nav className="flex items-center space-x-1.5 text-slate-500 font-semibold text-xs select-none">
+        <Link
+          to="/"
+          className="flex items-center text-slate-400 hover:text-slate-600 transition p-0.5 rounded"
+          title="Dashboard Home"
+        >
+          <Home className="h-3.5 w-3.5" />
+        </Link>
+
+        <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
+
+        {customCrumbs.map((crumb, index) => {
+          const last = index === customCrumbs.length - 1
+
+          return (
+            <div key={`${crumb.to}-${index}`} className="flex items-center space-x-1.5 shrink-0">
+              {last ? (
+                <span className="text-slate-800 font-extrabold">{crumb.label}</span>
+              ) : (
+                <Link to={crumb.to} className="hover:text-slate-700 transition">
+                  {crumb.label}
+                </Link>
+              )}
+              {!last && <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />}
+            </div>
+          )
+        })}
+      </nav>
+    )
+  }
 
   return (
     <nav className="flex items-center space-x-1.5 text-slate-500 font-semibold text-xs select-none">

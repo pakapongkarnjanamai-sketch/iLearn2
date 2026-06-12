@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowRightLeft,
   ArrowUpRight,
+  ChevronLeft,
   Folder,
-  FolderOpen,
   FolderPlus,
   Info,
   Layers,
@@ -19,6 +19,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
+import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate } from '../../lib/format'
 import { toast } from '../../lib/toast'
@@ -58,11 +59,6 @@ type GroupDto = {
   memberCount?: number
   createdAt?: string
   updatedAt?: string
-}
-
-type BreadcrumbItem = {
-  id: number
-  name: string
 }
 
 type ExplorerItem = {
@@ -117,14 +113,21 @@ function toDateText(value: string | undefined | null) {
 
 export function LearnerGroupListPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { confirm, confirmDialog } = useConfirm()
+  const { setCustomCrumbs } = useBreadcrumbs()
+
+  const rawCategoryId = searchParams.get('categoryId')
+  const parsedCategoryId = Number(rawCategoryId ?? '0')
+  const currentCategoryId = Number.isFinite(parsedCategoryId) && parsedCategoryId > 0
+    ? Math.trunc(parsedCategoryId)
+    : 0
 
   const [categories, setCategories] = useState<CategoryLookup[]>([])
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [groups, setGroups] = useState<GroupDto[]>([])
 
   const [loading, setLoading] = useState(true)
-  const [currentCategoryId, setCurrentCategoryId] = useState<number>(0)
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false)
@@ -218,15 +221,19 @@ export function LearnerGroupListPage() {
 
     const exists = categories.some(category => category.id === currentCategoryId)
     if (!exists) {
-      setCurrentCategoryId(0)
+      setSearchParams({}, { replace: true })
     }
-  }, [categories, currentCategoryId])
+  }, [categories, currentCategoryId, setSearchParams])
 
-  const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
-    const root: BreadcrumbItem[] = [{ id: 0, name: 'Root (All Groups)' }]
-    if (currentCategoryId === 0) return root
+  useEffect(() => {
+    const rootCrumbs = [{ to: '/learner-groups', label: 'Learner Groups' }]
 
-    const trail: BreadcrumbItem[] = []
+    if (currentCategoryId === 0) {
+      setCustomCrumbs(rootCrumbs)
+      return
+    }
+
+    const trail: { to: string; label: string }[] = []
     const visited = new Set<number>()
 
     let cursor: number | null = currentCategoryId
@@ -235,12 +242,21 @@ export function LearnerGroupListPage() {
       const category = categoriesById.get(cursor)
       if (!category) break
 
-      trail.unshift({ id: category.id, name: category.name })
+      trail.unshift({
+        to: `/learner-groups?categoryId=${category.id}`,
+        label: category.name,
+      })
       cursor = category.parentId ?? null
     }
 
-    return [...root, ...trail]
-  }, [categoriesById, currentCategoryId])
+    setCustomCrumbs([...rootCrumbs, ...trail])
+  }, [categoriesById, currentCategoryId, setCustomCrumbs])
+
+  useEffect(() => {
+    return () => {
+      setCustomCrumbs(null)
+    }
+  }, [setCustomCrumbs])
 
   const currentItems = useMemo<ExplorerItem[]>(() => {
     const childFolders = (categoriesByParent.get(currentCategoryId) ?? []).map(folder => {
@@ -330,9 +346,22 @@ export function LearnerGroupListPage() {
   }, [categoriesById, relocateCategoryId])
 
   const handleNavigate = useCallback((categoryId: number) => {
-    setCurrentCategoryId(categoryId)
+    if (categoryId > 0) {
+      setSearchParams({ categoryId: String(categoryId) })
+    } else {
+      setSearchParams({})
+    }
+
     setSearchTerm('')
-  }, [])
+  }, [setSearchParams])
+
+  const handleGoBack = useCallback(() => {
+    if (currentCategoryId === 0) return
+
+    const current = categoriesById.get(currentCategoryId)
+    const parentId = current?.parentId ?? 0
+    handleNavigate(parentId)
+  }, [categoriesById, currentCategoryId, handleNavigate])
 
   const handleOpenItem = useCallback((item: ExplorerItem) => {
     if (item.isFolder) {
@@ -342,6 +371,11 @@ export function LearnerGroupListPage() {
 
     navigate(`/learner-groups/${item.id}`)
   }, [handleNavigate, navigate])
+
+  const currentFolderName = useMemo(() => {
+    if (currentCategoryId === 0) return 'Learner Group Explorer'
+    return categoriesById.get(currentCategoryId)?.name ?? 'Learner Group Explorer'
+  }, [categoriesById, currentCategoryId])
 
   const handleCreateFolder = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -502,10 +536,15 @@ export function LearnerGroupListPage() {
   return (
     <>
       <DataGridSurface
-        title="Learner Group Explorer"
+        title={currentFolderName}
         note="Unified list view for folders and learner groups in the current folder"
         actions={
           <div className="flex items-center gap-2">
+            {currentCategoryId > 0 && (
+              <AppButton variant="ghost" icon={ChevronLeft} onClick={handleGoBack}>
+                Back
+              </AppButton>
+            )}
             <AppButton variant="secondary" icon={FolderPlus} onClick={() => setIsNewFolderOpen(true)}>
               New Folder
             </AppButton>
@@ -518,33 +557,6 @@ export function LearnerGroupListPage() {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-4">
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500">
-            {breadcrumbs.map((crumb, index) => {
-              const isLast = index === breadcrumbs.length - 1
-
-              return (
-                <div key={`${crumb.id}-${index}`} className="inline-flex items-center gap-1.5">
-                  {index > 0 && <span className="text-slate-300">/</span>}
-                  {isLast ? (
-                    <span className="inline-flex items-center gap-1 font-bold text-slate-800">
-                      <FolderOpen className="h-3.5 w-3.5 text-indigo-500" />
-                      {crumb.name}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate(crumb.id)}
-                      className="inline-flex items-center gap-1 text-slate-500 hover:text-indigo-600 transition"
-                    >
-                      <Folder className="h-3.5 w-3.5 text-slate-400" />
-                      {crumb.name}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs font-semibold text-slate-500">
               Showing <span className="font-bold text-slate-800">{filteredItems.length}</span> items in this folder

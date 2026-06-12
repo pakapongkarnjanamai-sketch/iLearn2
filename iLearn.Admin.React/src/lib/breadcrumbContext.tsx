@@ -1,14 +1,22 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 
+export type Crumb = {
+  to: string
+  label: string
+}
+
 type BreadcrumbContextType = {
   labels: Record<string, string>
   setLabel: (key: string, label: string) => void
+  customCrumbs: Crumb[] | null
+  setCustomCrumbs: (crumbs: Crumb[] | null) => void
 }
 
 const BreadcrumbContext = createContext<BreadcrumbContextType | undefined>(undefined)
 
 export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   const [labels, setLabels] = useState<Record<string, string>>({})
+  const [customCrumbs, setCustomCrumbs] = useState<Crumb[] | null>(null)
 
   const setLabel = useCallback((key: string, label: string) => {
     setLabels((prev) => {
@@ -18,7 +26,7 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <BreadcrumbContext.Provider value={{ labels, setLabel }}>
+    <BreadcrumbContext.Provider value={{ labels, setLabel, customCrumbs, setCustomCrumbs }}>
       {children}
     </BreadcrumbContext.Provider>
   )
