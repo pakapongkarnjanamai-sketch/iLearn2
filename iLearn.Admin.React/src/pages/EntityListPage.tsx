@@ -50,6 +50,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
         return {
           ...col,
           cellRender: ({ value }: any) => {
+            if (value === null || value === undefined) return '—'
             const div = divisions.find(d => d.id === Number(value))
             return div ? div.name : `Division ${value}`
           }
@@ -59,6 +60,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
         return {
           ...col,
           cellRender: ({ value }: any) => {
+            if (value === null || value === undefined) return '—'
             const cat = categories.find(c => c.id === Number(value))
             return cat ? cat.name : `Category ${value}`
           }
@@ -206,7 +208,11 @@ export function EntityListPage({ config }: EntityListPageProps) {
   return (
     <>
       <DataGridSurface title={config.gridTitle} note={config.gridNote} actions={gridActions}>
+        {/* key forces a full AppTable remount when switching entity routes —
+            React reuses this same EntityListPage instance across routes, so
+            without it the previous entity's rows/page state leak into the new list */}
         <AppTable
+          key={config.controller}
           store={store}
           columns={mappedColumns}
           noDataText={`No ${config.title.toLowerCase()} data found`}

@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { RequireRole } from './components/auth/RequireRole'
@@ -30,6 +31,18 @@ function LegacyStudentGroupsRedirect() {
   return <Navigate to={`${nextPath}${location.search}${location.hash}`} replace />
 }
 
+/*
+ * React Router reuses a component instance when two routes render the same
+ * component type (e.g. courses/new ↔ courses/:id/edit, or /courses/1 → /courses/2),
+ * so internal state — form values, active tab, selections — leaks across pages.
+ * Keying by pathname forces a clean remount whenever the path changes.
+ * Wrap every detail/editor route element with this.
+ */
+function Remount({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation()
+  return <Fragment key={pathname}>{children}</Fragment>
+}
+
 export function App() {
   return (
     <Routes>
@@ -38,35 +51,35 @@ export function App() {
 
         {/* Courses */}
         <Route path="courses" element={<CourseListPage />} />
-        <Route path="courses/new" element={<CourseEditorPage />} />
-        <Route path="courses/:id" element={<CourseDetailPage />} />
-        <Route path="courses/:id/edit" element={<CourseEditorPage />} />
-        <Route path="courses/:courseId/version/new" element={<VersionFormPage />} />
-        <Route path="courses/:courseId/version/:id/edit" element={<VersionFormPage />} />
+        <Route path="courses/new" element={<Remount><CourseEditorPage /></Remount>} />
+        <Route path="courses/:id" element={<Remount><CourseDetailPage /></Remount>} />
+        <Route path="courses/:id/edit" element={<Remount><CourseEditorPage /></Remount>} />
+        <Route path="courses/:courseId/version/new" element={<Remount><VersionFormPage /></Remount>} />
+        <Route path="courses/:courseId/version/:id/edit" element={<Remount><VersionFormPage /></Remount>} />
 
         {/* Content Library */}
         <Route path="content-library" element={<EntityListPage config={adminListConfigs.contentLibrary} />} />
-        <Route path="content-library/new" element={<ContentItemEditorPage />} />
-        <Route path="content-library/:id" element={<ContentItemDetailPage />} />
-        <Route path="content-library/:id/edit" element={<ContentItemEditorPage />} />
+        <Route path="content-library/new" element={<Remount><ContentItemEditorPage /></Remount>} />
+        <Route path="content-library/:id" element={<Remount><ContentItemDetailPage /></Remount>} />
+        <Route path="content-library/:id/edit" element={<Remount><ContentItemEditorPage /></Remount>} />
 
         {/* Assignments */}
         <Route path="assignments" element={<EntityListPage config={adminListConfigs.assignments} />} />
         <Route path="assignments/gantt" element={<AssignmentGanttPage />} />
         <Route path="assignments/bulk" element={<BulkAssignPage />} />
-        <Route path="assignments/:id" element={<AssignmentDetailPage />} />
-        <Route path="assignments/:id/report" element={<AssignmentReportPage />} />
+        <Route path="assignments/:id" element={<Remount><AssignmentDetailPage /></Remount>} />
+        <Route path="assignments/:id/report" element={<Remount><AssignmentReportPage /></Remount>} />
 
         {/* Learner Groups */}
         <Route path="learner-groups" element={<EntityListPage config={adminListConfigs.learnerGroups} />} />
-        <Route path="learner-groups/new" element={<LearnerGroupEditorPage />} />
-        <Route path="learner-groups/:id" element={<LearnerGroupDetailPage />} />
-        <Route path="learner-groups/:id/edit" element={<LearnerGroupEditorPage />} />
+        <Route path="learner-groups/new" element={<Remount><LearnerGroupEditorPage /></Remount>} />
+        <Route path="learner-groups/:id" element={<Remount><LearnerGroupDetailPage /></Remount>} />
+        <Route path="learner-groups/:id/edit" element={<Remount><LearnerGroupEditorPage /></Remount>} />
         <Route path="student-groups/*" element={<LegacyStudentGroupsRedirect />} />
 
         {/* Learners */}
         <Route path="learners" element={<EntityListPage config={adminListConfigs.learners} />} />
-        <Route path="learners/:id/profile" element={<LearnerProfilePage />} />
+        <Route path="learners/:id/profile" element={<Remount><LearnerProfilePage /></Remount>} />
 
         {/* Operations */}
         <Route path="learning-logs" element={<EntityListPage config={adminListConfigs.learningLogs} />} />
@@ -142,7 +155,7 @@ export function App() {
           path="master-data/:type/new"
           element={
             <RequireRole superAdminOnly>
-              <MasterDataDetailPage isNew={true} />
+              <Remount><MasterDataDetailPage isNew={true} /></Remount>
             </RequireRole>
           }
         />
@@ -150,7 +163,7 @@ export function App() {
           path="master-data/:type/:id"
           element={
             <RequireRole superAdminOnly>
-              <MasterDataDetailPage />
+              <Remount><MasterDataDetailPage /></Remount>
             </RequireRole>
           }
         />

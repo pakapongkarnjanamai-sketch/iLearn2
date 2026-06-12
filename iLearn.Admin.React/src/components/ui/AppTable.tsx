@@ -190,7 +190,7 @@ export function AppTable<T extends TableRecord>({
     const updateAutoPageSize = () => {
       const headerHeight = viewport.querySelector('thead')?.getBoundingClientRect().height ?? 42
       const usableHeight = Math.max(0, viewport.clientHeight - headerHeight)
-      const rowHeight = 46
+      const rowHeight = 38
       const nextPageSize = Math.max(10, Math.min(100, Math.floor(usableHeight / rowHeight)))
 
       setPageSize(prev => (prev === nextPageSize ? prev : nextPageSize))
@@ -224,7 +224,7 @@ export function AppTable<T extends TableRecord>({
         onScroll={handleScroll}
         className="relative flex-1 min-h-0 overflow-auto custom-scrollbar"
       >
-        <table className="min-w-full divide-y divide-slate-100 text-left text-xs sm:text-[13px]">
+        <table className="min-w-full divide-y divide-slate-100 text-left text-xxs sm:text-[12px]">
           
           {/* Table Headers */}
           <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
@@ -234,7 +234,7 @@ export function AppTable<T extends TableRecord>({
                   key={col.dataField}
                   onClick={() => handleSort(col.dataField)}
                   style={{ width: col.width, minWidth: col.minWidth }}
-                  className="px-4 py-3 text-xxs font-extrabold text-slate-500 uppercase cursor-pointer hover:bg-slate-100/80 transition select-none"
+                  className="px-4 py-2 text-xxs font-extrabold text-slate-500 uppercase cursor-pointer hover:bg-slate-100/80 transition select-none"
                 >
                   <div className={`flex items-center gap-1 ${
                     col.alignment === 'center' ? 'justify-center' : col.alignment === 'right' ? 'justify-end' : 'justify-start'
@@ -249,7 +249,7 @@ export function AppTable<T extends TableRecord>({
                 </th>
               ))}
               {actionButtons && (
-                <th className="px-4 py-3 text-xxs font-extrabold text-slate-500 uppercase text-center w-24 select-none">
+                <th className="px-4 py-2 text-xxs font-extrabold text-slate-500 uppercase text-center w-24 select-none">
                   Actions
                 </th>
               )}
@@ -281,7 +281,7 @@ export function AppTable<T extends TableRecord>({
                     {visibleColumns.map(col => {
                       const val = row[col.dataField]
                       return (
-                        <td key={col.dataField} className="px-4 py-3">
+                        <td key={col.dataField} className={`px-4 py-2 ${col.dataField === 'description' || col.dataField === 'name' || col.dataField === 'title' ? '' : 'whitespace-nowrap'}`}>
                           {col.cellRender ? (
                             col.cellRender({ value: val, data: row, index })
                           ) : col.dataType === 'boolean' ? (
@@ -293,11 +293,11 @@ export function AppTable<T extends TableRecord>({
                               </span>
                             </div>
                           ) : col.dataType === 'datetime' || col.dataType === 'date' ? (
-                            <span className="text-slate-400 font-medium text-xs sm:text-[13px]">
+                            <span className="text-slate-400 font-medium text-xxs sm:text-[12px]">
                               {formatDateValue(val)}
                             </span>
                           ) : (
-                            <span className={`text-slate-700 font-semibold text-xs sm:text-[13px] ${
+                            <span className={`text-slate-700 font-semibold text-xxs sm:text-[12px] ${
                               col.alignment === 'center' ? 'block text-center' : col.alignment === 'right' ? 'block text-right' : 'block text-left'
                             }`}>
                               {val !== undefined && val !== null ? String(val) : '—'}
@@ -309,7 +309,7 @@ export function AppTable<T extends TableRecord>({
                     
                     {/* Action Column */}
                     {actionButtons && (
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2 text-center">
                         <div className="flex items-center justify-center gap-1.5 opacity-70 group-hover:opacity-100 transition">
                           {actionButtons.map((btn, idx) => (
                             <button

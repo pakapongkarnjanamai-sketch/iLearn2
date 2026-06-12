@@ -1,42 +1,49 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Download, Loader2, Printer } from 'lucide-react'
+import { Download, Printer } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { StatusText } from '../../components/ui/StatusText'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { formatDate } from '../../lib/format'
 
+// Mirrors LearnerProgressDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
 type LearnerRow = {
-  id: number
   learnerCode: string
-  learnerName: string
-  division?: string
-  department?: string
+  learnerName?: string | null
+  assignmentRuleId?: number | null
+  courseCode?: string | null
+  courseTitle?: string | null
   progress: number
   isCompleted: boolean
-  completedDate: string | null
   status: string
+  completedDate?: string | null
+  startDate?: string | null
+  dueDate?: string | null
 }
 
+// Mirrors CourseSummaryDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
 type CourseRow = {
-  id: number
-  ruleId: number
-  title: string
-  code: string
+  assignmentRuleId: number
+  courseCode: string
+  courseTitle: string
+  completedLearners: number
+  totalLearners: number
+  isCourseDeleted: boolean
 }
 
+// Mirrors AssignmentDashboardDto returned by GET Assignments/dashboard/{id}
 type AssignmentDashboard = {
-  id: number
   assignmentNo: string
   description: string
-  startDate: string
-  dueDate: string
-  status: string
-  completedEnrollmentCount: number
-  totalEnrollmentCount: number
-  completionPct: number
-  courseNames: string
+  startDate: string | null
+  dueDate: string | null
+  totalEmployees: number
+  totalCourses: number
+  completionRate: number
+  chartData: { completed: number; inProgress: number; notStarted: number }
   courses: CourseRow[]
   learners: LearnerRow[]
 }
@@ -75,9 +82,9 @@ export function AssignmentReportPage() {
       if (!q) return true
       return (
         row.learnerCode.toLowerCase().includes(q) ||
-        row.learnerName.toLowerCase().includes(q) ||
-        (row.division ?? '').toLowerCase().includes(q) ||
-        (row.department ?? '').toLowerCase().includes(q)
+        (row.learnerName ?? '').toLowerCase().includes(q) ||
+        (row.courseCode ?? '').toLowerCase().includes(q) ||
+        (row.courseTitle ?? '').toLowerCase().includes(q)
       )
     })
   }, [data, statusFilter, search])
@@ -92,12 +99,12 @@ export function AssignmentReportPage() {
 
   const exportCsv = () => {
     if (!data) return
-    const header = ['Learner Code', 'Name', 'Division', 'Department', 'Status', 'Progress %', 'Completed Date']
+    const header = ['Learner Code', 'Name', 'Course Code', 'Course Title', 'Status', 'Progress %', 'Completed Date']
     const rows = filtered.map((l) => [
       l.learnerCode,
-      l.learnerName,
-      l.division ?? '',
-      l.department ?? '',
+      l.learnerName ?? l.learnerCode,
+      l.courseCode ?? '',
+      l.courseTitle ?? '',
       l.status,
       String(Math.round(l.progress)),
       l.completedDate ? formatDate(l.completedDate) : '',
@@ -109,22 +116,24 @@ export function AssignmentReportPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `assignment-${data.assignmentNo || data.id}-report.csv`
+    a.download = `assignment-${data.assignmentNo || id}-report.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 p-8 text-sm text-slate-500">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading assignment report...
-      </div>
-    )
+    return <LoadingState label="Loading assignment report..." />
   }
 
   if (!data) {
-    return <div className="p-8 text-sm text-slate-500">Assignment not found.</div>
+    return (
+      <NotFoundState
+        title="Assignment Not Found"
+        message="The requested assignment report could not be loaded."
+        backTo="/assignments"
+        backLabel="Back to Assignments"
+      />
+    )
   }
 
   return (
@@ -133,7 +142,7 @@ export function AssignmentReportPage() {
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="min-w-0">
           <div className="text-xxs font-extrabold uppercase tracking-wider text-slate-400">Assignment Report</div>
-          <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{data.assignmentNo || `Assignment ${data.id}`}</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{data.assignmentNo || `Assignment ${id}`}</h1>
           {data.description && <p className="mt-1 text-xs text-slate-500">{data.description}</p>}
         </div>
         <div className="flex items-center gap-2">
@@ -150,12 +159,12 @@ export function AssignmentReportPage() {
       <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5 shadow-xs">
       <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-5 text-xs">
         {[
-          { label: 'Total Learners', value: data.totalEnrollmentCount },
-          { label: 'Completed', value: data.completedEnrollmentCount },
-          { label: 'Completion', value: `${Math.round(data.completionPct)}%` },
+          { label: 'Total Learners', value: data.totalEmployees },
+          { label: 'Completed', value: data.chartData.completed },
+          { label: 'Completion', value: `${Math.round(data.completionRate)}%` },
           { label: 'Start', value: data.startDate ? formatDate(data.startDate) : '—' },
           { label: 'Due', value: data.dueDate ? formatDate(data.dueDate) : '—' },
-          { label: 'Courses', value: data.courses.length },
+          { label: 'Courses', value: data.totalCourses },
         ].map((kpi) => (
           <div key={kpi.label} className="min-w-0">
             <dt className="text-slate-400 font-bold uppercase tracking-wider">{kpi.label}</dt>
@@ -169,13 +178,14 @@ export function AssignmentReportPage() {
         <div className="border-t border-slate-100 pt-5">
           <div className="mb-1.5 text-xxs font-extrabold uppercase tracking-wider text-slate-400">Courses</div>
           <div className="flex flex-wrap gap-1.5">
-            {data.courses.map((c, index) => (
+            {data.courses.map((c) => (
               <span
-                key={`${c.ruleId}-${c.id}-${c.code}-${index}`}
+                key={c.assignmentRuleId}
                 className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs"
               >
-                <span className="font-mono text-slate-500">{c.code}</span>
-                <span className="font-semibold text-slate-700">{c.title}</span>
+                <span className="font-mono text-slate-500">{c.courseCode}</span>
+                <span className="font-semibold text-slate-700">{c.courseTitle}</span>
+                <span className="text-slate-400">({c.completedLearners}/{c.totalLearners})</span>
               </span>
             ))}
           </div>
@@ -217,8 +227,7 @@ export function AssignmentReportPage() {
           <thead>
             <tr className="text-left text-xxs font-extrabold uppercase text-slate-500">
               <th className="border-b border-slate-200/60 py-2 pr-3">Learner</th>
-              <th className="border-b border-slate-200/60 py-2 pr-3">Division</th>
-              <th className="border-b border-slate-200/60 py-2 pr-3">Department</th>
+              <th className="border-b border-slate-200/60 py-2 pr-3">Course</th>
               <th className="border-b border-slate-200/60 py-2 pr-3">Status</th>
               <th className="border-b border-slate-200/60 py-2 pr-3 text-right">Progress</th>
               <th className="border-b border-slate-200/60 py-2 pr-3">Completed</th>
@@ -226,13 +235,19 @@ export function AssignmentReportPage() {
           </thead>
           <tbody>
             {filtered.map((row, index) => (
-              <tr key={`${row.id}-${row.learnerCode}-${index}`} className="border-b border-slate-100/60 hover:bg-slate-50/60">
+              <tr key={`${row.learnerCode}-${row.assignmentRuleId ?? index}`} className="border-b border-slate-100/60 hover:bg-slate-50/60">
                 <td className="py-1.5 pr-3">
-                  <div className="font-semibold text-slate-800">{row.learnerName}</div>
+                  <div className="font-semibold text-slate-800">{row.learnerName ?? row.learnerCode}</div>
                   <div className="font-mono text-xs text-slate-500">{row.learnerCode}</div>
                 </td>
-                <td className="py-1.5 pr-3 text-slate-600">{row.division ?? '—'}</td>
-                <td className="py-1.5 pr-3 text-slate-600">{row.department ?? '—'}</td>
+                <td className="py-1.5 pr-3 text-slate-600">
+                  {row.courseTitle ? (
+                    <>
+                      <div className="font-semibold text-slate-700">{row.courseTitle}</div>
+                      <div className="font-mono text-xs text-slate-400">{row.courseCode}</div>
+                    </>
+                  ) : '—'}
+                </td>
                 <td className="py-1.5 pr-3">
                   <StatusText
                     tone={
@@ -256,7 +271,7 @@ export function AssignmentReportPage() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td className="py-6 text-center text-slate-400" colSpan={6}>
+                <td className="py-6 text-center text-slate-400" colSpan={5}>
                   No learners.
                 </td>
               </tr>

@@ -38,9 +38,9 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
         transition-all duration-200 ease-in-out shrink-0
         
         min-[1121px]:sticky min-[1121px]:top-0
-        ${isOpen ? 'min-[1121px]:w-[252px] min-[1121px]:opacity-100' : 'min-[1121px]:w-0 min-[1121px]:opacity-0 min-[1121px]:invisible min-[1121px]:border-r-0'}
+        ${isOpen ? 'min-[1121px]:w-[210px] min-[1121px]:opacity-100' : 'min-[1121px]:w-0 min-[1121px]:opacity-0 min-[1121px]:invisible min-[1121px]:border-r-0'}
         
-        max-[1120px]:fixed max-[1120px]:top-0 max-[1120px]:bottom-0 max-[1120px]:left-0 max-[1120px]:z-30 max-[1120px]:w-[252px]
+        max-[1120px]:fixed max-[1120px]:top-0 max-[1120px]:bottom-0 max-[1120px]:left-0 max-[1120px]:z-30 max-[1120px]:w-[210px]
         ${isOpen ? 'max-[1120px]:translate-x-0' : 'max-[1120px]:-translate-x-full'}
       `.replace(/\s+/g, ' ').trim()}
       aria-label="Admin navigation"
@@ -67,7 +67,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                 to={item.path}
                 end={item.path === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 min-h-[38px] rounded-md px-2.5 font-medium [&_svg]:w-[17px] [&_svg]:h-[17px] focus-visible:outline-none ${
+                  `flex items-center gap-2.5 min-h-[34px] rounded-md px-2.5 text-[13.5px] font-medium [&_svg]:w-[16px] [&_svg]:h-[16px] focus-visible:outline-none ${
                     isActive
                       ? 'bg-white text-slate-800 [&_svg]:text-indigo-600'
                       : 'text-blue-100 [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white'

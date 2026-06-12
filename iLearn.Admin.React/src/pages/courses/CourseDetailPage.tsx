@@ -24,33 +24,42 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
 
+// Mirrors CourseContentItemDto (iLearn.Application/DTOs/CourseDetailDto.cs)
+type CourseContentItem = {
+  id: number
+  name: string
+  typeId: number
+  typeName: string
+  isActive: boolean
+  url?: string | null
+}
+
+// Mirrors CourseDetailDto (iLearn.Application/DTOs/CourseDetailDto.cs)
 type CourseDetail = {
   id: number
-  code?: string
-  courseCode?: string
-  title?: string
-  courseName?: string
-  description: string
+  courseCode: string
+  courseName: string
+  description?: string | null
+  courseType: number
+  categoryId: number
   isActive: boolean
   status: number
   statusName: string
-  categoryId: number
-  categoryName: string
-  divisionId: number
-  divisionName: string
-  courseTypeId: number
-  courseTypeName: string
+  canAssign: boolean
+  canLearnerAccess: boolean
+  contentItems: CourseContentItem[]
 }
 
+// Mirrors CourseVersionDto (iLearn.Application/DTOs/CourseDetailDto.cs)
 type CourseVersion = {
   id: number
-  versionNo: string
-  description: string
+  courseId: number
+  versionNumber: number
+  note: string
   isActive: boolean
-  isDraft: boolean
-  schemaVersion: string
-  launchHref: string
-  updatedAt: string
+  versionState: string
+  createdAt: string
+  contentItems: CourseContentItem[]
 }
 
 type CourseKPI = {
@@ -130,12 +139,31 @@ export function CourseDetailPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'learners' | 'assignments'>('overview')
   const [mutatingStatus, setMutatingStatus] = useState(false)
 
+  // Lookup maps for resolving categoryId / courseType ids into display names
+  const [categoryNames, setCategoryNames] = useState<Record<number, string>>({})
+  const [courseTypeNames, setCourseTypeNames] = useState<Record<number, string>>({})
+
   useEffect(() => {
-    const code = data?.course?.courseCode || data?.course?.code
+    const code = data?.course?.courseCode
     if (code) {
       setLabel(String(id), code)
     }
   }, [data, id, setLabel])
+
+  useEffect(() => {
+    type Lookup = { id: number; name: string }
+    type LoadResult = Lookup[] | { data?: Lookup[] }
+    const toMap = (result: LoadResult) => {
+      const list = Array.isArray(result) ? result : result.data ?? []
+      return Object.fromEntries(list.map(x => [x.id, x.name]))
+    }
+    fetchWithAccessControl<LoadResult>('Categories/lookup')
+      .then(r => setCategoryNames(toMap(r)))
+      .catch(() => {})
+    fetchWithAccessControl<LoadResult>('Courses/course-types-lookup')
+      .then(r => setCourseTypeNames(toMap(r)))
+      .catch(() => {})
+  }, [])
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
@@ -311,8 +339,8 @@ export function CourseDetailPage() {
               <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5">
                 {/* Course Title & Code */}
                 <div>
-                  <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{course.courseName || course.title}</h1>
-                  <span className="inline-block mt-1 font-mono text-xs text-slate-400">{course.courseCode || course.code}</span>
+                  <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{course.courseName}</h1>
+                  <span className="inline-block mt-1 font-mono text-xs text-slate-400">{course.courseCode}</span>
                 </div>
 
                 {/* Description */}
@@ -334,15 +362,15 @@ export function CourseDetailPage() {
                   </div>
                   <div>
                     <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Category</dt>
-                    <dd className="mt-1 font-semibold text-slate-700">{course.categoryName || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Division</dt>
-                    <dd className="mt-1 font-semibold text-slate-700">{course.divisionName || '-'}</dd>
+                    <dd className="mt-1 font-semibold text-slate-700">{categoryNames[course.categoryId] || '-'}</dd>
                   </div>
                   <div>
                     <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Course Type</dt>
-                    <dd className="mt-1 font-semibold text-slate-700">{course.courseTypeName || '-'}</dd>
+                    <dd className="mt-1 font-semibold text-slate-700">{courseTypeNames[course.courseType] || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Content Items</dt>
+                    <dd className="mt-1 font-semibold text-slate-700">{course.contentItems.length}</dd>
                   </div>
                   {data.kpi && (
                     <>
@@ -374,8 +402,8 @@ export function CourseDetailPage() {
                   <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
                     <th className="p-3">Version No.</th>
                     <th className="p-3">Status</th>
-                    <th className="p-3">SCORM Metadata</th>
-                    <th className="p-3">Updated Date</th>
+                    <th className="p-3">Content Items</th>
+                    <th className="p-3">Created Date</th>
                     <th className="p-3 text-center">Actions</th>
                   </tr>
                 </thead>
@@ -389,7 +417,10 @@ export function CourseDetailPage() {
                   ) : (
                     versions.map(v => (
                       <tr key={v.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 font-bold text-slate-900">{v.versionNo}</td>
+                        <td className="p-3 font-bold text-slate-900">
+                          v{v.versionNumber}
+                          {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
+                        </td>
                         <td className="p-3">
                           {v.isActive ? (
                             <StatusBadge tone="success">Active Version</StatusBadge>
@@ -397,11 +428,13 @@ export function CourseDetailPage() {
                             <StatusBadge tone="neutral">Inactive</StatusBadge>
                           )}
                         </td>
-                        <td className="p-3 font-mono text-xs text-slate-500">
-                          {v.schemaVersion || 'SCORM 1.2'} ({v.launchHref})
+                        <td className="p-3 text-xs text-slate-500">
+                          {v.contentItems.length === 0
+                            ? '—'
+                            : v.contentItems.map(ci => ci.name).join(', ')}
                         </td>
                         <td className="p-3 text-slate-400 text-xs">
-                          {formatDate(v.updatedAt)}
+                          {formatDate(v.createdAt)}
                         </td>
                         <td className="p-3 text-center">
                           <div className="inline-flex items-center gap-2">

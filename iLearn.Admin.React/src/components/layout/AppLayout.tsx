@@ -42,7 +42,7 @@ function AppLayoutInner() {
           sessionState={headerState}
           onMenuClick={() => setIsSidebarOpen((value) => !value)}
         />
-        <div className="flex h-[calc(100vh-64px)] min-h-0 flex-col gap-4 overflow-auto p-5 px-6 pb-6 bg-slate-50/60 has-[.wizard-surface]:overflow-hidden has-[.wizard-surface]:bg-slate-50/60">
+        <div className="flex h-[calc(100vh-64px)] min-h-0 flex-col gap-4 overflow-auto p-4 px-5 pb-5 bg-slate-50/60 has-[.wizard-surface]:overflow-hidden has-[.wizard-surface]:bg-slate-50/60">
           <Outlet />
         </div>
       </main>
