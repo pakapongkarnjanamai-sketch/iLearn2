@@ -80,7 +80,7 @@ namespace iLearn.API.Controllers.Base
                     Url = r.URL,
                     FileStorageId = r.FileStorageId,
                     ContentUrl = $"/api/contentItems/{r.Id}/content",
-                    FileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
+                    FileLength = r.CachedFileLength ?? 0,
                     CreatedAt = r.CreatedAt,
                     UpdatedAt = r.UpdatedAt,
                     CourseContentItems = r.CourseContentItems
@@ -119,32 +119,57 @@ namespace iLearn.API.Controllers.Base
             if (courseId.HasValue)
                 baseQuery = baseQuery.Where(r => r.CourseContentItems.Any(cr => cr.CourseVersion != null && cr.CourseVersion.CourseId == courseId.Value));
 
-            var query = baseQuery.Select(r => new
+            var query = baseQuery.Select(r => new ContentItemCrudRow
             {
-                r.Id,
-                r.Name,
-                r.TypeId,
-                r.IsActive,
+                Id = r.Id,
+                Name = r.Name,
+                TypeId = r.TypeId,
+                IsActive = r.IsActive,
                 IsPublished = r.IsActive,
                 PublishState = r.IsActive ? "Published" : "Unpublished",
-                r.URL,
-                r.FileStorageId,
-                r.CreatedAt,
-                fileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
-                courseContentItems = r.CourseContentItems
+                URL = r.URL,
+                FileStorageId = r.FileStorageId,
+                CreatedAt = r.CreatedAt,
+                FileLength = r.CachedFileLength ?? 0,
+                CourseContentItems = r.CourseContentItems
                     .Where(cr => cr.CourseVersion != null)
-                    .Select(cr => new
-                {
-                    courseId = cr.CourseVersion!.CourseId
-                }).ToList(),
-                courseIdsCount = r.CourseContentItems
-                    .Where(cr => cr.CourseVersion != null)
-                    .Select(cr => cr.CourseVersion!.CourseId)
-                    .Distinct()
-                    .Count()
+                    .Select(cr => new ContentItemCourseIdRef
+                    {
+                        CourseId = cr.CourseVersion!.CourseId
+                    }).ToList(),
+                CourseIdsCount = 0 // Computed in batch below
             });
 
-            return Ok(DataSourceLoader.Load(query, loadOptions));
+            var loadResult = DataSourceLoader.Load(query, loadOptions);
+            var dataList = loadResult.data as IEnumerable<ContentItemCrudRow>;
+            if (dataList != null)
+            {
+                var rows = dataList.ToList();
+                if (rows.Count > 0)
+                {
+                    var pagedIds = rows.Select(d => d.Id).ToList();
+                    var courseCountQuery = _courseContentItemRepo.GetQuery()
+                        .Where(cr => pagedIds.Contains(cr.ContentItemId) && cr.CourseVersion != null)
+                        .Select(cr => new { cr.ContentItemId, cr.CourseVersion!.CourseId })
+                        .Distinct()
+                        .GroupBy(x => x.ContentItemId)
+                        .Select(g => new { ContentItemId = g.Key, Count = g.Count() });
+
+                    var courseCountMap = courseCountQuery.Provider is IAsyncQueryProvider
+                        ? await courseCountQuery.ToDictionaryAsync(g => g.ContentItemId, g => g.Count)
+                        : courseCountQuery.ToDictionary(g => g.ContentItemId, g => g.Count);
+
+                    foreach (var row in rows)
+                    {
+                        if (courseCountMap.TryGetValue(row.Id, out int count))
+                        {
+                            row.CourseIdsCount = count;
+                        }
+                    }
+                }
+            }
+
+            return Ok(loadResult);
         }
 
         [HttpGet("GetServerStats")]
@@ -334,5 +359,26 @@ namespace iLearn.API.Controllers.Base
             await _repository.DeleteAsync(contentItem);
             return Ok();
         }
+    }
+
+    public class ContentItemCourseIdRef
+    {
+        public int CourseId { get; set; }
+    }
+
+    public class ContentItemCrudRow
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int TypeId { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsPublished { get; set; }
+        public string PublishState { get; set; } = string.Empty;
+        public string? URL { get; set; }
+        public int? FileStorageId { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public long FileLength { get; set; }
+        public List<ContentItemCourseIdRef> CourseContentItems { get; set; } = new();
+        public int CourseIdsCount { get; set; }
     }
 }

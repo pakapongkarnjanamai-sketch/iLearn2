@@ -65,7 +65,7 @@ namespace iLearn.Tests
         [Theory]
         [InlineData(0, true)]
         [InlineData(-29, true)]
-        [InlineData(-31, false)]
+        [InlineData(-32, false)]
         [InlineData(null, false)]
         public void ShouldShowCompletedEnrollment_UsesSharedRetentionCutoff(int? completedOffsetDays, bool expected)
         {

@@ -1,4 +1,4 @@
-﻿using iLearn.Application.DTOs;
+using iLearn.Application.DTOs;
 using iLearn.Domain.Entities;
 using System.Linq; // จำเป็นสำหรับการใช้ LINQ กับ Versions
 
@@ -130,7 +130,7 @@ namespace iLearn.Application.Mappings
                 SchemaVersion = entity.SchemaVersion,
                 Url = entity.URL,
                 FileStorageId = entity.FileStorageId,
-                FileLength = entity.FileStorage?.Length ?? 0,
+                FileLength = entity.CachedFileLength ?? 0,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 CourseIdsCount = entity.CourseContentItems

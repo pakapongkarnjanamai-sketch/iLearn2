@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
@@ -6,6 +6,7 @@ import { DataGridSurface } from '../components/ui/DataGridSurface'
 import { AppTable } from '../components/ui/AppTable'
 import { createAdminDataSource } from '../lib/createDataSource'
 import { createRestDataSource } from '../lib/createRestDataSource'
+import { fetchWithAccessControl } from '../lib/apiClient'
 import type { AdminListConfig } from './moduleConfigs'
 
 type EntityListPageProps = {
@@ -15,6 +16,58 @@ type EntityListPageProps = {
 export function EntityListPage({ config }: EntityListPageProps) {
   const navigate = useNavigate()
   
+  const [divisions, setDivisions] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+
+  useEffect(() => {
+    if (config.controller === 'AssignmentsCRUD' || config.controller === 'LearnerGroupsCRUD') {
+      fetchWithAccessControl<any>('admin/DivisionsCRUD/Get')
+        .then(res => {
+          if (res && Array.isArray(res.data)) {
+            setDivisions(res.data)
+          } else if (Array.isArray(res)) {
+            setDivisions(res)
+          }
+        })
+        .catch(err => console.error('Failed to load divisions for lookup', err))
+    }
+    if (config.controller === 'LearnerGroupsCRUD') {
+      fetchWithAccessControl<any>('admin/CategoriesCRUD/Get')
+        .then(res => {
+          if (res && Array.isArray(res.data)) {
+            setCategories(res.data)
+          } else if (Array.isArray(res)) {
+            setCategories(res)
+          }
+        })
+        .catch(err => console.error('Failed to load categories for lookup', err))
+    }
+  }, [config.controller])
+
+  const mappedColumns = useMemo(() => {
+    return config.columns.map(col => {
+      if (col.dataField === 'divisionId') {
+        return {
+          ...col,
+          cellRender: ({ value }: any) => {
+            const div = divisions.find(d => d.id === Number(value))
+            return div ? div.name : `Division ${value}`
+          }
+        }
+      }
+      if (col.dataField === 'categoryId') {
+        return {
+          ...col,
+          cellRender: ({ value }: any) => {
+            const cat = categories.find(c => c.id === Number(value))
+            return cat ? cat.name : `Category ${value}`
+          }
+        }
+      }
+      return col
+    })
+  }, [config.columns, divisions, categories])
+
   const crudControllers = new Set([
     'LearnerGroupsCRUD',
   ])
@@ -155,7 +208,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
       <DataGridSurface title={config.gridTitle} note={config.gridNote} actions={gridActions}>
         <AppTable
           store={store}
-          columns={config.columns}
+          columns={mappedColumns}
           noDataText={`No ${config.title.toLowerCase()} data found`}
           onRowDblClick={handleRowDoubleClick}
           searchPlaceholder="Search records..."

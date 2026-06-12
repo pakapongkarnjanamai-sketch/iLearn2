@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef, Component, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
@@ -86,6 +86,41 @@ const relativeTime = (iso: string) => {
   }
 }
 
+interface ErrorBoundaryProps {
+  children: ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+}
+
+class ChartErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false
+  }
+
+  public static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+    return { hasError: true }
+  }
+
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ChartErrorBoundary caught an error:", error, errorInfo)
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 text-xs">
+          <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
+          <span>Chart display error</span>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 export function DashboardPage() {
   const navigate = useNavigate()
   const { user, isSuperAdmin } = useSession()
@@ -93,6 +128,12 @@ export function DashboardPage() {
   const [maintenance, setMaintenance] = useState<MaintenanceStatus | null>(null)
   const [activities, setActivities] = useState<AdminActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSignalRConnected, setIsSignalRConnected] = useState(false)
+  const isSignalRConnectedRef = useRef(false)
+
+  useEffect(() => {
+    isSignalRConnectedRef.current = isSignalRConnected
+  }, [isSignalRConnected])
 
   const loadAll = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true)
@@ -124,6 +165,7 @@ export function DashboardPage() {
         .catch(() => undefined)
     }, 15000)
     const acts = window.setInterval(() => {
+      if (isSignalRConnectedRef.current) return
       fetchRecentAdminActivities(10)
         .then(setActivities)
         .catch(() => undefined)
@@ -150,12 +192,19 @@ export function DashboardPage() {
         .catch(() => undefined)
     })
 
-    connection.start().catch(() => undefined)
+    connection.onreconnecting(() => setIsSignalRConnected(false))
+    connection.onreconnected(() => setIsSignalRConnected(true))
+    connection.onclose(() => setIsSignalRConnected(false))
+
+    connection.start()
+      .then(() => setIsSignalRConnected(true))
+      .catch(() => setIsSignalRConnected(false))
 
     return () => {
       if (connection.state !== HubConnectionState.Disconnected) {
         connection.stop().catch(() => undefined)
       }
+      setIsSignalRConnected(false)
     }
   }, [])
 
@@ -307,17 +356,21 @@ export function DashboardPage() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 lg:col-span-2">
           <SectionHeader title="Learning Activity Trends" subtitle="Last 6 months" />
-          <LearningActivityChart data={learningActivity} />
+          <ChartErrorBoundary>
+            <LearningActivityChart data={learningActivity} />
+          </ChartErrorBoundary>
         </div>
         <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <SectionHeader
             title="Task Status"
             subtitle={`${formatNumber(kpi.totalLearningTasks)} total tasks`}
           />
-          <TaskStatusPie data={taskStatus} />
-          <div className="mt-2">
-            <TaskStatusLegend data={taskStatus} />
-          </div>
+          <ChartErrorBoundary>
+            <TaskStatusPie data={taskStatus} />
+            <div className="mt-2">
+              <TaskStatusLegend data={taskStatus} />
+            </div>
+          </ChartErrorBoundary>
         </div>
       </section>
 
@@ -449,7 +502,9 @@ export function DashboardPage() {
         </div>
         <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
           <SectionHeader title="Course Categories" subtitle="Top 6 by course count" />
-          <CategoryMixChart data={categoryMix} />
+          <ChartErrorBoundary>
+            <CategoryMixChart data={categoryMix} />
+          </ChartErrorBoundary>
         </div>
       </section>
 

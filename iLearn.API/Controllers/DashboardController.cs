@@ -1,4 +1,4 @@
-﻿// File: iLearn.API/Controllers/DashboardController.cs
+// File: iLearn.API/Controllers/DashboardController.cs
 using iLearn.Application.Common;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -7,6 +7,7 @@ using iLearn.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -30,6 +31,7 @@ namespace iLearn.API.Controllers
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
         private readonly IMaintenanceStatusService _maintenanceStatusService;
+        private readonly IMemoryCache _cache;
 
         public DashboardController(
             IGenericRepository<Course> courseRepo,
@@ -43,7 +45,8 @@ namespace iLearn.API.Controllers
             IAdminActivityService adminActivityService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
-            IMaintenanceStatusService maintenanceStatusService)
+            IMaintenanceStatusService maintenanceStatusService,
+            IMemoryCache cache)
         {
             _courseRepo = courseRepo;
             _userRepo = userRepo;
@@ -57,107 +60,133 @@ namespace iLearn.API.Controllers
             _currentUser = currentUser;
             _dateTime = dateTime;
             _maintenanceStatusService = maintenanceStatusService;
+            _cache = cache;
         }
 
         [HttpGet("Overview")]
         public async Task<IActionResult> GetOverview(CancellationToken cancellationToken)
         {
-            var now = _dateTime.Now;
-            var today = now.Date;
-            var dueSoonCutoff = AssignmentStatusKeys.GetDueSoonCutoff(today);
-            var recentWindowStart = today.AddDays(-30);
-            var previousWindowStart = today.AddDays(-60);
+            var divisionKey = _currentUser.DivisionId?.ToString() ?? "global";
+            var cacheKey = $"dashboard:overview:{divisionKey}";
 
-            var coursesQuery = ApplyCourseScope(_courseRepo.GetQuery().AsNoTracking());
-            var assignmentsQuery = ApplyAssignmentScope(_assignmentRepo.GetQuery().AsNoTracking());
-            var contentItemsQuery = ApplyContentItemScope(_contentItemRepo.GetQuery().AsNoTracking());
-            var groupsQuery = ApplyLearnerGroupScope(_learnerGroupRepo.GetQuery().AsNoTracking());
-            var learningLogsQuery = ApplyLearningLogScope(_learningLogRepo.GetQuery().AsNoTracking());
+            var result = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
 
-            var activeCourses = await coursesQuery.CountAsync(c => c.Status == CourseStatus.Open, cancellationToken);
-            var draftCourses = await coursesQuery.CountAsync(c => c.Status == CourseStatus.Draft, cancellationToken);
-            var newCourses = await coursesQuery.CountAsync(c => c.CreatedAt >= recentWindowStart, cancellationToken);
-            var contentItemCount = await contentItemsQuery.CountAsync(r => r.IsActive, cancellationToken);
-            var learnerGroupCount = await groupsQuery.CountAsync(g => g.IsActive, cancellationToken);
+                var now = _dateTime.Now;
+                var today = now.Date;
+                var dueSoonCutoff = AssignmentStatusKeys.GetDueSoonCutoff(today);
+                var recentWindowStart = today.AddDays(-30);
+                var previousWindowStart = today.AddDays(-60);
 
-            var assignmentRows = await assignmentsQuery
-                .Select(a => new DashboardAssignmentRow
-                {
-                    Id = a.Id,
-                    AssignmentNo = a.AssignmentNo,
-                    Description = a.Description,
-                    CourseId = a.CourseId,
-                    StartDate = a.StartDate,
-                    DueDate = a.DueDate,
-                    CreatedAt = a.CreatedAt,
-                    DivisionName = a.DivisionNavigation != null ? a.DivisionNavigation.Name : a.Division
-                })
-                .ToListAsync(cancellationToken);
+                var coursesQuery = ApplyCourseScope(_courseRepo.GetQuery().AsNoTracking());
+                var assignmentsQuery = ApplyAssignmentScope(_assignmentRepo.GetQuery().AsNoTracking());
+                var contentItemsQuery = ApplyContentItemScope(_contentItemRepo.GetQuery().AsNoTracking());
+                var groupsQuery = ApplyLearnerGroupScope(_learnerGroupRepo.GetQuery().AsNoTracking());
+                var learningLogsQuery = ApplyLearningLogScope(_learningLogRepo.GetQuery().AsNoTracking());
 
-            var assignmentIds = assignmentRows.Select(a => a.Id).ToList();
-            var taskRows = assignmentIds.Count == 0
-                ? new List<DashboardTaskRow>()
-                : await _enrollmentAssignmentRepo.GetQuery()
-                    .AsNoTracking()
-                    .Where(link => assignmentIds.Contains(link.AssignmentId) && link.Enrollment != null)
-                    .Select(link => new DashboardTaskRow
+                // Consolidate Course counts into a single query
+                var courseStats = await coursesQuery
+                    .GroupBy(_ => 1)
+                    .Select(g => new
                     {
-                        AssignmentId = link.AssignmentId,
-                        LearnerCode = link.Enrollment!.LearnerCode,
-                        CourseId = link.Enrollment.CourseId ?? (link.Assignment != null ? link.Assignment.CourseId : null),
-                        IsCompleted = link.SnapshotCompleted || link.Enrollment.IsCompleted,
-                        Progress = link.SnapshotCompleted ? link.SnapshotProgress : link.Enrollment.Progress,
-                        DueDate = link.DueDate ?? (link.Assignment != null ? link.Assignment.DueDate : null) ?? link.Enrollment.DueDate
+                        Active = g.Count(c => c.Status == CourseStatus.Open),
+                        Draft = g.Count(c => c.Status == CourseStatus.Draft),
+                        New = g.Count(c => c.CreatedAt >= recentWindowStart)
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var activeCourses = courseStats?.Active ?? 0;
+                var draftCourses = courseStats?.Draft ?? 0;
+                var newCourses = courseStats?.New ?? 0;
+
+                var contentItemCount = await contentItemsQuery.CountAsync(r => r.IsActive, cancellationToken);
+                var learnerGroupCount = await groupsQuery.CountAsync(g => g.IsActive, cancellationToken);
+
+                var assignmentRows = await assignmentsQuery
+                    .Select(a => new DashboardAssignmentRow
+                    {
+                        Id = a.Id,
+                        AssignmentNo = a.AssignmentNo,
+                        Description = a.Description,
+                        CourseId = a.CourseId,
+                        StartDate = a.StartDate,
+                        DueDate = a.DueDate,
+                        CreatedAt = a.CreatedAt,
+                        DivisionName = a.DivisionNavigation != null ? a.DivisionNavigation.Name : a.Division
                     })
                     .ToListAsync(cancellationToken);
 
-            var completedTasks = taskRows.Count(t => t.IsCompleted);
-            var overdueTasks = taskRows.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date < today);
-            var dueSoonTasks = taskRows.Count(t => AssignmentStatusKeys.IsDueSoon(t.IsCompleted, t.DueDate, today));
-            var inProgressTasks = taskRows.Count(t => !t.IsCompleted && t.Progress > 0 && !(t.DueDate.HasValue && t.DueDate.Value.Date < today));
-            var notStartedTasks = taskRows.Count(t => !t.IsCompleted && t.Progress <= 0 && !(t.DueDate.HasValue && t.DueDate.Value.Date < today));
-            var totalTasks = taskRows.Count;
-            var completionRate = totalTasks == 0 ? 0 : Math.Round((double)completedTasks / totalTasks * 100, 1);
-            var assignedLearners = taskRows
-                .Select(t => t.LearnerCode)
-                .Where(code => !string.IsNullOrWhiteSpace(code))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Count();
+                var assignmentIds = assignmentRows.Select(a => a.Id).ToList();
+                var taskRows = assignmentIds.Count == 0
+                    ? new List<DashboardTaskRow>()
+                    : await _enrollmentAssignmentRepo.GetQuery()
+                        .AsNoTracking()
+                        .Where(link => assignmentIds.Contains(link.AssignmentId) && link.Enrollment != null)
+                        .Select(link => new DashboardTaskRow
+                        {
+                            AssignmentId = link.AssignmentId,
+                            LearnerCode = link.Enrollment!.LearnerCode,
+                            CourseId = link.Enrollment.CourseId ?? (link.Assignment != null ? link.Assignment.CourseId : null),
+                            IsCompleted = link.SnapshotCompleted || link.Enrollment.IsCompleted,
+                            Progress = link.SnapshotCompleted ? link.SnapshotProgress : link.Enrollment.Progress,
+                            DueDate = link.DueDate ?? (link.Assignment != null ? link.Assignment.DueDate : null) ?? link.Enrollment.DueDate
+                        })
+                        .ToListAsync(cancellationToken);
 
-            var learningSessionsLast30 = await learningLogsQuery.CountAsync(l => l.CreatedAt >= recentWindowStart, cancellationToken);
-            var learningSessionsPrevious30 = await learningLogsQuery.CountAsync(
-                l => l.CreatedAt >= previousWindowStart && l.CreatedAt < recentWindowStart,
-                cancellationToken);
+                var completedTasks = taskRows.Count(t => t.IsCompleted);
+                var overdueTasks = taskRows.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date < today);
+                var dueSoonTasks = taskRows.Count(t => AssignmentStatusKeys.IsDueSoon(t.IsCompleted, t.DueDate, today));
+                var inProgressTasks = taskRows.Count(t => !t.IsCompleted && t.Progress > 0 && !(t.DueDate.HasValue && t.DueDate.Value.Date < today));
+                var notStartedTasks = taskRows.Count(t => !t.IsCompleted && t.Progress <= 0 && !(t.DueDate.HasValue && t.DueDate.Value.Date < today));
+                var totalTasks = taskRows.Count;
+                var completionRate = totalTasks == 0 ? 0 : Math.Round((double)completedTasks / totalTasks * 100, 1);
+                var assignedLearners = taskRows
+                    .Select(t => t.LearnerCode)
+                    .Where(code => !string.IsNullOrWhiteSpace(code))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
 
-            var categoryMix = await coursesQuery
-                .Where(c => c.Status == CourseStatus.Open)
-                .GroupBy(c => new
-                {
-                    c.CategoryId,
-                    CategoryName = c.Category != null ? c.Category.Name : "Uncategorized"
-                })
-                .Select(g => new
-                {
-                    categoryId = g.Key.CategoryId,
-                    categoryName = g.Key.CategoryName,
-                    courseCount = g.Count()
-                })
-                .OrderByDescending(x => x.courseCount)
-                .ThenBy(x => x.categoryName)
-                .Take(6)
-                .ToListAsync(cancellationToken);
+                // Consolidate Learning Logs counts into a single query
+                var logStats = await learningLogsQuery
+                    .Where(l => l.CreatedAt >= previousWindowStart)
+                    .GroupBy(_ => 1)
+                    .Select(g => new
+                    {
+                        Last30 = g.Count(l => l.CreatedAt >= recentWindowStart),
+                        Prev30 = g.Count(l => l.CreatedAt >= previousWindowStart && l.CreatedAt < recentWindowStart)
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            var learningActivity = await BuildLearningActivityTrendAsync(learningLogsQuery, today, cancellationToken);
-            var assignmentSummaries = BuildPriorityAssignments(assignmentRows, taskRows, today, dueSoonCutoff);
-            var priorityAssignments = assignmentSummaries.Take(6).ToList();
-            var courseAttention = await BuildCourseAttentionAsync(coursesQuery, taskRows, today, cancellationToken);
+                var learningSessionsLast30 = logStats?.Last30 ?? 0;
+                var learningSessionsPrevious30 = logStats?.Prev30 ?? 0;
 
-            var activeAssignmentBatches = assignmentSummaries.Count(a => a.Status == "Active" || a.Status == "Due Soon" || a.Status == "Overdue");
+                var categoryMix = await coursesQuery
+                    .Where(c => c.Status == CourseStatus.Open)
+                    .GroupBy(c => new
+                    {
+                        c.CategoryId,
+                        CategoryName = c.Category != null ? c.Category.Name : "Uncategorized"
+                    })
+                    .Select(g => new
+                    {
+                        categoryId = g.Key.CategoryId,
+                        categoryName = g.Key.CategoryName,
+                        courseCount = g.Count()
+                    })
+                    .OrderByDescending(x => x.courseCount)
+                    .ThenBy(x => x.categoryName)
+                    .Take(6)
+                    .ToListAsync(cancellationToken);
 
-            return Ok(new
-            {
-                success = true,
-                data = new
+                var learningActivity = await BuildLearningActivityTrendAsync(learningLogsQuery, today, cancellationToken);
+                var assignmentSummaries = BuildPriorityAssignments(assignmentRows, taskRows, today, dueSoonCutoff);
+                var priorityAssignments = assignmentSummaries.Take(6).ToList();
+                var courseAttention = await BuildCourseAttentionAsync(coursesQuery, taskRows, today, cancellationToken);
+
+                var activeAssignmentBatches = assignmentSummaries.Count(a => a.Status == "Active" || a.Status == "Due Soon" || a.Status == "Overdue");
+
+                return new
                 {
                     generatedAt = now,
                     scope = new
@@ -195,7 +224,13 @@ namespace iLearn.API.Controllers
                     categoryMix,
                     priorityAssignments,
                     courseAttention
-                }
+                };
+            });
+
+            return Ok(new
+            {
+                success = true,
+                data = result
             });
         }
 

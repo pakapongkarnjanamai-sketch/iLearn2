@@ -82,7 +82,8 @@ namespace iLearn.Tests
                 NullLogger<ContentItemsController>.Instance,
                 new FakeMaintenanceStatusService(),
                 new FakeAdminActivityService(),
-                new MemoryCache(new MemoryCacheOptions()));
+                new MemoryCache(new MemoryCacheOptions()),
+                new InMemoryGenericRepository<CourseContentItem>([]));
         }
 
         private sealed class FakeContentPublicationService : IContentPublicationService

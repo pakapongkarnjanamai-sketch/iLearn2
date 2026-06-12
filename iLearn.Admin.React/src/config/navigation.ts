@@ -7,7 +7,6 @@ import {
   Layers,
   Library,
   Settings,
-  ShieldCheck,
   UserCog,
   UserRound,
   Users,
@@ -66,5 +65,4 @@ export const navigationItems: NavigationItem[] = [
   },
   { label: 'Admin Users', path: '/users', icon: UserCog, superAdminOnly: true },
   { label: 'System Config', path: '/system-config', icon: Settings, superAdminOnly: true },
-  { label: 'Access Control', path: '/access-denied', icon: ShieldCheck, superAdminOnly: true },
 ]

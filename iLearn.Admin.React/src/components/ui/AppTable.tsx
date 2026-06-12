@@ -191,7 +191,7 @@ export function AppTable<T extends TableRecord>({
       const headerHeight = viewport.querySelector('thead')?.getBoundingClientRect().height ?? 42
       const usableHeight = Math.max(0, viewport.clientHeight - headerHeight)
       const rowHeight = 46
-      const nextPageSize = Math.max(5, Math.min(100, Math.floor(usableHeight / rowHeight)))
+      const nextPageSize = Math.max(10, Math.min(100, Math.floor(usableHeight / rowHeight)))
 
       setPageSize(prev => (prev === nextPageSize ? prev : nextPageSize))
     }

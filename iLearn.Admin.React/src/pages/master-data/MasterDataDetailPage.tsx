@@ -27,8 +27,9 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   const { setLabel } = useBreadcrumbs()
   const { confirm, confirmDialog } = useConfirm()
 
-  const [isEditing, setIsEditing] = useState(isNew)
-  const [loading, setLoading] = useState(!isNew)
+  const isNewItem = isNew || id === 'new'
+  const [isEditing, setIsEditing] = useState(isNewItem)
+  const [loading, setLoading] = useState(!isNewItem)
   const [busy, setBusy] = useState(false)
   const [item, setItem] = useState<any>(null)
   const [activeValues, setActiveValues] = useState<any>({ isActive: true })
@@ -52,13 +53,13 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   }, [config])
 
   useEffect(() => {
-    if (config && isNew) {
+    if (config && isNewItem) {
       setLabel('new', `New ${config.title.replace(/s$/, '')}`)
     }
-  }, [config, isNew, setLabel])
+  }, [config, isNewItem, setLabel])
 
   const loadItem = async () => {
-    if (isNew || !store || !id) return
+    if (isNewItem || !store || !id) return
     setLoading(true)
     try {
       const result = await store.load({
@@ -105,7 +106,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
         name: activeValues.name.trim(),
         description: activeValues.description?.trim() || null
       }
-      if (isNew) {
+      if (isNewItem) {
         const newRecord = await store.insert!(payload)
         toast.success(`${config.title.replace(/s$/, '')} created successfully`)
         navigate(`/master-data/${type}/${newRecord.id}`, { replace: true })

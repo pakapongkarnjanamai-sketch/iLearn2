@@ -6,6 +6,7 @@ export type AdminGridColumn = {
   minWidth?: number
   alignment?: 'left' | 'center' | 'right'
   visible?: boolean
+  cellRender?: (cellInfo: { value: any; data: any; index: number }) => any
 }
 
 export type AdminListConfig = {
@@ -51,7 +52,7 @@ export const adminListConfigs = {
     gridNote: 'Readiness details stay owned by the API and lifecycle services.',
     columns: [
       { dataField: 'name', caption: 'Content Name', minWidth: 260 },
-      { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center' },
+      { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center', cellRender: ({ value }: any) => value === 1 ? 'Learn' : value === 2 ? 'Exam' : '—' },
       { dataField: 'schemaVersion', caption: 'SCORM', width: 120, alignment: 'center' },
       { dataField: 'isActive', caption: 'Published', dataType: 'boolean', width: 120, alignment: 'center' },
       { dataField: 'launchHref', caption: 'Launch Resource', minWidth: 220 },
@@ -69,8 +70,8 @@ export const adminListConfigs = {
     columns: [
       { dataField: 'assignmentNo', caption: 'Assignment No.', width: 150 },
       { dataField: 'description', caption: 'Description', minWidth: 240 },
-      { dataField: 'courseId', caption: 'Course', dataType: 'number', width: 100, alignment: 'center' },
-      { dataField: 'division', caption: 'Division', width: 150 },
+      { dataField: 'courseNames', caption: 'Courses', minWidth: 240 },
+      { dataField: 'divisionId', caption: 'Division', dataType: 'number', width: 150 },
       { dataField: 'startDate', caption: 'Start Date', dataType: 'date', width: 140 },
       { dataField: 'dueDate', caption: 'Due Date', dataType: 'date', width: 140 },
     ],
@@ -97,19 +98,19 @@ export const adminListConfigs = {
     description: 'All employees from the corporate employee directory. Click a row to view learner profile.',
     controller: 'Learners',
     basePath: 'Learners',
-    key: 'Id',
+    key: 'id',
     gridTitle: 'Employee Directory',
     gridNote: 'Data sourced from the corporate employee directory service.',
-    searchExpr: ['NID', 'EnglishFirstName', 'EnglishLastName', 'EId'],
+    searchExpr: ['nid', 'englishFirstName', 'englishLastName', 'eId'],
     columns: [
-      { dataField: 'EId', caption: 'Employee ID', width: 130 },
-      { dataField: 'NID', caption: 'NID', width: 120 },
-      { dataField: 'EnglishFirstName', caption: 'First Name', minWidth: 160 },
-      { dataField: 'EnglishLastName', caption: 'Last Name', minWidth: 160 },
-      { dataField: 'Division', caption: 'Division', width: 160 },
-      { dataField: 'Department', caption: 'Department', width: 160 },
-      { dataField: 'Section', caption: 'Section', width: 160 },
-      { dataField: 'Position', caption: 'Position', minWidth: 180 },
+      { dataField: 'eId', caption: 'Employee ID', width: 130 },
+      { dataField: 'nid', caption: 'NID', width: 120 },
+      { dataField: 'englishFirstName', caption: 'First Name', minWidth: 160 },
+      { dataField: 'englishLastName', caption: 'Last Name', minWidth: 160 },
+      { dataField: 'division', caption: 'Division', width: 160 },
+      { dataField: 'department', caption: 'Department', width: 160 },
+      { dataField: 'section', caption: 'Section', width: 160 },
+      { dataField: 'position', caption: 'Position', minWidth: 180 },
     ],
   },
   users: {

@@ -1,10 +1,11 @@
-﻿using iLearn.Application.Interfaces.Repositories;
+using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace iLearn.API.Controllers
 {
@@ -163,7 +164,19 @@ namespace iLearn.API.Controllers
                 return StatusCode(500, new { message = "Failed to connect to the employee data source." });
             }
 
-            return Content(resultJson, "application/json");
+            try
+            {
+                var response = JsonSerializer.Deserialize<LearnersGridResponse>(resultJson, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                // Fallback to raw Content in case external schema is unexpectedly different
+                return Content(resultJson, "application/json");
+            }
         }
 
         // ── Learner Profile: ข้อมูลส่วนตัว + ประวัติการเรียน ────────────────────
@@ -278,5 +291,24 @@ namespace iLearn.API.Controllers
             var separator = queryString.Contains('?') ? "&" : "?";
             return $"{queryString}{separator}filter={Uri.EscapeDataString(divFilter)}";
         }
+    }
+
+    public class LearnersGridResponse
+    {
+        public List<LearnerGridRowDto> Data { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    public class LearnerGridRowDto
+    {
+        public int Id { get; set; }
+        public string EId { get; set; } = string.Empty;
+        public string NID { get; set; } = string.Empty;
+        public string EnglishFirstName { get; set; } = string.Empty;
+        public string EnglishLastName { get; set; } = string.Empty;
+        public string Division { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string Position { get; set; } = string.Empty;
     }
 }

@@ -1,4 +1,4 @@
-﻿using iLearn.Domain.Common;
+using iLearn.Domain.Common;
 
 namespace iLearn.Domain.Entities
 {
@@ -15,6 +15,7 @@ namespace iLearn.Domain.Entities
         // ความสัมพันธ์กับ FileStorage (1-to-1)
         public int? FileStorageId { get; set; }
         public FileStorage? FileStorage { get; set; }
+        public long? CachedFileLength { get; set; }
 
         public ICollection<CourseContentItem> CourseContentItems { get; set; } = new List<CourseContentItem>();
     }

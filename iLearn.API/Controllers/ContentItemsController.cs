@@ -29,6 +29,7 @@ namespace iLearn.API.Controllers
         private readonly IMaintenanceStatusService _maintenanceStatusService;
         private readonly IAdminActivityService _adminActivityService;
         private readonly IMemoryCache _cache;
+        private readonly IGenericRepository<CourseContentItem> _courseContentItemRepo;
 
         public ContentItemsController(
             IGenericRepository<ContentItem> contentItemRepo,
@@ -38,7 +39,8 @@ namespace iLearn.API.Controllers
             ILogger<ContentItemsController> logger,
             IMaintenanceStatusService maintenanceStatusService,
             IAdminActivityService adminActivityService,
-            IMemoryCache cache) // ✅ เพิ่ม Logger ใน DI
+            IMemoryCache cache,
+            IGenericRepository<CourseContentItem> courseContentItemRepo) // ✅ เพิ่ม Logger ใน DI
         {
             _contentItemRepo = contentItemRepo;
             _fileRepo = fileRepo;
@@ -48,6 +50,7 @@ namespace iLearn.API.Controllers
             _maintenanceStatusService = maintenanceStatusService;
             _adminActivityService = adminActivityService;
             _cache = cache;
+            _courseContentItemRepo = courseContentItemRepo;
         }
 
         [HttpGet]
@@ -135,19 +138,38 @@ namespace iLearn.API.Controllers
                     SchemaVersion = r.SchemaVersion,
                     Url = r.URL,
                     FileStorageId = r.FileStorageId,
-                    FileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
+                    FileLength = r.CachedFileLength ?? 0,
                     CreatedAt = r.CreatedAt,
                     UpdatedAt = r.UpdatedAt,
-                    CourseIdsCount = r.CourseContentItems
-                        .Where(cr => cr.CourseVersion != null)
-                        .Select(cr => cr.CourseVersion!.CourseId)
-                        .Distinct()
-                        .Count(),
+                    CourseIdsCount = 0, // Computed in batch below
                 });
 
             var dtos = projected.Provider is IAsyncQueryProvider
                 ? await projected.ToListAsync()
                 : projected.ToList();
+
+            if (dtos.Count > 0)
+            {
+                var pagedIds = dtos.Select(d => d.Id).ToList();
+                var courseCountQuery = _courseContentItemRepo.GetQuery()
+                    .Where(cr => pagedIds.Contains(cr.ContentItemId) && cr.CourseVersion != null)
+                    .Select(cr => new { cr.ContentItemId, cr.CourseVersion!.CourseId })
+                    .Distinct()
+                    .GroupBy(x => x.ContentItemId)
+                    .Select(g => new { ContentItemId = g.Key, Count = g.Count() });
+
+                var courseCountMap = courseCountQuery.Provider is IAsyncQueryProvider
+                    ? await courseCountQuery.ToDictionaryAsync(g => g.ContentItemId, g => g.Count)
+                    : courseCountQuery.ToDictionary(g => g.ContentItemId, g => g.Count);
+
+                foreach (var dto in dtos)
+                {
+                    if (courseCountMap.TryGetValue(dto.Id, out int count))
+                    {
+                        dto.CourseIdsCount = count;
+                    }
+                }
+            }
 
             return Ok(new { success = true, data = dtos, totalCount });
         }
@@ -232,7 +254,8 @@ namespace iLearn.API.Controllers
                 Name = safeFileName,
                 TypeId = typeId,
                 IsActive = false,
-                FileStorageId = savedFile.Id
+                FileStorageId = savedFile.Id,
+                CachedFileLength = savedFile.Length
             };
 
             var savedContentItem = await _contentItemRepo.AddAsync(contentItem);
