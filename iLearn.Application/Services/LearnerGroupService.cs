@@ -89,7 +89,11 @@ namespace iLearn.Application.Services
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(g => g.DivisionId == _currentUser.DivisionId.Value);
 
-            if (p.CategoryId is { Count: > 0 })
+            if (p.RootCategoryOnly == true)
+            {
+                query = query.Where(g => !g.CategoryId.HasValue);
+            }
+            else if (p.CategoryId is { Count: > 0 })
             {
                 var categoryIds = p.CategoryId
                     .Where(id => id > 0)

@@ -30,6 +30,11 @@ namespace iLearn.Application.DTOs
         /// </summary>
         public List<int>? CategoryId { get; set; }
 
+        /// <summary>
+        /// Optional root-folder filter. When true, return only items with null category.
+        /// </summary>
+        public bool? RootCategoryOnly { get; set; }
+
         /// <summary>Optional sort field name.</summary>
         public string? SortBy { get; set; }
 

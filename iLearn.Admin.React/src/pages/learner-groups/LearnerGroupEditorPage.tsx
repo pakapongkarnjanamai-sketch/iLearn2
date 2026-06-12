@@ -69,6 +69,7 @@ export function LearnerGroupEditorPage() {
   const [categories, setCategories] = useState<GroupCategoryLookup[]>([])
   const [isExplorerOpen, setIsExplorerOpen] = useState(false)
   const [tempCategoryId, setTempCategoryId] = useState<number>(0)
+  const [didApplyQueryCategory, setDidApplyQueryCategory] = useState(false)
   
   // Selection states
   const [selectedLearners, setSelectedLearners] = useState<LearnerSelection[]>([])
@@ -195,6 +196,35 @@ export function LearnerGroupEditorPage() {
 
     return () => window.clearTimeout(timeoutId)
   }, [loadCategories])
+
+  useEffect(() => {
+    if (isEditMode || didApplyQueryCategory) return
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const queryValue = searchParams.get('categoryId')
+
+    if (!queryValue) {
+      setDidApplyQueryCategory(true)
+      return
+    }
+
+    const parsedCategoryId = Number(queryValue)
+    if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
+      setDidApplyQueryCategory(true)
+      return
+    }
+
+    if (categories.length === 0) {
+      return
+    }
+
+    const exists = categories.some(category => category.id === parsedCategoryId)
+    if (exists) {
+      setFormData(prev => ({ ...prev, categoryId: parsedCategoryId }))
+    }
+
+    setDidApplyQueryCategory(true)
+  }, [categories, didApplyQueryCategory, isEditMode])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
