@@ -147,6 +147,7 @@ export function AssignmentReportPage() {
       </div>
 
       {/* Summary stats */}
+      <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5 shadow-xs">
       <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-5 text-xs">
         {[
           { label: 'Total Learners', value: data.totalEnrollmentCount },
@@ -180,9 +181,10 @@ export function AssignmentReportPage() {
           </div>
         </div>
       )}
+      </section>
 
       {/* Learner table */}
-      <section className="border-t border-slate-100 pt-5 space-y-3">
+      <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-3 shadow-xs">
         {/* Filter bar */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">

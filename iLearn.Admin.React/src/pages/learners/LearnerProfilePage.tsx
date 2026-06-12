@@ -113,8 +113,8 @@ export function LearnerProfilePage() {
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
       {/* Transcript (main) */}
       <div className="min-w-0">
-        <section className="space-y-4">
-          <SectionHeader icon={FileBadge}>Transcript</SectionHeader>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+          <SectionHeader icon={FileBadge} variant="card">Transcript</SectionHeader>
 
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-sm border-collapse">
@@ -198,7 +198,7 @@ export function LearnerProfilePage() {
       </div>
 
       {/* Learner identity + summary (sidebar) */}
-      <aside className="space-y-5 xl:sticky xl:top-5">
+      <aside className="space-y-5 xl:sticky xl:top-5 rounded-lg border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex flex-col items-center text-center pb-4 border-b border-slate-200">
           <div className="h-14 w-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
             <User className="h-7 w-7" />

@@ -21,34 +21,53 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
 
+// Mirrors AssignmentDashboardDto returned by GET Assignments/dashboard/{id}
 type AssignmentDetail = {
-  id: number
   assignmentNo: string
   description: string
-  startDate: string
-  dueDate: string
-  status: string
-  completedEnrollmentCount: number
-  totalEnrollmentCount: number
-  completionPct: number
-  courseNames: string
+  createdBy?: string | null
+  startDate: string | null
+  dueDate: string | null
+  totalEmployees: number
+  totalCourses: number
+  completionRate: number
+  chartData: {
+    completed: number
+    inProgress: number
+    notStarted: number
+  }
   courses: Array<{
-    id: number
-    ruleId: number
-    title: string
-    code: string
+    assignmentRuleId: number
+    courseCode: string
+    courseTitle: string
+    completedLearners: number
+    totalLearners: number
+    isCourseDeleted: boolean
   }>
   learners: Array<{
-    id: number
     learnerCode: string
-    learnerName: string
-    division?: string
-    department?: string
+    learnerName?: string | null
+    assignmentRuleId?: number | null
+    courseCode?: string | null
+    courseTitle?: string | null
     progress: number
     isCompleted: boolean
-    completedDate: string | null
     status: string
+    completedDate?: string | null
+    startDate?: string | null
+    dueDate?: string | null
   }>
+  learnerGroupId?: number | null
+  learnerGroupName?: string | null
+  hasDeletedCourse: boolean
+}
+
+const deriveAssignmentStatus = (a: AssignmentDetail) => {
+  if (a.completionRate >= 100) return 'Completed'
+  const now = Date.now()
+  if (a.startDate && now < new Date(a.startDate).getTime()) return 'Upcoming'
+  if (a.dueDate && now > new Date(a.dueDate).getTime()) return 'Overdue'
+  return 'In Progress'
 }
 
 export function AssignmentDetailPage() {
@@ -263,23 +282,23 @@ export function AssignmentDetailPage() {
       <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-6">
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
           <span className="block text-[11px] font-extrabold uppercase text-slate-400">Learners</span>
-          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.totalEnrollmentCount}</span>
+          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.totalEmployees}</span>
         </div>
 
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
           <span className="block text-[11px] font-extrabold uppercase text-slate-400">Completed</span>
-          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.completedEnrollmentCount}</span>
+          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.chartData.completed}</span>
         </div>
 
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
           <span className="block text-[11px] font-extrabold uppercase text-slate-400">Completion</span>
-          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.completionPct}%</span>
+          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{Math.round(assignment.completionRate)}%</span>
         </div>
 
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
           <span className="block text-[11px] font-extrabold uppercase text-slate-400">Status</span>
           <span className="mt-1 block">
-            <StatusBadge size="xxs">{assignment.status}</StatusBadge>
+            <StatusBadge size="xxs">{deriveAssignmentStatus(assignment)}</StatusBadge>
           </span>
         </div>
       </div>
@@ -290,23 +309,31 @@ export function AssignmentDetailPage() {
         <div className="space-y-8 min-w-0">
           
           {/* Linked courses */}
-          <section>
-            <SectionHeader icon={BookOpen}>Courses</SectionHeader>
-            
-            <ul className="divide-y divide-slate-100">
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
+
+            <ul className="divide-y divide-slate-100 px-4">
               {assignment.courses.map(c => (
-                <li key={c.id} className="py-2.5 flex items-center justify-between">
+                <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-800">{c.title}</span>
-                    <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.code}</span>
+                    <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                      {c.courseTitle}
+                      {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
+                    </span>
+                    <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
                   </div>
-                  <button
-                    onClick={() => handleRemoveCourse(c.ruleId)}
-                    className="p-1 text-slate-400 hover:text-red-600 rounded transition"
-                    title="Remove course from assignment"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xxs font-bold text-slate-500">
+                      {c.completedLearners} / {c.totalLearners} completed
+                    </span>
+                    <button
+                      onClick={() => handleRemoveCourse(c.assignmentRuleId)}
+                      className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                      title="Remove course from assignment"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -321,7 +348,7 @@ export function AssignmentDetailPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
                     <th className="p-3">Learner</th>
-                    <th className="p-3">Department</th>
+                    <th className="p-3">Course</th>
                     <th className="p-3">Progress</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-center">Actions</th>
@@ -329,14 +356,21 @@ export function AssignmentDetailPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {assignment.learners.map(l => (
-                    <tr key={l.id} className="hover:bg-slate-50/60 transition">
+                    <tr key={`${l.learnerCode}-${l.assignmentRuleId ?? 'x'}`} className="hover:bg-slate-50/60 transition">
                       <td className="p-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 leading-tight">{l.learnerName}</span>
+                          <span className="font-bold text-slate-800 leading-tight">{l.learnerName || l.learnerCode}</span>
                           <span className="text-xxs font-mono text-slate-400 mt-0.5">{l.learnerCode}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-slate-500 text-xxs">{l.department || '-'}</td>
+                      <td className="p-3 text-slate-500 text-xxs">
+                        {l.courseTitle ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-slate-600">{l.courseTitle}</span>
+                            <span className="font-mono text-slate-400 mt-0.5">{l.courseCode}</span>
+                          </div>
+                        ) : '-'}
+                      </td>
                       <td className="p-3">
                         <ProgressBar value={l.progress} completed={l.isCompleted} maxWidthClass="max-w-20" />
                       </td>
@@ -388,6 +422,12 @@ export function AssignmentDetailPage() {
                 <span className="text-slate-400 font-bold text-xs uppercase block">Due Date</span>
                 <span className="block font-semibold text-slate-700 mt-1">{formatDate(assignment.dueDate)}</span>
               </div>
+              {assignment.learnerGroupName && (
+                <div className="col-span-2">
+                  <span className="text-slate-400 font-bold text-xs uppercase block">Learner Group</span>
+                  <span className="block font-semibold text-slate-700 mt-1">{assignment.learnerGroupName}</span>
+                </div>
+              )}
             </dl>
           </ControlsDivider>
         </ControlsSidebar>

@@ -331,8 +331,8 @@ export function LearnerGroupDetailPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
 
         {/* Members List Table Grid */}
-        <section className="min-w-0">
-          <SectionHeader icon={Users}>Members ({group.members.length})</SectionHeader>
+        <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+          <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
 
           <div className="overflow-x-auto max-h-140 custom-scrollbar">
             <table className="w-full text-left text-sm border-collapse">
