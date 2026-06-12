@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Users,
   BookOpen,
+  RotateCcw,
   Trash2,
   UserPlus,
   FileBarChart,
@@ -416,10 +417,10 @@ export function AssignmentDetailPage() {
                           <div className="inline-flex items-center gap-1.5">
                             <button
                               onClick={() => handleResetLearner(l.learnerCode)}
-                              className="px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200 rounded text-xxs font-semibold hover:bg-slate-100 transition"
+                              className="p-1 text-slate-400 hover:text-indigo-600 rounded transition cursor-pointer"
                               title="Reset attempts"
                             >
-                              Reset
+                              <RotateCcw className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleRemoveLearner(l.learnerCode)}

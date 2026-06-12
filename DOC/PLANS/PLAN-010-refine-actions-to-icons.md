@@ -1,6 +1,6 @@
 # PLAN-010: Refine Row Actions to Use Icons - Convert Reset Button to Icon Button
 
-- **Status:** READY
+- **Status:** DONE
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** แก้ไข 1 ไฟล์ (`AssignmentDetailPage.tsx`)
@@ -44,9 +44,9 @@
 - ห้ามแก้ตารางหรือโมดูลอื่น ๆ
 
 ## Acceptance criteria
-- [ ] ปุ่ม Reset ในตารางผู้เรียนของหน้าแสดงรายละเอียด Assignment เปลี่ยนเป็นรูปไอคอนลูกศรหมุนกลับ (`RotateCcw`)
-- [ ] สไตล์ ขนาด ความสูง และ hover effects ของปุ่ม Reset สอดคล้องและกลมกลืนกับปุ่มถังขยะ (`Trash2`) ข้างเคียง
-- [ ] การสร้างความสัมพันธ์และ API call ของปุ่ม Reset ยังคงทำงานปกติเมื่อถูกคลิก
+- [x] ปุ่ม Reset ในตารางผู้เรียนของหน้าแสดงรายละเอียด Assignment เปลี่ยนเป็นรูปไอคอนลูกศรหมุนกลับ (`RotateCcw`)
+- [x] สไตล์ ขนาด ความสูง และ hover effects ของปุ่ม Reset สอดคล้องและกลมกลืนกับปุ่มถังขยะ (`Trash2`) ข้างเคียง
+- [x] การสร้างความสัมพันธ์และ API call ของปุ่ม Reset ยังคงทำงานปกติเมื่อถูกคลิก
 
 ## Verification
 ```powershell
@@ -54,3 +54,9 @@
 npm run lint
 npm run build
 ```
+
+## Implementer Notes
+- ปรับเฉพาะจุดตามขอบเขตแผน: เปลี่ยนปุ่ม Reset ในตาราง Learners ของ `AssignmentDetailPage.tsx` จาก text button เป็น icon button ด้วย `RotateCcw`
+- คง logic เดิมทั้งหมดของ `handleResetLearner` และ API call (`Assignments/{id}/reset-enrollments`) โดยไม่แตะ flow ยืนยัน/รีโหลดข้อมูล
+- สไตล์ปุ่ม Reset ปรับเป็น `p-1 text-slate-400 hover:text-indigo-600 rounded transition cursor-pointer` ให้กลมกลืนกับปุ่มถังขยะข้างเคียงที่ใช้ icon button pattern เดียวกัน
+- Verification ผ่าน: `npm run lint` (0 errors, 11 warnings baseline), `npm run build` ผ่าน

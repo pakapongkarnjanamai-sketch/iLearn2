@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 19:00] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-010 ปรับปุ่ม Reset ใน Assignment Learners เป็นไอคอน
+- ทำอะไร: แก้ `AssignmentDetailPage.tsx` ให้ปุ่ม Reset ในตาราง Learners เปลี่ยนจาก text button เป็น icon button (`RotateCcw`) และใช้สไตล์เดียวกับ action icon อื่น (`p-1 text-slate-400 hover:text-indigo-600 rounded transition cursor-pointer`) เพื่อให้สมดุลกับปุ่มถังขยะ; ไม่แตะ logic ของการ reset/API
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-010-refine-actions-to-icons.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน
+
 ## [2026-06-12 18:57] GitHub Copilot (GPT-5.3-Codex) — ปิด PLAN-009 เป็น DONE และยืนยันผลทดสอบรอบสุดท้าย
 - ทำอะไร: ตรวจเทียบโค้ดจริงกับขอบเขต PLAN-009 ซ้ำทั้งหมด (DetailPageHeader/backTo/backLabel ถูกถอด, sidebar เป็น action-only, Assignment และ Learner Group เป็นแท็บตามสเปค), อัปเดตสถานะ `PLAN-009-refine-detail-pages-design.md` จาก READY เป็น DONE พร้อม acceptance และ implementer notes, แล้วยืนยันว่า scope ต่อเนื่องของ PLAN-008 อยู่ในสถานะ DONE แล้ว
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-009-refine-detail-pages-design.md`, `DOC/AGENT_LOG.md`
