@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
   ChevronDown,
+  Search,
   Plus, 
   Save, 
   X,
@@ -23,45 +24,9 @@ type GroupCategoryLookup = {
   depth?: number
 }
 
-type HierarchicalCategoryOption = GroupCategoryLookup & {
-  displayName: string
-}
-
-function buildCategoryTreeOptions(categories: GroupCategoryLookup[]): HierarchicalCategoryOption[] {
-  const byParent: Record<number, GroupCategoryLookup[]> = {}
-  const roots: GroupCategoryLookup[] = []
-
-  categories.forEach(category => {
-    const pId = category.parentId || 0
-    if (pId === 0) {
-      roots.push(category)
-      return
-    }
-
-    if (!byParent[pId]) {
-      byParent[pId] = []
-    }
-    byParent[pId].push(category)
-  })
-
-  const result: HierarchicalCategoryOption[] = []
-
-  const traverse = (node: GroupCategoryLookup, depth: number) => {
-    const indent = depth > 0 ? `${'|  '.repeat(depth - 1)}|- ` : ''
-    result.push({
-      ...node,
-      displayName: `${indent}${node.name}`
-    })
-
-    const children = byParent[node.id] || []
-    children.sort((a, b) => a.name.localeCompare(b.name))
-    children.forEach(child => traverse(child, depth + 1))
-  }
-
-  roots.sort((a, b) => a.name.localeCompare(b.name))
-  roots.forEach(root => traverse(root, 0))
-
-  return result
+type ResolvedCategoryOption = GroupCategoryLookup & {
+  fullPath: string
+  lastName: string
 }
 
 type GroupFormData = {
@@ -106,6 +71,8 @@ export function LearnerGroupEditorPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [memberInput, setMemberInput] = useState('')
   const [categories, setCategories] = useState<GroupCategoryLookup[]>([])
+  const [isComboOpen, setIsComboOpen] = useState(false)
+  const [comboSearch, setComboSearch] = useState('')
   
   // Selection states
   const [selectedLearners, setSelectedLearners] = useState<LearnerSelection[]>([])
@@ -121,13 +88,53 @@ export function LearnerGroupEditorPage() {
     selectedLearners.map(l => l.code)
   ), [selectedLearners])
 
-  const selectedCategoryName = useMemo(() => (
-    categories.find(category => category.id === formData.categoryId)?.name || 'No category'
-  ), [categories, formData.categoryId])
+  const selectedCategoryPath = useMemo(() => {
+    if (!formData.categoryId) return 'No category (root)'
 
-  const hierarchicalCategories = useMemo(() => {
-    return buildCategoryTreeOptions(categories)
+    const path: string[] = []
+    const visited = new Set<number>()
+    let current: GroupCategoryLookup | undefined = categories.find(c => c.id === formData.categoryId)
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id)
+      path.unshift(current.name)
+      const pId: number | null | undefined = current.parentId
+      current = pId ? categories.find(c => c.id === pId) : undefined
+    }
+
+    return path.length > 0 ? path.join(' / ') : 'No category (root)'
+  }, [categories, formData.categoryId])
+
+  const resolvedCategories = useMemo<ResolvedCategoryOption[]>(() => {
+    return categories.map(category => {
+      const pathList: string[] = []
+      const visited = new Set<number>()
+      let current: GroupCategoryLookup | undefined = category
+
+      while (current && !visited.has(current.id)) {
+        visited.add(current.id)
+        pathList.unshift(current.name)
+        const pId: number | null | undefined = current.parentId
+        current = pId ? categories.find(c => c.id === pId) : undefined
+      }
+
+      return {
+        ...category,
+        fullPath: pathList.join(' / '),
+        lastName: category.name
+      }
+    })
   }, [categories])
+
+  const filteredCategories = useMemo(() => {
+    const term = comboSearch.toLowerCase().trim()
+    if (!term) return resolvedCategories
+
+    return resolvedCategories.filter(category => (
+      category.name.toLowerCase().includes(term) ||
+      category.fullPath.toLowerCase().includes(term)
+    ))
+  }, [resolvedCategories, comboSearch])
 
   const loadCategories = useCallback(async () => {
     try {
@@ -292,23 +299,114 @@ export function LearnerGroupEditorPage() {
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="categoryId" className="wiz-label">Category</label>
+        <label className="wiz-label">Category</label>
         <div className="relative max-w-md">
-          <select
-            id="categoryId"
-            name="categoryId"
-            value={formData.categoryId}
-            onChange={handleChange}
-            className="w-full appearance-none px-3 py-2 pr-10 border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 cursor-pointer"
+          <div
+            className="flex items-center justify-between px-3 py-2 border border-slate-200 rounded-md bg-white cursor-pointer hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition select-none"
+            onClick={() => {
+              setIsComboOpen(prev => !prev)
+              setComboSearch('')
+            }}
           >
-            <option value={0}>No category (root)</option>
-            {hierarchicalCategories.map(category => (
-              <option key={category.id} value={category.id}>
-                {category.displayName}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <span className="text-sm text-slate-700 truncate">
+              {selectedCategoryPath}
+            </span>
+
+            <div className="flex items-center gap-1.5 shrink-0 text-slate-400">
+              {formData.categoryId > 0 && (
+                <button
+                  type="button"
+                  onClick={event => {
+                    event.stopPropagation()
+                    setFormData(prev => ({ ...prev, categoryId: 0 }))
+                    setIsComboOpen(false)
+                  }}
+                  className="hover:text-red-500 transition p-0.5 rounded-full hover:bg-slate-100"
+                  title="Clear Category"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+
+              <ChevronDown className={`h-4 w-4 transition duration-200 ${isComboOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </div>
+
+          {isComboOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => setIsComboOpen(false)}
+              />
+
+              <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 flex flex-col overflow-hidden max-h-72 animate-fade-in">
+                <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50 select-none">
+                  <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search category by name or path..."
+                    value={comboSearch}
+                    onChange={event => setComboSearch(event.target.value)}
+                    className="w-full bg-transparent text-sm focus:outline-none border-none p-0 text-slate-700 placeholder:text-slate-400"
+                    autoFocus
+                  />
+
+                  {comboSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setComboSearch('')}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="overflow-y-auto flex-1 custom-scrollbar max-h-52 select-none">
+                  <div
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, categoryId: 0 }))
+                      setIsComboOpen(false)
+                    }}
+                    className={`px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 ${
+                      formData.categoryId === 0 ? 'bg-indigo-50/40 text-blue-700 font-bold' : 'text-slate-500'
+                    }`}
+                  >
+                    <span>No category (root)</span>
+                  </div>
+
+                  {filteredCategories.length === 0 ? (
+                    <div className="px-3 py-4 text-center text-xs text-slate-400">
+                      No categories match search criteria.
+                    </div>
+                  ) : (
+                    filteredCategories.map(category => {
+                      const isSelected = formData.categoryId === category.id
+                      return (
+                        <div
+                          key={category.id}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, categoryId: category.id }))
+                            setIsComboOpen(false)
+                          }}
+                          className={`px-3 py-2 cursor-pointer hover:bg-slate-50 flex flex-col gap-0.5 border-b border-slate-50/50 transition duration-100 ${
+                            isSelected ? 'bg-indigo-50/40 border-l-[3px] border-l-blue-600 pl-2.25' : ''
+                          }`}
+                        >
+                          <span className={`text-xs ${isSelected ? 'text-blue-700 font-bold' : 'text-slate-800 font-semibold'}`}>
+                            {category.lastName}
+                          </span>
+                          <span className="text-[10px] text-slate-400 truncate">
+                            {category.fullPath}
+                          </span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -430,7 +528,7 @@ export function LearnerGroupEditorPage() {
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Category</dt>
-          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedCategoryName}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedCategoryPath}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Initial Members</dt>
