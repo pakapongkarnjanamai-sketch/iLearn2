@@ -71,6 +71,9 @@ npm run build
 - ปรับหน้าที่ migrate ไว้ก่อนหน้า (`UserDetailPage`, `ContentItemDetailPage`) ให้สอดคล้องดีไซน์ใหม่ (ไม่มี header และไม่มี back props)
 - ปรับ 5 หน้าใน scope ของ PLAN-008 (`CourseDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`, `MasterDataDetailPage`, `LearnerProfilePage`) ให้เป็นมาตรฐานใหม่ทั้งหมด
 - `AssignmentDetailPage` รีแฟกเตอร์จาก KPI strip เป็นแท็บ 3 ส่วน (Overview/Courses/Learners) โดยย้าย metrics + schedule facts ไปไว้ใน Overview (`DetailCard` + `FactGrid`)
+- ปิดช่องว่างสุดท้ายของ `LearnerGroupDetailPage`: เพิ่มแท็บ `Overview/Members`, ย้าย `LMS Category` + `Owner / Creator` ออกจาก sidebar มาแสดงใน Overview (`DetailCard` + `FactGrid`) และคงตารางสมาชิกเดิมไว้ในแท็บ Members
+- เสริม guard เชิงโครงสร้างให้ `ControlsSidebar` เป็น action-only จริง โดยลบ `ControlsDivider` helper ออกจากคอมโพเนนต์กลาง และลบการใช้งานทั้งหมดใน detail pages
 - คง logic เดิมของ data loading, modals, destructive actions, และตารางข้อมูลไว้ครบ
 - Verification ผ่าน: `npm run lint` (0 errors, 11 warnings baseline), `npm run build` ผ่าน
+- Manual smoke เพิ่มเติมผ่านที่ `/learner-groups/22` ยืนยันแท็บ `Overview/Members` ทำงานครบและ sidebar เหลือเฉพาะปุ่มดำเนินการ
 - Acceptance grep ผ่าน: ไม่มี `DetailPageHeader`, ไม่มี `<ControlsSidebar ... backTo=...>`, ไม่มี `backTo?`/`backLabel?`/`ArrowLeft` ใน `ControlsSidebar`, และไม่มี KPI strip (`auto-cols-fr grid-flow-col`) ใน `AssignmentDetailPage.tsx`

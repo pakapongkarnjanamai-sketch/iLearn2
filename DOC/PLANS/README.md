@@ -5,6 +5,7 @@
 ## Workflow
 
 1. Claude สร้างไฟล์ `PLAN-NNN-<slug>.md` สถานะ `READY` พร้อมระบุ Assigned
+   * **หมายเหตุ:** เมื่อเกิดความต้องการหรือคำสั่งให้แก้ไขเพิ่มเติมในรอบใหม่ (Iteration/Feedback Loop) ให้สร้างไฟล์ `PLAN` ตัวใหม่เสมอ หลีกเลี่ยงการแก้ไขหรืออัปเดตข้อมูลบนไฟล์ `PLAN` เดิม
 2. Implementer ที่ถูก assign เปิดแผน → ทำตาม Scope → รัน Verification → เปลี่ยนสถานะเป็น `DONE` + เติม Implementer Notes → ลง `DOC/AGENT_LOG.md`
 3. Claude รีวิว diff หลังทำเสร็จ ถ้าผ่านเปลี่ยนเป็น `VERIFIED` ถ้าไม่ผ่านเปลี่ยนกลับเป็น `READY` พร้อมหมายเหตุ
 

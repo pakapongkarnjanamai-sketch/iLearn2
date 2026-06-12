@@ -59,7 +59,7 @@
 
 หน้าประเภท Detail (`/courses/:id`, `/content-library/:id`, `/learner-groups/:id`, `/users/:id`, `/assignments/:id`, `/master-data/:type/:id`, `/learners/:id/profile`) ใช้โครงสร้างมาตรฐานเดียวกันทั้งหมด ผ่านชุดคอมโพเนนต์ร่วมใน `src/components/ui/detail/` (ดู PLAN-007/008):
 
-*   **โครงหน้า (DetailLayout):** กริด 2 คอลัมน์ `lg:grid-cols-[minmax(0,1fr)_280px]` — เนื้อหาหลักซ้าย (`min-w-0`) + `ControlsSidebar` ขวากว้างคงที่ **280px** (ประกอบด้วย `ControlAction` รายการคำสั่ง โดยคำสั่งทำลายล้างใช้ `variant="danger"` และอยู่ล่างสุดเสมอ)
+*   **โครงหน้า (DetailLayout):** กริด 2 คอลัมน์ `lg:grid-cols-[minmax(0,1fr)_280px]` — เนื้อหาหลักซ้าย (`min-w-0`) + `ControlsSidebar` ขวากว้างคงที่ **280px** (ประกอบด้วย `ControlAction` รายการคำสั่งที่เป็นปุ่มดำเนินการเท่านั้น ห้ามนำข้อมูลรายละเอียด คุณสมบัติ หรือ Metadata อื่น ๆ มาใส่ในส่วนนี้ โดยให้ย้ายข้อมูลที่ไม่ใช่ปุ่มไปจัดแสดงไว้ในแท็บ **Overview** แทน)
 *   **การ์ดเนื้อหา (DetailCard):** เนื้อหาแบ่งเป็น section การ์ด `rounded-lg border border-slate-200 bg-white p-5 space-y-5` เปิดหัวด้วย `SectionHeader`
 *   **ตารางข้อเท็จจริง (FactGrid / Fact):** ข้อมูลแบบ label–value แสดงเป็น `dl` กริด 2–3 คอลัมน์ (`gap-x-6 gap-y-5 text-xs`) แต่ละช่องคือ `Fact`: `dt` label ตัวพิมพ์ใหญ่ (`text-slate-400 font-bold uppercase tracking-wider`) + `dd` ค่า (`mt-1`) — ค่าที่เป็นรหัส/path ใช้ `mono` (font-mono + wrap-break-word)
 *   **หัวข้อย่อยในกลุ่มการ์ด (DetailSubSection):** คั่นกลุ่มข้อมูลด้วยเส้น `border-slate-100` + ป้ายหัวข้อจิ๋วตัวพิมพ์ใหญ่ ก่อนเข้าเนื้อหากลุ่มถัดไป

@@ -5,8 +5,7 @@ import { Loader2, Settings } from 'lucide-react'
 
 /*
  * Standard right-hand controls sidebar used by every detail page.
- * Compose with <ControlAction> rows; extra content (metadata, dl lists)
- * can be passed as plain children — wrap with <ControlsDivider> as needed.
+ * Compose with <ControlAction> rows only.
  */
 
 type ControlsSidebarProps = {
@@ -30,10 +29,6 @@ export function ControlsSidebar({
       {children}
     </aside>
   )
-}
-
-export function ControlsDivider({ children }: { children: ReactNode }) {
-  return <div className="pt-2 border-t border-slate-100 space-y-3">{children}</div>
 }
 
 type ControlActionVariant = 'default' | 'danger' | 'primary'

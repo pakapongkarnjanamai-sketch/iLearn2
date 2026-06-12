@@ -14,6 +14,18 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 18:57] GitHub Copilot (GPT-5.3-Codex) — ปิด PLAN-009 เป็น DONE และยืนยันผลทดสอบรอบสุดท้าย
+- ทำอะไร: ตรวจเทียบโค้ดจริงกับขอบเขต PLAN-009 ซ้ำทั้งหมด (DetailPageHeader/backTo/backLabel ถูกถอด, sidebar เป็น action-only, Assignment และ Learner Group เป็นแท็บตามสเปค), อัปเดตสถานะ `PLAN-009-refine-detail-pages-design.md` จาก READY เป็น DONE พร้อม acceptance และ implementer notes, แล้วยืนยันว่า scope ต่อเนื่องของ PLAN-008 อยู่ในสถานะ DONE แล้ว
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-009-refine-detail-pages-design.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เป็นการปิดแผนและยืนยันผล)
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน
+
+## [2026-06-12 18:54] GitHub Copilot (GPT-5.3-Codex) — ปิดช่องว่าง LearnerGroup tabs + บังคับ action-only sidebar
+- ทำอะไร: รีแฟกเตอร์ `LearnerGroupDetailPage` ให้มีแท็บ `Overview` และ `Members`; ย้ายข้อมูล `LMS Category` และ `Owner / Creator` ออกจาก `ControlsSidebar` ไปอยู่ในการ์ด Overview (`DetailCard` + `FactGrid`); ลบการใช้ `ControlsDivider`; ปรับ `ControlsSidebar` ให้เป็น action-only API ด้วยการลบ `ControlsDivider` helper ออกจากคอมโพเนนต์กลาง
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/components/ui/ControlsSidebar.tsx`, `DOC/PLANS/PLAN-008-detail-pages-migration.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ปรับ UI helper contract ภายใน (`ControlsDivider` ถูกถอดออก); API/DB ไม่เปลี่ยน
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน; manual browser ที่ `/learner-groups/22` ยืนยันแท็บทำงานครบและ sidebar เหลือเฉพาะปุ่ม
+
 ## [2026-06-12 18:43] GitHub Copilot (GPT-5.3-Codex) — ปิดงาน DETAIL redesign ใหม่ + Assignment tabs
 - ทำอะไร: ปรับ `AssignmentDetailPage` ให้เลิกใช้ KPI/Metric strip ด้านบน แล้วเปลี่ยนเป็นแท็บ `Overview`, `Courses`, `Learners` โดยย้าย metrics + schedule ไปอยู่ใน `Overview` ด้วย `DetailCard` + `FactGrid`; ยืนยันมาตรฐานใหม่ทั้งระบบ detail ว่าไม่มี `DetailPageHeader` และไม่มี Back link ใน `ControlsSidebar`; อัปเดต `PLAN-008` acceptance/notes ให้ตรงผลงานล่าสุด
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-008-detail-pages-migration.md`, `DOC/AGENT_LOG.md`

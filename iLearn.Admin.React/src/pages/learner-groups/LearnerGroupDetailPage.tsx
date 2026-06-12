@@ -12,8 +12,8 @@ import {
 import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
-import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
-import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
+import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { DetailCard, DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -101,9 +101,12 @@ export function LearnerGroupDetailPage() {
 
   // Modal / Operations drawers
   const [managerMode, setManagerMode] = useState<'none' | 'add' | 'remove'>('none')
+
+  // Page tabs
+  const [detailTab, setDetailTab] = useState<'overview' | 'members'>('overview')
   
   // Member additions workspace state
-  const [activeTab, setActiveTab] = useState<'picker' | 'bulk'>('picker')
+  const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
   const [pendingAddLearners, setPendingAddLearners] = useState<LearnerSelection[]>([])
   
   // Bulk Add form state
@@ -337,14 +340,40 @@ export function LearnerGroupDetailPage() {
             <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
               Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
             </ControlAction>
+          </ControlsSidebar>
+        }
+      >
+        <div className="border-b border-slate-200 mb-6 flex gap-1">
+          {(['overview', 'members'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setDetailTab(tab)}
+              className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
+                detailTab === tab
+                  ? 'text-indigo-600 font-bold border-b-2 border-indigo-500'
+                  : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
 
-            {/* Properties info */}
-            <ControlsDivider>
-              <FactGrid cols={2} className="gap-3 text-sm">
+        <main className="space-y-6">
+          {detailTab === 'overview' && (
+            <DetailCard>
+              <SectionHeader icon={Settings}>Overview</SectionHeader>
+
+              <FactGrid>
+                <Fact label="Group Name" valueClassName="font-bold text-slate-800">
+                  {group.name}
+                </Fact>
+                <Fact label="Members" valueClassName="font-bold text-slate-800">
+                  {group.members.length}
+                </Fact>
                 <Fact
                   label="LMS Category"
                   colSpan="full"
-                  labelClassName="text-slate-400 font-bold text-xs uppercase"
                   valueClassName="font-semibold"
                 >
                   {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
@@ -365,74 +394,78 @@ export function LearnerGroupDetailPage() {
                   label="Owner / Creator"
                   colSpan="full"
                   mono
-                  labelClassName="text-slate-400 font-bold text-xs uppercase"
                   valueClassName="font-bold"
                 >
                   {group.createdBy || 'System Admin'}
                 </Fact>
+                {group.description && (
+                  <Fact label="Description" colSpan="full">
+                    {group.description}
+                  </Fact>
+                )}
               </FactGrid>
-            </ControlsDivider>
-          </ControlsSidebar>
-        }
-      >
+            </DetailCard>
+          )}
 
-        {/* Members List Table Grid */}
-        <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-          <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
+          {detailTab === 'members' && (
+            <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
 
-          <div className="overflow-x-auto max-h-140 custom-scrollbar">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                  <th className="p-3 w-10">Select</th>
-                  <th className="p-3">Learner Code (EId)</th>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Division / Department</th>
-                  <th className="p-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {group.members.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-400">
-                      No members.
-                    </td>
-                  </tr>
-                ) : (
-                  group.members.map(m => {
-                    const isChecked = selectedMemberIds.includes(m.id)
-                    return (
-                      <tr key={m.id} className={`hover:bg-slate-50/60 transition ${isChecked ? 'bg-indigo-50/20' : ''}`}>
-                        <td className="p-3 w-10">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleSelectMember(m.id)}
-                            className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3 font-mono font-bold text-slate-800">{m.learnerCode}</td>
-                        <td className="p-3 font-semibold text-slate-900">{m.learnerName}</td>
-                        <td className="p-3 text-slate-500 text-xs font-semibold">
-                          {m.division || '-'} {m.department ? `/ ${m.department}` : ''}
-                        </td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => handleRemoveSingleMember(m.id)}
-                            className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
-                            title="Remove member"
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </button>
+              <div className="overflow-x-auto max-h-140 custom-scrollbar">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                      <th className="p-3 w-10">Select</th>
+                      <th className="p-3">Learner Code (EId)</th>
+                      <th className="p-3">Name</th>
+                      <th className="p-3">Division / Department</th>
+                      <th className="p-3 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {group.members.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                          No members.
                         </td>
                       </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    ) : (
+                      group.members.map((m) => {
+                        const isChecked = selectedMemberIds.includes(m.id)
+                        return (
+                          <tr key={m.id} className={`hover:bg-slate-50/60 transition ${isChecked ? 'bg-indigo-50/20' : ''}`}>
+                            <td className="p-3 w-10">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleSelectMember(m.id)}
+                                className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
+                              />
+                            </td>
+                            <td className="p-3 font-mono font-bold text-slate-800">{m.learnerCode}</td>
+                            <td className="p-3 font-semibold text-slate-900">{m.learnerName}</td>
+                            <td className="p-3 text-slate-500 text-xs font-semibold">
+                              {m.division || '-'} {m.department ? `/ ${m.department}` : ''}
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                onClick={() => handleRemoveSingleMember(m.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
+                                title="Remove member"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </main>
 
       </DetailLayout>
 
@@ -519,18 +552,18 @@ export function LearnerGroupDetailPage() {
                 <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100">
                   <button
                     type="button"
-                    onClick={() => setActiveTab('picker')}
+                    onClick={() => setMemberAddTab('picker')}
                     className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                      activeTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      memberAddTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     Directory Search
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveTab('bulk')}
+                    onClick={() => setMemberAddTab('bulk')}
                     className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                      activeTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      memberAddTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     Bulk Import (EIds)
@@ -550,7 +583,7 @@ export function LearnerGroupDetailPage() {
             {/* Modal Body */}
             <div className="flex-1 min-h-0 flex flex-col">
               {!addPreview ? (
-                activeTab === 'picker' ? (
+                memberAddTab === 'picker' ? (
                   <div className="flex-1 flex flex-col min-h-0">
                     <LearnerDirectorySelector
                       selectedLearners={pendingAddLearners}
