@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Plus, Edit3, Trash2, X, FolderTree, Save } from 'lucide-react'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
+import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -138,96 +138,101 @@ export function LearnerGroupCategoriesPage() {
 
   return (
     <>
-      <PageHeader
+      <DataGridSurface
+        title="Learner Group Categories"
+        note="Manage hierarchy folders used by learner groups."
         actions={
           <AppButton variant="primary" icon={Plus} onClick={openCreate}>
             New Category
           </AppButton>
         }
-      />
+      >
+        <div className="flex min-h-0 flex-1 flex-col pt-3">
+          {loading ? (
+            <LoadingState size="section" />
+          ) : items.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50/40 p-8 text-sm text-slate-400">
+              <FolderTree className="h-8 w-8" />
+              <p>No categories.</p>
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white">
+              <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2.5">
+                <span className="text-xs font-semibold text-slate-500">
+                  Showing <strong className="text-slate-800">{items.length}</strong> categories
+                </span>
+              </div>
 
-      <div className="mb-4">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Master Data</div>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Learner Group Categories</h1>
-      </div>
-
-      {loading ? (
-        <LoadingState label="Loading categories..." />
-      ) : items.length === 0 ? (
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs flex flex-col items-center gap-2 p-12 text-sm text-slate-400">
-          <FolderTree className="h-8 w-8" />
-          <p>No categories.</p>
+              <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
+                <table className="min-w-full border-collapse text-left text-xs">
+                  <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/90 text-xxs font-extrabold uppercase text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2.5">Name</th>
+                      <th className="px-3 py-2.5">Description</th>
+                      <th className="px-3 py-2.5">Parent</th>
+                      <th className="px-3 py-2.5 text-center">Depth</th>
+                      <th className="px-3 py-2.5 text-center">Children</th>
+                      <th className="px-3 py-2.5 text-center">Learner Groups</th>
+                      <th className="px-3 py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {items.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/70">
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-1.5" style={{ paddingLeft: c.depth * 16 }}>
+                            <FolderTree className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="font-bold text-slate-800">{c.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-500">{c.description || '—'}</td>
+                        <td className="px-3 py-2.5 text-slate-500">{c.parentName || '—'}</td>
+                        <td className="px-3 py-2.5 text-center font-mono">{c.depth}</td>
+                        <td className="px-3 py-2.5 text-center font-mono">{c.childCount}</td>
+                        <td className="px-3 py-2.5 text-center font-mono">{c.learnerGroupCount}</td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              title="Edit"
+                              onClick={() => openEdit(c)}
+                              className="rounded-md border border-transparent p-1.5 text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Delete"
+                              onClick={() => handleDelete(c)}
+                              disabled={busy || c.hasChildren || c.learnerGroupCount > 0}
+                              className="rounded-md border border-transparent p-1.5 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-xxs font-extrabold uppercase text-slate-500">
-                <th className="p-2.5">Name</th>
-                <th className="p-2.5">Description</th>
-                <th className="p-2.5">Parent</th>
-                <th className="p-2.5 text-center">Depth</th>
-                <th className="p-2.5 text-center">Children</th>
-                <th className="p-2.5 text-center">Learner Groups</th>
-                <th className="p-2.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {items.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50">
-                  <td className="p-2.5">
-                    <div className="flex items-center gap-1.5" style={{ paddingLeft: c.depth * 16 }}>
-                      <FolderTree className="h-3.5 w-3.5 text-slate-400" />
-                      <span className="font-bold text-slate-800">{c.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-2.5 text-xs text-slate-500">{c.description || '—'}</td>
-                  <td className="p-2.5 text-xs text-slate-500">{c.parentName || '—'}</td>
-                  <td className="p-2.5 text-center font-mono text-xs">{c.depth}</td>
-                  <td className="p-2.5 text-center font-mono text-xs">{c.childCount}</td>
-                  <td className="p-2.5 text-center font-mono text-xs">{c.learnerGroupCount}</td>
-                  <td className="p-2.5">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        title="Edit"
-                        onClick={() => openEdit(c)}
-                        className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        title="Delete"
-                        onClick={() => handleDelete(c)}
-                        disabled={busy || c.hasChildren || c.learnerGroupCount > 0}
-                        className="rounded p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        </div>
-      )}
+      </DataGridSurface>
 
       {form && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-[1px]"
           onClick={closeForm}
         >
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+            className="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-5 shadow-xl"
           >
             <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
-              <h2 className="text-sm font-extrabold uppercase text-slate-700">
+              <h2 className="text-xs font-extrabold uppercase text-slate-700">
                 {form.id ? 'Edit Category' : 'New Category'}
               </h2>
               <button
@@ -241,33 +246,33 @@ export function LearnerGroupCategoriesPage() {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xxs font-extrabold uppercase text-slate-500">Name</label>
+                <label className="text-[10px] font-extrabold uppercase text-slate-500">Name</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
                   autoFocus
                   required
                 />
               </div>
               <div>
-                <label className="text-xxs font-extrabold uppercase text-slate-500">Description</label>
+                <label className="text-[10px] font-extrabold uppercase text-slate-500">Description</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="text-xxs font-extrabold uppercase text-slate-500">Parent Category</label>
+                <label className="text-[10px] font-extrabold uppercase text-slate-500">Parent Category</label>
                 <select
                   value={form.parentId}
                   onChange={(e) =>
                     setForm({ ...form, parentId: e.target.value === '' ? '' : Number(e.target.value) })
                   }
-                  className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="">— Root (no parent) —</option>
                   {parentOptions.map((p) => (

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { CalendarClock } from 'lucide-react'
+import { AppButton } from '../../components/ui/AppButton'
+import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
@@ -16,6 +19,13 @@ type GanttTask = {
 }
 
 const STATUS_FILTERS = ['All', 'InProgress', 'Upcoming', 'Completed', 'Expired'] as const
+const STATUS_LABELS: Record<(typeof STATUS_FILTERS)[number], string> = {
+  All: 'All',
+  InProgress: 'In Progress',
+  Upcoming: 'Upcoming',
+  Completed: 'Completed',
+  Expired: 'Expired',
+}
 
 const DAY_PX = 18
 const ROW_PX = 32
@@ -109,155 +119,151 @@ export function AssignmentGanttPage() {
   }, [tasks])
 
   return (
-    <>
-      <header className="mb-3">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Operations</div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Assignment Schedule</h1>
-      </header>
-
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {STATUS_FILTERS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStatusFilter(s)}
-                className={`rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
-                  statusFilter === s
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                }`}
-              >
-                {s} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={scrollToToday}
-            className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-slate-300"
-          >
-            Today
-          </button>
+    <DataGridSurface
+      title="Assignment Schedule"
+      note="Timeline by assignment batch and due range."
+      actions={
+        <AppButton variant="secondary" icon={CalendarClock} onClick={scrollToToday}>
+          Today
+        </AppButton>
+      }
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={`rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                statusFilter === s
+                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              {STATUS_LABELS[s]} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
+            </button>
+          ))}
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 p-8 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading schedule...
-          </div>
+          <LoadingState size="section" />
         ) : filtered.length === 0 ? (
-          <div className="p-6 text-center text-slate-400 text-[13px] font-medium">No assignments.</div>
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50/40 p-8 text-[13px] font-medium text-slate-400">
+            No assignments.
+          </div>
         ) : (
-          <div>
-          <div className="flex">
-            {/* Left fixed name column */}
-            <div className="w-72 shrink-0 border-r border-slate-200/60 bg-white">
-              <div className="h-14 border-b border-slate-200/60 px-3 py-1.5 text-xxs font-extrabold uppercase text-slate-500">
-                <div className="leading-tight">Assignment</div>
-                <div className="text-slate-400">batch</div>
-              </div>
-              {filtered.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center border-b border-slate-100/70 px-3"
-                  style={{ height: ROW_PX }}
-                >
-                  <div className="truncate">
-                    <span className="font-mono text-xs text-slate-500">{t.assignmentNo}</span>
-                    <span className="ml-2 text-xs font-semibold text-slate-700">{t.title}</span>
-                  </div>
-                </div>
-              ))}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white">
+            <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2.5">
+              <span className="text-xs font-semibold text-slate-500">
+                Showing <strong className="text-slate-800">{filtered.length}</strong> of {tasks.length} batches
+              </span>
             </div>
 
-            {/* Right scrollable timeline */}
-            <div className="flex-1 overflow-x-auto">
-              <div style={{ width: totalDays * DAY_PX, minWidth: '100%' }}>
-                {/* Month header */}
-                <div className="flex border-b border-slate-200/60">
-                  {monthHeaders.map((m, i) => (
+            <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
+              <div className="flex min-w-full">
+                <div className="w-72 shrink-0 border-r border-slate-200/70 bg-white">
+                  <div className="h-14 border-b border-slate-200/70 px-3 py-1.5 text-xxs font-extrabold uppercase text-slate-500">
+                    <div className="leading-tight">Assignment</div>
+                    <div className="text-slate-400">batch</div>
+                  </div>
+                  {filtered.map((t) => (
                     <div
-                      key={i}
-                      className="border-r border-slate-200/60 px-2 py-1 text-xxs font-bold uppercase text-slate-500"
-                      style={{ width: m.days * DAY_PX }}
+                      key={t.id}
+                      className="flex items-center border-b border-slate-100/70 px-3"
+                      style={{ height: ROW_PX }}
                     >
-                      {m.label}
+                      <div className="truncate">
+                        <span className="font-mono text-xs text-slate-500">{t.assignmentNo}</span>
+                        <span className="ml-2 text-xs font-semibold text-slate-700">{t.title}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-                {/* Day header */}
-                <div className="flex border-b border-slate-200/60" style={{ height: 28 }}>
-                  {Array.from({ length: totalDays }).map((_, i) => {
-                    const d = new Date(rangeStart)
-                    d.setDate(d.getDate() + i)
-                    const isWeekend = d.getDay() === 0 || d.getDay() === 6
-                    const isToday = d.getTime() === today.getTime()
-                    return (
-                      <div
-                        key={i}
-                        className={`text-center text-xxs leading-7 ${
-                          isWeekend ? 'bg-slate-50 text-slate-400' : 'text-slate-500'
-                        } ${isToday ? 'bg-indigo-50 font-bold text-indigo-700' : ''}`}
-                        style={{ width: DAY_PX }}
-                      >
-                        {dayFmt.format(d)}
-                      </div>
-                    )
-                  })}
-                </div>
 
-                {/* Bars */}
-                <div className="relative">
-                  {/* Today marker line */}
-                  {diffDays(rangeStart, today) >= 0 && diffDays(rangeStart, today) < totalDays && (
-                    <div
-                      id="gantt-today-marker"
-                      className="pointer-events-none absolute top-0 z-10 h-full border-l-2 border-indigo-500/60"
-                      style={{ left: diffDays(rangeStart, today) * DAY_PX + DAY_PX / 2 }}
-                    />
-                  )}
-
-                  {filtered.map((t) => {
-                    const start = parseDate(t.startDate)
-                    const end = parseDate(t.dueDate)
-                    const left = Math.max(0, diffDays(rangeStart, start)) * DAY_PX
-                    const width = Math.max(DAY_PX, (diffDays(start, end) + 1) * DAY_PX)
-                    return (
-                      <div
-                        key={t.id}
-                        className="relative border-b border-slate-100/70"
-                        style={{ height: ROW_PX }}
-                      >
+                <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                  <div style={{ width: totalDays * DAY_PX, minWidth: '100%' }}>
+                    <div className="flex border-b border-slate-200/70">
+                      {monthHeaders.map((m, i) => (
                         <div
-                          className="absolute top-1.5 flex items-center overflow-hidden rounded text-xxs font-bold text-white shadow-sm"
-                          style={{
-                            left,
-                            width,
-                            height: ROW_PX - 12,
-                            background: t.color,
-                          }}
-                          title={`${t.title} — ${t.status} (${t.progress}%)`}
+                          key={i}
+                          className="border-r border-slate-200/70 px-2 py-1 text-xxs font-bold uppercase text-slate-500"
+                          style={{ width: m.days * DAY_PX }}
                         >
-                          <div
-                            className="h-full bg-white/25"
-                            style={{ width: `${Math.min(100, Math.max(0, t.progress))}%` }}
-                          />
-                          <span className="absolute inset-0 flex items-center justify-center px-1.5">
-                            {t.progress}%
-                          </span>
+                          {m.label}
                         </div>
-                      </div>
-                    )
-                  })}
+                      ))}
+                    </div>
+
+                    <div className="flex border-b border-slate-200/70" style={{ height: 28 }}>
+                      {Array.from({ length: totalDays }).map((_, i) => {
+                        const d = new Date(rangeStart)
+                        d.setDate(d.getDate() + i)
+                        const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                        const isToday = d.getTime() === today.getTime()
+                        return (
+                          <div
+                            key={i}
+                            className={`text-center text-xxs leading-7 ${
+                              isWeekend ? 'bg-slate-50 text-slate-400' : 'text-slate-500'
+                            } ${isToday ? 'bg-indigo-50 font-bold text-indigo-700' : ''}`}
+                            style={{ width: DAY_PX }}
+                          >
+                            {dayFmt.format(d)}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <div className="relative">
+                      {diffDays(rangeStart, today) >= 0 && diffDays(rangeStart, today) < totalDays && (
+                        <div
+                          id="gantt-today-marker"
+                          className="pointer-events-none absolute top-0 z-10 h-full border-l-2 border-indigo-500/60"
+                          style={{ left: diffDays(rangeStart, today) * DAY_PX + DAY_PX / 2 }}
+                        />
+                      )}
+
+                      {filtered.map((t) => {
+                        const start = parseDate(t.startDate)
+                        const end = parseDate(t.dueDate)
+                        const left = Math.max(0, diffDays(rangeStart, start)) * DAY_PX
+                        const width = Math.max(DAY_PX, (diffDays(start, end) + 1) * DAY_PX)
+                        return (
+                          <div
+                            key={t.id}
+                            className="relative border-b border-slate-100/70"
+                            style={{ height: ROW_PX }}
+                          >
+                            <div
+                              className="absolute top-1.5 flex items-center overflow-hidden rounded text-xxs font-bold text-white shadow-sm"
+                              style={{
+                                left,
+                                width,
+                                height: ROW_PX - 12,
+                                background: t.color,
+                              }}
+                              title={`${t.title} — ${t.status} (${t.progress}%)`}
+                            >
+                              <div
+                                className="h-full bg-white/25"
+                                style={{ width: `${Math.min(100, Math.max(0, t.progress))}%` }}
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center px-1.5">
+                                {t.progress}%
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          </div>
         )}
-      </section>
-    </>
+      </div>
+    </DataGridSurface>
   )
 }
