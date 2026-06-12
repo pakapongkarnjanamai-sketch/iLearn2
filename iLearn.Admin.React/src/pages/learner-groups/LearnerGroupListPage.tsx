@@ -217,13 +217,15 @@ export function LearnerGroupListPage() {
   }, [loadData])
 
   useEffect(() => {
-    if (currentCategoryId === 0) return
+    // Wait for categories to load before validating the deep-linked folder —
+    // on first render the list is still empty and every categoryId looks invalid.
+    if (currentCategoryId === 0 || loading || categories.length === 0) return
 
     const exists = categories.some(category => category.id === currentCategoryId)
     if (!exists) {
       setSearchParams({}, { replace: true })
     }
-  }, [categories, currentCategoryId, setSearchParams])
+  }, [categories, currentCategoryId, loading, setSearchParams])
 
   useEffect(() => {
     const rootCrumbs = [{ to: '/learner-groups', label: 'Learner Groups' }]

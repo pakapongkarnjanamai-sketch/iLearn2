@@ -4,11 +4,24 @@
 
 ## Multi-Agent Coordination (สำคัญที่สุด — อ่านก่อนแก้ไฟล์ใด ๆ)
 
-repo นี้มี AI agent มากกว่าหนึ่งตัวทำงานคู่ขนานกัน กติกา:
+repo นี้มี AI agent มากกว่าหนึ่งตัวทำงานคู่ขนานกัน **แบ่งบทบาทดังนี้:**
+
+| Agent | บทบาท |
+|---|---|
+| **Claude Code** | Planner/Reviewer — วิเคราะห์ เขียนแผนใน `DOC/PLANS/`, รีวิวงานหลัง implement |
+| **Antigravity (Gemini)** | Implementer — รับงานจาก `DOC/PLANS/` ที่ Assigned ให้ Gemini |
+| **GitHub Copilot (GPT)** | Implementer — รับงานจาก `DOC/PLANS/` ที่ Assigned ให้ GPT |
+
+กติกากลาง:
 
 1. **ก่อนเริ่มงาน:** อ่าน `DOC/AGENT_LOG.md` (10 entry ล่าสุดพอ) เพื่อดูว่า agent อื่นเพิ่งแตะไฟล์ไหน/เปลี่ยน contract อะไร — ห้าม revert งานที่ agent อื่นเพิ่งทำโดยไม่มีเหตุผล ให้ reconcile แทน
 2. **หลังจบงานที่มีการแก้โค้ด:** ต่อท้าย entry ใหม่ใน `DOC/AGENT_LOG.md` ตาม format ในไฟล์นั้น (ใหม่สุดอยู่บนสุด)
 3. ถ้าพบว่าไฟล์ที่กำลังจะแก้เพิ่งถูกเปลี่ยนโดย agent อื่น (ดูจาก log หรือ git) ให้ตรวจ contract สองฝั่ง (API ↔ React types) ก่อนแก้เสมอ
+
+กติกาเฉพาะ implementer (Gemini/GPT):
+
+4. รับงานจากไฟล์แผนใน `DOC/PLANS/` ที่สถานะ `READY` และ Assigned ตรงกับตัวเอง — ทำตาม Scope ในแผน **ห้ามขยายขอบเขตเอง** ถ้าเจอปัญหานอกแผนให้จดลงท้ายไฟล์แผน (หัวข้อ Implementer Notes) แล้วทำงานเดิมต่อ
+5. ทำเสร็จ: เปลี่ยนสถานะในไฟล์แผนเป็น `DONE` + เติม Implementer Notes (ทำอะไรต่างจากแผนบ้าง/เจออะไร) + รัน verification ตามที่แผนระบุ + ลง AGENT_LOG ตามปกติ
 
 ## โครงสร้างโปรเจค
 

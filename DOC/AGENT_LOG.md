@@ -14,6 +14,19 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 15:50] Claude Code — ตั้งระบบ Planner/Implementer + แผน 2 ใบแรก
+- ทำอะไร: ผู้ใช้กำหนดบทบาทใหม่: Claude = planner/reviewer, Gemini + GPT = implementer — สร้าง `DOC/PLANS/` (README + template + workflow READY→DONE→VERIFIED), เขียนแผนพร้อมทำ 2 ใบ: **PLAN-001** (Assigned: Gemini — หน้า Upload SCORM โหมด create เลือก Content Type ไม่ได้เพราะ wizard ข้าม Metadata step), **PLAN-002** (Assigned: GPT — ลบ dead code `adminListConfigs.learnerGroups` + branch LearnerGroupsCRUD ใน EntityListPage + ป้ายวันที่โฟลเดอร์), อัปเดตบทบาทใน `CLAUDE.md`
+- ไฟล์หลักที่แตะ: `CLAUDE.md`, `DOC/PLANS/README.md`, `DOC/PLANS/PLAN-001-*.md`, `DOC/PLANS/PLAN-002-*.md`
+- Contract ที่เปลี่ยน: ไม่มี (เอกสารล้วน)
+- Verified: n/a (ไม่มีโค้ดเปลี่ยน)
+
+## [2026-06-12 15:30] Claude Code — Review งานชุด Learner Group Explorer + แก้บั๊ก deep-link
+- ทำอะไร: รีวิว commits 75d79a7..e2c7a44 ทั้งชุด (Explorer แบบโฟลเดอร์, breadcrumb custom trail, AppTableSearch/Footer ใหม่, backend filter) — พบและแก้บั๊ก 1 ตัว: เปิด `/learner-groups?categoryId=N` ตรง ๆ หรือ refresh ระหว่างอยู่ในโฟลเดอร์จะถูกเด้งกลับ root เพราะ effect ที่ validate categoryId ทำงานก่อน categories โหลดเสร็จ → เพิ่ม guard `loading || categories.length === 0` (ยืนยันใน browser แล้วทั้ง id จริง=อยู่ต่อ และ id ปลอม=ถูกดีดตามเดิม)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`
+- Contract ที่เปลี่ยน: ไม่มี
+- ข้อสังเกตค้างไว้ (ยังไม่แก้): `adminListConfigs.learnerGroups` ใน moduleConfigs ไม่มีผู้ใช้แล้ว; `PaginationParams.CategoryId`/`RootCategoryOnly` ฝั่ง backend ยังไม่มี frontend เรียกใช้ (Explorer กรองแบบ client-side)
+- Verified: tsc 0 error, eslint 0 error (warning baseline 10), vite build ผ่าน, dotnet test 112/112
+
 ## [2026-06-12 13:14] GitHub Copilot (GPT-5.3-Codex) — ลดจุดแสดงจำนวน record ใน grid ให้เหลือจุดเดียว
 - ทำอะไร: ปรับ `AppTableFooter` ให้ไม่แสดงข้อความ `Showing X of Y records` ซ้ำกับส่วนบนของ grid อีกต่อไป โดยคงเฉพาะสถานะโหลดด้านล่าง (`Loading more...`, `Scroll down to load more`, `All records loaded`) ทำให้จุดแสดงจำนวน record เหลือจุดเดียวที่ toolbar/search ด้านบน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/table/AppTableFooter.tsx`, `DOC/AGENT_LOG.md`
