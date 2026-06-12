@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
-  ChevronDown,
-  Search,
+  Folder,
+  FolderOpen,
   Plus, 
   Save, 
   X,
@@ -12,6 +12,7 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
+import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { LoadingState } from '../../components/ui/LoadingState'
 
@@ -22,11 +23,6 @@ type GroupCategoryLookup = {
   name: string
   parentId?: number | null
   depth?: number
-}
-
-type ResolvedCategoryOption = GroupCategoryLookup & {
-  fullPath: string
-  lastName: string
 }
 
 type GroupFormData = {
@@ -71,8 +67,8 @@ export function LearnerGroupEditorPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [memberInput, setMemberInput] = useState('')
   const [categories, setCategories] = useState<GroupCategoryLookup[]>([])
-  const [isComboOpen, setIsComboOpen] = useState(false)
-  const [comboSearch, setComboSearch] = useState('')
+  const [isExplorerOpen, setIsExplorerOpen] = useState(false)
+  const [tempCategoryId, setTempCategoryId] = useState<number>(0)
   
   // Selection states
   const [selectedLearners, setSelectedLearners] = useState<LearnerSelection[]>([])
@@ -89,7 +85,7 @@ export function LearnerGroupEditorPage() {
   ), [selectedLearners])
 
   const selectedCategoryPath = useMemo(() => {
-    if (!formData.categoryId) return 'No category (root)'
+    if (!formData.categoryId) return 'No category (Root folder)'
 
     const path: string[] = []
     const visited = new Set<number>()
@@ -102,39 +98,65 @@ export function LearnerGroupEditorPage() {
       current = pId ? categories.find(c => c.id === pId) : undefined
     }
 
-    return path.length > 0 ? path.join(' / ') : 'No category (root)'
+    return path.length > 0 ? path.join(' / ') : 'No category (Root folder)'
   }, [categories, formData.categoryId])
 
-  const resolvedCategories = useMemo<ResolvedCategoryOption[]>(() => {
-    return categories.map(category => {
-      const pathList: string[] = []
-      const visited = new Set<number>()
-      let current: GroupCategoryLookup | undefined = category
+  const tempCategoryPath = useMemo(() => {
+    if (tempCategoryId === 0) return 'Root folder'
 
-      while (current && !visited.has(current.id)) {
-        visited.add(current.id)
-        pathList.unshift(current.name)
-        const pId: number | null | undefined = current.parentId
-        current = pId ? categories.find(c => c.id === pId) : undefined
-      }
+    const path: string[] = []
+    const visited = new Set<number>()
+    let current: GroupCategoryLookup | undefined = categories.find(c => c.id === tempCategoryId)
 
-      return {
-        ...category,
-        fullPath: pathList.join(' / '),
-        lastName: category.name
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id)
+      path.unshift(current.name)
+      const pId: number | null | undefined = current.parentId
+      current = pId ? categories.find(c => c.id === pId) : undefined
+    }
+
+    return path.length > 0 ? path.join(' / ') : 'Root folder'
+  }, [categories, tempCategoryId])
+
+  const treeNodes = useMemo<TreeViewNode[]>(() => {
+    const byParent: Record<number, GroupCategoryLookup[]> = {}
+    const roots: GroupCategoryLookup[] = []
+
+    categories.forEach(category => {
+      const pId = category.parentId || 0
+      if (pId === 0) {
+        roots.push(category)
+      } else {
+        if (!byParent[pId]) byParent[pId] = []
+        byParent[pId].push(category)
       }
     })
+
+    roots.sort((a, b) => a.name.localeCompare(b.name))
+    Object.values(byParent).forEach(children => {
+      children.sort((a, b) => a.name.localeCompare(b.name))
+    })
+
+    const mapNode = (category: GroupCategoryLookup): TreeViewNode => {
+      const children = byParent[category.id] || []
+      return {
+        id: `cat-${category.id}`,
+        text: category.name,
+        categoryId: category.id,
+        items: children.map(mapNode)
+      }
+    }
+
+    return [
+      {
+        id: 'root',
+        text: 'Root Folder (No Category)',
+        isRoot: true,
+        categoryId: 0,
+        items: roots.map(mapNode)
+      }
+    ]
   }, [categories])
-
-  const filteredCategories = useMemo(() => {
-    const term = comboSearch.toLowerCase().trim()
-    if (!term) return resolvedCategories
-
-    return resolvedCategories.filter(category => (
-      category.name.toLowerCase().includes(term) ||
-      category.fullPath.toLowerCase().includes(term)
-    ))
-  }, [resolvedCategories, comboSearch])
 
   const loadCategories = useCallback(async () => {
     try {
@@ -299,114 +321,26 @@ export function LearnerGroupEditorPage() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="wiz-label">Category</label>
-        <div className="relative max-w-md">
-          <div
-            className="flex items-center justify-between px-3 py-2 border border-slate-200 rounded-md bg-white cursor-pointer hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition select-none"
-            onClick={() => {
-              setIsComboOpen(prev => !prev)
-              setComboSearch('')
-            }}
-          >
-            <span className="text-sm text-slate-700 truncate">
+        <label className="wiz-label">Category (Location Folder)</label>
+        <div className="flex flex-col sm:flex-row gap-2 max-w-lg items-stretch sm:items-center">
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-md bg-slate-50/50 text-slate-700 min-w-0 select-none">
+            <Folder className="h-4 w-4 text-indigo-500 shrink-0" />
+            <span className="text-sm font-semibold truncate">
               {selectedCategoryPath}
             </span>
-
-            <div className="flex items-center gap-1.5 shrink-0 text-slate-400">
-              {formData.categoryId > 0 && (
-                <button
-                  type="button"
-                  onClick={event => {
-                    event.stopPropagation()
-                    setFormData(prev => ({ ...prev, categoryId: 0 }))
-                    setIsComboOpen(false)
-                  }}
-                  className="hover:text-red-500 transition p-0.5 rounded-full hover:bg-slate-100"
-                  title="Clear Category"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-
-              <ChevronDown className={`h-4 w-4 transition duration-200 ${isComboOpen ? 'rotate-180' : ''}`} />
-            </div>
           </div>
 
-          {isComboOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40 cursor-default"
-                onClick={() => setIsComboOpen(false)}
-              />
-
-              <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 flex flex-col overflow-hidden max-h-72 animate-fade-in">
-                <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50 select-none">
-                  <Search className="h-4 w-4 text-slate-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Search category by name or path..."
-                    value={comboSearch}
-                    onChange={event => setComboSearch(event.target.value)}
-                    className="w-full bg-transparent text-sm focus:outline-none border-none p-0 text-slate-700 placeholder:text-slate-400"
-                    autoFocus
-                  />
-
-                  {comboSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setComboSearch('')}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="overflow-y-auto flex-1 custom-scrollbar max-h-52 select-none">
-                  <div
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, categoryId: 0 }))
-                      setIsComboOpen(false)
-                    }}
-                    className={`px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 ${
-                      formData.categoryId === 0 ? 'bg-indigo-50/40 text-blue-700 font-bold' : 'text-slate-500'
-                    }`}
-                  >
-                    <span>No category (root)</span>
-                  </div>
-
-                  {filteredCategories.length === 0 ? (
-                    <div className="px-3 py-4 text-center text-xs text-slate-400">
-                      No categories match search criteria.
-                    </div>
-                  ) : (
-                    filteredCategories.map(category => {
-                      const isSelected = formData.categoryId === category.id
-                      return (
-                        <div
-                          key={category.id}
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, categoryId: category.id }))
-                            setIsComboOpen(false)
-                          }}
-                          className={`px-3 py-2 cursor-pointer hover:bg-slate-50 flex flex-col gap-0.5 border-b border-slate-50/50 transition duration-100 ${
-                            isSelected ? 'bg-indigo-50/40 border-l-[3px] border-l-blue-600 pl-2.25' : ''
-                          }`}
-                        >
-                          <span className={`text-xs ${isSelected ? 'text-blue-700 font-bold' : 'text-slate-800 font-semibold'}`}>
-                            {category.lastName}
-                          </span>
-                          <span className="text-[10px] text-slate-400 truncate">
-                            {category.fullPath}
-                          </span>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setTempCategoryId(formData.categoryId || 0)
+              setIsExplorerOpen(true)
+            }}
+            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 text-slate-600 font-bold rounded-md flex items-center justify-center gap-1.5 transition text-xs shrink-0 cursor-pointer"
+          >
+            <FolderOpen className="h-4 w-4 text-indigo-500" />
+            <span>Select Category Folder...</span>
+          </button>
         </div>
       </div>
 
@@ -559,6 +493,82 @@ export function LearnerGroupEditorPage() {
     </div>
   )
 
+  const renderCategoryExplorerModal = () => {
+    if (!isExplorerOpen) return null
+
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
+        onClick={() => setIsExplorerOpen(false)}
+      >
+        <div
+          className="bg-white border border-slate-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-scale-up"
+          onClick={event => event.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 select-none">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-5 w-5 text-indigo-500" />
+              <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Category Folder Explorer</h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsExplorerOpen(false)}
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 text-xxs font-semibold text-slate-400 uppercase select-none">
+            Navigate folder structure to assign learner group category
+          </div>
+
+          <div className="p-4 flex-1 overflow-y-auto max-h-80 min-h-60 bg-slate-50/30 border-b border-slate-100">
+            <div className="bg-white border border-slate-200/60 rounded-lg p-2 shadow-3xs max-h-72 overflow-y-auto custom-scrollbar">
+              <AppTreeView
+                items={treeNodes}
+                onItemClick={event => {
+                  const idVal = event.itemData.categoryId ?? 0
+                  setTempCategoryId(idVal)
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="px-5 py-4 bg-slate-50 flex flex-col gap-3 select-none">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-400 font-bold uppercase text-xxs">Selected:</span>
+              <span className="bg-indigo-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-extrabold truncate flex-1">
+                {tempCategoryPath}
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsExplorerOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, categoryId: tempCategoryId }))
+                  setIsExplorerOpen(false)
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition shadow-3xs cursor-pointer"
+              >
+                Confirm Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const steps: WizardStep[] = [
     { label: 'Information', validate: () => validateInformation(), render: () => renderInformationStep() },
     { label: 'Members', render: () => renderMembersStep() },
@@ -571,81 +581,87 @@ export function LearnerGroupEditorPage() {
 
   if (isEditMode) {
     return (
-      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          {/* Header with Title */}
-          <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Learner Directory
-              </div>
-              <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
-                Edit Learner Group
-              </h1>
-              <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
-                Adjust group names, descriptive categories, and targets.
-              </p>
-            </div>
-          </div>
-          
-          {/* Content Panel Zone */}
-          <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
-            <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
-              <div className="w-full h-full flex flex-col">
-                {renderInformationStep()}
+      <>
+        <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            {/* Header with Title */}
+            <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Learner Directory
+                </div>
+                <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
+                  Edit Learner Group
+                </h1>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
+                  Adjust group names, descriptive categories, and targets.
+                </p>
               </div>
             </div>
             
-            {saving && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
-                <div className="flex flex-col items-center gap-2.5 select-none">
-                  <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
-                  <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
+            {/* Content Panel Zone */}
+            <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
+              <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
+                <div className="w-full h-full flex flex-col">
+                  {renderInformationStep()}
                 </div>
               </div>
-            )}
-          </div>
-          
-          {/* Navigation Buttons Pinned Footer */}
-          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
-            <button 
-              type="button" 
-              onClick={() => navigate(`/learner-groups/${id}`)} 
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 cursor-pointer text-xs shadow-3xs"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-              <span>Cancel</span>
-            </button>
-            <button 
-              type="submit" 
-              disabled={saving} 
-              className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 font-bold text-white hover:bg-indigo-700 cursor-pointer text-xs shadow-3xs disabled:opacity-55"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Save className="h-4 w-4" aria-hidden="true" />
+              
+              {saving && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
+                  <div className="flex flex-col items-center gap-2.5 select-none">
+                    <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+                    <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
+                  </div>
+                </div>
               )}
-              <span>Save Changes</span>
-            </button>
-          </div>
-        </form>
-      </div>
+            </div>
+            
+            {/* Navigation Buttons Pinned Footer */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
+              <button 
+                type="button" 
+                onClick={() => navigate(`/learner-groups/${id}`)} 
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 cursor-pointer text-xs shadow-3xs"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+                <span>Cancel</span>
+              </button>
+              <button 
+                type="submit" 
+                disabled={saving} 
+                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 font-bold text-white hover:bg-indigo-700 cursor-pointer text-xs shadow-3xs disabled:opacity-55"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Save className="h-4 w-4" aria-hidden="true" />
+                )}
+                <span>Save Changes</span>
+              </button>
+            </div>
+          </form>
+        </div>
+        {renderCategoryExplorerModal()}
+      </>
     )
   }
 
   return (
-    <AppWizard
-      title="New Learner Group"
-      description="Create the group, add optional initial members, then review before saving."
-      eyebrow="Learner Directory"
-      steps={steps}
-      currentStep={currentStep}
-      onStepChange={setCurrentStep}
-      onCancel={() => navigate('/learner-groups')}
-      onSubmit={handleSubmit}
-      submitLabel="Create Group"
-      isSubmitting={saving}
-    />
+    <>
+      <AppWizard
+        title="New Learner Group"
+        description="Create the group, add optional initial members, then review before saving."
+        eyebrow="Learner Directory"
+        steps={steps}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+        onCancel={() => navigate('/learner-groups')}
+        onSubmit={handleSubmit}
+        submitLabel="Create Group"
+        isSubmitting={saving}
+      />
+      {renderCategoryExplorerModal()}
+    </>
   )
 }
