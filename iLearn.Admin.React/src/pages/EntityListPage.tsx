@@ -121,7 +121,8 @@ export function EntityListPage({ config }: EntityListPageProps) {
     const prefix = getRoutePrefix(config.controller)
     
     if (config.controller === 'Learners') {
-      const code = e.data.NID || e.data.EId
+      // Learners rows are camelCase since LearnersController deserializes to a typed DTO
+      const code = e.data.nid || e.data.eId
       if (code) navigate(`${prefix}/${code}/profile`)
     } else if (config.controller === 'UsersCRUD') {
       if (e.data.nid) navigate(`${prefix}/${e.data.nid}`)
@@ -146,7 +147,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
         if (!e.row?.data) return
         const prefix = getRoutePrefix(config.controller)
         if (config.controller === 'Learners') {
-          const code = e.row.data.NID || e.row.data.EId
+          const code = e.row.data.nid || e.row.data.eId
           if (code) navigate(`${prefix}/${code}/profile`)
         } else if (config.controller === 'UsersCRUD') {
           if (e.row.data.nid) navigate(`${prefix}/${e.row.data.nid}`)

@@ -275,7 +275,7 @@ export function LearnerGroupEditorPage() {
   )
 
   const renderMembersStep = () => (
-    <div className="flex flex-col gap-3 h-[calc(100vh-340px)] min-h-[360px] w-full">
+    <div className="flex flex-col gap-3 h-[calc(100vh-265px)] min-h-[360px] w-full">
       <div className="flex justify-end select-none shrink-0">
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg text-xs">
           <button

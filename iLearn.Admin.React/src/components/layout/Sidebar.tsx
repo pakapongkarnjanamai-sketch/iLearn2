@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { appConfig } from '../../config/appConfig'
-import { navigationItems, type NavigationItem } from '../../config/navigation'
+import { navigationSections, type NavigationItem, type NavigationSection } from '../../config/navigation'
 import { useSession } from '../../lib/sessionContext'
 
 type SidebarProps = {
@@ -20,7 +20,10 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
     return true
   }
 
-  const visibleItems = navigationItems.filter(isVisible)
+  const visibleSections = navigationSections
+    .filter((section: NavigationSection) => !(section.superAdminOnly && !isSuperAdmin))
+    .map(section => ({ ...section, items: section.items.filter(isVisible) }))
+    .filter(section => section.items.length > 0)
 
   const isParentActive = (item: NavigationItem) => {
     if (!item.children?.length) return false
@@ -45,7 +48,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       `.replace(/\s+/g, ' ').trim()}
       aria-label="Admin navigation"
     >
-      <div className="flex min-h-[64px] items-center gap-2.5 border-b border-[#1d3554] px-5">
+      <div className="flex min-h-[56px] items-center gap-2.5 border-b border-[#1d3554] px-5">
         <div className="grid h-[34px] w-[34px] place-items-center rounded-md bg-indigo-600 text-white text-[15px] font-bold" aria-hidden="true">
           iL
         </div>
@@ -55,53 +58,69 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-3.5 px-2.5">
-        {visibleItems.map((item) => {
-          const Icon = item.icon
-          const visibleChildren = item.children?.filter(isVisible) ?? []
-          const showChildren = visibleChildren.length > 0 && isParentActive(item)
-
-          return (
-            <div key={item.path}>
-              <NavLink
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 min-h-[34px] rounded-md px-2.5 text-[13.5px] font-medium [&_svg]:w-[16px] [&_svg]:h-[16px] focus-visible:outline-none ${
-                    isActive
-                      ? 'bg-white text-slate-800 [&_svg]:text-indigo-600'
-                      : 'text-blue-100 [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white'
-                  }`
-                }
-                onClick={onNavigate}
+      <nav className="flex flex-1 flex-col overflow-y-auto py-3.5 px-2.5">
+        {visibleSections.map((section, sectionIndex) => (
+          <div key={section.label || sectionIndex} className={sectionIndex > 0 ? 'mt-4' : ''}>
+            {section.label && (
+              <div
+                className={`px-2.5 pb-1.5 text-[10px] font-extrabold uppercase tracking-wider select-none ${
+                  section.superAdminOnly ? 'text-amber-400/90' : 'text-slate-500'
+                }`}
               >
-                <Icon aria-hidden="true" />
-                <span>{item.label}</span>
-              </NavLink>
-              {showChildren && (
-                <div className="ml-7 mt-0.5 mb-1 flex flex-col gap-px border-l border-slate-700/40 pl-2">
-                  {visibleChildren.map((child) => (
+                {section.label}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1">
+              {section.items.map((item) => {
+                const Icon = item.icon
+                const visibleChildren = item.children?.filter(isVisible) ?? []
+                const showChildren = visibleChildren.length > 0 && isParentActive(item)
+
+                return (
+                  <div key={item.path}>
                     <NavLink
-                      key={child.path}
-                      to={child.path}
-                      end={child.path === item.path}
+                      to={item.path}
+                      end={item.path === '/'}
                       className={({ isActive }) =>
-                        `block rounded px-2 py-1 text-xs font-semibold transition-colors ${
+                        `flex items-center gap-2.5 min-h-[34px] rounded-md px-2.5 text-[13.5px] font-medium [&_svg]:w-[16px] [&_svg]:h-[16px] focus-visible:outline-none ${
                           isActive
-                            ? 'bg-slate-700/40 text-white'
-                            : 'text-slate-300 hover:bg-slate-700/20 hover:text-white'
+                            ? 'bg-white text-slate-800 [&_svg]:text-indigo-600'
+                            : 'text-blue-100 [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white'
                         }`
                       }
                       onClick={onNavigate}
                     >
-                      {child.label}
+                      <Icon aria-hidden="true" />
+                      <span>{item.label}</span>
                     </NavLink>
-                  ))}
-                </div>
-              )}
+                    {showChildren && (
+                      <div className="ml-7 mt-0.5 mb-1 flex flex-col gap-px border-l border-slate-700/40 pl-2">
+                        {visibleChildren.map((child) => (
+                          <NavLink
+                            key={child.path}
+                            to={child.path}
+                            end={child.path === item.path}
+                            className={({ isActive }) =>
+                              `block rounded px-2 py-1 text-xs font-semibold transition-colors ${
+                                isActive
+                                  ? 'bg-slate-700/40 text-white'
+                                  : 'text-slate-300 hover:bg-slate-700/20 hover:text-white'
+                              }`
+                            }
+                            onClick={onNavigate}
+                          >
+                            {child.label}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-[#1d3554] px-5 py-3 text-slate-400 text-xs">React console running side by side</div>

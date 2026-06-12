@@ -611,7 +611,7 @@ function KpiTile({
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {label}
       </div>
-      <div className="text-3xl font-extrabold text-slate-800 tabular-nums leading-tight">
+      <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">
         {value}
       </div>
       {meta && <div className="text-xs text-slate-500">{meta}</div>}

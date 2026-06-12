@@ -25,44 +25,72 @@ export type NavigationItem = {
   children?: NavigationItem[]
 }
 
-export const navigationItems: NavigationItem[] = [
-  { label: 'Dashboard', path: '/', icon: Home },
-  { label: 'Courses', path: '/courses', icon: BookOpen },
-  { label: 'Content Library', path: '/content-library', icon: Library },
+export type NavigationSection = {
+  /** Section heading shown above the items. Empty string hides the heading. */
+  label: string
+  /** Hides the whole section (heading included) from non-SuperAdmin users. */
+  superAdminOnly?: boolean
+  items: NavigationItem[]
+}
+
+/*
+ * Sidebar is split into sections by audience:
+ *   - unlabeled top section + "Learning" + "Operations" = everyday admin work
+ *   - "Super Admin" = privileged configuration, hidden entirely for regular admins
+ * Keep superAdminOnly items inside the Super Admin section so the separation
+ * stays visible in the UI, not just in the role filter.
+ */
+export const navigationSections: NavigationSection[] = [
   {
-    label: 'Assignments',
-    path: '/assignments',
-    icon: ClipboardList,
-    children: [
-      { label: 'Batches', path: '/assignments', icon: ClipboardList },
-      { label: 'Schedule (Gantt)', path: '/assignments/gantt', icon: Layers },
-      { label: 'Bulk Assign', path: '/assignments/bulk', icon: ClipboardList },
+    label: '',
+    items: [
+      { label: 'Dashboard', path: '/', icon: Home },
     ],
   },
-  { label: 'Learner Groups', path: '/learner-groups', icon: Users },
-  { label: 'Learners', path: '/learners', icon: UserRound },
+  {
+    label: 'Learning',
+    items: [
+      { label: 'Courses', path: '/courses', icon: BookOpen },
+      { label: 'Content Library', path: '/content-library', icon: Library },
+      {
+        label: 'Assignments',
+        path: '/assignments',
+        icon: ClipboardList,
+        children: [
+          { label: 'Batches', path: '/assignments', icon: ClipboardList },
+          { label: 'Schedule (Gantt)', path: '/assignments/gantt', icon: Layers },
+        ],
+      },
+      { label: 'Learner Groups', path: '/learner-groups', icon: Users },
+      { label: 'Learners', path: '/learners', icon: UserRound },
+    ],
+  },
   {
     label: 'Operations',
-    path: '/learning-logs',
-    icon: FileText,
-    children: [
+    items: [
       { label: 'Learning Logs', path: '/learning-logs', icon: FileText },
-      { label: 'Enrollments', path: '/enrollments', icon: FileText, superAdminOnly: true },
     ],
   },
   {
-    label: 'Master Data',
-    path: '/master-data/divisions',
-    icon: Database,
+    label: 'Super Admin',
     superAdminOnly: true,
-    children: [
-      { label: 'Divisions', path: '/master-data/divisions', icon: Database },
-      { label: 'Categories', path: '/master-data/categories', icon: Database },
-      { label: 'Course Types', path: '/master-data/course-types', icon: Database },
-      { label: 'Roles', path: '/master-data/roles', icon: Database },
-      { label: 'Learner Group Categories', path: '/master-data/learner-group-categories', icon: Database },
+    items: [
+      { label: 'Enrollments', path: '/enrollments', icon: FileText, superAdminOnly: true },
+      {
+        label: 'Master Data',
+        path: '/master-data/divisions',
+        icon: Database,
+        superAdminOnly: true,
+        children: [
+          { label: 'Divisions', path: '/master-data/divisions', icon: Database },
+          { label: 'Categories', path: '/master-data/categories', icon: Database },
+          { label: 'Course Types', path: '/master-data/course-types', icon: Database },
+          { label: 'Roles', path: '/master-data/roles', icon: Database },
+          { label: 'Learner Group Categories', path: '/master-data/learner-group-categories', icon: Database },
+        ],
+      },
+      { label: 'Admin Users', path: '/users', icon: UserCog, superAdminOnly: true },
+      { label: 'System Config', path: '/system-config', icon: Settings, superAdminOnly: true },
     ],
   },
-  { label: 'Admin Users', path: '/users', icon: UserCog, superAdminOnly: true },
-  { label: 'System Config', path: '/system-config', icon: Settings, superAdminOnly: true },
 ]

@@ -241,7 +241,7 @@ export function BulkAssignPage() {
   }
 
   const renderChooseCoursesStep = () => (
-    <div className="flex flex-col gap-4 h-[calc(100vh-340px)] min-h-[360px]">
+    <div className="flex flex-col gap-4 h-[calc(100vh-265px)] min-h-[360px]">
       
       <div className="flex-1 flex flex-col sm:flex-row gap-3 min-h-0">
         {/* Left Column: Available Catalog */}
@@ -337,7 +337,7 @@ export function BulkAssignPage() {
   )
 
   const renderTargetScopeStep = () => (
-    <div className="flex flex-col gap-4 h-[calc(100vh-340px)] min-h-[360px]">
+    <div className="flex flex-col gap-4 h-[calc(100vh-265px)] min-h-[360px]">
 
       {/* Mode toggle */}
       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg max-w-xs select-none shrink-0">

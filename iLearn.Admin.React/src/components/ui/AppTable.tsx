@@ -67,7 +67,7 @@ export function AppTable<T extends TableRecord>({
 
   // Pagination states
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(0)
 
   // Search states
   const [searchValue, setSearchValue] = useState('')
@@ -102,6 +102,7 @@ export function AppTable<T extends TableRecord>({
   }, [externalFilterKey])
 
   const fetchData = useCallback(async () => {
+    if (pageSize === 0) return
     setLoading(true)
     const skip = (page - 1) * pageSize
     const take = pageSize

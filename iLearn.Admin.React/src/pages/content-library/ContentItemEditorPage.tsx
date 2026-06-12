@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Upload,
   Check,
-  FileArchive,
   X
 } from 'lucide-react'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
@@ -70,8 +69,14 @@ export function ContentItemEditorPage() {
         { method: 'POST', credentials: 'include', body: fd },
       )
       if (!created.ok) {
-        const text = await created.text()
-        throw new Error(text || 'Upload failed')
+        let errorMsg = 'Upload failed'
+        try {
+          const errData = await created.json()
+          errorMsg = errData.message || errData.error || errorMsg
+        } catch {
+          errorMsg = (await created.text()) || errorMsg
+        }
+        throw new Error(errorMsg)
       }
       const result = (await created.json()) as { id: number }
       if (form.name.trim()) {
@@ -169,33 +174,62 @@ export function ContentItemEditorPage() {
 
       <div className="space-y-1.5">
         <label className="wiz-label">SCORM Package (.zip)</label>
-        <input
-          type="file"
-          accept=".zip,application/zip"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="block w-full rounded border border-dashed border-slate-300 px-3 py-5 text-sm text-slate-500 bg-slate-50/20 hover:bg-slate-50 hover:border-blue-500 transition cursor-pointer"
-        />
-        <p className="mt-1 text-xs text-slate-400 font-medium leading-relaxed">
-          Supports SCORM 1.2 and SCORM 2004 standards. Maximum bundle size limit is 100 MB or 1,000 internal directory entries.
-        </p>
+        <label className="flex flex-col items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/20 px-4 py-8 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition cursor-pointer select-none">
+          <Upload className="h-6 w-6 text-indigo-500 animate-pulse" />
+          <span>Select SCORM ZIP Package</span>
+          <span className="text-[11px] font-semibold text-slate-400">Supports SCORM 1.2 & 2004 (Max 100MB or 1,000 internal directory entries)</span>
+          <input
+            type="file"
+            accept=".zip,application/zip"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="sr-only"
+          />
+        </label>
       </div>
 
       {file && (
-        <div className="mt-3 p-3 border border-indigo-100 bg-indigo-50/15 rounded flex items-center justify-between select-none">
-          <div className="flex items-center gap-2.5">
-            <FileArchive className="h-6 w-6 text-indigo-500 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
-              <p className="text-xs font-mono text-slate-400 mt-0.5">{Math.round(file.size / 1024)} KB</p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            onClick={() => setFile(null)}
-            className="p-1 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+        <div className="overflow-x-auto border border-slate-200 rounded mt-4">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
+              <tr>
+                <th className="px-3 py-2 text-left">Content Name</th>
+                <th className="w-48 px-3 py-2 text-left">Content Type</th>
+                <th className="w-28 px-3 py-2 text-left">Size</th>
+                <th className="w-28 px-3 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              <tr className="hover:bg-slate-50/30 transition-colors">
+                <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{file.name}</td>
+                <td className="px-3 py-2">
+                  <select
+                    value={form.typeId}
+                    onChange={(e) => setForm((f) => ({ ...f, typeId: Number(e.target.value) }))}
+                    className="wiz-input py-1 text-xs"
+                  >
+                    {TYPE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-2 text-slate-500 font-semibold text-xs">
+                  {Math.round(file.size / 1024)} KB
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setFile(null)}
+                    className="rounded border border-slate-200 p-1 text-red-500 hover:text-red-700 hover:border-red-200 transition cursor-pointer"
+                    aria-label="Remove content"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -243,7 +277,6 @@ export function ContentItemEditorPage() {
   const steps: WizardStep[] = useMemo(() => {
     if (isCreate) {
       return [
-        { label: 'Metadata', validate: validateMetadata, render: renderMetadataStep },
         { label: 'Package Upload', validate: validateUpload, render: renderUploadStep },
         { label: 'Review', render: renderReviewStep }
       ]
