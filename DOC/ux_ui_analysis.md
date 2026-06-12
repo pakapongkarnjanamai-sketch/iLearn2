@@ -63,8 +63,9 @@
 *   **การ์ดเนื้อหา (DetailCard):** เนื้อหาแบ่งเป็น section การ์ด `rounded-lg border border-slate-200 bg-white p-5 space-y-5` เปิดหัวด้วย `SectionHeader`
 *   **ตารางข้อเท็จจริง (FactGrid / Fact):** ข้อมูลแบบ label–value แสดงเป็น `dl` กริด 2–3 คอลัมน์ (`gap-x-6 gap-y-5 text-xs`) แต่ละช่องคือ `Fact`: `dt` label ตัวพิมพ์ใหญ่ (`text-slate-400 font-bold uppercase tracking-wider`) + `dd` ค่า (`mt-1`) — ค่าที่เป็นรหัส/path ใช้ `mono` (font-mono + wrap-break-word)
 *   **หัวข้อย่อยในกลุ่มการ์ด (DetailSubSection):** คั่นกลุ่มข้อมูลด้วยเส้น `border-slate-100` + ป้ายหัวข้อจิ๋วตัวพิมพ์ใหญ่ ก่อนเข้าเนื้อหากลุ่มถัดไป
+*   **แถบแท็บสลับข้อมูล (Tabs Layout):** สำหรับหน้าที่มีข้อมูลหลายส่วน (เช่น Courses, Assignments) ให้แสดงแท็บสลับข้อมูลในรูปแบบปุ่มขอบล่างสีคราม (`text-indigo-600 border-b-2 border-indigo-500` สำหรับแท็บที่เลือก) และห้ามใช้แถบตัวเลข KPI/Metric Strip ด้านบน โดยให้นำตัวเลขชี้วัดไปแสดงผลรวมในส่วน **Overview** ของแท็บแรกแทน
 *   **สถานะหน้า:** โหลด = `LoadingState`, ไม่พบ = `NotFoundState` (พร้อมลิงก์ย้อนกลับ), breadcrumb ตั้งชื่อรายการจริงผ่าน `useBreadcrumbs().setLabel(id, name)`
-*   **ข้อห้าม:** ห้ามเขียนมาร์กอัปกริดสองคอลัมน์ / dt-dd fact เองในหน้าเพจอีก — ต้อง import จาก `src/components/ui/detail/` เท่านั้น (ยกเว้นเนื้อหาเฉพาะทางภายในการ์ด เช่น ตาราง members, tabs ของ Course)
+*   **ข้อห้าม:** ห้ามเขียนมาร์กอัปกริดสองคอลัมน์ / dt-dd fact เองในหน้าเพจอีก — ต้อง import จาก `src/components/ui/detail/` เท่านั้น (ยกเว้นเนื้อหาเฉพาะทางภายในการ์ด เช่น ตาราง members)
 
 ### 2.5 หน้าต่างแจ้งเตือนและส่วนลอยตัวเลือก (Backdrop-Blurred Modals & Floating Badges)
 *   ยกเลิกการทำ Side Panel (แผงข้างเลื่อนออก) มาเป็นกล่องแจ้งเตือนตรงกลาง (Centered Modals) พร้อมเอฟเฟกต์เบลอหลัง (`backdrop-blur-xs` และแอนิเมชัน `.modal-window` ขยายตัวแบบ `scale-in`)

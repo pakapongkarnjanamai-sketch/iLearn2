@@ -13,10 +13,10 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SectionHeader } from '../../components/ui/SectionHeader'
-import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailCard, DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
+import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -94,6 +94,7 @@ export function AssignmentDetailPage() {
   const [addingLearners, setAddingLearners] = useState(false)
   const [newLearnersInput, setNewLearnersInput] = useState('')
   const [savingLearners, setSavingLearners] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'learners'>('overview')
 
   const loadAssignmentDetails = async () => {
     setLoading(true)
@@ -276,31 +277,6 @@ export function AssignmentDetailPage() {
 
   return (
     <>
-      {/* KPI Cards Strip */}
-      <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-6">
-        <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
-          <span className="block text-[11px] font-extrabold uppercase text-slate-400">Learners</span>
-          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.totalEmployees}</span>
-        </div>
-
-        <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
-          <span className="block text-[11px] font-extrabold uppercase text-slate-400">Completed</span>
-          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{assignment.chartData.completed}</span>
-        </div>
-
-        <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
-          <span className="block text-[11px] font-extrabold uppercase text-slate-400">Completion</span>
-          <span className="block mt-1 text-[22px] font-extrabold leading-tight text-indigo-600">{Math.round(assignment.completionRate)}%</span>
-        </div>
-
-        <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
-          <span className="block text-[11px] font-extrabold uppercase text-slate-400">Status</span>
-          <span className="mt-1 block">
-            <StatusBadge size="xxs">{assignmentStatus}</StatusBadge>
-          </span>
-        </div>
-      </div>
-
       <DetailLayout
         sidebar={
           <ControlsSidebar>
@@ -308,138 +284,160 @@ export function AssignmentDetailPage() {
             <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
             <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
             <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</ControlAction>
+          </ControlsSidebar>
+        }
+      >
+        <div className="border-b border-slate-200 mb-6 flex gap-1">
+          {(['overview', 'courses', 'learners'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
+                activeTab === tab
+                  ? 'text-indigo-600 font-bold border-b-2 border-indigo-500'
+                  : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
 
-            {/* Schedule info */}
-            <ControlsDivider>
-              <FactGrid cols={2} className="gap-3 text-sm">
-                <Fact
-                  label="Start Date"
-                  labelClassName="text-slate-400 font-bold text-xs uppercase"
-                  valueClassName="font-semibold"
-                >
+        <main className="space-y-6">
+          {activeTab === 'overview' && (
+            <DetailCard>
+              <SectionHeader icon={FileBarChart}>Overview</SectionHeader>
+
+              {assignment.description && (
+                <p className="text-sm text-slate-500 leading-relaxed border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
+                  {assignment.description}
+                </p>
+              )}
+
+              <FactGrid className="border-t border-slate-100 pt-5">
+                <Fact label="Learners" valueClassName="font-bold text-slate-800">
+                  {assignment.totalEmployees}
+                </Fact>
+                <Fact label="Completed" valueClassName="font-bold text-slate-800">
+                  {assignment.chartData.completed}
+                </Fact>
+                <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
+                  {Math.round(assignment.completionRate)}%
+                </Fact>
+                <Fact label="Status">
+                  <StatusBadge size="xxs">{assignmentStatus}</StatusBadge>
+                </Fact>
+                <Fact label="Start Date" valueClassName="font-semibold">
                   {formatDate(assignment.startDate)}
                 </Fact>
-                <Fact
-                  label="Due Date"
-                  labelClassName="text-slate-400 font-bold text-xs uppercase"
-                  valueClassName="font-semibold"
-                >
+                <Fact label="Due Date" valueClassName="font-semibold">
                   {formatDate(assignment.dueDate)}
                 </Fact>
                 {assignment.learnerGroupName && (
-                  <Fact
-                    label="Learner Group"
-                    colSpan="full"
-                    labelClassName="text-slate-400 font-bold text-xs uppercase"
-                    valueClassName="font-semibold"
-                  >
+                  <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
                     {assignment.learnerGroupName}
                   </Fact>
                 )}
               </FactGrid>
-            </ControlsDivider>
-          </ControlsSidebar>
-        }
-      >
-        
-        {/* Main Left Side Panels */}
-        <div className="space-y-8">
-          
-          {/* Linked courses */}
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
+            </DetailCard>
+          )}
 
-            <ul className="divide-y divide-slate-100 px-4">
-              {assignment.courses.map(c => (
-                <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                      {c.courseTitle}
-                      {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
-                    </span>
-                    <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xxs font-bold text-slate-500">
-                      {c.completedLearners} / {c.totalLearners} completed
-                    </span>
-                    <button
-                      onClick={() => handleRemoveCourse(c.assignmentRuleId)}
-                      className="p-1 text-slate-400 hover:text-red-600 rounded transition"
-                      title="Remove course from assignment"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+          {activeTab === 'courses' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
 
-          {/* Active Registered Learners grid */}
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+              <ul className="divide-y divide-slate-100 px-4">
+                {assignment.courses.map((c) => (
+                  <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                        {c.courseTitle}
+                        {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
+                      </span>
+                      <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xxs font-bold text-slate-500">
+                        {c.completedLearners} / {c.totalLearners} completed
+                      </span>
+                      <button
+                        onClick={() => handleRemoveCourse(c.assignmentRuleId)}
+                        className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                        title="Remove course from assignment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
-            <div className="overflow-x-auto max-h-105 custom-scrollbar">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                    <th className="p-3">Learner</th>
-                    <th className="p-3">Course</th>
-                    <th className="p-3">Progress</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {assignment.learners.map(l => (
-                    <tr key={`${l.learnerCode}-${l.assignmentRuleId ?? 'x'}`} className="hover:bg-slate-50/60 transition">
-                      <td className="p-3">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 leading-tight">{l.learnerName || l.learnerCode}</span>
-                          <span className="text-xxs font-mono text-slate-400 mt-0.5">{l.learnerCode}</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-slate-500 text-xxs">
-                        {l.courseTitle ? (
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-slate-600">{l.courseTitle}</span>
-                            <span className="font-mono text-slate-400 mt-0.5">{l.courseCode}</span>
-                          </div>
-                        ) : '-'}
-                      </td>
-                      <td className="p-3">
-                        <ProgressBar value={l.progress} completed={l.isCompleted} maxWidthClass="max-w-20" />
-                      </td>
-                      <td className="p-3">
-                        <StatusBadge size="xxs">{l.status}</StatusBadge>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleResetLearner(l.learnerCode)}
-                            className="px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200 rounded text-xxs font-semibold hover:bg-slate-100 transition"
-                            title="Reset attempts"
-                          >
-                            Reset
-                          </button>
-                          <button
-                            onClick={() => handleRemoveLearner(l.learnerCode)}
-                            className="p-1 text-slate-400 hover:text-red-600 rounded transition"
-                            title="Remove learner"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
+          {activeTab === 'learners' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+
+              <div className="overflow-x-auto max-h-105 custom-scrollbar">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                      <th className="p-3">Learner</th>
+                      <th className="p-3">Course</th>
+                      <th className="p-3">Progress</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-center">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-        </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {assignment.learners.map((l) => (
+                      <tr key={`${l.learnerCode}-${l.assignmentRuleId ?? 'x'}`} className="hover:bg-slate-50/60 transition">
+                        <td className="p-3">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-800 leading-tight">{l.learnerName || l.learnerCode}</span>
+                            <span className="text-xxs font-mono text-slate-400 mt-0.5">{l.learnerCode}</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-slate-500 text-xxs">
+                          {l.courseTitle ? (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-slate-600">{l.courseTitle}</span>
+                              <span className="font-mono text-slate-400 mt-0.5">{l.courseCode}</span>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="p-3">
+                          <ProgressBar value={l.progress} completed={l.isCompleted} maxWidthClass="max-w-20" />
+                        </td>
+                        <td className="p-3">
+                          <StatusBadge size="xxs">{l.status}</StatusBadge>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleResetLearner(l.learnerCode)}
+                              className="px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200 rounded text-xxs font-semibold hover:bg-slate-100 transition"
+                              title="Reset attempts"
+                            >
+                              Reset
+                            </button>
+                            <button
+                              onClick={() => handleRemoveLearner(l.learnerCode)}
+                              className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                              title="Remove learner"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </main>
 
       </DetailLayout>
 

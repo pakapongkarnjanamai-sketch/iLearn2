@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 18:43] GitHub Copilot (GPT-5.3-Codex) — ปิดงาน DETAIL redesign ใหม่ + Assignment tabs
+- ทำอะไร: ปรับ `AssignmentDetailPage` ให้เลิกใช้ KPI/Metric strip ด้านบน แล้วเปลี่ยนเป็นแท็บ `Overview`, `Courses`, `Learners` โดยย้าย metrics + schedule ไปอยู่ใน `Overview` ด้วย `DetailCard` + `FactGrid`; ยืนยันมาตรฐานใหม่ทั้งระบบ detail ว่าไม่มี `DetailPageHeader` และไม่มี Back link ใน `ControlsSidebar`; อัปเดต `PLAN-008` acceptance/notes ให้ตรงผลงานล่าสุด
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-008-detail-pages-migration.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีเพิ่ม (คงผลจากรอบก่อนที่ตัด `ControlsSidebar` props `backTo`/`backLabel`)
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน; grep ผ่านสำหรับ `DetailPageHeader`, `<ControlsSidebar ... backTo=...>`, `backTo?`/`backLabel?`/`ArrowLeft`, และ `auto-cols-fr grid-flow-col` ใน `AssignmentDetailPage.tsx`
+
 ## [2026-06-12 18:40] GitHub Copilot (GPT-5.3-Codex) — ปรับ Detail Pages ตามดีไซน์ใหม่ (ตัด Page Header + ตัด Back action ใน ControlsSidebar)
 - ทำอะไร: ปรับมาตรฐานหน้า Detail ตามทิศทางใหม่โดยลบ `DetailPageHeader` ออกจาก shared detail primitives (`src/components/ui/detail/index.tsx`), ลบพร็อพ `backTo`/`backLabel` และลบการเรนเดอร์ปุ่ม Back ออกจาก `ControlsSidebar`; migrate หน้า detail ทั้ง 7 หน้าให้เลิกใช้ header และเลิกส่ง back props (`UserDetailPage`, `ContentItemDetailPage`, `CourseDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`, `MasterDataDetailPage`, `LearnerProfilePage`) พร้อมคง logic เดิมของ tabs/modals/forms/actions
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/detail/index.tsx`, `iLearn.Admin.React/src/components/ui/ControlsSidebar.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `iLearn.Admin.React/src/pages/learners/LearnerProfilePage.tsx`, `DOC/AGENT_LOG.md`
