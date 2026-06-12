@@ -1,16 +1,11 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import type { LucideIcon } from 'lucide-react'
-import { 
-  ArrowLeft, 
-  Settings, 
-  Calendar, 
-  Users, 
+import {
+  Calendar,
+  Users,
   FileText,
   Plus,
-  Loader2,
   Trash2,
-  AlertTriangle,
   Edit3,
   UserPlus,
   Power,
@@ -20,6 +15,14 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { StatusText } from '../../components/ui/StatusText'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
+import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { SectionHeader } from '../../components/ui/SectionHeader'
+import { ProgressBar } from '../../components/ui/ProgressBar'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
+import { formatDate } from '../../lib/format'
 
 type CourseDetail = {
   id: number
@@ -94,11 +97,17 @@ export function CourseDetailPage() {
   const { id } = useParams()
   const { setLabel } = useBreadcrumbs()
   const navigate = useNavigate()
-  
+  const { confirm, confirmDialog } = useConfirm()
+
   const [loading, setLoading] = useState(true)
 
   const handleDeleteCourse = async () => {
-    if (!window.confirm('Are you sure you want to delete this course? This action cannot be undone and will delete all associated versions.')) return
+    if (!(await confirm({
+      title: 'Delete Course',
+      message: 'Are you sure you want to delete this course? This action cannot be undone and will delete all associated versions.',
+      confirmLabel: 'Delete Course',
+      danger: true,
+    }))) return
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Courses/${id}`, {
         method: 'DELETE'
@@ -234,7 +243,12 @@ export function CourseDetailPage() {
 
   // Delete version handler
   const handleDeleteVersion = async (versionId: number) => {
-    if (!window.confirm('Delete this version? Action cannot be undone.')) return
+    if (!(await confirm({
+      title: 'Delete Version',
+      message: 'Delete this version? Action cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    }))) return
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Courses/versions/${versionId}`, {
         method: 'DELETE'
@@ -250,23 +264,17 @@ export function CourseDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (!data) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-700 mt-4">Course Not Found</h2>
-        <p className="text-slate-400 mt-2">The requested course catalog identity is missing or has been deleted.</p>
-        <Link to="/courses" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to courses
-        </Link>
-      </div>
+      <NotFoundState
+        title="Course Not Found"
+        message="The requested course catalog identity is missing or has been deleted."
+        backTo="/courses"
+        backLabel="Back to courses"
+      />
     )
   }
 
@@ -358,12 +366,7 @@ export function CourseDetailPage() {
 
             {activeTab === 'versions' && (
               <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                <FileText className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-                Versions
-              </h2>
-            </div>
+            <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
@@ -389,16 +392,16 @@ export function CourseDetailPage() {
                         <td className="p-3 font-bold text-slate-900">{v.versionNo}</td>
                         <td className="p-3">
                           {v.isActive ? (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800 shadow-xs">Active Version</span>
+                            <StatusBadge tone="success">Active Version</StatusBadge>
                           ) : (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-600">Inactive</span>
+                            <StatusBadge tone="neutral">Inactive</StatusBadge>
                           )}
                         </td>
                         <td className="p-3 font-mono text-xs text-slate-500">
                           {v.schemaVersion || 'SCORM 1.2'} ({v.launchHref})
                         </td>
                         <td className="p-3 text-slate-400 text-xs">
-                          {new Date(v.updatedAt).toLocaleDateString()}
+                          {formatDate(v.updatedAt)}
                         </td>
                         <td className="p-3 text-center">
                           <div className="inline-flex items-center gap-2">
@@ -436,17 +439,10 @@ export function CourseDetailPage() {
 
             {activeTab === 'learners' && (
               <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                <Users className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-                Learners
-              </h2>
-            </div>
+            <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
 
             {loadingLearners ? (
-              <div className="flex h-32 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-              </div>
+              <LoadingState size="section" />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
@@ -478,26 +474,14 @@ export function CourseDetailPage() {
                               {l.division || '-'} {l.department ? `/ ${l.department}` : ''}
                             </td>
                             <td className="p-3">
-                              <div className="flex items-center gap-2 max-w-30">
-                                <div className="w-full bg-slate-100 rounded-full h-1.5">
-                                  <div 
-                                    className={`h-1.5 rounded-full ${isDone ? 'bg-emerald-500' : 'bg-blue-600'}`} 
-                                    style={{ width: `${l.progress}%` }}
-                                  ></div>
-                                </div>
-                                <span className="font-bold text-xs text-slate-600 shrink-0">{l.progress}%</span>
-                              </div>
+                              <ProgressBar value={l.progress} completed={isDone} maxWidthClass="max-w-30" />
                             </td>
                             <td className="p-3 text-slate-400 text-xs">
-                              <div>Start: {new Date(l.startDate).toLocaleDateString()}</div>
-                              <div className="mt-0.5">Due: {new Date(l.dueDate).toLocaleDateString()}</div>
+                              <div>Start: {formatDate(l.startDate)}</div>
+                              <div className="mt-0.5">Due: {formatDate(l.dueDate)}</div>
                             </td>
                             <td className="p-3">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
-                                l.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
-                                  : l.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-slate-100 text-slate-700'
-                              }`}>{l.status}</span>
+                              <StatusBadge>{l.status}</StatusBadge>
                             </td>
                           </tr>
                         )
@@ -512,17 +496,10 @@ export function CourseDetailPage() {
 
             {activeTab === 'assignments' && (
               <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                <Calendar className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-                Assignments
-              </h2>
-            </div>
+            <SectionHeader icon={Calendar} variant="card">Assignments</SectionHeader>
 
             {loadingAssignments ? (
-              <div className="flex h-32 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-              </div>
+              <LoadingState size="section" />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
@@ -552,14 +529,10 @@ export function CourseDetailPage() {
                             </Link>
                           </td>
                           <td className="p-3 text-slate-700 font-medium">{a.description || '-'}</td>
-                          <td className="p-3 text-slate-400 text-xs">{new Date(a.startDate).toLocaleDateString()}</td>
-                          <td className="p-3 text-slate-400 text-xs">{new Date(a.dueDate).toLocaleDateString()}</td>
+                          <td className="p-3 text-slate-400 text-xs">{formatDate(a.startDate)}</td>
+                          <td className="p-3 text-slate-400 text-xs">{formatDate(a.dueDate)}</td>
                           <td className="p-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
-                              a.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
-                                : a.status === 'Enrolling' || a.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}>{a.status}</span>
+                            <StatusBadge>{a.status}</StatusBadge>
                           </td>
                           <td className="p-3">
                             <div className="flex flex-col font-bold text-xs text-slate-600">
@@ -590,6 +563,8 @@ export function CourseDetailPage() {
           onDeleteCourse={handleDeleteCourse}
         />
       </div>
+
+      {confirmDialog}
     </>
   )
 }
@@ -614,172 +589,48 @@ function CourseControls({
   onDeleteCourse,
 }: CourseControlsProps) {
   return (
-    <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
-      <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
-        <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-        <h2 className="text-sm font-bold text-slate-800">Controls</h2>
-      </div>
-
-      <ControlLinkButton to={`/courses/${courseId}/version/new`} icon={Plus}>
+    <ControlsSidebar backTo="/courses" backLabel="Back to Directory">
+      <ControlAction to={`/courses/${courseId}/version/new`} icon={Plus}>
         Add Version Package
-      </ControlLinkButton>
-      <ControlLinkButton
+      </ControlAction>
+      <ControlAction
         to={`/assignments/bulk?courseId=${courseId}`}
         icon={UserPlus}
         disabled={!isOpen}
         title={isOpen ? undefined : 'Only Open courses can be assigned'}
       >
         Bulk Assign
-      </ControlLinkButton>
-      <ControlLinkButton to={`/courses/${courseId}/edit`} icon={Edit3}>
+      </ControlAction>
+      <ControlAction to={`/courses/${courseId}/edit`} icon={Edit3}>
         Edit Properties
-      </ControlLinkButton>
-      <ControlButton
+      </ControlAction>
+      <ControlAction
         icon={Power}
         disabled={isOpen || mutatingStatus}
         title={isOpen ? 'Course is already Open' : undefined}
         onClick={() => onStatusChange(1)}
       >
         Publish Course
-      </ControlButton>
-      <ControlButton
+      </ControlAction>
+      <ControlAction
         icon={Lock}
         disabled={isRetired || mutatingStatus}
         title={isRetired ? 'Course is already Retired' : undefined}
         onClick={() => onStatusChange(2)}
       >
         Retire Course
-      </ControlButton>
-      <ControlButton
+      </ControlAction>
+      <ControlAction
         icon={FileText}
         disabled={isDraft || mutatingStatus}
         title={isDraft ? 'Course is already Draft' : undefined}
         onClick={() => onStatusChange(0)}
       >
         Revert to Draft
-      </ControlButton>
-      <ControlButton icon={Trash2} onClick={onDeleteCourse} variant="danger">
+      </ControlAction>
+      <ControlAction icon={Trash2} onClick={onDeleteCourse} variant="danger">
         Delete Course
-      </ControlButton>
-
-      <div className="pt-2 border-t border-slate-100">
-        <Link 
-          to="/courses" 
-          className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Back to Directory</span>
-        </Link>
-      </div>
-    </aside>
-  )
-}
-
-type ControlLinkButtonProps = {
-  to: string
-  icon: LucideIcon
-  children: ReactNode
-  disabled?: boolean
-  title?: string | undefined
-}
-
-function ControlLinkButton({
-  to,
-  icon: Icon,
-  children,
-  disabled = false,
-  title,
-}: ControlLinkButtonProps) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <Link
-      to={to}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-      title={title}
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </Link>
-  )
-}
-
-type ControlButtonProps = {
-  icon: LucideIcon
-  children: ReactNode
-  disabled?: boolean
-  title?: string | undefined
-  onClick: () => void
-  variant?: 'default' | 'danger'
-}
-
-function ControlButton({
-  icon: Icon,
-  children,
-  disabled = false,
-  title,
-  onClick,
-  variant = 'default',
-}: ControlButtonProps) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  if (variant === 'danger') {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-      title={title}
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </button>
+      </ControlAction>
+    </ControlsSidebar>
   )
 }

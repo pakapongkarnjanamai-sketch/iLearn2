@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { 
-  ArrowLeft, 
-  Users, 
-  Settings, 
-  UserPlus, 
-  UserMinus, 
-  Loader2, 
-  AlertTriangle,
+import { useParams } from 'react-router-dom'
+import {
+  Users,
+  Settings,
+  UserPlus,
+  UserMinus,
   X,
   Check,
   Plus
 } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
+import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
+import { SectionHeader } from '../../components/ui/SectionHeader'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -81,6 +83,7 @@ type PreviewRemoveResult = {
 export function LearnerGroupDetailPage() {
   const { id } = useParams()
   const { setLabel } = useBreadcrumbs()
+  const { confirm, confirmDialog } = useConfirm()
 
   const [loading, setLoading] = useState(true)
   const [group, setGroup] = useState<LearnerGroupDetail | null>(null)
@@ -228,7 +231,12 @@ export function LearnerGroupDetailPage() {
 
   // Single Delete member operation
   const handleRemoveSingleMember = async (memberId: number) => {
-    if (!window.confirm('Remove this learner from group? Related assignments remain active.')) return
+    if (!(await confirm({
+      title: 'Remove Member',
+      message: 'Remove this learner from group? Related assignments remain active.',
+      confirmLabel: 'Remove',
+      danger: true,
+    }))) return
     try {
       await fetchWithAccessControl(`LearnerGroups/${id}/members/${memberId}`, {
         method: 'DELETE'
@@ -303,23 +311,17 @@ export function LearnerGroupDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (!group) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-700 mt-4">Learner Group Not Found</h2>
-        <p className="text-slate-400 mt-2">The requested learner group does not exist.</p>
-        <Link to="/learner-groups" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Learner Groups
-        </Link>
-      </div>
+      <NotFoundState
+        title="Learner Group Not Found"
+        message="The requested learner group does not exist."
+        backTo="/learner-groups"
+        backLabel="Back to Learner Groups"
+      />
     )
   }
 
@@ -330,9 +332,7 @@ export function LearnerGroupDetailPage() {
 
         {/* Members List Table Grid */}
         <section className="min-w-0">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Users aria-hidden="true" />Members ({group.members.length})</h2>
-          </div>
+          <SectionHeader icon={Users}>Members ({group.members.length})</SectionHeader>
 
           <div className="overflow-x-auto max-h-140 custom-scrollbar">
             <table className="w-full text-left text-sm border-collapse">
@@ -389,20 +389,15 @@ export function LearnerGroupDetailPage() {
         </section>
 
         {/* Dynamic Sidebar Controls based on mode selection */}
-        <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
-          <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
-            <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-            <h2 className="text-sm font-bold text-slate-800">Controls</h2>
-          </div>
-
-          <LGCtrlLink to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</LGCtrlLink>
-          <LGCtrlBtn icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</LGCtrlBtn>
-          <LGCtrlBtn icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
+        <ControlsSidebar backTo="/learner-groups" backLabel="Back to Groups">
+          <ControlAction to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</ControlAction>
+          <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</ControlAction>
+          <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
             Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
-          </LGCtrlBtn>
+          </ControlAction>
 
           {/* Properties info */}
-          <div className="pt-2 border-t border-slate-100 space-y-3">
+          <ControlsDivider>
             <dl className="space-y-3 text-sm">
               <div>
                 <dt className="text-slate-400 font-bold text-xs uppercase">LMS Category</dt>
@@ -413,15 +408,8 @@ export function LearnerGroupDetailPage() {
                 <dd className="text-slate-800 font-mono font-bold mt-1">{group.createdBy || 'System Admin'}</dd>
               </div>
             </dl>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100">
-            <Link to="/learner-groups" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Groups</span>
-            </Link>
-          </div>
-        </aside>
+          </ControlsDivider>
+        </ControlsSidebar>
 
       </div>
 
@@ -710,117 +698,9 @@ export function LearnerGroupDetailPage() {
           </div>
         </div>
       )}
+
+      {confirmDialog}
     </>
   )
 }
 
-/* ── Uniform control buttons ── */
-
-type LGCtrlLinkProps = {
-  to: string
-  icon: React.ComponentType<{ className?: string }>
-  children: React.ReactNode
-  disabled?: boolean
-  title?: string | undefined
-}
-
-function LGCtrlLink({
-  to,
-  icon: Icon,
-  children,
-  disabled = false,
-  title,
-}: LGCtrlLinkProps) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <Link
-      to={to}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-      title={title}
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </Link>
-  )
-}
-
-type LGCtrlBtnProps = {
-  icon: React.ComponentType<{ className?: string }>
-  children: React.ReactNode
-  disabled?: boolean
-  title?: string | undefined
-  onClick: () => void
-  variant?: 'default' | 'danger'
-}
-
-function LGCtrlBtn({
-  icon: Icon,
-  children,
-  disabled = false,
-  title,
-  onClick,
-  variant = 'default',
-}: LGCtrlBtnProps) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  if (variant === 'danger') {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
-          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-      title={title}
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </button>
-  )
-}

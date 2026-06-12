@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Plus, Edit3, Trash2, X, Loader2, FolderTree, Save } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, FolderTree, Save } from 'lucide-react'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
@@ -33,6 +35,7 @@ type FormState = {
 const EMPTY_FORM: FormState = { name: '', description: '', parentId: '' }
 
 export function LearnerGroupCategoriesPage() {
+  const { confirm, confirmDialog } = useConfirm()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [items, setItems] = useState<LearnerGroupCategory[]>([])
@@ -53,23 +56,7 @@ export function LearnerGroupCategoriesPage() {
   }
 
   useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      try {
-        const result = await fetchWithAccessControl<
-          LearnerGroupCategory[] | ApiListResponse<LearnerGroupCategory[]>
-        >('LearnerGroupCategories')
-        if (!cancelled) setItems(Array.isArray(result) ? result : result.data)
-      } catch {
-        if (!cancelled) toast.error('Failed to load categories')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void run()
-    return () => {
-      cancelled = true
-    }
+    void load()
   }, [])
 
   const openCreate = () => setForm({ ...EMPTY_FORM })
@@ -129,7 +116,12 @@ export function LearnerGroupCategoriesPage() {
       toast.error(`Cannot delete: ${c.learnerGroupCount} learner group(s) reference this category`)
       return
     }
-    if (!window.confirm(`Delete category "${c.name}"?`)) return
+    if (!(await confirm({
+      title: 'Delete Category',
+      message: `Delete category "${c.name}"?`,
+      confirmLabel: 'Delete',
+      danger: true,
+    }))) return
     setBusy(true)
     try {
       await fetchWithAccessControl(`learnerGroupCategories/${c.id}`, { method: 'DELETE' })
@@ -160,9 +152,7 @@ export function LearnerGroupCategoriesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 p-8 text-sm text-slate-500">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading categories...
-        </div>
+        <LoadingState label="Loading categories..." />
       ) : items.length === 0 ? (
         <div className="border border-slate-200 rounded-lg bg-white shadow-xs flex flex-col items-center gap-2 p-12 text-sm text-slate-400">
           <FolderTree className="h-8 w-8" />
@@ -300,6 +290,8 @@ export function LearnerGroupCategoriesPage() {
           </form>
         </div>
       )}
+
+      {confirmDialog}
     </>
   )
 }

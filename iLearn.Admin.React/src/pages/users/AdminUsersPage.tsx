@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Shield, UserPlus, X, Check, Search } from 'lucide-react'
-import { AppTable } from '../../components/ui/AppTable'
+import { AppTable, type AdminGridColumn } from '../../components/ui/AppTable'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppButton } from '../../components/ui/AppButton'
-
 import { createAdminDataSource } from '../../lib/createDataSource'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
-import type { AdminGridColumn } from '../../components/ui/AppTable'
 
 type RoleInfo = {
   Id: number

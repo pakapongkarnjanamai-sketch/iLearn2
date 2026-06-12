@@ -27,11 +27,3 @@ export const formatDateTime = (value: Date | string | null | undefined) => {
 
   return dateTimeFormatter.format(new Date(value))
 }
-
-export const formatBoolean = (value: boolean | null | undefined) => {
-  if (value === undefined || value === null) {
-    return '-'
-  }
-
-  return value ? 'Yes' : 'No'
-}

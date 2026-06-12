@@ -16,6 +16,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { LoadingState } from '../../components/ui/LoadingState'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -709,14 +710,7 @@ export function CourseEditorPage() {
   )
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3 select-none">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-          <span className="text-xs text-slate-500 font-bold">Loading course details...</span>
-        </div>
-      </div>
-    )
+    return <LoadingState label="Loading course details..." />
   }
 
   if (!isEditMode) {

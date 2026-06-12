@@ -7,6 +7,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
+import { formatDate } from '../../lib/format'
 import { AppTableSearch } from './table/AppTableSearch'
 import { AppTableFooter } from './table/AppTableFooter'
 
@@ -43,8 +44,8 @@ type AppTableProps<T extends TableRecord> = {
 const asInputValue = (value: unknown) => value === undefined || value === null ? '' : String(value)
 
 const formatDateValue = (value: unknown) => {
-  if (value instanceof Date) return value.toLocaleDateString()
-  if (typeof value === 'string' || typeof value === 'number') return new Date(value).toLocaleDateString()
+  if (value instanceof Date) return formatDate(value)
+  if (typeof value === 'string' || typeof value === 'number') return formatDate(new Date(value))
   return '—'
 }
 

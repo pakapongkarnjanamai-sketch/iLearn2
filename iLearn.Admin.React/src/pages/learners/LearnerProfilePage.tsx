@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { 
-  ArrowLeft, 
-  User, 
+import { useParams } from 'react-router-dom'
+import {
+  User,
   AlertTriangle,
-  Loader2,
   FileBadge
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
+import { SectionHeader } from '../../components/ui/SectionHeader'
+import { ProgressBar } from '../../components/ui/ProgressBar'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { formatDate } from '../../lib/format'
 
 type LearnerKpis = {
   totalCourses: number
@@ -81,23 +85,17 @@ export function LearnerProfilePage() {
   }, [id])
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (!profile) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-700 mt-4">Learner Profile Missing</h2>
-        <p className="text-slate-400 mt-2">The learner's corporate identity could not be verified.</p>
-        <Link to="/learners" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Directory
-        </Link>
-      </div>
+      <NotFoundState
+        title="Learner Profile Missing"
+        message="The learner's corporate identity could not be verified."
+        backTo="/learners"
+        backLabel="Back to Directory"
+      />
     )
   }
 
@@ -116,9 +114,7 @@ export function LearnerProfilePage() {
       {/* Transcript (main) */}
       <div className="min-w-0">
         <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><FileBadge aria-hidden="true" />Transcript</h2>
-          </div>
+          <SectionHeader icon={FileBadge}>Transcript</SectionHeader>
 
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-sm border-collapse">
@@ -157,15 +153,7 @@ export function LearnerProfilePage() {
                           </div>
                         </td>
                         <td className="p-3">
-                          <div className="flex items-center gap-2 max-w-24">
-                            <div className="w-full bg-slate-100 rounded-full h-1.5">
-                              <div 
-                                className={`h-1.5 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-blue-600'}`} 
-                                style={{ width: `${e.progress}%` }}
-                              ></div>
-                            </div>
-                            <span className="font-bold text-xxs text-slate-500 shrink-0">{Math.round(e.progress)}%</span>
-                          </div>
+                          <ProgressBar value={e.progress} completed={isFinished} />
                         </td>
                         <td className="p-3 font-mono font-bold text-slate-800 text-xs">
                           {e.totalScore > 0 ? `${Math.round(e.totalScore)}pt` : '—'}
@@ -175,26 +163,28 @@ export function LearnerProfilePage() {
                         </td>
                         <td className="p-3 text-slate-400 text-xxs">
                           {e.completedDate ? (
-                            <div className="text-emerald-600 font-semibold">Done: {new Date(e.completedDate).toLocaleDateString()}</div>
+                            <div className="text-emerald-600 font-semibold">Done: {formatDate(e.completedDate)}</div>
                           ) : (
                             <>
-                              {e.startDate && <div>Start: {new Date(e.startDate).toLocaleDateString()}</div>}
-                              {e.dueDate && <div className="mt-0.5">Due: {new Date(e.dueDate).toLocaleDateString()}</div>}
+                              {e.startDate && <div>Start: {formatDate(e.startDate)}</div>}
+                              {e.dueDate && <div className="mt-0.5">Due: {formatDate(e.dueDate)}</div>}
                             </>
                           )}
                         </td>
                         <td className="p-3">
                           {isFinished ? (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xxs font-bold bg-emerald-100 text-emerald-800">Passed</span>
+                            <StatusBadge tone="success" size="xxs">Passed</StatusBadge>
                           ) : isCancelled ? (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xxs font-bold bg-amber-100 text-amber-800 gap-1 items-center" title="Rule Deleted">
-                              <AlertTriangle className="h-3 w-3" />
-                              <span>Cancelled</span>
-                            </span>
+                            <StatusBadge tone="warning" size="xxs">
+                              <span className="inline-flex items-center gap-1" title="Rule Deleted">
+                                <AlertTriangle className="h-3 w-3" />
+                                Cancelled
+                              </span>
+                            </StatusBadge>
                           ) : e.hasActiveAssignment ? (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xxs font-bold bg-blue-100 text-blue-800">Assigned</span>
+                            <StatusBadge tone="info" size="xxs">Assigned</StatusBadge>
                           ) : (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xxs font-semibold bg-slate-100 text-slate-500">Self-Enroll</span>
+                            <StatusBadge tone="neutral" size="xxs">Self-Enroll</StatusBadge>
                           )}
                         </td>
                       </tr>

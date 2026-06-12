@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
-import type { LucideIcon } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Download,
   Edit3,
   ExternalLink,
   Layers,
-  Loader2,
   PowerOff,
   Power,
-  Settings,
   Trash2,
 } from 'lucide-react'
 import { StatusText } from '../../components/ui/StatusText'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
+import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { SectionHeader } from '../../components/ui/SectionHeader'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/format'
@@ -54,6 +55,7 @@ const fmtBytes = (bytes?: number | null) => {
 export function ContentItemDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { confirm, confirmDialog } = useConfirm()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [item, setItem] = useState<ContentItemDetail | null>(null)
@@ -73,23 +75,8 @@ export function ContentItemDetailPage() {
   }
 
   useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      try {
-        const data = await fetchWithAccessControl<ContentItemDetail>(
-          `admin/ContentItemsCRUD/Get/${id}`,
-        )
-        if (!cancelled) setItem(data)
-      } catch {
-        if (!cancelled) toast.error('Failed to load content item')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void run()
-    return () => {
-      cancelled = true
-    }
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const handlePublish = async () => {
@@ -108,7 +95,11 @@ export function ContentItemDetailPage() {
 
   const handleUnpublish = async () => {
     if (!item) return
-    if (!window.confirm('Unpublish this content? Extracted files will be removed from the server.')) return
+    if (!(await confirm({
+      title: 'Unpublish Content',
+      message: 'Unpublish this content? Extracted files will be removed from the server.',
+      confirmLabel: 'Unpublish',
+    }))) return
     setBusy(true)
     try {
       await fetchWithAccessControl(`ContentItems/Unpublish?key=${item.id}`, { method: 'POST' })
@@ -140,7 +131,12 @@ export function ContentItemDetailPage() {
 
   const handleDelete = async () => {
     if (!item) return
-    if (!window.confirm('Delete this content item permanently? This cannot be undone.')) return
+    if (!(await confirm({
+      title: 'Delete Content Item',
+      message: 'Delete this content item permanently? This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    }))) return
     setBusy(true)
     try {
       const fd = new FormData()
@@ -156,21 +152,17 @@ export function ContentItemDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 p-8 text-sm text-slate-500">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading content item...
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (!item) {
     return (
-      <div className="p-8 text-sm text-slate-500">
-        Content item not found.{' '}
-        <Link to="/content-library" className="text-indigo-600 hover:underline">
-          Back to library
-        </Link>
-      </div>
+      <NotFoundState
+        title="Content Item Not Found"
+        message="The requested content item is missing or has been deleted."
+        backTo="/content-library"
+        backLabel="Back to library"
+      />
     )
   }
 
@@ -178,9 +170,7 @@ export function ContentItemDetailPage() {
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
       <div className="min-w-0">
         <section className="space-y-6">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Layers aria-hidden="true" />Content Overview</h2>
-          </div>
+          <SectionHeader icon={Layers}>Content Overview</SectionHeader>
 
           {/* Minimalist Title */}
           <div>
@@ -243,142 +233,21 @@ export function ContentItemDetailPage() {
       </div>
 
       {/* Controls sidebar */}
-      <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
-        <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
-          <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-          <h2 className="text-sm font-bold text-slate-800">Controls</h2>
-        </div>
-
-        <CIControlLink to={`/content-library/${item.id}/edit`} icon={Edit3}>Edit Metadata</CIControlLink>
-        <CIControlBtn icon={ExternalLink} disabled={!item.isActive || !item.url || busy} onClick={handleOpenContent} title={!item.isActive ? 'Content must be published' : !item.url ? 'No launch URL' : undefined}>Open SCORM Player</CIControlBtn>
-        <CIControlBtn icon={item.isActive ? PowerOff : Power} disabled={busy} onClick={item.isActive ? handleUnpublish : handlePublish}>
+      <ControlsSidebar backTo="/content-library" backLabel="Back to Library">
+        <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>Edit Metadata</ControlAction>
+        <ControlAction icon={ExternalLink} disabled={!item.isActive || !item.url || busy} onClick={handleOpenContent} title={!item.isActive ? 'Content must be published' : !item.url ? 'No launch URL' : undefined}>Open SCORM Player</ControlAction>
+        <ControlAction icon={item.isActive ? PowerOff : Power} disabled={busy} onClick={item.isActive ? handleUnpublish : handlePublish}>
           {item.isActive ? 'Unpublish' : 'Publish'}
-        </CIControlBtn>
-        <CIControlBtn icon={Download} disabled={!item.fileStorageId} onClick={() => { if (item.fileStorageId) window.open(buildApiUrl(`ContentItems/${item.id}/content`), '_blank') }} title={!item.fileStorageId ? 'No file available' : undefined}>
+        </ControlAction>
+        <ControlAction icon={Download} disabled={!item.fileStorageId} onClick={() => { if (item.fileStorageId) window.open(buildApiUrl(`ContentItems/${item.id}/content`), '_blank') }} title={!item.fileStorageId ? 'No file available' : undefined}>
           Download ZIP
-        </CIControlBtn>
-        <CIControlBtn icon={Trash2} disabled={item.isActive || busy} onClick={handleDelete} variant="danger" title={item.isActive ? 'Unpublish before deleting' : undefined}>
+        </ControlAction>
+        <ControlAction icon={Trash2} disabled={item.isActive || busy} onClick={handleDelete} variant="danger" title={item.isActive ? 'Unpublish before deleting' : undefined}>
           Delete
-        </CIControlBtn>
+        </ControlAction>
+      </ControlsSidebar>
 
-        <div className="pt-2 border-t border-slate-100">
-          <Link to="/content-library" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Library</span>
-          </Link>
-        </div>
-      </aside>
+      {confirmDialog}
     </div>
-  )
-}
-
-/* ── Uniform control buttons ── */
-
-type CIControlLinkProps = {
-  to: string
-  icon: LucideIcon
-  children: React.ReactNode
-  disabled?: boolean
-  title?: string | undefined
-}
-
-function CIControlLink({
-  to,
-  icon: Icon,
-  children,
-  disabled = false,
-  title,
-}: CIControlLinkProps) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <Link
-      to={to}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-      title={title}
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </Link>
-  )
-}
-
-type CIControlBtnProps = {
-  icon: LucideIcon
-  children: React.ReactNode
-  disabled?: boolean
-  title?: string | undefined
-  onClick: () => void
-  variant?: 'default' | 'danger'
-}
-
-function CIControlBtn({
-  icon: Icon,
-  children,
-  disabled = false,
-  title,
-  onClick,
-  variant = 'default',
-}: CIControlBtnProps) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  if (variant === 'danger') {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
-        title={title}
-      >
-        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </div>
-        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-      title={title}
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </button>
   )
 }

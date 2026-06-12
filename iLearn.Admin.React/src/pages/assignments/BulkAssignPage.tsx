@@ -11,6 +11,7 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 
 type LookupCourse = {
@@ -557,14 +558,7 @@ export function BulkAssignPage() {
   ])
 
   if (loadingLookups) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3 select-none">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-          <span className="text-xs text-slate-500 font-bold">Loading assignment configurations...</span>
-        </div>
-      </div>
-    )
+    return <LoadingState label="Loading assignment configurations..." />
   }
 
   if (assignmentNo) {

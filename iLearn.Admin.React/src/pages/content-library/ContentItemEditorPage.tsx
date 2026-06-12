@@ -1,15 +1,15 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { 
-  Upload, 
-  Loader2, 
-  Check, 
+import {
+  Upload,
+  Check,
   FileArchive,
-  X 
+  X
 } from 'lucide-react'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { LoadingState } from '../../components/ui/LoadingState'
 
 const TYPE_OPTIONS = [
   { value: 1, label: 'Learn — instructional content' },
@@ -255,14 +255,7 @@ export function ContentItemEditorPage() {
   }, [isCreate, form, file])
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-          <span className="text-xs text-slate-500 font-medium">Loading content item...</span>
-        </div>
-      </div>
-    )
+    return <LoadingState label="Loading content item..." />
   }
 
   return (

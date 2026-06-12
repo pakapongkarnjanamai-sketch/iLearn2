@@ -1,21 +1,25 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { 
-  ArrowLeft, 
-  Users, 
-  BookOpen, 
-  AlertTriangle,
-  RefreshCw,
-  Settings,
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  Users,
+  BookOpen,
   Trash2,
   UserPlus,
   FileBarChart,
   CalendarClock,
   X
 } from 'lucide-react'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { SectionHeader } from '../../components/ui/SectionHeader'
+import { ProgressBar } from '../../components/ui/ProgressBar'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
+import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { formatDate } from '../../lib/format'
 
 type AssignmentDetail = {
   id: number
@@ -51,6 +55,7 @@ export function AssignmentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { setLabel } = useBreadcrumbs()
+  const { confirm, confirmDialog } = useConfirm()
 
   const [loading, setLoading] = useState(true)
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null)
@@ -143,7 +148,11 @@ export function AssignmentDetailPage() {
 
   // Reset progress attempt
   const handleResetLearner = async (learnerCode: string) => {
-    if (!window.confirm(`Reset progress attempt for learner ${learnerCode}? This will clear test history.`)) return
+    if (!(await confirm({
+      title: 'Reset Progress',
+      message: `Reset progress attempt for learner ${learnerCode}? This will clear test history.`,
+      confirmLabel: 'Reset',
+    }))) return
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Assignments/${id}/reset-enrollments`, {
         method: 'POST',
@@ -162,7 +171,12 @@ export function AssignmentDetailPage() {
 
   // Remove learner from assignment
   const handleRemoveLearner = async (learnerCode: string) => {
-    if (!window.confirm(`Remove learner ${learnerCode} from this assignment? Enrollment will be deleted.`)) return
+    if (!(await confirm({
+      title: 'Remove Learner',
+      message: `Remove learner ${learnerCode} from this assignment? Enrollment will be deleted.`,
+      confirmLabel: 'Remove',
+      danger: true,
+    }))) return
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Assignments/${id}/learners/${learnerCode}`, {
         method: 'DELETE'
@@ -179,7 +193,12 @@ export function AssignmentDetailPage() {
 
   // Remove Course rule from batch
   const handleRemoveCourse = async (ruleId: number) => {
-    if (!window.confirm('Delete this course rule? All linked learner enrollments will be deleted.')) return
+    if (!(await confirm({
+      title: 'Delete Course Rule',
+      message: 'Delete this course rule? All linked learner enrollments will be deleted.',
+      confirmLabel: 'Delete',
+      danger: true,
+    }))) return
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; message: string; assignmentDeleted?: boolean }>(`Assignments/${id}/courses/${ruleId}`, {
         method: 'DELETE'
@@ -200,7 +219,12 @@ export function AssignmentDetailPage() {
 
   // Delete entire assignment batch
   const handleDeleteBatch = async () => {
-    if (!window.confirm('Delete this entire assignment batch? This deletes ALL course rules and linked user records.')) return
+    if (!(await confirm({
+      title: 'Delete Assignment Batch',
+      message: 'Delete this entire assignment batch? This deletes ALL course rules and linked user records.',
+      confirmLabel: 'Delete Batch',
+      danger: true,
+    }))) return
     try {
       await fetchWithAccessControl(`Assignments/${id}`, {
         method: 'DELETE'
@@ -214,23 +238,17 @@ export function AssignmentDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (!assignment) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-700 mt-4">Assignment Batch Not Found</h2>
-        <p className="text-slate-400 mt-2">The requested operational batch identity could not be verified.</p>
-        <Link to="/assignments" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to registry
-        </Link>
-      </div>
+      <NotFoundState
+        title="Assignment Batch Not Found"
+        message="The requested operational batch identity could not be verified."
+        backTo="/assignments"
+        backLabel="Back to registry"
+      />
     )
   }
 
@@ -261,11 +279,7 @@ export function AssignmentDetailPage() {
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
           <span className="block text-[11px] font-extrabold uppercase text-slate-400">Status</span>
           <span className="mt-1 block">
-            <span className={`inline-flex px-2 py-0.5 rounded text-xxs font-bold ${
-              assignment.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
-                : assignment.status === 'InProgress' || assignment.status === 'Active' ? 'bg-blue-100 text-blue-800'
-                : 'bg-slate-100 text-slate-700'
-            }`}>{assignment.status}</span>
+            <StatusBadge size="xxs">{assignment.status}</StatusBadge>
           </span>
         </div>
       </div>
@@ -277,9 +291,7 @@ export function AssignmentDetailPage() {
           
           {/* Linked courses */}
           <section>
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3">
-              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><BookOpen aria-hidden="true" />Courses</h2>
-            </div>
+            <SectionHeader icon={BookOpen}>Courses</SectionHeader>
             
             <ul className="divide-y divide-slate-100">
               {assignment.courses.map(c => (
@@ -302,9 +314,7 @@ export function AssignmentDetailPage() {
 
           {/* Active Registered Learners grid */}
           <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2.5 mb-3 p-4">
-              <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase [&_svg]:h-4 [&_svg]:w-4 [&_svg]:text-indigo-600"><Users aria-hidden="true" />Learners</h2>
-            </div>
+            <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
 
             <div className="overflow-x-auto max-h-105 custom-scrollbar">
               <table className="w-full text-left text-sm border-collapse">
@@ -328,22 +338,10 @@ export function AssignmentDetailPage() {
                       </td>
                       <td className="p-3 text-slate-500 text-xxs">{l.department || '-'}</td>
                       <td className="p-3">
-                        <div className="flex items-center gap-2 max-w-20">
-                          <div className="w-full bg-slate-100 rounded-full h-1.5">
-                            <div 
-                              className={`h-1.5 rounded-full ${l.isCompleted ? 'bg-emerald-500' : 'bg-blue-600'}`} 
-                              style={{ width: `${l.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="font-bold text-xxs text-slate-500 shrink-0">{Math.round(l.progress)}%</span>
-                        </div>
+                        <ProgressBar value={l.progress} completed={l.isCompleted} maxWidthClass="max-w-20" />
                       </td>
                       <td className="p-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xxs font-bold ${
-                          l.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
-                            : l.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}>{l.status}</span>
+                        <StatusBadge size="xxs">{l.status}</StatusBadge>
                       </td>
                       <td className="p-3 text-center">
                         <div className="inline-flex items-center gap-1.5">
@@ -373,38 +371,26 @@ export function AssignmentDetailPage() {
         </div>
 
         {/* Right Sidebar controls */}
-        <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2">
-          <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
-            <Settings className="h-4 w-4 text-indigo-600" aria-hidden="true" />
-            <h2 className="text-sm font-bold text-slate-800">Controls</h2>
-          </div>
-
-          <AssignCtrlLink to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</AssignCtrlLink>
-          <AssignCtrlBtn icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</AssignCtrlBtn>
-          <AssignCtrlBtn icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</AssignCtrlBtn>
-          <AssignCtrlBtn icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</AssignCtrlBtn>
+        <ControlsSidebar backTo="/assignments" backLabel="Back to Assignments">
+          <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
+          <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
+          <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
+          <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</ControlAction>
 
           {/* Schedule info */}
-          <div className="pt-2 border-t border-slate-100">
+          <ControlsDivider>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-slate-400 font-bold text-xs uppercase block">Start Date</span>
-                <span className="block font-semibold text-slate-700 mt-1">{new Date(assignment.startDate).toLocaleDateString()}</span>
+                <span className="block font-semibold text-slate-700 mt-1">{formatDate(assignment.startDate)}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold text-xs uppercase block">Due Date</span>
-                <span className="block font-semibold text-slate-700 mt-1">{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                <span className="block font-semibold text-slate-700 mt-1">{formatDate(assignment.dueDate)}</span>
               </div>
             </dl>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100">
-            <Link to="/assignments" className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Assignments</span>
-            </Link>
-          </div>
-        </aside>
+          </ControlsDivider>
+        </ControlsSidebar>
 
       </div>
 
@@ -425,7 +411,7 @@ export function AssignmentDetailPage() {
             <div className="px-6 py-5 space-y-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <span className="text-slate-400 font-semibold uppercase text-xs">Current Due Date:</span>
-                <span className="font-bold text-slate-800">{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                <span className="font-bold text-slate-800">{formatDate(assignment.dueDate)}</span>
               </div>
 
               <div className="space-y-1.5">
@@ -520,71 +506,8 @@ export function AssignmentDetailPage() {
         </div>
       )}
 
+      {confirmDialog}
     </>
   )
 }
 
-/* ── Uniform control buttons ── */
-
-function AssignCtrlLink({ to, icon: Icon, children }: {
-  to: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode
-}) {
-  return (
-    <Link
-      to={to}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5 shrink-0" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </Link>
-  )
-}
-
-function AssignCtrlBtn({ icon: Icon, children, disabled, onClick, variant = 'default' }: {
-  icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; disabled?: boolean; onClick: () => void; variant?: 'default' | 'danger'
-}) {
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-slate-300 cursor-not-allowed text-left focus:outline-none"
-      >
-        <div className="h-7 w-7 rounded bg-slate-100/50 flex items-center justify-center shrink-0 text-slate-300">
-          <Icon className="h-3.5 w-3.5 shrink-0" />
-        </div>
-        <span className="text-[13px] font-bold">{children}</span>
-      </button>
-    )
-  }
-
-  if (variant === 'danger') {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-600 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left"
-      >
-        <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
-          <Icon className="h-3.5 w-3.5 shrink-0" />
-        </div>
-        <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">{children}</span>
-      </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-        <Icon className="h-3.5 w-3.5 shrink-0" />
-      </div>
-      <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">{children}</span>
-    </button>
-  )
-}

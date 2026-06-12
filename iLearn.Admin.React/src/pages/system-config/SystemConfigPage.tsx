@@ -4,13 +4,13 @@ import {
   FolderSync, 
   ShieldCheck, 
   Terminal, 
-  Trash2, 
+  Trash2,
   RefreshCw,
-  Loader2,
   Server
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { LoadingState } from '../../components/ui/LoadingState'
 
 type DbConfigInfo = {
   dataSource: string
@@ -87,14 +87,7 @@ export function SystemConfigPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-          <span className="text-sm text-gray-500 font-medium">Loading system configuration...</span>
-        </div>
-      </div>
-    )
+    return <LoadingState label="Loading system configuration..." />
   }
 
   return (

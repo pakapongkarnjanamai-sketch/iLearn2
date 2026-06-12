@@ -1,15 +1,17 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { 
-  ArrowLeft, 
-  Settings, 
-  Edit3, 
-  Trash2, 
-  Loader2, 
-  AlertTriangle,
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  Edit3,
+  Trash2,
   X,
   Save
 } from 'lucide-react'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { NotFoundState } from '../../components/ui/NotFoundState'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
+import { formatDateTime } from '../../lib/format'
 import { adminListConfigs } from '../moduleConfigs'
 import { createAdminDataSource } from '../../lib/createDataSource'
 import { toast } from '../../lib/toast'
@@ -23,6 +25,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   const { type, id } = useParams<{ type: string; id: string }>()
   const navigate = useNavigate()
   const { setLabel } = useBreadcrumbs()
+  const { confirm, confirmDialog } = useConfirm()
 
   const [isEditing, setIsEditing] = useState(isNew)
   const [loading, setLoading] = useState(!isNew)
@@ -122,7 +125,12 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   const handleDelete = async () => {
     if (isNew || !store || !config || busy) return
     const entityName = config.title.replace(/s$/, '').toLowerCase()
-    if (!window.confirm(`Are you absolutely sure you want to delete this ${entityName}? This action cannot be undone.`)) return
+    if (!(await confirm({
+      title: `Delete ${config.title.replace(/s$/, '')}`,
+      message: `Are you absolutely sure you want to delete this ${entityName}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    }))) return
     
     setBusy(true)
     try {
@@ -138,23 +146,18 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
   if (!config) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-700 mt-4">Invalid Master Data Type</h2>
-        <p className="text-slate-400 mt-2">The requested directory section could not be resolved.</p>
-        <Link to="/master-data" className="mt-6 inline-flex items-center text-indigo-500 font-semibold hover:underline">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Master Data
-        </Link>
-      </div>
+      <NotFoundState
+        title="Invalid Master Data Type"
+        message="The requested directory section could not be resolved."
+        backTo="/master-data"
+        backLabel="Back to Master Data"
+        tone="danger"
+      />
     )
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    )
+    return <LoadingState />
   }
 
   const entityTitle = config.title.replace(/s$/, '')
@@ -244,18 +247,16 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                 <div>
                   <dt className="text-slate-400 font-bold text-xs uppercase tracking-wider">Status</dt>
                   <dd className="mt-1.5">
-                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xxs font-extrabold uppercase tracking-wide ${
-                      item?.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
-                    }`}>
+                    <StatusBadge tone={item?.isActive ? 'success' : 'neutral'} size="xxs">
                       {item?.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    </StatusBadge>
                   </dd>
                 </div>
 
                 <div>
                   <dt className="text-slate-400 font-bold text-xs uppercase tracking-wider">Last Modified</dt>
                   <dd className="text-slate-500 font-bold mt-1.5 text-xs">
-                    {item?.updatedAt ? new Date(item.updatedAt).toLocaleString() : '—'}
+                    {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}
                   </dd>
                 </div>
               </dl>
@@ -264,28 +265,16 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
         </section>
 
         {/* Dynamic Sidebar Controls */}
-        <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2 select-none shadow-xs">
-          <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
-            <Settings className="h-4 w-4 text-indigo-650" aria-hidden="true" />
-            <h2 className="text-sm font-bold text-slate-800">Controls</h2>
-          </div>
-
+        <ControlsSidebar backTo={`/master-data/${type}`} backLabel="Back to Directory">
           {isEditing ? (
             // Edit Mode Actions
             <>
-              <button
-                type="submit"
+              <ControlAction type="submit" icon={Save} loading={busy} variant="primary">
+                {busy ? 'Saving...' : 'Save Changes'}
+              </ControlAction>
+              <ControlAction
+                icon={X}
                 disabled={busy}
-                className="w-full flex items-center gap-2.5 rounded-md bg-indigo-600 hover:bg-indigo-750 text-white p-2 transition cursor-pointer text-left focus:outline-none"
-              >
-                <div className="h-7 w-7 rounded bg-indigo-500 flex items-center justify-center shrink-0 text-white">
-                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 shrink-0" />}
-                </div>
-                <span className="text-[13px] font-bold">{busy ? 'Saving...' : 'Save Changes'}</span>
-              </button>
-              
-              <button
-                type="button"
                 onClick={() => {
                   if (isNew) {
                     navigate(`/master-data/${type}`)
@@ -294,53 +283,21 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                     setActiveValues({ ...item })
                   }
                 }}
-                disabled={busy}
-                className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition cursor-pointer text-left"
               >
-                <div className="h-7 w-7 rounded bg-slate-100 flex items-center justify-center shrink-0 text-slate-500 transition-colors">
-                  <X className="h-3.5 w-3.5 shrink-0" />
-                </div>
-                <span className="text-[13px] font-bold text-slate-850 transition-colors">Cancel</span>
-              </button>
+                Cancel
+              </ControlAction>
             </>
           ) : (
             // View Mode Actions
             <>
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="group w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer text-left"
-              >
-                <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 text-slate-500 group-hover:text-indigo-600 transition-colors">
-                  <Edit3 className="h-3.5 w-3.5 shrink-0" />
-                </div>
-                <span className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-800 transition-colors">Edit Properties</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="group w-full flex items-center gap-2.5 rounded-md border border-red-200 bg-white p-2 text-red-650 hover:border-red-300 hover:bg-red-50/50 transition cursor-pointer text-left animate-pulse-slow"
-              >
-                <div className="h-7 w-7 rounded bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 text-red-500 group-hover:text-red-600 transition-colors">
-                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                </div>
-                <span className="text-[13px] font-bold text-red-700 group-hover:text-red-800 transition-colors">Delete Record</span>
-              </button>
+              <ControlAction icon={Edit3} onClick={() => setIsEditing(true)}>Edit Properties</ControlAction>
+              <ControlAction icon={Trash2} onClick={handleDelete} variant="danger">Delete Record</ControlAction>
             </>
           )}
-
-          <div className="pt-2 border-t border-slate-100">
-            <Link 
-              to={`/master-data/${type}`}
-              className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-750 transition font-semibold text-xs py-1.5"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Directory</span>
-            </Link>
-          </div>
-        </aside>
+        </ControlsSidebar>
       </form>
+
+      {confirmDialog}
     </>
   )
 }
