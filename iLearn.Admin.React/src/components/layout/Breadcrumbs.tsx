@@ -9,6 +9,7 @@ const SEGMENT_MAP: Record<string, string> = {
   'assignments': 'Assignments',
   'content-library': 'Content Library',
   'learners': 'Learners',
+  'users': 'Admin Users',
   'master-data': 'Master Data',
   'student-group-categories': 'Learner Group Categories',
   'learner-group-categories': 'Learner Group Categories',

@@ -14,6 +14,24 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 17:00] Claude Code — สำรวจหน้าที่ create/edit ไม่ตรงมาตรฐาน wizard + เขียน PLAN-005
+- ทำอะไร: ไล่ตรวจทุก page ว่า create/edit ใช้ pattern ไหน — เจอ 1 หน้าที่เข้าเคสเดียวกับ Users: `LearnerGroupCategoriesPage` (modal "New/Edit Category" กลางจอในหน้า list) → เขียน **PLAN-005** (Assigned: GPT): ไฟล์ใหม่ `LearnerGroupCategoryEditorPage.tsx` (wizard 2 steps Details→Review), ตัด modal, เพิ่ม routes `/master-data/learner-group-categories/new|/:id/edit` (ระวังไม่ให้ชน generic `master-data/:type/*`) — ข้อสังเกตอื่น: `MasterDataDetailPage` เป็นหน้าแยก+edit-in-place (ไม่ใช่ wizard แต่ไม่ใช่ modal) = borderline ยังไม่ออกแผน, modal ใน `AssignmentDetailPage` (Extend Due Date/Add Learners) เป็น action เฉพาะกิจ ถือว่าโอเค
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-005-learner-group-categories-wizard.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
+## [2026-06-12 16:50] Antigravity — Implement PLAN-004 เปลี่ยนหน้าจัดการผู้ใช้ระบบเป็นแบบ Wizard
+- ทำอะไร: สร้างหน้าสำหรับเพิ่ม/แก้ไขผู้ใช้ระบบแบบ Wizard ([UserEditorPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/UserEditorPage.tsx)) โดยในโหมดสร้างผู้ใช้ใหม่จะมี 3 ขั้นตอน (ระบุ NID -> เลือก Roles -> รีวิว) และในโหมดแก้ไขจะมี 2 ขั้นตอน (เลือก Roles -> รีวิว); นำพาเนล slide-over เดิมออกจาก [AdminUsersPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx) เปลี่ยนเป็นการ navigate ไปยัง Wizard แทน; เพิ่มเส้นทางใน [App.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/App.tsx) (พร้อมครอบ Remount และ RequireRole) และกำหนด Breadcrumbs segment สำหรับ users ใน [Breadcrumbs.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/components/layout/Breadcrumbs.tsx)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/users/UserEditorPage.tsx`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Admin.React/src/App.tsx`, `iLearn.Admin.React/src/components/layout/Breadcrumbs.tsx`, `DOC/PLANS/PLAN-004-admin-users-wizard-editor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (การเรียกใช้ API endpoint ยังรักษา Contract รูปแบบเดิมของ DevExtreme)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (112/112 passed) ผ่านเรียบร้อย
+
+## [2026-06-12 16:45] Claude Code — เขียน PLAN-004 (Admin Users new/edit → Wizard)
+- ทำอะไร: ผู้ใช้ชี้ว่า `/users` ทำ create/edit ผ่าน slide-over panel ไม่ตรงมาตรฐาน wizard ของระบบ — สำรวจ `AdminUsersPage.tsx` + `UsersCRUDController.cs` (Post คืน entity พร้อม id → create แล้ว assign roles ต่อใน flow เดียวได้) แล้วเขียน **PLAN-004** (Assigned: Gemini): ไฟล์ใหม่ `UserEditorPage.tsx` (create 3 steps: User→Roles→Review, edit 2 steps: Roles→Review), ตัด panel ใน `AdminUsersPage`, เพิ่ม routes `/users/new` + `/users/:id/edit` (Remount + RequireRole), เติม `'users'` ใน Breadcrumbs SEGMENT_MAP
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-004-admin-users-wizard-editor.md` (เอกสารล้วน — ยังไม่แก้โค้ด)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
 ## [2026-06-12 16:30] Claude Code — Review + ปิด PLAN-002 และ PLAN-003 เป็น VERIFIED
 - ทำอะไร: รีวิว diff ทั้งสองแผน — **PLAN-002** (GPT, dead code cleanup): ลบ branch `LearnerGroupsCRUD` ครบทุกจุด, คง `ContentItemsCRUD`+`createRestDataSource` ตามข้อห้าม, import ไม่เหลือ dead, ป้ายวันที่ folder=Created/group=Updated; **PLAN-003** (Gemini, sidebar): Learning เหลือ 3 รายการ, ย้าย Content Library+Learners ไป Operations, path/icon เดิม ไม่แตะ App.tsx/Super Admin — ปรับสถานะทั้งคู่เป็น VERIFIED
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-002-*.md`, `DOC/PLANS/PLAN-003-*.md` (เอกสาร — code เปลี่ยนโดย implementer แล้ว)

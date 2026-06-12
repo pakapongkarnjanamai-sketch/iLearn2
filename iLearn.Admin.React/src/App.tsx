@@ -25,6 +25,7 @@ import { ContentItemEditorPage } from './pages/content-library/ContentItemEditor
 import { LearnerGroupCategoriesPage } from './pages/master-data/LearnerGroupCategoriesPage'
 import { MasterDataDetailPage } from './pages/master-data/MasterDataDetailPage'
 import { AdminUsersPage } from './pages/users/AdminUsersPage'
+import { UserEditorPage } from './pages/users/UserEditorPage'
 
 function LegacyStudentGroupsRedirect() {
   const location = useLocation()
@@ -99,6 +100,26 @@ export function App() {
           element={
             <RequireRole superAdminOnly>
               <AdminUsersPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="users/new"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount>
+                <UserEditorPage />
+              </Remount>
+            </RequireRole>
+          }
+        />
+        <Route
+          path="users/:id/edit"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount>
+                <UserEditorPage />
+              </Remount>
             </RequireRole>
           }
         />
