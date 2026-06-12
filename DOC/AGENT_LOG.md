@@ -14,6 +14,24 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 17:20] Antigravity — Implement PLAN-006 เพิ่มหน้าแสดงรายละเอียดผู้ใช้ระบบและฟังก์ชันการลบผู้ใช้
+- ทำอะไร: สร้างหน้าสำหรับแสดงข้อมูลโดยละเอียด of Admin User ([UserDetailPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/UserDetailPage.tsx)) พร้อมแสดง Metric, ข้อมูลสังกัดองค์กร, และ Administrative Roles; ติดตั้งฟังก์ชันการลบแอดมินใน ControlsSidebar ผ่าน `useConfirm` และยิง `DELETE admin/UsersCRUD/Delete`; ปรับ [AdminUsersPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx) ให้ดับเบิลคลิกเปิดหน้ารายละเอียด และเพิ่มปุ่มรูปตา (`Eye`) สำหรับนำทาง; อัปเดตไฟล์รูท [App.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/App.tsx)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Admin.React/src/App.tsx`, `DOC/PLANS/PLAN-006-admin-users-detail-delete.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (การเรียกใช้ API endpoint ยังรักษา Contract รูปแบบเดิม)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (112/112 passed) ผ่านเรียบร้อย
+
+## [2026-06-12 17:15] Claude Code — เขียน PLAN-006 (Admin Users: หน้า Detail + ฟังก์ชันลบ)
+- ทำอะไร: ผู้ใช้รายงานช่องว่างที่พบระหว่างทำ PLAN-004: module Users ไม่มีหน้า Detail (`/users/:id`) และไม่มีฟังก์ชันลบ — ตรวจ backend แล้ว `GenericController.Delete` (`DELETE admin/UsersCRUD/Delete`, FormData `key`) มีอยู่แล้วไม่ต้องแก้ → เขียน **PLAN-006** (Assigned: Gemini): ไฟล์ใหม่ `UserDetailPage.tsx` (การ์ด + ControlsSidebar: Edit Roles / Delete ผ่าน useConfirm), grid dblclick → detail, route `users/:id` (Remount + RequireRole), breadcrumb setLabel เป็นชื่อ user
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-006-admin-users-detail-delete.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
+## [2026-06-12 15:59] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-005 เปลี่ยน Learner Group Categories จาก modal เป็น Wizard
+- ทำอะไร: สร้างหน้าใหม่ `LearnerGroupCategoryEditorPage` แบบ `AppWizard` 2 steps (Details/Review) รองรับ create+edit; ตัด modal create/edit ออกจาก `LearnerGroupCategoriesPage` และเปลี่ยน New/Edit เป็น route navigate; export type `LearnerGroupCategory` + `ApiListResponse` เพื่อใช้ร่วม; เพิ่ม routes `/master-data/learner-group-categories/new` และ `/master-data/learner-group-categories/:id/edit` (RequireRole + Remount) วางก่อน generic master-data routes; อัปเดตสถานะไฟล์แผน PLAN-005 เป็น DONE พร้อม checklist และ Implementer Notes
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/App.tsx`, `DOC/PLANS/PLAN-005-learner-group-categories-wizard.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (ใช้ endpoint เดิม GET/POST/PUT/DELETE ของ LearnerGroupCategories)
+- Verified: `npm run lint` ผ่าน (11 warnings baseline, 0 errors), `npm run build` ผ่าน; manual verify ผ่าน (new/edit wizard flow, invalid id -> NotFoundState, `/master-data/divisions/new` ไม่ถูก route ใหม่ชน); ทดสอบสร้างข้อมูลชั่วคราว `PLAN005_TMP` แล้วลบทิ้งเรียบร้อย
+
 ## [2026-06-12 17:00] Claude Code — สำรวจหน้าที่ create/edit ไม่ตรงมาตรฐาน wizard + เขียน PLAN-005
 - ทำอะไร: ไล่ตรวจทุก page ว่า create/edit ใช้ pattern ไหน — เจอ 1 หน้าที่เข้าเคสเดียวกับ Users: `LearnerGroupCategoriesPage` (modal "New/Edit Category" กลางจอในหน้า list) → เขียน **PLAN-005** (Assigned: GPT): ไฟล์ใหม่ `LearnerGroupCategoryEditorPage.tsx` (wizard 2 steps Details→Review), ตัด modal, เพิ่ม routes `/master-data/learner-group-categories/new|/:id/edit` (ระวังไม่ให้ชน generic `master-data/:type/*`) — ข้อสังเกตอื่น: `MasterDataDetailPage` เป็นหน้าแยก+edit-in-place (ไม่ใช่ wizard แต่ไม่ใช่ modal) = borderline ยังไม่ออกแผน, modal ใน `AssignmentDetailPage` (Extend Due Date/Add Learners) เป็น action เฉพาะกิจ ถือว่าโอเค
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-005-learner-group-categories-wizard.md` (เอกสารล้วน)

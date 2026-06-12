@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Plus, Edit3, Trash2, X, FolderTree, Save } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Edit3, Trash2, FolderTree } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { LoadingState } from '../../components/ui/LoadingState'
@@ -7,7 +8,7 @@ import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
-type LearnerGroupCategory = {
+export type LearnerGroupCategory = {
   id: number
   name: string
   description?: string | null
@@ -19,27 +20,18 @@ type LearnerGroupCategory = {
   learnerGroupCount: number
 }
 
-type ApiListResponse<T> = {
+export type ApiListResponse<T> = {
   success: boolean
   data: T
   totalCount?: number
 }
 
-type FormState = {
-  id?: number
-  name: string
-  description: string
-  parentId: number | ''
-}
-
-const EMPTY_FORM: FormState = { name: '', description: '', parentId: '' }
-
 export function LearnerGroupCategoriesPage() {
+  const navigate = useNavigate()
   const { confirm, confirmDialog } = useConfirm()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [items, setItems] = useState<LearnerGroupCategory[]>([])
-  const [form, setForm] = useState<FormState | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -58,54 +50,6 @@ export function LearnerGroupCategoriesPage() {
   useEffect(() => {
     void load()
   }, [])
-
-  const openCreate = () => setForm({ ...EMPTY_FORM })
-  const openEdit = (c: LearnerGroupCategory) =>
-    setForm({
-      id: c.id,
-      name: c.name,
-      description: c.description ?? '',
-      parentId: c.parentId ?? '',
-    })
-  const closeForm = () => setForm(null)
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!form) return
-    if (!form.name.trim()) {
-      toast.error('Name is required')
-      return
-    }
-    const payload = {
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      parentId: form.parentId === '' ? null : Number(form.parentId),
-    }
-    setBusy(true)
-    try {
-      if (form.id) {
-        await fetchWithAccessControl(`learnerGroupCategories/${form.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        toast.success('Category updated')
-      } else {
-        await fetchWithAccessControl('learnerGroupCategories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        toast.success('Category created')
-      }
-      closeForm()
-      await load()
-    } catch {
-      toast.error(form.id ? 'Update failed' : 'Create failed')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const handleDelete = async (c: LearnerGroupCategory) => {
     if (c.hasChildren) {
@@ -134,15 +78,17 @@ export function LearnerGroupCategoriesPage() {
     }
   }
 
-  const parentOptions = items.filter((c) => !form?.id || c.id !== form.id)
-
   return (
     <>
       <DataGridSurface
         title="Learner Group Categories"
         note="Manage hierarchy folders used by learner groups."
         actions={
-          <AppButton variant="primary" icon={Plus} onClick={openCreate}>
+          <AppButton
+            variant="primary"
+            icon={Plus}
+            onClick={() => navigate('/master-data/learner-group-categories/new')}
+          >
             New Category
           </AppButton>
         }
@@ -195,7 +141,7 @@ export function LearnerGroupCategoriesPage() {
                             <button
                               type="button"
                               title="Edit"
-                              onClick={() => openEdit(c)}
+                              onClick={() => navigate(`/master-data/learner-group-categories/${c.id}/edit`)}
                               className="rounded-md border border-transparent p-1.5 text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700"
                             >
                               <Edit3 className="h-3.5 w-3.5" />
@@ -220,81 +166,6 @@ export function LearnerGroupCategoriesPage() {
           )}
         </div>
       </DataGridSurface>
-
-      {form && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-[1px]"
-          onClick={closeForm}
-        >
-          <form
-            onSubmit={handleSubmit}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-5 shadow-xl"
-          >
-            <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
-              <h2 className="text-xs font-extrabold uppercase text-slate-700">
-                {form.id ? 'Edit Category' : 'New Category'}
-              </h2>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500">Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500">Description</label>
-                <input
-                  type="text"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-extrabold uppercase text-slate-500">Parent Category</label>
-                <select
-                  value={form.parentId}
-                  onChange={(e) =>
-                    setForm({ ...form, parentId: e.target.value === '' ? '' : Number(e.target.value) })
-                  }
-                  className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
-                >
-                  <option value="">— Root (no parent) —</option>
-                  {parentOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {'  '.repeat(p.depth)}{p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-2 border-t border-slate-200 pt-3">
-              <AppButton variant="ghost" onClick={closeForm} type="button">
-                Cancel
-              </AppButton>
-              <AppButton variant="primary" icon={Save} type="submit" disabled={busy}>
-                {form.id ? 'Save Changes' : 'Create Category'}
-              </AppButton>
-            </div>
-          </form>
-        </div>
-      )}
 
       {confirmDialog}
     </>

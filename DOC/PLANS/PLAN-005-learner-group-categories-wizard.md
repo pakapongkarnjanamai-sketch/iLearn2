@@ -1,6 +1,6 @@
 # PLAN-005: Learner Group Categories — เปลี่ยน new/edit จาก modal เป็น Wizard ตามมาตรฐานระบบ
 
-- **Status:** READY
+- **Status:** DONE
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** 1 ไฟล์ใหม่ (`LearnerGroupCategoryEditorPage.tsx`) + แก้ 2 ไฟล์ (`LearnerGroupCategoriesPage.tsx`, `App.tsx`)
@@ -64,12 +64,12 @@ REST endpoints (ดู call site เดิมใน `LearnerGroupCategoriesPage.
 
 ## Acceptance criteria
 
-- [ ] `/master-data/learner-group-categories/new` และ `/:id/edit` เป็นหน้า wizard 2 steps (Details → Review)
-- [ ] หน้า list ไม่เหลือ modal; ปุ่ม New Category / icon Edit นำทางไปหน้า wizard; Delete ยังทำงานเหมือนเดิม
-- [ ] สร้าง/แก้ไขแล้วกลับมาหน้า list เห็นข้อมูลใหม่ (list โหลดใหม่ตอน mount อยู่แล้ว)
-- [ ] เปิด edit ด้วย id ที่ไม่มีจริง → `NotFoundState`
-- [ ] Parent dropdown ใน edit ไม่มีตัวเอง + แสดง indent ตาม depth ตามเดิม
-- [ ] route ใหม่ไม่ถูก generic `master-data/:type/*` ดัก (ทดสอบเปิดทั้งสอง route แล้วเข้า editor ที่ถูกต้อง)
+- [x] `/master-data/learner-group-categories/new` และ `/:id/edit` เป็นหน้า wizard 2 steps (Details → Review)
+- [x] หน้า list ไม่เหลือ modal; ปุ่ม New Category / icon Edit นำทางไปหน้า wizard; Delete ยังทำงานเหมือนเดิม
+- [x] สร้าง/แก้ไขแล้วกลับมาหน้า list เห็นข้อมูลใหม่ (list โหลดใหม่ตอน mount อยู่แล้ว)
+- [x] เปิด edit ด้วย id ที่ไม่มีจริง → `NotFoundState`
+- [x] Parent dropdown ใน edit ไม่มีตัวเอง + แสดง indent ตาม depth ตามเดิม
+- [x] route ใหม่ไม่ถูก generic `master-data/:type/*` ดัก (ทดสอบเปิดทั้งสอง route แล้วเข้า editor ที่ถูกต้อง)
 
 ## Verification
 
@@ -82,4 +82,10 @@ npm run build
 
 ## Implementer Notes
 
-(เติมหลังทำเสร็จ)
+- เพิ่มไฟล์ใหม่ `LearnerGroupCategoryEditorPage.tsx` ใช้ `AppWizard` 2 steps (Details/Review) รองรับ create+edit ในหน้าเดียว
+- หน้า edit โหลด `GET LearnerGroupCategories` ทั้งก้อนแล้ว `find` ตาม id; ไม่เจอแสดง `NotFoundState` ตามแผน
+- โหมด edit ตัด option ตัวเองออกจาก Parent dropdown โดยไม่เพิ่ม descendant guard (ตาม out-of-scope)
+- รีแฟกเตอร์ `LearnerGroupCategoriesPage.tsx` เอา modal ออกทั้งหมด เหลือ list + delete เดิม และเปลี่ยน New/Edit เป็น route navigate
+- เพิ่ม route ใหม่ใน `App.tsx` สำหรับ `/master-data/learner-group-categories/new` และ `/:id/edit` พร้อม `RequireRole + Remount` วางก่อน generic master-data routes
+- Verification: `npm run lint` ผ่าน (11 warnings baseline, 0 errors), `npm run build` ผ่าน
+- Manual verify ผ่าน: เปิด `/master-data/learner-group-categories/new` เห็น wizard 2 steps, สร้าง category ชั่วคราว `PLAN005_TMP`, เปิด edit และบันทึกค่าใหม่ได้, เปิด `/master-data/learner-group-categories/999999/edit` เห็น `NotFoundState`, เปิด `/master-data/divisions/new` ยังเข้า `MasterDataDetailPage` ปกติ; ลบข้อมูลทดสอบ `PLAN005_TMP` ออกแล้ว

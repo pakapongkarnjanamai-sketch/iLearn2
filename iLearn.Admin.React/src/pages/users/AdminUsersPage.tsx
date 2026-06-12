@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Shield, UserPlus } from 'lucide-react'
+import { Shield, UserPlus, Eye } from 'lucide-react'
 import { AppTable, type AdminGridColumn } from '../../components/ui/AppTable'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppButton } from '../../components/ui/AppButton'
@@ -98,8 +98,13 @@ export function AdminUsersPage() {
         noDataText="No admin users found"
         searchPlaceholder="Search by NID, name, or division..."
         searchExpr={['nid', 'fullName', 'division']}
-        onRowDblClick={(e) => navigate(`/users/${e.data.id}/edit`)}
+        onRowDblClick={(e) => navigate(`/users/${e.data.id}`)}
         actionButtons={[
+          {
+            hint: 'Open Details',
+            icon: <Eye className="h-3.5 w-3.5" />,
+            onClick: (e) => navigate(`/users/${e.row.data.id}`),
+          },
           {
             hint: 'Edit Roles',
             icon: <Shield className="h-3.5 w-3.5" />,

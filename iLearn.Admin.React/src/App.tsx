@@ -23,9 +23,11 @@ import { BulkAssignPage } from './pages/assignments/BulkAssignPage'
 import { ContentItemDetailPage } from './pages/content-library/ContentItemDetailPage'
 import { ContentItemEditorPage } from './pages/content-library/ContentItemEditorPage'
 import { LearnerGroupCategoriesPage } from './pages/master-data/LearnerGroupCategoriesPage'
+import { LearnerGroupCategoryEditorPage } from './pages/master-data/LearnerGroupCategoryEditorPage'
 import { MasterDataDetailPage } from './pages/master-data/MasterDataDetailPage'
 import { AdminUsersPage } from './pages/users/AdminUsersPage'
 import { UserEditorPage } from './pages/users/UserEditorPage'
+import { UserDetailPage } from './pages/users/UserDetailPage'
 
 function LegacyStudentGroupsRedirect() {
   const location = useLocation()
@@ -114,6 +116,16 @@ export function App() {
           }
         />
         <Route
+          path="users/:id"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount>
+                <UserDetailPage />
+              </Remount>
+            </RequireRole>
+          }
+        />
+        <Route
           path="users/:id/edit"
           element={
             <RequireRole superAdminOnly>
@@ -166,6 +178,22 @@ export function App() {
           element={
             <RequireRole superAdminOnly>
               <LearnerGroupCategoriesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="master-data/learner-group-categories/new"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount><LearnerGroupCategoryEditorPage /></Remount>
+            </RequireRole>
+          }
+        />
+        <Route
+          path="master-data/learner-group-categories/:id/edit"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount><LearnerGroupCategoryEditorPage /></Remount>
             </RequireRole>
           }
         />
