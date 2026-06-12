@@ -17,10 +17,9 @@ export function EntityListPage({ config }: EntityListPageProps) {
   const navigate = useNavigate()
   
   const [divisions, setDivisions] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
 
   useEffect(() => {
-    if (config.controller === 'AssignmentsCRUD' || config.controller === 'LearnerGroupsCRUD') {
+    if (config.controller === 'AssignmentsCRUD') {
       fetchWithAccessControl<any>('admin/DivisionsCRUD/Get')
         .then(res => {
           if (res && Array.isArray(res.data)) {
@@ -30,18 +29,6 @@ export function EntityListPage({ config }: EntityListPageProps) {
           }
         })
         .catch(err => console.error('Failed to load divisions for lookup', err))
-    }
-
-    if (config.controller === 'LearnerGroupsCRUD') {
-      fetchWithAccessControl<any>('LearnerGroupCategories')
-        .then(res => {
-          if (res && Array.isArray(res.data)) {
-            setCategories(res.data)
-          } else if (Array.isArray(res)) {
-            setCategories(res)
-          }
-        })
-        .catch(err => console.error('Failed to load learner group categories for lookup', err))
     }
   }, [config.controller])
 
@@ -57,39 +44,11 @@ export function EntityListPage({ config }: EntityListPageProps) {
           }
         }
       }
-      if (col.dataField === 'categoryId') {
-        return {
-          ...col,
-          cellRender: ({ value }: any) => {
-            if (value === null || value === undefined) return '—'
-
-            const path: string[] = []
-            const visited = new Set<number>()
-            let current = categories.find(c => c.id === Number(value))
-
-            while (current && !visited.has(Number(current.id))) {
-              path.unshift(current.name)
-              visited.add(Number(current.id))
-              const pId = current.parentId
-              current = pId ? categories.find(c => c.id === pId) : null
-            }
-
-            return path.length > 0 ? (
-              <span className="text-xs text-slate-700 font-medium" title={path.join(' / ')}>
-                {path.join(' / ')}
-              </span>
-            ) : `Category ${value}`
-          }
-        }
-      }
       return col
     })
-  }, [config.columns, divisions, categories])
+  }, [config.columns, divisions])
 
-  const crudControllers = new Set([
-    'LearnerGroupsCRUD',
-  ])
-  const isCrudEnabled = crudControllers.has(config.controller)
+  const isCrudEnabled = false
   const isReadOnly =
     config.controller === 'LearningLogsCRUD' || config.controller === 'EnrollmentsCRUD'
 
@@ -97,13 +56,6 @@ export function EntityListPage({ config }: EntityListPageProps) {
     if (config.controller === 'ContentItemsCRUD') {
       return createRestDataSource<any>({
         controller: 'ContentItems',
-        key: config.key,
-        enableCrud: isCrudEnabled,
-      })
-    }
-    if (config.controller === 'LearnerGroupsCRUD') {
-      return createRestDataSource<any>({
-        controller: 'LearnerGroups',
         key: config.key,
         enableCrud: isCrudEnabled,
       })
@@ -120,7 +72,6 @@ export function EntityListPage({ config }: EntityListPageProps) {
     if (controller === 'CoursesCRUD') return '/courses'
     if (controller === 'ContentItemsCRUD') return '/content-library'
     if (controller === 'AssignmentsCRUD') return '/assignments'
-    if (controller === 'LearnerGroupsCRUD') return '/learner-groups'
     if (controller === 'UsersCRUD') return '/users'
     if (controller === 'Learners') return '/learners'
     if (controller === 'LearningLogsCRUD') return '/learning-logs'
@@ -181,7 +132,6 @@ export function EntityListPage({ config }: EntityListPageProps) {
     config.controller === 'RolesCRUD'
 
   const hasGridActions =
-    config.controller === 'LearnerGroupsCRUD' ||
     config.controller === 'AssignmentsCRUD' ||
     config.controller === 'ContentItemsCRUD' ||
     isMasterData
@@ -192,14 +142,6 @@ export function EntityListPage({ config }: EntityListPageProps) {
         <Link to={`${getRoutePrefix(config.controller)}/new`}>
           <AppButton variant="primary" icon={Plus}>
             Create {config.title.replace(/s$/, '')}
-          </AppButton>
-        </Link>
-      )}
-
-      {config.controller === 'LearnerGroupsCRUD' && (
-        <Link to="/learner-groups/new">
-          <AppButton variant="primary" icon={Plus}>
-            Create Group
           </AppButton>
         </Link>
       )}

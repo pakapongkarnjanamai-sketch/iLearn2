@@ -50,15 +50,15 @@ export const navigationSections: NavigationSection[] = [
     label: 'Learning',
     items: [
       { label: 'Courses', path: '/courses', icon: BookOpen },
-      { label: 'Content Library', path: '/content-library', icon: Library },
       { label: 'Assignments', path: '/assignments', icon: ClipboardList },
       { label: 'Learner Groups', path: '/learner-groups', icon: Users },
-      { label: 'Learners', path: '/learners', icon: UserRound },
     ],
   },
   {
     label: 'Operations',
     items: [
+      { label: 'Content Library', path: '/content-library', icon: Library },
+      { label: 'Learners', path: '/learners', icon: UserRound },
       { label: 'Learning Logs', path: '/learning-logs', icon: FileText },
     ],
   },

@@ -76,22 +76,6 @@ export const adminListConfigs = {
       { dataField: 'dueDate', caption: 'Due Date', dataType: 'date', width: 140 },
     ],
   },
-  learnerGroups: {
-    title: 'Learner Groups',
-    eyebrow: 'Learner Segmentation',
-    description: 'Managed learner groups used for assignments and membership workflows.',
-    controller: 'LearnerGroupsCRUD',
-    key: 'id',
-    gridTitle: 'Learner Group Directory',
-    gridNote: 'Membership actions use the Learner Group detail page.',
-    columns: [
-      { dataField: 'name', caption: 'Group Name', minWidth: 260 },
-      { dataField: 'description', caption: 'Description', minWidth: 260 },
-      { dataField: 'divisionId', caption: 'Division', dataType: 'number', width: 110, alignment: 'center' },
-      { dataField: 'categoryId', caption: 'Category', dataType: 'number', width: 120, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
-    ],
-  },
   learners: {
     title: 'Learners',
     eyebrow: 'People Directory',

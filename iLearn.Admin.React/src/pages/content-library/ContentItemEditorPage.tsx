@@ -79,12 +79,6 @@ export function ContentItemEditorPage() {
         throw new Error(errorMsg)
       }
       const result = (await created.json()) as { id: number }
-      if (form.name.trim()) {
-        const update = new FormData()
-        update.append('key', String(result.id))
-        update.append('values', JSON.stringify({ name: form.name.trim(), typeId: form.typeId }))
-        await fetchWithAccessControl('admin/ContentItemsCRUD/Put', { method: 'PUT', body: update })
-      }
       toast.success('SCORM package uploaded')
       navigate(`/content-library/${result.id}`)
     } catch (err) {
@@ -117,7 +111,7 @@ export function ContentItemEditorPage() {
   }
 
   const validateMetadata = () => {
-    if (!isCreate && !form.name.trim()) {
+    if (!form.name.trim()) {
       toast.error('Name is required')
       return false
     }
@@ -141,13 +135,13 @@ export function ContentItemEditorPage() {
 
       <div className="space-y-1.5">
         <label className="wiz-label">
-          Display Name {!isCreate && <span className="text-red-500">*</span>}
+          Display Name <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          placeholder={isCreate ? 'Leave blank to use ZIP filename as fallback' : 'Required'}
+          placeholder="Required"
           className="wiz-input"
         />
       </div>

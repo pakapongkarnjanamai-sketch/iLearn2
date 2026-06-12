@@ -658,7 +658,10 @@ export function LearnerGroupListPage() {
                             <td className="px-4 py-2.5 text-xs font-semibold text-slate-500">
                               <div className="flex flex-col gap-0.5">
                                 <span className="truncate">{itemDivision}</span>
-                                <span className="font-mono text-[11px] text-slate-400">{toDateText(item.updatedAt)}</span>
+                                <span className="text-[11px] text-slate-400">
+                                  {item.isFolder ? 'Created ' : 'Updated '}
+                                  {toDateText(item.updatedAt)}
+                                </span>
                               </div>
                             </td>
 

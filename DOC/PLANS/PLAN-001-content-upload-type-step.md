@@ -1,6 +1,6 @@
 # PLAN-001: หน้า Upload SCORM (create) เลือก Content Type ไม่ได้
 
-- **Status:** READY
+- **Status:** CANCELLED (Reverted by user request)
 - **Assigned:** Gemini
 - **Priority:** High
 - **Estimated scope:** 1 ไฟล์ (`ContentItemEditorPage.tsx`)
@@ -49,8 +49,14 @@ if (isCreate) {
 npm run lint
 npm run build
 ```
-ทดสอบ manual: เปิด `/content-library/new` ไล่ครบ 3 step
+ทดสอบ manual: เปิด `/content-library/new` ไล่ครบ 2 step ตามเดิม
 
 ## Implementer Notes
 
-(เติมหลังทำเสร็จ)
+- **ยกเลิกแผนงาน:** ผู้ใช้อ้างอิงการปรับปรุงข้างต้นว่าไม่จำเป็นต้องเพิ่มขั้นตอน Metadata ในโหมด Create จึงกดยกเลิกและให้ย้อนคืนการแก้ไข
+- **การดำเนินการ:**
+  - ย้อนกลับขั้นตอน Wizard ในโหมด `isCreate` ให้เหลือเพียง 2 Steps (`Package Upload` -> `Review`) ตามเดิม
+  - ลบโค้ดส่วนที่ไม่ได้ใช้ (Dead Code) เช่น การเรียกใช้ PUT endpoint `admin/ContentItemsCRUD/Put` เมื่ออัปโหลดไฟล์ใน `handleUpload` ซึ่งไม่ได้ถูกทริกเกอร์เนื่องจาก `form.name` ว่างเปล่าเสมอในโหมด Create
+  - ปรับปรุงโครงสร้างความปลอดภัยในการเรียกใช้ `validateMetadata` และ `renderMetadataStep` โดยถอดเงื่อนไข `isCreate` ออก เนื่องจากฟังก์ชันเหล่านั้นใช้เฉพาะในโหมด Edit เสมอ
+  - รันและตรวจสอบ lint/build/dotnet test ผ่านเรียบร้อย 100%
+- **[Claude/planner 2026-06-12]** ผู้ใช้ยืนยันปิดงานนี้เป็น CANCELLED — ไม่ต้องการ Metadata step ในโหมด create อีกต่อไป ปิดแผนถาวร

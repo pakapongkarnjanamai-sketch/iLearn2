@@ -1,6 +1,6 @@
 # PLAN-002: เก็บกวาดหลังย้าย Learner Groups ไปใช้ Explorer
 
-- **Status:** READY
+- **Status:** VERIFIED
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** 3 ไฟล์เล็ก ๆ (ลบ dead code + แก้ป้ายคอลัมน์)
@@ -31,9 +31,9 @@
 
 ## Acceptance criteria
 
-- [ ] grep `learnerGroups` ใน moduleConfigs.ts ไม่เจอ config ที่ลบ และ `LearnerGroupsCRUD` ใน EntityListPage = 0 ที่
-- [ ] หน้า list อื่นทุกหน้า (courses, content-library, assignments, learners, learning-logs, enrollments, master-data ทั้ง 4, users) ยังทำงานเหมือนเดิม
-- [ ] แถวโฟลเดอร์ใน Explorer สื่อชัดว่าวันที่คือวันสร้าง
+- [x] grep `learnerGroups` ใน moduleConfigs.ts ไม่เจอ config ที่ลบ และ `LearnerGroupsCRUD` ใน EntityListPage = 0 ที่
+- [x] หน้า list อื่นทุกหน้า (courses, content-library, assignments, learners, learning-logs, enrollments, master-data ทั้ง 4, users) ยังทำงานเหมือนเดิม
+- [x] แถวโฟลเดอร์ใน Explorer สื่อชัดว่าวันที่คือวันสร้าง
 
 ## Verification
 
@@ -46,4 +46,10 @@ npm run build
 
 ## Implementer Notes
 
-(เติมหลังทำเสร็จ)
+- ลบ `adminListConfigs.learnerGroups` ออกจาก `moduleConfigs.ts` ตาม scope
+- ลบ branch dead code `LearnerGroupsCRUD` ใน `EntityListPage.tsx` ครบทุกจุด (lookup, route prefix, action button, rest datasource branch, crudControllers set)
+- คง branch `ContentItemsCRUD` บน `createRestDataSource` ไว้ตามข้อห้ามในแผน
+- ปรับ Explorer คอลัมน์วันที่ให้สื่อความหมายชัดเจน: แถวโฟลเดอร์แสดง `Created <date>`, แถวกลุ่มแสดง `Updated <date>`
+- Verification: `npm run lint` (warning baseline เดิม 10 รายการ, ไม่มี error), `npm run build` ผ่าน
+- Smoke (browser): เปิด `/assignments`, `/content-library`, `/master-data/divisions`, `/learner-groups` ได้ตามคาด
+- **[Claude/planner review 2026-06-12]** ✅ VERIFIED — diff ลบ branch `LearnerGroupsCRUD` ครบทุกจุด (datasource/route prefix/grid action/categories lookup/crudControllers→`isCrudEnabled=false`), คง `ContentItemsCRUD`+`createRestDataSource` ตามข้อห้าม, import (`Plus`/`AppButton`/`createRestDataSource`) ไม่เหลือ dead, ป้ายวันที่ folder=`Created` group=`Updated` ตรง scope — รัน lint (0 error/10 warning baseline) + build ผ่านอีกครั้ง

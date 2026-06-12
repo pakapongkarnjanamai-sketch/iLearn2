@@ -14,6 +14,48 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 16:30] Claude Code — Review + ปิด PLAN-002 และ PLAN-003 เป็น VERIFIED
+- ทำอะไร: รีวิว diff ทั้งสองแผน — **PLAN-002** (GPT, dead code cleanup): ลบ branch `LearnerGroupsCRUD` ครบทุกจุด, คง `ContentItemsCRUD`+`createRestDataSource` ตามข้อห้าม, import ไม่เหลือ dead, ป้ายวันที่ folder=Created/group=Updated; **PLAN-003** (Gemini, sidebar): Learning เหลือ 3 รายการ, ย้าย Content Library+Learners ไป Operations, path/icon เดิม ไม่แตะ App.tsx/Super Admin — ปรับสถานะทั้งคู่เป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-002-*.md`, `DOC/PLANS/PLAN-003-*.md` (เอกสาร — code เปลี่ยนโดย implementer แล้ว)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: รันซ้ำเอง `npm run lint` (0 error / 10 warning baseline), `npm run build` ผ่าน
+
+## [2026-06-12 16:20] Antigravity — ปรับกลุ่ม Learning และ Operations ใน sidebar ตามแผน PLAN-003
+- ทำอะไร: ย้ายเมนู Content Library และ Learners จากกลุ่ม Learning ไปไว้ในกลุ่ม Operations ใน sidebar เพื่อให้สอดคล้องกับโครงสร้างฟังก์ชันการทำงาน และเหลือเฉพาะแกนหลักของการเรียนในกลุ่ม Learning
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/config/navigation.ts`, `DOC/PLANS/PLAN-003-sidebar-learning-group.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` ผ่านเรียบร้อย
+
+## [2026-06-12 16:15] Claude Code — ปิด PLAN-001 เป็น CANCELLED (ยืนยันโดยผู้ใช้)
+- ทำอะไร: ผู้ใช้ยืนยันว่าไม่ต้องการ Metadata step ในโหมด create ของหน้า Upload SCORM — ปิด PLAN-001 ถาวรเป็น CANCELLED (Gemini ตั้งสถานะ + เขียน Implementer Notes ไว้แล้ว ผมเติมบรรทัดยืนยัน planner) บั๊กเลือก Content Type ตอน upload ถือว่าไม่แก้ตามความต้องการล่าสุด
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-001-content-upload-type-step.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a
+
+## [2026-06-12 16:10] Claude Code — เขียน PLAN-003 (ปรับกลุ่ม Learning ใน sidebar)
+- ทำอะไร: ผู้ใช้ขอให้กลุ่ม Learning ใน sidebar เหลือแค่ Courses/Assignments/Learner Groups — เขียน **PLAN-003** (Assigned: Gemini) ให้ย้าย Content Library + Learners ไปกลุ่ม Operations (route เดิม ไม่ลบ) แก้ไฟล์เดียว `navigation.ts`
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-003-sidebar-learning-group.md` (เอกสารล้วน — ยังไม่แก้โค้ด)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
+## [2026-06-12 15:35] Antigravity — ยกเลิกขั้นตอน Metadata ในโหมด Create และลบ Dead Code ตามคำสั่งผู้ใช้
+- ทำอะไร: ยกเลิกการเพิ่มขั้นตอน Metadata ในโหมด Create ของหน้า Upload SCORM กลับมาเป็น 2 ขั้นตอน (Package Upload -> Review) ตามเดิม พร้อมเคลียร์โค้ดที่ไม่ได้ใช้ (Dead Code) ใน `ContentItemEditorPage.tsx` เช่น การเรียกใช้ PUT endpoint `admin/ContentItemsCRUD/Put` เมื่ออัปโหลดไฟล์ และปรับปรุงเงื่อนไข `validateMetadata` กับ `renderMetadataStep` ให้คลีนยิ่งขึ้น
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `DOC/PLANS/PLAN-001-content-upload-type-step.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` ผ่านเรียบร้อย
+
+## [2026-06-12 15:33] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-002 เก็บ dead code หลังย้าย Learner Groups ไป Explorer
+- ทำอะไร: ลบ config ที่ไม่ถูกใช้งาน `adminListConfigs.learnerGroups`; ลบ branch dead code `LearnerGroupsCRUD` ใน `EntityListPage` ครบ (lookup categories, rest datasource branch, route prefix branch, grid action, crudControllers set); ปรับ Explorer คอลัมน์วันที่ให้สื่อความหมายตรง (`Created` สำหรับโฟลเดอร์, `Updated` สำหรับกลุ่ม); อัปเดตสถานะแผน `DOC/PLANS/PLAN-002-learner-group-explorer-cleanup.md` เป็น `DONE` พร้อม checklist/notes
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `iLearn.Admin.React/src/pages/EntityListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `DOC/PLANS/PLAN-002-learner-group-explorer-cleanup.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน (warning baseline เดิม 10 รายการ, ไม่มี error), `npm run build` ผ่าน; smoke browser เปิด `/assignments`, `/content-library`, `/master-data/divisions`, `/learner-groups` ได้
+
+## [2026-06-12 15:52] Antigravity — เพิ่ม Metadata step ในโหมด Create ของหน้า Upload SCORM ตามแผน PLAN-001
+- ทำอะไร: ปรับปรุง `ContentItemEditorPage.tsx` ในโหมด Create ให้มีขั้นตอนเลือก Metadata (Display Name + Content Type Learn/Exam) เป็น Step แรก ก่อนอัปโหลดไฟล์ SCORM เพื่อสนับสนุนการระบุ Content Type ในตอนอัปโหลดโดยตรง และกรอกแบบฟอร์มตรวจสอบข้อมูลเสร็จสิ้นใน 3 ขั้นตอน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `DOC/PLANS/PLAN-001-content-upload-type-step.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (112/112 tests passed) ผ่านเรียบร้อย
+
 ## [2026-06-12 15:50] Claude Code — ตั้งระบบ Planner/Implementer + แผน 2 ใบแรก
 - ทำอะไร: ผู้ใช้กำหนดบทบาทใหม่: Claude = planner/reviewer, Gemini + GPT = implementer — สร้าง `DOC/PLANS/` (README + template + workflow READY→DONE→VERIFIED), เขียนแผนพร้อมทำ 2 ใบ: **PLAN-001** (Assigned: Gemini — หน้า Upload SCORM โหมด create เลือก Content Type ไม่ได้เพราะ wizard ข้าม Metadata step), **PLAN-002** (Assigned: GPT — ลบ dead code `adminListConfigs.learnerGroups` + branch LearnerGroupsCRUD ใน EntityListPage + ป้ายวันที่โฟลเดอร์), อัปเดตบทบาทใน `CLAUDE.md`
 - ไฟล์หลักที่แตะ: `CLAUDE.md`, `DOC/PLANS/README.md`, `DOC/PLANS/PLAN-001-*.md`, `DOC/PLANS/PLAN-002-*.md`
