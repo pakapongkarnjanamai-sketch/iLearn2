@@ -7,7 +7,6 @@ import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSide
 import {
   DetailCard,
   DetailLayout,
-  DetailPageHeader,
   DetailSubSection,
   Fact,
   FactGrid,
@@ -106,11 +105,9 @@ export function UserDetailPage() {
 
   return (
     <>
-      <DetailPageHeader eyebrow="Admin Users" title={user.fullName || user.nid} />
-
       <DetailLayout
         sidebar={
-          <ControlsSidebar backTo="/users">
+          <ControlsSidebar>
             <ControlAction
               onClick={() => navigate(`/users/${id}/edit`)}
               icon={Edit3}

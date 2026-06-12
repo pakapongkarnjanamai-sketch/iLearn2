@@ -16,7 +16,6 @@ import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSide
 import {
   DetailCard,
   DetailLayout,
-  DetailPageHeader,
   Fact,
   FactGrid,
 } from '../../components/ui/detail'
@@ -183,11 +182,9 @@ export function ContentItemDetailPage() {
 
   return (
     <>
-      <DetailPageHeader eyebrow="Content Library" title={item.name} />
-
       <DetailLayout
         sidebar={
-          <ControlsSidebar backTo="/content-library" backLabel="Back to Library">
+          <ControlsSidebar>
             <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>
               Edit Metadata
             </ControlAction>

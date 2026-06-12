@@ -13,7 +13,7 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SectionHeader } from '../../components/ui/SectionHeader'
-import { DetailLayout, DetailPageHeader, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
@@ -276,12 +276,6 @@ export function AssignmentDetailPage() {
 
   return (
     <>
-      <DetailPageHeader
-        eyebrow="Assignments"
-        title={assignment.assignmentNo}
-        meta={<StatusBadge size="xxs">{assignmentStatus}</StatusBadge>}
-      />
-
       {/* KPI Cards Strip */}
       <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-6">
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
@@ -309,7 +303,7 @@ export function AssignmentDetailPage() {
 
       <DetailLayout
         sidebar={
-          <ControlsSidebar backTo="/assignments" backLabel="Back to Assignments">
+          <ControlsSidebar>
             <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
             <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>

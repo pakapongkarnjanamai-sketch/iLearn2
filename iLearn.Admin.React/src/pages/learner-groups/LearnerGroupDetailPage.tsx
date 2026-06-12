@@ -13,7 +13,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
-import { DetailLayout, DetailPageHeader, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -329,11 +329,9 @@ export function LearnerGroupDetailPage() {
 
   return (
     <>
-      <DetailPageHeader eyebrow="Learner Groups" title={group.name} />
-
       <DetailLayout
         sidebar={
-          <ControlsSidebar backTo="/learner-groups" backLabel="Back to Groups">
+          <ControlsSidebar>
             <ControlAction to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</ControlAction>
             <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">

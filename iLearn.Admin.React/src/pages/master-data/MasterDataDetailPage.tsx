@@ -10,7 +10,7 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
-import { DetailCard, DetailLayout, DetailPageHeader, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailCard, DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDateTime } from '../../lib/format'
 import { adminListConfigs } from '../moduleConfigs'
@@ -166,15 +166,10 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
   return (
     <>
-      <DetailPageHeader
-        eyebrow={`Master Data / ${config.title}`}
-        title={isNew ? `Create New ${entityTitle}` : item?.name || 'Record Details'}
-      />
-
       <form onSubmit={handleSave}>
         <DetailLayout
           sidebar={
-            <ControlsSidebar backTo={`/master-data/${type}`} backLabel="Back to Directory">
+            <ControlsSidebar>
               {isEditing ? (
                 // Edit Mode Actions
                 <>

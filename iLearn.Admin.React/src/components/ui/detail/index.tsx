@@ -1,24 +1,5 @@
 import type { ReactNode } from 'react'
 
-type DetailPageHeaderProps = {
-  eyebrow: string
-  title: ReactNode
-  meta?: ReactNode
-}
-
-/** Standard detail-page header rendered above the main two-column layout. */
-export function DetailPageHeader({ eyebrow, title, meta }: DetailPageHeaderProps) {
-  return (
-    <header className="mb-4">
-      <div className="text-xxs font-extrabold uppercase text-slate-400">{eyebrow}</div>
-      <h1 className="flex items-center gap-2 text-2xl font-extrabold text-slate-900 select-none">
-        <span>{title}</span>
-        {meta}
-      </h1>
-    </header>
-  )
-}
-
 type DetailLayoutProps = {
   sidebar: ReactNode
   children: ReactNode

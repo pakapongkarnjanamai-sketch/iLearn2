@@ -22,7 +22,6 @@ import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSide
 import {
   DetailCard,
   DetailLayout,
-  DetailPageHeader,
   Fact,
   FactGrid,
 } from '../../components/ui/detail'
@@ -320,16 +319,6 @@ export function CourseDetailPage() {
 
   return (
     <>
-      <DetailPageHeader
-        eyebrow="Courses"
-        title={course.courseName}
-        meta={
-          <StatusBadge tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
-            {course.statusName}
-          </StatusBadge>
-        }
-      />
-
       <DetailLayout
         sidebar={
           <CourseControls
@@ -628,7 +617,7 @@ function CourseControls({
   onDeleteCourse,
 }: CourseControlsProps) {
   return (
-    <ControlsSidebar backTo="/courses" backLabel="Back to Directory">
+    <ControlsSidebar>
       <ControlAction to={`/courses/${courseId}/version/new`} icon={Plus}>
         Add Version Package
       </ControlAction>

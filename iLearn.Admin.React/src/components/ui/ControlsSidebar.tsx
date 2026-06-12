@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
-import { ArrowLeft, Loader2, Settings } from 'lucide-react'
+import { Loader2, Settings } from 'lucide-react'
 
 /*
  * Standard right-hand controls sidebar used by every detail page.
@@ -13,16 +13,12 @@ type ControlsSidebarProps = {
   title?: string
   icon?: LucideIcon
   children: ReactNode
-  backTo?: string
-  backLabel?: string
 }
 
 export function ControlsSidebar({
   title = 'Controls',
   icon: Icon = Settings,
   children,
-  backTo,
-  backLabel = 'Back',
 }: ControlsSidebarProps) {
   return (
     <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2 select-none">
@@ -32,18 +28,6 @@ export function ControlsSidebar({
       </div>
 
       {children}
-
-      {backTo && (
-        <div className="pt-2 border-t border-slate-100">
-          <Link
-            to={backTo}
-            className="w-full flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-700 transition font-semibold text-xs py-1.5"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>{backLabel}</span>
-          </Link>
-        </div>
-      )}
     </aside>
   )
 }

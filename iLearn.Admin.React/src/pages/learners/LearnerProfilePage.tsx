@@ -13,7 +13,6 @@ import { NotFoundState } from '../../components/ui/NotFoundState'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import {
   DetailCard,
-  DetailPageHeader,
   DetailSubSection,
   Fact,
   FactGrid,
@@ -118,8 +117,6 @@ export function LearnerProfilePage() {
 
   return (
     <>
-      <DetailPageHeader eyebrow="Learners" title={profile.name} />
-
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         {/* Transcript (main) */}
         <div className="min-w-0">
