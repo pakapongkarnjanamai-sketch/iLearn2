@@ -31,8 +31,9 @@ export function EntityListPage({ config }: EntityListPageProps) {
         })
         .catch(err => console.error('Failed to load divisions for lookup', err))
     }
+
     if (config.controller === 'LearnerGroupsCRUD') {
-      fetchWithAccessControl<any>('admin/CategoriesCRUD/Get')
+      fetchWithAccessControl<any>('LearnerGroupCategories')
         .then(res => {
           if (res && Array.isArray(res.data)) {
             setCategories(res.data)
@@ -40,7 +41,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
             setCategories(res)
           }
         })
-        .catch(err => console.error('Failed to load categories for lookup', err))
+        .catch(err => console.error('Failed to load learner group categories for lookup', err))
     }
   }, [config.controller])
 
@@ -61,8 +62,23 @@ export function EntityListPage({ config }: EntityListPageProps) {
           ...col,
           cellRender: ({ value }: any) => {
             if (value === null || value === undefined) return '—'
-            const cat = categories.find(c => c.id === Number(value))
-            return cat ? cat.name : `Category ${value}`
+
+            const path: string[] = []
+            const visited = new Set<number>()
+            let current = categories.find(c => c.id === Number(value))
+
+            while (current && !visited.has(Number(current.id))) {
+              path.unshift(current.name)
+              visited.add(Number(current.id))
+              const pId = current.parentId
+              current = pId ? categories.find(c => c.id === pId) : null
+            }
+
+            return path.length > 0 ? (
+              <span className="text-xs text-slate-700 font-medium" title={path.join(' / ')}>
+                {path.join(' / ')}
+              </span>
+            ) : `Category ${value}`
           }
         }
       }

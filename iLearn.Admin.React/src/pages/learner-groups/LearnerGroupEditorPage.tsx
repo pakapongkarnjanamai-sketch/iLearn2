@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
+  ChevronDown,
   Plus, 
   Save, 
   X,
@@ -18,6 +19,49 @@ type LoadResult<T> = T[] | { data?: T[] }
 type GroupCategoryLookup = {
   id: number
   name: string
+  parentId?: number | null
+  depth?: number
+}
+
+type HierarchicalCategoryOption = GroupCategoryLookup & {
+  displayName: string
+}
+
+function buildCategoryTreeOptions(categories: GroupCategoryLookup[]): HierarchicalCategoryOption[] {
+  const byParent: Record<number, GroupCategoryLookup[]> = {}
+  const roots: GroupCategoryLookup[] = []
+
+  categories.forEach(category => {
+    const pId = category.parentId || 0
+    if (pId === 0) {
+      roots.push(category)
+      return
+    }
+
+    if (!byParent[pId]) {
+      byParent[pId] = []
+    }
+    byParent[pId].push(category)
+  })
+
+  const result: HierarchicalCategoryOption[] = []
+
+  const traverse = (node: GroupCategoryLookup, depth: number) => {
+    const indent = depth > 0 ? `${'|  '.repeat(depth - 1)}|- ` : ''
+    result.push({
+      ...node,
+      displayName: `${indent}${node.name}`
+    })
+
+    const children = byParent[node.id] || []
+    children.sort((a, b) => a.name.localeCompare(b.name))
+    children.forEach(child => traverse(child, depth + 1))
+  }
+
+  roots.sort((a, b) => a.name.localeCompare(b.name))
+  roots.forEach(root => traverse(root, 0))
+
+  return result
 }
 
 type GroupFormData = {
@@ -80,6 +124,10 @@ export function LearnerGroupEditorPage() {
   const selectedCategoryName = useMemo(() => (
     categories.find(category => category.id === formData.categoryId)?.name || 'No category'
   ), [categories, formData.categoryId])
+
+  const hierarchicalCategories = useMemo(() => {
+    return buildCategoryTreeOptions(categories)
+  }, [categories])
 
   const loadCategories = useCallback(async () => {
     try {
@@ -245,16 +293,23 @@ export function LearnerGroupEditorPage() {
 
       <div className="space-y-1.5">
         <label htmlFor="categoryId" className="wiz-label">Category</label>
-        <select
-          id="categoryId"
-          name="categoryId"
-          value={formData.categoryId}
-          onChange={handleChange}
-          className="wiz-input max-w-md"
-        >
-          <option value={0}>No category (root)</option>
-          {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
-        </select>
+        <div className="relative max-w-md">
+          <select
+            id="categoryId"
+            name="categoryId"
+            value={formData.categoryId}
+            onChange={handleChange}
+            className="w-full appearance-none px-3 py-2 pr-10 border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 cursor-pointer"
+          >
+            <option value={0}>No category (root)</option>
+            {hierarchicalCategories.map(category => (
+              <option key={category.id} value={category.id}>
+                {category.displayName}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -275,7 +330,7 @@ export function LearnerGroupEditorPage() {
   )
 
   const renderMembersStep = () => (
-    <div className="flex flex-col gap-3 h-[calc(100vh-265px)] min-h-[360px] w-full">
+    <div className="flex flex-col gap-3 h-[calc(100vh-265px)] min-h-90 w-full">
       <div className="flex justify-end select-none shrink-0">
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg text-xs">
           <button
@@ -406,11 +461,11 @@ export function LearnerGroupEditorPage() {
     </div>
   )
 
-  const steps: WizardStep[] = useMemo(() => [
+  const steps: WizardStep[] = [
     { label: 'Information', validate: () => validateInformation(), render: () => renderInformationStep() },
     { label: 'Members', render: () => renderMembersStep() },
     { label: 'Review', render: () => renderReviewStep() }
-  ], [formData, selectedLearners, categories, activeTab, memberInput])
+  ]
 
   if (loading) {
     return <LoadingState label="Loading group details..." />

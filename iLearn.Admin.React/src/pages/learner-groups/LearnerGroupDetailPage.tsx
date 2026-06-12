@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   Users,
@@ -37,6 +37,7 @@ type LearnerGroupDetail = {
   createdBy: string
   categoryId?: number
   categoryName?: string
+  categoryAncestors?: Array<{ id: number; name: string }>
   members: LearnerGroupMember[]
 }
 
@@ -114,7 +115,7 @@ export function LearnerGroupDetailPage() {
   const [unenrollFromAssignments, setUnenrollFromAssignments] = useState(true)
   const [removePreview, setRemovePreview] = useState<PreviewRemoveResult | null>(null)
 
-  const loadGroupDetails = async () => {
+  const loadGroupDetails = useCallback(async () => {
     setLoading(true)
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; data: LearnerGroupDetail }>(`LearnerGroups/${id}`)
@@ -128,11 +129,11 @@ export function LearnerGroupDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    loadGroupDetails()
-  }, [id])
+    void loadGroupDetails()
+  }, [loadGroupDetails])
 
   const parseLearnerCodes = (value: string) => {
     return Array.from(new Set(
@@ -401,7 +402,21 @@ export function LearnerGroupDetailPage() {
             <dl className="space-y-3 text-sm">
               <div>
                 <dt className="text-slate-400 font-bold text-xs uppercase">LMS Category</dt>
-                <dd className="text-slate-800 font-bold mt-1">{group.categoryName || '-'}</dd>
+                <dd className="text-slate-800 mt-1 font-semibold">
+                  {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
+                      {group.categoryAncestors.map(ancestor => (
+                        <span key={ancestor.id} className="flex items-center gap-1">
+                          <span className="text-slate-600">{ancestor.name}</span>
+                          <span className="text-slate-300 font-normal">/</span>
+                        </span>
+                      ))}
+                      <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
+                    </div>
+                  ) : (
+                    group.categoryName || '-'
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-slate-400 font-bold text-xs uppercase">Owner / Creator</dt>
