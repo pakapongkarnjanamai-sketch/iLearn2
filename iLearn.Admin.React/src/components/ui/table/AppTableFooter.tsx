@@ -12,7 +12,7 @@ export function AppTableFooter({
   loading
 }: AppTableFooterProps) {
   return (
-    <footer className="flex flex-col sm:flex-row items-center sm:justify-between p-4 gap-3 border-t border-slate-100 bg-slate-50/50 text-xs font-semibold text-slate-500">
+    <footer className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-semibold text-slate-500">
       <div className="select-none">
         {totalCount > 0 ? (
           <span>

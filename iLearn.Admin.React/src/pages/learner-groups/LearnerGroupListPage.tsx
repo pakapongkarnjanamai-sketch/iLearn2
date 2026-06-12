@@ -556,7 +556,7 @@ export function LearnerGroupListPage() {
           </div>
         }
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-3 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 pt-4 pb-0">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs font-semibold text-slate-500">
               Showing <span className="font-bold text-slate-800">{filteredItems.length}</span> items in this folder

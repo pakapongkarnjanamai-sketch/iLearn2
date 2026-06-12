@@ -215,27 +215,29 @@ export function AppTable<T extends TableRecord>({
       <AppTableSearch
         value={searchValue}
         onChange={setSearchValue}
+        totalCount={totalCount}
         placeholder={searchPlaceholder}
         toolbarContent={toolbarContent}
       />
 
-      {/* Grid Table Workspace */}
-      <div 
-        ref={tableViewportRef} 
-        onScroll={handleScroll}
-        className="relative flex-1 min-h-0 overflow-auto custom-scrollbar"
-      >
-        <table className="min-w-full divide-y divide-slate-100 text-left text-xxs sm:text-[12px]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-3xs">
+        {/* Grid Table Workspace */}
+        <div 
+          ref={tableViewportRef} 
+          onScroll={handleScroll}
+          className="relative flex-1 min-h-0 overflow-auto custom-scrollbar"
+        >
+          <table className="min-w-full divide-y divide-slate-100 text-left text-xxs sm:text-[12px]">
           
           {/* Table Headers */}
-          <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
+          <thead className="bg-slate-50/90 sticky top-0 z-10 border-b border-slate-200">
             <tr>
               {visibleColumns.map(col => (
                 <th
                   key={col.dataField}
                   onClick={() => handleSort(col.dataField)}
                   style={{ width: col.width, minWidth: col.minWidth }}
-                  className="px-4 py-2 text-xxs font-extrabold text-slate-500 uppercase cursor-pointer hover:bg-slate-100/80 transition select-none"
+                  className="px-4 py-2.5 text-xxs font-extrabold text-slate-500 uppercase cursor-pointer hover:bg-slate-100/80 transition select-none"
                 >
                   <div className={`flex items-center gap-1 ${
                     col.alignment === 'center' ? 'justify-center' : col.alignment === 'right' ? 'justify-end' : 'justify-start'
@@ -250,7 +252,7 @@ export function AppTable<T extends TableRecord>({
                 </th>
               ))}
               {actionButtons && (
-                <th className="px-4 py-2 text-xxs font-extrabold text-slate-500 uppercase text-center w-24 select-none">
+                <th className="px-4 py-2.5 text-xxs font-extrabold text-slate-500 uppercase text-center w-24 select-none">
                   Actions
                 </th>
               )}
@@ -282,7 +284,7 @@ export function AppTable<T extends TableRecord>({
                     {visibleColumns.map(col => {
                       const val = row[col.dataField]
                       return (
-                        <td key={col.dataField} className={`px-4 py-2 ${col.dataField === 'description' || col.dataField === 'name' || col.dataField === 'title' ? '' : 'whitespace-nowrap'}`}>
+                        <td key={col.dataField} className={`px-4 py-2.5 ${col.dataField === 'description' || col.dataField === 'name' || col.dataField === 'title' ? '' : 'whitespace-nowrap'}`}>
                           {col.cellRender ? (
                             col.cellRender({ value: val, data: row, index })
                           ) : col.dataType === 'boolean' ? (
@@ -310,7 +312,7 @@ export function AppTable<T extends TableRecord>({
                     
                     {/* Action Column */}
                     {actionButtons && (
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 opacity-70 group-hover:opacity-100 transition">
                           {actionButtons.map((btn, idx) => (
                             <button
@@ -334,22 +336,23 @@ export function AppTable<T extends TableRecord>({
             )}
           </tbody>
 
-        </table>
+          </table>
 
-        {/* Spinner Overlay */}
-        {loading && (
-          <div className="absolute inset-0 bg-white/45 backdrop-blur-xs flex items-center justify-center z-10 transition duration-150">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-          </div>
-        )}
+          {/* Spinner Overlay */}
+          {loading && (
+            <div className="absolute inset-0 bg-white/45 backdrop-blur-xs flex items-center justify-center z-10 transition duration-150">
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            </div>
+          )}
+        </div>
+
+        {/* Infinite Scroll Footer */}
+        <AppTableFooter
+          loadedCount={data.length}
+          totalCount={totalCount}
+          loading={loading}
+        />
       </div>
-
-      {/* Infinite Scroll Footer */}
-      <AppTableFooter
-        loadedCount={data.length}
-        totalCount={totalCount}
-        loading={loading}
-      />
     </div>
   )
 }

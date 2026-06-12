@@ -4,7 +4,6 @@ import {
   Database,
   FileText,
   Home,
-  Layers,
   Library,
   Settings,
   UserCog,
@@ -52,15 +51,7 @@ export const navigationSections: NavigationSection[] = [
     items: [
       { label: 'Courses', path: '/courses', icon: BookOpen },
       { label: 'Content Library', path: '/content-library', icon: Library },
-      {
-        label: 'Assignments',
-        path: '/assignments',
-        icon: ClipboardList,
-        children: [
-          { label: 'Batches', path: '/assignments', icon: ClipboardList },
-          { label: 'Schedule (Gantt)', path: '/assignments/gantt', icon: Layers },
-        ],
-      },
+      { label: 'Assignments', path: '/assignments', icon: ClipboardList },
       { label: 'Learner Groups', path: '/learner-groups', icon: Users },
       { label: 'Learners', path: '/learners', icon: UserRound },
     ],

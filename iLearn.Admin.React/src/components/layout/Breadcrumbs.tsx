@@ -17,6 +17,7 @@ const SEGMENT_MAP: Record<string, string> = {
   'edit': 'Modify',
   'version': 'SCORM Version',
   'profile': 'Profile',
+  'gantt': 'Schedule',
   'bulk': 'Bulk Assignment'
 }
 

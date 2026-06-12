@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Layers, Plus } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
 import { DataGridSurface } from '../components/ui/DataGridSurface'
 import { AppTable } from '../components/ui/AppTable'
@@ -205,11 +205,18 @@ export function EntityListPage({ config }: EntityListPageProps) {
       )}
 
       {config.controller === 'AssignmentsCRUD' && (
-        <Link to="/assignments/bulk">
-          <AppButton variant="primary" icon={Plus}>
-            Bulk Assignment
-          </AppButton>
-        </Link>
+        <>
+          <Link to="/assignments/gantt">
+            <AppButton variant="secondary" icon={Layers}>
+              Schedule
+            </AppButton>
+          </Link>
+          <Link to="/assignments/bulk">
+            <AppButton variant="primary" icon={Plus}>
+              Bulk Assignment
+            </AppButton>
+          </Link>
+        </>
       )}
 
       {config.controller === 'ContentItemsCRUD' && (
