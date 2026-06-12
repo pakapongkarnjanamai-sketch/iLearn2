@@ -19,6 +19,13 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import {
+  DetailCard,
+  DetailLayout,
+  DetailPageHeader,
+  Fact,
+  FactGrid,
+} from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
@@ -313,34 +320,53 @@ export function CourseDetailPage() {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-        <div className="min-w-0">
-          {/* Tab controls */}
-          <div className="border-b border-slate-200 mb-6 flex gap-1">
-            {(['overview', 'versions', 'learners', 'assignments'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
-                  activeTab === tab 
-                    ? 'text-indigo-600 font-bold border-b-2 border-indigo-500' 
-                    : 'text-slate-400 hover:text-slate-700'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
+      <DetailPageHeader
+        eyebrow="Courses"
+        title={course.courseName}
+        meta={
+          <StatusBadge tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
+            {course.statusName}
+          </StatusBadge>
+        }
+      />
 
-          {/* Tab Content Panels */}
-          <main className="space-y-6">
+      <DetailLayout
+        sidebar={
+          <CourseControls
+            courseId={id ?? String(course.id)}
+            isDraft={isDraft}
+            isOpen={isOpen}
+            isRetired={isRetired}
+            mutatingStatus={mutatingStatus}
+            onStatusChange={handleStatusChange}
+            onDeleteCourse={handleDeleteCourse}
+          />
+        }
+      >
+        {/* Tab controls */}
+        <div className="border-b border-slate-200 mb-6 flex gap-1">
+          {(['overview', 'versions', 'learners', 'assignments'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
+                activeTab === tab 
+                  ? 'text-indigo-600 font-bold border-b-2 border-indigo-500' 
+                  : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content Panels */}
+        <main className="space-y-6">
             
             {activeTab === 'overview' && (
-              <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5">
-                {/* Course Title & Code */}
+              <DetailCard>
                 <div>
-                  <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{course.courseName}</h1>
-                  <span className="inline-block mt-1 font-mono text-xs text-slate-400">{course.courseCode}</span>
+                  <span className="inline-block font-mono text-xs text-slate-400">{course.courseCode}</span>
                 </div>
 
                 {/* Description */}
@@ -351,45 +377,36 @@ export function CourseDetailPage() {
                 )}
 
                 {/* Metadata Grid */}
-                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm border-t border-slate-100 pt-5">
-                  <div>
-                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Status</dt>
-                    <dd className="mt-1">
-                      <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
-                        {course.statusName}
-                      </StatusText>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Category</dt>
-                    <dd className="mt-1 font-semibold text-slate-700">{categoryNames[course.categoryId] || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Course Type</dt>
-                    <dd className="mt-1 font-semibold text-slate-700">{courseTypeNames[course.courseType] || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Content Items</dt>
-                    <dd className="mt-1 font-semibold text-slate-700">{course.contentItems.length}</dd>
-                  </div>
+                <FactGrid className="text-sm border-t border-slate-100 pt-5">
+                  <Fact label="Status">
+                    <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
+                      {course.statusName}
+                    </StatusText>
+                  </Fact>
+                  <Fact label="Category" valueClassName="font-semibold">
+                    {categoryNames[course.categoryId] || '-'}
+                  </Fact>
+                  <Fact label="Course Type" valueClassName="font-semibold">
+                    {courseTypeNames[course.courseType] || '-'}
+                  </Fact>
+                  <Fact label="Content Items" valueClassName="font-semibold">
+                    {course.contentItems.length}
+                  </Fact>
                   {data.kpi && (
                     <>
-                      <div>
-                        <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Versions</dt>
-                        <dd className="mt-1 font-bold text-slate-800 text-lg">{data.kpi.versionCount}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Active Learners</dt>
-                        <dd className="mt-1 font-bold text-slate-800 text-lg">{data.kpi.learnerCount}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-slate-400 font-bold uppercase tracking-wide">Assignment Batches</dt>
-                        <dd className="mt-1 font-bold text-slate-800 text-lg">{data.kpi.assignmentCount}</dd>
-                      </div>
+                      <Fact label="Versions" valueClassName="font-bold text-slate-800 text-lg">
+                        {data.kpi.versionCount}
+                      </Fact>
+                      <Fact label="Active Learners" valueClassName="font-bold text-slate-800 text-lg">
+                        {data.kpi.learnerCount}
+                      </Fact>
+                      <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800 text-lg">
+                        {data.kpi.assignmentCount}
+                      </Fact>
                     </>
                   )}
-                </dl>
-              </section>
+                </FactGrid>
+              </DetailCard>
             )}
 
             {activeTab === 'versions' && (
@@ -583,19 +600,8 @@ export function CourseDetailPage() {
           </section>
             )}
 
-          </main>
-        </div>
-
-        <CourseControls
-          courseId={id ?? String(course.id)}
-          isDraft={isDraft}
-          isOpen={isOpen}
-          isRetired={isRetired}
-          mutatingStatus={mutatingStatus}
-          onStatusChange={handleStatusChange}
-          onDeleteCourse={handleDeleteCourse}
-        />
-      </div>
+        </main>
+      </DetailLayout>
 
       {confirmDialog}
     </>

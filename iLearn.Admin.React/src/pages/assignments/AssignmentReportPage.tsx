@@ -167,7 +167,7 @@ export function AssignmentReportPage() {
           { label: 'Courses', value: data.totalCourses },
         ].map((kpi) => (
           <div key={kpi.label} className="min-w-0">
-            <dt className="text-slate-400 font-bold uppercase tracking-wider">{kpi.label}</dt>
+            <dt className="font-bold uppercase tracking-wider text-slate-400">{kpi.label}</dt>
             <dd className="mt-1 font-bold text-slate-800">{kpi.value}</dd>
           </div>
         ))}

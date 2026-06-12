@@ -11,6 +11,13 @@ import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { SectionHeader } from '../../components/ui/SectionHeader'
+import {
+  DetailCard,
+  DetailPageHeader,
+  DetailSubSection,
+  Fact,
+  FactGrid,
+} from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { formatDate } from '../../lib/format'
@@ -110,146 +117,141 @@ export function LearnerProfilePage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
-      {/* Transcript (main) */}
-      <div className="min-w-0">
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-          <SectionHeader icon={FileBadge} variant="card">Transcript</SectionHeader>
+    <>
+      <DetailPageHeader eyebrow="Learners" title={profile.name} />
 
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                  <th className="p-3">Course Identity</th>
-                  <th className="p-3">Progress</th>
-                  <th className="p-3">Grade / Score</th>
-                  <th className="p-3">Time Spent</th>
-                  <th className="p-3">Timeline</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {profile.enrollments.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-400">
-                      No enrollments.
-                    </td>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+        {/* Transcript (main) */}
+        <div className="min-w-0">
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={FileBadge} variant="card">Transcript</SectionHeader>
+
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                    <th className="p-3">Course Identity</th>
+                    <th className="p-3">Progress</th>
+                    <th className="p-3">Grade / Score</th>
+                    <th className="p-3">Time Spent</th>
+                    <th className="p-3">Timeline</th>
+                    <th className="p-3">Status</th>
                   </tr>
-                ) : (
-                  profile.enrollments.map(e => {
-                    const isCancelled = e.isAssignmentCancelled
-                    const isFinished = e.isCompleted
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {profile.enrollments.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-400">
+                        No enrollments.
+                      </td>
+                    </tr>
+                  ) : (
+                    profile.enrollments.map((e) => {
+                      const isCancelled = e.isAssignmentCancelled
+                      const isFinished = e.isCompleted
 
-                    return (
-                      <tr key={e.enrollmentId} className="hover:bg-slate-50 transition">
-                        <td className="p-3">
-                          <div className="flex flex-col">
-                            <span className={`font-bold text-slate-800 leading-tight ${e.isCourseDeleted ? 'line-through text-slate-400' : ''}`}>
-                              {e.courseTitle}
-                            </span>
-                            <span className="text-xxs font-mono text-slate-400 mt-0.5">
-                              {e.courseCode} {e.isCourseDeleted && '(Syllabus Deleted)'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <ProgressBar value={e.progress} completed={isFinished} />
-                        </td>
-                        <td className="p-3 font-mono font-bold text-slate-800 text-xs">
-                          {e.totalScore > 0 ? `${Math.round(e.totalScore)}pt` : '—'}
-                        </td>
-                        <td className="p-3 font-mono text-slate-500 text-xs">
-                          {formatTimeSpent(e.totalTimeSpent)}
-                        </td>
-                        <td className="p-3 text-slate-400 text-xxs">
-                          {e.completedDate ? (
-                            <div className="text-emerald-600 font-semibold">Done: {formatDate(e.completedDate)}</div>
-                          ) : (
-                            <>
-                              {e.startDate && <div>Start: {formatDate(e.startDate)}</div>}
-                              {e.dueDate && <div className="mt-0.5">Due: {formatDate(e.dueDate)}</div>}
-                            </>
-                          )}
-                        </td>
-                        <td className="p-3">
-                          {isFinished ? (
-                            <StatusBadge tone="success" size="xxs">Passed</StatusBadge>
-                          ) : isCancelled ? (
-                            <StatusBadge tone="warning" size="xxs">
-                              <span className="inline-flex items-center gap-1" title="Rule Deleted">
-                                <AlertTriangle className="h-3 w-3" />
-                                Cancelled
+                      return (
+                        <tr key={e.enrollmentId} className="hover:bg-slate-50 transition">
+                          <td className="p-3">
+                            <div className="flex flex-col">
+                              <span className={`font-bold text-slate-800 leading-tight ${e.isCourseDeleted ? 'line-through text-slate-400' : ''}`}>
+                                {e.courseTitle}
                               </span>
-                            </StatusBadge>
-                          ) : e.hasActiveAssignment ? (
-                            <StatusBadge tone="info" size="xxs">Assigned</StatusBadge>
-                          ) : (
-                            <StatusBadge tone="neutral" size="xxs">Self-Enroll</StatusBadge>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
+                              <span className="text-xxs font-mono text-slate-400 mt-0.5">
+                                {e.courseCode} {e.isCourseDeleted && '(Syllabus Deleted)'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <ProgressBar value={e.progress} completed={isFinished} />
+                          </td>
+                          <td className="p-3 font-mono font-bold text-slate-800 text-xs">
+                            {e.totalScore > 0 ? `${Math.round(e.totalScore)}pt` : '—'}
+                          </td>
+                          <td className="p-3 font-mono text-slate-500 text-xs">
+                            {formatTimeSpent(e.totalTimeSpent)}
+                          </td>
+                          <td className="p-3 text-slate-400 text-xxs">
+                            {e.completedDate ? (
+                              <div className="text-emerald-600 font-semibold">Done: {formatDate(e.completedDate)}</div>
+                            ) : (
+                              <>
+                                {e.startDate && <div>Start: {formatDate(e.startDate)}</div>}
+                                {e.dueDate && <div className="mt-0.5">Due: {formatDate(e.dueDate)}</div>}
+                              </>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {isFinished ? (
+                              <StatusBadge tone="success" size="xxs">Passed</StatusBadge>
+                            ) : isCancelled ? (
+                              <StatusBadge tone="warning" size="xxs">
+                                <span className="inline-flex items-center gap-1" title="Rule Deleted">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Cancelled
+                                </span>
+                              </StatusBadge>
+                            ) : e.hasActiveAssignment ? (
+                              <StatusBadge tone="info" size="xxs">Assigned</StatusBadge>
+                            ) : (
+                              <StatusBadge tone="neutral" size="xxs">Self-Enroll</StatusBadge>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        {/* Learner identity + summary (sidebar) */}
+        <DetailCard className="xl:sticky xl:top-5 shadow-xs">
+          <div className="flex flex-col items-center text-center pb-4 border-b border-slate-200">
+            <div className="h-14 w-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+              <User className="h-7 w-7" />
+            </div>
+            <h2 className="text-base font-bold text-slate-800 leading-tight">{profile.name}</h2>
+            <span className="text-xs font-mono text-slate-400 mt-1">{profile.code}</span>
           </div>
-        </section>
+
+          <FactGrid cols={2} className="grid-cols-1 sm:grid-cols-1 gap-y-3.5 text-xs">
+            <Fact label="Division" valueClassName="text-slate-800 font-semibold mt-0.5">
+              {profile.division || '—'}
+            </Fact>
+            <Fact label="Department" valueClassName="text-slate-800 font-semibold mt-0.5">
+              {profile.department || '—'}
+            </Fact>
+            {profile.section && (
+              <Fact label="Section" valueClassName="text-slate-800 font-semibold mt-0.5">
+                {profile.section}
+              </Fact>
+            )}
+            <Fact label="Position" valueClassName="text-slate-800 font-semibold mt-0.5">
+              {profile.position || '—'}
+            </Fact>
+          </FactGrid>
+
+          <DetailSubSection title="Summary">
+            <FactGrid cols={2} className="text-xs">
+              <Fact label="Courses" valueClassName="mt-1 text-lg font-extrabold leading-tight text-slate-800">
+                {profile.kpi.totalCourses}
+              </Fact>
+              <Fact label="Completed" valueClassName="mt-1 text-lg font-extrabold leading-tight text-emerald-600">
+                {profile.kpi.completedCourses}
+              </Fact>
+              <Fact label="In Progress" valueClassName="mt-1 text-lg font-extrabold leading-tight text-amber-600">
+                {profile.kpi.inProgressCourses}
+              </Fact>
+              <Fact label="Hours" valueClassName="mt-1 text-lg font-bold leading-tight text-slate-800">
+                {formatTimeSpent(profile.kpi.totalTimeSpentSeconds)}
+              </Fact>
+            </FactGrid>
+          </DetailSubSection>
+        </DetailCard>
       </div>
-
-      {/* Learner identity + summary (sidebar) */}
-      <aside className="space-y-5 xl:sticky xl:top-5 rounded-lg border border-slate-200 bg-white p-5 shadow-xs">
-        <div className="flex flex-col items-center text-center pb-4 border-b border-slate-200">
-          <div className="h-14 w-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
-            <User className="h-7 w-7" />
-          </div>
-          <h2 className="text-base font-bold text-slate-800 leading-tight">{profile.name}</h2>
-          <span className="text-xs font-mono text-slate-400 mt-1">{profile.code}</span>
-        </div>
-
-        <dl className="space-y-3.5 text-xs">
-          <div>
-            <dt className="text-slate-400 font-bold uppercase tracking-wider">Division</dt>
-            <dd className="text-slate-800 font-semibold mt-0.5">{profile.division || '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-400 font-bold uppercase tracking-wider">Department</dt>
-            <dd className="text-slate-800 font-semibold mt-0.5">{profile.department || '—'}</dd>
-          </div>
-          {profile.section && (
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Section</dt>
-              <dd className="text-slate-800 font-semibold mt-0.5">{profile.section}</dd>
-            </div>
-          )}
-          <div>
-            <dt className="text-slate-400 font-bold uppercase tracking-wider">Position</dt>
-            <dd className="text-slate-800 font-semibold mt-0.5">{profile.position || '—'}</dd>
-          </div>
-        </dl>
-
-        <div className="border-t border-slate-200 pt-4">
-          <span className="block text-xxs font-extrabold text-slate-400 uppercase mb-3">Summary</span>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-5 text-xs">
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Courses</dt>
-              <dd className="mt-1 text-lg font-extrabold leading-tight text-slate-800">{profile.kpi.totalCourses}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Completed</dt>
-              <dd className="mt-1 text-lg font-extrabold leading-tight text-emerald-600">{profile.kpi.completedCourses}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">In Progress</dt>
-              <dd className="mt-1 text-lg font-extrabold leading-tight text-amber-600">{profile.kpi.inProgressCourses}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Hours</dt>
-              <dd className="mt-1 text-lg font-bold leading-tight text-slate-800">{formatTimeSpent(profile.kpi.totalTimeSpentSeconds)}</dd>
-            </div>
-          </dl>
-        </div>
-      </aside>
-    </div>
+    </>
   )
 }

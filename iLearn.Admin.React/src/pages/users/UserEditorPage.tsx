@@ -51,7 +51,7 @@ export function UserEditorPage() {
           setUser(u)
           setNid(u.nid)
           const roleIds = (u.userRoles ?? [])
-            .map((ur: UserRoleInfo) => ur.RoleId ?? ur.Role?.Id)
+            .map((ur: UserRoleInfo) => ur.roleId ?? ur.role?.id)
             .filter((roleId: number | null | undefined): roleId is number => roleId != null)
           setPendingRoleIds(roleIds)
         } else {
@@ -191,10 +191,10 @@ export function UserEditorPage() {
         <label className="wiz-label">Assigned Roles</label>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {allRoles.map((role) => {
-            const isChecked = pendingRoleIds.includes(role.Id)
+            const isChecked = pendingRoleIds.includes(role.id)
             return (
               <label
-                key={role.Id}
+                key={role.id}
                 className={`flex items-center gap-2.5 rounded-md border px-3 py-2 cursor-pointer transition-colors ${
                   isChecked
                     ? 'border-indigo-300 bg-indigo-50'
@@ -204,13 +204,13 @@ export function UserEditorPage() {
                 <input
                   type="checkbox"
                   checked={isChecked}
-                  onChange={() => toggleRole(role.Id)}
+                  onChange={() => toggleRole(role.id)}
                   className="accent-indigo-600"
                 />
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">{role.Name}</div>
-                  {role.RoleType && (
-                    <div className="text-[10px] text-slate-500">{role.RoleType}</div>
+                  <div className="text-xs font-semibold text-slate-800">{role.name}</div>
+                  {role.roleType != null && (
+                    <div className="text-[10px] text-slate-500">{String(role.roleType)}</div>
                   )}
                 </div>
               </label>
@@ -224,14 +224,14 @@ export function UserEditorPage() {
   const initialRoleIds = useMemo(() => {
     if (isCreate || !user) return []
     return (user.userRoles ?? [])
-      .map((ur) => ur.RoleId ?? ur.Role?.Id)
+      .map((ur) => ur.roleId ?? ur.role?.id)
       .filter((roleId): roleId is number => roleId != null)
   }, [user, isCreate])
 
   const rolesMap = useMemo(() => {
     const map = new Map<number, string>()
     for (const r of allRoles) {
-      map.set(r.Id, r.Name)
+      map.set(r.id, r.name)
     }
     return map
   }, [allRoles])

@@ -14,6 +14,19 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-12 18:10] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-007 shared detail components และปิด PLAN-008 migration
+- ทำอะไร: สร้าง shared detail primitives ใหม่ที่ `src/components/ui/detail/index.tsx` (`DetailPageHeader`, `DetailLayout`, `DetailCard`, `FactGrid`, `Fact`, `DetailSubSection`) แล้ว migrate หน้า detail ตามแผนครบ: PLAN-007 (`UserDetailPage`, `ContentItemDetailPage`) และ PLAN-008 (`CourseDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`, `MasterDataDetailPage`, `LearnerProfilePage`); เพิ่ม `DetailPageHeader` ให้ `CourseDetailPage`/`LearnerGroupDetailPage` ตามเกณฑ์ยกระดับ; คง logic เดิมของ tabs, modals, members table, master-data edit form; อัปเดตสถานะแผน PLAN-008 เป็น DONE พร้อม acceptance checklist/notes
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/detail/index.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `iLearn.Admin.React/src/pages/learners/LearnerProfilePage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-008-detail-pages-migration.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, grep acceptance ผ่าน (`minmax(0,1fr)_280px` = 0 และ `text-slate-400 font-bold uppercase tracking-wider` = 0 ใน `src/pages`), manual smoke ผ่านที่ `/courses/823`, `/assignments/248`, `/learner-groups/22`, `/master-data/divisions/1`, `/learners/n4734/profile`
+
+## [2026-06-12 17:35] Antigravity — แก้ไขบั๊กการแสดงผลบทบาทผู้ใช้ (camelCase field mappings) และปัญหา key prop ใน UserEditorPage
+- ทำอะไร: ปรับเปลี่ยนการเข้าถึงคุณสมบัติของออบเจกต์บทบาทผู้ใช้ (Role และ UserRole) จาก PascalCase เป็น camelCase ใน [UserEditorPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/UserEditorPage.tsx) และ [UserDetailPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/UserDetailPage.tsx) เพื่อให้สอดคล้องกับ DTO / API response JSON payload ที่ส่งมาจาก backend และแก้ปัญหา React warning เรื่อง unique key ในรายการบทบาท
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/users/UserEditorPage.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เป็นการแก้ฝั่ง Client/Frontend ให้ตรงตาม Contract ของ API ปัจจุบัน)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (112/112 passed) ผ่านเรียบร้อย
+
+
 ## [2026-06-12 17:20] Antigravity — Implement PLAN-006 เพิ่มหน้าแสดงรายละเอียดผู้ใช้ระบบและฟังก์ชันการลบผู้ใช้
 - ทำอะไร: สร้างหน้าสำหรับแสดงข้อมูลโดยละเอียด of Admin User ([UserDetailPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/UserDetailPage.tsx)) พร้อมแสดง Metric, ข้อมูลสังกัดองค์กร, และ Administrative Roles; ติดตั้งฟังก์ชันการลบแอดมินใน ControlsSidebar ผ่าน `useConfirm` และยิง `DELETE admin/UsersCRUD/Delete`; ปรับ [AdminUsersPage.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx) ให้ดับเบิลคลิกเปิดหน้ารายละเอียด และเพิ่มปุ่มรูปตา (`Eye`) สำหรับนำทาง; อัปเดตไฟล์รูท [App.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/App.tsx)
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Admin.React/src/App.tsx`, `DOC/PLANS/PLAN-006-admin-users-detail-delete.md`, `DOC/AGENT_LOG.md`

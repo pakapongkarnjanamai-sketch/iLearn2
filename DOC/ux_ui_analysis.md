@@ -55,7 +55,18 @@
     *   `.wiz-input`: ปรับปรุง Padding เป็น `0.45rem 0.75rem` (ความสูงรวม 36px) ขนาดฟอนต์ช่องกรอก `0.875rem` (14px) มีกรอบอินพุตมนสีขาว เมื่อโฟกัสจะเปลี่ยนกรอบเป็นสี Indigo
     *   ระยะขอบหน้าจอคอนเทนต์หลัก: ปรับเป็น `p-4 px-5 pb-5`
 
-### 2.4 หน้าต่างแจ้งเตือนและส่วนลอยตัวเลือก (Backdrop-Blurred Modals & Floating Badges)
+### 2.4 หน้าแสดงรายละเอียดข้อมูล (Standardized Detail Pages)
+
+หน้าประเภท Detail (`/courses/:id`, `/content-library/:id`, `/learner-groups/:id`, `/users/:id`, `/assignments/:id`, `/master-data/:type/:id`, `/learners/:id/profile`) ใช้โครงสร้างมาตรฐานเดียวกันทั้งหมด ผ่านชุดคอมโพเนนต์ร่วมใน `src/components/ui/detail/` (ดู PLAN-007/008):
+
+*   **โครงหน้า (DetailLayout):** กริด 2 คอลัมน์ `lg:grid-cols-[minmax(0,1fr)_280px]` — เนื้อหาหลักซ้าย (`min-w-0`) + `ControlsSidebar` ขวากว้างคงที่ **280px** (ประกอบด้วย `ControlAction` รายการคำสั่ง โดยคำสั่งทำลายล้างใช้ `variant="danger"` และอยู่ล่างสุดเสมอ)
+*   **การ์ดเนื้อหา (DetailCard):** เนื้อหาแบ่งเป็น section การ์ด `rounded-lg border border-slate-200 bg-white p-5 space-y-5` เปิดหัวด้วย `SectionHeader`
+*   **ตารางข้อเท็จจริง (FactGrid / Fact):** ข้อมูลแบบ label–value แสดงเป็น `dl` กริด 2–3 คอลัมน์ (`gap-x-6 gap-y-5 text-xs`) แต่ละช่องคือ `Fact`: `dt` label ตัวพิมพ์ใหญ่ (`text-slate-400 font-bold uppercase tracking-wider`) + `dd` ค่า (`mt-1`) — ค่าที่เป็นรหัส/path ใช้ `mono` (font-mono + wrap-break-word)
+*   **หัวข้อย่อยในกลุ่มการ์ด (DetailSubSection):** คั่นกลุ่มข้อมูลด้วยเส้น `border-slate-100` + ป้ายหัวข้อจิ๋วตัวพิมพ์ใหญ่ ก่อนเข้าเนื้อหากลุ่มถัดไป
+*   **สถานะหน้า:** โหลด = `LoadingState`, ไม่พบ = `NotFoundState` (พร้อมลิงก์ย้อนกลับ), breadcrumb ตั้งชื่อรายการจริงผ่าน `useBreadcrumbs().setLabel(id, name)`
+*   **ข้อห้าม:** ห้ามเขียนมาร์กอัปกริดสองคอลัมน์ / dt-dd fact เองในหน้าเพจอีก — ต้อง import จาก `src/components/ui/detail/` เท่านั้น (ยกเว้นเนื้อหาเฉพาะทางภายในการ์ด เช่น ตาราง members, tabs ของ Course)
+
+### 2.5 หน้าต่างแจ้งเตือนและส่วนลอยตัวเลือก (Backdrop-Blurred Modals & Floating Badges)
 *   ยกเลิกการทำ Side Panel (แผงข้างเลื่อนออก) มาเป็นกล่องแจ้งเตือนตรงกลาง (Centered Modals) พร้อมเอฟเฟกต์เบลอหลัง (`backdrop-blur-xs` และแอนิเมชัน `.modal-window` ขยายตัวแบบ `scale-in`)
 *   ใช้ระบบปุ่มลอยระบุจำนวนข้อมูลที่เลือกชั่วคราว (`.selected-floating-badge`) ซึ่งมีวงแหวนกระพริบแบบชีพจร (`badge-pulse`) เพื่อชี้นำผู้ใช้ในการดำเนินการขั้นถัดไป (เช่น การดึงสมาชิกเข้ากลุ่มเรียน)
 

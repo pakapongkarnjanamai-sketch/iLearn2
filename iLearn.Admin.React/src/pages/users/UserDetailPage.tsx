@@ -4,6 +4,14 @@ import { Edit3, Trash2, User } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import {
+  DetailCard,
+  DetailLayout,
+  DetailPageHeader,
+  DetailSubSection,
+  Fact,
+  FactGrid,
+} from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
@@ -93,117 +101,105 @@ export function UserDetailPage() {
   }
 
   const roles = (user.userRoles ?? [])
-    .map((ur) => ur.Role?.Name ?? ur.Role?.RoleType)
+    .map((ur) => ur.role?.name ?? (ur.role?.roleType != null ? String(ur.role.roleType) : ''))
     .filter(Boolean)
 
   return (
     <>
-      <header className="mb-4">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Admin Users</div>
-        <h1 className="text-2xl font-extrabold text-slate-900 select-none">
-          {user.fullName || user.nid}
-        </h1>
-      </header>
+      <DetailPageHeader eyebrow="Admin Users" title={user.fullName || user.nid} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-        <div className="min-w-0">
-          <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5">
-            <SectionHeader icon={User}>User Overview</SectionHeader>
+      <DetailLayout
+        sidebar={
+          <ControlsSidebar backTo="/users">
+            <ControlAction
+              onClick={() => navigate(`/users/${id}/edit`)}
+              icon={Edit3}
+              disabled={busy}
+            >
+              Edit Roles
+            </ControlAction>
+            <ControlAction
+              onClick={handleDelete}
+              icon={Trash2}
+              variant="danger"
+              disabled={busy}
+            >
+              Delete User
+            </ControlAction>
+          </ControlsSidebar>
+        }
+      >
+        <DetailCard>
+          <SectionHeader icon={User}>User Overview</SectionHeader>
 
-            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs">
-              <div>
-                <dt className="text-slate-400 font-bold uppercase tracking-wider">Status</dt>
-                <dd className="mt-1">
-                  <StatusBadge tone={user.isActive ? 'success' : 'neutral'}>
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </StatusBadge>
-                </dd>
-              </div>
+          <FactGrid>
+            <Fact label="Status">
+              <StatusBadge tone={user.isActive ? 'success' : 'neutral'}>
+                {user.isActive ? 'Active' : 'Inactive'}
+              </StatusBadge>
+            </Fact>
 
-              <div>
-                <dt className="text-slate-400 font-bold uppercase tracking-wider">Employee NID</dt>
-                <dd className="mt-1 font-bold text-slate-700">{user.nid}</dd>
-              </div>
+            <Fact label="Employee NID" valueClassName="font-bold">{user.nid}</Fact>
 
-              <div>
-                <dt className="text-slate-400 font-bold uppercase tracking-wider">Last Login</dt>
-                <dd className="mt-1 text-slate-700">
-                  {user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : '—'}
-                </dd>
-              </div>
+            <Fact label="Last Login">
+              {user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : '—'}
+            </Fact>
 
-              {user.email && (
-                <div className="col-span-2">
-                  <dt className="text-slate-400 font-bold uppercase tracking-wider">Email Address</dt>
-                  <dd className="mt-1 text-slate-700 break-all">{user.email}</dd>
-                </div>
+            {user.email && (
+              <Fact label="Email Address" colSpan={2} valueClassName="break-all">
+                {user.email}
+              </Fact>
+            )}
+          </FactGrid>
+
+          <DetailSubSection title="Organization Info">
+            <FactGrid cols={2} className="gap-4 select-none">
+              <Fact
+                label="Division"
+                labelClassName="text-slate-400 font-semibold"
+                valueClassName="mt-0.5 font-bold"
+              >
+                {user.division || '—'}
+              </Fact>
+              <Fact
+                label="Department"
+                labelClassName="text-slate-400 font-semibold"
+                valueClassName="mt-0.5 font-bold"
+              >
+                {user.department || '—'}
+              </Fact>
+              <Fact
+                label="Position"
+                labelClassName="text-slate-400 font-semibold"
+                valueClassName="mt-0.5 font-bold"
+              >
+                {user.position || '—'}
+              </Fact>
+            </FactGrid>
+          </DetailSubSection>
+
+          <DetailSubSection title="Administrative Roles">
+            <div className="flex flex-wrap gap-1.5 select-none pt-1">
+              {roles.length === 0 ? (
+                <span className="text-xs text-slate-400 font-semibold italic">No roles assigned</span>
+              ) : (
+                roles.map((r, i) => (
+                  <span
+                    key={i}
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${
+                      r === 'SuperAdmin'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                        : 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                    }`}
+                  >
+                    {r}
+                  </span>
+                ))
               )}
-            </dl>
-
-            <hr className="border-slate-100" />
-
-            <div className="space-y-2">
-              <div className="text-xxs font-extrabold uppercase text-slate-400">Organization Info</div>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs select-none">
-                <div>
-                  <dt className="text-slate-400 font-semibold">Division</dt>
-                  <dd className="mt-0.5 text-slate-700 font-bold">{user.division || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-slate-400 font-semibold">Department</dt>
-                  <dd className="mt-0.5 text-slate-700 font-bold">{user.department || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-slate-400 font-semibold">Position</dt>
-                  <dd className="mt-0.5 text-slate-700 font-bold">{user.position || '—'}</dd>
-                </div>
-              </dl>
             </div>
-
-            <hr className="border-slate-100" />
-
-            <div className="space-y-2">
-              <div className="text-xxs font-extrabold uppercase text-slate-400">Administrative Roles</div>
-              <div className="flex flex-wrap gap-1.5 select-none pt-1">
-                {roles.length === 0 ? (
-                  <span className="text-xs text-slate-400 font-semibold italic">No roles assigned</span>
-                ) : (
-                  roles.map((r, i) => (
-                    <span
-                      key={i}
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${
-                        r === 'SuperAdmin'
-                          ? 'bg-purple-100 text-purple-700 border-purple-200'
-                          : 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                      }`}
-                    >
-                      {r}
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <ControlsSidebar backTo="/users">
-          <ControlAction
-            onClick={() => navigate(`/users/${id}/edit`)}
-            icon={Edit3}
-            disabled={busy}
-          >
-            Edit Roles
-          </ControlAction>
-          <ControlAction
-            onClick={handleDelete}
-            icon={Trash2}
-            variant="danger"
-            disabled={busy}
-          >
-            Delete User
-          </ControlAction>
-        </ControlsSidebar>
-      </div>
+          </DetailSubSection>
+        </DetailCard>
+      </DetailLayout>
     </>
   )
 }

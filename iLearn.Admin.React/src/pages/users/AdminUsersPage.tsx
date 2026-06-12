@@ -8,17 +8,17 @@ import { createAdminDataSource } from '../../lib/createDataSource'
 
 // Mirrors UsersCRUDController.Get (iLearn.API/Controllers/Base/UsersCRUDController.cs)
 export type RoleInfo = {
-  Id: number
-  Name: string
-  RoleType: string | null
-  DivisionId: number | null
+  id: number
+  name: string
+  roleType: number | string | null
+  divisionId: number | null
 }
 
 // Mirrors UsersCRUDController.Get (iLearn.API/Controllers/Base/UsersCRUDController.cs)
 export type UserRoleInfo = {
-  UserId: number
-  RoleId: number
-  Role: RoleInfo | null
+  userId: number
+  roleId: number
+  role: RoleInfo | null
 }
 
 // Mirrors UsersCRUDController.Get (iLearn.API/Controllers/Base/UsersCRUDController.cs)
@@ -56,7 +56,7 @@ export function AdminUsersPage() {
         minWidth: 200,
         cellRender: ({ data }) => {
           const roles = (data.userRoles ?? [])
-            .map((ur) => ur.Role?.Name ?? ur.Role?.RoleType)
+            .map((ur) => ur.role?.name ?? (ur.role?.roleType != null ? String(ur.role.roleType) : ''))
             .filter(Boolean)
           if (roles.length === 0) return <span className="text-slate-400">No roles</span>
           return (

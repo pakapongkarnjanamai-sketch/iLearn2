@@ -10,6 +10,7 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { DetailCard, DetailLayout, DetailPageHeader, Fact, FactGrid } from '../../components/ui/detail'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDateTime } from '../../lib/format'
 import { adminListConfigs } from '../moduleConfigs'
@@ -165,137 +166,148 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
   return (
     <>
-      <header className="mb-4">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Master Data &rsaquo; {config.title}</div>
-        <h1 className="text-2xl font-extrabold text-slate-900 select-none">
-          {isNew ? `Create New ${entityTitle}` : item?.name || 'Record Details'}
-        </h1>
-      </header>
+      <DetailPageHeader
+        eyebrow={`Master Data / ${config.title}`}
+        title={isNew ? `Create New ${entityTitle}` : item?.name || 'Record Details'}
+      />
 
-      <form onSubmit={handleSave} className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-        {/* Main Details Panel */}
-        <section className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs min-w-0">
-          <h2 className="text-[13px] font-extrabold uppercase text-indigo-600 border-b border-slate-200 pb-3 mb-5 select-none">
-            Properties Details
-          </h2>
+      <form onSubmit={handleSave}>
+        <DetailLayout
+          sidebar={
+            <ControlsSidebar backTo={`/master-data/${type}`} backLabel="Back to Directory">
+              {isEditing ? (
+                // Edit Mode Actions
+                <>
+                  <ControlAction type="submit" icon={Save} loading={busy} variant="primary">
+                    {busy ? 'Saving...' : 'Save Changes'}
+                  </ControlAction>
+                  <ControlAction
+                    icon={X}
+                    disabled={busy}
+                    onClick={() => {
+                      if (isNew) {
+                        navigate(`/master-data/${type}`)
+                      } else {
+                        setIsEditing(false)
+                        setActiveValues({ ...item })
+                      }
+                    }}
+                  >
+                    Cancel
+                  </ControlAction>
+                </>
+              ) : (
+                // View Mode Actions
+                <>
+                  <ControlAction icon={Edit3} onClick={() => setIsEditing(true)}>Edit Properties</ControlAction>
+                  <ControlAction icon={Trash2} onClick={handleDelete} variant="danger">Delete Record</ControlAction>
+                </>
+              )}
+            </ControlsSidebar>
+          }
+        >
+          {/* Main Details Panel */}
+          <DetailCard className="p-6 shadow-xs">
+            <h2 className="text-[13px] font-extrabold uppercase text-indigo-600 border-b border-slate-200 pb-3 mb-5 select-none">
+              Properties Details
+            </h2>
 
-          <div className="space-y-4 max-w-xl">
-            {isEditing ? (
-              // Edit Form Fields
-              <>
-                <div className="space-y-1.5">
-                  <label htmlFor="name-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                    {entityTitle} Name
-                  </label>
-                  <input
-                    id="name-field"
-                    type="text"
-                    required
-                    value={activeValues.name || ''}
-                    onChange={(e) => handleFieldChange('name', e.target.value)}
-                    placeholder={`Enter ${entityTitle.toLowerCase()} name...`}
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
-                  />
-                </div>
-
-                {type === 'roles' && (
+            <div className="space-y-4 max-w-xl">
+              {isEditing ? (
+                // Edit Form Fields
+                <>
                   <div className="space-y-1.5">
-                    <label htmlFor="desc-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                      Description
+                    <label htmlFor="name-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
+                      {entityTitle} Name
                     </label>
-                    <textarea
-                      id="desc-field"
-                      rows={3}
-                      value={activeValues.description || ''}
-                      onChange={(e) => handleFieldChange('description', e.target.value)}
-                      placeholder="Enter description..."
+                    <input
+                      id="name-field"
+                      type="text"
+                      required
+                      value={activeValues.name || ''}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      placeholder={`Enter ${entityTitle.toLowerCase()} name...`}
                       className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
                     />
                   </div>
-                )}
 
-                <div className="flex items-center gap-3 py-2">
-                  <input
-                    type="checkbox"
-                    id="active-field"
-                    checked={Boolean(activeValues.isActive)}
-                    onChange={(e) => handleFieldChange('isActive', e.target.checked)}
-                    className="h-4.5 w-4.5 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
-                  />
-                  <label 
-                    htmlFor="active-field" 
-                    className="text-xs sm:text-[13px] font-bold text-slate-700 select-none cursor-pointer"
-                  >
-                    Active Status
-                  </label>
-                </div>
-              </>
-            ) : (
-              // Read-only Details View
-              <dl className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 gap-x-6 text-sm">
-                <div className="sm:col-span-2">
-                  <dt className="text-slate-400 font-bold text-xs uppercase tracking-wider">Name</dt>
-                  <dd className="text-slate-800 font-bold text-base mt-1 select-all">{item?.name || '—'}</dd>
-                </div>
+                  {type === 'roles' && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="desc-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
+                        Description
+                      </label>
+                      <textarea
+                        id="desc-field"
+                        rows={3}
+                        value={activeValues.description || ''}
+                        onChange={(e) => handleFieldChange('description', e.target.value)}
+                        placeholder="Enter description..."
+                        className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
+                      />
+                    </div>
+                  )}
 
-                {type === 'roles' && (
-                  <div className="sm:col-span-2">
-                    <dt className="text-slate-400 font-bold text-xs uppercase tracking-wider">Description</dt>
-                    <dd className="text-slate-600 mt-1 font-semibold leading-relaxed whitespace-pre-wrap">{item?.description || '—'}</dd>
+                  <div className="flex items-center gap-3 py-2">
+                    <input
+                      type="checkbox"
+                      id="active-field"
+                      checked={Boolean(activeValues.isActive)}
+                      onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+                      className="h-4.5 w-4.5 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="active-field"
+                      className="text-xs sm:text-[13px] font-bold text-slate-700 select-none cursor-pointer"
+                    >
+                      Active Status
+                    </label>
                   </div>
-                )}
+                </>
+              ) : (
+                // Read-only Details View
+                <FactGrid cols={2} className="text-sm gap-y-4">
+                  <Fact
+                    label="Name"
+                    colSpan="full"
+                    labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
+                    valueClassName="text-slate-800 font-bold text-base select-all"
+                  >
+                    {item?.name || '—'}
+                  </Fact>
 
-                <div>
-                  <dt className="text-slate-400 font-bold text-xs uppercase tracking-wider">Status</dt>
-                  <dd className="mt-1.5">
+                  {type === 'roles' && (
+                    <Fact
+                      label="Description"
+                      colSpan="full"
+                      labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
+                      valueClassName="text-slate-600 font-semibold leading-relaxed whitespace-pre-wrap"
+                    >
+                      {item?.description || '—'}
+                    </Fact>
+                  )}
+
+                  <Fact
+                    label="Status"
+                    labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
+                    valueClassName="mt-1.5"
+                  >
                     <StatusBadge tone={item?.isActive ? 'success' : 'neutral'} size="xxs">
                       {item?.isActive ? 'Active' : 'Inactive'}
                     </StatusBadge>
-                  </dd>
-                </div>
+                  </Fact>
 
-                <div>
-                  <dt className="text-slate-400 font-bold text-xs uppercase tracking-wider">Last Modified</dt>
-                  <dd className="text-slate-500 font-bold mt-1.5 text-xs">
+                  <Fact
+                    label="Last Modified"
+                    labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
+                    valueClassName="text-slate-500 font-bold mt-1.5 text-xs"
+                  >
                     {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}
-                  </dd>
-                </div>
-              </dl>
-            )}
-          </div>
-        </section>
-
-        {/* Dynamic Sidebar Controls */}
-        <ControlsSidebar backTo={`/master-data/${type}`} backLabel="Back to Directory">
-          {isEditing ? (
-            // Edit Mode Actions
-            <>
-              <ControlAction type="submit" icon={Save} loading={busy} variant="primary">
-                {busy ? 'Saving...' : 'Save Changes'}
-              </ControlAction>
-              <ControlAction
-                icon={X}
-                disabled={busy}
-                onClick={() => {
-                  if (isNew) {
-                    navigate(`/master-data/${type}`)
-                  } else {
-                    setIsEditing(false)
-                    setActiveValues({ ...item })
-                  }
-                }}
-              >
-                Cancel
-              </ControlAction>
-            </>
-          ) : (
-            // View Mode Actions
-            <>
-              <ControlAction icon={Edit3} onClick={() => setIsEditing(true)}>Edit Properties</ControlAction>
-              <ControlAction icon={Trash2} onClick={handleDelete} variant="danger">Delete Record</ControlAction>
-            </>
-          )}
-        </ControlsSidebar>
+                  </Fact>
+                </FactGrid>
+              )}
+            </div>
+          </DetailCard>
+        </DetailLayout>
       </form>
 
       {confirmDialog}

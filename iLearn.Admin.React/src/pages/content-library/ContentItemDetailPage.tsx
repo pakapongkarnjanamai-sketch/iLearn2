@@ -13,6 +13,13 @@ import { StatusText } from '../../components/ui/StatusText'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import {
+  DetailCard,
+  DetailLayout,
+  DetailPageHeader,
+  Fact,
+  FactGrid,
+} from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
@@ -176,85 +183,108 @@ export function ContentItemDetailPage() {
 
   return (
     <>
-      <header className="mb-4">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Content Library</div>
-        <h1 className="text-2xl font-extrabold text-slate-900 select-none">{item.name}</h1>
-      </header>
+      <DetailPageHeader eyebrow="Content Library" title={item.name} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-      <div className="min-w-0">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5">
+      <DetailLayout
+        sidebar={
+          <ControlsSidebar backTo="/content-library" backLabel="Back to Library">
+            <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>
+              Edit Metadata
+            </ControlAction>
+            <ControlAction
+              icon={ExternalLink}
+              disabled={!item.isActive || !item.url || busy}
+              onClick={handleOpenContent}
+              title={
+                !item.isActive
+                  ? 'Content must be published'
+                  : !item.url
+                    ? 'No launch URL'
+                    : undefined
+              }
+            >
+              Open SCORM Player
+            </ControlAction>
+            <ControlAction
+              icon={item.isActive ? PowerOff : Power}
+              disabled={busy}
+              onClick={item.isActive ? handleUnpublish : handlePublish}
+            >
+              {item.isActive ? 'Unpublish' : 'Publish'}
+            </ControlAction>
+            <ControlAction
+              icon={Download}
+              disabled={!item.fileStorageId}
+              onClick={() => {
+                if (item.fileStorageId) {
+                  window.open(buildApiUrl(`ContentItems/${item.id}/content`), '_blank')
+                }
+              }}
+              title={!item.fileStorageId ? 'No file available' : undefined}
+            >
+              Download ZIP
+            </ControlAction>
+            <ControlAction
+              icon={Trash2}
+              disabled={item.isActive || busy}
+              onClick={handleDelete}
+              variant="danger"
+              title={item.isActive ? 'Unpublish before deleting' : undefined}
+            >
+              Delete
+            </ControlAction>
+          </ControlsSidebar>
+        }
+      >
+        <DetailCard>
           <SectionHeader icon={Layers}>Content Overview</SectionHeader>
 
-          {/* Quick facts */}
-          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs">
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Status</dt>
-              <dd className="mt-1">
-                <StatusText tone={item.isActive ? 'success' : 'neutral'}>
-                  {item.isActive ? 'Published' : 'Draft'}
-                </StatusText>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Type</dt>
-              <dd className="mt-1 font-semibold text-slate-700">{TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">SCORM Version</dt>
-              <dd className="mt-1 font-semibold text-slate-700">{item.schemaVersion || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Package Size</dt>
-              <dd className="mt-1 font-bold text-slate-800">{fmtBytes(item.fileLength)}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Courses Linked</dt>
-              <dd className="mt-1 font-bold text-slate-800">{item.courseIdsCount ?? 0}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">File Storage Id</dt>
-              <dd className="mt-1 font-semibold text-slate-700">{item.fileStorageId ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Created</dt>
-              <dd className="mt-1 font-semibold text-slate-700">{item.createdAt ? formatDateTime(item.createdAt) : '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Updated</dt>
-              <dd className="mt-1 font-semibold text-slate-700">{item.updatedAt ? formatDateTime(item.updatedAt) : '—'}</dd>
-            </div>
-          </dl>
+          <FactGrid>
+            <Fact label="Status">
+              <StatusText tone={item.isActive ? 'success' : 'neutral'}>
+                {item.isActive ? 'Published' : 'Draft'}
+              </StatusText>
+            </Fact>
 
-          {/* Technical paths */}
-          <dl className="grid grid-cols-1 gap-4 text-xs border-t border-slate-100 pt-5">
-            <div className="min-w-0">
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Launch Resource</dt>
-              <dd className="mt-1 font-mono text-slate-700 wrap-break-word">{item.launchHref || '—'}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-slate-400 font-bold uppercase tracking-wider">Server Path</dt>
-              <dd className="mt-1 font-mono text-slate-700 wrap-break-word">{item.url || '—'}</dd>
-            </div>
-          </dl>
-        </section>
-      </div>
+            <Fact label="Type" valueClassName="font-semibold">
+              {TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}
+            </Fact>
 
-      {/* Controls sidebar */}
-      <ControlsSidebar backTo="/content-library" backLabel="Back to Library">
-        <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>Edit Metadata</ControlAction>
-        <ControlAction icon={ExternalLink} disabled={!item.isActive || !item.url || busy} onClick={handleOpenContent} title={!item.isActive ? 'Content must be published' : !item.url ? 'No launch URL' : undefined}>Open SCORM Player</ControlAction>
-        <ControlAction icon={item.isActive ? PowerOff : Power} disabled={busy} onClick={item.isActive ? handleUnpublish : handlePublish}>
-          {item.isActive ? 'Unpublish' : 'Publish'}
-        </ControlAction>
-        <ControlAction icon={Download} disabled={!item.fileStorageId} onClick={() => { if (item.fileStorageId) window.open(buildApiUrl(`ContentItems/${item.id}/content`), '_blank') }} title={!item.fileStorageId ? 'No file available' : undefined}>
-          Download ZIP
-        </ControlAction>
-        <ControlAction icon={Trash2} disabled={item.isActive || busy} onClick={handleDelete} variant="danger" title={item.isActive ? 'Unpublish before deleting' : undefined}>
-          Delete
-        </ControlAction>
-      </ControlsSidebar>
-      </div>
+            <Fact label="SCORM Version" valueClassName="font-semibold">
+              {item.schemaVersion || '—'}
+            </Fact>
+
+            <Fact label="Package Size" valueClassName="font-bold text-slate-800">
+              {fmtBytes(item.fileLength)}
+            </Fact>
+
+            <Fact label="Courses Linked" valueClassName="font-bold text-slate-800">
+              {item.courseIdsCount ?? 0}
+            </Fact>
+
+            <Fact label="File Storage Id" valueClassName="font-semibold">
+              {item.fileStorageId ?? '—'}
+            </Fact>
+
+            <Fact label="Created" valueClassName="font-semibold">
+              {item.createdAt ? formatDateTime(item.createdAt) : '—'}
+            </Fact>
+
+            <Fact label="Updated" valueClassName="font-semibold">
+              {item.updatedAt ? formatDateTime(item.updatedAt) : '—'}
+            </Fact>
+          </FactGrid>
+
+          <FactGrid cols={2} className="grid-cols-1 sm:grid-cols-1 gap-4 border-t border-slate-100 pt-5">
+            <Fact label="Launch Resource" mono>
+              {item.launchHref || '—'}
+            </Fact>
+            <Fact label="Server Path" mono>
+              {item.url || '—'}
+            </Fact>
+          </FactGrid>
+        </DetailCard>
+      </DetailLayout>
 
       {confirmDialog}
     </>

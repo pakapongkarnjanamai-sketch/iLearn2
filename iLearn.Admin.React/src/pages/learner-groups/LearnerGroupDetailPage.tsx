@@ -13,6 +13,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
+import { DetailLayout, DetailPageHeader, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -328,8 +329,54 @@ export function LearnerGroupDetailPage() {
 
   return (
     <>
-      {/* Main Grid display vs Overlay Operations Drawer */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+      <DetailPageHeader eyebrow="Learner Groups" title={group.name} />
+
+      <DetailLayout
+        sidebar={
+          <ControlsSidebar backTo="/learner-groups" backLabel="Back to Groups">
+            <ControlAction to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</ControlAction>
+            <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</ControlAction>
+            <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
+              Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
+            </ControlAction>
+
+            {/* Properties info */}
+            <ControlsDivider>
+              <FactGrid cols={2} className="gap-3 text-sm">
+                <Fact
+                  label="LMS Category"
+                  colSpan="full"
+                  labelClassName="text-slate-400 font-bold text-xs uppercase"
+                  valueClassName="font-semibold"
+                >
+                  {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
+                      {group.categoryAncestors.map((ancestor) => (
+                        <span key={ancestor.id} className="flex items-center gap-1">
+                          <span className="text-slate-600">{ancestor.name}</span>
+                          <span className="text-slate-300 font-normal">/</span>
+                        </span>
+                      ))}
+                      <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
+                    </div>
+                  ) : (
+                    group.categoryName || '-'
+                  )}
+                </Fact>
+                <Fact
+                  label="Owner / Creator"
+                  colSpan="full"
+                  mono
+                  labelClassName="text-slate-400 font-bold text-xs uppercase"
+                  valueClassName="font-bold"
+                >
+                  {group.createdBy || 'System Admin'}
+                </Fact>
+              </FactGrid>
+            </ControlsDivider>
+          </ControlsSidebar>
+        }
+      >
 
         {/* Members List Table Grid */}
         <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
@@ -389,44 +436,7 @@ export function LearnerGroupDetailPage() {
           </div>
         </section>
 
-        {/* Dynamic Sidebar Controls based on mode selection */}
-        <ControlsSidebar backTo="/learner-groups" backLabel="Back to Groups">
-          <ControlAction to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</ControlAction>
-          <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</ControlAction>
-          <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
-            Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
-          </ControlAction>
-
-          {/* Properties info */}
-          <ControlsDivider>
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-slate-400 font-bold text-xs uppercase">LMS Category</dt>
-                <dd className="text-slate-800 mt-1 font-semibold">
-                  {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
-                      {group.categoryAncestors.map(ancestor => (
-                        <span key={ancestor.id} className="flex items-center gap-1">
-                          <span className="text-slate-600">{ancestor.name}</span>
-                          <span className="text-slate-300 font-normal">/</span>
-                        </span>
-                      ))}
-                      <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
-                    </div>
-                  ) : (
-                    group.categoryName || '-'
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-400 font-bold text-xs uppercase">Owner / Creator</dt>
-                <dd className="text-slate-800 font-mono font-bold mt-1">{group.createdBy || 'System Admin'}</dd>
-              </div>
-            </dl>
-          </ControlsDivider>
-        </ControlsSidebar>
-
-      </div>
+      </DetailLayout>
 
       {/* Remove Members Confirmation Modal */}
       {managerMode === 'remove' && removePreview && (

@@ -13,6 +13,7 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SectionHeader } from '../../components/ui/SectionHeader'
+import { DetailLayout, DetailPageHeader, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ControlsSidebar, ControlsDivider, ControlAction } from '../../components/ui/ControlsSidebar'
@@ -271,12 +272,15 @@ export function AssignmentDetailPage() {
     )
   }
 
+  const assignmentStatus = deriveAssignmentStatus(assignment)
+
   return (
     <>
-      <header className="mb-3">
-        <div className="text-xxs font-extrabold uppercase text-slate-400">Assignment</div>
-        <h1 className="text-2xl font-extrabold text-slate-900">{assignment.assignmentNo}</h1>
-      </header>
+      <DetailPageHeader
+        eyebrow="Assignments"
+        title={assignment.assignmentNo}
+        meta={<StatusBadge size="xxs">{assignmentStatus}</StatusBadge>}
+      />
 
       {/* KPI Cards Strip */}
       <div className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs mb-6">
@@ -298,15 +302,54 @@ export function AssignmentDetailPage() {
         <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0">
           <span className="block text-[11px] font-extrabold uppercase text-slate-400">Status</span>
           <span className="mt-1 block">
-            <StatusBadge size="xxs">{deriveAssignmentStatus(assignment)}</StatusBadge>
+            <StatusBadge size="xxs">{assignmentStatus}</StatusBadge>
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+      <DetailLayout
+        sidebar={
+          <ControlsSidebar backTo="/assignments" backLabel="Back to Assignments">
+            <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
+            <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
+            <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
+            <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</ControlAction>
+
+            {/* Schedule info */}
+            <ControlsDivider>
+              <FactGrid cols={2} className="gap-3 text-sm">
+                <Fact
+                  label="Start Date"
+                  labelClassName="text-slate-400 font-bold text-xs uppercase"
+                  valueClassName="font-semibold"
+                >
+                  {formatDate(assignment.startDate)}
+                </Fact>
+                <Fact
+                  label="Due Date"
+                  labelClassName="text-slate-400 font-bold text-xs uppercase"
+                  valueClassName="font-semibold"
+                >
+                  {formatDate(assignment.dueDate)}
+                </Fact>
+                {assignment.learnerGroupName && (
+                  <Fact
+                    label="Learner Group"
+                    colSpan="full"
+                    labelClassName="text-slate-400 font-bold text-xs uppercase"
+                    valueClassName="font-semibold"
+                  >
+                    {assignment.learnerGroupName}
+                  </Fact>
+                )}
+              </FactGrid>
+            </ControlsDivider>
+          </ControlsSidebar>
+        }
+      >
         
         {/* Main Left Side Panels */}
-        <div className="space-y-8 min-w-0">
+        <div className="space-y-8">
           
           {/* Linked courses */}
           <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
@@ -404,35 +447,7 @@ export function AssignmentDetailPage() {
 
         </div>
 
-        {/* Right Sidebar controls */}
-        <ControlsSidebar backTo="/assignments" backLabel="Back to Assignments">
-          <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
-          <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
-          <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
-          <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</ControlAction>
-
-          {/* Schedule info */}
-          <ControlsDivider>
-            <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-slate-400 font-bold text-xs uppercase block">Start Date</span>
-                <span className="block font-semibold text-slate-700 mt-1">{formatDate(assignment.startDate)}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-bold text-xs uppercase block">Due Date</span>
-                <span className="block font-semibold text-slate-700 mt-1">{formatDate(assignment.dueDate)}</span>
-              </div>
-              {assignment.learnerGroupName && (
-                <div className="col-span-2">
-                  <span className="text-slate-400 font-bold text-xs uppercase block">Learner Group</span>
-                  <span className="block font-semibold text-slate-700 mt-1">{assignment.learnerGroupName}</span>
-                </div>
-              )}
-            </dl>
-          </ControlsDivider>
-        </ControlsSidebar>
-
-      </div>
+      </DetailLayout>
 
       {/* Extend Due Date Modal */}
       {showDueDateModal && (
