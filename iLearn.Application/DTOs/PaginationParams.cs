@@ -24,6 +24,12 @@ namespace iLearn.Application.DTOs
         /// <summary>Optional status filter (e.g. Completed, InProgress, Expired, Upcoming).</summary>
         public string? Status { get; set; }
 
+        /// <summary>
+        /// Optional category filter values. Repeated query params are supported
+        /// (e.g. ?categoryId=1&categoryId=2) for tree-descendant filtering.
+        /// </summary>
+        public List<int>? CategoryId { get; set; }
+
         /// <summary>Optional sort field name.</summary>
         public string? SortBy { get; set; }
 

@@ -89,6 +89,17 @@ namespace iLearn.Application.Services
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(g => g.DivisionId == _currentUser.DivisionId.Value);
 
+            if (p.CategoryId is { Count: > 0 })
+            {
+                var categoryIds = p.CategoryId
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToArray();
+
+                if (categoryIds.Length > 0)
+                    query = query.Where(g => g.CategoryId.HasValue && categoryIds.Contains(g.CategoryId.Value));
+            }
+
             if (!string.IsNullOrWhiteSpace(p.Search))
             {
                 var term = p.Search.Trim().ToLower();

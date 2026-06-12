@@ -12,6 +12,7 @@ import { CourseListPage } from './pages/courses/CourseListPage'
 import { CourseDetailPage } from './pages/courses/CourseDetailPage'
 import { CourseEditorPage } from './pages/courses/CourseEditorPage'
 import { VersionFormPage } from './pages/courses/VersionFormPage'
+import { LearnerGroupListPage } from './pages/learner-groups/LearnerGroupListPage'
 import { LearnerGroupDetailPage } from './pages/learner-groups/LearnerGroupDetailPage'
 import { LearnerGroupEditorPage } from './pages/learner-groups/LearnerGroupEditorPage'
 import { LearnerProfilePage } from './pages/learners/LearnerProfilePage'
@@ -71,7 +72,7 @@ export function App() {
         <Route path="assignments/:id/report" element={<Remount><AssignmentReportPage /></Remount>} />
 
         {/* Learner Groups */}
-        <Route path="learner-groups" element={<EntityListPage config={adminListConfigs.learnerGroups} />} />
+        <Route path="learner-groups" element={<LearnerGroupListPage />} />
         <Route path="learner-groups/new" element={<Remount><LearnerGroupEditorPage /></Remount>} />
         <Route path="learner-groups/:id" element={<Remount><LearnerGroupDetailPage /></Remount>} />
         <Route path="learner-groups/:id/edit" element={<Remount><LearnerGroupEditorPage /></Remount>} />
