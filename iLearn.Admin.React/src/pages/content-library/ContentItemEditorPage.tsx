@@ -193,14 +193,19 @@ export function ContentItemEditorPage() {
             <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
               <tr>
                 <th className="px-3 py-2 text-left">Content Name</th>
-                <th className="w-48 px-3 py-2 text-left">Content Type</th>
-                <th className="w-28 px-3 py-2 text-left">Size</th>
+                <th className="w-28 px-3 py-2 text-left">Source</th>
+                <th className="w-36 px-3 py-2 text-left">Content Type</th>
+                <th className="w-28 px-3 py-2 text-left">Status</th>
                 <th className="w-28 px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               <tr className="hover:bg-slate-50/30 transition-colors">
-                <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{file.name}</td>
+                <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">
+                  <span>{file.name}</span>
+                  <span className="block text-[10px] font-semibold text-slate-400 mt-0.5 font-mono">{Math.round(file.size / 1024)} KB</span>
+                </td>
+                <td className="px-3 py-2 text-slate-400 font-semibold">New upload</td>
                 <td className="px-3 py-2">
                   <select
                     value={form.typeId}
@@ -209,13 +214,13 @@ export function ContentItemEditorPage() {
                   >
                     {TYPE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
-                        {o.label}
+                        {o.value === 1 ? 'Learn' : 'Exam'}
                       </option>
                     ))}
                   </select>
                 </td>
-                <td className="px-3 py-2 text-slate-500 font-semibold text-xs">
-                  {Math.round(file.size / 1024)} KB
+                <td className="px-3 py-2 select-none">
+                  <span className="inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm border-blue-200 bg-blue-50 text-blue-700">Ready</span>
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
