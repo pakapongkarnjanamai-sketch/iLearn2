@@ -11,36 +11,20 @@ export function AppTableFooter({
   totalCount,
   loading
 }: AppTableFooterProps) {
-  return (
-    <footer className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-semibold text-slate-500">
-      <div className="select-none">
-        {totalCount > 0 ? (
-          <span>
-            Showing <strong className="text-slate-800">{loadedCount}</strong> of{' '}
-            <strong className="text-slate-800">{totalCount}</strong> records
-            {loadedCount < totalCount ? (
-              <span className="text-slate-400 font-normal">
-                {' '}
-                (Scroll down to load more)
-              </span>
-            ) : (
-              <span className="text-emerald-600 font-bold">
-                {' '}
-                (All records loaded)
-              </span>
-            )}
-          </span>
-        ) : (
-          <span>No records found</span>
-        )}
-      </div>
+  const hasMore = totalCount > 0 && loadedCount < totalCount
 
-      {loading && loadedCount > 0 && (
-        <div className="flex items-center gap-1.5 text-indigo-500 text-xxs uppercase font-bold tracking-wider animate-pulse">
+  return (
+    <footer className="flex items-center justify-end border-t border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xxs font-semibold text-slate-500">
+      {loading && loadedCount > 0 ? (
+        <div className="flex items-center gap-1.5 text-indigo-500 uppercase font-bold tracking-wider animate-pulse">
           <Loader2 className="h-3 w-3 animate-spin" />
           <span>Loading more...</span>
         </div>
-      )}
+      ) : hasMore ? (
+        <span className="text-slate-400">Scroll down to load more</span>
+      ) : totalCount > 0 ? (
+        <span className="text-emerald-600 font-bold">All records loaded</span>
+      ) : null}
     </footer>
   )
 }
