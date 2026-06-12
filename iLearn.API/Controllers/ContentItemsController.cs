@@ -60,10 +60,10 @@ namespace iLearn.API.Controllers
         [HttpGet("paged")]
         public async Task<IActionResult> GetPaged([FromQuery] PaginationParams p)
         {
-            var query = _contentItemRepo.GetQuery()
-                .Include(r => r.FileStorage)
-                .Include(r => r.CourseContentItems)
-                .AsQueryable();
+            // No Includes here: FileStorage holds the full SCORM ZIP as byte[],
+            // so loading entities would pull every package blob into memory per page.
+            // Project to the DTO instead so SQL returns only the listed columns.
+            var query = _contentItemRepo.GetQuery().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(p.Search))
             {
@@ -122,11 +122,32 @@ namespace iLearn.API.Controllers
                 ? await query.CountAsync()
                 : query.Count();
 
-            var items = query.Provider is IAsyncQueryProvider
-                ? await query.Skip((p.Page - 1) * p.PageSize).Take(p.PageSize).ToListAsync()
-                : query.Skip((p.Page - 1) * p.PageSize).Take(p.PageSize).ToList();
+            var projected = query
+                .Skip((p.Page - 1) * p.PageSize)
+                .Take(p.PageSize)
+                .Select(r => new ContentItemDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    TypeId = r.TypeId,
+                    IsActive = r.IsActive,
+                    LaunchHref = r.LaunchHref,
+                    SchemaVersion = r.SchemaVersion,
+                    Url = r.URL,
+                    FileStorageId = r.FileStorageId,
+                    FileLength = r.FileStorage != null ? r.FileStorage.Length : 0,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt,
+                    CourseIdsCount = r.CourseContentItems
+                        .Where(cr => cr.CourseVersion != null)
+                        .Select(cr => cr.CourseVersion!.CourseId)
+                        .Distinct()
+                        .Count(),
+                });
 
-            var dtos = items.Select(r => r.ToDto()).ToList();
+            var dtos = projected.Provider is IAsyncQueryProvider
+                ? await projected.ToListAsync()
+                : projected.ToList();
 
             return Ok(new { success = true, data = dtos, totalCount });
         }

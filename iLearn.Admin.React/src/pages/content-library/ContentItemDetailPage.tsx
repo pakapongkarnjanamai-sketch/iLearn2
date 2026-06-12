@@ -17,6 +17,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDateTime } from '../../lib/format'
 
 type ContentItemDetail = {
@@ -56,9 +57,16 @@ export function ContentItemDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { confirm, confirmDialog } = useConfirm()
+  const { setLabel } = useBreadcrumbs()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [item, setItem] = useState<ContentItemDetail | null>(null)
+
+  useEffect(() => {
+    if (item?.name && id) {
+      setLabel(String(id), item.name)
+    }
+  }, [item, id, setLabel])
 
   const load = async () => {
     setLoading(true)
@@ -167,19 +175,19 @@ export function ContentItemDetailPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+    <>
+      <header className="mb-4">
+        <div className="text-xxs font-extrabold uppercase text-slate-400">Content Library</div>
+        <h1 className="text-2xl font-extrabold text-slate-900 select-none">{item.name}</h1>
+      </header>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
       <div className="min-w-0">
-        <section className="space-y-6">
+        <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-5">
           <SectionHeader icon={Layers}>Content Overview</SectionHeader>
 
-          {/* Minimalist Title */}
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{item.name}</h1>
-            <span className="inline-block mt-1 font-mono text-xs text-slate-400">{TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}</span>
-          </div>
-
           {/* Quick facts */}
-          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs border-t border-slate-100 pt-5">
+          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 text-xs">
             <div>
               <dt className="text-slate-400 font-bold uppercase tracking-wider">Status</dt>
               <dd className="mt-1">
@@ -246,8 +254,9 @@ export function ContentItemDetailPage() {
           Delete
         </ControlAction>
       </ControlsSidebar>
+      </div>
 
       {confirmDialog}
-    </div>
+    </>
   )
 }
