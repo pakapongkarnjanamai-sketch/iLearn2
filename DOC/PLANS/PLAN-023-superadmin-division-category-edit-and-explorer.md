@@ -1,6 +1,6 @@
 # PLAN-023: SuperAdmin เลือก Division ได้ตอน Edit Category + ตอนสร้าง folder ในหน้า Explorer
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit 3373581 — UpdateLearnerGroupCategoryDto+DivisionId, UpdateAsync parent-inherit + SuperAdmin-only + empty-check guard (กันเปลี่ยน division ของ category ที่มีลูก/group), frontend edit selector + explorer folder selector (useSession), dotnet test 118 + build/lint ผ่าน)
 - **Assigned:** Gemini
 - **Priority:** Medium
 - **Estimated scope:** backend 1 DTO + 1 service (UpdateAsync) + frontend 2 ไฟล์ (`LearnerGroupCategoryEditorPage.tsx`, `LearnerGroupListPage.tsx`)

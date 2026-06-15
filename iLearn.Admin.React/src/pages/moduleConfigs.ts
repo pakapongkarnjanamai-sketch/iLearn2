@@ -28,11 +28,11 @@ export const adminListConfigs = {
   courses: {
     title: 'Courses',
     eyebrow: 'Course Management',
-    description: 'Catalog, lifecycle status, course type, category, and assignment readiness.',
+    description: 'Manage training courses, catalog taxonomy, and assignment status.',
     controller: 'CoursesCRUD',
     key: 'id',
-    gridTitle: 'Course Directory',
-    gridNote: 'Server-side filtering, sorting, and paging through the existing Admin API.',
+    gridTitle: 'Courses Directory',
+    gridNote: 'Catalog, status, and readiness of training courses.',
     columns: [
       { dataField: 'code', caption: 'Code', width: 120 },
       { dataField: 'title', caption: 'Course Title', minWidth: 260 },
@@ -45,11 +45,11 @@ export const adminListConfigs = {
   contentLibrary: {
     title: 'Content Library',
     eyebrow: 'Content Management',
-    description: 'SCORM packages, launch metadata, publishing state, and Learn or Exam content type.',
+    description: 'SCORM package library, publishing status, and launch configurations.',
     controller: 'ContentItemsCRUD',
     key: 'id',
-    gridTitle: 'Content Items',
-    gridNote: 'Readiness details stay owned by the API and lifecycle services.',
+    gridTitle: 'SCORM Packages',
+    gridNote: 'Uploaded interactive SCORM packages and launch parameters.',
     columns: [
       { dataField: 'name', caption: 'Content Name', minWidth: 260 },
       { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center', cellRender: ({ value }: any) => value === 1 ? 'Learn' : value === 2 ? 'Exam' : '—' },
@@ -62,11 +62,11 @@ export const adminListConfigs = {
   assignments: {
     title: 'Assignments',
     eyebrow: 'Learning Operations',
-    description: 'Assignment batches, date windows, learner scope, and course assignment history.',
+    description: 'Deploy training courses to target learners and track dispatch status.',
     controller: 'AssignmentsCRUD',
     key: 'id',
     gridTitle: 'Assignment Batches',
-    gridNote: 'Assignment status is computed server-side; React only presents the result.',
+    gridNote: 'Training deployment batches, schedule windows, and scoping rules.',
     searchExpr: ['assignmentNo', 'description'],
     columns: [
       { dataField: 'assignmentNo', caption: 'Assignment No.', width: 150 },
@@ -80,12 +80,12 @@ export const adminListConfigs = {
   learners: {
     title: 'Learners',
     eyebrow: 'People Directory',
-    description: 'All employees from the corporate employee directory. Click a row to view learner profile.',
+    description: 'Search and view employee profiles, divisions, and learning history.',
     controller: 'Learners',
     basePath: 'Learners',
     key: 'id',
-    gridTitle: 'Employee Directory',
-    gridNote: 'Data sourced from the corporate employee directory service.',
+    gridTitle: 'Learner Registry',
+    gridNote: 'All active learners synchronized from the corporate registry.',
     // NID is not filterable on the external employee grid endpoint (it 500s),
     // so it is intentionally excluded from search. Search EId + names only.
     searchExpr: ['englishFirstName', 'englishLastName', 'eId'],
@@ -103,11 +103,11 @@ export const adminListConfigs = {
   users: {
     title: 'Admin Users',
     eyebrow: 'Access & Identity',
-    description: 'Windows-auth principals with admin or SuperAdmin role assignments. Roles are enforced by the API.',
+    description: 'Manage administrator access control and role assignments.',
     controller: 'UsersCRUD',
     key: 'id',
-    gridTitle: 'Admin User Directory',
-    gridNote: 'Same backing data as Learners, focused on role and access auditing.',
+    gridTitle: 'Administrator Directory',
+    gridNote: 'Authorized administrative accounts and access privileges.',
     columns: [
       { dataField: 'nid', caption: 'NID', width: 160 },
       { dataField: 'displayName', caption: 'Display Name', minWidth: 220 },
@@ -119,11 +119,11 @@ export const adminListConfigs = {
   learningLogs: {
     title: 'Learning Logs',
     eyebrow: 'Operations',
-    description: 'Per-launch attempt records, runtime status, and audit trail for SCORM content items.',
+    description: 'Real-time audit log of learner course interactions and content launches.',
     controller: 'LearningLogsCRUD',
     key: 'id',
-    gridTitle: 'Learning Log Entries',
-    gridNote: 'Read-only audit feed. Drill into an enrollment to inspect lifecycle context.',
+    gridTitle: 'SCORM Launch Audit',
+    gridNote: 'Audit trail of learner launch attempts and SCORM runtime status.',
     searchExpr: ['status'],
     columns: [
       { dataField: 'id', caption: 'Log ID', dataType: 'number', width: 100, alignment: 'center' },
@@ -137,11 +137,11 @@ export const adminListConfigs = {
   enrollments: {
     title: 'Enrollments',
     eyebrow: 'Operations',
-    description: 'Cross-batch enrollment ledger. Used for ad-hoc reset and lifecycle inspection.',
+    description: 'Overview of learner course enrollments, completion rates, and status.',
     controller: 'EnrollmentsCRUD',
     key: 'id',
-    gridTitle: 'Enrollment Records',
-    gridNote: 'SuperAdmin only. Resetting enrollments is destructive and tracked through audit logs.',
+    gridTitle: 'Enrollment Ledger',
+    gridNote: 'Detailed enrollment records and overall progress status.',
     // `status` is not server-filterable on EnrollmentsCRUD (returns 500) — search learnerCode only.
     searchExpr: ['learnerCode'],
     columns: [
@@ -157,11 +157,11 @@ export const adminListConfigs = {
   masterDataDivisions: {
     title: 'Divisions',
     eyebrow: 'Master Data',
-    description: 'Organizational divisions. Used for learner scoping and admin access control.',
+    description: 'Configure business divisions used across the platform.',
     controller: 'DivisionsCRUD',
     key: 'id',
-    gridTitle: 'Division Directory',
-    gridNote: 'Inline edit available. SuperAdmin only.',
+    gridTitle: 'Organizational Divisions',
+    gridNote: 'Corporate divisions for learner scoping and reporting boundaries.',
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Division Name', minWidth: 260 },
@@ -172,11 +172,11 @@ export const adminListConfigs = {
   masterDataCategories: {
     title: 'Categories',
     eyebrow: 'Master Data',
-    description: 'Course categories used for catalog grouping and reporting.',
+    description: 'Configure training categories for organization.',
     controller: 'CategoriesCRUD',
     key: 'id',
-    gridTitle: 'Category Directory',
-    gridNote: 'Inline edit available. SuperAdmin only.',
+    gridTitle: 'Course Categories',
+    gridNote: 'Taxonomy categories used for grouping courses in the catalog.',
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Category Name', minWidth: 260 },
@@ -187,11 +187,11 @@ export const adminListConfigs = {
   masterDataCourseTypes: {
     title: 'Course Types',
     eyebrow: 'Master Data',
-    description: 'Course type lookup (e.g. Mandatory, Optional, Compliance). Drives badges and filters.',
+    description: 'Configure course types that drive visual badges and filtering.',
     controller: 'CourseTypesCRUD',
     key: 'id',
-    gridTitle: 'Course Type Directory',
-    gridNote: 'Inline edit available. SuperAdmin only.',
+    gridTitle: 'Course Types',
+    gridNote: 'Classification values such as Mandatory, Optional, or Compliance.',
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Type Name', minWidth: 260 },
@@ -202,11 +202,11 @@ export const adminListConfigs = {
   masterDataRoles: {
     title: 'Roles',
     eyebrow: 'Master Data',
-    description: 'Application roles. Driver of admin-level UI and policy enforcement.',
+    description: 'View application roles used for permission gating.',
     controller: 'RolesCRUD',
     key: 'id',
-    gridTitle: 'Role Directory',
-    gridNote: 'Inline edit available. SuperAdmin only. Role membership is managed elsewhere.',
+    gridTitle: 'Administrative Roles',
+    gridNote: 'System roles driving policy enforcement and access control.',
     // Role entity has no Description property — search by name only.
     searchExpr: ['name'],
     columns: [
@@ -222,7 +222,7 @@ export const adminListConfigs = {
     description: 'Default master-data view. Use the sidebar to switch between divisions, categories, course types, and roles.',
     controller: 'DivisionsCRUD',
     key: 'id',
-    gridTitle: 'Division Directory',
+    gridTitle: 'Organizational Divisions',
     gridNote: 'SuperAdmin only.',
     searchExpr: ['name'],
     columns: [

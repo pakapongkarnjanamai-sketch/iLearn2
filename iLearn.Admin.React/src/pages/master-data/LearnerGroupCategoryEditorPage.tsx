@@ -334,7 +334,7 @@ export function LearnerGroupCategoryEditorPage() {
   return (
     <AppWizard
       title={isEditMode ? 'Edit Category' : 'New Category'}
-      description="Configure category details and review before saving."
+      description={isEditMode ? 'Update learner group category details.' : 'Create a new category for organizing learner groups.'}
       eyebrow="Master Data"
       steps={steps}
       currentStep={currentStep}

@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   Users,
@@ -7,19 +7,23 @@ import {
   UserMinus,
   X,
   Check,
-  Plus
+  Plus,
+  Folder,
+  FolderOpen,
+  Loader2
 } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
-import { DetailCard, DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
+import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 
 type LearnerGroupMember = {
   id: number
@@ -82,10 +86,234 @@ type PreviewRemoveResult = {
   }>
 }
 
+type GroupCategoryLookup = {
+  id: number
+  name: string
+  parentId?: number | null
+  depth?: number
+}
+
 export function LearnerGroupDetailPage() {
   const { id } = useParams()
   const { setLabel } = useBreadcrumbs()
   const { confirm, confirmDialog } = useConfirm()
+
+  // Edit Group Properties states
+  const [isEditingProperties, setIsEditingProperties] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState(0)
+  const [categories, setCategories] = useState<GroupCategoryLookup[]>([])
+  const [isExplorerOpen, setIsExplorerOpen] = useState(false)
+  const [tempCategoryId, setTempCategoryId] = useState<number>(0)
+  const [savingProperties, setSavingProperties] = useState(false)
+
+  const selectedCategoryPath = useMemo(() => {
+    if (!editCategoryId) return 'No category (Root folder)'
+
+    const path: string[] = []
+    const visited = new Set<number>()
+    let current: GroupCategoryLookup | undefined = categories.find(c => c.id === editCategoryId)
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id)
+      path.unshift(current.name)
+      const pId: number | null | undefined = current.parentId
+      current = pId ? categories.find(c => c.id === pId) : undefined
+    }
+
+    return path.length > 0 ? path.join(' / ') : 'No category (Root folder)'
+  }, [categories, editCategoryId])
+
+  const tempCategoryPath = useMemo(() => {
+    if (tempCategoryId === 0) return 'Root folder'
+
+    const path: string[] = []
+    const visited = new Set<number>()
+    let current: GroupCategoryLookup | undefined = categories.find(c => c.id === tempCategoryId)
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id)
+      path.unshift(current.name)
+      const pId: number | null | undefined = current.parentId
+      current = pId ? categories.find(c => c.id === pId) : undefined
+    }
+
+    return path.length > 0 ? path.join(' / ') : 'Root folder'
+  }, [categories, tempCategoryId])
+
+  const treeNodes = useMemo<TreeViewNode[]>(() => {
+    const byParent: Record<number, GroupCategoryLookup[]> = {}
+    const roots: GroupCategoryLookup[] = []
+
+    categories.forEach(category => {
+      const pId = category.parentId || 0
+      if (pId === 0) {
+        roots.push(category)
+      } else {
+        if (!byParent[pId]) byParent[pId] = []
+        byParent[pId].push(category)
+      }
+    })
+
+    roots.sort((a, b) => a.name.localeCompare(b.name))
+    Object.values(byParent).forEach(children => {
+      children.sort((a, b) => a.name.localeCompare(b.name))
+    })
+
+    const mapNode = (category: GroupCategoryLookup): TreeViewNode => {
+      const children = byParent[category.id] || []
+      return {
+        id: `cat-${category.id}`,
+        text: category.name,
+        categoryId: category.id,
+        items: children.map(mapNode)
+      }
+    }
+
+    return [
+      {
+        id: 'root',
+        text: 'Root Folder (No Category)',
+        isRoot: true,
+        categoryId: 0,
+        items: roots.map(mapNode)
+      }
+    ]
+  }, [categories])
+
+  const openEditPropertiesModal = async () => {
+    if (!group) return
+    setEditName(group.name)
+    setEditDescription(group.description || '')
+    setEditCategoryId(group.categoryId || 0)
+    setIsEditingProperties(true)
+    
+    try {
+      const response = await fetchWithAccessControl<GroupCategoryLookup[] | { data?: GroupCategoryLookup[] }>('LearnerGroupCategories')
+      const list = Array.isArray(response) ? response : response.data ?? []
+      setCategories(list)
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to load group categories')
+    }
+  }
+
+  const validateInformation = () => {
+    if (!editName.trim()) {
+      toast.error('Group Name is required')
+      return false
+    }
+    if (!editDescription.trim()) {
+      toast.error('Description is required')
+      return false
+    }
+    return true
+  }
+
+  const handleSaveProperties = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateInformation()) return
+
+    setSavingProperties(true)
+    try {
+      const resp = await fetchWithAccessControl<{ success: boolean; message?: string }>(`LearnerGroups/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName.trim(),
+          description: editDescription.trim(),
+          categoryId: editCategoryId > 0 ? editCategoryId : null
+        })
+      })
+      if (resp.success) {
+        toast.success(resp.message || 'Group updated successfully')
+        setIsEditingProperties(false)
+        await loadGroupDetails()
+      }
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error('Failed to update group properties')
+    } finally {
+      setSavingProperties(false)
+    }
+  }
+
+  const renderCategoryExplorerModal = () => {
+    if (!isExplorerOpen) return null
+
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
+        onClick={() => setIsExplorerOpen(false)}
+      >
+        <div
+          className="bg-white border border-slate-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-scale-up"
+          onClick={event => event.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 select-none">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-5 w-5 text-indigo-500" />
+              <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Category Folder Explorer</h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsExplorerOpen(false)}
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 text-xxs font-semibold text-slate-400 uppercase select-none">
+            Navigate folder structure to assign learner group category
+          </div>
+
+          <div className="p-4 flex-1 overflow-y-auto max-h-80 min-h-60 bg-slate-50/30 border-b border-slate-100">
+            <div className="bg-white border border-slate-200/60 rounded-lg p-2 shadow-3xs max-h-72 overflow-y-auto custom-scrollbar">
+              <AppTreeView
+                items={treeNodes}
+                onItemClick={event => {
+                  const idVal = event.itemData.categoryId ?? 0
+                  setTempCategoryId(idVal)
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="px-5 py-4 bg-slate-50 flex flex-col gap-3 select-none">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-400 font-bold uppercase text-xxs">Selected:</span>
+              <span className="bg-indigo-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-extrabold truncate flex-1">
+                {tempCategoryPath}
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsExplorerOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditCategoryId(tempCategoryId)
+                  setIsExplorerOpen(false)
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition shadow-3xs cursor-pointer"
+              >
+                Confirm Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const [loading, setLoading] = useState(true)
   const [group, setGroup] = useState<LearnerGroupDetail | null>(null)
@@ -133,7 +361,7 @@ export function LearnerGroupDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, setSelectedMemberIds])
 
   useEffect(() => {
     void loadGroupDetails()
@@ -335,7 +563,7 @@ export function LearnerGroupDetailPage() {
       <DetailLayout
         sidebar={
           <ControlsSidebar>
-            <ControlAction to={`/learner-groups/${id}/edit`} icon={Settings}>Edit Group Properties</ControlAction>
+            <ControlAction onClick={openEditPropertiesModal} icon={Settings}>Edit Group Properties</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</ControlAction>
             <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
               Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
@@ -361,50 +589,52 @@ export function LearnerGroupDetailPage() {
 
         <main className="space-y-6">
           {detailTab === 'overview' && (
-            <DetailCard>
-              <SectionHeader icon={Settings}>Overview</SectionHeader>
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={Settings} variant="card">Overview</SectionHeader>
 
-              <FactGrid>
-                <Fact label="Group Name" valueClassName="font-bold text-slate-800">
-                  {group.name}
-                </Fact>
-                <Fact label="Members" valueClassName="font-bold text-slate-800">
-                  {group.members.length}
-                </Fact>
-                <Fact
-                  label="LMS Category"
-                  colSpan="full"
-                  valueClassName="font-semibold"
-                >
-                  {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
-                      {group.categoryAncestors.map((ancestor) => (
-                        <span key={ancestor.id} className="flex items-center gap-1">
-                          <span className="text-slate-600">{ancestor.name}</span>
-                          <span className="text-slate-300 font-normal">/</span>
-                        </span>
-                      ))}
-                      <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
-                    </div>
-                  ) : (
-                    group.categoryName || '-'
-                  )}
-                </Fact>
-                <Fact
-                  label="Owner / Creator"
-                  colSpan="full"
-                  mono
-                  valueClassName="font-bold"
-                >
-                  {group.createdBy || 'System Admin'}
-                </Fact>
-                {group.description && (
-                  <Fact label="Description" colSpan="full">
-                    {group.description}
+              <div className="p-5">
+                <FactGrid>
+                  <Fact label="Group Name" valueClassName="font-bold text-slate-800">
+                    {group.name}
                   </Fact>
-                )}
-              </FactGrid>
-            </DetailCard>
+                  <Fact label="Members" valueClassName="font-bold text-slate-800">
+                    {group.members.length}
+                  </Fact>
+                  <Fact
+                    label="LMS Category"
+                    colSpan="full"
+                    valueClassName="font-semibold"
+                  >
+                    {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
+                        {group.categoryAncestors.map((ancestor) => (
+                          <span key={ancestor.id} className="flex items-center gap-1">
+                            <span className="text-slate-600">{ancestor.name}</span>
+                            <span className="text-slate-300 font-normal">/</span>
+                          </span>
+                        ))}
+                        <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
+                      </div>
+                    ) : (
+                      group.categoryName || '-'
+                    )}
+                  </Fact>
+                  <Fact
+                    label="Owner / Creator"
+                    colSpan="full"
+                    mono
+                    valueClassName="font-bold"
+                  >
+                    {group.createdBy || 'System Admin'}
+                  </Fact>
+                  {group.description && (
+                    <Fact label="Description" colSpan="full">
+                      {group.description}
+                    </Fact>
+                  )}
+                </FactGrid>
+              </div>
+            </section>
           )}
 
           {detailTab === 'members' && (
@@ -754,6 +984,115 @@ export function LearnerGroupDetailPage() {
           </div>
         </div>
       )}
+
+      {isEditingProperties && (
+        <div className="modal-overlay" onClick={() => setIsEditingProperties(false)}>
+          <div className="modal-window p-5 relative animate-scale-in" onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setIsEditingProperties(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
+              <Settings className="h-5 w-5 text-indigo-600" />
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">Edit Learner Group</h3>
+                <p className="text-xxs font-semibold text-slate-400">Update learner group details and folder category.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveProperties} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="editName" className="wiz-label">
+                  Group Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="editName"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  placeholder="e.g. New Hires 2026 Q1"
+                  className="wiz-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="wiz-label">Category (Location Folder)</label>
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-md bg-slate-50/50 text-slate-700 min-w-0 select-none">
+                    <Folder className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <span className="text-sm font-semibold truncate">
+                      {selectedCategoryPath}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempCategoryId(editCategoryId || 0)
+                      setIsExplorerOpen(true)
+                    }}
+                    className="px-3 py-2 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 text-slate-600 font-bold rounded-md flex items-center justify-center gap-1.5 transition text-xs shrink-0 cursor-pointer"
+                  >
+                    <FolderOpen className="h-4 w-4 text-indigo-500" />
+                    <span>Select Folder...</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="editDescription" className="wiz-label">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="editDescription"
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Brief description of this group's purpose"
+                  className="wiz-input resize-y"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProperties(false)}
+                  disabled={savingProperties}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 font-bold rounded-md text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProperties}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md text-xs transition flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                >
+                  {savingProperties ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {renderCategoryExplorerModal()}
 
       {confirmDialog}
     </>

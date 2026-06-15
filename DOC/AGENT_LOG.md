@@ -14,6 +14,91 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 14:05] Antigravity — ปรับปรุงมาตรฐานดีไซน์และโครงสร้างหน้าจอ Detail ในส่วนที่เหลือเพื่อแก้ปัญหา Layout Shift และจัดระเบียบหัวข้อ
+- ทำอะไร: ปรับปรุงโครงสร้างหน้าจอแสดงรายละเอียด (Detail/Overview) ทั้ง 5 หน้าจอที่เหลือ (LearnerGroupDetailPage, CourseDetailPage, UserDetailPage, ContentItemDetailPage, MasterDataDetailPage) จากเดิมที่ใช้ `<DetailCard>` หรือโครงสร้าง Custom margin/padding ที่มีปัญหา visual shift/scrollbar alignment ต่างกันเมื่อสลับแท็บ ให้มาใช้โครงสร้างที่เป็นมาตรฐานเดียวกันทั้งหมด คือครอบด้วยกล่อง `<section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">` พร้อมใช้ `<SectionHeader variant="card">` เพื่อแสดงหัวข้อสไตล์ flush card และครอบเนื้อหาภายในด้วย padding `p-5` เพื่อความสวยงาม เป็นระเบียบเรียบร้อย และสม่ำเสมอ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+## [2026-06-15 18:30] Claude Code — Review + ปิด PLAN-021/022/023 เป็น VERIFIED
+- ทำอะไร: รีวิว diff ที่ commit แล้ว — **021** (acdfa2c): App.tsx ครอบ learning-logs ด้วย RequireRole superAdminOnly + nav item superAdminOnly; **022** (acdfa2c): CreateAsync group+category ใช้ `parent?DivisionId : (IsSuperAdmin?dto.DivisionId:currentUser.DivisionId)` กัน escalation+inherit parent; **023** (3373581): UpdateLearnerGroupCategoryDto+DivisionId, UpdateAsync มี parent-inherit + SuperAdmin-only + empty-check guard (กันเปลี่ยน division ของ category ที่มีลูก/group), frontend edit selector + explorer folder selector (useSession) — ปรับทั้ง 3 เป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-021/022/023-*.md` (สถานะ)
+- Contract ที่เปลี่ยน: ไม่มี (โค้ด commit แล้ว — เพิ่ม DivisionId ใน Create/Update LearnerGroupCategory DTO ตามแผน)
+- Verified: `dotnet test` 118/118 ผ่าน, `npm run build` ผ่าน, `npm run lint` 0 errors (11 warnings baseline)
+- ⚠️ ข้อสังเกต: working tree มี diff ค้าง ~20 ไฟล์ (App.tsx, AppTable, index.css, Breadcrumbs, หน้าต่าง ๆ) — **ไม่ใช่งานของ PLAN-021/022/023** (พวกนั้น commit แล้ว) ดูเหมือนรอบ refactor UI/button styles ที่ยังไม่ commit — build/lint/test ผ่านบน state นี้ แต่ยังไม่ได้รีวิวเนื้อหา
+
+## [2026-06-15 13:58] Antigravity — ปรับปรุงมาตรฐานการแสดงผลหัวข้อและจัดระเบียบโครงสร้างแท็บในหน้า Assignment Detail
+- ทำอะไร: ปรับปรุงโครงสร้างของแท็บ Overview ในหน้า `AssignmentDetailPage.tsx` จากเดิมที่ใช้ `<DetailCard>` และหัวข้อประเภท plain ให้เปลี่ยนมาใช้โครงสร้าง `<section>` แบบมีขอบมุมตัด (`overflow-hidden rounded-lg border`) และหัวข้อประเภท `card` (`variant="card"`) ให้สอดคล้องกันทุกแท็บ (Overview, Courses, Learners) ส่งผลให้ปุ่ม Controls ฝั่งขวาไม่ขยับสั่นตำแหน่งเดิม และขนาดตัวอักษรของหัวข้อ "Overview" มีความเหมาะสมและเป็นระเบียบเท่ากับแท็บอื่นๆ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:56] Antigravity — ป้องกันการขยับของหน้าจอ (Layout Shift) เมื่อสลับแท็บข้อมูลที่มีความสูงต่างกัน
+- ทำอะไร: เพิ่มกฎ CSS `scrollbar-gutter: stable` ให้กับอิลิเมนต์ `html` ในไฟล์ `index.css` เพื่อจองพื้นที่สำหรับแถบเลื่อนแนวตั้ง (Scrollbar) เสมอ ป้องกันปัญหาโครงสร้างหน้าจอขยับหรือสั่น (Scrollbar Layout Shift) เมื่อผู้ใช้งานสลับไปยังแท็บที่มีความสูงข้อมูลต่างกันอย่างรวดเร็ว
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:54] Antigravity — ปรับปรุงการจัดกลุ่มข้อมูลรายชื่อผู้เรียน (Learners) ในหน้าแสดงรายละเอียดของ Assignment
+- ทำอะไร: อัปเดต `AssignmentDetailPage.tsx` ให้ประมวลผลข้อมูลในแท็บ Learners โดยทำการจัดกลุ่ม (Grouping) ข้อมูลตามตัวตนของผู้เรียนผ่านการทำ `useMemo` (แทนการวนลูปแบบแบนราบเดิมที่ทำให้ชื่อคนซ้ำกันตามจำนวนวิชาที่ได้รับมอบหมาย) โดยจัดให้แสดงผล 1 แถวต่อ 1 คน และรวมรายชื่อวิชาที่ได้รับมอบหมายเข้าไปเป็นรายการย่อยพร้อมความคืบหน้าและสถานะการเรียนรายวิชาภายในแถวเดียวกัน เพื่อให้อ่านและลบ/รีเซ็ตข้อมูลได้สะดวกและไม่สับสน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:51] Antigravity — ปรับปรุงการแสดงผลคอลัมน์วิชาเรียน (Courses) ในตาราง Assignment Batches ให้กระชับและไม่ยาวเกินไป
+- ทำอะไร: อัปเดต `EntityListPage.tsx` เพื่อปรับแต่ง `cellRender` ของคอลัมน์ `courseNames` ในกรณีที่มีหลายวิชาเรียน โดยจะนำวิชาแรกมาแสดงผลพร้อมตัดคำให้อยู่ในกรอบ และแสดง Badge ตัวเลขระบุจำนวนวิชาเพิ่มเติม (เช่น `+2`) พร้อมกำหนดคำแนะนำเมาส์ชี้ (Tooltip) แสดงรายชื่อวิชาทั้งหมดเมื่อนำเมาส์ไปชี้ เพื่อความสะอาดตาและเป็นระเบียบของตารางข้อมูล
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/EntityListPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:43] Antigravity — ป้องกันการกดเบิ้ล (Double Click) เข้าหน้า Detail ของรายการ Enrollments และ Learning Logs ที่ไม่มีหน้าดีเทล
+- ทำอะไร: ปิดความสามารถในระดับ UI โดยส่ง `onRowDblClick`เป็น `undefined` และปิด cursor pointer สำหรับหน้าแสดงผลของข้อมูลที่ไม่มีหน้าดีเทล (ได้แก่ `Enrollments` และ `Learning Logs` ซึ่งเก็บประวัติ/อ่านอย่างเดียว) เพื่อป้องกันการลิงก์ไปหน้าเพจที่ไม่มีอยู่จริงจนเกิด Not Found error
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/EntityListPage.tsx`, `iLearn.Admin.React/src/components/ui/AppTable.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:39] Antigravity — แก้ไขข้อผิดพลาด SyntaxError จากการลบหมวดหมู่ (Delete Category) ในหน้า Courses Explorer
+- ทำอะไร: แก้ไขฟังก์ชัน `fetchWithAccessControl` ใน `apiClient.ts` ให้สามารถรองรับและประมวลผล HTTP status 200 OK ที่ไม่มี Response Body (Empty Body) ได้อย่างปลอดภัย โดยอ่านข้อมูลดิบเป็นข้อความและตรวจสอบความว่างเปล่าก่อนส่งไปแปลง JSON เพื่อไม่ให้เกิด `SyntaxError: Unexpected end of JSON input`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/apiClient.ts`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:35] Antigravity — ปรับเปลี่ยนคำศัพท์หน้า Bulk Assignment เป็น Assign Courses
+- ทำอะไร: ปรับปรุงคำศัพท์ในระบบจากเดิมคือ "Bulk Assignment" หรือ "Bulk Assign" ให้เรียบง่ายและเป็นมิตรกับผู้ใช้งานมากขึ้นเป็น "Assign Courses" ในส่วนของ breadcrumbs, ปุ่มเปิดหน้าจากตารางรายการ และหัวข้อของ wizard page
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/layout/Breadcrumbs.tsx`, `iLearn.Admin.React/src/pages/EntityListPage.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:32] Antigravity — ปรับปรุง UI/UX การเพิ่มผู้เรียนในหน้า Assignment Detail ให้เหมือนหน้า Learner Group Detail
+- ทำอะไร: ปรับปรุงฟอร์มการเพิ่มผู้เรียน (Add More Learners) ในหน้า AssignmentDetailPage จากแบบเดิมที่เป็น textarea ให้กลายเป็น popup modal แบบ 2 แท็บ (Directory Search / Bulk Import) และระบบคิวเหมือนในหน้าดีเทลของกลุ่มผู้เรียน โดยเรียกใช้งาน component LearnerDirectorySelector
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 13:28] Antigravity — ปรับปรุงระบบแก้ไขกลุ่มผู้เรียนให้ทำงานผ่าน Popup Modal ในหน้าดีเทล
+- ทำอะไร: ย้ายฟอร์มการแก้ไขคุณสมบัติกลุ่มผู้เรียน (Edit Learner Group) จากหน้าเว็บ /edit แยกต่างหาก มาทำงานเป็นแบบ Popup Modal ในหน้าแสดงรายละเอียด (LearnerGroupDetailPage) แทนการเปิดหน้าใหม่ โดยปรับให้ดึงข้อมูลโฟลเดอร์ผ่าน Category Explorer Modal (z-index 60) ร่วมด้วย และลบเส้นทาง Route ที่ไม่ได้ใช้งาน รวมถึงลบส่วนโค้ดแก้ไขกลุ่มในหน้าสร้างกลุ่ม (LearnerGroupEditorPage) ออก
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupEditorPage.tsx`, `iLearn.Admin.React/src/App.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` ผ่าน (118/118 tests passed)
+
+## [2026-06-15 13:24] Antigravity — ปรับปรุงคำของหัวข้อ (Title) และคำอธิบาย (Description) ในหน้าฟอร์มแก้ไขข้อมูล (Editor/Form Pages)
+- ทำอะไร: ปรับปรุงคำอธิบายและหัวข้อในหน้ากรอกฟอร์มแก้ไขข้อมูลทั้งหมด ได้แก่ CourseEditorPage, VersionFormPage, ContentItemEditorPage, LearnerGroupEditorPage, LearnerGroupCategoryEditorPage, UserEditorPage ให้มีความสั้น กระชับ เป็นมาตรฐานเดียวกัน และแก้ไขคำภาษาอังกฤษที่ฟุ่มเฟือย
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupEditorPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/users/UserEditorPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` ผ่าน (118/118 tests passed)
+
+## [2026-06-15 13:19] Antigravity — ปรับปรุงและปรับกระชับคำของหัวข้อเพจ (Title) และคำอธิบาย (Note) ทุกเพจ
+- ทำอะไร: ปรับปรุงคำใน config และเพจต่าง ๆ ให้สั้น กระชับ และเป็นมาตรฐานเดียวกัน เช่น ปรับ Title/Note ใน config ของวิชา, SCORM, batch, ผู้เรียน, และ admin รวมถึงอัปเดตเพจ Custom list ที่มีข้อความ hardcoded (เช่น AdminUsersPage, LearnerGroupCategoriesPage, LearnerGroupListPage, CourseListPage, AssignmentGanttPage)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentGanttPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` ผ่าน (118/118 tests passed)
+
+## [2026-06-15 13:12] Antigravity — ปรับปรุงและปรับสไตล์ของปุ่มใน Action Column ให้ได้มาตรฐานเดียวกัน (ครอบคลุมครบทุกหน้า)
+- ทำอะไร: ปรับปรุง `AppTable.tsx` ให้มีสิทธิ์เลือก variant ของปุ่ม action และเพิ่มระบบตรวจจับสีอัตโนมัติตาม Hint text (เช่น คำว่า delete, remove จะได้สีแดงทันที); ทำการแก้โค้ดและย้ายคลาสปุ่ม action ในตารางแบบ Custom ของหน้าต่าง ๆ ให้ใช้คลาสดีไซน์และขนาดไอคอน h-3.5 w-3.5 ที่เป็นอันหนึ่งอันเดียวกัน (ครอบคลุมหน้า CourseListPage, LearnerGroupListPage, LearnerGroupCategoriesPage, AssignmentDetailPage, BulkAssignPage, LearnerGroupDetailPage, ContentItemEditorPage, CourseEditorPage, VersionFormPage)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `variant?: 'primary' | 'danger' | 'success' | 'ghost' | undefined` ใน `actionButtons` element ของ `AppTable`
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
 ## [2026-06-15 12:59] GitHub Copilot (GPT-5.3-Codex) — เอกสาร cleanup รอบสาม (ล้างไฟล์แผนเก่าชุดใหญ่)
 - ทำอะไร: ลบไฟล์แผนใน `DOC/PLANS` ที่ปิดงานแล้วทั้งหมด (สถานะ VERIFIED/CANCELLED เดิม) จำนวน 21 ไฟล์ เพื่อเก็บเฉพาะแผนล่าสุดที่ยังเป็น `DONE` และ `README` สำหรับ workflow ปัจจุบัน
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-001-*.md` ถึง `DOC/PLANS/PLAN-020-*.md` (deleted เฉพาะไฟล์ที่มีอยู่จริง), `DOC/AGENT_LOG.md`

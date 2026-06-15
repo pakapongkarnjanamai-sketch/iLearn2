@@ -9,7 +9,8 @@ import {
   Edit3,
   UserPlus,
   Power,
-  Lock
+  Lock,
+  BookOpen
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -20,7 +21,6 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import {
-  DetailCard,
   DetailLayout,
   Fact,
   FactGrid,
@@ -353,48 +353,52 @@ export function CourseDetailPage() {
         <main className="space-y-6">
             
             {activeTab === 'overview' && (
-              <DetailCard>
-                {/* Description */}
-                {course.description && (
-                  <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
-                    {course.description}
-                  </p>
-                )}
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                <SectionHeader icon={BookOpen} variant="card">Course Overview</SectionHeader>
 
-                {/* Metadata Grid */}
-                <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
-                  <Fact label="Course Code" mono valueClassName="font-semibold">
-                    {course.courseCode}
-                  </Fact>
-                  <Fact label="Status">
-                    <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
-                      {course.statusName}
-                    </StatusText>
-                  </Fact>
-                  <Fact label="Category" valueClassName="font-semibold">
-                    {categoryNames[course.categoryId] || '-'}
-                  </Fact>
-                  <Fact label="Course Type" valueClassName="font-semibold">
-                    {courseTypeNames[course.courseType] || '-'}
-                  </Fact>
-                  <Fact label="Content Items" valueClassName="font-semibold">
-                    {course.contentItems.length}
-                  </Fact>
-                  {data.kpi && (
-                    <>
-                      <Fact label="Versions" valueClassName="font-bold text-slate-800 text-lg">
-                        {data.kpi.versionCount}
-                      </Fact>
-                      <Fact label="Active Learners" valueClassName="font-bold text-slate-800 text-lg">
-                        {data.kpi.learnerCount}
-                      </Fact>
-                      <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800 text-lg">
-                        {data.kpi.assignmentCount}
-                      </Fact>
-                    </>
+                <div className="p-5 space-y-5">
+                  {/* Description */}
+                  {course.description && (
+                    <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
+                      {course.description}
+                    </p>
                   )}
-                </FactGrid>
-              </DetailCard>
+
+                  {/* Metadata Grid */}
+                  <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
+                    <Fact label="Course Code" mono valueClassName="font-semibold">
+                      {course.courseCode}
+                    </Fact>
+                    <Fact label="Status">
+                      <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
+                        {course.statusName}
+                      </StatusText>
+                    </Fact>
+                    <Fact label="Category" valueClassName="font-semibold">
+                      {categoryNames[course.categoryId] || '-'}
+                    </Fact>
+                    <Fact label="Course Type" valueClassName="font-semibold">
+                      {courseTypeNames[course.courseType] || '-'}
+                    </Fact>
+                    <Fact label="Content Items" valueClassName="font-semibold">
+                      {course.contentItems.length}
+                    </Fact>
+                    {data.kpi && (
+                      <>
+                        <Fact label="Versions" valueClassName="font-bold text-slate-800 text-lg">
+                          {data.kpi.versionCount}
+                        </Fact>
+                        <Fact label="Active Learners" valueClassName="font-bold text-slate-800 text-lg">
+                          {data.kpi.learnerCount}
+                        </Fact>
+                        <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800 text-lg">
+                          {data.kpi.assignmentCount}
+                        </Fact>
+                      </>
+                    )}
+                  </FactGrid>
+                </div>
+              </section>
             )}
 
             {activeTab === 'versions' && (

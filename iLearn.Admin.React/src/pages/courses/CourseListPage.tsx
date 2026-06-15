@@ -563,7 +563,7 @@ export function CourseListPage() {
     <>
       <DataGridSurface
         title={currentFolderName}
-        note="Unified directory for managing training courses structured by Division and Category"
+        note="Manage folders and training courses in this directory."
         actions={
           <div className="flex items-center gap-2">
             {(currentCategoryId !== null || currentDivisionId !== null) && (

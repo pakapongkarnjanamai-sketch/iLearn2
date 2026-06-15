@@ -552,7 +552,7 @@ export function LearnerGroupListPage() {
     <>
       <DataGridSurface
         title={currentFolderName}
-        note="Unified list view for folders and learner groups in the current folder"
+        note="Manage folders and learner groups in this directory."
         actions={
           <div className="flex items-center gap-2">
             {currentCategoryId > 0 && (

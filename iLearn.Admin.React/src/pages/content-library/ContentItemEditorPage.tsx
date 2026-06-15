@@ -292,8 +292,8 @@ export function ContentItemEditorPage() {
 
   return (
     <AppWizard
-      title={isCreate ? 'Upload SCORM Package' : 'Edit Content Item'}
-      description={isCreate ? 'Upload a SCORM 1.2 or SCORM 2004 ZIP package.' : 'Adjust display name and content type lookup values.'}
+      title={isCreate ? 'Upload SCORM Package' : 'Edit SCORM Package'}
+      description={isCreate ? 'Upload a SCORM package (.zip).' : 'Update SCORM package details.'}
       eyebrow="Content Library"
       steps={steps}
       currentStep={currentStep}

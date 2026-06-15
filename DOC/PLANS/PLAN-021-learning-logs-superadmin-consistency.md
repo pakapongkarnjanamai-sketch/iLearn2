@@ -1,6 +1,6 @@
 # PLAN-021: ทำให้ Learning Logs เป็น SuperAdmin-only สม่ำเสมอ (UI ตรงกับ API)
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit acdfa2c — App.tsx ครอบ RequireRole superAdminOnly + nav item superAdminOnly, dotnet test 118 + build/lint ผ่าน)
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** 2 ไฟล์ frontend (`App.tsx`, `config/navigation.ts`)

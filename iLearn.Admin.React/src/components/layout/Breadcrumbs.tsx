@@ -19,7 +19,7 @@ const SEGMENT_MAP: Record<string, string> = {
   'version': 'SCORM Version',
   'profile': 'Profile',
   'gantt': 'Schedule',
-  'bulk': 'Bulk Assignment'
+  'bulk': 'Assign Courses'
 }
 
 export function Breadcrumbs() {

@@ -14,7 +14,6 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import {
-  DetailCard,
   DetailLayout,
   Fact,
   FactGrid,
@@ -233,54 +232,56 @@ export function ContentItemDetailPage() {
           </ControlsSidebar>
         }
       >
-        <DetailCard>
-          <SectionHeader icon={Layers}>Content Overview</SectionHeader>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+          <SectionHeader icon={Layers} variant="card">Content Overview</SectionHeader>
 
-          <FactGrid>
-            <Fact label="Status">
-              <StatusText tone={item.isActive ? 'success' : 'neutral'}>
-                {item.isActive ? 'Published' : 'Draft'}
-              </StatusText>
-            </Fact>
+          <div className="p-5 space-y-5">
+            <FactGrid>
+              <Fact label="Status">
+                <StatusText tone={item.isActive ? 'success' : 'neutral'}>
+                  {item.isActive ? 'Published' : 'Draft'}
+                </StatusText>
+              </Fact>
 
-            <Fact label="Type" valueClassName="font-semibold">
-              {TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}
-            </Fact>
+              <Fact label="Type" valueClassName="font-semibold">
+                {TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}
+              </Fact>
 
-            <Fact label="SCORM Version" valueClassName="font-semibold">
-              {item.schemaVersion || '—'}
-            </Fact>
+              <Fact label="SCORM Version" valueClassName="font-semibold">
+                {item.schemaVersion || '—'}
+              </Fact>
 
-            <Fact label="Package Size" valueClassName="font-bold text-slate-800">
-              {fmtBytes(item.fileLength)}
-            </Fact>
+              <Fact label="Package Size" valueClassName="font-bold text-slate-800">
+                {fmtBytes(item.fileLength)}
+              </Fact>
 
-            <Fact label="Courses Linked" valueClassName="font-bold text-slate-800">
-              {item.courseIdsCount ?? 0}
-            </Fact>
+              <Fact label="Courses Linked" valueClassName="font-bold text-slate-800">
+                {item.courseIdsCount ?? 0}
+              </Fact>
 
-            <Fact label="File Storage Id" valueClassName="font-semibold">
-              {item.fileStorageId ?? '—'}
-            </Fact>
+              <Fact label="File Storage Id" valueClassName="font-semibold">
+                {item.fileStorageId ?? '—'}
+              </Fact>
 
-            <Fact label="Created" valueClassName="font-semibold">
-              {item.createdAt ? formatDateTime(item.createdAt) : '—'}
-            </Fact>
+              <Fact label="Created" valueClassName="font-semibold">
+                {item.createdAt ? formatDateTime(item.createdAt) : '—'}
+              </Fact>
 
-            <Fact label="Updated" valueClassName="font-semibold">
-              {item.updatedAt ? formatDateTime(item.updatedAt) : '—'}
-            </Fact>
-          </FactGrid>
+              <Fact label="Updated" valueClassName="font-semibold">
+                {item.updatedAt ? formatDateTime(item.updatedAt) : '—'}
+              </Fact>
+            </FactGrid>
 
-          <FactGrid cols={2} className="grid-cols-1 sm:grid-cols-1 gap-4 border-t border-slate-100 pt-5">
-            <Fact label="Launch Resource" mono>
-              {item.launchHref || '—'}
-            </Fact>
-            <Fact label="Server Path" mono>
-              {item.url || '—'}
-            </Fact>
-          </FactGrid>
-        </DetailCard>
+            <FactGrid cols={2} className="grid-cols-1 sm:grid-cols-1 gap-4 border-t border-slate-100 pt-5">
+              <Fact label="Launch Resource" mono>
+                {item.launchHref || '—'}
+              </Fact>
+              <Fact label="Server Path" mono>
+                {item.url || '—'}
+              </Fact>
+            </FactGrid>
+          </div>
+        </section>
       </DetailLayout>
 
       {confirmDialog}

@@ -53,5 +53,10 @@ export const fetchWithAccessControl = async <TResponse>(path: string, init: Requ
     return undefined as TResponse
   }
 
-  return (await response.json()) as TResponse
+  const responseText = await response.text()
+  if (!responseText) {
+    return undefined as TResponse
+  }
+
+  return JSON.parse(responseText) as TResponse
 }

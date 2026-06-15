@@ -85,7 +85,7 @@ export function LearnerGroupCategoriesPage() {
     <>
       <DataGridSurface
         title="Learner Group Categories"
-        note="Manage hierarchy folders used by learner groups."
+        note="Manage categories for organizing learner groups."
         actions={
           <AppButton
             variant="primary"

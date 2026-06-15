@@ -44,6 +44,27 @@ export function EntityListPage({ config }: EntityListPageProps) {
           }
         }
       }
+      if (col.dataField === 'courseNames') {
+        return {
+          ...col,
+          cellRender: ({ value }: any) => {
+            if (!value) return '—'
+            const list = String(value).split(',').map(c => c.trim()).filter(Boolean)
+            if (list.length === 0) return '—'
+            if (list.length === 1) return <span title={value}>{list[0]}</span>
+
+            const tooltip = list.join('\n')
+            return (
+              <div className="flex items-center gap-1.5 max-w-[280px]" title={tooltip}>
+                <span className="truncate">{list[0]}</span>
+                <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-xxs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  +{list.length - 1}
+                </span>
+              </div>
+            )
+          }
+        }
+      }
       return col
     })
   }, [config.columns, divisions])
@@ -155,7 +176,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
           </Link>
           <Link to="/assignments/bulk">
             <AppButton variant="primary" icon={Plus}>
-              Bulk Assignment
+              Assign Courses
             </AppButton>
           </Link>
         </>
@@ -182,7 +203,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
           store={store}
           columns={mappedColumns}
           noDataText={`No ${config.title.toLowerCase()} data found`}
-          onRowDblClick={handleRowDoubleClick}
+          onRowDblClick={isReadOnly ? undefined : handleRowDoubleClick}
           searchPlaceholder="Search records..."
           searchExpr={config.searchExpr}
           actionButtons={actionButtons}

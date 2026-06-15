@@ -585,8 +585,8 @@ export function VersionFormPage() {
   return (
     <>
       <AppWizard
-        title={isEditMode ? 'Edit Course Version' : 'Create New Version'}
-        description="Prepare version details, content, learner impact options, and review before saving."
+        title={isEditMode ? 'Edit Version' : 'New Version'}
+        description={isEditMode ? 'Update training course version details.' : 'Create a new version for this training course.'}
         eyebrow="Version Control"
         steps={steps}
         currentStep={currentStep}

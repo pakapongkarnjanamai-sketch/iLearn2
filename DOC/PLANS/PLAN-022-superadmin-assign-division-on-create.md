@@ -1,6 +1,6 @@
 # PLAN-022: ให้ SuperAdmin ระบุ Division ตอนสร้าง Learner Group / Learner Group Category ได้
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit acdfa2c — CreateAsync group+category `IsSuperAdmin ? dto.DivisionId : currentUser.DivisionId` + parent inherit, กัน escalation, dotnet test 118 + build/lint ผ่าน)
 - **Assigned:** Gemini
 - **Priority:** Medium
 - **Estimated scope:** backend 2 service + 2 DTO + 2 controller (เล็กน้อย) + frontend 2 editor page

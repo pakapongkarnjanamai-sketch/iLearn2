@@ -718,7 +718,7 @@ export function CourseEditorPage() {
       <>
         <AppWizard
           title="New Course"
-          description="Create the course, attach content, then review before saving."
+          description="Create a new training course."
           eyebrow="Course Catalog"
           steps={steps}
           currentStep={currentStep}
@@ -813,7 +813,7 @@ export function CourseEditorPage() {
                 Edit Course
               </h1>
               <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
-                Update course properties and learning packages.
+                Update course details and content settings.
               </p>
             </div>
           </div>

@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { 
   Folder,
   FolderOpen,
   Plus, 
-  Save, 
-  X,
-  Loader2
+  X
 } from 'lucide-react'
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -15,7 +13,6 @@ import { useSession } from '../../lib/sessionContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
-import { LoadingState } from '../../components/ui/LoadingState'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -65,12 +62,9 @@ function getApiErrorText(error: unknown, fallback: string) {
 }
 
 export function LearnerGroupEditorPage() {
-  const { id } = useParams()
-  const isEditMode = !!id
   const navigate = useNavigate()
   const { isSuperAdmin } = useSession()
 
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [memberInput, setMemberInput] = useState('')
@@ -179,25 +173,7 @@ export function LearnerGroupEditorPage() {
     }
   }, [])
 
-  const loadGroupDetails = useCallback(async () => {
-    if (!id) return
-    setLoading(true)
-    try {
-      const resp = await fetchWithAccessControl<GroupApiResponse<GroupFormData & { id: number }>>(`LearnerGroups/${id}`)
-      if (resp.success && resp.data) {
-        setFormData({
-          name: resp.data.name,
-          description: resp.data.description || '',
-          categoryId: resp.data.categoryId || 0
-        })
-      }
-    } catch (error) {
-      console.error(error)
-      toast.error('Failed to load group details')
-    } finally {
-      setLoading(false)
-    }
-  }, [id])
+
 
   const loadDivisions = useCallback(async () => {
     try {
@@ -221,7 +197,7 @@ export function LearnerGroupEditorPage() {
   }, [loadCategories, loadDivisions, isSuperAdmin])
 
   useEffect(() => {
-    if (isEditMode || didApplyQueryCategory) return
+    if (didApplyQueryCategory) return
 
     const searchParams = new URLSearchParams(window.location.search)
     const queryValue = searchParams.get('categoryId')
@@ -247,15 +223,7 @@ export function LearnerGroupEditorPage() {
     }
 
     setDidApplyQueryCategory(true)
-  }, [categories, didApplyQueryCategory, isEditMode])
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadGroupDetails()
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [loadGroupDetails])
+  }, [categories, didApplyQueryCategory])
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = event.target
@@ -321,23 +289,6 @@ export function LearnerGroupEditorPage() {
 
     setSaving(true)
     try {
-      if (isEditMode) {
-        const resp = await fetchWithAccessControl<GroupApiResponse>(`LearnerGroups/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-            categoryId: formData.categoryId > 0 ? formData.categoryId : null
-          })
-        })
-        if (resp.success) {
-          toast.success(resp.message || 'Group updated successfully')
-          navigate(`/learner-groups/${id}`)
-        }
-        return
-      }
-
       const resp = await fetchWithAccessControl<GroupApiResponse>('LearnerGroups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -359,7 +310,7 @@ export function LearnerGroupEditorPage() {
   const renderInformationStep = () => (
     <div className="space-y-4">
 
-      {isSuperAdmin && !isEditMode && (
+      {isSuperAdmin && (
         <div className="space-y-1.5">
           <label htmlFor="divisionId" className="wiz-label">
             Division (แผนก)
@@ -651,83 +602,11 @@ export function LearnerGroupEditorPage() {
     { label: 'Review', render: () => renderReviewStep() }
   ]
 
-  if (loading) {
-    return <LoadingState label="Loading group details..." />
-  }
-
-  if (isEditMode) {
-    return (
-      <>
-        <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            {/* Header with Title */}
-            <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Learner Directory
-                </div>
-                <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
-                  Edit Learner Group
-                </h1>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
-                  Adjust group names, descriptive categories, and targets.
-                </p>
-              </div>
-            </div>
-            
-            {/* Content Panel Zone */}
-            <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
-              <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
-                <div className="w-full h-full flex flex-col">
-                  {renderInformationStep()}
-                </div>
-              </div>
-              
-              {saving && (
-                <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
-                  <div className="flex flex-col items-center gap-2.5 select-none">
-                    <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
-                    <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Navigation Buttons Pinned Footer */}
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
-              <button 
-                type="button" 
-                onClick={() => navigate(`/learner-groups/${id}`)} 
-                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 cursor-pointer text-xs shadow-3xs"
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-                <span>Cancel</span>
-              </button>
-              <button 
-                type="submit" 
-                disabled={saving} 
-                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 font-bold text-white hover:bg-indigo-700 cursor-pointer text-xs shadow-3xs disabled:opacity-55"
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Save className="h-4 w-4" aria-hidden="true" />
-                )}
-                <span>Save Changes</span>
-              </button>
-            </div>
-          </form>
-        </div>
-        {renderCategoryExplorerModal()}
-      </>
-    )
-  }
-
   return (
     <>
       <AppWizard
         title="New Learner Group"
-        description="Create the group, add optional initial members, then review before saving."
+        description="Create a new group of learners."
         eyebrow="Learner Directory"
         steps={steps}
         currentStep={currentStep}

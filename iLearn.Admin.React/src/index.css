@@ -158,6 +158,9 @@ select.wiz-input {
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     min-width: 320px;
     min-height: 100vh;

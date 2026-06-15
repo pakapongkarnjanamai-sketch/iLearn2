@@ -121,7 +121,7 @@ export function AssignmentGanttPage() {
   return (
     <DataGridSurface
       title="Assignment Schedule"
-      note="Timeline by assignment batch and due range."
+      note="Gantt chart of assignment batches and due dates."
       actions={
         <AppButton variant="secondary" icon={CalendarClock} onClick={scrollToToday}>
           Today

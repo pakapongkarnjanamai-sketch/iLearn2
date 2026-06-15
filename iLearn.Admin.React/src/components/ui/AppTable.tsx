@@ -280,7 +280,7 @@ export function AppTable<T extends TableRecord>({
                   <tr
                     key={asInputValue(rowKey) || index}
                     onDoubleClick={() => onRowDblClick && onRowDblClick({ data: row })}
-                    className="premium-hover-row group cursor-pointer border-b border-slate-100/50"
+                    className={`premium-hover-row group border-b border-slate-100/50 ${onRowDblClick ? 'cursor-pointer' : ''}`}
                   >
                     {visibleColumns.map(col => {
                       const val = row[col.dataField]

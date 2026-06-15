@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Users,
@@ -8,16 +8,19 @@ import {
   UserPlus,
   FileBarChart,
   CalendarClock,
-  X
+  X,
+  Plus
 } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SectionHeader } from '../../components/ui/SectionHeader'
-import { DetailCard, DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { AppButton } from '../../components/ui/AppButton'
+import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -93,9 +96,50 @@ export function AssignmentDetailPage() {
   const [showDueDateModal, setShowDueDateModal] = useState(false)
   
   const [addingLearners, setAddingLearners] = useState(false)
-  const [newLearnersInput, setNewLearnersInput] = useState('')
+  const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
+  const [pendingAddLearners, setPendingAddLearners] = useState<LearnerSelection[]>([])
+  const [learnerCodesInput, setLearnerCodesInput] = useState('')
   const [savingLearners, setSavingLearners] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'learners'>('overview')
+
+  const groupedLearners = useMemo(() => {
+    if (!assignment?.learners) return []
+
+    const map = new Map<string, {
+      learnerCode: string
+      learnerName: string | null | undefined
+      courses: Array<{
+        courseCode: string | null | undefined
+        courseTitle: string | null | undefined
+        progress: number
+        isCompleted: boolean
+        status: string
+      }>
+    }>()
+
+    assignment.learners.forEach(l => {
+      let entry = map.get(l.learnerCode)
+      if (!entry) {
+        entry = {
+          learnerCode: l.learnerCode,
+          learnerName: l.learnerName,
+          courses: []
+        }
+        map.set(l.learnerCode, entry)
+      }
+      if (l.courseCode || l.courseTitle) {
+        entry.courses.push({
+          courseCode: l.courseCode,
+          courseTitle: l.courseTitle,
+          progress: l.progress,
+          isCompleted: l.isCompleted,
+          status: l.status
+        })
+      }
+    })
+
+    return Array.from(map.values())
+  }, [assignment])
 
   const loadAssignmentDetails = async () => {
     setLoading(true)
@@ -139,11 +183,50 @@ export function AssignmentDetailPage() {
     }
   }
 
+  const parseLearnerCodes = (value: string) => {
+    return Array.from(new Set(
+      value
+        .split(/[\n,;\s]+/)
+        .map(code => code.trim())
+        .filter(Boolean)
+        .map(code => code.toUpperCase())
+    ))
+  }
+
+  const handleImportCodes = () => {
+    const parsedCodes = parseLearnerCodes(learnerCodesInput)
+    if (parsedCodes.length === 0) {
+      toast.error('Enter at least one EId code')
+      return
+    }
+
+    const newSelections = parsedCodes.map(code => ({
+      code,
+      name: code, // fallback to code
+      division: '',
+      department: ''
+    }))
+
+    setPendingAddLearners(prev => {
+      const existingCodes = new Set(prev.map(l => l.code))
+      const currentCodes = new Set(assignment?.learners.map(m => m.learnerCode) || [])
+      
+      const uniqueNew = newSelections.filter(l => !existingCodes.has(l.code) && !currentCodes.has(l.code))
+      const duplicateCount = parsedCodes.length - uniqueNew.length
+      if (duplicateCount > 0) {
+        toast.info(`${duplicateCount} code(s) were skipped (already selected or in the assignment)`)
+      }
+      return [...prev, ...uniqueNew]
+    })
+    setLearnerCodesInput('')
+    toast.success(`Imported ${parsedCodes.length} learner code(s) to queue`)
+  }
+
   // Add more learners to this existing batch
   const handleAddLearners = async () => {
-    const codes = newLearnersInput.split(/[\n,]+/).map(c => c.trim()).filter(c => c.length > 0)
+    const codes = pendingAddLearners.map(l => l.code)
     if (codes.length === 0) {
-      toast.error('Please input at least one employee NID code')
+      toast.error('Please select or import at least one learner')
       return
     }
 
@@ -157,7 +240,8 @@ export function AssignmentDetailPage() {
       if (resp.success) {
         toast.success(resp.message)
         setAddingLearners(false)
-        setNewLearnersInput('')
+        setPendingAddLearners([])
+        setLearnerCodesInput('')
         loadAssignmentDetails()
       }
     } catch (err: any) {
@@ -306,35 +390,37 @@ export function AssignmentDetailPage() {
 
         <main className="space-y-6">
           {activeTab === 'overview' && (
-            <DetailCard>
-              <SectionHeader icon={FileBarChart}>Overview</SectionHeader>
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={FileBarChart} variant="card">Overview</SectionHeader>
 
-              <FactGrid className="pt-2">
-                <Fact label="Learners" valueClassName="font-bold text-slate-800">
-                  {assignment.totalEmployees}
-                </Fact>
-                <Fact label="Completed" valueClassName="font-bold text-slate-800">
-                  {assignment.chartData.completed}
-                </Fact>
-                <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
-                  {Math.round(assignment.completionRate)}%
-                </Fact>
-                <Fact label="Status">
-                  <StatusBadge size="xxs">{assignmentStatus}</StatusBadge>
-                </Fact>
-                <Fact label="Start Date" valueClassName="font-semibold">
-                  {formatDate(assignment.startDate)}
-                </Fact>
-                <Fact label="Due Date" valueClassName="font-semibold">
-                  {formatDate(assignment.dueDate)}
-                </Fact>
-                {assignment.learnerGroupName && (
-                  <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
-                    {assignment.learnerGroupName}
+              <div className="p-5">
+                <FactGrid className="pt-2">
+                  <Fact label="Learners" valueClassName="font-bold text-slate-800">
+                    {assignment.totalEmployees}
                   </Fact>
-                )}
-              </FactGrid>
-            </DetailCard>
+                  <Fact label="Completed" valueClassName="font-bold text-slate-800">
+                    {assignment.chartData.completed}
+                  </Fact>
+                  <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
+                    {Math.round(assignment.completionRate)}%
+                  </Fact>
+                  <Fact label="Status">
+                    <StatusBadge size="xxs">{assignmentStatus}</StatusBadge>
+                  </Fact>
+                  <Fact label="Start Date" valueClassName="font-semibold">
+                    {formatDate(assignment.startDate)}
+                  </Fact>
+                  <Fact label="Due Date" valueClassName="font-semibold">
+                    {formatDate(assignment.dueDate)}
+                  </Fact>
+                  {assignment.learnerGroupName && (
+                    <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
+                      {assignment.learnerGroupName}
+                    </Fact>
+                  )}
+                </FactGrid>
+              </div>
+            </section>
           )}
 
           {activeTab === 'courses' && (
@@ -357,10 +443,10 @@ export function AssignmentDetailPage() {
                       </span>
                       <button
                         onClick={() => handleRemoveCourse(c.assignmentRuleId)}
-                        className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                        className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
                         title="Remove course from assignment"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </li>
@@ -372,61 +458,86 @@ export function AssignmentDetailPage() {
           {activeTab === 'learners' && (
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
               <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
-
+ 
               <div className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
                       <th className="p-3">Learner</th>
-                      <th className="p-3">Course</th>
-                      <th className="p-3">Progress</th>
-                      <th className="p-3">Status</th>
+                      <th className="p-3">Assigned Courses & Progress</th>
+                      <th className="p-3">Summary</th>
                       <th className="p-3 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {assignment.learners.map((l) => (
-                      <tr key={`${l.learnerCode}-${l.assignmentRuleId ?? 'x'}`} className="hover:bg-slate-50/60 transition">
-                        <td className="p-3">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-slate-800 leading-tight">{l.learnerName || l.learnerCode}</span>
-                            <span className="text-xxs font-mono text-slate-400 mt-0.5">{l.learnerCode}</span>
-                          </div>
-                        </td>
-                        <td className="p-3 text-slate-500 text-xxs">
-                          {l.courseTitle ? (
+                    {groupedLearners.map((l) => {
+                      const completedCount = l.courses.filter(c => c.isCompleted).length
+                      const totalCount = l.courses.length
+                      const allCompleted = totalCount > 0 && completedCount === totalCount
+
+                      return (
+                        <tr key={l.learnerCode} className="hover:bg-slate-50/60 transition">
+                          <td className="p-3 align-top">
                             <div className="flex flex-col">
-                              <span className="font-semibold text-slate-600">{l.courseTitle}</span>
-                              <span className="font-mono text-slate-400 mt-0.5">{l.courseCode}</span>
+                              <span className="font-bold text-slate-800 leading-tight">{l.learnerName || l.learnerCode}</span>
+                              <span className="text-xxs font-mono text-slate-400 mt-0.5">{l.learnerCode}</span>
                             </div>
-                          ) : '-'}
-                        </td>
-                        <td className="p-3">
-                          <ProgressBar value={l.progress} completed={l.isCompleted} maxWidthClass="max-w-20" />
-                        </td>
-                        <td className="p-3">
-                          <StatusBadge size="xxs">{l.status}</StatusBadge>
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleResetLearner(l.learnerCode)}
-                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                              title="Reset attempts"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveLearner(l.learnerCode)}
-                              className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                              title="Remove learner"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-col gap-3">
+                              {l.courses.length === 0 ? (
+                                <span className="text-slate-400 text-xs italic">No courses assigned</span>
+                              ) : (
+                                l.courses.map((c) => (
+                                  <div key={c.courseCode || ''} className="flex items-center justify-between gap-6 border-b border-slate-100/50 last:border-0 pb-1.5 last:pb-0">
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                      <span className="font-semibold text-slate-700 text-xs truncate" title={c.courseTitle || ''}>
+                                        {c.courseTitle}
+                                      </span>
+                                      <span className="font-mono text-slate-400 text-xxs mt-0.5">{c.courseCode}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 shrink-0">
+                                      <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-16" />
+                                      <StatusBadge size="xxs">{c.status}</StatusBadge>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 align-top">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs font-bold text-slate-700">
+                                {completedCount} / {totalCount} Completed
+                              </span>
+                              <span className={`text-xxs font-extrabold w-max px-1.5 py-0.5 rounded ${
+                                allCompleted ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-500 border border-slate-150'
+                              }`}>
+                                {allCompleted ? 'Completed' : 'In Progress'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center align-top">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleResetLearner(l.learnerCode)}
+                                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                                title="Reset attempts"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveLearner(l.learnerCode)}
+                                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                title="Remove learner"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -494,56 +605,138 @@ export function AssignmentDetailPage() {
 
       {/* Add Learners Modal */}
       {addingLearners && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in" onClick={() => setAddingLearners(false)}>
-          <div className="bg-white border border-slate-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-scale-up duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-fade-in" onClick={() => { setAddingLearners(false); setPendingAddLearners([]); setLearnerCodesInput(''); }}>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col p-6 gap-4 animate-scale-up" onClick={(e) => e.stopPropagation()}>
             
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 shrink-0 select-none">
               <div className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Add More Learners</h3>
+                <UserPlus className="h-5 w-5 text-indigo-500" />
+                <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Add More Learners</h2>
               </div>
-              <button onClick={() => setAddingLearners(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
+              
+              <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setMemberAddTab('picker')}
+                  className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
+                    memberAddTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Directory Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMemberAddTab('bulk')}
+                  className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
+                    memberAddTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Bulk Import (EIds)
+                </button>
+              </div>
+
+              <button
+                onClick={() => { setAddingLearners(false); setPendingAddLearners([]); setLearnerCodesInput(''); }}
+                className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 p-1 transition cursor-pointer"
+                title="Close"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-3.5">
-              <p className="text-xs font-medium text-slate-500 leading-relaxed">
-                Bulk add employee EId codes (e.g., N130812, N142715) separated by commas, spaces, or new lines.
-              </p>
-              <div className="space-y-1.5">
-                <label htmlFor="newCodes" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">Employee Codes</label>
-                <textarea
-                  id="newCodes"
-                  rows={4}
-                  value={newLearnersInput}
-                  onChange={(e) => setNewLearnersInput(e.target.value)}
-                  placeholder="Paste employee codes here..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/50 transition duration-150"
-                />
-              </div>
+            {/* Modal Body */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              {memberAddTab === 'picker' ? (
+                <div className="flex-1 flex flex-col min-h-0">
+                  <LearnerDirectorySelector
+                    selectedLearners={pendingAddLearners}
+                    onChange={setPendingAddLearners}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4 h-full flex flex-col justify-start overflow-y-auto custom-scrollbar pr-1">
+                  <p className="text-xs font-medium text-slate-500">
+                    Bulk import employee EIds separated by commas, spaces, or new lines. Duplicate or current assignment codes will be skipped automatically.
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] shrink-0">
+                    <textarea
+                      id="learnerCodes"
+                      rows={5}
+                      value={learnerCodesInput}
+                      onChange={(e) => setLearnerCodesInput(e.target.value)}
+                      placeholder="Paste employee EIds here (e.g. N130812, N142715)..."
+                      className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-850 focus:outline-none focus:border-indigo-500 bg-slate-50/50"
+                    />
+                    <AppButton
+                      type="button"
+                      variant="primary"
+                      icon={Plus}
+                      onClick={handleImportCodes}
+                      disabled={!learnerCodesInput.trim()}
+                      className="self-start"
+                    >
+                      Add to Queue
+                    </AppButton>
+                  </div>
+
+                  {/* Queued codes view */}
+                  <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none shrink-0">
+                      <span>Queued for Assignment Additions ({pendingAddLearners.length})</span>
+                      {pendingAddLearners.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingAddLearners([])}
+                          className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
+                        >
+                          Clear Queue
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 bg-white min-h-0">
+                      {pendingAddLearners.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400 text-xs font-semibold">Queue is empty. Paste codes and click Add to Queue.</div>
+                      ) : (
+                        pendingAddLearners.map((l, idx) => (
+                          <div key={l.code} className="px-4 py-2.5 flex justify-between items-center text-xs font-medium">
+                            <div className="flex items-center gap-4">
+                              <span className="font-bold text-slate-400 w-8">{idx + 1}</span>
+                              <span className="font-mono text-slate-850 font-semibold">{l.code}</span>
+                              {l.name !== l.code && <span className="text-slate-500 text-xxs">({l.name})</span>}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPendingAddLearners(prev => prev.filter(x => x.code !== l.code))}
+                              className="text-red-500 hover:text-red-700 font-bold text-xxs cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+            {/* Modal Footer */}
+            <div className="shrink-0 border-t border-slate-100 pt-4 flex justify-end gap-2 select-none">
               <button
-                type="button"
-                onClick={() => setAddingLearners(false)}
-                className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                onClick={() => { setAddingLearners(false); setPendingAddLearners([]); setLearnerCodesInput(''); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-bold transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                type="button"
-                disabled={savingLearners || !newLearnersInput.trim()}
-                onClick={async () => {
-                  await handleAddLearners()
-                }}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shadow-xs"
+                onClick={handleAddLearners}
+                disabled={savingLearners || pendingAddLearners.length === 0}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold transition disabled:opacity-55 cursor-pointer shadow-xs flex items-center gap-1.5"
               >
                 {savingLearners ? 'Saving...' : 'Add Learners'}
               </button>
             </div>
-
           </div>
         </div>
       )}

@@ -353,8 +353,8 @@ export function UserEditorPage() {
 
   return (
     <AppWizard
-      title={isCreate ? 'Add Admin User' : 'Edit Admin Roles'}
-      description={isCreate ? 'Add a new administrative user by NID and assign access permissions.' : 'Adjust division roles and privilege levels for this administrator.'}
+      title={isCreate ? 'New Admin User' : 'Edit Admin Roles'}
+      description={isCreate ? 'Register a new administrative user.' : 'Manage roles and access privileges for this admin.'}
       eyebrow="Admin Users"
       steps={steps}
       currentStep={currentStep}

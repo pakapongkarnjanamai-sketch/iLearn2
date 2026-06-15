@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Shield, UserPlus, Eye } from 'lucide-react'
+import { UserPlus, Edit3 } from 'lucide-react'
 import { AppTable, type AdminGridColumn } from '../../components/ui/AppTable'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppButton } from '../../components/ui/AppButton'
@@ -91,7 +91,7 @@ export function AdminUsersPage() {
   )
 
   return (
-    <DataGridSurface title="Admin User Directory" note="Manage admin roles and access control. Click a row to edit roles." actions={gridActions}>
+    <DataGridSurface title="Admin Users" note="Manage administrative roles and access control." actions={gridActions}>
       <AppTable
         store={store}
         columns={columns}
@@ -102,12 +102,12 @@ export function AdminUsersPage() {
         actionButtons={[
           {
             hint: 'Open Details',
-            icon: <Eye className="h-3.5 w-3.5" />,
+            icon: 'info',
             onClick: (e) => navigate(`/users/${e.row.data.id}`),
           },
           {
             hint: 'Edit Roles',
-            icon: <Shield className="h-3.5 w-3.5" />,
+            icon: <Edit3 className="h-3.5 w-3.5" />,
             onClick: (e) => navigate(`/users/${e.row.data.id}/edit`),
           },
         ]}

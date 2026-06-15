@@ -590,7 +590,7 @@ export function BulkAssignPage() {
   return (
     <>
       <AppWizard
-        title="Bulk Assign"
+        title="Assign Courses"
         description="Choose catalog courses, define target audience scope, then review and dispatch."
         eyebrow="Assignments"
         steps={steps}

@@ -78,7 +78,6 @@ export function App() {
         <Route path="learner-groups" element={<LearnerGroupListPage />} />
         <Route path="learner-groups/new" element={<Remount><LearnerGroupEditorPage /></Remount>} />
         <Route path="learner-groups/:id" element={<Remount><LearnerGroupDetailPage /></Remount>} />
-        <Route path="learner-groups/:id/edit" element={<Remount><LearnerGroupEditorPage /></Remount>} />
         <Route path="student-groups/*" element={<LegacyStudentGroupsRedirect />} />
 
         {/* Learners */}
