@@ -440,17 +440,11 @@ namespace iLearn.Tests
         {
             var controller = new EnrollmentsController(
                 new InMemoryGenericRepository<Enrollment>(enrollments),
-                new FakeCourseAssignmentService(),
-                new FakeAssignmentDashboardService(),
-                new FakeCurrentUserService(),
+                new FakeEnrollmentService(),
                 new InMemoryGenericRepository<LearningLog>(logs),
                 new InMemoryGenericRepository<CourseVersion>(versions),
-                new InMemoryGenericRepository<Course>([]),
                 new FakeScormService(),
-                new FakeLearnerGroupService(),
-                new FakeAssignmentNoGenerator(),
                 new FakeDateTime(Now),
-                new FakeUnitOfWork(),
                 new MemoryCache(new MemoryCacheOptions()),
                 new FakeLearnerProxyIdentityResolver(),
                 runtimeStateService);
@@ -636,6 +630,14 @@ namespace iLearn.Tests
                 }
                 return Task.FromResult<IEnumerable<TResult>>(query.Select(selector.Compile()).ToList());
             }
+        }
+
+        private sealed class FakeEnrollmentService : IEnrollmentService
+        {
+            public Task<EnrollmentDto?> ResetStatusAsync(int enrollmentId) => Task.FromResult<EnrollmentDto?>(null);
+            public Task<EnrollmentDto?> GetByIdAsync(int enrollmentId) => Task.FromResult<EnrollmentDto?>(null);
+            public Task<EnrollmentDto?> UpdateCompletionAsync(int enrollmentId, bool isComplete) => Task.FromResult<EnrollmentDto?>(null);
+            public Task<BulkAssignResultDto> BulkAssignAsync(BulkAssignDto dto) => Task.FromResult(new BulkAssignResultDto { Success = true });
         }
     }
 }

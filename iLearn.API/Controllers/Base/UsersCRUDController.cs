@@ -74,27 +74,30 @@ namespace iLearn.API.Controllers.Base
                 }).ToList()
             });
 
-            var loadResult = DataSourceLoader.Load(projected, loadOptions);
+            // Use EF Core async retrieval if supported (e.g. database-backed query), otherwise fallback to sync (e.g. in-memory test queryable)
+            var usersFromDb = (projected.Provider is Microsoft.EntityFrameworkCore.Query.IAsyncQueryProvider)
+                ? await projected.ToListAsync()
+                : projected.ToList();
 
-            if (loadResult.data is not IEnumerable<object> items)
-                return Ok(loadResult);
-
-            var rows = items.Cast<dynamic>().ToList();
+            // 2. Lookup employee enrichment data in a single batch
             var employeeLookup = await _learnerApiService.GetEmployeesByNidsAsync(
-                rows.Select(r => (string?)r.Nid ?? string.Empty));
+                usersFromDb.Select(u => u.Nid ?? string.Empty));
 
-            var enriched = rows.Select(r =>
+            // 3. Map to the enriched projection (in-memory)
+            // Note: This collection is small as it only contains active admin users.
+            // If the admin user base grows significantly in the future, we may need to implement a database-level join.
+            var enrichedList = usersFromDb.Select(u =>
             {
-                employeeLookup.TryGetValue((string?)r.Nid ?? string.Empty, out var employee);
+                employeeLookup.TryGetValue(u.Nid ?? string.Empty, out var employee);
 
                 return new
                 {
-                    r.Id,
-                    r.Nid,
-                    r.LastLogin,
-                    r.CreatedAt,
-                    r.IsActive,
-                    r.UserRoles,
+                    u.Id,
+                    u.Nid,
+                    u.LastLogin,
+                    u.CreatedAt,
+                    u.IsActive,
+                    u.UserRoles,
                     EmployeeId = employee?.EId ?? string.Empty,
                     FullName = employee?.FullName ?? string.Empty,
                     Email = employee?.Email ?? string.Empty,
@@ -105,13 +108,10 @@ namespace iLearn.API.Controllers.Base
                 };
             }).ToList();
 
-            return Ok(new
-            {
-                loadResult.totalCount,
-                loadResult.groupCount,
-                loadResult.summary,
-                data = enriched
-            });
+            // 4. Perform filter/sort/paging on the enriched in-memory list
+            var loadResult = DataSourceLoader.Load(enrichedList.AsQueryable(), loadOptions);
+
+            return Ok(loadResult);
         }
 
         [HttpPut("Put")]

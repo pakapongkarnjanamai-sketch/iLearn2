@@ -226,22 +226,6 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                     />
                   </div>
 
-                  {type === 'roles' && (
-                    <div className="space-y-1.5">
-                      <label htmlFor="desc-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                        Description
-                      </label>
-                      <textarea
-                        id="desc-field"
-                        rows={3}
-                        value={activeValues.description || ''}
-                        onChange={(e) => handleFieldChange('description', e.target.value)}
-                        placeholder="Enter description..."
-                        className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
-                      />
-                    </div>
-                  )}
-
                   <div className="flex items-center gap-3 py-2">
                     <input
                       type="checkbox"
@@ -269,17 +253,6 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                   >
                     {item?.name || '—'}
                   </Fact>
-
-                  {type === 'roles' && (
-                    <Fact
-                      label="Description"
-                      colSpan="full"
-                      labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
-                      valueClassName="text-slate-600 font-semibold leading-relaxed whitespace-pre-wrap"
-                    >
-                      {item?.description || '—'}
-                    </Fact>
-                  )}
 
                   <Fact
                     label="Status"

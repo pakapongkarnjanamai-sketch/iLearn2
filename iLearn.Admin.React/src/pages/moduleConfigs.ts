@@ -207,11 +207,10 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Role Directory',
     gridNote: 'Inline edit available. SuperAdmin only. Role membership is managed elsewhere.',
-    // `description` is not server-filterable on RolesCRUD (returns 500) — search name only.
+    // Role entity has no Description property — search by name only.
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Role Name', minWidth: 220 },
-      { dataField: 'description', caption: 'Description', minWidth: 280 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
       { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
     ],

@@ -96,9 +96,8 @@ export function AdminUsersPage() {
         store={store}
         columns={columns}
         noDataText="No admin users found"
-        searchPlaceholder="Search by NID..."
-        // fullName/division are enriched in memory after paging and are not server-filterable.
-        searchExpr={['nid']}
+        searchPlaceholder="Search by NID, name, or division..."
+        searchExpr={['nid', 'fullName', 'division']}
         onRowDblClick={(e) => navigate(`/users/${e.data.id}`)}
         actionButtons={[
           {

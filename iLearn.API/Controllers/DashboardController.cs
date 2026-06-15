@@ -1,5 +1,6 @@
 // File: iLearn.API/Controllers/DashboardController.cs
 using iLearn.Application.Common;
+using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
@@ -161,7 +162,9 @@ namespace iLearn.API.Controllers
                 var learningSessionsLast30 = logStats?.Last30 ?? 0;
                 var learningSessionsPrevious30 = logStats?.Prev30 ?? 0;
 
-                var categoryMix = await coursesQuery
+                // Project to an anonymous shape in SQL (EF cannot translate a record
+                // constructor inside a GroupBy projection), then map to the DTO in memory.
+                var categoryMixRaw = await coursesQuery
                     .Where(c => c.Status == CourseStatus.Open)
                     .GroupBy(c => new
                     {
@@ -170,14 +173,18 @@ namespace iLearn.API.Controllers
                     })
                     .Select(g => new
                     {
-                        categoryId = g.Key.CategoryId,
-                        categoryName = g.Key.CategoryName,
-                        courseCount = g.Count()
+                        g.Key.CategoryId,
+                        g.Key.CategoryName,
+                        CourseCount = g.Count()
                     })
-                    .OrderByDescending(x => x.courseCount)
-                    .ThenBy(x => x.categoryName)
+                    .OrderByDescending(x => x.CourseCount)
+                    .ThenBy(x => x.CategoryName)
                     .Take(6)
                     .ToListAsync(cancellationToken);
+
+                var categoryMix = categoryMixRaw
+                    .Select(x => new DashboardCategoryMixPointDto(x.CategoryId, x.CategoryName, x.CourseCount))
+                    .ToList();
 
                 var learningActivity = await BuildLearningActivityTrendAsync(learningLogsQuery, today, cancellationToken);
                 var assignmentSummaries = BuildPriorityAssignments(assignmentRows, taskRows, today, dueSoonCutoff);
@@ -186,52 +193,42 @@ namespace iLearn.API.Controllers
 
                 var activeAssignmentBatches = assignmentSummaries.Count(a => a.Status == "Active" || a.Status == "Due Soon" || a.Status == "Overdue");
 
-                return new
-                {
-                    generatedAt = now,
-                    scope = new
+                return new DashboardOverviewDto(
+                    GeneratedAt: now,
+                    Scope: new DashboardScopeDto(
+                        IsGlobal: _currentUser.IsSuperAdmin,
+                        DivisionId: _currentUser.DivisionId,
+                        DivisionName: _currentUser.IsSuperAdmin ? null : _currentUser.DivisionName),
+                    Kpi: new DashboardKpiDto(
+                        ActiveCourses: activeCourses,
+                        DraftCourses: draftCourses,
+                        NewCourses: newCourses,
+                        ContentItemCount: contentItemCount,
+                        LearnerGroupCount: learnerGroupCount,
+                        ActiveAssignmentBatches: activeAssignmentBatches,
+                        AssignedLearners: assignedLearners,
+                        CompletionRate: completionRate,
+                        TotalLearningTasks: totalTasks,
+                        CompletedLearningTasks: completedTasks,
+                        OverdueTasks: overdueTasks,
+                        DueSoonTasks: dueSoonTasks,
+                        LearningSessionsLast30: learningSessionsLast30,
+                        LearningSessionsPrevious30: learningSessionsPrevious30,
+                        LearningSessionDelta: learningSessionsLast30 - learningSessionsPrevious30),
+                    TaskStatus: new List<DashboardTaskStatusPointDto>
                     {
-                        isGlobal = _currentUser.IsSuperAdmin,
-                        divisionId = _currentUser.DivisionId,
-                        divisionName = _currentUser.IsSuperAdmin ? null : _currentUser.DivisionName
+                        new("Completed", completedTasks),
+                        new("In Progress", inProgressTasks),
+                        new("Not Started", notStartedTasks),
+                        new("Overdue", overdueTasks)
                     },
-                    kpi = new
-                    {
-                        activeCourses,
-                        draftCourses,
-                        newCourses,
-                        contentItemCount,
-                        learnerGroupCount,
-                        activeAssignmentBatches,
-                        assignedLearners,
-                        completionRate,
-                        totalLearningTasks = totalTasks,
-                        completedLearningTasks = completedTasks,
-                        overdueTasks,
-                        dueSoonTasks,
-                        learningSessionsLast30,
-                        learningSessionsPrevious30,
-                        learningSessionDelta = learningSessionsLast30 - learningSessionsPrevious30
-                    },
-                    taskStatus = new[]
-                    {
-                        new { status = "Completed", count = completedTasks },
-                        new { status = "In Progress", count = inProgressTasks },
-                        new { status = "Not Started", count = notStartedTasks },
-                        new { status = "Overdue", count = overdueTasks }
-                    },
-                    learningActivity,
-                    categoryMix,
-                    priorityAssignments,
-                    courseAttention
-                };
+                    LearningActivity: learningActivity,
+                    CategoryMix: categoryMix,
+                    PriorityAssignments: priorityAssignments,
+                    CourseAttention: courseAttention);
             });
 
-            return Ok(new
-            {
-                success = true,
-                data = result
-            });
+            return Ok(new DashboardApiResponseDto<DashboardOverviewDto>(true, result!));
         }
 
         [HttpGet("Stats")]
@@ -246,17 +243,13 @@ namespace iLearn.API.Controllers
                 a => (!a.StartDate.HasValue || a.StartDate.Value <= now)
                   && (!a.DueDate.HasValue || a.DueDate.Value >= now));
 
-            return Ok(new
-            {
-                success = true,
-                data = new
-                {
-                    activeCourses,
-                    draftCourses,
-                    inProgressAssignments,
-                    totalContentItems
-                }
-            });
+            return Ok(new DashboardApiResponseDto<DashboardStatsDto>(
+                true,
+                new DashboardStatsDto(
+                    ActiveCourses: activeCourses,
+                    DraftCourses: draftCourses,
+                    InProgressAssignments: inProgressAssignments,
+                    TotalContentItems: totalContentItems)));
         }
 
         [HttpGet("EnrollmentTrends")]
@@ -276,13 +269,13 @@ namespace iLearn.API.Controllers
                 .Select(e => new { e.StartDate!.Value.Year, e.StartDate!.Value.Month })
                 .ToList();
 
-            var trends = months.Select(m => new
-            {
-                month = new DateTime(m.Year, m.Month, 1).ToString("MMM"),
-                enrollments = enrollments.Count(e => e.Year == m.Year && e.Month == m.Month)
-            });
+            var trends = months
+                .Select(m => new DashboardEnrollmentTrendPointDto(
+                    Month: new DateTime(m.Year, m.Month, 1).ToString("MMM"),
+                    Enrollments: enrollments.Count(e => e.Year == m.Year && e.Month == m.Month)))
+                .ToList();
 
-            return Ok(new { success = true, data = trends });
+            return Ok(new DashboardApiResponseDto<IReadOnlyList<DashboardEnrollmentTrendPointDto>>(true, trends));
         }
 
         [HttpGet("LearningActivityTrends")]
@@ -304,21 +297,20 @@ namespace iLearn.API.Controllers
                 .Select(l => new { l.CreatedAt.Year, l.CreatedAt.Month })
                 .ToList();
 
-            var trends = months.Select(m => new
-            {
-                month = new DateTime(m.Year, m.Month, 1).ToString("MMM yy"),
-                sessions = logs.Count(l => l.Year == m.Year && l.Month == m.Month)
-            });
+            var trends = months
+                .Select(m => new DashboardLearningActivityPointDto(
+                    Month: new DateTime(m.Year, m.Month, 1).ToString("MMM yy"),
+                    Sessions: logs.Count(l => l.Year == m.Year && l.Month == m.Month)))
+                .ToList();
 
-            return Ok(new { success = true, data = trends });
+            return Ok(new DashboardApiResponseDto<IReadOnlyList<DashboardLearningActivityPointDto>>(true, trends));
         }
 
         [HttpGet("MaintenanceStatus")]
         public IActionResult GetMaintenanceStatus()
         {
             var operations = _maintenanceStatusService.GetActiveOperations()
-                .Select(x => new
-                {
+                .Select(x => new DashboardMaintenanceOperationDto(
                     x.OperationId,
                     x.OperationName,
                     x.CurrentStep,
@@ -328,20 +320,15 @@ namespace iLearn.API.Controllers
                     x.SuccessCount,
                     x.FailureCount,
                     x.InitiatedBy,
-                    startedAt = x.StartedAt,
-                    lastUpdatedAt = x.LastUpdatedAt
-                })
+                    x.StartedAt,
+                    x.LastUpdatedAt))
                 .ToList();
 
-            return Ok(new
-            {
-                success = true,
-                data = new
-                {
-                    hasActiveMaintenance = operations.Any(),
-                    operations
-                }
-            });
+            var payload = new DashboardMaintenanceStatusDto(
+                HasActiveMaintenance: operations.Any(),
+                Operations: operations);
+
+            return Ok(new DashboardApiResponseDto<DashboardMaintenanceStatusDto>(true, payload));
         }
 
         [HttpGet("RecentAdminActivities")]
@@ -349,14 +336,10 @@ namespace iLearn.API.Controllers
         {
             var activities = await _adminActivityService.GetRecentActivitiesAsync(take, _currentUser.DivisionId);
 
-            return Ok(new
-            {
-                success = true,
-                data = activities
-            });
+            return Ok(new DashboardApiResponseDto<IReadOnlyList<AdminActivityDto>>(true, activities));
         }
 
-        private async Task<IEnumerable<object>> BuildLearningActivityTrendAsync(
+        private async Task<IReadOnlyList<DashboardLearningActivityPointDto>> BuildLearningActivityTrendAsync(
             IQueryable<LearningLog> learningLogsQuery,
             DateTime today,
             CancellationToken cancellationToken)
@@ -373,14 +356,14 @@ namespace iLearn.API.Controllers
                 .Select(l => new { l.CreatedAt.Year, l.CreatedAt.Month })
                 .ToListAsync(cancellationToken);
 
-            return months.Select(m => new
-            {
-                month = new DateTime(m.Year, m.Month, 1).ToString("MMM yy", CultureInfo.InvariantCulture),
-                sessions = logs.Count(l => l.Year == m.Year && l.Month == m.Month)
-            });
+            return months
+                .Select(m => new DashboardLearningActivityPointDto(
+                    Month: new DateTime(m.Year, m.Month, 1).ToString("MMM yy", CultureInfo.InvariantCulture),
+                    Sessions: logs.Count(l => l.Year == m.Year && l.Month == m.Month)))
+                .ToList();
         }
 
-        private async Task<IEnumerable<object>> BuildCourseAttentionAsync(
+        private async Task<IReadOnlyList<DashboardCourseAttentionDto>> BuildCourseAttentionAsync(
             IQueryable<Course> scopedCoursesQuery,
             List<DashboardTaskRow> taskRows,
             DateTime today,
@@ -420,26 +403,24 @@ namespace iLearn.API.Controllers
                     var overdue = g.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value.Date < today);
                     var rate = total == 0 ? 0 : Math.Round((double)completed / total * 100, 1);
 
-                    return new
-                    {
-                        courseId = g.Key,
-                        courseCode = course?.Code ?? "-",
-                        courseTitle = course?.Title ?? "Unknown Course",
-                        categoryName = course?.CategoryName ?? "Uncategorized",
-                        learnerTasks = total,
-                        completedTasks = completed,
-                        overdueTasks = overdue,
-                        completionRate = rate
-                    };
+                    return new DashboardCourseAttentionDto(
+                        CourseId: g.Key,
+                        CourseCode: course?.Code ?? "-",
+                        CourseTitle: course?.Title ?? "Unknown Course",
+                        CategoryName: course?.CategoryName ?? "Uncategorized",
+                        LearnerTasks: total,
+                        CompletedTasks: completed,
+                        OverdueTasks: overdue,
+                        CompletionRate: rate);
                 })
-                .OrderByDescending(x => x.overdueTasks)
-                .ThenBy(x => x.completionRate)
-                .ThenByDescending(x => x.learnerTasks)
+                .OrderByDescending(x => x.OverdueTasks)
+                .ThenBy(x => x.CompletionRate)
+                .ThenByDescending(x => x.LearnerTasks)
                 .Take(6)
                 .ToList();
         }
 
-        private static List<DashboardPriorityAssignment> BuildPriorityAssignments(
+        private static List<DashboardPriorityAssignmentDto> BuildPriorityAssignments(
             List<DashboardAssignmentRow> assignmentRows,
             List<DashboardTaskRow> taskRows,
             DateTime today,
@@ -472,23 +453,21 @@ namespace iLearn.API.Controllers
                     var firstRow = rows.OrderBy(r => r.Id).First();
                     var status = ResolveAssignmentStatus(rows, total, completed, overdue, dueSoon, today);
 
-                    return new DashboardPriorityAssignment
-                    {
-                        AssignmentId = firstRow.Id,
-                        AssignmentNo = string.IsNullOrWhiteSpace(firstRow.AssignmentNo) ? $"Assignment #{firstRow.Id}" : firstRow.AssignmentNo,
-                        Description = string.IsNullOrWhiteSpace(firstRow.Description) ? "No description" : firstRow.Description,
-                        DivisionName = firstRow.DivisionName,
-                        StartDate = rows.Select(r => r.StartDate).Where(d => d.HasValue).OrderBy(d => d!.Value).FirstOrDefault(),
-                        DueDate = earliestDueDate,
-                        CourseCount = rows.Where(r => r.CourseId.HasValue).Select(r => r.CourseId!.Value).Distinct().Count(),
-                        LearnerCount = learnerCount,
-                        TotalTasks = total,
-                        CompletedTasks = completed,
-                        OverdueTasks = overdue,
-                        DueSoonTasks = dueSoon,
-                        CompletionRate = rate,
-                        Status = status
-                    };
+                    return new DashboardPriorityAssignmentDto(
+                        AssignmentId: firstRow.Id,
+                        AssignmentNo: string.IsNullOrWhiteSpace(firstRow.AssignmentNo) ? $"Assignment #{firstRow.Id}" : firstRow.AssignmentNo,
+                        Description: string.IsNullOrWhiteSpace(firstRow.Description) ? "No description" : firstRow.Description,
+                        DivisionName: firstRow.DivisionName,
+                        StartDate: rows.Select(r => r.StartDate).Where(d => d.HasValue).OrderBy(d => d!.Value).FirstOrDefault(),
+                        DueDate: earliestDueDate,
+                        CourseCount: rows.Where(r => r.CourseId.HasValue).Select(r => r.CourseId!.Value).Distinct().Count(),
+                        LearnerCount: learnerCount,
+                        TotalTasks: total,
+                        CompletedTasks: completed,
+                        OverdueTasks: overdue,
+                        DueSoonTasks: dueSoon,
+                        CompletionRate: rate,
+                        Status: status);
                 })
                 .OrderByDescending(x => x.Status == "Overdue")
                 .ThenByDescending(x => x.Status == "Due Soon")
@@ -745,22 +724,5 @@ namespace iLearn.API.Controllers
             public string CategoryName { get; set; } = string.Empty;
         }
 
-        private sealed class DashboardPriorityAssignment
-        {
-            public int AssignmentId { get; set; }
-            public string AssignmentNo { get; set; } = string.Empty;
-            public string Description { get; set; } = string.Empty;
-            public string? DivisionName { get; set; }
-            public DateTime? StartDate { get; set; }
-            public DateTime? DueDate { get; set; }
-            public int CourseCount { get; set; }
-            public int LearnerCount { get; set; }
-            public int TotalTasks { get; set; }
-            public int CompletedTasks { get; set; }
-            public int OverdueTasks { get; set; }
-            public int DueSoonTasks { get; set; }
-            public double CompletionRate { get; set; }
-            public string Status { get; set; } = string.Empty;
-        }
     }
 }

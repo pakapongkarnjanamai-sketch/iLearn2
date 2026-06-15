@@ -364,6 +364,16 @@ FodyWeavers.xsd
 
 # Ignore all generated/static files under wwwroot in all 3 projects
 iLearn.Admin/wwwroot/**
+# Keep hand-written admin assets that predate the wwwroot ignore (vendored libs stay ignored)
+!iLearn.Admin/wwwroot/css/
+!iLearn.Admin/wwwroot/css/admin-minimal.css
+!iLearn.Admin/wwwroot/css/admin-tokens.css
+!iLearn.Admin/wwwroot/css/admin-wizard.css
+!iLearn.Admin/wwwroot/css/site.css
+!iLearn.Admin/wwwroot/js/
+!iLearn.Admin/wwwroot/js/admin-layout.js
+!iLearn.Admin/wwwroot/js/admin-view-utils.js
+!iLearn.Admin/wwwroot/js/site.js
 iLearn.API/wwwroot/**
 iLearn.User/wwwroot/**
 

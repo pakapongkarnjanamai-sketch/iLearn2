@@ -14,6 +14,55 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 14:40] Claude Code — Hotfix regression จาก PLAN-018 (EF แปลง DTO-constructor ใน GroupBy ไม่ได้)
+- ทำอะไร: ผู้ใช้รัน Dashboard แล้ว 500 — `InvalidOperationException: LINQ could not be translated` ที่ `DashboardController.GetOverview` categoryMix (บรรทัด ~165) เพราะ PLAN-018 เปลี่ยนเป็น `.Select(g => new DashboardCategoryMixPointDto(...))` **ในตัว EF query** (EF แปลง record constructor ใน GroupBy projection เป็น SQL ไม่ได้) — แก้: project เป็น anonymous ใน SQL แล้ว map เป็น DTO ใน memory หลัง `ToListAsync` (pattern มาตรฐานของ error นี้); audit ทั้ง controller แล้ว — จุดอื่น (courseAttention ใช้ taskRows in-memory, trends/stats จาก local list/CountAsync) ปลอดภัย จุดเดียวคือ categoryMix
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/DashboardController.cs`
+- Contract ที่เปลี่ยน: ไม่มี (shape เดิม)
+- Verified: `dotnet build` + `dotnet test` 118/118 ผ่าน — **หมายเหตุ:** ผู้ใช้ต้อง rebuild/restart API ใน VS ถึงจะเห็นผล (binary ที่รันอยู่เป็นตัวเก่า)
+- บทเรียน: review PLAN-018 พลาดเพราะ `dotnet test` ไม่ได้ exercise dashboard query กับ SQL จริง (in-memory provider แปลง record constructor ได้ แต่ SQL Server แปลงไม่ได้) — ควรเพิ่ม integration test ที่ยิง dashboard กับ DB provider จริง หรือเทส query แบบ relational
+
+## [2026-06-15 14:00] Claude Code — Review + ปิด PLAN-015..019 เป็น VERIFIED
+- ทำอะไร: รีวิว diff ครบ 5 แผน — **015** (roles description ลบครบ column+editor), **016** (UsersCRUD enrich→DataSourceLoader บน enriched list, shape/isolation เดิม, fallback test in-memory), **017** (EnrollmentsController 624→491 + EnrollmentService 4 admin ops + DI, learner/HMAC คงใน controller, pure refactor), **018** (DashboardResponseDtos แทน anonymous, dashboardApi diff = comment-only), **019** (gitignore negation — check-ignore ยืนยัน source ไม่หลุด/vendored ยัง ignore) — ปรับทั้งหมดเป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-015..019-*.md` (สถานะ — ไม่แตะโค้ด)
+- Contract ที่เปลี่ยน: ไม่มี (โค้ดเปลี่ยนโดย implementer; response shape ทั้งหมดคงเดิม)
+- Verified: รันเอง `dotnet test` 118/118 ผ่าน, `npm run build` ผ่าน, `npm run lint` 0 errors (11 warnings baseline), grep/check-ignore ผ่าน
+
+## [2026-06-15 09:41] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-019 ปรับ .gitignore กัน wwwroot ignore กลืนไฟล์ source ที่ track
+- ทำอะไร: เพิ่ม negation rules ใน `.gitignore` ใต้ `iLearn.Admin/wwwroot/**` เพื่อ re-include เฉพาะไฟล์ source ที่เขียนมือและ track อยู่เดิม 7 ไฟล์ (`css/admin-minimal.css`, `css/admin-tokens.css`, `css/admin-wizard.css`, `css/site.css`, `js/admin-layout.js`, `js/admin-view-utils.js`, `js/site.js`) โดยคงการ ignore vendored/generated เดิม (เช่น `js/devextreme/**`) ไว้
+- ไฟล์หลักที่แตะ: `.gitignore`, `DOC/PLANS/PLAN-019-gitignore-wwwroot-tracked-source.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `git check-ignore --no-index iLearn.Admin/wwwroot/js/admin-view-utils.js` ไม่ถูก ignore, `git check-ignore --no-index iLearn.Admin/wwwroot/js/devextreme/dx.all.js` ยังถูก ignore, `git ls-files` ยืนยัน 7 ไฟล์ยัง track ครบ, `git status --short` ไม่พบ vendored untracked flood, `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (118/118)
+
+## [2026-06-15 09:40] Antigravity — Implement PLAN-017 Refactor logic จาก EnrollmentsController ลง EnrollmentService ใหม่ (pilot)
+- ทำอะไร: สร้าง `IEnrollmentService` + implementation `EnrollmentService` ย้าย logic ฝั่ง Admin ได้แก่ `ResetStatus`, `GetById`, `UpdateCompletion`, และ `BulkAssign` (พร้อม private helpers เฉพาะฝั่ง admin) ลง Application layer; ลงทะเบียน service ใน `DependencyInjection.cs`; ปรับปรุง `EnrollmentsController.cs` ให้ใช้ `IEnrollmentService` สำหรับ admin actions โดยยังคง flow ของ user/player และ helper methods ที่เกี่ยวเนื่องกับการ resolve user/schedule identities เอาไว้; อัปเดต `EnrollmentsPlayerInfoTests.cs` ให้ instantiate Controller โดย inject `FakeEnrollmentService` สำเร็จ
+- ไฟล์หลักที่แตะ: `iLearn.Application/Interfaces/Services/IEnrollmentService.cs`, `iLearn.Application/Services/EnrollmentService.cs`, `iLearn.API/Controllers/EnrollmentsController.cs`, `iLearn.Application/DependencyInjection.cs`, `iLearn.Tests/EnrollmentsPlayerInfoTests.cs`, `DOC/PLANS/PLAN-017-refactor-large-controllers-pilot.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (พฤติกรรม response shape, status code, side-effects เหมือนเดิมทุกประการ)
+- Verified: `dotnet build` + `dotnet test` (118/118 tests passed) สำเร็จเรียบร้อย
+
+## [2026-06-15 09:38] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-018 แปลง DashboardController เป็น typed DTO responses (pilot)
+- ทำอะไร: เพิ่ม DTO records ใหม่สำหรับ Dashboard responses ที่ `iLearn.Application/DTOs/DashboardResponseDtos.cs` แล้วเปลี่ยน `DashboardController` จาก `Ok(new { ... })` เป็น typed DTO responses ครบ endpoint ใน scope (`Overview`, `Stats`, `EnrollmentTrends`, `LearningActivityTrends`, `MaintenanceStatus`, `RecentAdminActivities`) โดยคง field names/shape เดิมที่ frontend ใช้; เปลี่ยน helper ที่คืน `IEnumerable<object>` เป็น typed DTO collections; เพิ่มคอมเมนต์ `Mirrors` ฝั่ง React ใน `dashboardApi.ts` ให้ชี้ DTO ใหม่
+- ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/DashboardResponseDtos.cs`, `iLearn.API/Controllers/DashboardController.cs`, `iLearn.Admin.React/src/pages/dashboard/dashboardApi.ts`, `DOC/PLANS/PLAN-018-typed-response-dtos-pilot.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี breaking change ใน payload shape (เปลี่ยนจาก anonymous object เป็น typed DTO โดยรักษาชื่อ/โครงสร้าง field เดิม)
+- Verified: `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (118/118), `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน
+
+## [2026-06-15 09:35] Antigravity — Implement PLAN-016 ทำให้ค้นหา Admin Users ด้วยชื่อ/แผนก/ตำแหน่งได้ (enrich-before-filter)
+- ทำอะไร: ปรับปรุงการทำงานใน `UsersCRUDController.Get` ให้ดึงข้อมูลผู้ใช้ทั้งหมดและทำการ batch lookup เพื่อเติมข้อมูลพนักงานก่อน แล้วจึงนำผลลัพธ์มาทำ filter/paging/sorting ใน memory ด้วย `DataSourceLoader.Load` เพื่อเปิดความสามารถในการกรอง/จัดลำดับบนฟิลด์พนักงาน (FullName, Division, ฯลฯ); เพิ่ม fallback query provider check เพื่อรองรับ sync testing; ปรับปรุง `AdminUsersPage.tsx` ในฝั่ง frontend เพื่อขยาย `searchExpr` ให้รองรับ `fullName` และ `division`; เพิ่ม unit tests ครอบคลุมการ enrich, in-memory filter, และ division isolation ใน `UsersCRUDControllerTests.cs`
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/Base/UsersCRUDController.cs`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Tests/UsersCRUDControllerTests.cs`, `DOC/PLANS/PLAN-016-admin-users-enriched-search.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี ( shape และฟิลด์ของ response เหมือนเดิม)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (118/118 passed) ผ่านทั้งหมดแล้ว
+
+## [2026-06-15 09:32] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-015 ลบ Description ของ Roles จาก UI
+- ทำอะไร: ลบฟิลด์ Description ของ roles ออกจาก UI ครบ 3 จุดตามแผน: ลบคอลัมน์ `description` ใน `masterDataRoles.columns`, ลบ textarea Description ในโหมดแก้ไขของ `MasterDataDetailPage`, และลบ `Fact` Description ในโหมด read-only; คง `searchExpr: ['name']` สำหรับ roles และไม่แตะ master-data type อื่น
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `DOC/PLANS/PLAN-015-remove-roles-description.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI cleanup only; ไม่แตะ backend/entity)
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, รัน `dotnet build iLearn.Tests -o artifacts\verify-test` + `dotnet test artifacts\verify-test\iLearn.Tests.dll` แล้วแต่ล้มเหลวจาก compile error นอก scope ที่ `iLearn.Tests/UsersCRUDControllerTests.cs` (CS0118: `DevExtreme.AspNet.Data.ResponseModel` namespace used like a type)
+
+## [2026-06-15 13:00] Claude Code — เขียนแผน backlog improvement ครบชุด (PLAN-015..019)
+- ทำอะไร: แปลง backlog ที่เหลือทั้งหมดเป็นแผน — **PLAN-015** (GPT, ลบ Description ของ roles ออกครบ 3 จุด: column + editor edit + read-only เพราะ Role entity ไม่มี field นี้), **PLAN-016** (Gemini, ทำ Admin Users ค้นด้วยชื่อ/แผนกได้ ด้วย enrich-before-filter ใน UsersCRUD.Get — Learners NID เป็น won't-fix เพราะ external filter ไม่ได้), **PLAN-017** (Gemini, pilot refactor EnrollmentsController → EnrollmentService + วางมาตรฐานวิธีให้ controller อื่นทำตาม), **PLAN-018** (GPT, pilot แทน anonymous-object → DTO record ที่ DashboardController), **PLAN-019** (GPT, แก้ .gitignore กัน `wwwroot/**` กลืน 7 ไฟล์ source เขียนมือของ admin เก่า)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-015..019-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
 ## [2026-06-15 12:30] Claude Code — Review + ปิด PLAN-013/014 เป็น VERIFIED
 - ทำอะไร: รีวิว diff จริง — **PLAN-013** (GPT): `FileStoragesCRUDController.cs` ถูกลบ, grep ทั้ง solution 0 refs, repository/entity ไม่ถูกแตะ; **PLAN-014** (Gemini): LearnerApiService inject ILogger + ลบ Console ครบ, group A (primary) propagate exception โดย GetLearnersDxGridAsync ใช้ GetAsync แยก 4xx→ArgumentException/5xx→HttpRequestException, group B (enrichment) degrade graceful + LogWarning, GlobalExceptionMiddleware เพิ่ม HttpRequestException→502, LearnersController ลบ null-check generic message, + test ใหม่ GlobalExceptionMiddlewareTests (502 ProblemDetails ใน Production) — ปรับทั้งคู่เป็น VERIFIED
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-013-*.md`, `DOC/PLANS/PLAN-014-*.md` (อัปเดตสถานะ — ไม่แตะโค้ด)
