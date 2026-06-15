@@ -309,13 +309,7 @@ export function AssignmentDetailPage() {
             <DetailCard>
               <SectionHeader icon={FileBarChart}>Overview</SectionHeader>
 
-              {assignment.description && (
-                <p className="text-sm text-slate-500 leading-relaxed border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
-                  {assignment.description}
-                </p>
-              )}
-
-              <FactGrid className="border-t border-slate-100 pt-5">
+              <FactGrid className="pt-2">
                 <Fact label="Learners" valueClassName="font-bold text-slate-800">
                   {assignment.totalEmployees}
                 </Fact>

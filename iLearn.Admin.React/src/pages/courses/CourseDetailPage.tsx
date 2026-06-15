@@ -354,10 +354,6 @@ export function CourseDetailPage() {
             
             {activeTab === 'overview' && (
               <DetailCard>
-                <div>
-                  <span className="inline-block font-mono text-xs text-slate-400">{course.courseCode}</span>
-                </div>
-
                 {/* Description */}
                 {course.description && (
                   <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
@@ -366,7 +362,10 @@ export function CourseDetailPage() {
                 )}
 
                 {/* Metadata Grid */}
-                <FactGrid className="text-sm border-t border-slate-100 pt-5">
+                <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
+                  <Fact label="Course Code" mono valueClassName="font-semibold">
+                    {course.courseCode}
+                  </Fact>
                   <Fact label="Status">
                     <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
                       {course.statusName}

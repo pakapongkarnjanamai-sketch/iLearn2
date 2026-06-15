@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 11:47] Antigravity — ปรับปรุงหน้า Assignment Report และหน้า Detail ให้ไม่แสดง Description และใช้โครงสร้างมาตรฐาน
+- ทำอะไร: ปรับปรุง `AssignmentReportPage.tsx` ให้ใช้โครงสร้าง `DetailLayout` และมีแถบด้านขวา `ControlsSidebar` สำหรับเก็บปุ่ม Print และ Export CSV เหมือนหน้า Detail ทั่วไป; ยกเลิกการแสดงผลรายละเอียด Description และยกเลิก Page Header ซ้ำซ้อน (เนื่องจากมี Breadcrumb แสดงผลอยู่แล้ว) ทั้งในหน้า Report และหน้า Detail (`AssignmentDetailPage.tsx`) พร้อมปรับปรุงการเว้นระยะห่างหัวตาราง FactGrid ในการ์ด Overview/Report Summary; เพิ่มการแสดงผล Assignment No. แบบกว้างเต็มบรรทัด (colSpan="full") ที่หัวตาราง FactGrid ในการ์ด Overview ของหน้า Report; ตกแต่งเนื้อหาฝั่งซ้ายโดยใช้ `DetailCard`, `FactGrid`, `Fact`, และ `DetailSubSection` ร่วมกับไอคอนวิชาเรียน; ใช้ `StatusBadge` และ `ProgressBar` ในตารางแสดงความคืบหน้าของ Learners พร้อมกล่องกรองสถานะและช่องค้นหารูปแบบมาตรฐาน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` และ `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
 ## [2026-06-15 11:34] Antigravity — ปรับปรุงไอคอนวิชาเรียน (Courses) ในหน้า Courses Explorer ให้สอดคล้องกัน
 - ทำอะไร: เปลี่ยนการใช้งานไอคอนวิชาเรียนจาก `Layers` เป็น `BookOpen` (สี `text-indigo-500`) เพื่อปรับปรุงความเหมาะสมและคงความสอดคล้องตาม design system ส่วนอื่น ๆ ในระบบที่ใช้ `BookOpen` เป็นตัวแทนของวิชาเรียน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`
