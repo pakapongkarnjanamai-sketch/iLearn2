@@ -78,14 +78,6 @@
     display: block;
 }
 
-/* ── Sidebar Card ─────────────────────────────────────────────────── */
-.admin-sidebar-card {
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background: var(--surface-base);
-    padding: var(--space-md);
-}
-
 /* ── Selection Layout (Filter + Grid) ────────────────────────────── */
 .admin-selection-layout {
     display: grid;
@@ -228,13 +220,6 @@
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-normal);
 }
-/* ── Inline Actions ──────────────────────────────────────────────── */
-.admin-inline-actions {
-    padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid var(--border-color);
-    background: var(--surface-base);
-}
-
 /* ── Selection Tray (Wizard Grid Pages) ─────────────────────────── */
 .admin-selection-tray {
     display: flex;
@@ -437,9 +422,6 @@
     width: 100%;
     max-width: var(--admin-form-card-max-width, 720px);
 }
-.admin-form-card--sm { --admin-form-card-max-width: 480px; }
-.admin-form-card--md { --admin-form-card-max-width: 720px; }
-.admin-form-card--lg { --admin-form-card-max-width: 960px; }
 .admin-form-card .dx-texteditor-input {
     font-size: var(--font-size-sm);
 }

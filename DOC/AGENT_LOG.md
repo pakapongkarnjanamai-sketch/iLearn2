@@ -14,6 +14,42 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 16:53] GitHub Copilot (GPT-5.3-Codex) — Refactor Version Detail to 2 popup editors (General + Content)
+- ทำอะไร: ปรับ `VersionDetailPage` ให้เหลือเฉพาะ `Version Overview` และย้าย `SCORM Content` + `Content Library` ออกจากหน้า detail ไปอยู่ใน popup ตามปุ่ม Controls 2 ปุ่มคือ `Edit General Info` และ `Edit Content`; โดย `Edit Content` รองรับการจัดลำดับขึ้น/ลง, ลบรายการที่เลือก, และเพิ่มจากรายการ `SCORM Content` พร้อม search แล้วบันทึกผ่าน `PUT Courses/versions/{id}`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser smoke check ที่ `/courses/829/version/533` ยืนยันว่าไม่มี section `SCORM Content`/`Content Library` บนหน้าหลักแล้ว และ popup `Edit General Info` + `Edit Content` แสดงพร้อมฟังก์ชัน reorder/remove/add
+
+## [2026-06-15 16:39] GitHub Copilot (GPT-5.3-Codex) — Add per-version detail page for SCORM Content & Content Library
+- ทำอะไร: ปรับโครงสร้างหน้า `CourseDetailPage` ให้แท็บ `Versions` โฟกัสที่รายการเวอร์ชันและ action เท่านั้น (เพิ่มปุ่ม View ไอคอน Eye ต่อแถว) แล้วเพิ่มหน้าใหม่ `VersionDetailPage` สำหรับแสดงรายละเอียดรายเวอร์ชันโดยตรง ได้แก่ `Version Overview`, ตาราง `SCORM Content`, และ `Content Library` พร้อม search และสถานะว่า content ใดถูก attach อยู่ในเวอร์ชันนั้น; เชื่อม route ใหม่ `/courses/:courseId/version/:versionId` ใน `App.tsx`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/App.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser smoke check ผ่านที่ `/courses/829/version/533` (หน้าใหม่โหลดข้อมูลจริงและแสดง SCORM Content + Content Library รายเวอร์ชัน)
+
+## [2026-06-15 16:30] GitHub Copilot (GPT-5.3-Codex) — Move SCORM Content & Library under Versions tab on Course Detail
+- ทำอะไร: ปรับ `CourseDetailPage` ให้ `SCORM Content` และ `Content Library` ไม่เป็นแท็บระดับบนแล้ว แต่ย้ายไปแสดงเป็น 2 sections ภายในแท็บ `Versions` แทน พร้อมตัดปุ่มแท็บบนออกให้เหลือ `Overview / Versions / Learners / Assignments`; ปรับ trigger โหลดข้อมูล content library ให้โหลดเมื่อเข้าแท็บ `Versions`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser smoke check ที่ `/courses/829` ยืนยันว่าแท็บบนเหลือ 4 รายการและทั้ง `SCORM Content` + `Content Library` แสดงภายในแท็บ `Versions` ตามที่ต้องการ
+
+## [2026-06-15 16:27] GitHub Copilot (GPT-5.3-Codex) — Improve Course Detail UX (popup edit, split content tabs, icon actions)
+- ทำอะไร: ปรับปรุง `CourseDetailPage` ตาม feedback ที่ `/courses/829` โดย (1) เปลี่ยนปุ่ม Control จาก `Bulk Assign` เป็น `Assign Courses` (2) เปลี่ยน `Edit Properties` จากลิงก์หน้าใหม่เป็น popup modal แก้ไขข้อมูลหลักของคอร์ส (Course Type/Code/Title/Division/Category/Description) พร้อมบันทึกผ่าน `PUT Courses/{id}` (3) แยกแท็บใหม่ `SCORM Content` และ `Content Library` พร้อมระบบค้นหา content library และปุ่มไอคอนสำหรับเปิด/เพิ่ม content (4) ปรับ Actions ในตาราง `Versions` เป็นไอคอนทั้งหมด (Set Active / Edit / Delete)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser smoke check ที่ `/courses/829` ยืนยันแท็บใหม่แสดงผล, popup เปิด/ปิดได้และโหลดข้อมูลเดิมถูกต้อง, Actions column เป็นไอคอน, ปุ่ม `Assign Courses` แสดงผลตามคำใหม่
+
+## [2026-06-15 16:16] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-030 cleanup dead selectors in Legacy Admin wizard CSS
+- ทำอะไร: ทำตาม `PLAN-030-repo-wide-dead-css-cleanup` โดยลบ high-confidence dead selectors 5 รายการจาก `iLearn.Admin/wwwroot/css/admin-wizard.css` (`.admin-sidebar-card`, `.admin-inline-actions`, `.admin-form-card--sm`, `.admin-form-card--md`, `.admin-form-card--lg`) หลังยืนยันด้วย `rg` ก่อนลบว่าไม่มี reference นอกไฟล์ define และตรวจซ้ำหลังลบว่าไม่พบ selector แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.Admin/wwwroot/css/admin-wizard.css`, `DOC/PLANS/PLAN-030-repo-wide-dead-css-cleanup.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `rg -n "admin-sidebar-card|admin-inline-actions|admin-form-card--sm|admin-form-card--md|admin-form-card--lg" iLearn.Admin` ก่อนลบพบเฉพาะ define/หลังลบไม่พบผลลัพธ์, `dotnet build iLearn.Admin/iLearn.Admin.csproj` ผ่าน (warnings เดิม, ไม่มี error)
+
+## [2026-06-15 16:09] GitHub Copilot (GPT-5.3-Codex) — สแกน dead CSS ทั้ง repo และสร้าง PLAN-030
+- ทำอะไร: สแกนไฟล์ CSS ทั้งโปรเจกต์ (`iLearn.Admin.React/src/index.css`, `iLearn.Admin/wwwroot/css/admin-minimal.css`, `admin-wizard.css`, `admin-tokens.css`, `site.css`) พร้อม cross-reference ไปยัง TS/TSX/CSHTML/JS/C# เพื่อหา selector ที่ไม่ถูกใช้งาน; สรุปผู้ต้องสงสัยและสร้างแผนรอบถัดไป `PLAN-030` โดยโฟกัสการลบ high-confidence dead selectors ฝั่ง Legacy Admin
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-030-repo-wide-dead-css-cleanup.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: สแกนด้วย `rg` ครอบคลุมทั้ง repo (selector + reference check); แผนถูกสร้างสถานะ `READY` และ assign ให้ GPT
+
 ## [2026-06-15 16:02] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-029 cleanup dead CSS in React index.css
 - ทำอะไร: ทำตาม `PLAN-029-cleanup-dead-css` โดยลบ dead CSS จาก `iLearn.Admin.React/src/index.css` ครบ 8 รายการ (classes: `.neon-glow-dot`, `.selected-floating-badge`, `.overflow-wrap-anywhere`, `.wiz-section`, `.wiz-section-title`; keyframes: `neon-glow`, `badge-pulse`, `badge-fade-slide-in`) และตรวจซ้ำว่า keyframe ที่ลบไม่ถูก class ที่เหลืออ้างผ่าน `animation`; sync เอกสาร `DOC/ux_ui_analysis.md` §2.3 ให้ลบมาตรฐานที่เลิกใช้ (`wiz-section`/`wiz-section-title`)
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `DOC/ux_ui_analysis.md`, `DOC/PLANS/PLAN-029-cleanup-dead-css.md`, `DOC/AGENT_LOG.md`

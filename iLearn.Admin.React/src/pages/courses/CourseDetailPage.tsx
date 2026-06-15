@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Calendar,
+  Check,
+  Eye,
   Users,
   FileText,
   Plus,
@@ -10,7 +12,9 @@ import {
   UserPlus,
   Power,
   Lock,
-  BookOpen
+  BookOpen,
+  Loader2,
+  X
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -29,6 +33,8 @@ import { SectionHeader } from '../../components/ui/SectionHeader'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
+
+type LookupResult<T> = T[] | { data?: T[] }
 
 // Mirrors CourseContentItemDto (iLearn.Application/DTOs/CourseDetailDto.cs)
 type CourseContentItem = {
@@ -112,6 +118,42 @@ type CourseAssignment = {
   completionPct: number
 }
 
+type DivisionLookup = {
+  id: number
+  name: string
+}
+
+type CategoryLookup = {
+  id: number
+  name: string
+  divisionId?: number
+}
+
+type CourseTypeLookup = {
+  id: number
+  name: string
+}
+
+type CourseEditFormData = {
+  courseCode: string
+  courseName: string
+  description: string
+  divisionId: number
+  categoryId: number
+  courseType: number
+}
+
+type CourseDetailTab =
+  | 'overview'
+  | 'versions'
+  | 'learners'
+  | 'assignments'
+
+const unwrapList = <T,>(value: LookupResult<T> | undefined): T[] => {
+  if (!value) return []
+  return Array.isArray(value) ? value : value.data ?? []
+}
+
 export function CourseDetailPage() {
   const { id } = useParams()
   const { setLabel } = useBreadcrumbs()
@@ -145,13 +187,33 @@ export function CourseDetailPage() {
   const [loadingLearners, setLoadingLearners] = useState(false)
   const [assignments, setAssignments] = useState<CourseAssignment[]>([])
   const [loadingAssignments, setLoadingAssignments] = useState(false)
-  
-  const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'learners' | 'assignments'>('overview')
+
+  const [activeTab, setActiveTab] = useState<CourseDetailTab>('overview')
   const [mutatingStatus, setMutatingStatus] = useState(false)
 
-  // Lookup maps for resolving categoryId / courseType ids into display names
-  const [categoryNames, setCategoryNames] = useState<Record<number, string>>({})
-  const [courseTypeNames, setCourseTypeNames] = useState<Record<number, string>>({})
+  const [divisions, setDivisions] = useState<DivisionLookup[]>([])
+  const [categories, setCategories] = useState<CategoryLookup[]>([])
+  const [courseTypes, setCourseTypes] = useState<CourseTypeLookup[]>([])
+
+  const [showEditPropertiesModal, setShowEditPropertiesModal] = useState(false)
+  const [savingProperties, setSavingProperties] = useState(false)
+  const [editForm, setEditForm] = useState<CourseEditFormData>({
+    courseCode: '',
+    courseName: '',
+    description: '',
+    divisionId: 0,
+    categoryId: 0,
+    courseType: 0,
+  })
+
+  const categoryNames = useMemo(
+    () => Object.fromEntries(categories.map(item => [item.id, item.name])),
+    [categories],
+  )
+  const courseTypeNames = useMemo(
+    () => Object.fromEntries(courseTypes.map(item => [item.id, item.name])),
+    [courseTypes],
+  )
 
   useEffect(() => {
     const code = data?.course?.courseCode
@@ -160,20 +222,29 @@ export function CourseDetailPage() {
     }
   }, [data, id, setLabel])
 
-  useEffect(() => {
-    type Lookup = { id: number; name: string }
-    type LoadResult = Lookup[] | { data?: Lookup[] }
-    const toMap = (result: LoadResult) => {
-      const list = Array.isArray(result) ? result : result.data ?? []
-      return Object.fromEntries(list.map(x => [x.id, x.name]))
+  const loadLookups = useCallback(async () => {
+    try {
+      const [divisionData, categoryData, courseTypeData] = await Promise.all([
+        fetchWithAccessControl<LookupResult<DivisionLookup>>('Divisions/lookup'),
+        fetchWithAccessControl<LookupResult<CategoryLookup>>('Categories/lookup'),
+        fetchWithAccessControl<LookupResult<CourseTypeLookup>>('Courses/course-types-lookup'),
+      ])
+
+      setDivisions(unwrapList(divisionData))
+      setCategories(unwrapList(categoryData))
+      setCourseTypes(unwrapList(courseTypeData))
+    } catch {
+      toast.error('Failed to load course lookup metadata')
     }
-    fetchWithAccessControl<LoadResult>('Categories/lookup')
-      .then(r => setCategoryNames(toMap(r)))
-      .catch(() => {})
-    fetchWithAccessControl<LoadResult>('Courses/course-types-lookup')
-      .then(r => setCourseTypeNames(toMap(r)))
-      .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadLookups()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loadLookups])
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
@@ -239,6 +310,85 @@ export function CourseDetailPage() {
 
     return () => window.clearTimeout(timeoutId)
   }, [activeTab, loadAssignments, loadLearners])
+
+  const filteredCategories = useMemo(() => {
+    if (!editForm.divisionId) return categories
+    return categories.filter(category => category.divisionId === editForm.divisionId)
+  }, [categories, editForm.divisionId])
+
+  const openEditPropertiesModal = () => {
+    if (!data) return
+
+    const divisionId = categories.find(item => item.id === data.course.categoryId)?.divisionId ?? 0
+    setEditForm({
+      courseCode: data.course.courseCode || '',
+      courseName: data.course.courseName || '',
+      description: data.course.description || '',
+      divisionId,
+      categoryId: data.course.categoryId || 0,
+      courseType: data.course.courseType || 0,
+    })
+    setShowEditPropertiesModal(true)
+  }
+
+  const handleEditFormChange = (field: keyof CourseEditFormData, value: string | number) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'divisionId' ? { categoryId: 0 } : {}),
+    }))
+  }
+
+  const handleSaveProperties = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!data || !id) return
+
+    if (!editForm.courseCode.trim()) {
+      toast.error('Course Code is required')
+      return
+    }
+    if (!editForm.courseName.trim()) {
+      toast.error('Course Title is required')
+      return
+    }
+    if (editForm.categoryId === 0) {
+      toast.error('Please select a Category')
+      return
+    }
+    if (editForm.courseType === 0) {
+      toast.error('Please select a Course Type')
+      return
+    }
+
+    setSavingProperties(true)
+    try {
+      const payload = {
+        courseCode: editForm.courseCode.trim(),
+        courseName: editForm.courseName.trim(),
+        description: editForm.description.trim(),
+        courseType: editForm.courseType,
+        categoryId: editForm.categoryId,
+        contentItemIds: data.course.contentItems.map(item => item.id),
+      }
+
+      const resp = await fetchWithAccessControl<{ success: boolean; message?: string }>(`Courses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (resp.success) {
+        toast.success(resp.message || 'Course properties updated')
+        setShowEditPropertiesModal(false)
+        await loadDashboardData()
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to update course properties')
+    } finally {
+      setSavingProperties(false)
+    }
+  }
 
   // Handle Course Publish / Retire status transitions
   const handleStatusChange = async (targetStatus: number) => {
@@ -320,6 +470,12 @@ export function CourseDetailPage() {
   const isDraft = course.status === 0
   const isOpen = course.status === 1
   const isRetired = course.status === 2
+  const tabs: Array<{ id: CourseDetailTab; label: string }> = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'versions', label: 'Versions' },
+    { id: 'learners', label: 'Learners' },
+    { id: 'assignments', label: 'Assignments' },
+  ]
 
   return (
     <>
@@ -333,22 +489,23 @@ export function CourseDetailPage() {
             mutatingStatus={mutatingStatus}
             onStatusChange={handleStatusChange}
             onDeleteCourse={handleDeleteCourse}
+            onEditProperties={openEditPropertiesModal}
           />
         }
       >
         {/* Tab controls */}
         <div className="border-b border-slate-200 mb-6 flex gap-1">
-          {(['overview', 'versions', 'learners', 'assignments'] as const).map(tab => (
+          {tabs.map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
-                activeTab === tab 
+                activeTab === tab.id
                   ? 'text-indigo-600 font-bold border-b-2 border-indigo-500' 
                   : 'text-slate-400 hover:text-slate-700'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -406,81 +563,92 @@ export function CourseDetailPage() {
             )}
 
             {activeTab === 'versions' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
+              <>
+                <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                    <th className="p-3">Version No.</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Content Items</th>
-                    <th className="p-3">Created Date</th>
-                    <th className="p-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {versions.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400">
-                        No versions.
-                      </td>
-                    </tr>
-                  ) : (
-                    versions.map(v => (
-                      <tr key={v.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 font-bold text-slate-900">
-                          v{v.versionNumber}
-                          {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
-                        </td>
-                        <td className="p-3">
-                          {v.isActive ? (
-                            <StatusBadge tone="success">Active Version</StatusBadge>
-                          ) : (
-                            <StatusBadge tone="neutral">Inactive</StatusBadge>
-                          )}
-                        </td>
-                        <td className="p-3 text-xs text-slate-500">
-                          {v.contentItems.length === 0
-                            ? '—'
-                            : v.contentItems.map(ci => ci.name).join(', ')}
-                        </td>
-                        <td className="p-3 text-slate-400 text-xs">
-                          {formatDate(v.createdAt)}
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="inline-flex items-center gap-2">
-                            {!v.isActive && (
-                              <button
-                                onClick={() => handleSetActiveVersion(v.id)}
-                                className="px-2 py-1 bg-indigo-50 text-indigo-500 border border-blue-200 rounded text-xs font-semibold hover:bg-blue-100 transition"
-                              >
-                                Set Active
-                              </button>
-                            )}
-                            <Link
-                              to={`/courses/${id}/version/${v.id}/edit`}
-                              className="px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200 rounded text-xs font-semibold hover:bg-slate-100 transition"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteVersion(v.id)}
-                              className="p-1 text-slate-400 hover:text-red-600 rounded transition"
-                              title="Delete version"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
+                          <th className="p-3">Version No.</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3">Content Items</th>
+                          <th className="p-3">Created Date</th>
+                          <th className="p-3 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {versions.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-slate-400">
+                              No versions.
+                            </td>
+                          </tr>
+                        ) : (
+                          versions.map(v => (
+                            <tr key={v.id} className="hover:bg-slate-50 transition">
+                              <td className="p-3 font-bold text-slate-900">
+                                v{v.versionNumber}
+                                {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
+                              </td>
+                              <td className="p-3">
+                                {v.isActive ? (
+                                  <StatusBadge tone="success">Active Version</StatusBadge>
+                                ) : (
+                                  <StatusBadge tone="neutral">Inactive</StatusBadge>
+                                )}
+                              </td>
+                              <td className="p-3 text-xs text-slate-500">
+                                {v.contentItems.length === 0
+                                  ? '—'
+                                  : v.contentItems.map(ci => ci.name).join(', ')}
+                              </td>
+                              <td className="p-3 text-slate-400 text-xs">
+                                {formatDate(v.createdAt)}
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="inline-flex items-center gap-2">
+                                  {!v.isActive && (
+                                    <button
+                                      onClick={() => handleSetActiveVersion(v.id)}
+                                      className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
+                                      title="Set active version"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                  <Link
+                                    to={`/courses/${id}/version/${v.id}`}
+                                    className="p-1 text-slate-500 hover:bg-slate-100 rounded-md transition"
+                                    title="View version details"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Link>
+                                  <Link
+                                    to={`/courses/${id}/version/${v.id}/edit`}
+                                    className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition"
+                                    title="Edit version"
+                                  >
+                                    <Edit3 className="h-4 w-4" />
+                                  </Link>
+                                  <button
+                                    onClick={() => handleDeleteVersion(v.id)}
+                                    className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                                    title="Delete version"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </>
             )}
 
             {activeTab === 'learners' && (
@@ -599,6 +767,135 @@ export function CourseDetailPage() {
         </main>
       </DetailLayout>
 
+      {showEditPropertiesModal && (
+        <div className="modal-overlay" onClick={() => setShowEditPropertiesModal(false)}>
+          <form
+            className="modal-window modal-window-lg p-5 relative animate-scale-in"
+            onClick={event => event.stopPropagation()}
+            onSubmit={handleSaveProperties}
+          >
+            <button
+              type="button"
+              onClick={() => setShowEditPropertiesModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mb-4 border-b border-slate-100 pb-3 pr-8 select-none">
+              <h3 className="text-sm font-bold text-slate-800">Edit Course Properties</h3>
+              <p className="text-xs text-slate-500 mt-1">Update course metadata without leaving this page.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-course-type" className="wiz-label">Course Type</label>
+                  <select
+                    id="edit-course-type"
+                    value={editForm.courseType}
+                    onChange={event => handleEditFormChange('courseType', Number(event.target.value))}
+                    className="wiz-input"
+                  >
+                    <option value={0}>Select type</option>
+                    {courseTypes.map(type => (
+                      <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-course-code" className="wiz-label">Course Code</label>
+                  <input
+                    id="edit-course-code"
+                    type="text"
+                    value={editForm.courseCode}
+                    onChange={event => handleEditFormChange('courseCode', event.target.value)}
+                    className="wiz-input"
+                    placeholder="e.g. CS-101"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label htmlFor="edit-course-name" className="wiz-label">Course Title</label>
+                  <input
+                    id="edit-course-name"
+                    type="text"
+                    value={editForm.courseName}
+                    onChange={event => handleEditFormChange('courseName', event.target.value)}
+                    className="wiz-input"
+                    placeholder="Course title"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-division" className="wiz-label">Division</label>
+                  <select
+                    id="edit-division"
+                    value={editForm.divisionId}
+                    onChange={event => handleEditFormChange('divisionId', Number(event.target.value))}
+                    className="wiz-input"
+                  >
+                    <option value={0}>Select division</option>
+                    {divisions.map(division => (
+                      <option key={division.id} value={division.id}>{division.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-category" className="wiz-label">Category</label>
+                  <select
+                    id="edit-category"
+                    value={editForm.categoryId}
+                    onChange={event => handleEditFormChange('categoryId', Number(event.target.value))}
+                    className="wiz-input"
+                  >
+                    <option value={0}>Select category</option>
+                    {filteredCategories.map(category => (
+                      <option key={category.id} value={category.id}>{category.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="edit-description" className="wiz-label">Description</label>
+                <textarea
+                  id="edit-description"
+                  rows={5}
+                  value={editForm.description}
+                  onChange={event => handleEditFormChange('description', event.target.value)}
+                  className="wiz-input resize-y"
+                  placeholder="Course summary and objectives"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEditPropertiesModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingProperties}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {savingProperties && <Loader2 className="h-4 w-4 animate-spin" />}
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {confirmDialog}
     </>
   )
@@ -612,6 +909,7 @@ type CourseControlsProps = {
   mutatingStatus: boolean
   onStatusChange: (status: number) => void
   onDeleteCourse: () => void
+  onEditProperties: () => void
 }
 
 function CourseControls({
@@ -622,6 +920,7 @@ function CourseControls({
   mutatingStatus,
   onStatusChange,
   onDeleteCourse,
+  onEditProperties,
 }: CourseControlsProps) {
   return (
     <ControlsSidebar>
@@ -634,9 +933,9 @@ function CourseControls({
         disabled={!isOpen}
         title={isOpen ? undefined : 'Only Open courses can be assigned'}
       >
-        Bulk Assign
+        Assign Courses
       </ControlAction>
-      <ControlAction to={`/courses/${courseId}/edit`} icon={Edit3}>
+      <ControlAction icon={Edit3} onClick={onEditProperties}>
         Edit Properties
       </ControlAction>
       <ControlAction

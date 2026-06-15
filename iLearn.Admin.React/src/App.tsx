@@ -11,6 +11,7 @@ import { SystemConfigPage } from './pages/system-config/SystemConfigPage'
 import { CourseListPage } from './pages/courses/CourseListPage'
 import { CourseDetailPage } from './pages/courses/CourseDetailPage'
 import { CourseEditorPage } from './pages/courses/CourseEditorPage'
+import { VersionDetailPage } from './pages/courses/VersionDetailPage'
 import { VersionFormPage } from './pages/courses/VersionFormPage'
 import { LearnerGroupListPage } from './pages/learner-groups/LearnerGroupListPage'
 import { LearnerGroupDetailPage } from './pages/learner-groups/LearnerGroupDetailPage'
@@ -59,6 +60,7 @@ export function App() {
         <Route path="courses/:id" element={<Remount><CourseDetailPage /></Remount>} />
         <Route path="courses/:id/edit" element={<Remount><CourseEditorPage /></Remount>} />
         <Route path="courses/:courseId/version/new" element={<Remount><VersionFormPage /></Remount>} />
+        <Route path="courses/:courseId/version/:versionId" element={<Remount><VersionDetailPage /></Remount>} />
         <Route path="courses/:courseId/version/:id/edit" element={<Remount><VersionFormPage /></Remount>} />
 
         {/* Content Library */}
