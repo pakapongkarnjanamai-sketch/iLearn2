@@ -1,6 +1,6 @@
 # PLAN-025: เก็บกวาด console.* ที่ค้างใน frontend (63 จุด / 18 ไฟล์)
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: console.log/debug=0, เติม toast ใน catch ที่เคยเงียบ 9 จุด, build ผ่าน)
 - **Assigned:** GPT
 - **Priority:** Low
 - **Estimated scope:** ~18 ไฟล์ frontend (แก้เฉพาะบรรทัด console)

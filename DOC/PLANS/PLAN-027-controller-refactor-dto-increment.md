@@ -1,6 +1,6 @@
 # PLAN-027: Refactor controller ใหญ่ + DTO typing (increment ถัดไป — CoursesController)
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: CoursesController `Ok(new{)`=0 → ApiResponse<T> (shape-compatible: success/data เดิม + field เกินไม่กระทบ React), delegate _courseService, test 118 + build/lint ผ่าน. หมายเหตุ: controller 647 บรรทัด (ยาวกว่าเดิมเล็กน้อยจาก ApiResponse verbosity — เป้าหมาย typed+service บรรลุ))
 - **Assigned:** GPT (GPT-5.3 Codex) — ย้ายจาก Gemini (เครดิตหมด) 2026-06-15
 - **Priority:** Low
 - **Estimated scope:** `CoursesController.cs` + `CourseService` (มีอยู่แล้ว — ขยาย) + DTO/`ApiResponse<T>`

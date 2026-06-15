@@ -1,6 +1,6 @@
 # PLAN-024: แก้ lint warnings ทั้ง 11 ตัว (react-hooks/exhaustive-deps) ให้เหลือ 0
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: lint 0/0 — group A useCallback loaders, group B steps→plain array (rebuild ทุก render, ไม่กระทบ behavior), test 118 + build ผ่าน)
 - **Assigned:** GPT
 - **Priority:** Low
 - **Estimated scope:** ~9 ไฟล์ frontend (เฉพาะจุดที่มี warning)

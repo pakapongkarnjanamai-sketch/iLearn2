@@ -1,6 +1,6 @@
 # PLAN-026: สกัด shared Explorer (de-dup CourseListPage + LearnerGroupListPage)
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: useExplorer hook + ExplorerTable, ทั้ง 2 หน้าใช้ร่วม, ฟีเจอร์เฉพาะหน้าครบ (course chips/uncategorized, folder CRUD/division selector/move/delete), breadcrumb loop guard (crumbsKey ref compare) + deep-link guard ถูกต้อง, test 118 + build/lint 0/0 ผ่าน)
 - **Assigned:** GPT (GPT-5.3 Codex) — ย้ายจาก Gemini (เครดิตหมด) 2026-06-15
 - **Priority:** Low
 - **Estimated scope:** 1 ไฟล์ใหม่ (hook/component) + refactor 2 หน้า (`LearnerGroupListPage.tsx`, `CourseListPage.tsx`)

@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 20:00] Claude Code — Review + ปิด clean code PLAN-024/025/026/027 เป็น VERIFIED
+- ทำอะไร: รีวิวงาน clean code ทั้ง 4 (commit แล้ว git tree สะอาด) — **024** lint 0/0 (group A useCallback, group B steps→plain array); **025** console.log/debug=0 + เติม toast catch เงียบ; **026** สกัด useExplorer+ExplorerTable ใช้ทั้ง 2 หน้า ฟีเจอร์เฉพาะหน้าครบ + breadcrumb loop guard (crumbsKey ref compare) + deep-link guard ถูก; **027** CoursesController Ok(new{)=0 → ApiResponse<T> (shape-compatible) + delegate _courseService — ปรับทั้ง 4 เป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-024..027-*.md` (สถานะ)
+- Contract ที่เปลี่ยน: ไม่มี (PLAN-027 เปลี่ยน wrapper เป็น ApiResponse<T> แต่ shape ที่ React อ่าน (success/data) เหมือนเดิม)
+- Verified: รันเอง `dotnet test` 118/118, `npm run build` ผ่าน, `npm run lint` 0/0
+
 ## [2026-06-15 15:05] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-026 extract shared explorer for courses + learner groups
 - ทำอะไร: ทำตาม `PLAN-026-extract-shared-explorer` โดยสร้าง shared explorer primitives (`useExplorer` + `ExplorerTable`) แล้ว refactor `CourseListPage` และ `LearnerGroupListPage` ให้ใช้ logic กลางร่วมกันสำหรับ query path, deep-link guard, breadcrumb sync, drill/back, และ client-side search โดยคงฟีเจอร์เฉพาะหน้าเดิมครบ (course type chips/category CRUD และ learner-group folder create/move/delete/relocate flows)
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/explorer/useExplorer.ts`, `iLearn.Admin.React/src/components/ui/explorer/ExplorerTable.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `DOC/PLANS/PLAN-026-extract-shared-explorer.md`, `DOC/AGENT_LOG.md`
