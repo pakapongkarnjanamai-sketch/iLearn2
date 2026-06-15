@@ -121,11 +121,13 @@ namespace iLearn.Application.Services
             var name = NormalizeName(dto.Name);
             var parent = await ValidateParentForCreateAsync(dto.ParentId);
 
+            var divisionId = parent != null ? parent.DivisionId : (_currentUser.IsSuperAdmin ? dto.DivisionId : _currentUser.DivisionId);
+
             var category = new LearnerGroupCategory
             {
                 Name = name,
                 Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
-                DivisionId = _currentUser.DivisionId,
+                DivisionId = divisionId,
                 ParentId = parent?.Id,
                 Depth = parent == null ? 0 : parent.Depth + 1,
                 Path = BuildPath(parent)

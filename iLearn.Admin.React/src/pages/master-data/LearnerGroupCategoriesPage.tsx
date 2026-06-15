@@ -8,10 +8,12 @@ import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 
+// Mirrors LearnerGroupCategoryDto (iLearn.Application/DTOs/LearnerGroupCategoryDto.cs)
 export type LearnerGroupCategory = {
   id: number
   name: string
   description?: string | null
+  divisionId?: number | null
   parentId?: number | null
   parentName?: string | null
   depth: number
@@ -19,6 +21,7 @@ export type LearnerGroupCategory = {
   childCount: number
   learnerGroupCount: number
 }
+
 
 export type ApiListResponse<T> = {
   success: boolean

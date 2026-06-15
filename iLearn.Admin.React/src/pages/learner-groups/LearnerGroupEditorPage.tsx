@@ -11,6 +11,7 @@ import {
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { useSession } from '../../lib/sessionContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
@@ -25,10 +26,16 @@ type GroupCategoryLookup = {
   depth?: number
 }
 
+type DivisionLookup = {
+  id: number
+  name: string
+}
+
 type GroupFormData = {
   name: string
   description: string
   categoryId: number
+  divisionId?: number | null
 }
 
 type GroupApiResponse<T = GroupFormData & { id: number }> = {
@@ -61,12 +68,14 @@ export function LearnerGroupEditorPage() {
   const { id } = useParams()
   const isEditMode = !!id
   const navigate = useNavigate()
+  const { isSuperAdmin } = useSession()
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [memberInput, setMemberInput] = useState('')
   const [categories, setCategories] = useState<GroupCategoryLookup[]>([])
+  const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [isExplorerOpen, setIsExplorerOpen] = useState(false)
   const [tempCategoryId, setTempCategoryId] = useState<number>(0)
   const [didApplyQueryCategory, setDidApplyQueryCategory] = useState(false)
@@ -78,7 +87,8 @@ export function LearnerGroupEditorPage() {
   const [formData, setFormData] = useState<GroupFormData>({
     name: '',
     description: '',
-    categoryId: 0
+    categoryId: 0,
+    divisionId: null
   })
 
   const selectedLearnerCodes = useMemo(() => (
@@ -189,13 +199,26 @@ export function LearnerGroupEditorPage() {
     }
   }, [id])
 
+  const loadDivisions = useCallback(async () => {
+    try {
+      const response = await fetchWithAccessControl<{ data?: DivisionLookup[] } | DivisionLookup[]>('admin/DivisionsCRUD/Get')
+      setDivisions(unwrapList(response))
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to load divisions')
+    }
+  }, [])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadCategories()
+      if (isSuperAdmin) {
+        void loadDivisions()
+      }
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [loadCategories])
+  }, [loadCategories, loadDivisions, isSuperAdmin])
 
   useEffect(() => {
     if (isEditMode || didApplyQueryCategory) return
@@ -238,7 +261,7 @@ export function LearnerGroupEditorPage() {
     const { name, value } = event.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'categoryId' ? Number(value) : value
+      [name]: name === 'categoryId' ? Number(value) : (name === 'divisionId' ? (value ? Number(value) : null) : value)
     }))
   }
 
@@ -286,6 +309,7 @@ export function LearnerGroupEditorPage() {
     name: formData.name.trim(),
     description: formData.description.trim(),
     categoryId: formData.categoryId > 0 ? formData.categoryId : null,
+    divisionId: isSuperAdmin && formData.divisionId ? formData.divisionId : null,
     learnerCodes: selectedLearnerCodes
   })
 
@@ -334,6 +358,28 @@ export function LearnerGroupEditorPage() {
 
   const renderInformationStep = () => (
     <div className="space-y-4">
+
+      {isSuperAdmin && !isEditMode && (
+        <div className="space-y-1.5">
+          <label htmlFor="divisionId" className="wiz-label">
+            Division (แผนก)
+          </label>
+          <select
+            id="divisionId"
+            name="divisionId"
+            value={formData.divisionId || ''}
+            onChange={handleChange}
+            className="wiz-input max-w-lg"
+          >
+            <option value="">Global / ไม่ระบุแผนก</option>
+            {divisions.map(div => (
+              <option key={div.id} value={div.id}>
+                {div.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="name" className="wiz-label">

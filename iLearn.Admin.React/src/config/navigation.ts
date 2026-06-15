@@ -59,7 +59,6 @@ export const navigationSections: NavigationSection[] = [
     items: [
       { label: 'Content Library', path: '/content-library', icon: Library },
       { label: 'Learners', path: '/learners', icon: UserRound },
-      { label: 'Learning Logs', path: '/learning-logs', icon: FileText },
     ],
   },
   {
@@ -67,6 +66,7 @@ export const navigationSections: NavigationSection[] = [
     superAdminOnly: true,
     items: [
       { label: 'Enrollments', path: '/enrollments', icon: FileText, superAdminOnly: true },
+      { label: 'Learning Logs', path: '/learning-logs', icon: FileText, superAdminOnly: true },
       {
         label: 'Master Data',
         path: '/master-data/divisions',

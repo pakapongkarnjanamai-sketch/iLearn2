@@ -5,20 +5,29 @@ import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { fetchWithAccessControl } from '../../lib/apiClient'
+import { useSession } from '../../lib/sessionContext'
 import { toast } from '../../lib/toast'
 import type { ApiListResponse, LearnerGroupCategory } from './LearnerGroupCategoriesPage'
+
+type DivisionLookup = {
+  id: number
+  name: string
+}
 
 type CategoryForm = {
   name: string
   description: string
   parentId: number | ''
+  divisionId?: number | null
 }
 
 const EMPTY_FORM: CategoryForm = {
   name: '',
   description: '',
   parentId: '',
+  divisionId: null,
 }
+
 
 function unwrapCategories(
   result: LearnerGroupCategory[] | ApiListResponse<LearnerGroupCategory[]>,
@@ -31,6 +40,7 @@ export function LearnerGroupCategoryEditorPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const isEditMode = Boolean(id)
+  const { isSuperAdmin } = useSession()
 
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -38,6 +48,7 @@ export function LearnerGroupCategoryEditorPage() {
   const [currentStep, setCurrentStep] = useState(1)
 
   const [categories, setCategories] = useState<LearnerGroupCategory[]>([])
+  const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM)
 
   const editId = useMemo(() => {
@@ -70,6 +81,20 @@ export function LearnerGroupCategoryEditorPage() {
         const list = unwrapCategories(result)
         setCategories(list)
 
+        if (isSuperAdmin && !isEditMode) {
+          try {
+            const divResult = await fetchWithAccessControl<
+              DivisionLookup[] | { data?: DivisionLookup[] }
+            >('admin/DivisionsCRUD/Get')
+            if (!cancelled) {
+              const divList = Array.isArray(divResult) ? divResult : divResult.data ?? []
+              setDivisions(divList)
+            }
+          } catch (err) {
+            console.error('Failed to load divisions', err)
+          }
+        }
+
         if (isEditMode && editId != null) {
           const target = list.find((item) => item.id === editId)
           if (!target) {
@@ -81,6 +106,7 @@ export function LearnerGroupCategoryEditorPage() {
             name: target.name,
             description: target.description ?? '',
             parentId: target.parentId ?? '',
+            divisionId: target.divisionId ?? null,
           })
           return
         }
@@ -103,18 +129,30 @@ export function LearnerGroupCategoryEditorPage() {
     return () => {
       cancelled = true
     }
-  }, [editId, isEditMode])
+  }, [editId, isEditMode, isSuperAdmin])
+
 
   const parentOptions = useMemo(() => {
     if (!isEditMode || editId == null) return categories
     return categories.filter((item) => item.id !== editId)
   }, [categories, editId, isEditMode])
 
+  const selectedParent = useMemo(() => {
+    if (form.parentId === '') return null
+    return categories.find((item) => item.id === Number(form.parentId))
+  }, [categories, form.parentId])
+
   const parentText = useMemo(() => {
     if (form.parentId === '') return 'Root (no parent)'
-    const parent = categories.find((item) => item.id === Number(form.parentId))
-    return parent?.name ?? `Category #${form.parentId}`
-  }, [categories, form.parentId])
+    return selectedParent?.name ?? `Category #${form.parentId}`
+  }, [selectedParent, form.parentId])
+
+  const divisionText = useMemo(() => {
+    const divId = selectedParent ? selectedParent.divisionId : form.divisionId
+    if (!divId) return 'Global (All Divisions)'
+    const div = divisions.find((d) => d.id === divId)
+    return div ? div.name : `Division #${divId}`
+  }, [selectedParent, form.divisionId, divisions])
 
   const validateDetails = () => {
     if (!form.name.trim()) {
@@ -125,15 +163,14 @@ export function LearnerGroupCategoryEditorPage() {
   }
 
   const handleSubmit = async () => {
-    const payload = {
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      parentId: form.parentId === '' ? null : Number(form.parentId),
-    }
-
     setSubmitting(true)
     try {
       if (isEditMode && editId != null) {
+        const payload = {
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          parentId: form.parentId === '' ? null : Number(form.parentId),
+        }
         await fetchWithAccessControl(`learnerGroupCategories/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -141,6 +178,12 @@ export function LearnerGroupCategoryEditorPage() {
         })
         toast.success('Category updated')
       } else {
+        const payload = {
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          parentId: form.parentId === '' ? null : Number(form.parentId),
+          divisionId: isSuperAdmin ? (selectedParent ? (selectedParent.divisionId ?? null) : form.divisionId) : null,
+        }
         await fetchWithAccessControl('learnerGroupCategories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -157,8 +200,41 @@ export function LearnerGroupCategoryEditorPage() {
     }
   }
 
+
   const renderDetailsStep = () => (
     <div className="space-y-4">
+      {isSuperAdmin && !isEditMode && (
+        <div className="space-y-1.5">
+          <label htmlFor="divisionId" className="wiz-label">
+            Division (แผนก)
+          </label>
+          <select
+            id="divisionId"
+            value={selectedParent ? (selectedParent.divisionId || '') : (form.divisionId || '')}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                divisionId: event.target.value === '' ? null : Number(event.target.value),
+              }))
+            }
+            disabled={selectedParent !== null}
+            className="wiz-input disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200"
+          >
+            <option value="">Global / ไม่ระบุแผนก</option>
+            {divisions.map((div) => (
+              <option key={div.id} value={div.id}>
+                {div.name}
+              </option>
+            ))}
+          </select>
+          {selectedParent && (
+            <p className="text-xs text-amber-600 font-medium">
+              * ใช้แผนกตามหมวดหมู่หลัก (Inherited from parent category)
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <label className="wiz-label">
           Name <span className="text-red-500">*</span>
@@ -211,6 +287,12 @@ export function LearnerGroupCategoryEditorPage() {
   const renderReviewStep = () => (
     <div className="space-y-4">
       <dl className="divide-y divide-slate-100 text-sm">
+        {isSuperAdmin && (
+          <div className="grid grid-cols-3 py-2.5">
+            <dt className="wiz-label">Division</dt>
+            <dd className="col-span-2 text-slate-700 font-medium">{divisionText}</dd>
+          </div>
+        )}
         <div className="grid grid-cols-3 py-2.5">
           <dt className="wiz-label">Name</dt>
           <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || '-'}</dd>
@@ -226,6 +308,7 @@ export function LearnerGroupCategoryEditorPage() {
       </dl>
     </div>
   )
+
 
   const steps: WizardStep[] = [
     { label: 'Details', validate: validateDetails, render: renderDetailsStep },

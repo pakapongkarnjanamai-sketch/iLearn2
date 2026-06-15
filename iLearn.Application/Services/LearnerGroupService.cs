@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
@@ -211,7 +211,7 @@ namespace iLearn.Application.Services
             {
                 Name = dto.Name,
                 Description = normalizedDescription,
-                DivisionId = _currentUser.DivisionId,
+                DivisionId = _currentUser.IsSuperAdmin ? dto.DivisionId : _currentUser.DivisionId,
                 CategoryId = category?.Id
             };
             var created = await _groupRepo.AddAsync(group);

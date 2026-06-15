@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -53,6 +53,7 @@ namespace iLearn.Application.DTOs
         [Required(ErrorMessage = "Description is required.")]
         public string Description { get; set; } = string.Empty;
         public int? CategoryId { get; set; }
+        public int? DivisionId { get; set; }
         public List<string> LearnerCodes { get; set; } = new();
     }
 

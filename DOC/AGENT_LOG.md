@@ -14,6 +14,24 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 11:05] Antigravity — Implement PLAN-022 ให้ SuperAdmin ระบุ Division ตอนสร้าง Learner Group / Learner Group Category
+- ทำอะไร: อัปเดต React UI `LearnerGroupCategoryEditorPage.tsx` ให้ SuperAdmin สามารถระบุ/เลือก Division เมื่อสร้างหมวดหมู่ได้ (และจะสืบทอด DivisionId อัตโนมัติจาก Parent Category เมื่อระบุหมวดหมู่หลัก พร้อมแสดงคำชี้แจงและปิดการใช้งาน selector); อัปเดต type definition `LearnerGroupCategory` ใน `LearnerGroupCategoriesPage.tsx` เพื่อให้ sync ตาม backend contract DTO; แก้ไขและนำ unused import `Sliders` ออกจาก `CourseListPage.tsx` เพื่อแก้ปัญหาการ build
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `divisionId` แบบ nullable ใน `LearnerGroupCategory` type ฝั่ง React
+- Verified: `npm run lint` และ `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+## [2026-06-15 11:00] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-021 ทำให้ Learning Logs เป็น SuperAdmin-only สม่ำเสมอ (UI ตรงกับ API)
+- ทำอะไร: ปรับ route `/learning-logs` ใน React ให้ครอบ `RequireRole superAdminOnly` และย้ายเมนู `Learning Logs` จาก section `Operations` ไป section `Super Admin` พร้อมตั้ง `superAdminOnly: true` เพื่อให้สิทธิ์ฝั่ง UI ตรงกับ policy ของ API (`LearningLogsCRUDController`)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/App.tsx`, `iLearn.Admin.React/src/config/navigation.ts`, `DOC/PLANS/PLAN-021-learning-logs-superadmin-consistency.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend access gating/navigation only)
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (118/118)
+
+## [2026-06-15 17:00] Claude Code — Audit division isolation + เอกสาร + PLAN-021/022
+- ทำอะไร: ตรวจ division isolation ทั้งระบบ (entity ที่มี DivisionId, isolation รายโมดูล, พฤติกรรม LearnerGroup/Category) → เขียน `DOC/division_isolation_analysis.md` สรุป: security ไม่มีรั่วข้าม division (entity ที่มี division isolate ครบ, ที่ไม่มีกั้นด้วย SuperAdminOnly) เจอประเด็นควรเคลียร์ → ออก 2 แผน: **PLAN-021** (GPT, D1: Learning Logs API เป็น SuperAdminOnly แต่ UI route/menu ไม่ตรง → gate route + ย้ายเมนูไป Super Admin), **PLAN-022** (Gemini, D3: ให้ SuperAdmin ระบุ division ตอนสร้าง LearnerGroup/Category ได้ — เพิ่ม DivisionId ใน Create DTO + service ใช้เฉพาะเมื่อ IsSuperAdmin, division-admin ยัง auto ห้าม override + frontend แสดง selector เฉพาะ SuperAdmin)
+- ไฟล์หลักที่แตะ: `DOC/division_isolation_analysis.md`, `DOC/PLANS/PLAN-021-*.md`, `DOC/PLANS/PLAN-022-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี (เป็นแผน — PLAN-022 จะเพิ่ม DivisionId ใน Create DTO ตอน implement)
+- Verified: n/a (planner)
+
 ## [2026-06-15 16:00] Claude Code — Review PLAN-020 (Courses Explorer) + hotfix data bug → VERIFIED
 - ทำอะไร: รีวิว CourseListPage ที่เขียนใหม่เป็น explorer (3-level Division→Category→Course) — โครงสร้าง/deep-link guard/breadcrumb/uncategorized/type-chip ทำถูกตาม pattern; **เจอ data bug:** แผนสั่ง `Courses?isActive=false` แต่ service คืนเฉพาะ Draft/Closed/Retired (isActive=true=Open only) → explorer ขาด course Open ทั้งหมด (ความผิดแผนเองที่ assume isActive=false=ทั้งหมด) **แก้:** ยิง 2 call (true+false) merge (disjoint, ไม่ dup) ใน `loadData`; เทส endpoint จริงทั้ง 5 = 200, build/lint ผ่าน → ปรับ VERIFIED
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx` (hotfix), `DOC/PLANS/PLAN-020-*.md`

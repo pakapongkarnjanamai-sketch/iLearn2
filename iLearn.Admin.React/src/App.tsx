@@ -86,7 +86,14 @@ export function App() {
         <Route path="learners/:id/profile" element={<Remount><LearnerProfilePage /></Remount>} />
 
         {/* Operations */}
-        <Route path="learning-logs" element={<EntityListPage config={adminListConfigs.learningLogs} />} />
+        <Route
+          path="learning-logs"
+          element={
+            <RequireRole superAdminOnly>
+              <EntityListPage config={adminListConfigs.learningLogs} />
+            </RequireRole>
+          }
+        />
         <Route
           path="enrollments"
           element={

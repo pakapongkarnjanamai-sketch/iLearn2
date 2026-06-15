@@ -67,7 +67,8 @@ namespace iLearn.API.Controllers.Base
                 {
                     Name = newEntity.Name ?? string.Empty,
                     Description = newEntity.Description,
-                    CategoryId = newEntity.CategoryId
+                    CategoryId = newEntity.CategoryId,
+                    DivisionId = newEntity.DivisionId
                 });
                 return Ok(created);
             }

@@ -7,7 +7,6 @@ import {
   Loader2,
   Plus,
   Search,
-  Sliders,
   X,
   Info,
   ArrowUpRight
