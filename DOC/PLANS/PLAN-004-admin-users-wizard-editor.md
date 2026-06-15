@@ -1,6 +1,6 @@
 # PLAN-004: หน้า Admin Users — เปลี่ยน new/edit จาก slide-over panel เป็น Wizard ตามมาตรฐานระบบ
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit 54e4a8e; lint 0err / build / dotnet test 115 ผ่าน)
 - **Assigned:** Gemini
 - **Priority:** High
 - **Estimated scope:** 1 ไฟล์ใหม่ (`UserEditorPage.tsx`) + แก้ 3 ไฟล์ (`AdminUsersPage.tsx`, `App.tsx`, `Breadcrumbs.tsx`)

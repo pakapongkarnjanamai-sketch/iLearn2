@@ -14,6 +14,48 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 10:30] Claude Code — Review รวบยอด: ปิด 9 แผนเป็น VERIFIED
+- ทำอะไร: รีวิวงานค้างทั้งหมดแล้วปรับเป็น VERIFIED — PLAN-004 (Users wizard), PLAN-005 (LearnerGroupCategories wizard), PLAN-006 (Users detail+delete), PLAN-007 (shared detail components), PLAN-008 (detail migration), PLAN-009-refine (ลบ header/back, tabs), PLAN-010 (Reset→icon), PLAN-011 (search expr ทั้งระบบ), PLAN-012 (custom pages search). ตรวจด้วย: full build/lint/test เขียวหมด + grep acceptance (ใน src/pages: minmax 2-col grid=0, hand dt-fact=0, DetailPageHeader=0, ทั้ง 7 detail page ใช้ shared components) + spot-check MasterDataDetailPage (form ครอบ DetailLayout ถูก) + ยืนยัน createDataSource ลบ fallback title/code/name + searchExpr ทุกตัวตรงกับฟิลด์ที่เทส endpoint จริง=200 + ux_ui_analysis 2.4 ตรงกับ design จริง (action-only sidebar, ไม่มี header)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-004..012*.md` (อัปเดตสถานะ — ไม่แตะโค้ด)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` (0 errors, 11 warnings baseline), `npm run build` ผ่าน, `dotnet test` 115/115 ผ่าน, grep checks ผ่าน
+
+## [2026-06-15 08:40] Antigravity — Implement PLAN-011 แก้ search ตารางพังทั้งระบบและป้องกัน fallback
+- ทำอะไร: กำหนด `searchExpr` ที่ใช้ฟิลด์สำหรับค้นหาได้จริงบน backend ใน config ของตารางทั้งหมด 8 ตาราง ได้แก่ `assignments`, `learningLogs`, `enrollments`, `masterDataDivisions`, `masterDataCategories`, `masterDataCourseTypes`, `masterDataRoles`, `masterData` และตัดการ fallback เป็น `['title', 'code', 'name']` ใน `createDataSource.ts` เมื่อไม่มี `searchExpr` เพื่อป้องกันการเกิด error ในฝั่ง backend EF Query
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `iLearn.Admin.React/src/lib/createDataSource.ts`, `DOC/PLANS/PLAN-011-list-search-expr-fix.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (115/115 passed) ผ่านการทดสอบทั้งหมดแล้ว
+
+## [2026-06-15 08:39] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-012 แก้ search หน้า Admin Users + ปิดแผนเป็น DONE
+- ทำอะไร: แก้ `AdminUsersPage` ให้ search filter ฝั่ง server เหลือเฉพาะฟิลด์ที่ query ได้จริง (`nid`) โดยปรับ `searchExpr` จาก `['nid','fullName','division']` เป็น `['nid']`, ปรับ placeholder เป็น `Search by NID...`, และเติมคอมเมนต์อธิบายว่าฟิลด์ `fullName`/`division` ถูก enrich หลัง paging จึง filter server-side ไม่ได้; ตรวจ `CourseListPage` แล้ว `searchExpr={['title','code']}` ถูกต้องตาม property ของ Course จึงไม่ต้องแก้; อัปเดต `PLAN-012` เป็น DONE พร้อม Implementer Notes
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `DOC/PLANS/PLAN-012-custom-pages-search-fix.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (115/115)
+
+## [2026-06-15 10:00] Claude Code — ตรวจ search ทุกตาราง (เจอพังทั้งระบบ) + เขียน PLAN-011/012
+- ทำอะไร: ต่อยอดจากบั๊ก Learners — ตรวจทุกตารางว่า search พังเหมือนกันไหม พบว่า `createDataSource.ts` มี fallback searchExpr `['title','code','name']` เมื่อ config ไม่ตั้ง searchExpr → DevExtreme filter บนฟิลด์ที่ไม่มีบน entity → throw ทั้งก้อน → ตารางที่ผ่าน createAdminDataSource ทั้งหมด search พัง ทดสอบยิง endpoint จริง (ดูแค่ HTTP status): Divisions default(title/code/name)=พัง, name-only=200; assignments `assignmentNo/description`=200, enrollments `learnerCode`=200, learningLogs `status`=200 — เขียน 2 แผน: **PLAN-011** (Gemini: เติม searchExpr ทุก config ใน moduleConfigs + กัน fallback อันตรายใน createDataSource), **PLAN-012** (GPT: AdminUsersPage searchExpr `fullName`/`division` filter ไม่ได้→เหลือ `nid`, verify CourseListPage) — contentLibrary (createRestDataSource param search) + LearnerGroupListPage (client-side filter) ไม่กระทบ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-011-list-search-expr-fix.md`, `DOC/PLANS/PLAN-012-custom-pages-search-fix.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner; ทดสอบ endpoint จริงเพื่อยืนยันฟิลด์ที่ filter ได้ — ดูแค่ status code ไม่อ่าน PII)
+
+## [2026-06-15 09:30] Claude Code — Hotfix บั๊ก Search Learners (root cause จริง = ฟิลด์ NID) + ปิด PLAN-009 VERIFIED
+- ทำอะไร: ผู้ใช้แจ้งว่าแก้ casing (PLAN-009 ของ Gemini) แล้ว search ยัง 500 — ผู้ใช้อนุญาตให้ Claude ลงมือแก้+เทสเอง ทดสอบผ่าน API ตัวเองที่ localhost:7128 (ดูเฉพาะ HTTP status ไม่อ่าน PII): filter ที่มี `nid`=500, ไม่มี `nid`=200, `nid` อย่างเดียว=500 → สรุป external `/api/Student` filter ฟิลด์ NID ไม่ได้ (ตรงกับ grid ระบบเก่าที่ไม่เคยมี NID) — งาน casing ของ Gemini ถูกต้อง/จำเป็น (englishFirstName/eId ต้อง PascalCase ปลายทางถึงรับ) คงไว้; **Hotfix:** เอา `'nid'` ออกจาก `searchExpr` ของ learners ใน `moduleConfigs.ts` (คงคอลัมน์ NID ที่ external คืนค่ามาจริง) — ทดสอบ filter จริงผ่าน API = HTTP 200
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `DOC/PLANS/PLAN-009-learners-search-field-casing.md`
+- Contract ที่เปลี่ยน: ไม่มี (frontend search config เท่านั้น)
+- Verified: เทส endpoint จริง (filter 3 ฟิลด์ = HTTP 200, baseline 200), `npm run lint` (0 errors, 11 warnings baseline), `npm run build` ผ่าน
+
+## [2026-06-15 08:12] Antigravity — Implement PLAN-009 แปลง Filter Casing ของ Learners ตาราง Search
+- ทำอะไร: แก้ไขบั๊กการค้นหาในตาราง Learners โดยการเพิ่มขั้นตอนการแปลงฟิลด์ filter จาก camelCase ไปเป็น PascalCase ด้วย Regex ใน `LearnersController.cs` ก่อนที่จะ proxy query string ไปยัง external employee API และสร้าง unit tests ใหม่ใน `LearnersControllerTests.cs`
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/LearnersController.cs`, `iLearn.Tests/LearnersControllerTests.cs`, `DOC/PLANS/PLAN-009-learners-search-field-casing.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ทำงานเข้ากับ API contract เดิมทั้งหมด)
+- Verified: `dotnet test` (115/115 passed) ผ่านการทดสอบทั้งหมดแล้ว
+
+## [2026-06-12 19:10] Claude Code — วินิจฉัยบั๊ก Search ตาราง Learners + เขียน PLAN-009
+- ทำอะไร: ผู้ใช้รายงาน search ตาราง `/learners` พัง ขึ้น "Failed to connect to the employee data source" — วินิจฉัยจากโค้ด: frontend ส่ง filter field camelCase (`nid`/`englishFirstName`/`englishLastName`/`eId`) แต่ external employee DevExtreme API ผูก property PascalCase (ยืนยันจาก `LearnerGridRowDto` PascalCase + `InjectDivisionFilter` ฉีด `"Division"` PascalCase) → `LearnersController.Get()` proxy ส่ง query string ดิบ → external throw → service catch คืน null → error กำกวม เขียน **PLAN-009** (Assigned: Gemini): แก้ backend แปลงชื่อฟิลด์ใน filter camelCase→PascalCase ก่อน forward (ระวังไม่แทนค่าค้นหาที่ผู้ใช้พิมพ์)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-009-learners-search-field-casing.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner; ยิง external HR API ตรงถูกบล็อกด้วยเหตุผล PII — วินิจฉัยจากโค้ด)
+
 ## [2026-06-12 19:00] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-010 ปรับปุ่ม Reset ใน Assignment Learners เป็นไอคอน
 - ทำอะไร: แก้ `AssignmentDetailPage.tsx` ให้ปุ่ม Reset ในตาราง Learners เปลี่ยนจาก text button เป็น icon button (`RotateCcw`) และใช้สไตล์เดียวกับ action icon อื่น (`p-1 text-slate-400 hover:text-indigo-600 rounded transition cursor-pointer`) เพื่อให้สมดุลกับปุ่มถังขยะ; ไม่แตะ logic ของการ reset/API
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-010-refine-actions-to-icons.md`, `DOC/AGENT_LOG.md`

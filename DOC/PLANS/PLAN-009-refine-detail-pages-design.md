@@ -1,6 +1,6 @@
 # PLAN-009: Refine Detail Pages Design - Remove Header & Back Button, Restrict Sidebar to Actions, Support Tabs & Overview
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: detail pages ไม่มี DetailPageHeader/Back, ControlsSidebar action-only, ux_ui_analysis 2.4 ตรงกับของจริง, build/test ผ่าน)
 - **Assigned:** GPT
 - **Priority:** High
 - **Estimated scope:** แก้ไข 2 shared components (`src/components/ui/detail/index.tsx`, `src/components/ui/ControlsSidebar.tsx`) + ปรับปรุง 2 หน้าอ้างอิงเดิม + กำหนดเกณฑ์สำหรับย้ายหน้าเหลือใน PLAN-008

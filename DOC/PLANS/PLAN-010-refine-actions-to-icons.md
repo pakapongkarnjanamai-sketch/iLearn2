@@ -1,6 +1,6 @@
 # PLAN-010: Refine Row Actions to Use Icons - Convert Reset Button to Icon Button
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit 1280f70, build/test ผ่าน)
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** แก้ไข 1 ไฟล์ (`AssignmentDetailPage.tsx`)

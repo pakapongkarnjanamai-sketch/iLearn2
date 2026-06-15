@@ -151,6 +151,9 @@ namespace iLearn.API.Controllers
         {
             var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
 
+            // Map camelCase fields from frontend to PascalCase for external employee API
+            queryString = MapFilterFieldNames(queryString);
+
             // Data isolation: restrict learner data to the current user's division.
             if (_currentUser.DivisionId.HasValue && !string.IsNullOrEmpty(_currentUser.DivisionName))
             {
@@ -267,6 +270,48 @@ namespace iLearn.API.Controllers
                     enrollments = history
                 }
             });
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<string, string> FieldMapping = new(System.StringComparer.OrdinalIgnoreCase)
+        {
+            { "nid", "NID" },
+            { "eId", "EId" },
+            { "englishFirstName", "EnglishFirstName" },
+            { "englishLastName", "EnglishLastName" },
+            { "division", "Division" },
+            { "department", "Department" },
+            { "section", "Section" },
+            { "position", "Position" }
+        };
+
+        private static string MapFilterFieldNames(string queryString)
+        {
+            if (string.IsNullOrEmpty(queryString))
+            {
+                return queryString;
+            }
+
+            var filterMatch = Regex.Match(queryString, @"([?&])filter=([^&]*)");
+            if (!filterMatch.Success)
+            {
+                return queryString;
+            }
+
+            var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value);
+
+            // Matches field name when it is the first element of an array: ["field",
+            // Lookbehind matches "[" then optional whitespace and quote.
+            // Lookahead matches quote then optional whitespace and comma.
+            var regex = new Regex(@"(?<=\[\s*"")\b(nid|eId|englishFirstName|englishLastName|division|department|section|position)\b(?=""\s*,)", RegexOptions.IgnoreCase);
+
+            var mappedFilter = regex.Replace(existingFilter, match =>
+            {
+                var field = match.Value;
+                return FieldMapping.TryGetValue(field, out var mapped) ? mapped : field;
+            });
+
+            return queryString.Replace(filterMatch.Value,
+                $"{filterMatch.Groups[1].Value}filter={Uri.EscapeDataString(mappedFilter)}");
         }
 
         /// <summary>

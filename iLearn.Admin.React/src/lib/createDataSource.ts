@@ -81,26 +81,26 @@ export const createAdminDataSource = <T>({
     }
 
     // If search text is present, build a compound search filter array
-    if (options.searchValue && options.searchValue.trim()) {
+    if (options.searchValue && options.searchValue.trim() && options.searchExpr) {
       const searchVal = options.searchValue.trim()
       const searchExpressions = Array.isArray(options.searchExpr)
-        ? options.searchExpr
-        : options.searchExpr
-          ? [options.searchExpr]
-          : ['title', 'code', 'name'] // fallback default fields to search
+        ? options.searchExpr.filter(Boolean)
+        : [options.searchExpr]
 
-      const searchConditions: any[] = []
-      searchExpressions.forEach((expr, idx) => {
-        searchConditions.push([expr, 'contains', searchVal])
-        if (idx < searchExpressions.length - 1) {
-          searchConditions.push('or')
+      if (searchExpressions.length > 0) {
+        const searchConditions: any[] = []
+        searchExpressions.forEach((expr, idx) => {
+          searchConditions.push([expr, 'contains', searchVal])
+          if (idx < searchExpressions.length - 1) {
+            searchConditions.push('or')
+          }
+        })
+
+        if (finalFilter.length > 0) {
+          finalFilter = [finalFilter, 'and', searchConditions]
+        } else {
+          finalFilter = searchConditions
         }
-      })
-
-      if (finalFilter.length > 0) {
-        finalFilter = [finalFilter, 'and', searchConditions]
-      } else {
-        finalFilter = searchConditions
       }
     }
 

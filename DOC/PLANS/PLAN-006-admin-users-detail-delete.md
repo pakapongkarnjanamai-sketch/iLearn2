@@ -1,6 +1,6 @@
 # PLAN-006: Admin Users — เพิ่มหน้า Detail (`/users/:id`) และฟังก์ชันลบ user
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit 1b7b8c0; build/test ผ่าน)
 - **Assigned:** Gemini
 - **Priority:** High
 - **Estimated scope:** 1 ไฟล์ใหม่ (`UserDetailPage.tsx`) + แก้ 2 ไฟล์ (`AdminUsersPage.tsx`, `App.tsx`)

@@ -1,6 +1,6 @@
 # PLAN-005: Learner Group Categories — เปลี่ยน new/edit จาก modal เป็น Wizard ตามมาตรฐานระบบ
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: ไฟล์ editor+page committed, build/test ผ่าน)
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** 1 ไฟล์ใหม่ (`LearnerGroupCategoryEditorPage.tsx`) + แก้ 2 ไฟล์ (`LearnerGroupCategoriesPage.tsx`, `App.tsx`)

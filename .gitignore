@@ -366,3 +366,12 @@ FodyWeavers.xsd
 iLearn.Admin/wwwroot/**
 iLearn.API/wwwroot/**
 iLearn.User/wwwroot/**
+
+# Backup / scratch files
+*.bak
+
+# FIX: the `*.user` rule above (VS per-user files) also matches the `iLearn.User`
+# project directory on case-insensitive filesystems (Windows), which would silently
+# ignore any NEW source files added to that project. Re-include the project dir here;
+# real *.user files inside it are still ignored by the `*.user` rule.
+!/iLearn.User/

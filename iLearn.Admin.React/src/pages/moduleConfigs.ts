@@ -67,6 +67,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Assignment Batches',
     gridNote: 'Assignment status is computed server-side; React only presents the result.',
+    searchExpr: ['assignmentNo', 'description'],
     columns: [
       { dataField: 'assignmentNo', caption: 'Assignment No.', width: 150 },
       { dataField: 'description', caption: 'Description', minWidth: 240 },
@@ -85,7 +86,9 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Employee Directory',
     gridNote: 'Data sourced from the corporate employee directory service.',
-    searchExpr: ['nid', 'englishFirstName', 'englishLastName', 'eId'],
+    // NID is not filterable on the external employee grid endpoint (it 500s),
+    // so it is intentionally excluded from search. Search EId + names only.
+    searchExpr: ['englishFirstName', 'englishLastName', 'eId'],
     columns: [
       { dataField: 'eId', caption: 'Employee ID', width: 130 },
       { dataField: 'nid', caption: 'NID', width: 120 },
@@ -121,6 +124,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Learning Log Entries',
     gridNote: 'Read-only audit feed. Drill into an enrollment to inspect lifecycle context.',
+    searchExpr: ['status'],
     columns: [
       { dataField: 'id', caption: 'Log ID', dataType: 'number', width: 100, alignment: 'center' },
       { dataField: 'enrollmentId', caption: 'Enrollment', dataType: 'number', width: 120, alignment: 'center' },
@@ -138,6 +142,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Enrollment Records',
     gridNote: 'SuperAdmin only. Resetting enrollments is destructive and tracked through audit logs.',
+    searchExpr: ['learnerCode', 'status'],
     columns: [
       { dataField: 'id', caption: 'ID', dataType: 'number', width: 90, alignment: 'center' },
       { dataField: 'assignmentId', caption: 'Assignment', dataType: 'number', width: 120, alignment: 'center' },
@@ -156,6 +161,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Division Directory',
     gridNote: 'Inline edit available. SuperAdmin only.',
+    searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Division Name', minWidth: 260 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
@@ -170,6 +176,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Category Directory',
     gridNote: 'Inline edit available. SuperAdmin only.',
+    searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Category Name', minWidth: 260 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
@@ -184,6 +191,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Course Type Directory',
     gridNote: 'Inline edit available. SuperAdmin only.',
+    searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Type Name', minWidth: 260 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
@@ -198,6 +206,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Role Directory',
     gridNote: 'Inline edit available. SuperAdmin only. Role membership is managed elsewhere.',
+    searchExpr: ['name', 'description'],
     columns: [
       { dataField: 'name', caption: 'Role Name', minWidth: 220 },
       { dataField: 'description', caption: 'Description', minWidth: 280 },
@@ -214,6 +223,7 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Division Directory',
     gridNote: 'SuperAdmin only.',
+    searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Division Name', minWidth: 260 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },

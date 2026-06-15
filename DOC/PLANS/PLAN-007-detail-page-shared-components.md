@@ -1,6 +1,6 @@
 # PLAN-007: สร้างชุด shared components สำหรับหน้า Detail + migrate 2 หน้าอ้างอิง
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: commit 0b16325; grep hand-rolled markup=0, build ผ่าน. หมายเหตุ: DetailPageHeader ถูกตัดออกตามทิศ PLAN-008/009-refine — final state ไม่มี header)
 - **Assigned:** GPT
 - **Priority:** High
 - **Estimated scope:** 1 ไฟล์ใหม่ (`src/components/ui/detail/index.tsx` หรือแยกไฟล์ย่อย) + migrate 2 หน้า (`UserDetailPage.tsx`, `ContentItemDetailPage.tsx`)

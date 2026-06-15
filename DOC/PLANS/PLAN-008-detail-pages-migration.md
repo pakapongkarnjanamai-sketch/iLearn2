@@ -1,6 +1,6 @@
 # PLAN-008: Migrate หน้า Detail ที่เหลือมาใช้ shared detail components
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: grep minmax/dt-fact/DetailPageHeader ใน src/pages = 0, ทั้ง 7 หน้าใช้ shared detail components, build/test ผ่าน)
 - **Assigned:** GPT
 - **Priority:** Medium
 - **Estimated scope:** แก้ 5 ไฟล์ (`CourseDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`, `MasterDataDetailPage`, `LearnerProfilePage`)
