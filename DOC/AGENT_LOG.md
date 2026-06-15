@@ -14,6 +14,24 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 15:40] GitHub Copilot (GPT-5.3-Codex) — Standardize AppTable page-size policy to avoid two-pass loading
+- ทำอะไร: ปรับมาตรฐานการโหลดของ `AppTable` ให้คำนวณ `pageSize` แบบ viewport-based + overscan พร้อม debounce ตอน resize และยก `minPageSize` เป็น 60 เพื่อให้ชุดข้อมูลขนาดกลางโหลดจบในรอบแรก ลดอาการที่ผู้ใช้รับรู้ว่า flicker จากการโหลดสองรอบติดกัน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (EXIT:0), `npm run build` ผ่าน, browser test ที่ `/learning-logs` หลังแก้พบโหลดคงที่ 53 แถวตั้งแต่รอบแรก (`All records loaded`) และไม่พบ overlay/no-data flash ระหว่าง sampling ต่อเนื่อง
+
+## [2026-06-15 15:29] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-028 fix AppTable loading flicker
+- ทำอะไร: ทำตาม `PLAN-028-apptable-loading-flicker` โดยแก้ `AppTable` ให้ loading overlay แสดงเฉพาะ initial load (ตอนยังไม่มีข้อมูล) เพื่อตัดอาการ blur/flash ทับแถวเดิมระหว่าง infinite scroll และ refetch จาก search/filter/sort โดยไม่เปลี่ยนกลไกหลักของ paging/infinite scroll/startTransition
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `DOC/PLANS/PLAN-028-apptable-loading-flicker.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 0 warnings), `npm run build` ผ่าน, smoke check ผ่านที่ `/assignments` และ `/learners` (initial overlay ยังมี, และระหว่างมีข้อมูลไม่พบ overlay ทับแถว)
+
+## [2026-06-15 20:30] Claude Code — เขียน PLAN-028 (แก้ AppTable กระพริบ)
+- ทำอะไร: ผู้ใช้แจ้ง `/assignments` กระพริบ — วินิจฉัย AppTable: spinner overlay (bg-white/45 backdrop-blur) แสดงทุก fetch รวม infinite-scroll page>1 + refetch → blur แฟลชทับแถวเดิม = กระพริบ (footer "Loading more" ก็มีอยู่แล้ว ซ้ำซ้อน) + auto-pagesize/auto-next-page อาจ fetch ซ้ำ → เขียน **PLAN-028** (GPT): แสดง overlay เฉพาะ initial load (`loading && data.length===0`), page>1 ใช้ footer แทน, refetch อาศัย startTransition คงแถวเดิม + (เสริม) ลด fetch ซ้ำจาก ResizeObserver — verify ทุกหน้า list ที่ใช้ AppTable ร่วม
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-028-apptable-loading-flicker.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner)
+
 ## [2026-06-15 20:00] Claude Code — Review + ปิด clean code PLAN-024/025/026/027 เป็น VERIFIED
 - ทำอะไร: รีวิวงาน clean code ทั้ง 4 (commit แล้ว git tree สะอาด) — **024** lint 0/0 (group A useCallback, group B steps→plain array); **025** console.log/debug=0 + เติม toast catch เงียบ; **026** สกัด useExplorer+ExplorerTable ใช้ทั้ง 2 หน้า ฟีเจอร์เฉพาะหน้าครบ + breadcrumb loop guard (crumbsKey ref compare) + deep-link guard ถูก; **027** CoursesController Ok(new{)=0 → ApiResponse<T> (shape-compatible) + delegate _courseService — ปรับทั้ง 4 เป็น VERIFIED
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-024..027-*.md` (สถานะ)

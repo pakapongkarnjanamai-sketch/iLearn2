@@ -42,6 +42,14 @@ type AppTableProps<T extends TableRecord> = {
   }> | undefined
 }
 
+const APP_TABLE_LOADING_STANDARD = {
+  rowHeightPx: 38,
+  overscanRows: 12,
+  minPageSize: 60,
+  maxPageSize: 120,
+  resizeDebounceMs: 120,
+} as const
+
 const asInputValue = (value: unknown) => value === undefined || value === null ? '' : String(value)
 
 const formatDateValue = (value: unknown) => {
@@ -189,24 +197,46 @@ export function AppTable<T extends TableRecord>({
     const viewport = tableViewportRef.current
     if (!viewport) return undefined
 
+    let resizeTimer: number | null = null
+
     const updateAutoPageSize = () => {
       const headerHeight = viewport.querySelector('thead')?.getBoundingClientRect().height ?? 42
       const usableHeight = Math.max(0, viewport.clientHeight - headerHeight)
-      const rowHeight = 38
-      const nextPageSize = Math.max(10, Math.min(100, Math.floor(usableHeight / rowHeight)))
+      const estimatedRows = Math.ceil(usableHeight / APP_TABLE_LOADING_STANDARD.rowHeightPx)
+      const nextPageSize = Math.max(
+        APP_TABLE_LOADING_STANDARD.minPageSize,
+        Math.min(
+          APP_TABLE_LOADING_STANDARD.maxPageSize,
+          estimatedRows + APP_TABLE_LOADING_STANDARD.overscanRows
+        )
+      )
 
       setPageSize(prev => (prev === nextPageSize ? prev : nextPageSize))
     }
 
+    const scheduleUpdateAutoPageSize = () => {
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer)
+      }
+
+      resizeTimer = window.setTimeout(() => {
+        resizeTimer = null
+        updateAutoPageSize()
+      }, APP_TABLE_LOADING_STANDARD.resizeDebounceMs)
+    }
+
     updateAutoPageSize()
 
-    const observer = new ResizeObserver(updateAutoPageSize)
+    const observer = new ResizeObserver(scheduleUpdateAutoPageSize)
     observer.observe(viewport)
-    window.addEventListener('resize', updateAutoPageSize)
+    window.addEventListener('resize', scheduleUpdateAutoPageSize)
 
     return () => {
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer)
+      }
       observer.disconnect()
-      window.removeEventListener('resize', updateAutoPageSize)
+      window.removeEventListener('resize', scheduleUpdateAutoPageSize)
     }
   }, [visibleColumns.length])
 
@@ -356,7 +386,7 @@ export function AppTable<T extends TableRecord>({
           </table>
 
           {/* Spinner Overlay */}
-          {loading && (
+          {loading && data.length === 0 && (
             <div className="absolute inset-0 bg-white/45 backdrop-blur-xs flex items-center justify-center z-10 transition duration-150">
               <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
             </div>
