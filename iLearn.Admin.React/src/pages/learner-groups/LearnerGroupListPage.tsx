@@ -23,6 +23,7 @@ import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate } from '../../lib/format'
 import { toast } from '../../lib/toast'
+import { useSession } from '../../lib/sessionContext'
 
 type ApiEnvelope<T> = {
   success?: boolean
@@ -116,6 +117,7 @@ export function LearnerGroupListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { confirm, confirmDialog } = useConfirm()
   const { setCustomCrumbs } = useBreadcrumbs()
+  const { isSuperAdmin } = useSession()
 
   const rawCategoryId = searchParams.get('categoryId')
   const parsedCategoryId = Number(rawCategoryId ?? '0')
@@ -133,6 +135,7 @@ export function LearnerGroupListPage() {
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderDesc, setNewFolderDesc] = useState('')
+  const [newFolderDivisionId, setNewFolderDivisionId] = useState<number | ''>('')
   const [creatingFolder, setCreatingFolder] = useState(false)
 
   const [movingGroup, setMovingGroup] = useState<GroupDto | null>(null)
@@ -397,6 +400,7 @@ export function LearnerGroupListPage() {
           name: normalizedName,
           description: newFolderDesc.trim() || null,
           parentId: currentCategoryId > 0 ? currentCategoryId : null,
+          divisionId: isSuperAdmin && currentCategoryId === 0 && newFolderDivisionId !== '' ? Number(newFolderDivisionId) : null,
         }),
       })
 
@@ -408,6 +412,7 @@ export function LearnerGroupListPage() {
       setIsNewFolderOpen(false)
       setNewFolderName('')
       setNewFolderDesc('')
+      setNewFolderDivisionId('')
       await loadData()
     } catch (error) {
       console.error(error)
@@ -415,7 +420,15 @@ export function LearnerGroupListPage() {
     } finally {
       setCreatingFolder(false)
     }
-  }, [currentCategoryId, loadData, newFolderDesc, newFolderName])
+  }, [currentCategoryId, loadData, newFolderDesc, newFolderName, isSuperAdmin, newFolderDivisionId])
+
+  const openNewFolderModal = useCallback(() => {
+    setNewFolderName('')
+    setNewFolderDesc('')
+    setNewFolderDivisionId('')
+    setIsNewFolderOpen(true)
+  }, [])
+
 
   const handleDeleteFolder = useCallback(async (folder: CategoryLookup) => {
     const hasChildren = (folder.childCount ?? 0) > 0
@@ -547,7 +560,7 @@ export function LearnerGroupListPage() {
                 Back
               </AppButton>
             )}
-            <AppButton variant="secondary" icon={FolderPlus} onClick={() => setIsNewFolderOpen(true)}>
+            <AppButton variant="secondary" icon={FolderPlus} onClick={openNewFolderModal}>
               New Folder
             </AppButton>
             <Link to={currentCategoryId > 0 ? `/learner-groups/new?categoryId=${currentCategoryId}` : '/learner-groups/new'}>
@@ -741,6 +754,29 @@ export function LearnerGroupListPage() {
             </div>
 
             <div className="px-6 py-4 space-y-3">
+              {isSuperAdmin && currentCategoryId === 0 && (
+                <div className="space-y-1">
+                  <label htmlFor="newFolderDivisionId" className="wiz-label">
+                    Division (แผนก)
+                  </label>
+                  <select
+                    id="newFolderDivisionId"
+                    value={newFolderDivisionId}
+                    onChange={event =>
+                      setNewFolderDivisionId(event.target.value === '' ? '' : Number(event.target.value))
+                    }
+                    className="wiz-input"
+                  >
+                    <option value="">Global / ไม่ระบุแผนก</option>
+                    {divisions.map(div => (
+                      <option key={div.id} value={div.id}>
+                        {div.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label htmlFor="folderName" className="wiz-label">Folder Name <span className="text-red-500">*</span></label>
                 <input

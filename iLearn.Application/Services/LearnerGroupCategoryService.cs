@@ -159,8 +159,31 @@ namespace iLearn.Application.Services
             if (_currentUser.DivisionId.HasValue && category.DivisionId != _currentUser.DivisionId.Value)
                 throw new UnauthorizedAccessException("Cannot update a category from another division.");
 
+            // Determine target division
+            LearnerGroupCategory? newParent = null;
+            if (dto.ParentId.HasValue)
+            {
+                newParent = await _categoryRepo.GetByIdAsync(dto.ParentId.Value)
+                    ?? throw new ArgumentException("Parent category not found.");
+            }
+
+            var targetDivisionId = newParent != null
+                ? newParent.DivisionId
+                : (_currentUser.IsSuperAdmin ? dto.DivisionId : category.DivisionId);
+
+            if (targetDivisionId != category.DivisionId)
+            {
+                var hasChildren = await _categoryRepo.GetQuery().AsNoTracking().AnyAsync(c => c.ParentId == id);
+                var hasGroups = await _groupRepo.GetQuery().AsNoTracking().AnyAsync(g => g.CategoryId == id);
+                if (hasChildren || hasGroups)
+                {
+                    throw new ArgumentException("Cannot change the division of a category that has sub-categories or learner groups.");
+                }
+            }
+
             category.Name = NormalizeName(dto.Name);
             category.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+            category.DivisionId = targetDivisionId;
 
             if (category.ParentId != dto.ParentId)
             {

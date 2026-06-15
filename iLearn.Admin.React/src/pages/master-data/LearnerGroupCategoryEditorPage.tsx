@@ -81,7 +81,7 @@ export function LearnerGroupCategoryEditorPage() {
         const list = unwrapCategories(result)
         setCategories(list)
 
-        if (isSuperAdmin && !isEditMode) {
+        if (isSuperAdmin) {
           try {
             const divResult = await fetchWithAccessControl<
               DivisionLookup[] | { data?: DivisionLookup[] }
@@ -170,6 +170,7 @@ export function LearnerGroupCategoryEditorPage() {
           name: form.name.trim(),
           description: form.description.trim() || null,
           parentId: form.parentId === '' ? null : Number(form.parentId),
+          divisionId: isSuperAdmin ? (selectedParent ? (selectedParent.divisionId ?? null) : form.divisionId) : null,
         }
         await fetchWithAccessControl(`learnerGroupCategories/${editId}`, {
           method: 'PUT',
@@ -203,7 +204,7 @@ export function LearnerGroupCategoryEditorPage() {
 
   const renderDetailsStep = () => (
     <div className="space-y-4">
-      {isSuperAdmin && !isEditMode && (
+      {isSuperAdmin && (
         <div className="space-y-1.5">
           <label htmlFor="divisionId" className="wiz-label">
             Division (แผนก)

@@ -14,6 +14,18 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 11:15] Antigravity — Implement PLAN-023 SuperAdmin เลือก Division ได้ตอน Edit Category + สร้าง folder ในหน้า Explorer
+- ทำอะไร: อัปเดต `UpdateLearnerGroupCategoryDto` ให้รับ `DivisionId` และปรับปรุง `LearnerGroupCategoryService.UpdateAsync` ให้รองรับการเปลี่ยน/ระบุ `DivisionId` โดย SuperAdmin; เพิ่มการตรวจสอบป้องกันความเสี่ยง (Division Update Safety Check) ใน service เพื่อ block/ปฏิเสธการเปลี่ยน division หากหมวดหมู่ไม่ได้ว่าง (มี sub-categories หรือ learner groups ภายใน); ปรับปรุง UI `LearnerGroupCategoryEditorPage.tsx` ให้ SuperAdmin สามารถแก้ไข/เลือกแผนกในหน้าจอ edit หมวดหมู่ได้; ปรับปรุงหน้า explorer `LearnerGroupListPage.tsx` ให้แสดง dropdown เลือก Division ใน modal "Create Folder" เมื่อ SuperAdmin สร้างโฟลเดอร์ที่ root level (`currentCategoryId === 0`)
+- ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/LearnerGroupCategoryDto.cs`, `iLearn.Application/Services/LearnerGroupCategoryService.cs`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `DivisionId` ใน `UpdateLearnerGroupCategoryDto`
+- Verified: `npm run lint` และ `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+## [2026-06-15 17:40] Claude Code — เขียน PLAN-023 (SuperAdmin เลือก division ตอน Edit category + folder ใน explorer)
+- ทำอะไร: ผู้ใช้ขอให้ SuperAdmin เลือก division ได้ตอน New/Edit Category ทั้ง `/master-data/learner-group-categories` และ `/learner-groups` — ตรวจแล้ว PLAN-022 ทำ create-side ที่ master-data editor แล้ว แต่ยังขาด (1) Edit category (PLAN-022 กัน UpdateAsync ออก, UpdateDto ไม่มี DivisionId), (2) explorer `handleCreateFolder` POST ไม่ส่ง divisionId + ไม่มี selector (explorer ไม่มี edit-category) → เขียน **PLAN-023** (Gemini): backend เพิ่ม DivisionId ใน UpdateLearnerGroupCategoryDto + UpdateAsync (IsSuperAdmin only, inherit parent, ปลอดภัยต่อ isolation), frontend แสดง selector ตอน edit ที่ master-data + ตอนสร้าง folder ที่ explorer root (inherit ถ้าอยู่ใน sub-folder)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-023-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี (ตอน implement จะเพิ่ม DivisionId ใน UpdateLearnerGroupCategoryDto)
+- Verified: n/a (planner) — หมายเหตุ: PLAN-022 ยัง DONE รอรีวิว, PLAN-023 ต่อยอดจากมัน
+
 ## [2026-06-15 11:05] Antigravity — Implement PLAN-022 ให้ SuperAdmin ระบุ Division ตอนสร้าง Learner Group / Learner Group Category
 - ทำอะไร: อัปเดต React UI `LearnerGroupCategoryEditorPage.tsx` ให้ SuperAdmin สามารถระบุ/เลือก Division เมื่อสร้างหมวดหมู่ได้ (และจะสืบทอด DivisionId อัตโนมัติจาก Parent Category เมื่อระบุหมวดหมู่หลัก พร้อมแสดงคำชี้แจงและปิดการใช้งาน selector); อัปเดต type definition `LearnerGroupCategory` ใน `LearnerGroupCategoriesPage.tsx` เพื่อให้ sync ตาม backend contract DTO; แก้ไขและนำ unused import `Sliders` ออกจาก `CourseListPage.tsx` เพื่อแก้ปัญหาการ build
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`
