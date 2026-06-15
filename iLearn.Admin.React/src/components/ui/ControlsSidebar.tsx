@@ -11,16 +11,18 @@ import { Loader2, Settings } from 'lucide-react'
 type ControlsSidebarProps = {
   title?: string
   icon?: LucideIcon
+  stickyTopClass?: string
   children: ReactNode
 }
 
 export function ControlsSidebar({
   title = 'Controls',
   icon: Icon = Settings,
+  stickyTopClass = 'lg:top-5',
   children,
 }: ControlsSidebarProps) {
   return (
-    <aside className="lg:sticky lg:top-5 rounded-lg border border-slate-200 bg-white p-4 space-y-2 select-none">
+    <aside className={`lg:sticky ${stickyTopClass} rounded-lg border border-slate-200 bg-white p-4 space-y-2 select-none`}>
       <div className="flex items-center gap-2 pb-2 mb-1 border-b border-slate-200">
         <Icon className="h-4 w-4 text-indigo-600" aria-hidden="true" />
         <h2 className="text-sm font-bold text-slate-800">{title}</h2>

@@ -36,10 +36,10 @@ export const adminListConfigs = {
     columns: [
       { dataField: 'code', caption: 'Code', width: 120 },
       { dataField: 'title', caption: 'Course Title', minWidth: 260 },
-      { dataField: 'status', caption: 'Status', width: 120, alignment: 'center' },
-      { dataField: 'courseTypeId', caption: 'Type', dataType: 'number', width: 90, alignment: 'center' },
-      { dataField: 'categoryId', caption: 'Category', dataType: 'number', width: 110, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'statusName', caption: 'Status', width: 120, alignment: 'center' },
+      { dataField: 'courseTypeName', caption: 'Type', width: 140, alignment: 'center' },
+      { dataField: 'categoryName', caption: 'Category', minWidth: 180 },
+      { dataField: 'canAssign', caption: 'Can Assign', dataType: 'boolean', width: 110, alignment: 'center' },
     ],
   },
   contentLibrary: {
@@ -110,10 +110,10 @@ export const adminListConfigs = {
     gridNote: 'Authorized administrative accounts and access privileges.',
     columns: [
       { dataField: 'nid', caption: 'NID', width: 160 },
-      { dataField: 'displayName', caption: 'Display Name', minWidth: 220 },
+      { dataField: 'fullName', caption: 'Display Name', minWidth: 220 },
       { dataField: 'lastLogin', caption: 'Last Login', dataType: 'datetime', width: 190 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 170 },
     ],
   },
   learningLogs: {
@@ -146,12 +146,22 @@ export const adminListConfigs = {
     searchExpr: ['learnerCode'],
     columns: [
       { dataField: 'id', caption: 'ID', dataType: 'number', width: 90, alignment: 'center' },
-      { dataField: 'assignmentId', caption: 'Assignment', dataType: 'number', width: 120, alignment: 'center' },
       { dataField: 'learnerCode', caption: 'Learner', width: 140 },
-      { dataField: 'courseId', caption: 'Course', dataType: 'number', width: 100, alignment: 'center' },
-      { dataField: 'status', caption: 'Status', width: 140, alignment: 'center' },
+      { dataField: 'courseCode', caption: 'Course Code', minWidth: 180 },
+      { dataField: 'courseTitle', caption: 'Course Title', minWidth: 260 },
+      {
+        dataField: 'isCompleted',
+        caption: 'Status',
+        width: 130,
+        alignment: 'center',
+        cellRender: ({ data }: any) => {
+          if (data?.isCompleted) return 'Completed'
+          return Number(data?.progress || 0) > 0 ? 'In Progress' : 'Not Started'
+        },
+      },
       { dataField: 'progress', caption: 'Progress %', dataType: 'number', width: 110, alignment: 'right' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 180 },
+      { dataField: 'dueDate', caption: 'Due Date', dataType: 'date', width: 140 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 180 },
     ],
   },
   masterDataDivisions: {
@@ -165,8 +175,10 @@ export const adminListConfigs = {
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Division Name', minWidth: 260 },
+      { dataField: 'categoryCount', caption: 'Categories', dataType: 'number', width: 110, alignment: 'center' },
+      { dataField: 'roleCount', caption: 'Roles', dataType: 'number', width: 90, alignment: 'center' },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 170 },
     ],
   },
   masterDataCategories: {
@@ -180,8 +192,10 @@ export const adminListConfigs = {
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Category Name', minWidth: 260 },
+      { dataField: 'divisionName', caption: 'Division', width: 150 },
+      { dataField: 'courseCount', caption: 'Courses', dataType: 'number', width: 100, alignment: 'center' },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 170 },
     ],
   },
   masterDataCourseTypes: {
@@ -195,8 +209,10 @@ export const adminListConfigs = {
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Type Name', minWidth: 260 },
+      { dataField: 'description', caption: 'Description', minWidth: 200 },
+      { dataField: 'courseCount', caption: 'Courses', dataType: 'number', width: 100, alignment: 'center' },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 170 },
     ],
   },
   masterDataRoles: {
@@ -211,8 +227,10 @@ export const adminListConfigs = {
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Role Name', minWidth: 220 },
+      { dataField: 'roleType', caption: 'Type', dataType: 'number', width: 80, alignment: 'center' },
+      { dataField: 'division', caption: 'Division', width: 140 },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 170 },
     ],
   },
   // Backward-compat alias for old EntityListPage route /master-data
@@ -227,8 +245,10 @@ export const adminListConfigs = {
     searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Division Name', minWidth: 260 },
+      { dataField: 'categoryCount', caption: 'Categories', dataType: 'number', width: 110, alignment: 'center' },
+      { dataField: 'roleCount', caption: 'Roles', dataType: 'number', width: 90, alignment: 'center' },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },
-      { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
+      { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 170 },
     ],
   },
 } satisfies Record<string, AdminListConfig>

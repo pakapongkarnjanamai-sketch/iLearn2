@@ -365,7 +365,7 @@ export function AssignmentDetailPage() {
     <>
       <DetailLayout
         sidebar={
-          <ControlsSidebar>
+          <ControlsSidebar stickyTopClass="lg:top-0">
             <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
             <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>

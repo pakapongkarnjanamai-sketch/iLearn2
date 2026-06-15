@@ -14,6 +14,24 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 15:55] GitHub Copilot (GPT-5.3-Codex) — Fix Controls card vertical jump when switching tabs in Assignment Detail
+- ทำอะไร: reproduce บัคที่ `/assignments/252` แล้ววัดตำแหน่งกล่อง Controls พบว่า sticky offset (`lg:top-5`) ทำให้ตำแหน่งกล่องกระโดดต่างกันตามความสูงแท็บ (Overview = +20px, Courses/Learners = 0px); แก้โดยเพิ่ม prop `stickyTopClass` ใน `ControlsSidebar` และตั้งค่าเฉพาะหน้า Assignment Detail เป็น `lg:top-0` เพื่อให้ตำแหน่ง Controls คงที่ทุกแท็บ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/ControlsSidebar.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี API/DB change; เพิ่ม optional prop ฝั่ง UI component `stickyTopClass?: string` (default เดิมยังคง behavior `lg:top-5`)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser measurement บน `/assignments/252` หลังแก้ได้ `deltaControlsTabs = 0` เท่ากันทุกแท็บ (Overview/Courses/Learners)
+
+## [2026-06-15 15:51] GitHub Copilot (GPT-5.3-Codex) — Audit and align remaining list columns with live API payloads
+- ทำอะไร: ไล่ตรวจ column mapping ของหน้า list อื่น ๆ ที่ใช้ `EntityListPage` เทียบ payload จริงจาก API แล้วแก้ `moduleConfigs` เพิ่มเติมให้ field ตรงจริงในหลายหน้า: `users` (`displayName/updatedAt` -> `fullName/createdAt`), `masterDataCategories` (`updatedAt` -> `createdAt` พร้อม `divisionName`/`courseCount`), `masterDataCourseTypes` (`updatedAt` -> `createdAt` พร้อม `description`/`courseCount`), `masterDataRoles` (`updatedAt` -> `createdAt` พร้อม `roleType`/`division`), และปรับ `courses` mapping ใน config ให้ใช้ semantic fields (`statusName`, `courseTypeName`, `categoryName`, `canAssign`) เพื่อหลีกเลี่ยงคอลัมน์ไม่ตรง schema
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser/API smoke check ผ่าน (ทุก config ที่ใช้ใน EntityListPage มี field ครบ ไม่มี missing)
+
+## [2026-06-15 15:46] GitHub Copilot (GPT-5.3-Codex) — Fix blank columns in Enrollments and Divisions list pages
+- ทำอะไร: ตรวจ payload จริงจาก API (`EnrollmentsCRUD/Get`, `DivisionsCRUD/Get`) แล้วปรับ `moduleConfigs` ให้ map กับฟิลด์ที่มีอยู่จริง แทนฟิลด์ที่ไม่ถูกส่ง (`assignmentId`, `status`, `updatedAt`) โดยหน้า Enrollments เปลี่ยนเป็นคอลัมน์ `courseCode`/`courseTitle` + คำนวณสถานะจาก `isCompleted`/`progress` และใช้ `dueDate`/`createdAt`; หน้า Divisions เปลี่ยนจาก `updatedAt` เป็น `createdAt` และเพิ่ม `categoryCount`/`roleCount`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser check ผ่านที่ `/enrollments` และ `/master-data/divisions` (คอลัมน์ที่เคยขึ้น `—` แสดงข้อมูลจริงแล้ว)
+
 ## [2026-06-15 15:40] GitHub Copilot (GPT-5.3-Codex) — Standardize AppTable page-size policy to avoid two-pass loading
 - ทำอะไร: ปรับมาตรฐานการโหลดของ `AppTable` ให้คำนวณ `pageSize` แบบ viewport-based + overscan พร้อม debounce ตอน resize และยก `minPageSize` เป็น 60 เพื่อให้ชุดข้อมูลขนาดกลางโหลดจบในรอบแรก ลดอาการที่ผู้ใช้รับรู้ว่า flicker จากการโหลดสองรอบติดกัน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `DOC/AGENT_LOG.md`
