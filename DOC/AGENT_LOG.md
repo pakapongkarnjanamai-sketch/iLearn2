@@ -14,6 +14,30 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 12:59] GitHub Copilot (GPT-5.3-Codex) — เอกสาร cleanup รอบสาม (ล้างไฟล์แผนเก่าชุดใหญ่)
+- ทำอะไร: ลบไฟล์แผนใน `DOC/PLANS` ที่ปิดงานแล้วทั้งหมด (สถานะ VERIFIED/CANCELLED เดิม) จำนวน 21 ไฟล์ เพื่อเก็บเฉพาะแผนล่าสุดที่ยังเป็น `DONE` และ `README` สำหรับ workflow ปัจจุบัน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-001-*.md` ถึง `DOC/PLANS/PLAN-020-*.md` (deleted เฉพาะไฟล์ที่มีอยู่จริง), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: ตรวจโฟลเดอร์หลังลบแล้วเหลือเฉพาะ `README.md`, `PLAN-021-*.md`, `PLAN-022-*.md`, `PLAN-023-*.md`
+
+## [2026-06-15 12:58] GitHub Copilot (GPT-5.3-Codex) — เอกสาร cleanup รอบสองแบบเข้มขึ้น (ลบ historical docs เพิ่ม)
+- ทำอะไร: ลบเอกสาร historical/transition ที่ไม่ใช้งานแล้วและไม่ถูกอ้างอิงในเอกสาร active ได้แก่เอกสารแผนย้าย React เก่า, gap analysis เก่า, smoke report เก่า และไฟล์ function audit ระดับราก; ปรับ `DOC/ux_ui_analysis.md` เพื่อลบลิงก์ค้างไปไฟล์ที่ลบและชี้ไปคู่มือปัจจุบัน (`iLearn.Admin.React/README.md`) แทน
+- ไฟล์หลักที่แตะ: `DOC/REACT-ADMIN-REBUILD-PLAN.md` (deleted), `DOC/REACT-ADMIN-GAP-ANALYSIS.md` (deleted), `DOC/REACT-ADMIN-SMOKETEST-REPORT.md` (deleted), `ilearn_function_audit.md` (deleted), `DOC/ux_ui_analysis.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: ตรวจด้วย `rg` แล้วไม่พบ reference ค้างถึงไฟล์ที่ถูกลบในชุดเอกสาร active (`DOC`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `iLearn.Admin.React/README.md`, `.github/copilot-instructions.md`)
+
+## [2026-06-15 12:54] GitHub Copilot (GPT-5.3-Codex) — ลบเอกสาร/ไฟล์ประกอบที่ไม่จำเป็นและไม่ถูกอ้างอิง
+- ทำอะไร: ทำความสะอาดไฟล์เอกสาร/ไฟล์รายงานเก่าที่ไม่ใช้งาน โดยตรวจค้นทั้งรีโปก่อนลบด้วย `rg` แล้วยืนยันว่าไม่มีที่ใดอ้างอิง จากนั้นลบไฟล์ที่เป็น old snapshot และไฟล์ชั่วคราวจากการตรวจ API
+- ไฟล์หลักที่แตะ: `DOC/AppDbContextModelSnapshot_OLD.cs` (deleted), `content-items-response.json` (deleted), `network-commit-check.txt` (deleted), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `rg` ไม่พบ reference ของทั้งสามไฟล์ก่อนลบ, และ `git ls-files` ยืนยันเป็นไฟล์ที่ tracked จริง
+
+## [2026-06-15 12:49] GitHub Copilot (GPT-5.3-Codex) — Audit เอกสาร DOC และอัปเดตสถานะให้ตรงโค้ดล่าสุด
+- ทำอะไร: ตรวจเอกสารในโฟลเดอร์ DOC แบบกว้าง (grep สัญญาณล้าสมัย + ยืนยันกับโค้ดจริง) แล้วอัปเดต 2 เอกสารหลักให้เป็นปัจจุบัน: `DOC/api_analysis.md` (แก้จากข้อมูลยุคก่อน PLAN-013/021/022/023 เป็นสถานะปัจจุบัน พร้อมตัวเลขจาก inventory ล่าสุด), `DOC/division_isolation_analysis.md` (เปลี่ยนจาก pending findings เป็นสถานะหลัง implement แผนแล้ว และสรุปประเด็นที่ยัง open decision); ยืนยันซ้ำว่า `FileStoragesCRUDController` ไม่มีแล้ว, Learning Logs ถูก gate แบบ SuperAdmin ใน UI route/menu, และ flow Division ของ Learner Group Category ตรงกับ implementation ปัจจุบัน
+- ไฟล์หลักที่แตะ: `DOC/api_analysis.md`, `DOC/division_isolation_analysis.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสารล้วน)
+- Verified: ตรวจ consistency ด้วย grep/read หลักฐานจากโค้ดจริง (`iLearn.Application/Services/LearnerGroupService.cs`, `iLearn.Application/Services/LearnerGroupCategoryService.cs`, `iLearn.Admin.React/src/App.tsx`, `iLearn.Admin.React/src/config/navigation.ts`, `DOC/API-ENDPOINT-INVENTORY.md`) และ re-scan คีย์เวิร์ด stale ใน 2 เอกสารที่อัปเดตแล้วไม่พบข้อความขัดแย้งเดิม
+
 ## [2026-06-15 12:40] Antigravity — ปรับปรุงและปรับสไตล์ของปุ่มใน Action Column ให้ได้มาตรฐานเดียวกัน
 - ทำอะไร: ปรับปรุง `AppTable.tsx` ให้มีสิทธิ์เลือก variant ของปุ่ม action และเพิ่มระบบตรวจจับสีอัตโนมัติตาม Hint text (เช่น คำว่า delete, remove จะได้สีแดงทันที); ทำการแก้โค้ดและย้ายคลาสปุ่ม action ในตารางแบบ Custom ของหน้าต่าง ๆ ให้ใช้คลาสดีไซน์และขนาดไอคอน h-3.5 w-3.5 ที่เป็นอันหนึ่งอันเดียวกัน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`

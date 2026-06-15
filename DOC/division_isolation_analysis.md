@@ -1,8 +1,8 @@
-# Division Isolation Analysis — iLearn
+# Division Isolation Analysis — iLearn (Current)
 
 วิเคราะห์การแบ่งข้อมูลตาม **Division** (data isolation) ทั้งระบบ — กลไก, สถานะรายโมดูล, และพฤติกรรมของ Learner Group / Learner Group Categories
 
-> เขียนโดย Claude Code (planner/reviewer) 2026-06-15 จากการอ่านโค้ดจริง — ชื่อไฟล์/บรรทัดอาจขยับ ให้ยืนยันก่อนใช้
+> อัปเดตล่าสุด: 2026-06-15 (หลัง implement PLAN-021/022/023)
 
 ---
 
@@ -14,7 +14,7 @@
 
 3 จุดบังคับใน service/controller:
 1. **List:** `if (_currentUser.DivisionId.HasValue) query = query.Where(x => x.DivisionId == value)`
-2. **Create:** `entity.DivisionId = _currentUser.DivisionId` (auto จากผู้สร้าง — **ปัจจุบันไม่รับค่าจาก client**)
+2. **Create:** โดยหลักเป็น auto จาก current user; แต่บาง flow รองรับ SuperAdmin ระบุ `DivisionId` ผ่าน DTO ได้ (พร้อม guard)
 3. **Get/Update/Delete:** ownership check — `if (HasValue && entity.DivisionId != value)` → 403 / NotFound
 
 ระดับ host: `FallbackPolicy = DefaultPolicy` → ทุก endpoint ต้อง auth โดยปริยาย (secure by default)
@@ -45,7 +45,7 @@
 | Master Data (Div/Cat/Type/Role) | บางตัว | SuperAdminOnly | ✅ ไม่ต้อง isolate |
 | Enrollments | ✗ | **SuperAdminOnly** (API + route) | ✅ เห็นทั้งหมดโดยตั้งใจ |
 | Content Library | ✗ (ContentItem ไม่มี division) | ไม่มี | ⚠️ คลังกลาง — ดู §5.2 |
-| Learning Logs | ✗ | API = **SuperAdminOnly** แต่ UI ไม่ตรง | ⚠️ ดู §5.1 |
+| Learning Logs | ✗ | API + UI = **SuperAdminOnly** | ✅ |
 
 **ข้อสรุปด้านความปลอดภัย: ไม่มีข้อมูลรั่วข้าม division** — entity ที่มี division ถูก isolate ครบ; ตัวที่ไม่มี ถูกกั้นด้วย SuperAdminOnly
 
@@ -61,32 +61,42 @@
 | | SuperAdmin | Division-admin |
 |---|---|---|
 | เห็น | ทุก group/category (ทุก division + global) | เฉพาะ `DivisionId == ตัวเอง` |
-| สร้างแล้วได้ division | `null` (global) | division ตัวเอง (auto) |
+| สร้างแล้วได้ division | เลือกได้ (specific division หรือ `null`/global ตาม flow) | division ตัวเอง (auto) |
 | แก้/ลบของ division อื่น | ได้ | ถูกบล็อก (403/NotFound) |
 
-**ข้อจำกัดของ design ปัจจุบัน (ดู §5.3):**
-- group/category **global (division=null)** ที่ SuperAdmin สร้าง → **division-admin มองไม่เห็น** (filter `== value` ไม่ match null)
-- `CreateAsync` **ไม่รับ divisionId จาก client** (auto จากผู้สร้างเสมอ — `LearnerGroupService.cs:214`, `LearnerGroupCategoryService.cs:128`) → SuperAdmin สร้างให้ "แผนก X โดยเฉพาะ" ไม่ได้
+**พฤติกรรมที่อัปเดตแล้ว:**
+- `LearnerGroupService.CreateAsync` และ `LearnerGroupCategoryService.CreateAsync` รองรับการกำหนด division สำหรับ SuperAdmin โดยยังคงป้องกัน escalation ฝั่ง division-admin
+- `LearnerGroupCategoryService.UpdateAsync` รองรับการเปลี่ยน division ฝั่ง SuperAdmin พร้อม guard ไม่ให้เกิด tree inconsistency ข้าม division
 
 ---
 
-## 5. ประเด็นที่ต้องตัดสินใจ / แผนที่เกี่ยวข้อง
+## 5. ประเด็นที่ต้องติดตามต่อ
 
-### 5.1 Learning Logs — UI ไม่ตรงกับสิทธิ์ API → **PLAN-021**
-`LearningLogsCRUDController` = `SuperAdminOnly` แต่ route React `/learning-logs` ไม่ครอบ `RequireRole superAdminOnly` และเมนูอยู่ใน "Operations" (division-admin เห็น) → คลิกแล้วโดน 403 (ไม่รั่วข้อมูล แต่ UX สับสน)
-→ แก้: ทำให้ SuperAdmin-only สม่ำเสมอ (gate route + ย้ายเมนู)
+### 5.1 Learning Logs — ปิดช่องว่าง UI/API แล้ว
+`LearningLogsCRUDController` เป็น `SuperAdminOnly` และฝั่ง React route/menu ถูกจัดให้เป็น SuperAdmin-only สอดคล้องกันแล้ว
 
-### 5.2 Content Library — คลังกลาง (ยังไม่ออกแผน)
+### 5.2 Content Library — คลังกลาง (ยัง open decision)
 `ContentItem` ไม่มี division → admin ทุกคนเห็น content ทั้งหมด ถ้าตั้งใจให้เป็นคลังกลางแชร์กัน = OK; ถ้าต้องการแยกตาม division ต้องเพิ่ม division dimension (งานใหญ่ — รอการตัดสินใจ)
 
-### 5.3 SuperAdmin สร้าง group/category ระบุ division ไม่ได้ → **PLAN-022**
-ให้ `CreateAsync` รับ `DivisionId` จาก DTO **เฉพาะเมื่อผู้สร้างเป็น SuperAdmin**; division-admin ยัง auto เป็น division ตัวเอง (ไม่ให้ override)
+### 5.3 Global records visibility policy
+ข้อมูลที่เป็น global (`DivisionId = null`) ยังมีพฤติกรรมที่ division-admin อาจไม่เห็นตาม filter แบบ strict equality ซึ่งเป็น policy decision มากกว่าบั๊กความปลอดภัย
 
 ---
 
-## 6. แฟ้มอ้างอิง
+## 6. สถานะแผนที่เกี่ยวข้อง
+
+- PLAN-021: DONE (Learning Logs UI/API consistency)
+- PLAN-022: DONE (SuperAdmin select division on create)
+- PLAN-023: DONE (SuperAdmin select division on category edit + explorer flow)
+
+---
+
+## 7. แฟ้มอ้างอิง
 
 - `iLearn.Application/Services/LearnerGroupService.cs`, `LearnerGroupCategoryService.cs` — isolation logic
 - `iLearn.API/Extensions/AuthorizationExtensions.cs` — policies
 - `iLearn.API/Controllers/Base/UsersCRUDController.cs`, `LearnersController.cs`, `CoursesController.cs` — ตัวอย่าง isolation
 - `DOC/api_analysis.md` — วิเคราะห์ API ภาพรวม
+- `DOC/PLANS/PLAN-021-learning-logs-superadmin-consistency.md`
+- `DOC/PLANS/PLAN-022-superadmin-assign-division-on-create.md`
+- `DOC/PLANS/PLAN-023-superadmin-division-category-edit-and-explorer.md`

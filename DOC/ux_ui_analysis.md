@@ -89,6 +89,5 @@
 ## 4. แฟ้มข้อมูลอ้างอิงสำคัญในการพัฒนา (Key Code References)
 
 *   **การตั้งค่าสไตล์หลัก:** [index.css](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/index.css)
-*   **แนวทางการเปลี่ยนผ่านสู่ React:** [REACT-ADMIN-REBUILD-PLAN.md](file:///c:/Users/n4734/source/repos/iLearn2/DOC/REACT-ADMIN-REBUILD-PLAN.md)
-*   **ตารางความต่างและการพอร์ตโมดูล:** [REACT-ADMIN-GAP-ANALYSIS.md](file:///c:/Users/n4734/source/repos/iLearn2/DOC/REACT-ADMIN-GAP-ANALYSIS.md)
+*   **แนวทางการพัฒนา React Admin (ฉบับใช้งานปัจจุบัน):** [iLearn.Admin.React/README.md](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/README.md)
 *   **โครงสร้างหน้าตารางหลัก:** [AppTable.tsx](file:///c:/Users/n4734/source/repos/iLearn2/iLearn.Admin.React/src/components/ui/AppTable.tsx)
