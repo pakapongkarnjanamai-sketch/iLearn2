@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft,
@@ -102,7 +102,7 @@ export function BulkAssignPage() {
     return groups.filter(g => g.name.toLowerCase().includes(q))
   }, [groups, groupSearch])
 
-  const loadLookups = async () => {
+  const loadLookups = useCallback(async () => {
     setLoadingLookups(true)
     try {
       // Fetch open courses lookup
@@ -129,11 +129,11 @@ export function BulkAssignPage() {
     } finally {
       setLoadingLookups(false)
     }
-  }
+  }, [queryCourseId, queryGroupId])
 
   useEffect(() => {
-    loadLookups()
-  }, [])
+    void loadLookups()
+  }, [loadLookups])
 
   const getTargetCodes = (): string[] => {
     if (targetMode === 'custom') {
@@ -523,7 +523,7 @@ export function BulkAssignPage() {
     )
   }
 
-  const steps: WizardStep[] = useMemo(() => [
+  const steps: WizardStep[] = [
     { label: 'Choose Courses', validate: () => validateCourses(), render: () => renderChooseCoursesStep() },
     { label: 'Target Scope', validate: () => validateScope(), render: () => renderTargetScopeStep() },
     { 
@@ -538,24 +538,7 @@ export function BulkAssignPage() {
       render: () => renderScheduleStep() 
     },
     { label: 'Conflict Preview', render: () => renderConflictPreviewStep() }
-  ], [
-    courses, 
-    groups, 
-    selectedCourseIds, 
-    courseSearch, 
-    targetMode, 
-    selectedGroupId, 
-    selectedLearners,
-    groupSearch,
-    customEidsInput, 
-    startDate, 
-    dueDate, 
-    description, 
-    confirmReassignInProgress, 
-    confirmReassignCompleted, 
-    validationResult,
-    validating
-  ])
+  ]
 
   if (loadingLookups) {
     return <LoadingState label="Loading assignment configurations..." />

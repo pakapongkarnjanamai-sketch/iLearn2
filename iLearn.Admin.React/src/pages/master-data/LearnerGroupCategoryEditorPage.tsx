@@ -92,6 +92,7 @@ export function LearnerGroupCategoryEditorPage() {
             }
           } catch (err) {
             console.error('Failed to load divisions', err)
+            toast.error('Failed to load divisions')
           }
         }
 

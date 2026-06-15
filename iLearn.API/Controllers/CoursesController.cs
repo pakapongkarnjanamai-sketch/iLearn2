@@ -5,7 +5,6 @@ using iLearn.Application.DTOs;
 using iLearn.Application.Exceptions;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
-using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
@@ -25,35 +24,20 @@ namespace iLearn.API.Controllers
         private readonly ICourseVersionService _versionService;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<CourseType> _courseTypeRepo;
-        private readonly IGenericRepository<Enrollment> _enrollmentRepo;
-        private readonly IGenericRepository<Assignment> _assignmentRepo;
-        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
-        private readonly ILearnerApiService _learnerApiService;
         private readonly ICurrentUserService _currentUser;
-        private readonly IDateTime _dateTime;
 
         public CoursesController(
             ICourseService courseService,
             ICourseVersionService versionService,
             IGenericRepository<Course> courseRepo,
             IGenericRepository<CourseType> courseTypeRepo,
-            IGenericRepository<Enrollment> enrollmentRepo,
-            IGenericRepository<Assignment> assignmentRepo,
-            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
-            ILearnerApiService learnerApiService,
-            ICurrentUserService currentUser,
-            IDateTime dateTime)
+            ICurrentUserService currentUser)
         {
             _courseService = courseService;
             _versionService = versionService;
             _courseRepo = courseRepo;
             _courseTypeRepo = courseTypeRepo;
-            _enrollmentRepo = enrollmentRepo;
-            _assignmentRepo = assignmentRepo;
-            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
-            _learnerApiService = learnerApiService;
             _currentUser = currentUser;
-            _dateTime = dateTime;
         }
 
         [HttpGet("lookup")]
@@ -123,7 +107,11 @@ namespace iLearn.API.Controllers
                 }
             }
 
-            return Ok(new { success = true, data = courses });
+            return Ok(new ApiResponse<IEnumerable<CourseDto>>
+            {
+                Success = true,
+                Data = courses
+            });
         }
 
         [HttpGet("{id}")]
@@ -131,9 +119,17 @@ namespace iLearn.API.Controllers
         {
             var course = await _courseService.GetCourseByIdAsync(id);
             if (course == null)
-                return NotFound(new { success = false, message = "Course not found." });
+                return NotFound(new ApiResponse<CourseDetailDto>
+                {
+                    Success = false,
+                    Message = "Course not found."
+                });
 
-            return Ok(new { success = true, data = course });
+            return Ok(new ApiResponse<CourseDetailDto>
+            {
+                Success = true,
+                Data = course
+            });
         }
 
         [HttpPost("Create")]
@@ -146,11 +142,20 @@ namespace iLearn.API.Controllers
             {
                 var course = await _courseService.CreateCourseAsync(model);
                 return CreatedAtAction(nameof(GetById), new { id = course.Id },
-                    new { success = true, message = "Course created successfully.", data = course });
+                    new ApiResponse<CourseDto>
+                    {
+                        Success = true,
+                        Message = "Course created successfully.",
+                        Data = course
+                    });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<CourseDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -163,11 +168,20 @@ namespace iLearn.API.Controllers
             try
             {
                 var course = await _courseService.UpdateCourseAsync(id, dto);
-                return Ok(new { success = true, message = "Course updated successfully.", data = course });
+                return Ok(new ApiResponse<CourseDto>
+                {
+                    Success = true,
+                    Message = "Course updated successfully.",
+                    Data = course
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CourseDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -177,19 +191,36 @@ namespace iLearn.API.Controllers
             try
             {
                 await _courseService.DeleteCourseAsync(id);
-                return Ok(new { success = true, message = "Course and related files deleted successfully." });
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Course and related files deleted successfully."
+                });
             }
             catch (InvalidOperationException ex) // 🌟 ดักจับเคสที่ลบไม่ได้เพราะมีคนเรียนแล้ว
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "An internal server error occurred.", error = ex.Message });
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An internal server error occurred.",
+                    ErrorCode = ex.Message
+                });
             }
         }
 
@@ -206,15 +237,29 @@ namespace iLearn.API.Controllers
             {
                 var course = await _courseService.CreateCourseWithScormAsync(model);
                 return CreatedAtAction(nameof(GetById), new { id = course.Id },
-                    new { success = true, message = "Course with SCORM created successfully.", data = course });
+                    new ApiResponse<CourseDto>
+                    {
+                        Success = true,
+                        Message = "Course with SCORM created successfully.",
+                        Data = course
+                    });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<CourseDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "An error occurred while saving data.", error = ex.Message });
+                return StatusCode(500, new ApiResponse<CourseDto>
+                {
+                    Success = false,
+                    Message = "An error occurred while saving data.",
+                    ErrorCode = ex.Message
+                });
             }
         }
 
@@ -228,11 +273,19 @@ namespace iLearn.API.Controllers
             try
             {
                 var versions = await _versionService.GetCourseVersionsAsync(courseId);
-                return Ok(new { success = true, data = versions });
+                return Ok(new ApiResponse<IEnumerable<CourseVersionDto>>
+                {
+                    Success = true,
+                    Data = versions
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<IEnumerable<CourseVersionDto>>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -242,11 +295,19 @@ namespace iLearn.API.Controllers
             try
             {
                 var impact = await _versionService.GetVersionLearnerImpactAsync(courseId);
-                return Ok(new { success = true, data = impact });
+                return Ok(new ApiResponse<CourseVersionLearnerImpactDto>
+                {
+                    Success = true,
+                    Data = impact
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CourseVersionLearnerImpactDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -256,11 +317,19 @@ namespace iLearn.API.Controllers
             try
             {
                 var version = await _versionService.GetVersionByIdAsync(versionId);
-                return Ok(new { success = true, data = version });
+                return Ok(new ApiResponse<CreateCourseVersionDto>
+                {
+                    Success = true,
+                    Data = version
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CreateCourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -270,11 +339,19 @@ namespace iLearn.API.Controllers
             try
             {
                 var readiness = await _versionService.GetVersionReadinessAsync(versionId);
-                return Ok(new { success = true, data = readiness });
+                return Ok(new ApiResponse<CourseVersionReadinessDto>
+                {
+                    Success = true,
+                    Data = readiness
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CourseVersionReadinessDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -294,23 +371,45 @@ namespace iLearn.API.Controllers
 
                 var version = await _versionService.CreateVersionAsync(courseId, model, files);
                 return CreatedAtAction(nameof(GetVersion), new { versionId = version.Id },
-                    new { success = true, message = "New version created successfully.", data = version });
+                    new ApiResponse<CourseVersionDto>
+                    {
+                        Success = true,
+                        Message = "New version created successfully.",
+                        Data = version
+                    });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (InvalidScormPackageException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "An error occurred while creating the version.", error = ex.Message });
+                return StatusCode(500, new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = "An error occurred while creating the version.",
+                    ErrorCode = ex.Message
+                });
             }
         }
 
@@ -327,23 +426,45 @@ namespace iLearn.API.Controllers
             {
                 var files = Request.Form.Files.ToList();
                 var version = await _versionService.UpdateVersionAsync(versionId, model, files);
-                return Ok(new { success = true, message = "Version updated successfully.", data = version });
+                return Ok(new ApiResponse<CourseVersionDto>
+                {
+                    Success = true,
+                    Message = "Version updated successfully.",
+                    Data = version
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (InvalidScormPackageException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "An error occurred while updating the version.", error = ex.Message });
+                return StatusCode(500, new ApiResponse<CourseVersionDto>
+                {
+                    Success = false,
+                    Message = "An error occurred while updating the version.",
+                    ErrorCode = ex.Message
+                });
             }
         }
 
@@ -355,15 +476,27 @@ namespace iLearn.API.Controllers
             try
             {
                 await _versionService.DeleteVersionAsync(versionId);
-                return Ok(new { success = true, message = "Version deleted successfully." });
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Version deleted successfully."
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -379,11 +512,19 @@ namespace iLearn.API.Controllers
                     courseId,
                     versionId,
                     dto?.Policy ?? CourseVersionLearnerPolicy.NewLearnersOnly);
-                return Ok(new { success = true, message = "Active version changed successfully." });
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Active version changed successfully."
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -391,124 +532,24 @@ namespace iLearn.API.Controllers
         [HttpGet("{courseId}/learners")]
         public async Task<IActionResult> GetCourseLearners(int courseId)
         {
-            var enrollments = await _enrollmentRepo.GetAsync(
-                e => e.CourseId == courseId,
-                includeProperties: "AssignmentLinks"
-            );
-
-            if (!enrollments.Any())
-                return Ok(new { success = true, data = new List<object>() });
-
-            var codes = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
-            Dictionary<string, ExternalLearnerDto> learnerMap;
-            try
+            var learners = await _courseService.GetCourseLearnersAsync(courseId);
+            return Ok(new ApiResponse<List<CourseLearnerDto>>
             {
-                learnerMap = await _learnerApiService.GetLearnersByCodesAsync(codes);
-            }
-            catch
-            {
-                learnerMap = new Dictionary<string, ExternalLearnerDto>();
-            }
-
-            var now = _dateTime.Now;
-
-            var result = enrollments.Select(e =>
-            {
-                var learner = learnerMap.GetValueOrDefault(e.LearnerCode);
-                var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
-                var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
-
-                var status = AssignmentStatusKeys.GetScheduledLearnerStatus(
-                    e.IsCompleted,
-                    e.Progress,
-                    effectiveStart,
-                    effectiveDue,
-                    now);
-
-                return new
-                {
-                    id            = e.Id,
-                    learnerCode   = e.LearnerCode,
-                    learnerName   = learner?.Name ?? e.LearnerCode,
-                    division      = learner?.Division,
-                    department    = learner?.Department,
-                    position      = learner?.Position,
-                    progress      = Math.Round(e.Progress),
-                    isCompleted   = e.IsCompleted,
-                    completedDate = e.CompletedDate,
-                    startDate     = effectiveStart,
-                    dueDate       = effectiveDue,
-                    status
-                };
-            })
-            .OrderBy(x => x.isCompleted)
-            .ThenByDescending(x => x.progress)
-            .ToList();
-
-            return Ok(new { success = true, data = result });
+                Success = true,
+                Data = learners
+            });
         }
 
         // ── Assignment history for a specific course ─────────────────────────
         [HttpGet("{courseId}/assignments")]
         public async Task<IActionResult> GetCourseAssignments(int courseId)
         {
-            var assignments = await _assignmentRepo.GetAsync(
-                r => r.CourseId == courseId
-                  && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value),
-                includeProperties: "Course"
-            );
-
-            if (!assignments.Any())
-                return Ok(new { success = true, data = new List<object>() });
-
-            var allIds = assignments.Select(a => a.Id).ToList();
-            var links = await _enrollmentAssignmentRepo.GetAsync(
-                ea => allIds.Contains(ea.AssignmentId),
-                includeProperties: "Enrollment"
-            );
-
-            var now = _dateTime.Now;
-
-            var history = assignments
-                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
-                .GroupBy(r => r.AssignmentNo)
-                .Select(g =>
-                {
-                    var first   = g.First();
-                    var ruleIds = g.Select(a => a.Id).ToList();
-
-                    var relatedLinks = links
-                        .Where(ea => ruleIds.Contains(ea.AssignmentId) && ea.Enrollment != null)
-                        .ToList();
-
-                    bool allDone = relatedLinks.Any()
-                        && relatedLinks.All(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
-
-                    string status = AssignmentDashboardService.CalculateStatus(
-                        relatedLinks.Any(), allDone, first.StartDate, first.DueDate, now);
-
-                    var done  = relatedLinks.Count(ea => ea.SnapshotCompleted || ea.Enrollment!.IsCompleted);
-                    var total = relatedLinks.Count;
-                    var pct   = total > 0 ? Math.Round((double)done / total * 100) : 0;
-
-                    return new
-                    {
-                        id            = first.Id,
-                        assignmentNo  = g.Key,
-                        description   = first.Description,
-                        startDate     = first.StartDate,
-                        dueDate       = first.DueDate,
-                        status,
-                        completedEnrollmentCount = done,
-                        totalEnrollmentCount     = total,
-                        completionPct            = pct,
-                        learnerGroupId           = first.LearnerGroupId
-                    };
-                })
-                .OrderByDescending(x => x.assignmentNo)
-                .ToList();
-
-            return Ok(new { success = true, data = history });
+            var assignments = await _courseService.GetCourseAssignmentsAsync(courseId);
+            return Ok(new ApiResponse<List<CourseAssignmentHistoryDto>>
+            {
+                Success = true,
+                Data = assignments
+            });
         }
 
         [HttpPut("{id}/status")]
@@ -566,11 +607,19 @@ namespace iLearn.API.Controllers
             try
             {
                 var impact = await _courseService.GetCourseStatusImpactAsync(id);
-                return Ok(new { success = true, data = impact });
+                return Ok(new ApiResponse<CourseStatusImpactDto>
+                {
+                    Success = true,
+                    Data = impact
+                });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new ApiResponse<CourseStatusImpactDto>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -579,44 +628,20 @@ namespace iLearn.API.Controllers
         [HttpGet("{courseId}/dashboard")]
         public async Task<IActionResult> GetDashboard(int courseId)
         {
-            var course = await _courseService.GetCourseByIdAsync(courseId);
-            if (course == null)
-                return NotFound(new { success = false, message = "Course not found." });
-
-            // DbContext is not thread-safe — run queries sequentially
-            var versions = await _versionService.GetCourseVersionsAsync(courseId);
-            var enrollments = await _enrollmentRepo.GetAsync(
-                e => e.CourseId == courseId
-            );
-            var assignments = await _assignmentRepo.GetAsync(
-                r => r.CourseId == courseId
-                  && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value)
-            );
-
-            // KPI counts
-            var learnerCount = enrollments.Count;
-            var completedCount = enrollments.Count(e => e.IsCompleted);
-
-            var assignmentGroups = assignments
-                .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
-                .GroupBy(r => r.AssignmentNo)
-                .Count();
-
-            return Ok(new
+            var dashboard = await _courseService.GetCourseDashboardAsync(courseId);
+            if (dashboard == null)
             {
-                success = true,
-                data = new
+                return NotFound(new ApiResponse<CourseDashboardDto>
                 {
-                    course,
-                    versions,
-                    kpi = new
-                    {
-                        versionCount = versions.Count(),
-                        learnerCount,
-                        completedCount,
-                        assignmentCount = assignmentGroups
-                    }
-                }
+                    Success = false,
+                    Message = "Course not found."
+                });
+            }
+
+            return Ok(new ApiResponse<CourseDashboardDto>
+            {
+                Success = true,
+                Data = dashboard
             });
         }
     }

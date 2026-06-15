@@ -103,8 +103,7 @@ class ChartErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     return { hasError: true }
   }
 
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ChartErrorBoundary caught an error:", error, errorInfo)
+  public componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
   }
 
   public render() {

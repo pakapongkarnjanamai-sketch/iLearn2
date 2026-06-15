@@ -14,6 +14,42 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 15:05] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-026 extract shared explorer for courses + learner groups
+- ทำอะไร: ทำตาม `PLAN-026-extract-shared-explorer` โดยสร้าง shared explorer primitives (`useExplorer` + `ExplorerTable`) แล้ว refactor `CourseListPage` และ `LearnerGroupListPage` ให้ใช้ logic กลางร่วมกันสำหรับ query path, deep-link guard, breadcrumb sync, drill/back, และ client-side search โดยคงฟีเจอร์เฉพาะหน้าเดิมครบ (course type chips/category CRUD และ learner-group folder create/move/delete/relocate flows)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/explorer/useExplorer.ts`, `iLearn.Admin.React/src/components/ui/explorer/ExplorerTable.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `DOC/PLANS/PLAN-026-extract-shared-explorer.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (EXIT:0), `npm run build` ผ่าน, `dotnet build iLearn.Tests -o artifacts/verify-test` ผ่าน, `dotnet test artifacts/verify-test/iLearn.Tests.dll` ผ่าน (118/118), manual smoke ผ่านที่ `/courses`, `/learner-groups`, และ deep-link `/learner-groups?categoryId=13` (invalid id fallback ตาม deep-link guard)
+
+## [2026-06-15 14:52] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-027 refactor CoursesController + typed responses increment
+- ทำอะไร: ทำตาม `PLAN-027-controller-refactor-dto-increment` โดยย้าย logic หนักของ `CoursesController` ลง service call ให้ controller เหลือ orchestration ใน endpoint `GET Courses/{courseId}/learners`, `GET Courses/{courseId}/assignments`, `GET Courses/{courseId}/dashboard`; เปลี่ยน response wrapper ของ courses/version/status-impact หลาย endpoint จาก anonymous object เป็น `ApiResponse<T>` โดยคง key ที่ frontend ใช้ (`success`, `data`, `message`) และคง `course-types-lookup` เป็น plain array เดิมเพื่อไม่กระทบ contract
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/CoursesController.cs`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `DOC/PLANS/PLAN-027-controller-refactor-dto-increment.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี breaking change (shape ที่ React อ่านยังคงเดิม); เพิ่มคอมเมนต์ `// Mirrors <Dto>` ใน type ฝั่ง React ที่เกี่ยวข้อง
+- Verified: `dotnet build iLearn.API/iLearn.API.csproj --artifacts-path artifacts/validate` ผ่าน, `dotnet build iLearn.Tests -o artifacts/verify-test` ผ่าน, `dotnet test artifacts/verify-test/iLearn.Tests.dll` ผ่าน (118/118), `npm run lint` ผ่าน (EXIT:0), `npm run build` ผ่าน (EXIT:0), manual smoke ผ่านที่ `/courses` และ `/courses/823`
+
+## [2026-06-15 20:05] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-024 แก้ lint warnings react-hooks/exhaustive-deps เหลือ 0
+- ทำอะไร: ทำตาม `PLAN-024-fix-lint-warnings` โดยแก้กลุ่ม A ด้วย `useCallback` + ปรับ `useEffect` deps ให้ถูกต้อง (`AssignmentDetailPage.loadAssignmentDetails`, `BulkAssignPage.loadLookups`, `VersionFormPage.loadContentLibrary/loadVersionImpact/loadVersionData`, `LearnerProfilePage.loadProfile`, `MasterDataDetailPage.loadItem`) และแก้กลุ่ม B โดยถอด `useMemo` เฉพาะตัวแปร `steps` ของ wizard 5 หน้าให้เป็น array ปกติ เพื่อล้าง warning ทั้งหมดโดยไม่เปลี่ยน flow
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/learners/LearnerProfilePage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/users/UserEditorPage.tsx`, `DOC/PLANS/PLAN-024-fix-lint-warnings.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 0 warnings), `npm run build` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (118/118), smoke route ผ่าน (`/assignments/bulk`, `/content-library/new`, `/courses/new`, `/users/new`, `/assignments/264`, `/master-data/divisions/1`)
+
+## [2026-06-15 19:26] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-025 เก็บกวาด console.* ฝั่ง React
+- ทำอะไร: ทำตาม `PLAN-025-cleanup-console-statements` โดยลบ `console.error` นอก catch ใน `DashboardPage` 1 จุด, เติม `toast.error` ให้ catch ที่เคยเงียบ 9 จุด (`LearnerDirectorySelector` 3, `EntityListPage` 1, `VersionFormPage` 2, `LearnerGroupCategoryEditorPage` 1, `MasterDataDetailPage` 2), และคง `console.error` ใน catch ที่มี user-facing feedback แล้วไว้ตาม scope
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/shared/LearnerDirectorySelector.tsx`, `iLearn.Admin.React/src/pages/EntityListPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `DOC/PLANS/PLAN-025-cleanup-console-statements.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `rg 'console\.(log|debug)' iLearn.Admin.React/src -n` = 0, `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (118/118)
+
+## [2026-06-15 19:15] Claude Code — ย้าย plan READY ของ Gemini ไป GPT (Gemini เครดิตหมด)
+- ทำอะไร: ผู้ใช้แจ้ง Gemini เครดิตหมด → ย้าย plan ที่ยัง READY+Gemini ไป GPT (GPT-5.3 Codex): **PLAN-026** (สกัด shared Explorer), **PLAN-027** (refactor CoursesController+DTO) — plan ที่ VERIFIED แล้ว (022/023) คง Assigned เดิมไว้เป็นประวัติว่า Gemini ทำจริง สรุป: ตอนนี้ READY ทั้งหมด (024/025/026/027) = GPT
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-026-*.md`, `DOC/PLANS/PLAN-027-*.md` (เปลี่ยน Assigned)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a
+
+## [2026-06-15 19:00] Claude Code — เขียนแผน clean code 4 ใบ (PLAN-024..027)
+- ทำอะไร: ผู้ใช้เลือก clean code 4 ด้าน — สแกนหาจุดจริง (lint 11 warnings ทั้งหมด exhaustive-deps, console.* 63 จุด/18 ไฟล์, explorer ซ้ำ 2 หน้า, controller/DTO backlog) แล้วเขียน 4 แผน: **PLAN-024** (GPT, แก้ 11 lint warnings เหลือ 0 — useCallback loaders/documented disable wizard steps, ห้ามเปลี่ยน behavior), **PLAN-025** (GPT, เก็บ console.* — ลบ debug log, คง error log + กัน catch เงียบ), **PLAN-026** (Gemini, สกัด shared Explorer hook/component de-dup Course+LearnerGroup, pure de-dup), **PLAN-027** (Gemini, increment ถัดไป refactor CoursesController→CourseService + typed response ใช้ ApiResponse<T>)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-024..027-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี (แผน)
+- Verified: n/a (planner)
+
 ## [2026-06-15 14:17] GitHub Copilot (GPT-5.3-Codex) — Smoke test แก้ช่องว่างขวาผิดปกติใน React Admin
 - ทำอะไร: เปิด `http://localhost:5173/` ตรวจ layout ด้วย browser automation และพบว่าหน้าแอปมี right gap คงที่ 15px แม้ไม่มี horizontal overflow สาเหตุจาก CSS ที่ตั้ง `scrollbar-gutter: stable` บน `html`; แก้โดยปรับเป็น `scrollbar-gutter: auto` ใน `iLearn.Admin.React/src/index.css` แล้ว reload smoke test ซ้ำ
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `DOC/AGENT_LOG.md`

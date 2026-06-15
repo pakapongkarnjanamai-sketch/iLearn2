@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   User,
@@ -71,7 +71,7 @@ export function LearnerProfilePage() {
     }
   }, [profile, id, setLabel])
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     setLoading(true)
     try {
       const resp = await fetchWithAccessControl<LearnerProfileResponse>(`Learners/profile/${id}`)
@@ -84,11 +84,11 @@ export function LearnerProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    loadProfile()
-  }, [id])
+    void loadProfile()
+  }, [loadProfile])
 
   if (loading) {
     return <LoadingState />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRightLeft,
   ArrowUpRight,
@@ -19,7 +19,8 @@ import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer/ExplorerTable'
+import { useExplorer } from '../../components/ui/explorer/useExplorer'
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate } from '../../lib/format'
 import { toast } from '../../lib/toast'
@@ -72,6 +73,10 @@ type ExplorerItem = {
   original: CategoryLookup | GroupDto
 }
 
+type LearnerGroupExplorerPath = {
+  categoryId: number
+}
+
 function unwrapList<T>(value: ApiEnvelope<T[]> | { data?: T[] } | T[] | undefined): T[] {
   if (!value) return []
   if (Array.isArray(value)) return value
@@ -114,23 +119,14 @@ function toDateText(value: string | undefined | null) {
 
 export function LearnerGroupListPage() {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
   const { confirm, confirmDialog } = useConfirm()
-  const { setCustomCrumbs } = useBreadcrumbs()
   const { isSuperAdmin } = useSession()
-
-  const rawCategoryId = searchParams.get('categoryId')
-  const parsedCategoryId = Number(rawCategoryId ?? '0')
-  const currentCategoryId = Number.isFinite(parsedCategoryId) && parsedCategoryId > 0
-    ? Math.trunc(parsedCategoryId)
-    : 0
 
   const [categories, setCategories] = useState<CategoryLookup[]>([])
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [groups, setGroups] = useState<GroupDto[]>([])
 
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
 
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
@@ -184,6 +180,67 @@ export function LearnerGroupListPage() {
     return map
   }, [groups])
 
+  const {
+    path,
+    searchTerm,
+    setSearchTerm,
+    navigateToPath,
+    goBack,
+    filterBySearch,
+  } = useExplorer<LearnerGroupExplorerPath>({
+    rootPath: { categoryId: 0 },
+    parsePath: params => {
+      const rawCategoryId = params.get('categoryId')
+      const parsedCategoryId = Number(rawCategoryId ?? '0')
+      const categoryId = Number.isFinite(parsedCategoryId) && parsedCategoryId > 0
+        ? Math.trunc(parsedCategoryId)
+        : 0
+
+      return { categoryId }
+    },
+    toParams: currentPath => {
+      return currentPath.categoryId > 0
+        ? { categoryId: String(currentPath.categoryId) }
+        : {}
+    },
+    getParentPath: currentPath => {
+      if (currentPath.categoryId === 0) return null
+
+      const current = categoriesById.get(currentPath.categoryId)
+      const parentId = current?.parentId ?? 0
+      return { categoryId: parentId > 0 ? parentId : 0 }
+    },
+    buildBreadcrumbs: currentPath => {
+      const rootCrumbs = [{ to: '/learner-groups', label: 'Learner Groups' }]
+      if (currentPath.categoryId === 0) return rootCrumbs
+
+      const trail: { to: string; label: string }[] = []
+      const visited = new Set<number>()
+
+      let cursor: number | null = currentPath.categoryId
+      while (cursor && !visited.has(cursor)) {
+        visited.add(cursor)
+        const category = categoriesById.get(cursor)
+        if (!category) break
+
+        trail.unshift({
+          to: `/learner-groups?categoryId=${category.id}`,
+          label: category.name,
+        })
+        cursor = category.parentId ?? null
+      }
+
+      return [...rootCrumbs, ...trail]
+    },
+    isPathValid: currentPath => {
+      if (currentPath.categoryId === 0) return true
+      return categories.some(category => category.id === currentPath.categoryId)
+    },
+    canValidatePath: !loading && categories.length > 0,
+  })
+
+  const currentCategoryId = path.categoryId
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
@@ -218,50 +275,6 @@ export function LearnerGroupListPage() {
       cancelled = true
     }
   }, [loadData])
-
-  useEffect(() => {
-    // Wait for categories to load before validating the deep-linked folder —
-    // on first render the list is still empty and every categoryId looks invalid.
-    if (currentCategoryId === 0 || loading || categories.length === 0) return
-
-    const exists = categories.some(category => category.id === currentCategoryId)
-    if (!exists) {
-      setSearchParams({}, { replace: true })
-    }
-  }, [categories, currentCategoryId, loading, setSearchParams])
-
-  useEffect(() => {
-    const rootCrumbs = [{ to: '/learner-groups', label: 'Learner Groups' }]
-
-    if (currentCategoryId === 0) {
-      setCustomCrumbs(rootCrumbs)
-      return
-    }
-
-    const trail: { to: string; label: string }[] = []
-    const visited = new Set<number>()
-
-    let cursor: number | null = currentCategoryId
-    while (cursor && !visited.has(cursor)) {
-      visited.add(cursor)
-      const category = categoriesById.get(cursor)
-      if (!category) break
-
-      trail.unshift({
-        to: `/learner-groups?categoryId=${category.id}`,
-        label: category.name,
-      })
-      cursor = category.parentId ?? null
-    }
-
-    setCustomCrumbs([...rootCrumbs, ...trail])
-  }, [categoriesById, currentCategoryId, setCustomCrumbs])
-
-  useEffect(() => {
-    return () => {
-      setCustomCrumbs(null)
-    }
-  }, [setCustomCrumbs])
 
   const currentItems = useMemo<ExplorerItem[]>(() => {
     const childFolders = (categoriesByParent.get(currentCategoryId) ?? []).map(folder => {
@@ -298,13 +311,10 @@ export function LearnerGroupListPage() {
   }, [categoriesByParent, currentCategoryId, groupsByCategory])
 
   const filteredItems = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    if (!term) return currentItems
-
-    return currentItems.filter(item => {
-      return item.name.toLowerCase().includes(term) || item.description.toLowerCase().includes(term)
+    return filterBySearch(currentItems, (item, normalizedTerm) => {
+      return item.name.toLowerCase().includes(normalizedTerm) || item.description.toLowerCase().includes(normalizedTerm)
     })
-  }, [currentItems, searchTerm])
+  }, [currentItems, filterBySearch])
 
   const relocateTreeNodes = useMemo<TreeViewNode[]>(() => {
     const toNode = (category: CategoryLookup): TreeViewNode => {
@@ -350,32 +360,14 @@ export function LearnerGroupListPage() {
     return path.length > 0 ? path.join(' / ') : 'Root Folder'
   }, [categoriesById, relocateCategoryId])
 
-  const handleNavigate = useCallback((categoryId: number) => {
-    if (categoryId > 0) {
-      setSearchParams({ categoryId: String(categoryId) })
-    } else {
-      setSearchParams({})
-    }
-
-    setSearchTerm('')
-  }, [setSearchParams])
-
-  const handleGoBack = useCallback(() => {
-    if (currentCategoryId === 0) return
-
-    const current = categoriesById.get(currentCategoryId)
-    const parentId = current?.parentId ?? 0
-    handleNavigate(parentId)
-  }, [categoriesById, currentCategoryId, handleNavigate])
-
   const handleOpenItem = useCallback((item: ExplorerItem) => {
     if (item.isFolder) {
-      handleNavigate(item.id)
+      navigateToPath({ categoryId: item.id })
       return
     }
 
     navigate(`/learner-groups/${item.id}`)
-  }, [handleNavigate, navigate])
+  }, [navigate, navigateToPath])
 
   const currentFolderName = useMemo(() => {
     if (currentCategoryId === 0) return 'Learner Group Explorer'
@@ -548,6 +540,120 @@ export function LearnerGroupListPage() {
     return division ? division.name : `Division ${divisionId}`
   }, [divisions])
 
+  const tableColumns = useMemo<ExplorerColumn<ExplorerItem>[]>(() => [
+    {
+      key: 'name',
+      title: 'Name',
+      render: item => (
+        <div className="flex items-center gap-2.5">
+          {item.isFolder ? (
+            <Folder className="h-4.5 w-4.5 shrink-0 text-amber-500" />
+          ) : (
+            <Layers className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
+          )}
+          <span className="truncate font-bold text-slate-800">{item.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'description',
+      title: 'Description',
+      headerClassName: 'w-80',
+      cellClassName: 'text-xs font-semibold text-slate-500',
+      render: item => <span className="block truncate" title={item.description}>{item.description}</span>,
+    },
+    {
+      key: 'type',
+      title: 'Type',
+      headerClassName: 'w-32 text-center',
+      cellClassName: 'text-center',
+      render: item => (
+        <span className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase ${
+          item.isFolder
+            ? 'border-amber-100 bg-amber-50 text-amber-700'
+            : 'border-indigo-100 bg-indigo-50 text-indigo-700'
+        }`}>
+          {item.isFolder ? 'Folder' : 'Group'}
+        </span>
+      ),
+    },
+    {
+      key: 'size',
+      title: 'Size / Members',
+      headerClassName: 'w-36 text-center',
+      cellClassName: 'text-center text-xs font-bold text-slate-500',
+      render: item => item.countText,
+    },
+    {
+      key: 'meta',
+      title: 'Division / Updated',
+      headerClassName: 'w-44',
+      cellClassName: 'text-xs font-semibold text-slate-500',
+      render: item => {
+        const itemDivision = !item.isFolder
+          ? getDivisionName((item.original as GroupDto).divisionId)
+          : '-'
+
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="truncate">{itemDivision}</span>
+            <span className="text-[11px] text-slate-400">
+              {item.isFolder ? 'Created ' : 'Updated '}
+              {toDateText(item.updatedAt)}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'actions',
+      title: 'Actions',
+      headerClassName: 'w-32 text-center',
+      render: item => (
+        <div className="flex items-center justify-center gap-1.5" onClick={event => event.stopPropagation()}>
+          {item.isFolder ? (
+            <button
+              type="button"
+              onClick={() => void handleDeleteFolder(item.original as CategoryLookup)}
+              className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+              title="Delete Folder"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => handleOpenMove(item.original as GroupDto)}
+                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                title="Move Group"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteGroup(item.original as GroupDto)}
+                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                title="Delete Group"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handleOpenItem(item)}
+            className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-md transition cursor-pointer"
+            title={item.isFolder ? 'Open Folder' : 'Open Group Details'}
+          >
+            {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      ),
+    },
+  ], [getDivisionName, handleDeleteFolder, handleDeleteGroup, handleOpenItem, handleOpenMove])
+
   return (
     <>
       <DataGridSurface
@@ -556,7 +662,7 @@ export function LearnerGroupListPage() {
         actions={
           <div className="flex items-center gap-2">
             {currentCategoryId > 0 && (
-              <AppButton variant="ghost" icon={ChevronLeft} onClick={handleGoBack}>
+              <AppButton variant="ghost" icon={ChevronLeft} onClick={goBack}>
                 Back
               </AppButton>
             )}
@@ -598,137 +704,15 @@ export function LearnerGroupListPage() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-3xs">
-            {loading ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="flex flex-col items-center gap-2 text-slate-400">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-                  <span className="text-xs font-bold uppercase tracking-wide">Loading directory...</span>
-                </div>
-              </div>
-            ) : (
-              <div className="custom-scrollbar h-full overflow-auto">
-                <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
-                  <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/90 text-xxs font-extrabold uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-4 py-2.5">Name</th>
-                      <th className="px-4 py-2.5 w-80">Description</th>
-                      <th className="px-4 py-2.5 w-32 text-center">Type</th>
-                      <th className="px-4 py-2.5 w-36 text-center">Size / Members</th>
-                      <th className="px-4 py-2.5 w-44">Division / Updated</th>
-                      <th className="px-4 py-2.5 w-32 text-center">Actions</th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {filteredItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-xs font-semibold text-slate-400">
-                          This folder is empty. Create a folder or learner group to start.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredItems.map(item => {
-                        const itemDivision = !item.isFolder
-                          ? getDivisionName((item.original as GroupDto).divisionId)
-                          : '-'
-
-                        return (
-                          <tr
-                            key={`${item.isFolder ? 'folder' : 'group'}-${item.id}`}
-                            className="cursor-pointer transition hover:bg-slate-50/70"
-                            onDoubleClick={() => handleOpenItem(item)}
-                          >
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2.5">
-                                {item.isFolder ? (
-                                  <Folder className="h-4.5 w-4.5 shrink-0 text-amber-500" />
-                                ) : (
-                                  <Layers className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
-                                )}
-                                <span className="truncate font-bold text-slate-800">{item.name}</span>
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-2.5 text-xs font-semibold text-slate-500">
-                              <span className="block truncate" title={item.description}>{item.description}</span>
-                            </td>
-
-                            <td className="px-4 py-2.5 text-center">
-                              <span className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-                                item.isFolder
-                                  ? 'border-amber-100 bg-amber-50 text-amber-700'
-                                  : 'border-indigo-100 bg-indigo-50 text-indigo-700'
-                              }`}>
-                                {item.isFolder ? 'Folder' : 'Group'}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-2.5 text-center text-xs font-bold text-slate-500">
-                              {item.countText}
-                            </td>
-
-                            <td className="px-4 py-2.5 text-xs font-semibold text-slate-500">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="truncate">{itemDivision}</span>
-                                <span className="text-[11px] text-slate-400">
-                                  {item.isFolder ? 'Created ' : 'Updated '}
-                                  {toDateText(item.updatedAt)}
-                                </span>
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-2.5" onClick={event => event.stopPropagation()}>
-                              <div className="flex items-center justify-center gap-1.5">
-                                {item.isFolder ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleDeleteFolder(item.original as CategoryLookup)}
-                                    className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                                    title="Delete Folder"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenMove(item.original as GroupDto)}
-                                      className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                                      title="Move Group"
-                                    >
-                                      <ArrowRightLeft className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleDeleteGroup(item.original as GroupDto)}
-                                      className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                                      title="Delete Group"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </>
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenItem(item)}
-                                  className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-md transition cursor-pointer"
-                                  title={item.isFolder ? 'Open Folder' : 'Open Group Details'}
-                                >
-                                  {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ExplorerTable
+            loading={loading}
+            loadingLabel="Loading directory..."
+            emptyText="This folder is empty. Create a folder or learner group to start."
+            columns={tableColumns}
+            items={filteredItems}
+            getRowKey={item => `${item.isFolder ? 'folder' : 'group'}-${item.id}`}
+            onRowDoubleClick={handleOpenItem}
+          />
         </div>
       </DataGridSurface>
 

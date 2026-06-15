@@ -31,6 +31,7 @@ type CategoryLookup = {
   divisionId?: number
 }
 
+// Mirrors subset response of GET Courses/course-types-lookup
 type CourseTypeLookup = {
   id: number
   name: string
@@ -57,6 +58,7 @@ type CourseContentApiItem = {
   URL?: string | null
 }
 
+// Mirrors CourseDetailDto (iLearn.Application/DTOs/CourseDetailDto.cs)
 type CourseDetailData = {
   id: number
   courseCode?: string
@@ -71,6 +73,7 @@ type CourseDetailData = {
   contentItems?: CourseContentApiItem[]
 }
 
+// Mirrors ApiResponse<T> (iLearn.Domain/Common/ApiResponse.cs)
 type CourseApiResponse<T = CourseDetailData> = {
   success: boolean
   message?: string
@@ -700,14 +703,11 @@ export function CourseEditorPage() {
     </div>
   )
 
-  const steps = useMemo<WizardStep[]>(
-    () => [
-      { label: 'Information', validate: () => validateDetails(), render: () => renderInformationStep() },
-      { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
-      { label: 'Review', render: () => renderReviewStep() }
-    ],
-    [formData, contentItems, divisions, categories, courseTypes, contentLibrary]
-  )
+  const steps: WizardStep[] = [
+    { label: 'Information', validate: () => validateDetails(), render: () => renderInformationStep() },
+    { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
+    { label: 'Review', render: () => renderReviewStep() }
+  ]
 
   if (loading) {
     return <LoadingState label="Loading course details..." />

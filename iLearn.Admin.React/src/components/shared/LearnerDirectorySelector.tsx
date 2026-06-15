@@ -78,6 +78,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
         setPositions(posItems.map((x: any) => typeof x === 'string' ? x : x.Name || x.name || '').filter(Boolean))
       } catch (err) {
         console.error('Failed to load initial directory lookups', err)
+        toast.error('Failed to load directory filters')
       }
     }
     void loadInit()
@@ -98,6 +99,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
         setDepartments(items.map((x: any) => typeof x === 'string' ? x : x.Name || x.name || '').filter(Boolean))
       } catch (err) {
         console.error('Failed to load departments', err)
+        toast.error('Failed to load departments')
       }
     }
     void loadDepts()
@@ -122,6 +124,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
         setSections(items.map((x: any) => typeof x === 'string' ? x : x.Name || x.name || '').filter(Boolean))
       } catch (err) {
         console.error('Failed to load sections', err)
+        toast.error('Failed to load sections')
       }
     }
     void loadSections()

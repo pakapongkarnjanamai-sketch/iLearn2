@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
   Folder,
@@ -19,7 +19,8 @@ import {
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer/ExplorerTable'
+import { useExplorer } from '../../components/ui/explorer/useExplorer'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useSession } from '../../lib/sessionContext'
 import { toast } from '../../lib/toast'
@@ -44,6 +45,7 @@ type CategoryLookup = {
   courseCount?: number
 }
 
+// Mirrors CourseDto (iLearn.Application/DTOs/CourseDto.cs)
 type CourseDto = {
   id: number
   code: string
@@ -59,6 +61,7 @@ type CourseDto = {
   divisionId?: number | null
 }
 
+// Mirrors subset response of GET Courses/course-types-lookup
 type CourseTypeLookup = {
   id: number
   name: string
@@ -77,6 +80,11 @@ type ExplorerItem = {
   isDivision?: boolean
 }
 
+type CourseExplorerPath = {
+  divisionId: number | null
+  categoryId: number | null
+}
+
 function unwrapList<T>(value: ApiEnvelope<T[]> | { data?: T[] } | T[] | undefined): T[] {
   if (!value) return []
   if (Array.isArray(value)) return value
@@ -91,8 +99,6 @@ function sortByNameAsc<T extends { name: string }>(a: T, b: T) {
 
 export function CourseListPage() {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const { setCustomCrumbs } = useBreadcrumbs()
   const { isSuperAdmin } = useSession()
   const { confirm, confirmDialog } = useConfirm()
 
@@ -106,19 +112,12 @@ export function CourseListPage() {
   const [editCategoryName, setEditCategoryName] = useState('')
   const [submittingRename, setSubmittingRename] = useState(false)
 
-  const rawDivisionId = searchParams.get('divisionId')
-  const rawCategoryId = searchParams.get('categoryId')
-
-  const currentDivisionId = rawDivisionId !== null ? Number(rawDivisionId) : null
-  const currentCategoryId = rawCategoryId !== null ? Number(rawCategoryId) : null
-
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [categories, setCategories] = useState<CategoryLookup[]>([])
   const [courses, setCourses] = useState<CourseDto[]>([])
   const [courseTypes, setCourseTypes] = useState<CourseTypeLookup[]>([])
 
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
   const [selectedTypeKey, setSelectedTypeKey] = useState('all')
 
   const divisionsById = useMemo(() => {
@@ -168,6 +167,114 @@ export function CourseListPage() {
       return false
     })
   }, [courses, categoriesById])
+
+  const {
+    path,
+    searchTerm,
+    setSearchTerm,
+    navigateToPath,
+    goBack,
+    filterBySearch,
+  } = useExplorer<CourseExplorerPath>({
+    rootPath: { divisionId: null, categoryId: null },
+    parsePath: params => {
+      const rawDivisionId = params.get('divisionId')
+      const rawCategoryId = params.get('categoryId')
+
+      return {
+        divisionId: rawDivisionId !== null ? Number(rawDivisionId) : null,
+        categoryId: rawCategoryId !== null ? Number(rawCategoryId) : null,
+      }
+    },
+    toParams: currentPath => {
+      const params: Record<string, string> = {}
+      if (currentPath.divisionId !== null) params.divisionId = String(currentPath.divisionId)
+      if (currentPath.categoryId !== null) params.categoryId = String(currentPath.categoryId)
+      return params
+    },
+    getParentPath: currentPath => {
+      if (currentPath.categoryId !== null) {
+        if (currentPath.categoryId === 0) {
+          return { divisionId: 0, categoryId: null }
+        }
+
+        const category = categoriesById.get(currentPath.categoryId)
+        if (category) {
+          return { divisionId: category.divisionId, categoryId: null }
+        }
+
+        return { divisionId: null, categoryId: null }
+      }
+
+      if (currentPath.divisionId !== null) {
+        return { divisionId: null, categoryId: null }
+      }
+
+      return null
+    },
+    buildBreadcrumbs: currentPath => {
+      const rootCrumbs = [{ to: '/courses', label: 'Courses' }]
+
+      if (currentPath.categoryId !== null) {
+        if (currentPath.categoryId === 0) {
+          return [
+            ...rootCrumbs,
+            { to: '/courses?divisionId=0', label: 'Uncategorized' },
+            { to: '/courses?categoryId=0', label: 'Uncategorized' },
+          ]
+        }
+
+        const category = categoriesById.get(currentPath.categoryId)
+        if (category) {
+          const division = divisionsById.get(category.divisionId)
+          const crumbs = [...rootCrumbs]
+          if (division) {
+            crumbs.push({ to: `/courses?divisionId=${division.id}`, label: division.name })
+          } else {
+            crumbs.push({ to: '/courses?divisionId=0', label: 'Uncategorized' })
+          }
+          crumbs.push({ to: `/courses?categoryId=${category.id}`, label: category.name })
+          return crumbs
+        }
+      }
+
+      if (currentPath.divisionId !== null) {
+        if (currentPath.divisionId === 0) {
+          return [...rootCrumbs, { to: '/courses?divisionId=0', label: 'Uncategorized' }]
+        }
+
+        const division = divisionsById.get(currentPath.divisionId)
+        if (division) {
+          return [...rootCrumbs, { to: `/courses?divisionId=${division.id}`, label: division.name }]
+        }
+      }
+
+      return rootCrumbs
+    },
+    isPathValid: currentPath => {
+      if (currentPath.categoryId !== null) {
+        if (currentPath.categoryId === 0) {
+          return uncategorizedCourses.length > 0
+        }
+
+        return categories.some(cat => cat.id === currentPath.categoryId)
+      }
+
+      if (currentPath.divisionId !== null) {
+        if (currentPath.divisionId === 0) {
+          return uncategorizedCourses.length > 0
+        }
+
+        return divisions.some(div => div.id === currentPath.divisionId)
+      }
+
+      return true
+    },
+    canValidatePath: !loading && divisions.length > 0,
+  })
+
+  const currentDivisionId = path.divisionId
+  const currentCategoryId = path.categoryId
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -325,129 +432,18 @@ export function CourseListPage() {
     }
   }, [confirm, coursesByCategory, loadData])
 
-  // Deep-link guard: validate query parameters after data loads
-  useEffect(() => {
-    if (loading || divisions.length === 0) return
-
-    if (currentCategoryId !== null) {
-      if (currentCategoryId === 0) {
-        if (uncategorizedCourses.length === 0) {
-          setSearchParams({}, { replace: true })
-        }
-        return
-      }
-      const exists = categories.some(cat => cat.id === currentCategoryId)
-      if (!exists) {
-        setSearchParams({}, { replace: true })
-      }
-    } else if (currentDivisionId !== null) {
-      if (currentDivisionId === 0) {
-        if (uncategorizedCourses.length === 0) {
-          setSearchParams({}, { replace: true })
-        }
-        return
-      }
-      const exists = divisions.some(div => div.id === currentDivisionId)
-      if (!exists) {
-        setSearchParams({}, { replace: true })
-      }
-    }
-  }, [loading, divisions, categories, currentCategoryId, currentDivisionId, uncategorizedCourses, setSearchParams])
-
-  // Manage Breadcrumbs
-  useEffect(() => {
-    const rootCrumbs = [{ to: '/courses', label: 'Courses' }]
-
-    if (currentCategoryId !== null) {
-      if (currentCategoryId === 0) {
-        setCustomCrumbs([
-          ...rootCrumbs,
-          { to: '/courses?divisionId=0', label: 'Uncategorized' },
-          { to: '/courses?categoryId=0', label: 'Uncategorized' }
-        ])
-        return
-      }
-
-      const category = categoriesById.get(currentCategoryId)
-      if (category) {
-        const division = divisionsById.get(category.divisionId)
-        const crumbs = [...rootCrumbs]
-        if (division) {
-          crumbs.push({ to: `/courses?divisionId=${division.id}`, label: division.name })
-        } else {
-          crumbs.push({ to: `/courses?divisionId=0`, label: 'Uncategorized' })
-        }
-        crumbs.push({ to: `/courses?categoryId=${category.id}`, label: category.name })
-        setCustomCrumbs(crumbs)
-      }
-      return
-    }
-
-    if (currentDivisionId !== null) {
-      if (currentDivisionId === 0) {
-        setCustomCrumbs([
-          ...rootCrumbs,
-          { to: '/courses?divisionId=0', label: 'Uncategorized' }
-        ])
-        return
-      }
-
-      const division = divisionsById.get(currentDivisionId)
-      if (division) {
-        setCustomCrumbs([
-          ...rootCrumbs,
-          { to: `/courses?divisionId=${division.id}`, label: division.name }
-        ])
-      }
-      return
-    }
-
-    setCustomCrumbs(rootCrumbs)
-  }, [currentCategoryId, currentDivisionId, categoriesById, divisionsById, setCustomCrumbs])
-
-  useEffect(() => {
-    return () => {
-      setCustomCrumbs(null)
-    }
-  }, [setCustomCrumbs])
-
-  const handleNavigate = useCallback((divisionId: number | null, categoryId: number | null) => {
-    const params: Record<string, string> = {}
-    if (divisionId !== null) params.divisionId = String(divisionId)
-    if (categoryId !== null) params.categoryId = String(categoryId)
-    setSearchParams(params)
-    setSearchTerm('')
-  }, [setSearchParams])
-
-  const handleGoBack = useCallback(() => {
-    if (currentCategoryId !== null) {
-      if (currentCategoryId === 0) {
-        handleNavigate(0, null)
-        return
-      }
-      const category = categoriesById.get(currentCategoryId)
-      if (category) {
-        handleNavigate(category.divisionId, null)
-      } else {
-        handleNavigate(null, null)
-      }
-    } else if (currentDivisionId !== null) {
-      handleNavigate(null, null)
-    }
-  }, [currentCategoryId, currentDivisionId, categoriesById, handleNavigate])
-
   const handleOpenItem = useCallback((item: ExplorerItem) => {
     if (item.isFolder) {
       if (currentDivisionId !== null) {
-        handleNavigate(currentDivisionId, item.id)
+        navigateToPath({ divisionId: currentDivisionId, categoryId: item.id })
       } else {
-        handleNavigate(item.id, null)
+        navigateToPath({ divisionId: item.id, categoryId: null })
       }
       return
     }
 
     navigate(`/courses/${item.id}`)
-  }, [currentDivisionId, handleNavigate, navigate])
+  }, [currentDivisionId, navigate, navigateToPath])
 
   const currentFolderName = useMemo(() => {
     if (currentCategoryId !== null) {
@@ -547,17 +543,135 @@ export function CourseListPage() {
   }, [currentCategoryId, currentDivisionId, divisions, categoriesByDivision, coursesByCategory, uncategorizedCourses, selectedTypeKey])
 
   const filteredItems = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    if (!term) return currentItems
-
-    return currentItems.filter(item => {
+    return filterBySearch(currentItems, (item, normalizedTerm) => {
       return (
-        item.name.toLowerCase().includes(term) ||
-        item.description.toLowerCase().includes(term) ||
-        (item.code && item.code.toLowerCase().includes(term))
+        item.name.toLowerCase().includes(normalizedTerm) ||
+        item.description.toLowerCase().includes(normalizedTerm) ||
+        (item.code && item.code.toLowerCase().includes(normalizedTerm)) ||
+        false
       )
     })
-  }, [currentItems, searchTerm])
+  }, [currentItems, filterBySearch])
+
+  const tableColumns = useMemo<ExplorerColumn<ExplorerItem>[]>(() => [
+    {
+      key: 'name',
+      title: 'Name',
+      render: item => (
+        <div className="flex items-center gap-2.5">
+          {item.isFolder ? (
+            item.isDivision ? (
+              <Building2 className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
+            ) : (
+              <Folder className="h-4.5 w-4.5 shrink-0 text-amber-500" />
+            )
+          ) : (
+            <BookOpen className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
+          )}
+          <div className="flex flex-col text-left py-0.5">
+            <span className="truncate font-bold text-slate-800 leading-tight">{item.name}</span>
+            {item.code && (
+              <span className="text-slate-400 font-mono text-[10px] mt-0.5">{item.code}</span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'description',
+      title: 'Description',
+      headerClassName: 'w-80',
+      cellClassName: 'text-xs font-semibold text-slate-500',
+      render: item => (
+        <span className="block truncate max-w-sm" title={item.description}>{item.description}</span>
+      ),
+    },
+    {
+      key: 'type',
+      title: 'Type',
+      headerClassName: 'w-32 text-center',
+      cellClassName: 'text-center',
+      render: item => (
+        item.isFolder ? (
+          <span className="inline-flex rounded border border-amber-100 bg-amber-50 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-700">
+            Folder
+          </span>
+        ) : (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-bold ${
+            (item.typeName || '').toLowerCase().includes('special')
+              ? 'bg-purple-100 text-purple-800 border border-purple-200/50'
+              : 'bg-blue-100 text-blue-800 border border-blue-200/50'
+          }`}>
+            {item.typeName || 'General'}
+          </span>
+        )
+      ),
+    },
+    {
+      key: 'status',
+      title: 'Status / Count',
+      headerClassName: 'w-36 text-center',
+      cellClassName: 'text-center text-xs font-bold text-slate-500',
+      render: item => (
+        item.isFolder ? (
+          <span className="text-xs font-bold text-slate-500">{item.countText}</span>
+        ) : (() => {
+          const status = item.statusName || '—'
+          const isDraft = status.toLowerCase() === 'draft'
+          const isRetired = status.toLowerCase() === 'retired'
+          const isOpen = status.toLowerCase() === 'open' || status.toLowerCase() === 'active'
+
+          let toneClass = 'bg-slate-100 text-slate-800 border-slate-200'
+          if (isOpen) toneClass = 'bg-emerald-100 text-emerald-800 border-emerald-200 font-bold'
+          else if (isDraft) toneClass = 'bg-amber-100 text-amber-800 border-amber-200'
+          else if (isRetired) toneClass = 'bg-rose-100 text-rose-800 border-rose-200'
+
+          return (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-semibold border ${toneClass}`}>
+              {status}
+            </span>
+          )
+        })()
+      ),
+    },
+    {
+      key: 'actions',
+      title: 'Actions',
+      headerClassName: 'w-32 text-center',
+      render: item => (
+        <div className="flex items-center justify-center gap-1.5" onClick={event => event.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => handleOpenItem(item)}
+            className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-md transition cursor-pointer"
+            title={item.isFolder ? 'Open Folder' : 'Open Course Details'}
+          >
+            {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
+          </button>
+          {currentDivisionId !== null && currentDivisionId > 0 && currentCategoryId === null && item.isFolder && item.id > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => openRenameCategoryModal(item.original as CategoryLookup)}
+                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                title="Rename Category"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteCategory(item.original as CategoryLookup)}
+                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                title="Delete Category"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ], [currentCategoryId, currentDivisionId, handleDeleteCategory, handleOpenItem, openRenameCategoryModal])
 
   return (
     <>
@@ -567,7 +681,7 @@ export function CourseListPage() {
         actions={
           <div className="flex items-center gap-2">
             {(currentCategoryId !== null || currentDivisionId !== null) && (
-              <AppButton variant="ghost" icon={ChevronLeft} onClick={handleGoBack}>
+              <AppButton variant="ghost" icon={ChevronLeft} onClick={goBack}>
                 Back
               </AppButton>
             )}
@@ -646,147 +760,15 @@ export function CourseListPage() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-3xs">
-            {loading ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="flex flex-col items-center gap-2 text-slate-400">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-                  <span className="text-xs font-bold uppercase tracking-wide">Loading directory...</span>
-                </div>
-              </div>
-            ) : (
-              <div className="custom-scrollbar h-full overflow-auto">
-                <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
-                  <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/90 text-xxs font-extrabold uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-4 py-2.5">Name</th>
-                      <th className="px-4 py-2.5 w-80">Description</th>
-                      <th className="px-4 py-2.5 w-32 text-center">Type</th>
-                      <th className="px-4 py-2.5 w-36 text-center">Status / Count</th>
-                      <th className="px-4 py-2.5 w-32 text-center">Actions</th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {filteredItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-12 text-center text-xs font-semibold text-slate-400">
-                          This folder is empty.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredItems.map(item => {
-                        return (
-                          <tr
-                            key={`${item.isFolder ? 'folder' : 'course'}-${item.id}`}
-                            className="cursor-pointer transition hover:bg-slate-50/70"
-                            onDoubleClick={() => handleOpenItem(item)}
-                          >
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2.5">
-                                {item.isFolder ? (
-                                  item.isDivision ? (
-                                    <Building2 className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
-                                  ) : (
-                                    <Folder className="h-4.5 w-4.5 shrink-0 text-amber-500" />
-                                  )
-                                ) : (
-                                  <BookOpen className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
-                                )}
-                                <div className="flex flex-col text-left py-0.5">
-                                  <span className="truncate font-bold text-slate-800 leading-tight">{item.name}</span>
-                                  {item.code && (
-                                    <span className="text-slate-400 font-mono text-[10px] mt-0.5">{item.code}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-2.5 text-xs font-semibold text-slate-500">
-                              <span className="block truncate max-w-sm" title={item.description}>{item.description}</span>
-                            </td>
-
-                            <td className="px-4 py-2.5 text-center">
-                              {item.isFolder ? (
-                                <span className="inline-flex rounded border border-amber-100 bg-amber-50 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-700">
-                                  Folder
-                                </span>
-                              ) : (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-bold ${
-                                  (item.typeName || '').toLowerCase().includes('special')
-                                    ? 'bg-purple-100 text-purple-800 border border-purple-200/50'
-                                    : 'bg-blue-100 text-blue-800 border border-blue-200/50'
-                                }`}>
-                                  {item.typeName || 'General'}
-                                </span>
-                              )}
-                            </td>
-
-                            <td className="px-4 py-2.5 text-center text-xs font-bold text-slate-500">
-                              {item.isFolder ? (
-                                <span className="text-xs font-bold text-slate-500">{item.countText}</span>
-                              ) : (
-                                (() => {
-                                  const status = item.statusName || '—'
-                                  const isDraft = status.toLowerCase() === 'draft'
-                                  const isRetired = status.toLowerCase() === 'retired'
-                                  const isOpen = status.toLowerCase() === 'open' || status.toLowerCase() === 'active'
-                                  
-                                  let toneClass = 'bg-slate-100 text-slate-800 border-slate-200'
-                                  if (isOpen) toneClass = 'bg-emerald-100 text-emerald-800 border-emerald-200 font-bold'
-                                  else if (isDraft) toneClass = 'bg-amber-100 text-amber-800 border-amber-200'
-                                  else if (isRetired) toneClass = 'bg-rose-100 text-rose-800 border-rose-200'
-
-                                  return (
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-semibold border ${toneClass}`}>
-                                      {status}
-                                    </span>
-                                  )
-                                })()
-                              )}
-                            </td>
-
-                            <td className="px-4 py-2.5" onClick={event => event.stopPropagation()}>
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenItem(item)}
-                                  className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-md transition cursor-pointer"
-                                  title={item.isFolder ? 'Open Folder' : 'Open Course Details'}
-                                >
-                                  {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
-                                </button>
-                                {currentDivisionId !== null && currentDivisionId > 0 && currentCategoryId === null && item.isFolder && item.id > 0 && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => openRenameCategoryModal(item.original as CategoryLookup)}
-                                      className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                                      title="Rename Category"
-                                    >
-                                      <Edit3 className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteCategory(item.original as CategoryLookup)}
-                                      className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                                      title="Delete Category"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ExplorerTable
+            loading={loading}
+            loadingLabel="Loading directory..."
+            emptyText="This folder is empty."
+            columns={tableColumns}
+            items={filteredItems}
+            getRowKey={item => `${item.isFolder ? 'folder' : 'course'}-${item.id}`}
+            onRowDoubleClick={handleOpenItem}
+          />
         </div>
       </DataGridSurface>
 

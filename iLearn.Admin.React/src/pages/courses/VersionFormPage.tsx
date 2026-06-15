@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { 
   ArrowDown, 
@@ -22,6 +22,7 @@ type ContentLibraryItem = CourseContentApiItem & {
   courseIdsCount?: number
 }
 
+// Mirrors ApiResponse<T> (iLearn.Domain/Common/ApiResponse.cs)
 type ApiResponse<T> = {
   success: boolean
   message?: string
@@ -47,6 +48,7 @@ type CourseVersionData = {
   contentItems?: CourseContentApiItem[]
 }
 
+// Mirrors CourseVersionLearnerImpactDto (iLearn.Application/DTOs/CourseVersionLearnerImpactDto.cs)
 type VersionImpact = {
   courseId: number
   notStartedCount: number
@@ -175,11 +177,14 @@ export function VersionFormPage() {
             }
           }
         })
-        .catch(console.error)
+        .catch(error => {
+          console.error(error)
+          toast.error('Failed to load course information')
+        })
     }
   }, [parsedCourseId, courseId, setLabel])
 
-  const loadContentLibrary = async () => {
+  const loadContentLibrary = useCallback(async () => {
     try {
       const result = await fetchWithAccessControl<LoadResult<ContentLibraryItem>>('ContentLibrary/lookup')
       setContentLibrary(unwrapList(result))
@@ -187,7 +192,7 @@ export function VersionFormPage() {
       console.error(error)
       toast.error('Failed to load content library')
     }
-  }
+  }, [])
 
   const visibleContentLibrary = useMemo(() => {
     const normalizedSearch = contentSearch.trim().toLowerCase()
@@ -209,18 +214,19 @@ export function VersionFormPage() {
     })
   }
 
-  const loadVersionImpact = async () => {
+  const loadVersionImpact = useCallback(async () => {
     if (!parsedCourseId) return
     try {
       const result = await fetchWithAccessControl<ApiResponse<VersionImpact>>(`Courses/${parsedCourseId}/version-impact`)
       setImpact(result.data || null)
     } catch (error) {
       console.error(error)
+      toast.error('Failed to load learner impact summary')
       setImpact(null)
     }
-  }
+  }, [parsedCourseId])
 
-  const loadVersionData = async () => {
+  const loadVersionData = useCallback(async () => {
     if (!isEditMode || !id) return
     setLoading(true)
     try {
@@ -239,16 +245,16 @@ export function VersionFormPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, isEditMode])
 
   useEffect(() => {
     void loadContentLibrary()
     void loadVersionImpact()
-  }, [parsedCourseId])
+  }, [loadContentLibrary, loadVersionImpact])
 
   useEffect(() => {
     void loadVersionData()
-  }, [id])
+  }, [loadVersionData])
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target
@@ -571,12 +577,12 @@ export function VersionFormPage() {
     </div>
   )
 
-  const steps: WizardStep[] = useMemo(() => [
+  const steps: WizardStep[] = [
     { label: 'Details', validate: () => validateDetails(), render: () => renderDetailsStep() },
     { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
     { label: 'Options', render: () => renderOptionsStep() },
     { label: 'Review', render: () => renderReviewStep() }
-  ], [formData, contentItems, impact, showLibraryPopup, contentSearch, contentLibrary])
+  ]
 
   if (loading) {
     return <LoadingState label="Loading version details..." />

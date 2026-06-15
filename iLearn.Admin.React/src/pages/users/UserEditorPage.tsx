@@ -322,19 +322,16 @@ export function UserEditorPage() {
     </div>
   )
 
-  const steps: WizardStep[] = useMemo(() => {
-    if (isCreate) {
-      return [
+  const steps: WizardStep[] = isCreate
+    ? [
         { label: 'User', validate: validateUser, render: renderUserStep },
         { label: 'Roles', validate: validateRoles, render: renderRolesStep },
         { label: 'Review', render: renderReviewStep },
       ]
-    }
-    return [
-      { label: 'Roles', validate: validateRoles, render: renderRolesStep },
-      { label: 'Review', render: renderReviewStep },
-    ]
-  }, [isCreate, nid, pendingRoleIds, allRoles, user])
+    : [
+        { label: 'Roles', validate: validateRoles, render: renderRolesStep },
+        { label: 'Review', render: renderReviewStep },
+      ]
 
   if (loadingUser) {
     return <LoadingState label="Loading user data..." />

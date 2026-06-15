@@ -68,6 +68,7 @@ type CourseVersion = {
   contentItems: CourseContentItem[]
 }
 
+// Mirrors CourseDashboardKpiDto (iLearn.Application/DTOs/CourseDashboardDtos.cs)
 type CourseKPI = {
   versionCount: number
   learnerCount: number
@@ -75,12 +76,14 @@ type CourseKPI = {
   assignmentCount: number
 }
 
+// Mirrors CourseDashboardDto (iLearn.Application/DTOs/CourseDashboardDtos.cs)
 type CourseDashboardData = {
   course: CourseDetail
   versions: CourseVersion[]
   kpi?: CourseKPI
 }
 
+// Mirrors CourseLearnerDto (iLearn.Application/DTOs/CourseDashboardDtos.cs)
 type CourseLearner = {
   id: number
   learnerCode: string
@@ -96,6 +99,7 @@ type CourseLearner = {
   status: string
 }
 
+// Mirrors CourseAssignmentHistoryDto (iLearn.Application/DTOs/CourseDashboardDtos.cs)
 type CourseAssignment = {
   id: number
   assignmentNo: string

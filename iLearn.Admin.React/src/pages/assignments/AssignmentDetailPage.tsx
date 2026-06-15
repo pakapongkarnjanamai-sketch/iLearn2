@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Users,
@@ -142,7 +142,7 @@ export function AssignmentDetailPage() {
     return Array.from(map.values())
   }, [assignment])
 
-  const loadAssignmentDetails = async () => {
+  const loadAssignmentDetails = useCallback(async () => {
     setLoading(true)
     try {
       const resp = await fetchWithAccessControl<{ success: boolean; data: AssignmentDetail }>(`Assignments/dashboard/${id}`)
@@ -156,11 +156,11 @@ export function AssignmentDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    loadAssignmentDetails()
-  }, [id])
+    void loadAssignmentDetails()
+  }, [loadAssignmentDetails])
 
   // Extend due date
   const handleExtendDueDate = async () => {

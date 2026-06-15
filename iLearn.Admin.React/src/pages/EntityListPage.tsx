@@ -7,6 +7,7 @@ import { AppTable } from '../components/ui/AppTable'
 import { createAdminDataSource } from '../lib/createDataSource'
 import { createRestDataSource } from '../lib/createRestDataSource'
 import { fetchWithAccessControl } from '../lib/apiClient'
+import { toast } from '../lib/toast'
 import type { AdminListConfig } from './moduleConfigs'
 
 type EntityListPageProps = {
@@ -28,7 +29,10 @@ export function EntityListPage({ config }: EntityListPageProps) {
             setDivisions(res)
           }
         })
-        .catch(err => console.error('Failed to load divisions for lookup', err))
+        .catch(err => {
+          console.error('Failed to load divisions for lookup', err)
+          toast.error('Failed to load division lookup')
+        })
     }
   }, [config.controller])
 

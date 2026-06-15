@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Upload,
@@ -273,18 +273,15 @@ export function ContentItemEditorPage() {
     )
   }
 
-  const steps: WizardStep[] = useMemo(() => {
-    if (isCreate) {
-      return [
+  const steps: WizardStep[] = isCreate
+    ? [
         { label: 'Package Upload', validate: validateUpload, render: renderUploadStep },
         { label: 'Review', render: renderReviewStep }
       ]
-    }
-    return [
-      { label: 'Metadata', validate: validateMetadata, render: renderMetadataStep },
-      { label: 'Review', render: renderReviewStep }
-    ]
-  }, [isCreate, form, file])
+    : [
+        { label: 'Metadata', validate: validateMetadata, render: renderMetadataStep },
+        { label: 'Review', render: renderReviewStep }
+      ]
 
   if (loading) {
     return <LoadingState label="Loading content item..." />

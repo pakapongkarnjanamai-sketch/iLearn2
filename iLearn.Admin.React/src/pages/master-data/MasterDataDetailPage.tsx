@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Edit3,
@@ -61,7 +61,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
     }
   }, [config, isNewItem, setLabel])
 
-  const loadItem = async () => {
+  const loadItem = useCallback(async () => {
     if (isNewItem || !store || !id) return
     setLoading(true)
     try {
@@ -84,11 +84,11 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, isNewItem, setLabel, store])
 
   useEffect(() => {
-    loadItem()
-  }, [id, store, isNew])
+    void loadItem()
+  }, [loadItem])
 
   const handleFieldChange = (field: string, val: any) => {
     setActiveValues((prev: any) => ({ ...prev, [field]: val }))
@@ -121,6 +121,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
       }
     } catch (err) {
       console.error(err)
+      toast.error(isNewItem ? 'Failed to create record' : 'Failed to save changes')
     } finally {
       setBusy(false)
     }
@@ -143,6 +144,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
       navigate(`/master-data/${type}`)
     } catch (err) {
       console.error(err)
+      toast.error(`Failed to delete ${entityName}`)
     } finally {
       setBusy(false)
     }
