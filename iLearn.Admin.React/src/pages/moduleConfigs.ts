@@ -142,7 +142,8 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Enrollment Records',
     gridNote: 'SuperAdmin only. Resetting enrollments is destructive and tracked through audit logs.',
-    searchExpr: ['learnerCode', 'status'],
+    // `status` is not server-filterable on EnrollmentsCRUD (returns 500) — search learnerCode only.
+    searchExpr: ['learnerCode'],
     columns: [
       { dataField: 'id', caption: 'ID', dataType: 'number', width: 90, alignment: 'center' },
       { dataField: 'assignmentId', caption: 'Assignment', dataType: 'number', width: 120, alignment: 'center' },
@@ -206,7 +207,8 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Role Directory',
     gridNote: 'Inline edit available. SuperAdmin only. Role membership is managed elsewhere.',
-    searchExpr: ['name', 'description'],
+    // `description` is not server-filterable on RolesCRUD (returns 500) — search name only.
+    searchExpr: ['name'],
     columns: [
       { dataField: 'name', caption: 'Role Name', minWidth: 220 },
       { dataField: 'description', caption: 'Description', minWidth: 280 },

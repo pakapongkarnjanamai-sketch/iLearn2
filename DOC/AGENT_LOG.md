@@ -14,6 +14,43 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 12:30] Claude Code — Review + ปิด PLAN-013/014 เป็น VERIFIED
+- ทำอะไร: รีวิว diff จริง — **PLAN-013** (GPT): `FileStoragesCRUDController.cs` ถูกลบ, grep ทั้ง solution 0 refs, repository/entity ไม่ถูกแตะ; **PLAN-014** (Gemini): LearnerApiService inject ILogger + ลบ Console ครบ, group A (primary) propagate exception โดย GetLearnersDxGridAsync ใช้ GetAsync แยก 4xx→ArgumentException/5xx→HttpRequestException, group B (enrichment) degrade graceful + LogWarning, GlobalExceptionMiddleware เพิ่ม HttpRequestException→502, LearnersController ลบ null-check generic message, + test ใหม่ GlobalExceptionMiddlewareTests (502 ProblemDetails ใน Production) — ปรับทั้งคู่เป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-013-*.md`, `DOC/PLANS/PLAN-014-*.md` (อัปเดตสถานะ — ไม่แตะโค้ด)
+- Contract ที่เปลี่ยน: ไม่มี (โค้ดเปลี่ยนโดย implementer แล้ว — error path เปลี่ยนเป็น ProblemDetails/502 ตามแผน)
+- Verified: รันเอง `dotnet build` + `dotnet test` = 116/116 ผ่าน
+
+## [2026-06-15 12:00] Claude Code — Hotfix search error /enrollments + /master-data/roles (searchExpr ผิดจาก PLAN-011)
+- ทำอะไร: ผู้ใช้แจ้ง error ช่อง search 2 หน้า — เทส endpoint จริง (status code): enrollments `status`=500, roles `description`=500 (learnerCode/name = 200) สาเหตุ: **Role ไม่มี property `Description`** (มีแค่ Name/RoleType) และ **Enrollment ไม่มี `Status`** (EnrollmentsCRUD projection custom) → filter ฟิลด์ที่ไม่มีจริง 500 (พลาดตอน PLAN-011 ที่ผม prescribe โดยไม่ได้เทส 2 ฟิลด์นี้) แก้ `moduleConfigs.ts`: enrollments → `['learnerCode']`, masterDataRoles → `['name']` แล้วเทสซ้ำทุกตาราง (categories/courseTypes/assignments/divisions/learningLogs/learners) = 200 หมด
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/moduleConfigs.ts`
+- Contract ที่เปลี่ยน: ไม่มี (frontend search config)
+- Verified: endpoint จริง (learnerCode=200, name=200, ทุก config อื่น=200), `npm run build` ผ่าน, `npm run lint` 0 errors (11 warnings baseline)
+- ข้อสังเกตค้าง (ยังไม่แก้): roles grid มี **คอลัมน์ `description` ที่ map กับ property ที่ไม่มีบน Role** → แสดงค่าว่างเสมอ (คนละเรื่องกับ search — ควรออกแผนลบคอลัมน์/เพิ่มฟิลด์ทีหลัง)
+
+## [2026-06-15 09:10] Antigravity — Implement PLAN-014 ปรับปรุงการจัดการ Exception ใน LearnerApiService และ GlobalExceptionMiddleware
+- ทำอะไร: Inject `ILogger` และนำการกลืน exception ออกในกลุ่ม primary fetch ของ `LearnerApiService` เพื่อให้ propagate ขึ้นไปหา `GlobalExceptionMiddleware`; ในกลุ่ม enrichment helper ปล่อยให้ fallback ว่างแต่แก้ไขเป็น LogWarning; ปรับปรุง `GetLearnersDxGridAsync` ให้โยน `ArgumentException` เมื่อเป็น 4xx client errors และโยน `HttpRequestException` เมื่อเป็น connection/5xx errors; ปรับปรุง `GlobalExceptionMiddleware` ให้แมป `HttpRequestException` เป็น `502 Bad Gateway` (Upstream employee service error); เพิ่ม unit test `GlobalExceptionMiddlewareTests.cs`
+- ไฟล์หลักที่แตะ: `iLearn.Infrastructure/Services/LearnerApiService.cs`, `iLearn.API/Controllers/LearnersController.cs`, `iLearn.API/Middleware/GlobalExceptionMiddleware.cs`, `iLearn.Tests/GlobalExceptionMiddlewareTests.cs`, `DOC/PLANS/PLAN-014-learner-api-service-error-handling.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): คืน HTTP 502 ProblemDetails (Bad Gateway) เมื่อ upstream service ล้ม แทน 500
+- Verified: `dotnet test` (116/116 passed) ผ่านการทดสอบทั้งหมดแล้ว
+
+## [2026-06-15 09:06] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-013 ลบ FileStoragesCRUD endpoint ที่เสี่ยงดัมพ์ blob
+- ทำอะไร: ลบ `FileStoragesCRUDController` ออกจาก `iLearn.API` เพื่อตัด endpoint `api/admin/FileStoragesCRUD/*` ที่ inherit generic CRUD และเสี่ยงโหลด/serialize `FileStorage.Data` (SCORM ZIP blob) แบบทั้งตาราง; ตรวจซ้ำว่า `IGenericRepository<FileStorage>` ยังใช้งานตามเดิมใน `ContentItemsController`, `ContentItemsCRUDController`, และ services ฝั่ง Application โดยไม่แตะ flow เสิร์ฟไฟล์จริง
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/Base/FileStoragesCRUDController.cs` (deleted), `DOC/PLANS/PLAN-013-remove-filestorages-crud-blob-exposure.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): เอา admin CRUD route สำหรับ FileStorage ออก (`api/admin/FileStoragesCRUD/*`); contract อื่นไม่เปลี่ยน
+- Verified: `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (115/115), ลบ `artifacts\verify-test` แล้ว
+
+## [2026-06-15 11:20] Claude Code — เขียนแผนปรับปรุงจากผลวิเคราะห์ API (PLAN-013/014)
+- ทำอะไร: แปลงข้อค้นพบใน api_analysis เป็นแผน 2 ใบ — **PLAN-013** (GPT, HIGH: ลบ `FileStoragesCRUDController` ที่ไม่มีใครใช้แต่ดัมพ์ SCORM blob ทั้งหมดผ่าน GetAllAsync — ยืนยัน grep client = 0), **PLAN-014** (Gemini, MED: `LearnerApiService` เลิกกลืน exception, ใช้ ILogger, แยก primary fetch (propagate→ProblemDetails/502) กับ enrichment helper (degrade graceful + log warning)) — ข้อ 5.3/5.4/5.5 (enrich-before-filter, refactor controller ใหญ่, anonymous→DTO) ยังไม่ออกแผน รอผู้ใช้เลือก
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-013-*.md`, `DOC/PLANS/PLAN-014-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
+## [2026-06-15 11:00] Claude Code — วิเคราะห์ API ทั้งระบบ → DOC/api_analysis.md
+- ทำอะไร: อ่านทั้ง backend (33 controllers, Program.cs, auth extensions, middleware, LearnerApiService, HMAC resolver) แล้วเขียนเอกสารวิเคราะห์รวม: สถาปัตยกรรม Clean Arch, โมเดล auth (policies + HMAC learner proxy), surface endpoint, pattern ที่ใช้ซ้ำ, และความเสี่ยงเรียงลำดับ — พบ landmine สำคัญ: **FileStoragesCRUDController ดัมพ์ SCORM blob ทั้งหมด** (HIGH), LearnerApiService กลืน exception (MED), DevExtreme filter ผูก projection (MED, กำลังแก้ PLAN-009/011/012), controller ใหญ่/anonymous-object response (LOW)
+- ไฟล์หลักที่แตะ: `DOC/api_analysis.md` (เอกสารใหม่ — ไม่แตะโค้ด)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (analysis ล้วน)
+
 ## [2026-06-15 10:30] Claude Code — Review รวบยอด: ปิด 9 แผนเป็น VERIFIED
 - ทำอะไร: รีวิวงานค้างทั้งหมดแล้วปรับเป็น VERIFIED — PLAN-004 (Users wizard), PLAN-005 (LearnerGroupCategories wizard), PLAN-006 (Users detail+delete), PLAN-007 (shared detail components), PLAN-008 (detail migration), PLAN-009-refine (ลบ header/back, tabs), PLAN-010 (Reset→icon), PLAN-011 (search expr ทั้งระบบ), PLAN-012 (custom pages search). ตรวจด้วย: full build/lint/test เขียวหมด + grep acceptance (ใน src/pages: minmax 2-col grid=0, hand dt-fact=0, DetailPageHeader=0, ทั้ง 7 detail page ใช้ shared components) + spot-check MasterDataDetailPage (form ครอบ DetailLayout ถูก) + ยืนยัน createDataSource ลบ fallback title/code/name + searchExpr ทุกตัวตรงกับฟิลด์ที่เทส endpoint จริง=200 + ux_ui_analysis 2.4 ตรงกับ design จริง (action-only sidebar, ไม่มี header)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-004..012*.md` (อัปเดตสถานะ — ไม่แตะโค้ด)

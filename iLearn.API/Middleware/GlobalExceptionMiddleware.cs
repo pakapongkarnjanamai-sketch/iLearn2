@@ -92,6 +92,7 @@ namespace iLearn.API.Middleware
             ArgumentException                => (StatusCodes.Status400BadRequest, "Invalid request."),
             InvalidOperationException        => (StatusCodes.Status409Conflict,   "Operation not allowed."),
             OperationCanceledException       => (499 /* client closed request */, "Request cancelled."),
+            System.Net.Http.HttpRequestException => (StatusCodes.Status502BadGateway, "Upstream employee service error."),
             _                                => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
 

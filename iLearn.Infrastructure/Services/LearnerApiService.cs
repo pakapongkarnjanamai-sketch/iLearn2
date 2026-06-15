@@ -2,11 +2,15 @@ using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces.Services;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace iLearn.Infrastructure.Services
 {
@@ -14,6 +18,7 @@ namespace iLearn.Infrastructure.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IMemoryCache _cache;
+        private readonly ILogger<LearnerApiService> _logger;
         private readonly string _baseLearnerLookupUrl;
         private readonly string _baseLearnerUrl;
         private readonly string _baseEmployeeCsvUrl;
@@ -22,10 +27,12 @@ namespace iLearn.Infrastructure.Services
         public LearnerApiService(
             HttpClient httpClient,
             IOptions<EmployeeServiceSettings> settings,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            ILogger<LearnerApiService> logger)
         {
             _httpClient = httpClient;
             _cache = cache;
+            _logger = logger;
             _baseLearnerLookupUrl = settings.Value.BaseLearnerLookupUrl;
             _baseLearnerUrl = settings.Value.BaseLearnerUrl;
             _baseEmployeeCsvUrl = settings.Value.BaseEmployeeCsvUrl;
@@ -33,48 +40,42 @@ namespace iLearn.Infrastructure.Services
 
         public async Task<string> GetLearnersDxGridAsync(string queryString)
         {
-            try
+            var url = $"{_baseLearnerUrl}{queryString}";
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
             {
-                return await _httpClient.GetStringAsync($"{_baseLearnerUrl}{queryString}");
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var statusCode = (int)response.StatusCode;
+                _logger.LogError("Upstream employee service returned non-success status code {StatusCode} for URL {Url}. Body: {Body}", statusCode, url, responseBody);
+                
+                if (statusCode >= 400 && statusCode < 500)
+                {
+                    throw new ArgumentException($"Upstream employee service returned client error ({statusCode}): {responseBody}");
+                }
+                else
+                {
+                    throw new HttpRequestException($"Upstream employee service returned error ({statusCode}): {responseBody}", null, response.StatusCode);
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching DevExtreme grid data: {ex.Message}");
-                return null;
-            }
+            return await response.Content.ReadAsStringAsync();
         }
 
         public async Task<ExternalLearnerDto> GetLearnerByCodeAsync(string Code)
         {
-            try
-            {
-                var url = $"{_baseLearnerLookupUrl}/{Code}";
-                var response = await _httpClient.GetFromJsonAsync<ExternalLearnerDto>(url);
-                return response;
-            }
-            catch
-            {
-                return null;
-            }
+            var url = $"{_baseLearnerLookupUrl}/{Code}";
+            var response = await _httpClient.GetFromJsonAsync<ExternalLearnerDto>(url);
+            return response;
         }
 
         public async Task<AllLearnersApiResponse> GetLearnerAsync()
         {
-            try
-            {
-                return await _httpClient.GetFromJsonAsync<AllLearnersApiResponse>(
-                    $"{_baseLearnerUrl}/all");
-            }
-            catch
-            {
-                return null;
-            }
+            return await _httpClient.GetFromJsonAsync<AllLearnersApiResponse>(
+                $"{_baseLearnerUrl}/all");
         }
 
         /// <summary>
-        /// Bulk lookup: ??? HTTP 1 ????????? /api/Learner/all (Server cache 24h)
-        /// ???? filter ????? codes ???????????? memory
-        /// ????????? GetLearnerByCodeAsync ?????? (N+1 problem)
+        /// Bulk lookup — ดึงข้อมูลพนักงานทั้งหมดด้วย HTTP 1 ครั้งผ่าน /api/Learner/all (มี server cache 24h)
+        /// แล้วมา filter + map ใน memory แทนการเรียก GetLearnerByCodeAsync ทีละคน (N+1 problem)
         /// </summary>
         public async Task<Dictionary<string, ExternalLearnerDto>> GetLearnersByCodesAsync(
             IEnumerable<string> codes)
@@ -82,7 +83,7 @@ namespace iLearn.Infrastructure.Services
             try
             {
                 var codeSet = codes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var response = await GetLearnerAsync(); // reuse � server ?? MemoryCache 24h
+                var response = await GetLearnerAsync(); // ยิงดึงทั้งหมด
 
                 if (response?.data == null)
                     return new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase);
@@ -105,7 +106,8 @@ namespace iLearn.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetLearnersByCodesAsync: {ex.Message}");
+                // Graceful degradation โดยตั้งใจ — enrichment ล้มไม่ควรทำทั้งหน้าพัง
+                _logger.LogWarning(ex, "Error in GetLearnersByCodesAsync (gracefully degraded with empty dictionary): {Message}", ex.Message);
                 return new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase);
             }
         }
@@ -134,7 +136,8 @@ namespace iLearn.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetEmployeesByNidsAsync: {ex.Message}");
+                // Graceful degradation โดยตั้งใจ — enrichment ล้มไม่ควรทำทั้งหน้าพัง
+                _logger.LogWarning(ex, "Error in GetEmployeesByNidsAsync (gracefully degraded with empty dictionary): {Message}", ex.Message);
                 return new Dictionary<string, EmployeeCsvDto>(StringComparer.OrdinalIgnoreCase);
             }
         }
@@ -157,82 +160,44 @@ namespace iLearn.Infrastructure.Services
 
         public async Task<DivisionApiResponse> GetLearnersByDivisionsAsync(string[] divisions, int skip = 0, int take = 20)
         {
-            try
-            {
-                var keyObj = new { divisions };
-                var encodedKey = Uri.EscapeDataString(JsonSerializer.Serialize(keyObj));
-                var encodedSummary = Uri.EscapeDataString("[{\"selector\":\"EId\",\"summaryType\":\"count\"}]");
-                var url = $"{_baseLearnerUrl}/divisions?key={encodedKey}&skip={skip}&take={take}" +
-                          $"&requireTotalCount=true&totalSummary={encodedSummary}";
-                return await _httpClient.GetFromJsonAsync<DivisionApiResponse>(url);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching divisions: {ex.Message}");
-                return null;
-            }
+            var keyObj = new { divisions };
+            var encodedKey = Uri.EscapeDataString(JsonSerializer.Serialize(keyObj));
+            var encodedSummary = Uri.EscapeDataString("[{\"selector\":\"EId\",\"summaryType\":\"count\"}]");
+            var url = $"{_baseLearnerUrl}/divisions?key={encodedKey}&skip={skip}&take={take}" +
+                      $"&requireTotalCount=true&totalSummary={encodedSummary}";
+            return await _httpClient.GetFromJsonAsync<DivisionApiResponse>(url);
         }
 
         public async Task<object> GetSectionsAsync(string queryString)
         {
-            try
-            {
-                // ?????? URL ???? GetDistinctSections
-                var url = $"{_baseLearnerLookupUrl}/GetDistinctSections{queryString}";
-                var response = await _httpClient.GetFromJsonAsync<object>(url);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching Sections: {ex.Message}");
-                return null;
-            }
+            // เรียกใช้ URL สำหรับ GetDistinctSections
+            var url = $"{_baseLearnerLookupUrl}/GetDistinctSections{queryString}";
+            var response = await _httpClient.GetFromJsonAsync<object>(url);
+            return response;
         }
 
         public async Task<object> GetDivisionsAsync(string queryString)
         {
-            try
-            {
-                // ?????? URL ???? GetDistinctDivisions
-                var url = $"{_baseLearnerLookupUrl}/GetDistinctDivisions{queryString}";
-                var response = await _httpClient.GetFromJsonAsync<object>(url);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching Divisions: {ex.Message}");
-                return null;
-            }
+            // เรียกใช้ URL สำหรับ GetDistinctDivisions
+            var url = $"{_baseLearnerLookupUrl}/GetDistinctDivisions{queryString}";
+            var response = await _httpClient.GetFromJsonAsync<object>(url);
+            return response;
         }
 
         public async Task<object> GetDepartmentsAsync(string queryString)
         {
-            try
-            {
-                var url = $"{_baseLearnerLookupUrl}/GetDistinctDepartments{queryString}";
-                var response = await _httpClient.GetFromJsonAsync<object>(url);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching Departments: {ex.Message}");
-                return null;
-            }
+            // เรียกใช้ URL สำหรับ GetDistinctDepartments
+            var url = $"{_baseLearnerLookupUrl}/GetDistinctDepartments{queryString}";
+            var response = await _httpClient.GetFromJsonAsync<object>(url);
+            return response;
         }
 
         public async Task<object> GetPositionsAsync(string queryString)
         {
-            try
-            {
-                var url = $"{_baseLearnerLookupUrl}/GetDistinctPositions{queryString}";
-                var response = await _httpClient.GetFromJsonAsync<object>(url);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching Positions: {ex.Message}");
-                return null;
-            }
+            // เรียกใช้ URL สำหรับ GetDistinctPositions
+            var url = $"{_baseLearnerLookupUrl}/GetDistinctPositions{queryString}";
+            var response = await _httpClient.GetFromJsonAsync<object>(url);
+            return response;
         }
     }
 }

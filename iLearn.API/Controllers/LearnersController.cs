@@ -162,11 +162,6 @@ namespace iLearn.API.Controllers
 
             var resultJson = await _learnerService.GetLearnersDxGridAsync(queryString);
 
-            if (resultJson == null)
-            {
-                return StatusCode(500, new { message = "Failed to connect to the employee data source." });
-            }
-
             try
             {
                 var response = JsonSerializer.Deserialize<LearnersGridResponse>(resultJson, new JsonSerializerOptions
