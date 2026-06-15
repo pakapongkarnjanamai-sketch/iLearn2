@@ -14,6 +14,18 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 16:02] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-029 cleanup dead CSS in React index.css
+- ทำอะไร: ทำตาม `PLAN-029-cleanup-dead-css` โดยลบ dead CSS จาก `iLearn.Admin.React/src/index.css` ครบ 8 รายการ (classes: `.neon-glow-dot`, `.selected-floating-badge`, `.overflow-wrap-anywhere`, `.wiz-section`, `.wiz-section-title`; keyframes: `neon-glow`, `badge-pulse`, `badge-fade-slide-in`) และตรวจซ้ำว่า keyframe ที่ลบไม่ถูก class ที่เหลืออ้างผ่าน `animation`; sync เอกสาร `DOC/ux_ui_analysis.md` §2.3 ให้ลบมาตรฐานที่เลิกใช้ (`wiz-section`/`wiz-section-title`)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `DOC/ux_ui_analysis.md`, `DOC/PLANS/PLAN-029-cleanup-dead-css.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: grep ยืนยัน class ที่ลบไม่มี reference ใน `src/**/*.ts,tsx`; grep ใน `index.css` ไม่พบ keyframe/class ที่ลบแล้ว; `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 21:00] Claude Code — เขียน PLAN-029 (clean code CSS — ลบ dead CSS)
+- ทำอะไร: ผู้ใช้ขอ clean code CSS — สแกน `index.css` (324 บรรทัด) หา custom class/keyframe ที่ define แต่ไม่ถูกใช้ (grep className ใน src = 0): `.neon-glow-dot`+`@keyframes neon-glow`, `.selected-floating-badge`+`@keyframes badge-pulse`/`badge-fade-slide-in`, `.overflow-wrap-anywhere`, `.wiz-section`, `.wiz-section-title` (8 รายการ) — เขียน **PLAN-029** (GPT): ลบ dead CSS + verify keyframe ไม่ถูก animation อื่นอ้าง + grep ยืนยัน 0 ก่อนลบ + sync ux_ui_analysis §2.3 ถ้าลบ wiz-section ที่ doc ระบุเป็นมาตรฐาน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-029-cleanup-dead-css.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner)
+
 ## [2026-06-15 15:55] GitHub Copilot (GPT-5.3-Codex) — Fix Controls card vertical jump when switching tabs in Assignment Detail
 - ทำอะไร: reproduce บัคที่ `/assignments/252` แล้ววัดตำแหน่งกล่อง Controls พบว่า sticky offset (`lg:top-5`) ทำให้ตำแหน่งกล่องกระโดดต่างกันตามความสูงแท็บ (Overview = +20px, Courses/Learners = 0px); แก้โดยเพิ่ม prop `stickyTopClass` ใน `ControlsSidebar` และตั้งค่าเฉพาะหน้า Assignment Detail เป็น `lg:top-0` เพื่อให้ตำแหน่ง Controls คงที่ทุกแท็บ
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/ControlsSidebar.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/AGENT_LOG.md`
