@@ -385,13 +385,13 @@ export function CourseDetailPage() {
                     </Fact>
                     {data.kpi && (
                       <>
-                        <Fact label="Versions" valueClassName="font-bold text-slate-800 text-lg">
+                        <Fact label="Versions" valueClassName="font-bold text-slate-800">
                           {data.kpi.versionCount}
                         </Fact>
-                        <Fact label="Active Learners" valueClassName="font-bold text-slate-800 text-lg">
+                        <Fact label="Active Learners" valueClassName="font-bold text-slate-800">
                           {data.kpi.learnerCount}
                         </Fact>
-                        <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800 text-lg">
+                        <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800">
                           {data.kpi.assignmentCount}
                         </Fact>
                       </>

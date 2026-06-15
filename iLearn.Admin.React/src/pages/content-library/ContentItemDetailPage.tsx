@@ -259,7 +259,7 @@ export function ContentItemDetailPage() {
                 {item.courseIdsCount ?? 0}
               </Fact>
 
-              <Fact label="File Storage Id" valueClassName="font-semibold">
+              <Fact label="File Storage Id" mono valueClassName="font-semibold">
                 {item.fileStorageId ?? '—'}
               </Fact>
 
@@ -272,11 +272,11 @@ export function ContentItemDetailPage() {
               </Fact>
             </FactGrid>
 
-            <FactGrid cols={2} className="grid-cols-1 sm:grid-cols-1 gap-4 border-t border-slate-100 pt-5">
-              <Fact label="Launch Resource" mono>
+            <FactGrid className="border-t border-slate-100 pt-5">
+              <Fact label="Launch Resource" mono colSpan="full">
                 {item.launchHref || '—'}
               </Fact>
-              <Fact label="Server Path" mono>
+              <Fact label="Server Path" mono colSpan="full">
                 {item.url || '—'}
               </Fact>
             </FactGrid>

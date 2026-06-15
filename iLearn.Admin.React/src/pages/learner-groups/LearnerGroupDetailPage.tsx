@@ -622,7 +622,6 @@ export function LearnerGroupDetailPage() {
                   <Fact
                     label="Owner / Creator"
                     colSpan="full"
-                    mono
                     valueClassName="font-bold"
                   >
                     {group.createdBy || 'System Admin'}

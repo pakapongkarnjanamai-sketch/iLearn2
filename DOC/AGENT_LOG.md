@@ -14,6 +14,24 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 14:17] GitHub Copilot (GPT-5.3-Codex) — Smoke test แก้ช่องว่างขวาผิดปกติใน React Admin
+- ทำอะไร: เปิด `http://localhost:5173/` ตรวจ layout ด้วย browser automation และพบว่าหน้าแอปมี right gap คงที่ 15px แม้ไม่มี horizontal overflow สาเหตุจาก CSS ที่ตั้ง `scrollbar-gutter: stable` บน `html`; แก้โดยปรับเป็น `scrollbar-gutter: auto` ใน `iLearn.Admin.React/src/index.css` แล้ว reload smoke test ซ้ำ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: ก่อนแก้วัดได้ `rightGap: 15` (`windowInnerWidth: 1014`, `scrollWidth: 999`, `scrollbarGutter: stable`), หลังแก้เป็น `rightGap: 0` (`windowInnerWidth: 1014`, `scrollWidth: 1014`, `scrollbarGutter: auto`) และภาพหน้า dashboard ไม่เหลือแถบว่างด้านขวา
+
+## [2026-06-15 14:10] Antigravity — ปรับปรุงกล่อง Overview ในหน้า Detail ทุกหน้าให้ได้มาตรฐานของดีไซน์ระบบ
+- ทำอะไร: ปรับปรุงการแสดงผลและโครงสร้างข้อมูลภายใต้กล่อง Overview ของทั้ง 6 หน้าจอหลัก (Assignment, Course, User, Content Item, Master Data, Learner Group) ให้สอดคล้องกันตามดีไซน์ระบบ:
+  1. ใช้ `<StatusText>` (outlined pill) เสมอสำหรับการแสดงผลสถานะใน Overview (แทน `<StatusBadge>` ที่มีพื้นหลังทึบและเหมาะสมกับตาราง/KPI)
+  2. ปรับขนาดตัวเลข KPI counts / stats ทั้งหมดให้ใช้ขนาดมาตรฐาน `font-bold text-slate-800` (เอา `text-lg` size override ออกในหน้ารายละเอียดของวิชา)
+  3. ใส่ `mono` prop ให้กับฟิลด์รหัสผ่าน identifiers เช่น รหัสพนักงาน (NID) หรือ SCORM File Storage ID
+  4. ทำความสะอาด grid ในหน้ารายละเอียด SCORM item โดยเปลี่ยน layout ของ Launch Resource และ Server Path เป็น `colSpan="full"`
+  5. เอา `mono` ออกจากชื่อผู้สร้าง Owner/Creator ในกลุ่มผู้เรียน
+  6. เอา `labelClassName` ที่กำหนดขนาดอักษรทับซ้อนออกใน Master Data เพื่อให้แสดงผลหัวข้อ/ป้ายกำกับขนาดเท่ากันทุกหน้า
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (0 errors, 11 warnings baseline), `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
 ## [2026-06-15 14:05] Antigravity — ปรับปรุงมาตรฐานดีไซน์และโครงสร้างหน้าจอ Detail ในส่วนที่เหลือเพื่อแก้ปัญหา Layout Shift และจัดระเบียบหัวข้อ
 - ทำอะไร: ปรับปรุงโครงสร้างหน้าจอแสดงรายละเอียด (Detail/Overview) ทั้ง 5 หน้าจอที่เหลือ (LearnerGroupDetailPage, CourseDetailPage, UserDetailPage, ContentItemDetailPage, MasterDataDetailPage) จากเดิมที่ใช้ `<DetailCard>` หรือโครงสร้าง Custom margin/padding ที่มีปัญหา visual shift/scrollbar alignment ต่างกันเมื่อสลับแท็บ ให้มาใช้โครงสร้างที่เป็นมาตรฐานเดียวกันทั้งหมด คือครอบด้วยกล่อง `<section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">` พร้อมใช้ `<SectionHeader variant="card">` เพื่อแสดงหัวข้อสไตล์ flush card และครอบเนื้อหาภายในด้วย padding `p-5` เพื่อความสวยงาม เป็นระเบียบเรียบร้อย และสม่ำเสมอ
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`

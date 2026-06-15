@@ -11,7 +11,7 @@ import {
   FactGrid,
 } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
-import { StatusBadge } from '../../components/ui/StatusBadge'
+import { StatusText } from '../../components/ui/StatusText'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -131,12 +131,12 @@ export function UserDetailPage() {
           <div className="p-5 space-y-6">
             <FactGrid>
               <Fact label="Status">
-                <StatusBadge tone={user.isActive ? 'success' : 'neutral'}>
+                <StatusText tone={user.isActive ? 'success' : 'neutral'}>
                   {user.isActive ? 'Active' : 'Inactive'}
-                </StatusBadge>
+                </StatusText>
               </Fact>
 
-              <Fact label="Employee NID" valueClassName="font-bold">{user.nid}</Fact>
+              <Fact label="Employee NID" mono valueClassName="font-bold">{user.nid}</Fact>
 
               <Fact label="Last Login">
                 {user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : '—'}

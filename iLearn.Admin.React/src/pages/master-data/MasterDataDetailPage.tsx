@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
-import { StatusBadge } from '../../components/ui/StatusBadge'
+import { StatusText } from '../../components/ui/StatusText'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
@@ -249,7 +249,6 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                     <Fact
                       label="Name"
                       colSpan="full"
-                      labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
                       valueClassName="text-slate-800 font-bold text-base select-all"
                     >
                       {item?.name || '—'}
@@ -257,18 +256,15 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
                     <Fact
                       label="Status"
-                      labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
-                      valueClassName="mt-1.5"
                     >
-                      <StatusBadge tone={item?.isActive ? 'success' : 'neutral'} size="xxs">
+                      <StatusText tone={item?.isActive ? 'success' : 'neutral'}>
                         {item?.isActive ? 'Active' : 'Inactive'}
-                      </StatusBadge>
+                      </StatusText>
                     </Fact>
 
                     <Fact
                       label="Last Modified"
-                      labelClassName="text-slate-400 font-bold text-xs uppercase tracking-wider"
-                      valueClassName="text-slate-500 font-bold mt-1.5 text-xs"
+                      valueClassName="text-slate-500 font-bold mt-1 text-xs"
                     >
                       {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}
                     </Fact>
