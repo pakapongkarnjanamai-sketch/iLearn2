@@ -14,6 +14,27 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 11:34] Antigravity — ปรับปรุงไอคอนวิชาเรียน (Courses) ในหน้า Courses Explorer ให้สอดคล้องกัน
+- ทำอะไร: เปลี่ยนการใช้งานไอคอนวิชาเรียนจาก `Layers` เป็น `BookOpen` (สี `text-indigo-500`) เพื่อปรับปรุงความเหมาะสมและคงความสอดคล้องตาม design system ส่วนอื่น ๆ ในระบบที่ใช้ `BookOpen` เป็นตัวแทนของวิชาเรียน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` และ `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+
+## [2026-06-15 11:32] Antigravity — ปรับปรุงไอคอนโฟลเดอร์ Division ในหน้า Courses Explorer
+- ทำอะไร: เพิ่ม `isDivision: true` ให้กับรายการ Division ใน list mapping และอัปเดตไอคอนในตาราง `CourseListPage.tsx` ให้ใช้ `Building2` (สี `text-indigo-500`) สำหรับโฟลเดอร์ Division เพื่อแยกให้แตกต่างอย่างชัดเจนจากโฟลเดอร์ Category (ไอคอน `Folder` สี `text-amber-500`)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` และ `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+
+## [2026-06-15 11:30] Antigravity — เพิ่มการสร้าง เปลี่ยนชื่อ และลบ Category ในหน้า Courses Explorer
+- ทำอะไร: อัปเดต `CourseListPage.tsx` ให้มีปุ่ม "New Category" ใน actions bar (เมื่ออยู่ระดับ root สำหรับ SuperAdmin หรืออยู่ระดับ division สำหรับทุก admin) และปุ่ม Rename/Delete (ไอคอนดินสอและถังขยะ) ถัดจากโฟลเดอร์หมวดหมู่; สร้าง modals สำหรับกรอกชื่อหมวดหมู่ใหม่และการเปลี่ยนชื่อ; เช็ค `courseCount` เพื่อ block การลบหมวดหมู่ที่มีวิชาเรียนอยู่ภายใน และใช้ `useConfirm` ยืนยันการลบ; อัปเดต `CategoryLookup` structure ให้มี `courseCount`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เรียกใช้งาน endpoint CategoriesCRUD เดิมบน backend)
+- Verified: `npm run lint` และ `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+
 ## [2026-06-15 11:15] Antigravity — Implement PLAN-023 SuperAdmin เลือก Division ได้ตอน Edit Category + สร้าง folder ในหน้า Explorer
 - ทำอะไร: อัปเดต `UpdateLearnerGroupCategoryDto` ให้รับ `DivisionId` และปรับปรุง `LearnerGroupCategoryService.UpdateAsync` ให้รองรับการเปลี่ยน/ระบุ `DivisionId` โดย SuperAdmin; เพิ่มการตรวจสอบป้องกันความเสี่ยง (Division Update Safety Check) ใน service เพื่อ block/ปฏิเสธการเปลี่ยน division หากหมวดหมู่ไม่ได้ว่าง (มี sub-categories หรือ learner groups ภายใน); ปรับปรุง UI `LearnerGroupCategoryEditorPage.tsx` ให้ SuperAdmin สามารถแก้ไข/เลือกแผนกในหน้าจอ edit หมวดหมู่ได้; ปรับปรุงหน้า explorer `LearnerGroupListPage.tsx` ให้แสดง dropdown เลือก Division ใน modal "Create Folder" เมื่อ SuperAdmin สร้างโฟลเดอร์ที่ root level (`currentCategoryId === 0`)
 - ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/LearnerGroupCategoryDto.cs`, `iLearn.Application/Services/LearnerGroupCategoryService.cs`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoryEditorPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`

@@ -3,19 +3,25 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ChevronLeft,
   Folder,
-  Layers,
+  BookOpen,
   Loader2,
   Plus,
   Search,
   X,
   Info,
-  ArrowUpRight
+  ArrowUpRight,
+  FolderPlus,
+  Edit3,
+  Trash2,
+  Building2
 } from 'lucide-react'
 
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { fetchWithAccessControl } from '../../lib/apiClient'
+import { useSession } from '../../lib/sessionContext'
 import { toast } from '../../lib/toast'
 
 type ApiEnvelope<T> = {
@@ -30,10 +36,12 @@ type DivisionLookup = {
   name: string
 }
 
+// Mirrors Category (iLearn.Domain.Entities.Category)
 type CategoryLookup = {
   id: number
   name: string
   divisionId: number
+  courseCount?: number
 }
 
 type CourseDto = {
@@ -66,6 +74,7 @@ type ExplorerItem = {
   statusName?: string
   code?: string
   original: DivisionLookup | CategoryLookup | CourseDto
+  isDivision?: boolean
 }
 
 function unwrapList<T>(value: ApiEnvelope<T[]> | { data?: T[] } | T[] | undefined): T[] {
@@ -84,6 +93,18 @@ export function CourseListPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { setCustomCrumbs } = useBreadcrumbs()
+  const { isSuperAdmin } = useSession()
+  const { confirm, confirmDialog } = useConfirm()
+
+  // Category CRUD modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryDivisionId, setNewCategoryDivisionId] = useState<number | ''>('')
+  const [submittingCreate, setSubmittingCreate] = useState(false)
+
+  const [editingCategory, setEditingCategory] = useState<CategoryLookup | null>(null)
+  const [editCategoryName, setEditCategoryName] = useState('')
+  const [submittingRename, setSubmittingRename] = useState(false)
 
   const rawDivisionId = searchParams.get('divisionId')
   const rawCategoryId = searchParams.get('categoryId')
@@ -187,6 +208,122 @@ export function CourseListPage() {
       cancelled = true
     }
   }, [loadData])
+
+  const openCreateCategoryModal = useCallback(() => {
+    setNewCategoryName('')
+    setNewCategoryDivisionId('')
+    setIsCreateModalOpen(true)
+  }, [])
+
+  const openRenameCategoryModal = useCallback((category: CategoryLookup) => {
+    setEditingCategory(category)
+    setEditCategoryName(category.name)
+  }, [])
+
+  const handleCreateCategory = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nameVal = newCategoryName.trim()
+    if (!nameVal) {
+      toast.error('Category name is required')
+      return
+    }
+
+    const divisionIdVal = currentDivisionId !== null && currentDivisionId > 0
+      ? currentDivisionId
+      : (newCategoryDivisionId !== '' ? Number(newCategoryDivisionId) : null)
+
+    if (!divisionIdVal) {
+      toast.error('Division is required')
+      return
+    }
+
+    setSubmittingCreate(true)
+    try {
+      const fd = new FormData()
+      fd.append('values', JSON.stringify({ name: nameVal, divisionId: divisionIdVal, isActive: true }))
+
+      await fetchWithAccessControl('admin/CategoriesCRUD/Post', {
+        method: 'POST',
+        body: fd
+      })
+
+      toast.success(`Category "${nameVal}" created successfully`)
+      setIsCreateModalOpen(false)
+      setNewCategoryName('')
+      setNewCategoryDivisionId('')
+      await loadData()
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to create category')
+    } finally {
+      setSubmittingCreate(false)
+    }
+  }, [newCategoryName, currentDivisionId, newCategoryDivisionId, loadData])
+
+  const handleRenameCategory = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingCategory) return
+
+    const nameVal = editCategoryName.trim()
+    if (!nameVal) {
+      toast.error('Category name is required')
+      return
+    }
+
+    setSubmittingRename(true)
+    try {
+      const fd = new FormData()
+      fd.append('key', String(editingCategory.id))
+      fd.append('values', JSON.stringify({ name: nameVal }))
+
+      await fetchWithAccessControl('admin/CategoriesCRUD/Put', {
+        method: 'PUT',
+        body: fd
+      })
+
+      toast.success(`Category renamed to "${nameVal}"`)
+      setEditingCategory(null)
+      setEditCategoryName('')
+      await loadData()
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to rename category')
+    } finally {
+      setSubmittingRename(false)
+    }
+  }, [editingCategory, editCategoryName, loadData])
+
+  const handleDeleteCategory = useCallback(async (category: CategoryLookup) => {
+    const coursesCount = coursesByCategory.get(category.id)?.length ?? 0
+    if (coursesCount > 0) {
+      toast.error('Cannot delete: category has courses inside.')
+      return
+    }
+
+    const ok = await confirm({
+      title: 'Delete Category',
+      message: `Are you sure you want to delete category "${category.name}"? This action cannot be undone.`,
+      danger: true,
+      confirmLabel: 'Delete Category',
+    })
+
+    if (!ok) return
+
+    try {
+      const fd = new FormData()
+      fd.append('key', String(category.id))
+      await fetchWithAccessControl('admin/CategoriesCRUD/Delete', {
+        method: 'DELETE',
+        body: fd
+      })
+
+      toast.success(`Category "${category.name}" deleted successfully`)
+      await loadData()
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to delete category')
+    }
+  }, [confirm, coursesByCategory, loadData])
 
   // Deep-link guard: validate query parameters after data loads
   useEffect(() => {
@@ -388,7 +525,8 @@ export function CourseListPage() {
         description: 'Division folder',
         isFolder: true,
         countText: `${childCategories.length} categories`,
-        original: div
+        original: div,
+        isDivision: true
       }
     })
 
@@ -431,6 +569,11 @@ export function CourseListPage() {
             {(currentCategoryId !== null || currentDivisionId !== null) && (
               <AppButton variant="ghost" icon={ChevronLeft} onClick={handleGoBack}>
                 Back
+              </AppButton>
+            )}
+            {currentCategoryId === null && (currentDivisionId !== null ? currentDivisionId > 0 : isSuperAdmin) && (
+              <AppButton variant="secondary" icon={FolderPlus} onClick={openCreateCategoryModal}>
+                New Category
               </AppButton>
             )}
             <Link to="/courses/new">
@@ -542,9 +685,13 @@ export function CourseListPage() {
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2.5">
                                 {item.isFolder ? (
-                                  <Folder className="h-4.5 w-4.5 shrink-0 text-amber-500" />
+                                  item.isDivision ? (
+                                    <Building2 className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
+                                  ) : (
+                                    <Folder className="h-4.5 w-4.5 shrink-0 text-amber-500" />
+                                  )
                                 ) : (
-                                  <Layers className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
+                                  <BookOpen className="h-4.5 w-4.5 shrink-0 text-indigo-500" />
                                 )}
                                 <div className="flex flex-col text-left py-0.5">
                                   <span className="truncate font-bold text-slate-800 leading-tight">{item.name}</span>
@@ -609,6 +756,26 @@ export function CourseListPage() {
                                 >
                                   {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
                                 </button>
+                                {currentDivisionId !== null && currentDivisionId > 0 && currentCategoryId === null && item.isFolder && item.id > 0 && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => openRenameCategoryModal(item.original as CategoryLookup)}
+                                      className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                      title="Rename Category"
+                                    >
+                                      <Edit3 className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteCategory(item.original as CategoryLookup)}
+                                      className="rounded-full p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                                      title="Delete Category"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -622,6 +789,141 @@ export function CourseListPage() {
           </div>
         </div>
       </DataGridSurface>
+
+      {isCreateModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
+          <form
+            className="modal-window"
+            onClick={event => event.stopPropagation()}
+            onSubmit={handleCreateCategory}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
+              <div className="flex items-center gap-2">
+                <FolderPlus className="h-5 w-5 text-indigo-500" />
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Create Category</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-3">
+              {isSuperAdmin && currentDivisionId === null && (
+                <div className="space-y-1">
+                  <label htmlFor="newCategoryDivisionId" className="wiz-label">Division (แผนก) <span className="text-red-500">*</span></label>
+                  <select
+                    id="newCategoryDivisionId"
+                    value={newCategoryDivisionId}
+                    onChange={event => setNewCategoryDivisionId(event.target.value === '' ? '' : Number(event.target.value))}
+                    className="wiz-input"
+                  >
+                    <option value="">— Select Division —</option>
+                    {divisions.map(div => (
+                      <option key={div.id} value={div.id}>
+                        {div.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label htmlFor="categoryName" className="wiz-label">Category Name <span className="text-red-500">*</span></label>
+                <input
+                  id="categoryName"
+                  type="text"
+                  autoFocus
+                  value={newCategoryName}
+                  onChange={event => setNewCategoryName(event.target.value)}
+                  className="wiz-input"
+                  placeholder="e.g. Technical Skills"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingCreate || !newCategoryName.trim() || (isSuperAdmin && currentDivisionId === null && !newCategoryDivisionId)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 cursor-pointer shadow-3xs disabled:opacity-55"
+              >
+                {submittingCreate && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Create Category
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {editingCategory && (
+        <div className="modal-overlay" onClick={() => setEditingCategory(null)}>
+          <form
+            className="modal-window"
+            onClick={event => event.stopPropagation()}
+            onSubmit={handleRenameCategory}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-indigo-500" />
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Rename Category</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingCategory(null)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="editCategoryName" className="wiz-label">Category Name <span className="text-red-500">*</span></label>
+                <input
+                  id="editCategoryName"
+                  type="text"
+                  autoFocus
+                  value={editCategoryName}
+                  onChange={event => setEditCategoryName(event.target.value)}
+                  className="wiz-input"
+                  placeholder="e.g. Technical Skills"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setEditingCategory(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingRename || !editCategoryName.trim()}
+                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 cursor-pointer shadow-3xs disabled:opacity-55"
+              >
+                {submittingRename && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Rename Category
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {confirmDialog}
     </>
   )
 }
