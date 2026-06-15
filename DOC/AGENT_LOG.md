@@ -14,6 +14,25 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 16:00] Claude Code — Review PLAN-020 (Courses Explorer) + hotfix data bug → VERIFIED
+- ทำอะไร: รีวิว CourseListPage ที่เขียนใหม่เป็น explorer (3-level Division→Category→Course) — โครงสร้าง/deep-link guard/breadcrumb/uncategorized/type-chip ทำถูกตาม pattern; **เจอ data bug:** แผนสั่ง `Courses?isActive=false` แต่ service คืนเฉพาะ Draft/Closed/Retired (isActive=true=Open only) → explorer ขาด course Open ทั้งหมด (ความผิดแผนเองที่ assume isActive=false=ทั้งหมด) **แก้:** ยิง 2 call (true+false) merge (disjoint, ไม่ dup) ใน `loadData`; เทส endpoint จริงทั้ง 5 = 200, build/lint ผ่าน → ปรับ VERIFIED
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx` (hotfix), `DOC/PLANS/PLAN-020-*.md`
+- Contract ที่เปลี่ยน: ไม่มี (ใช้ endpoint เดิม)
+- Verified: endpoint จริง 5 ตัว = HTTP 200, `npm run build` ผ่าน, `npm run lint` 0 errors (11 warnings baseline)
+- บทเรียน: ตรวจ semantics ของ service param (isActive) ก่อนใส่ในแผนเสมอ — ซ้ำรอย enrollments.status/roles.description ที่ assume แล้วพลาด
+
+## [2026-06-15 15:35] Antigravity — Implement PLAN-020 เปลี่ยนหน้า Courses เป็น Explorer (Division → Category → Course) แบบ Learner Group
+- ทำอะไร: เขียนหน้าจอ `CourseListPage.tsx` ใหม่ทั้งหมดตามรูปแบบ Explorer ใน `LearnerGroupListPage.tsx` โดยแสดงผลการจัดกลุ่มวิชาเรียนออกเป็น 3 ระดับตามโครงสร้างจริง (Root: Divisions Folder -> ใน Division: Categories Folder -> ใน Category: Courses Leaf Items); จัดการเคสวิชาที่ไม่มีหมวดหมู่ (Uncategorized) ให้แสดงผลเสมือนโฟลเดอร์ Uncategorized Division/Category อย่างสวยงาม; รองรับ deep-linking URL parameter validation (`divisionId`/`categoryId`), breadcrumb trail, client-side search, และ chip filter Course Types ที่ระดับ category; ตรวจสอบและแก้ไข eslint warnings/compiler errors สำเร็จ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `DOC/PLANS/PLAN-020-courses-explorer.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI changes เท่านั้น)
+- Verified: `npm run lint` และ `npm run build` ผ่านสำเร็จครบถ้วน
+
+## [2026-06-15 15:20] Claude Code — เขียน PLAN-020 (Courses → Explorer แบบ Learner Group)
+- ทำอะไร: ผู้ใช้ขอให้หน้า `/courses` เป็น Explorer แบบ Learner Group — สำรวจ CourseListPage เดิม (tree sidebar+grid), LearnerGroupListPage (ต้นแบบ explorer), entity (Category มี DivisionId ไม่มี ParentId → โครงสร้าง Division→Category→Course 2 ชั้น), backend (`GET api/Courses` โหลดทั้งหมด, `DivisionsCRUD/Get`, `CategoriesCRUD/Get`, course-types-lookup) → เขียน **PLAN-020** (Gemini): เขียน CourseListPage ใหม่เป็น explorer 3 ระดับ (root=divisions, ?divisionId=categories, ?categoryId=courses) ตาม pattern LearnerGroupListPage (URL deep-link, breadcrumb trail, drill-in/back, client-side search, deep-link guard) คงปุ่ม Create + chip Course Type — ไม่แตะ backend, ยังไม่สกัด shared Explorer (เป็น follow-up)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-020-courses-explorer.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner ไม่แก้โค้ด)
+
 ## [2026-06-15 14:40] Claude Code — Hotfix regression จาก PLAN-018 (EF แปลง DTO-constructor ใน GroupBy ไม่ได้)
 - ทำอะไร: ผู้ใช้รัน Dashboard แล้ว 500 — `InvalidOperationException: LINQ could not be translated` ที่ `DashboardController.GetOverview` categoryMix (บรรทัด ~165) เพราะ PLAN-018 เปลี่ยนเป็น `.Select(g => new DashboardCategoryMixPointDto(...))` **ในตัว EF query** (EF แปลง record constructor ใน GroupBy projection เป็น SQL ไม่ได้) — แก้: project เป็น anonymous ใน SQL แล้ว map เป็น DTO ใน memory หลัง `ToListAsync` (pattern มาตรฐานของ error นี้); audit ทั้ง controller แล้ว — จุดอื่น (courseAttention ใช้ taskRows in-memory, trends/stats จาก local list/CountAsync) ปลอดภัย จุดเดียวคือ categoryMix
 - ไฟล์หลักที่แตะ: `iLearn.API/Controllers/DashboardController.cs`
