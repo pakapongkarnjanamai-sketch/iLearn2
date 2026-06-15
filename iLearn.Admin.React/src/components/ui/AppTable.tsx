@@ -38,6 +38,7 @@ type AppTableProps<T extends TableRecord> = {
     hint: string
     icon: 'info' | ReactNode
     onClick: (event: { row: { data: T } }) => void
+    variant?: 'primary' | 'danger' | 'success' | 'ghost' | undefined
   }> | undefined
 }
 
@@ -314,19 +315,35 @@ export function AppTable<T extends TableRecord>({
                     {actionButtons && (
                       <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 opacity-70 group-hover:opacity-100 transition">
-                          {actionButtons.map((btn, idx) => (
-                            <button
-                              key={idx}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                btn.onClick({ row: { data: row } })
-                              }}
-                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                              title={btn.hint}
-                            >
-                              {btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
-                            </button>
-                          ))}
+                          {actionButtons.map((btn, idx) => {
+                            const hintLower = btn.hint.toLowerCase()
+                            const isDanger = btn.variant === 'danger' || hintLower.includes('delete') || hintLower.includes('remove')
+                            const isSuccess = btn.variant === 'success' || hintLower.includes('active')
+                            const isGhost = btn.variant === 'ghost' || hintLower.includes('details') || hintLower.includes('open')
+                            
+                            let colorClass = 'text-indigo-500 hover:bg-indigo-50'
+                            if (isDanger) {
+                              colorClass = 'text-red-500 hover:bg-rose-50'
+                            } else if (isSuccess) {
+                              colorClass = 'text-emerald-600 hover:bg-emerald-50'
+                            } else if (isGhost) {
+                              colorClass = 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                            }
+
+                            return (
+                              <button
+                                key={idx}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  btn.onClick({ row: { data: row } })
+                                }}
+                                className={`p-1 rounded-md transition cursor-pointer ${colorClass}`}
+                                title={btn.hint}
+                              >
+                                {btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
+                              </button>
+                            )
+                          })}
                         </div>
                       </td>
                     )}

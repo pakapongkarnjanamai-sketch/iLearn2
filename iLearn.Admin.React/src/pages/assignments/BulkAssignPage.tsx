@@ -322,7 +322,7 @@ export function BulkAssignPage() {
                   <button
                     type="button"
                     onClick={() => handleToggleCourse(c.id)}
-                    className="h-5 w-5 shrink-0 rounded border border-red-100 text-red-600 flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition cursor-pointer"
+                    className="h-5 w-5 shrink-0 text-red-500 hover:bg-rose-50 rounded-md flex items-center justify-center transition cursor-pointer"
                     aria-label="Remove course"
                   >
                     <X className="h-3.5 w-3.5" />

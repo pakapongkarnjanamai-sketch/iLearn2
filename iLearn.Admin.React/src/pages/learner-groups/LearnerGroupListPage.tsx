@@ -684,7 +684,7 @@ export function LearnerGroupListPage() {
                                   <button
                                     type="button"
                                     onClick={() => void handleDeleteFolder(item.original as CategoryLookup)}
-                                    className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-red-600"
+                                    className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
                                     title="Delete Folder"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -694,7 +694,7 @@ export function LearnerGroupListPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleOpenMove(item.original as GroupDto)}
-                                      className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-indigo-600"
+                                      className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
                                       title="Move Group"
                                     >
                                       <ArrowRightLeft className="h-3.5 w-3.5" />
@@ -702,7 +702,7 @@ export function LearnerGroupListPage() {
                                     <button
                                       type="button"
                                       onClick={() => void handleDeleteGroup(item.original as GroupDto)}
-                                      className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-red-600"
+                                      className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
                                       title="Delete Group"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
@@ -713,7 +713,7 @@ export function LearnerGroupListPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenItem(item)}
-                                  className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                  className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-md transition cursor-pointer"
                                   title={item.isFolder ? 'Open Folder' : 'Open Group Details'}
                                 >
                                   {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}

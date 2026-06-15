@@ -438,13 +438,13 @@ export function VersionFormPage() {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
-                      <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content up">
+                      <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Move content up">
                         <ArrowUp className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="rounded border border-slate-200 p-1 text-slate-400 hover:text-slate-600 hover:border-slate-300 disabled:opacity-30 transition cursor-pointer" aria-label="Move content down">
+                      <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Move content down">
                         <ArrowDown className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" onClick={() => removeContentItem(item.uid)} className="rounded border border-slate-200 p-1 text-red-500 hover:text-red-700 hover:border-red-200 transition cursor-pointer" aria-label="Remove content">
+                      <button type="button" onClick={() => removeContentItem(item.uid)} className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer" aria-label="Remove content">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </div>

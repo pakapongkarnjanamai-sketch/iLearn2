@@ -411,17 +411,17 @@ export function AssignmentDetailPage() {
                           <div className="inline-flex items-center gap-1.5">
                             <button
                               onClick={() => handleResetLearner(l.learnerCode)}
-                              className="p-1 text-slate-400 hover:text-indigo-600 rounded transition cursor-pointer"
+                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
                               title="Reset attempts"
                             >
-                              <RotateCcw className="h-4 w-4" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => handleRemoveLearner(l.learnerCode)}
-                              className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                              className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
                               title="Remove learner"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </td>

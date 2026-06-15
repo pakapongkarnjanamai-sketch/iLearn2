@@ -14,6 +14,18 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-15 12:40] Antigravity — ปรับปรุงและปรับสไตล์ของปุ่มใน Action Column ให้ได้มาตรฐานเดียวกัน
+- ทำอะไร: ปรับปรุง `AppTable.tsx` ให้มีสิทธิ์เลือก variant ของปุ่ม action และเพิ่มระบบตรวจจับสีอัตโนมัติตาม Hint text (เช่น คำว่า delete, remove จะได้สีแดงทันที); ทำการแก้โค้ดและย้ายคลาสปุ่ม action ในตารางแบบ Custom ของหน้าต่าง ๆ ให้ใช้คลาสดีไซน์และขนาดไอคอน h-3.5 w-3.5 ที่เป็นอันหนึ่งอันเดียวกัน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `variant?: 'primary' | 'danger' | 'success' | 'ghost' | undefined` ใน `actionButtons` element ของ `AppTable`
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` (118/118 tests passed)
+
+## [2026-06-15 12:13] GitHub Copilot (GPT-5.3-Codex) — สร้างรายงาน Inventory Endpoint ทั้งหมดเป็นไฟล์ Markdown
+- ทำอะไร: สแกน controller ทั้งหมดใน `iLearn.API/Controllers` จาก `[Route]` + `[Http*]` attributes แล้วสร้างรายงาน inventory endpoint แบบครบถ้วน (verb/route/controller/action/policy/source) พร้อมสรุปนับตาม verb, route family, policy และเพิ่ม SignalR hub mapping จาก `Program.cs`
+- ไฟล์หลักที่แตะ: `DOC/API-ENDPOINT-INVENTORY.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสารล้วน)
+- Verified: ตรวจผลในไฟล์รายงานแล้วมีสรุปครบ (`TotalEndpoints: 165`, `TotalControllersWithEndpoints: 30`, `TotalHubs: 1`) และมีตาราง inventory endpoint ครบ
+
 ## [2026-06-15 11:47] Antigravity — ปรับปรุงหน้า Assignment Report และหน้า Detail ให้ไม่แสดง Description และใช้โครงสร้างมาตรฐาน
 - ทำอะไร: ปรับปรุง `AssignmentReportPage.tsx` ให้ใช้โครงสร้าง `DetailLayout` และมีแถบด้านขวา `ControlsSidebar` สำหรับเก็บปุ่ม Print และ Export CSV เหมือนหน้า Detail ทั่วไป; ยกเลิกการแสดงผลรายละเอียด Description และยกเลิก Page Header ซ้ำซ้อน (เนื่องจากมี Breadcrumb แสดงผลอยู่แล้ว) ทั้งในหน้า Report และหน้า Detail (`AssignmentDetailPage.tsx`) พร้อมปรับปรุงการเว้นระยะห่างหัวตาราง FactGrid ในการ์ด Overview/Report Summary; เพิ่มการแสดงผล Assignment No. แบบกว้างเต็มบรรทัด (colSpan="full") ที่หัวตาราง FactGrid ในการ์ด Overview ของหน้า Report; ตกแต่งเนื้อหาฝั่งซ้ายโดยใช้ `DetailCard`, `FactGrid`, `Fact`, และ `DetailSubSection` ร่วมกับไอคอนวิชาเรียน; ใช้ `StatusBadge` และ `ProgressBar` ในตารางแสดงความคืบหน้าของ Learners พร้อมกล่องกรองสถานะและช่องค้นหารูปแบบมาตรฐาน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`

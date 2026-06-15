@@ -220,7 +220,7 @@ export function ContentItemEditorPage() {
                   <button
                     type="button"
                     onClick={() => setFile(null)}
-                    className="rounded border border-slate-200 p-1 text-red-500 hover:text-red-700 hover:border-red-200 transition cursor-pointer"
+                    className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
                     aria-label="Remove content"
                   >
                     <X className="h-3.5 w-3.5" />

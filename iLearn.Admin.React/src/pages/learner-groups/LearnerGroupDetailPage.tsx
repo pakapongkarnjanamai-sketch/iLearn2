@@ -450,10 +450,10 @@ export function LearnerGroupDetailPage() {
                             <td className="p-3 text-center">
                               <button
                                 onClick={() => handleRemoveSingleMember(m.id)}
-                                className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
+                                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
                                 title="Remove member"
                               >
-                                <UserMinus className="h-4 w-4" />
+                                <UserMinus className="h-3.5 w-3.5" />
                               </button>
                             </td>
                           </tr>
