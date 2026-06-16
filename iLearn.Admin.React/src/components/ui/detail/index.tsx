@@ -53,15 +53,13 @@ type FactProps = {
   valueClassName?: string
 }
 
-/** Reusable single fact item (dt/dd) with optional mono value styling. */
+/** Reusable single fact item (dt/dd). */
 export function Fact({
   label,
   children,
-  mono = false,
   colSpan = 1,
   className,
   labelClassName,
-  valueClassName,
 }: FactProps) {
   const spanClass =
     colSpan === 'full' ? 'col-span-full' : colSpan === 2 ? 'sm:col-span-2' : ''
@@ -74,14 +72,10 @@ export function Fact({
     .filter(Boolean)
     .join(' ')
 
-  const valueClass = ['mt-1 text-slate-700', mono ? 'font-mono wrap-break-word' : '', valueClassName]
-    .filter(Boolean)
-    .join(' ')
-
   return (
     <div className={containerClass}>
       <dt className={labelClass}>{label}</dt>
-      <dd className={valueClass}>{children}</dd>
+      <dd>{children}</dd>
     </div>
   )
 }

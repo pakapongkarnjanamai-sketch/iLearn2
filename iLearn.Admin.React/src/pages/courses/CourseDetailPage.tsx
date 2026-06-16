@@ -19,8 +19,9 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
-import { StatusText } from '../../components/ui/StatusText'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { CourseStatusText } from '../../components/ui/CourseStatusBadge'
+import { Modal } from '../../components/ui/Modal'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
@@ -143,12 +144,6 @@ type CourseEditFormData = {
   courseType: number
 }
 
-type CourseDetailTab =
-  | 'overview'
-  | 'versions'
-  | 'learners'
-  | 'assignments'
-
 const unwrapList = <T,>(value: LookupResult<T> | undefined): T[] => {
   if (!value) return []
   return Array.isArray(value) ? value : value.data ?? []
@@ -184,11 +179,9 @@ export function CourseDetailPage() {
   }
   const [data, setData] = useState<CourseDashboardData | null>(null)
   const [learners, setLearners] = useState<CourseLearner[]>([])
-  const [loadingLearners, setLoadingLearners] = useState(false)
+  const [loadingLearners, setLoadingLearners] = useState(true)
   const [assignments, setAssignments] = useState<CourseAssignment[]>([])
-  const [loadingAssignments, setLoadingAssignments] = useState(false)
-
-  const [activeTab, setActiveTab] = useState<CourseDetailTab>('overview')
+  const [loadingAssignments, setLoadingAssignments] = useState(true)
   const [mutatingStatus, setMutatingStatus] = useState(false)
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
@@ -301,15 +294,12 @@ export function CourseDetailPage() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      if (activeTab === 'learners') {
-        void loadLearners()
-      } else if (activeTab === 'assignments') {
-        void loadAssignments()
-      }
+      void loadLearners()
+      void loadAssignments()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [activeTab, loadAssignments, loadLearners])
+  }, [loadAssignments, loadLearners])
 
   const filteredCategories = useMemo(() => {
     if (!editForm.divisionId) return categories
@@ -469,13 +459,7 @@ export function CourseDetailPage() {
   const { course, versions } = data
   const isDraft = course.status === 0
   const isOpen = course.status === 1
-  const isRetired = course.status === 2
-  const tabs: Array<{ id: CourseDetailTab; label: string }> = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'versions', label: 'Versions' },
-    { id: 'learners', label: 'Learners' },
-    { id: 'assignments', label: 'Assignments' },
-  ]
+  const isClosed = course.status === 2
 
   return (
     <>
@@ -485,7 +469,7 @@ export function CourseDetailPage() {
             courseId={id ?? String(course.id)}
             isDraft={isDraft}
             isOpen={isOpen}
-            isRetired={isRetired}
+            isClosed={isClosed}
             mutatingStatus={mutatingStatus}
             onStatusChange={handleStatusChange}
             onDeleteCourse={handleDeleteCourse}
@@ -493,166 +477,136 @@ export function CourseDetailPage() {
           />
         }
       >
-        {/* Tab controls */}
-        <div className="border-b border-slate-200 mb-6 flex gap-1">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
-                activeTab === tab.id
-                  ? 'text-indigo-600 font-bold border-b-2 border-indigo-500' 
-                  : 'text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content Panels */}
         <main className="space-y-6">
-            
-            {activeTab === 'overview' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-                <SectionHeader icon={BookOpen} variant="card">Course Overview</SectionHeader>
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={BookOpen} variant="card">Overview</SectionHeader>
 
-                <div className="p-5 space-y-5">
-                  {/* Description */}
-                  {course.description && (
-                    <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
-                      {course.description}
-                    </p>
+            <div className="p-5 space-y-5">
+              {course.description && (
+                <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
+                  {course.description}
+                </p>
+              )}
+
+              <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
+                <Fact label="Course Code" mono valueClassName="font-semibold">
+                  {course.courseCode}
+                </Fact>
+                <Fact label="Status">
+                  <CourseStatusText status={course.statusName} statusCode={course.status} />
+                </Fact>
+                <Fact label="Category" valueClassName="font-semibold">
+                  {categoryNames[course.categoryId] || '-'}
+                </Fact>
+                <Fact label="Course Type" valueClassName="font-semibold">
+                  {courseTypeNames[course.courseType] || '-'}
+                </Fact>
+                <Fact label="Content Items" valueClassName="font-semibold">
+                  {course.contentItems.length}
+                </Fact>
+                {data.kpi && (
+                  <>
+                    <Fact label="Versions" valueClassName="font-bold text-slate-800">
+                      {data.kpi.versionCount}
+                    </Fact>
+                    <Fact label="Active Learners" valueClassName="font-bold text-slate-800">
+                      {data.kpi.learnerCount}
+                    </Fact>
+                    <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800">
+                      {data.kpi.assignmentCount}
+                    </Fact>
+                  </>
+                )}
+              </FactGrid>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
+                    <th className="p-3">Version No.</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Content Items</th>
+                    <th className="p-3">Created Date</th>
+                    <th className="p-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {versions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400">
+                        No versions.
+                      </td>
+                    </tr>
+                  ) : (
+                    versions.map(v => (
+                      <tr key={v.id} className="hover:bg-slate-50 transition">
+                        <td className="p-3 font-bold text-slate-900">
+                          v{v.versionNumber}
+                          {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
+                        </td>
+                        <td className="p-3">
+                          {v.isActive ? (
+                            <StatusBadge tone="success">Active Version</StatusBadge>
+                          ) : (
+                            <StatusBadge tone="neutral">Inactive</StatusBadge>
+                          )}
+                        </td>
+                        <td className="p-3 text-xs text-slate-500">
+                          {v.contentItems.length === 0
+                            ? '—'
+                            : v.contentItems.map(ci => ci.name).join(', ')}
+                        </td>
+                        <td className="p-3 text-slate-400 text-xs">
+                          {formatDate(v.createdAt)}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="inline-flex items-center gap-2">
+                            {!v.isActive && (
+                              <button
+                                onClick={() => handleSetActiveVersion(v.id)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
+                                title="Set active version"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                            )}
+                            <Link
+                              to={`/courses/${id}/version/${v.id}`}
+                              className="p-1 text-slate-500 hover:bg-slate-100 rounded-md transition"
+                              title="View version details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                            <Link
+                              to={`/courses/${id}/version/${v.id}/edit`}
+                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition"
+                              title="Edit version"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteVersion(v.id)}
+                              className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                              title="Delete version"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-                  {/* Metadata Grid */}
-                  <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
-                    <Fact label="Course Code" mono valueClassName="font-semibold">
-                      {course.courseCode}
-                    </Fact>
-                    <Fact label="Status">
-                      <StatusText tone={isOpen ? 'success' : isDraft ? 'warning' : 'danger'}>
-                        {course.statusName}
-                      </StatusText>
-                    </Fact>
-                    <Fact label="Category" valueClassName="font-semibold">
-                      {categoryNames[course.categoryId] || '-'}
-                    </Fact>
-                    <Fact label="Course Type" valueClassName="font-semibold">
-                      {courseTypeNames[course.courseType] || '-'}
-                    </Fact>
-                    <Fact label="Content Items" valueClassName="font-semibold">
-                      {course.contentItems.length}
-                    </Fact>
-                    {data.kpi && (
-                      <>
-                        <Fact label="Versions" valueClassName="font-bold text-slate-800">
-                          {data.kpi.versionCount}
-                        </Fact>
-                        <Fact label="Active Learners" valueClassName="font-bold text-slate-800">
-                          {data.kpi.learnerCount}
-                        </Fact>
-                        <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800">
-                          {data.kpi.assignmentCount}
-                        </Fact>
-                      </>
-                    )}
-                  </FactGrid>
-                </div>
-              </section>
-            )}
-
-            {activeTab === 'versions' && (
-              <>
-                <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                          <th className="p-3">Version No.</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3">Content Items</th>
-                          <th className="p-3">Created Date</th>
-                          <th className="p-3 text-center">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {versions.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-8 text-center text-slate-400">
-                              No versions.
-                            </td>
-                          </tr>
-                        ) : (
-                          versions.map(v => (
-                            <tr key={v.id} className="hover:bg-slate-50 transition">
-                              <td className="p-3 font-bold text-slate-900">
-                                v{v.versionNumber}
-                                {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
-                              </td>
-                              <td className="p-3">
-                                {v.isActive ? (
-                                  <StatusBadge tone="success">Active Version</StatusBadge>
-                                ) : (
-                                  <StatusBadge tone="neutral">Inactive</StatusBadge>
-                                )}
-                              </td>
-                              <td className="p-3 text-xs text-slate-500">
-                                {v.contentItems.length === 0
-                                  ? '—'
-                                  : v.contentItems.map(ci => ci.name).join(', ')}
-                              </td>
-                              <td className="p-3 text-slate-400 text-xs">
-                                {formatDate(v.createdAt)}
-                              </td>
-                              <td className="p-3 text-center">
-                                <div className="inline-flex items-center gap-2">
-                                  {!v.isActive && (
-                                    <button
-                                      onClick={() => handleSetActiveVersion(v.id)}
-                                      className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
-                                      title="Set active version"
-                                    >
-                                      <Check className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                  <Link
-                                    to={`/courses/${id}/version/${v.id}`}
-                                    className="p-1 text-slate-500 hover:bg-slate-100 rounded-md transition"
-                                    title="View version details"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Link>
-                                  <Link
-                                    to={`/courses/${id}/version/${v.id}/edit`}
-                                    className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition"
-                                    title="Edit version"
-                                  >
-                                    <Edit3 className="h-4 w-4" />
-                                  </Link>
-                                  <button
-                                    onClick={() => handleDeleteVersion(v.id)}
-                                    className="p-1 text-slate-400 hover:text-red-600 rounded transition"
-                                    title="Delete version"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              </>
-            )}
-
-            {activeTab === 'learners' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
 
             {loadingLearners ? (
@@ -706,10 +660,8 @@ export function CourseDetailPage() {
               </div>
             )}
           </section>
-            )}
 
-            {activeTab === 'assignments' && (
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <SectionHeader icon={Calendar} variant="card">Assignments</SectionHeader>
 
             {loadingAssignments ? (
@@ -762,18 +714,18 @@ export function CourseDetailPage() {
               </div>
             )}
           </section>
-            )}
-
         </main>
       </DetailLayout>
 
-      {showEditPropertiesModal && (
-        <div className="modal-overlay" onClick={() => setShowEditPropertiesModal(false)}>
-          <form
-            className="modal-window modal-window-lg p-5 relative animate-scale-in"
-            onClick={event => event.stopPropagation()}
-            onSubmit={handleSaveProperties}
-          >
+      <Modal
+        open={showEditPropertiesModal}
+        onClose={() => setShowEditPropertiesModal(false)}
+        size="lg"
+        as="form"
+        onSubmit={handleSaveProperties}
+        windowClassName="p-5 animate-scale-in"
+        ariaLabel="Edit Course Properties"
+      >
             <button
               type="button"
               onClick={() => setShowEditPropertiesModal(false)}
@@ -892,9 +844,7 @@ export function CourseDetailPage() {
                 Save Changes
               </button>
             </div>
-          </form>
-        </div>
-      )}
+      </Modal>
 
       {confirmDialog}
     </>
@@ -905,7 +855,7 @@ type CourseControlsProps = {
   courseId: string
   isDraft: boolean
   isOpen: boolean
-  isRetired: boolean
+  isClosed: boolean
   mutatingStatus: boolean
   onStatusChange: (status: number) => void
   onDeleteCourse: () => void
@@ -916,7 +866,7 @@ function CourseControls({
   courseId,
   isDraft,
   isOpen,
-  isRetired,
+  isClosed,
   mutatingStatus,
   onStatusChange,
   onDeleteCourse,
@@ -948,11 +898,11 @@ function CourseControls({
       </ControlAction>
       <ControlAction
         icon={Lock}
-        disabled={isRetired || mutatingStatus}
-        title={isRetired ? 'Course is already Retired' : undefined}
+        disabled={isClosed || mutatingStatus}
+        title={isClosed ? 'Course is already Closed' : undefined}
         onClick={() => onStatusChange(2)}
       >
-        Retire Course
+        Close Course
       </ControlAction>
       <ControlAction
         icon={FileText}

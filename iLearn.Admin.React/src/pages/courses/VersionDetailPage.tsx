@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BookOpen, Edit3, FileText, Loader2, Plus, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, BookOpen, Edit3, ExternalLink, FileText, Loader2, Plus, Search, Upload, X } from 'lucide-react'
 
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -76,12 +76,14 @@ type VersionGeneralForm = {
 
 type VersionContentDraftItem = {
   uid: string
-  id: number
+  source: 'library' | 'upload'
+  id?: number
   name: string
   typeId: number
   typeName?: string
-  isPublished: boolean
+  isPublished?: boolean
   url?: string | null
+  file?: File
 }
 
 const unwrapList = <T,>(value: LookupResult<T> | undefined): T[] => {
@@ -93,6 +95,7 @@ const getContentUrl = (item: { url?: string | null; URL?: string | null }) => it
 
 const createDraftFromVersionItem = (item: CourseContentItem): VersionContentDraftItem => ({
   uid: `VER_${item.id}`,
+  source: 'library',
   id: item.id,
   name: item.name,
   typeId: item.typeId || 1,
@@ -103,6 +106,7 @@ const createDraftFromVersionItem = (item: CourseContentItem): VersionContentDraf
 
 const createDraftFromLibraryItem = (item: ContentLibraryItem): VersionContentDraftItem => ({
   uid: `LIB_${item.id}`,
+  source: 'library',
   id: item.id,
   name: item.name,
   typeId: item.typeId || 1,
@@ -111,21 +115,33 @@ const createDraftFromLibraryItem = (item: ContentLibraryItem): VersionContentDra
   url: getContentUrl(item),
 })
 
+const createDraftFromUploadFile = (file: File, index: number): VersionContentDraftItem => ({
+  uid: `UPLOAD_${Date.now()}_${index}_${file.name}`,
+  source: 'upload',
+  name: file.name,
+  typeId: 1,
+  file,
+})
+
 const getContentTypeLabel = (item: Pick<VersionContentDraftItem, 'typeId' | 'typeName'>) => {
   if (item.typeName) return item.typeName
   return item.typeId === 2 ? 'Exam' : 'Learn'
 }
 
-const getContentReadiness = (item: Pick<VersionContentDraftItem, 'isPublished' | 'url'>) => {
+const getContentReadiness = (item: Pick<VersionContentDraftItem, 'source' | 'isPublished' | 'url'>) => {
+  if (item.source === 'upload') {
+    return { label: 'Queued Upload', className: 'bg-indigo-50 text-blue-700 border-indigo-100' }
+  }
+
   if (!item.isPublished) {
-    return { label: 'Unpublished', tone: 'neutral' as const }
+    return { label: 'Not Ready', className: 'bg-red-50 text-red-700 border-red-100' }
   }
 
   if (!item.url) {
-    return { label: 'Missing Launch', tone: 'warning' as const }
+    return { label: 'Missing Launch', className: 'bg-amber-50 text-amber-700 border-amber-100' }
   }
 
-  return { label: 'Published', tone: 'success' as const }
+  return { label: 'Published', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' }
 }
 
 const getApiErrorText = (error: unknown, fallback: string) => {
@@ -159,6 +175,7 @@ export function VersionDetailPage() {
 
   const [showGeneralEditModal, setShowGeneralEditModal] = useState(false)
   const [showContentEditModal, setShowContentEditModal] = useState(false)
+  const [showContentLibraryPopup, setShowContentLibraryPopup] = useState(false)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [savingContent, setSavingContent] = useState(false)
 
@@ -173,6 +190,11 @@ export function VersionDetailPage() {
   const selectedVersion = useMemo(
     () => data?.versions.find(item => item.id === parsedVersionId) ?? null,
     [data, parsedVersionId],
+  )
+
+  const currentContentItems = useMemo(
+    () => selectedVersion?.contentItems.map(createDraftFromVersionItem) ?? [],
+    [selectedVersion],
   )
 
   useEffect(() => {
@@ -226,7 +248,7 @@ export function VersionDetailPage() {
   }, [loadContentLibrary, loadDashboardData])
 
   const availableLibraryItems = useMemo(() => {
-    const selectedIds = new Set(contentDraft.map(item => item.id))
+    const selectedIds = new Set(contentDraft.filter(item => item.source === 'library').map(item => item.id))
     const searchText = contentSearch.trim().toLowerCase()
 
     return contentLibrary
@@ -235,6 +257,7 @@ export function VersionDetailPage() {
         if (!searchText) return true
         return `${item.name} ${item.typeName ?? ''} ${item.publishState ?? ''}`.toLowerCase().includes(searchText)
       })
+      .slice(0, 50)
   }, [contentDraft, contentLibrary, contentSearch])
 
   const openGeneralEditModal = () => {
@@ -251,6 +274,7 @@ export function VersionDetailPage() {
     if (!selectedVersion) return
 
     setContentSearch('')
+    setShowContentLibraryPopup(false)
     setContentDraft(selectedVersion.contentItems.map(createDraftFromVersionItem))
     if (!contentLibrary.length && !loadingContentLibrary) {
       void loadContentLibrary()
@@ -258,15 +282,40 @@ export function VersionDetailPage() {
     setShowContentEditModal(true)
   }
 
+  const closeContentEditModal = () => {
+    setShowContentLibraryPopup(false)
+    setShowContentEditModal(false)
+  }
+
+  const openContentLibraryPopup = () => {
+    setContentSearch('')
+    if (!contentLibrary.length && !loadingContentLibrary) {
+      void loadContentLibrary()
+    }
+    setShowContentLibraryPopup(true)
+  }
+
   const addContentToDraft = (item: ContentLibraryItem) => {
     setContentDraft(prev => {
-      if (prev.some(existing => existing.id === item.id)) return prev
+      if (prev.some(existing => existing.source === 'library' && existing.id === item.id)) return prev
       return [...prev, createDraftFromLibraryItem(item)]
     })
   }
 
+  const addUploadedFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+
+    const queuedFiles = Array.from(files).map((file, index) => createDraftFromUploadFile(file, index))
+    setContentDraft(prev => [...prev, ...queuedFiles])
+    toast.success(`${queuedFiles.length} file${queuedFiles.length === 1 ? '' : 's'} added to queue`)
+  }
+
   const removeContentFromDraft = (uid: string) => {
     setContentDraft(prev => prev.filter(item => item.uid !== uid))
+  }
+
+  const updateUploadContentType = (uid: string, typeId: number) => {
+    setContentDraft(prev => prev.map(item => (item.uid === uid ? { ...item, typeId } : item)))
   }
 
   const moveContentInDraft = (uid: string, direction: -1 | 1) => {
@@ -294,7 +343,12 @@ export function VersionDetailPage() {
       body.append('LearnerPolicy', 'NewLearnersOnly')
 
       input.contentItems.forEach(item => {
-        body.append('ContentItemIds', String(item.id))
+        if (item.source === 'upload' && item.file) {
+          body.append('Files', item.file)
+          body.append('ContentItemIds', '0')
+        } else if (item.id) {
+          body.append('ContentItemIds', String(item.id))
+        }
         body.append('ContentTypeIds', String(item.typeId || 1))
       })
 
@@ -352,6 +406,11 @@ export function VersionDetailPage() {
     event.preventDefault()
     if (!selectedVersion) return
 
+    if (contentDraft.length === 0) {
+      toast.error('Please add at least one content item')
+      return
+    }
+
     setSavingContent(true)
     try {
       const isSaved = await saveVersionChanges({
@@ -362,7 +421,7 @@ export function VersionDetailPage() {
       })
 
       if (isSaved) {
-        setShowContentEditModal(false)
+        closeContentEditModal()
       }
     } finally {
       setSavingContent(false)
@@ -403,7 +462,7 @@ export function VersionDetailPage() {
       >
         <main className="space-y-6">
           <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={FileText} variant="card">Version Overview</SectionHeader>
+            <SectionHeader icon={FileText} variant="card">Overview</SectionHeader>
 
             <div className="p-5 space-y-5">
               {selectedVersion.note && (
@@ -426,6 +485,69 @@ export function VersionDetailPage() {
 
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                 Use the Controls panel to edit general information and manage version content.
+              </div>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={BookOpen} variant="card">Current Content</SectionHeader>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs font-semibold text-slate-500">Attached content items in this version.</p>
+
+              <div className="overflow-auto border border-slate-200 rounded custom-scrollbar">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
+                    <tr>
+                      <th className="w-12 px-3 py-2 text-left">Order</th>
+                      <th className="px-3 py-2 text-left">Content Name</th>
+                      <th className="w-28 px-3 py-2 text-left">Type</th>
+                      <th className="w-28 px-3 py-2 text-left">Status</th>
+                      <th className="w-48 px-3 py-2 text-left">Player</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {currentContentItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-8 text-center text-xs font-semibold text-slate-400">
+                          No content attached in this version.
+                        </td>
+                      </tr>
+                    ) : (
+                      currentContentItems.map((item, index) => {
+                        const readiness = getContentReadiness(item)
+                        const launchUrl = item.url?.trim() || ''
+                        return (
+                          <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
+                            <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 max-w-xl truncate">{item.name}</td>
+                            <td className="px-3 py-2 text-xs font-semibold text-slate-500">{getContentTypeLabel(item)}</td>
+                            <td className="px-3 py-2 select-none">
+                              <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>
+                                {readiness.label}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              {launchUrl ? (
+                                <a
+                                  href={launchUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded border border-indigo-100 px-2 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                  Open SCORM Player
+                                </a>
+                              ) : (
+                                <span className="text-xs font-semibold text-slate-400">Unavailable</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>
@@ -499,15 +621,16 @@ export function VersionDetailPage() {
       )}
 
       {showContentEditModal && (
-        <div className="modal-overlay" onClick={() => setShowContentEditModal(false)}>
+        <div className="modal-overlay" onClick={closeContentEditModal}>
           <form
-            className="modal-window modal-window-lg p-5 relative animate-scale-in"
+            className="modal-window p-5 relative animate-scale-in flex flex-col"
+            style={{ width: 'min(95vw, 1320px)', maxWidth: '1320px', maxHeight: '88vh' }}
             onClick={event => event.stopPropagation()}
             onSubmit={handleContentSave}
           >
             <button
               type="button"
-              onClick={() => setShowContentEditModal(false)}
+              onClick={closeContentEditModal}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
               aria-label="Close modal"
             >
@@ -516,135 +639,135 @@ export function VersionDetailPage() {
 
             <div className="mb-4 border-b border-slate-100 pb-3 pr-8 select-none">
               <h3 className="text-sm font-bold text-slate-800">Edit Content</h3>
-              <p className="text-xs text-slate-500 mt-1">Reorder, remove, and add content from SCORM Content library.</p>
+              <p className="text-xs text-slate-500 mt-1">Upload new SCORM packages or select existing items from Content Library.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between select-none">
-                  <h4 className="text-xs font-bold uppercase text-slate-500">Version Content</h4>
-                  <span className="text-xs font-semibold text-slate-500">{contentDraft.length} item{contentDraft.length === 1 ? '' : 's'}</span>
-                </div>
-
-                <div className="max-h-96 overflow-auto border border-slate-200 rounded custom-scrollbar">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
-                      <tr>
-                        <th className="w-14 px-3 py-2 text-left">Order</th>
-                        <th className="px-3 py-2 text-left">Content Name</th>
-                        <th className="w-24 px-3 py-2 text-left">Type</th>
-                        <th className="w-30 px-3 py-2 text-left">Status</th>
-                        <th className="w-28 px-3 py-2 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {contentDraft.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="px-3 py-8 text-center text-xs font-semibold text-slate-400">
-                            No content selected.
-                          </td>
-                        </tr>
-                      ) : (
-                        contentDraft.map((item, index) => {
-                          const readiness = getContentReadiness(item)
-                          return (
-                            <tr key={item.uid} className="hover:bg-slate-50/40 transition-colors">
-                              <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
-                              <td className="px-3 py-2 font-semibold text-slate-700 max-w-xs truncate">{item.name}</td>
-                              <td className="px-3 py-2 text-xs font-semibold text-slate-500">{getContentTypeLabel(item)}</td>
-                              <td className="px-3 py-2">
-                                <StatusBadge tone={readiness.tone}>{readiness.label}</StatusBadge>
-                              </td>
-                              <td className="px-3 py-2">
-                                <div className="flex justify-end gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => moveContentInDraft(item.uid, -1)}
-                                    disabled={index === 0}
-                                    className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                    aria-label="Move content up"
-                                  >
-                                    <ArrowUp className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => moveContentInDraft(item.uid, 1)}
-                                    disabled={index === contentDraft.length - 1}
-                                    className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                    aria-label="Move content down"
-                                  >
-                                    <ArrowDown className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeContentFromDraft(item.uid)}
-                                    className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                                    aria-label="Remove content"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
+              <div className="flex justify-end mb-1 select-none">
+                <span className="border border-slate-200 bg-white px-2 py-0.5 rounded text-xs font-bold text-slate-500">
+                  {contentDraft.length} item{contentDraft.length === 1 ? '' : 's'}
+                </span>
               </div>
 
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase text-slate-500 select-none">SCORM Content</h4>
-
-                <div className="flex items-center gap-2 border border-slate-200 bg-white px-2.5 py-1.5 rounded text-xs select-none">
-                  <Search className="h-4 w-4 text-slate-400" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
+                  <Upload className="h-5 w-5 text-indigo-500" />
+                  <span>Upload New SCORM</span>
+                  <span className="text-xs font-semibold text-slate-400">.zip packages · multiple allowed</span>
                   <input
-                    value={contentSearch}
-                    onChange={event => setContentSearch(event.target.value)}
-                    placeholder="Search SCORM Content..."
-                    className="min-w-0 flex-1 border-0 bg-transparent text-xs text-slate-800 outline-none"
+                    type="file"
+                    accept=".zip"
+                    multiple
+                    className="sr-only"
+                    onChange={event => {
+                      addUploadedFiles(event.target.files)
+                      event.target.value = ''
+                    }}
                   />
-                </div>
+                </label>
 
-                <div className="max-h-96 divide-y divide-slate-100 overflow-y-auto border border-slate-200 rounded custom-scrollbar select-none">
-                  {loadingContentLibrary ? (
-                    <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">Loading SCORM Content...</div>
-                  ) : availableLibraryItems.length === 0 ? (
-                    <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">No content found.</div>
-                  ) : (
-                    availableLibraryItems.map(item => {
-                      const draftItem = createDraftFromLibraryItem(item)
-                      const readiness = getContentReadiness(draftItem)
-                      return (
-                        <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
-                          <div className="min-w-0">
-                            <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
-                            <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
-                              <span>{getContentTypeLabel(draftItem)}</span>
-                              <StatusBadge size="xxs" tone={readiness.tone}>{readiness.label}</StatusBadge>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => addContentToDraft(item)}
-                            className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
-                            aria-label="Add content"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={openContentLibraryPopup}
+                  className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
+                >
+                  <BookOpen className="h-5 w-5 text-indigo-600" />
+                  <span>Select Existing Content</span>
+                  <span className="text-xs font-semibold text-slate-400">Reuse packages from the Content Library</span>
+                </button>
+              </div>
+
+              <div className="max-h-[58vh] overflow-auto border border-slate-200 rounded custom-scrollbar">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
+                    <tr>
+                      <th className="w-12 px-3 py-2 text-left">Order</th>
+                      <th className="px-3 py-2 text-left">Content Name</th>
+                      <th className="w-28 px-3 py-2 text-left">Source</th>
+                      <th className="w-36 px-3 py-2 text-left">Content Type</th>
+                      <th className="w-28 px-3 py-2 text-left">Status</th>
+                      <th className="w-28 px-3 py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {contentDraft.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-8 text-center text-xs font-semibold text-slate-400">
+                          No content selected
+                        </td>
+                      </tr>
+                    ) : (
+                      contentDraft.map((item, index) => {
+                        const readiness = getContentReadiness(item)
+                        return (
+                          <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
+                            <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
+                            <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
+                            <td className="px-3 py-2 text-slate-400 font-semibold">
+                              {item.source === 'upload' ? 'New upload' : 'Content library'}
+                            </td>
+                            <td className="px-3 py-2">
+                              {item.source === 'upload' ? (
+                                <select
+                                  value={item.typeId}
+                                  onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
+                                  className="wiz-input py-1"
+                                >
+                                  <option value={1}>Learn</option>
+                                  <option value={2}>Exam</option>
+                                </select>
+                              ) : (
+                                <span className="font-semibold text-slate-600">{getContentTypeLabel(item)}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 select-none">
+                              <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>
+                                {readiness.label}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => moveContentInDraft(item.uid, -1)}
+                                  disabled={index === 0}
+                                  className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  aria-label="Move content up"
+                                >
+                                  <ArrowUp className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveContentInDraft(item.uid, 1)}
+                                  disabled={index === contentDraft.length - 1}
+                                  className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  aria-label="Move content down"
+                                >
+                                  <ArrowDown className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeContentFromDraft(item.uid)}
+                                  className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                  aria-label="Remove content"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowContentEditModal(false)}
+                onClick={closeContentEditModal}
                 className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
               >
                 Cancel
@@ -659,6 +782,73 @@ export function VersionDetailPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showContentEditModal && showContentLibraryPopup && (
+        <div className="modal-overlay" onClick={() => setShowContentLibraryPopup(false)}>
+          <div
+            className="modal-window modal-window-lg p-5 relative animate-scale-in"
+            onClick={event => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowContentLibraryPopup(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
+              <BookOpen className="h-5 w-5 text-indigo-600" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Select Existing Content</h3>
+                <p className="text-xs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+              </div>
+            </div>
+
+            <div className="mb-3.5 flex items-center gap-2 border border-slate-200 bg-white px-2.5 py-1.5 rounded text-xs select-none">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                value={contentSearch}
+                onChange={event => setContentSearch(event.target.value)}
+                placeholder="Search Content Library..."
+                className="min-w-0 flex-1 border-0 bg-transparent text-xs text-slate-800 outline-none"
+              />
+            </div>
+
+            <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto border border-slate-200 rounded custom-scrollbar select-none">
+              {loadingContentLibrary ? (
+                <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">Loading Content Library...</div>
+              ) : availableLibraryItems.length === 0 ? (
+                <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">No content found matching search</div>
+              ) : availableLibraryItems.map(item => {
+                const readiness = getContentReadiness(createDraftFromLibraryItem(item))
+                return (
+                  <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
+                    <div className="min-w-0">
+                      <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
+                        <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                        <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>
+                          {readiness.label}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addContentToDraft(item)}
+                      className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
+                      aria-label="Add content"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       )}
     </>

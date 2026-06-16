@@ -1,6 +1,6 @@
 # PLAN-028: แก้อาการกระพริบ (flicker) ของ AppTable ตอนโหลด/เลื่อน
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: overlay condition = `loading && data.length === 0` (AppTable:389) — initial load มี spinner, scroll/refetch ไม่มี blur แฟลช, build/lint 0/0 ผ่าน)
 - **Assigned:** GPT (GPT-5.3 Codex)
 - **Priority:** Medium
 - **Estimated scope:** 1 ไฟล์หลัก (`components/ui/AppTable.tsx`) — เป็น shared component ใช้ทุกหน้า list

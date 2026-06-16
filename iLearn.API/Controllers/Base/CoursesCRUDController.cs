@@ -42,7 +42,6 @@ namespace iLearn.API.Controllers.Base
                     c.Status,
                     StatusName = c.Status == CourseStatus.Open ? "Open"
                         : c.Status == CourseStatus.Draft ? "Draft"
-                        : c.Status == CourseStatus.Retired ? "Retired"
                         : "Closed",
                     CanAssign = c.Status == CourseStatus.Open,
                     CanLearnerAccess = c.Status == CourseStatus.Open || c.Status == CourseStatus.Closed,
@@ -118,7 +117,6 @@ namespace iLearn.API.Controllers.Base
                 c.Status,
                 StatusName = c.Status == CourseStatus.Open ? "Open"
                     : c.Status == CourseStatus.Draft ? "Draft"
-                    : c.Status == CourseStatus.Retired ? "Retired"
                     : "Closed",
                 CanAssign = c.Status == CourseStatus.Open,
                 CanLearnerAccess = c.Status == CourseStatus.Open || c.Status == CourseStatus.Closed,

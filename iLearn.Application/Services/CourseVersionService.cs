@@ -684,7 +684,7 @@ namespace iLearn.Application.Services
                 return;
             }
 
-            if ((course.Status == CourseStatus.Closed || course.Status == CourseStatus.Retired) && course.IsActive)
+            if (course.Status == CourseStatus.Closed && course.IsActive)
             {
                 course.IsActive = false;
                 await _courseRepository.UpdateAsync(course);

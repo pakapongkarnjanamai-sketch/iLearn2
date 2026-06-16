@@ -101,7 +101,6 @@ export function AssignmentDetailPage() {
   const [pendingAddLearners, setPendingAddLearners] = useState<LearnerSelection[]>([])
   const [learnerCodesInput, setLearnerCodesInput] = useState('')
   const [savingLearners, setSavingLearners] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'learners'>('overview')
 
   const groupedLearners = useMemo(() => {
     if (!assignment?.learners) return []
@@ -365,7 +364,7 @@ export function AssignmentDetailPage() {
     <>
       <DetailLayout
         sidebar={
-          <ControlsSidebar stickyTopClass="lg:top-0">
+          <ControlsSidebar>
             <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
             <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
@@ -373,104 +372,83 @@ export function AssignmentDetailPage() {
           </ControlsSidebar>
         }
       >
-        <div className="border-b border-slate-200 mb-6 flex gap-1">
-          {(['overview', 'courses', 'learners'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
-                activeTab === tab
-                  ? 'text-indigo-600 font-bold border-b-2 border-indigo-500'
-                  : 'text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-
         <main className="space-y-6">
-          {activeTab === 'overview' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={FileBarChart} variant="card">Overview</SectionHeader>
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={FileBarChart} variant="card">Overview</SectionHeader>
 
-              <div className="p-5">
-                <FactGrid className="pt-2">
-                  <Fact label="Learners" valueClassName="font-bold text-slate-800">
-                    {assignment.totalEmployees}
+            <div className="p-5">
+              <FactGrid className="pt-2">
+                <Fact label="Learners" valueClassName="font-bold text-slate-800">
+                  {assignment.totalEmployees}
+                </Fact>
+                <Fact label="Completed" valueClassName="font-bold text-slate-800">
+                  {assignment.chartData.completed}
+                </Fact>
+                <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
+                  {Math.round(assignment.completionRate)}%
+                </Fact>
+                <Fact label="Status">
+                  <StatusText
+                    tone={
+                      assignmentStatus === 'Completed'
+                        ? 'success'
+                        : assignmentStatus === 'Upcoming'
+                        ? 'warning'
+                        : assignmentStatus === 'Overdue'
+                        ? 'danger'
+                        : 'neutral'
+                    }
+                  >
+                    {assignmentStatus}
+                  </StatusText>
+                </Fact>
+                <Fact label="Start Date" valueClassName="font-semibold">
+                  {formatDate(assignment.startDate)}
+                </Fact>
+                <Fact label="Due Date" valueClassName="font-semibold">
+                  {formatDate(assignment.dueDate)}
+                </Fact>
+                {assignment.learnerGroupName && (
+                  <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
+                    {assignment.learnerGroupName}
                   </Fact>
-                  <Fact label="Completed" valueClassName="font-bold text-slate-800">
-                    {assignment.chartData.completed}
-                  </Fact>
-                  <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
-                    {Math.round(assignment.completionRate)}%
-                  </Fact>
-                  <Fact label="Status">
-                    <StatusText
-                      tone={
-                        assignmentStatus === 'Completed'
-                          ? 'success'
-                          : assignmentStatus === 'Upcoming'
-                          ? 'warning'
-                          : assignmentStatus === 'Overdue'
-                          ? 'danger'
-                          : 'neutral'
-                      }
+                )}
+              </FactGrid>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
+
+            <ul className="divide-y divide-slate-100 px-4">
+              {assignment.courses.map((c) => (
+                <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                      {c.courseTitle}
+                      {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
+                    </span>
+                    <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xxs font-bold text-slate-500">
+                      {c.completedLearners} / {c.totalLearners} completed
+                    </span>
+                    <button
+                      onClick={() => handleRemoveCourse(c.assignmentRuleId)}
+                      className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                      title="Remove course from assignment"
                     >
-                      {assignmentStatus}
-                    </StatusText>
-                  </Fact>
-                  <Fact label="Start Date" valueClassName="font-semibold">
-                    {formatDate(assignment.startDate)}
-                  </Fact>
-                  <Fact label="Due Date" valueClassName="font-semibold">
-                    {formatDate(assignment.dueDate)}
-                  </Fact>
-                  {assignment.learnerGroupName && (
-                    <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
-                      {assignment.learnerGroupName}
-                    </Fact>
-                  )}
-                </FactGrid>
-              </div>
-            </section>
-          )}
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-          {activeTab === 'courses' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
-
-              <ul className="divide-y divide-slate-100 px-4">
-                {assignment.courses.map((c) => (
-                  <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                        {c.courseTitle}
-                        {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
-                      </span>
-                      <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xxs font-bold text-slate-500">
-                        {c.completedLearners} / {c.totalLearners} completed
-                      </span>
-                      <button
-                        onClick={() => handleRemoveCourse(c.assignmentRuleId)}
-                        className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                        title="Remove course from assignment"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {activeTab === 'learners' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
  
               <div className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
@@ -554,8 +532,7 @@ export function AssignmentDetailPage() {
                   </tbody>
                 </table>
               </div>
-            </section>
-          )}
+          </section>
         </main>
 
       </DetailLayout>

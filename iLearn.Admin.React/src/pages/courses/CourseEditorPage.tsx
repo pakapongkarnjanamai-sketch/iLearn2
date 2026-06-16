@@ -16,6 +16,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { DetailTabs } from '../../components/ui/DetailTabs'
 import { LoadingState } from '../../components/ui/LoadingState'
 
 type LoadResult<T> = T[] | { data?: T[] }
@@ -178,6 +179,11 @@ export function CourseEditorPage() {
     categoryId: 0,
     courseType: 0,
   })
+
+  const editTabs: Array<{ key: 'properties' | 'content'; label: string }> = [
+    { key: 'properties', label: 'Course Properties' },
+    { key: 'content', label: 'SCORM Content & Library' },
+  ]
 
   useEffect(() => {
     if (isEditMode && formData.courseCode) {
@@ -818,31 +824,12 @@ export function CourseEditorPage() {
             </div>
           </div>
 
-          {/* Tab Controls for Edit Mode */}
-          <div className="flex gap-4 mt-2">
-            <button
-              type="button"
-              onClick={() => setActiveEditTab('properties')}
-              className={`pb-1 font-bold text-xs uppercase tracking-wider transition relative cursor-pointer ${
-                activeEditTab === 'properties'
-                  ? 'text-indigo-500 border-b-2 border-indigo-500'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Course Properties
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveEditTab('content')}
-              className={`pb-1 font-bold text-xs uppercase tracking-wider transition relative cursor-pointer ${
-                activeEditTab === 'content'
-                  ? 'text-indigo-500 border-b-2 border-indigo-500'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              SCORM Content & Library
-            </button>
-          </div>
+          <DetailTabs
+            tabs={editTabs}
+            active={activeEditTab}
+            onChange={setActiveEditTab}
+            variant="compact"
+          />
         </div>
 
         {/* Content Panel Zone */}

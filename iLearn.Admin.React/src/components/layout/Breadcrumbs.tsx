@@ -16,7 +16,7 @@ const SEGMENT_MAP: Record<string, string> = {
   'system-config': 'System Config',
   'new': 'Create',
   'edit': 'Modify',
-  'version': 'SCORM Version',
+  'version': 'Version',
   'profile': 'Profile',
   'gantt': 'Schedule',
   'bulk': 'Assign Courses'
@@ -75,7 +75,18 @@ export function Breadcrumbs() {
 
       {pathnames.map((value, index) => {
         const last = index === pathnames.length - 1
-        const to = `/${pathnames.slice(0, index + 1).join('/')}`
+        let to = `/${pathnames.slice(0, index + 1).join('/')}`
+
+        // /courses/:courseId/version has no standalone route.
+        // Keep this crumb useful by linking back to the course detail page.
+        if (
+          value === 'version' &&
+          pathnames[0] === 'courses' &&
+          !!pathnames[1] &&
+          /^\d+$/.test(pathnames[1])
+        ) {
+          to = `/courses/${pathnames[1]}`
+        }
         
         // Resolve breadcrumb text segment
         let label = labels[value] || SEGMENT_MAP[value]
@@ -89,7 +100,7 @@ export function Breadcrumbs() {
         }
 
         return (
-          <div key={to} className="flex items-center space-x-1.5 shrink-0">
+          <div key={`${to}-${index}`} className="flex items-center space-x-1.5 shrink-0">
             {last ? (
               <span className="text-slate-800 font-extrabold">{label}</span>
             ) : (

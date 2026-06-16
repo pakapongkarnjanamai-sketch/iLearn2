@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
+import { Modal } from './Modal'
 
 /*
  * Standard confirmation dialog replacing window.confirm().
@@ -75,8 +76,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   return (
-    <div className="modal-overlay" onClick={onCancel} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="modal-window" onClick={e => e.stopPropagation()}>
+    <Modal open onClose={onCancel} ariaLabel={title}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
           <div className="flex items-center gap-2">
             <AlertTriangle className={`h-5 w-5 ${danger ? 'text-red-500' : 'text-amber-500'}`} />
@@ -113,7 +113,6 @@ export function ConfirmDialog({
             {confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

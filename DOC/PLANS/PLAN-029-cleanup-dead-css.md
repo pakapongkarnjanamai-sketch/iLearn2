@@ -1,6 +1,6 @@
 # PLAN-029: ลบ dead CSS ใน index.css (class/keyframe ที่ไม่ถูกใช้)
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-15: dead CSS 8 รายการ=0 ใน index.css, keep items ครบ, build ผ่าน. หมายเหตุ: doc sync §2.3 ครบ แต่ §2.1/§2.5 ยังอ้าง class ที่ลบ → Claude แก้ ux_ui_analysis ให้ครบแล้ว)
 - **Assigned:** GPT (GPT-5.3 Codex)
 - **Priority:** Low
 - **Estimated scope:** 1 ไฟล์หลัก (`src/index.css`) + sync `DOC/ux_ui_analysis.md` ถ้าจำเป็น

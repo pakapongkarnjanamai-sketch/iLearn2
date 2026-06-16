@@ -126,7 +126,7 @@ export function UserDetailPage() {
         }
       >
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-          <SectionHeader icon={User} variant="card">User Overview</SectionHeader>
+          <SectionHeader icon={User} variant="card">Overview</SectionHeader>
 
           <div className="p-5 space-y-6">
             <FactGrid>

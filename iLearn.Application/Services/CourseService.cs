@@ -80,7 +80,7 @@ namespace iLearn.Application.Services
         {
             var targetStatuses = isActive
                 ? new[] { CourseStatus.Open }
-                : new[] { CourseStatus.Draft, CourseStatus.Closed, CourseStatus.Retired };
+                : new[] { CourseStatus.Draft, CourseStatus.Closed };
 
             var courses = await _courseRepo.GetAsync(
                 filter: c => targetStatuses.Contains(c.Status),
@@ -94,7 +94,7 @@ namespace iLearn.Application.Services
         {
             var targetStatuses = isActive
                 ? new[] { CourseStatus.Open }
-                : new[] { CourseStatus.Draft, CourseStatus.Closed, CourseStatus.Retired };
+                : new[] { CourseStatus.Draft, CourseStatus.Closed };
 
             // Course -> Category -> Division (ผ่าน Category.DivisionId)
             // กรองเฉพาะ Course ที่อยู่ใน Category ของ Division ที่ตรงกับชื่อ
@@ -428,20 +428,6 @@ namespace iLearn.Application.Services
                         issue.Reason)).ToList();
 
                     throw new InvalidOperationException(CourseContentReadiness.BuildActivationErrorMessage(readiness.ContentItemCount, issues));
-                }
-            }
-
-            if (status == CourseStatus.Retired)
-            {
-                var openEnrollmentCount = await _enrollmentRepository.CountAsync(
-                    e => e.CourseId == id && !e.IsCompleted && !e.IsDeleted);
-
-                if (openEnrollmentCount > 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot retire the course because {openEnrollmentCount} learner(s) still have open enrollments. " +
-                        $"Close the course first, then wait for completion or cancel the related enrollments."
-                    );
                 }
             }
 

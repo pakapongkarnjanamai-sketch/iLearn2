@@ -81,14 +81,14 @@ namespace iLearn.Tests
         {
             var dto = new CourseStatusResultDto
             {
-                Status = CourseStatus.Retired,
+                Status = CourseStatus.Closed,
                 CanAssign = false,
-                CanLearnerAccess = false
+                CanLearnerAccess = true
             };
 
-            Assert.Equal("Retired", dto.StatusName);
+            Assert.Equal("Closed", dto.StatusName);
             Assert.False(dto.CanAssign);
-            Assert.False(dto.CanLearnerAccess);
+            Assert.True(dto.CanLearnerAccess);
         }
     }
 }

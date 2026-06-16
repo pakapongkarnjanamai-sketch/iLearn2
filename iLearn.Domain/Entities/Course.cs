@@ -19,7 +19,6 @@ namespace iLearn.Domain.Entities
 
         public bool CanAssign => Status == CourseStatus.Open;
         public bool CanLearnerAccess => Status == CourseStatus.Open || Status == CourseStatus.Closed;
-        public bool IsRetired => Status == CourseStatus.Retired;
 
         public ICollection<CourseVersion> Versions { get; set; } = new List<CourseVersion>();
 

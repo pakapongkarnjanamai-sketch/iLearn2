@@ -329,9 +329,6 @@ export function LearnerGroupDetailPage() {
 
   // Modal / Operations drawers
   const [managerMode, setManagerMode] = useState<'none' | 'add' | 'remove'>('none')
-
-  // Page tabs
-  const [detailTab, setDetailTab] = useState<'overview' | 'members'>('overview')
   
   // Member additions workspace state
   const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
@@ -571,74 +568,55 @@ export function LearnerGroupDetailPage() {
           </ControlsSidebar>
         }
       >
-        <div className="border-b border-slate-200 mb-6 flex gap-1">
-          {(['overview', 'members'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setDetailTab(tab)}
-              className={`pb-3 px-3 font-semibold text-sm transition relative cursor-pointer ${
-                detailTab === tab
-                  ? 'text-indigo-600 font-bold border-b-2 border-indigo-500'
-                  : 'text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-
         <main className="space-y-6">
-          {detailTab === 'overview' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={Settings} variant="card">Overview</SectionHeader>
+          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={Settings} variant="card">Overview</SectionHeader>
 
-              <div className="p-5">
-                <FactGrid>
-                  <Fact label="Group Name" valueClassName="font-bold text-slate-800">
-                    {group.name}
-                  </Fact>
-                  <Fact label="Members" valueClassName="font-bold text-slate-800">
-                    {group.members.length}
-                  </Fact>
-                  <Fact
-                    label="LMS Category"
-                    colSpan="full"
-                    valueClassName="font-semibold"
-                  >
-                    {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
-                      <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
-                        {group.categoryAncestors.map((ancestor) => (
-                          <span key={ancestor.id} className="flex items-center gap-1">
-                            <span className="text-slate-600">{ancestor.name}</span>
-                            <span className="text-slate-300 font-normal">/</span>
-                          </span>
-                        ))}
-                        <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
-                      </div>
-                    ) : (
-                      group.categoryName || '-'
-                    )}
-                  </Fact>
-                  <Fact
-                    label="Owner / Creator"
-                    colSpan="full"
-                    valueClassName="font-bold"
-                  >
-                    {group.createdBy || 'System Admin'}
-                  </Fact>
-                  {group.description && (
-                    <Fact label="Description" colSpan="full">
-                      {group.description}
-                    </Fact>
+            <div className="p-5">
+              <FactGrid>
+                <Fact label="Group Name" valueClassName="font-bold text-slate-800">
+                  {group.name}
+                </Fact>
+                <Fact label="Members" valueClassName="font-bold text-slate-800">
+                  {group.members.length}
+                </Fact>
+                <Fact
+                  label="LMS Category"
+                  colSpan="full"
+                  valueClassName="font-semibold"
+                >
+                  {group.categoryAncestors && group.categoryAncestors.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
+                      {group.categoryAncestors.map((ancestor) => (
+                        <span key={ancestor.id} className="flex items-center gap-1">
+                          <span className="text-slate-600">{ancestor.name}</span>
+                          <span className="text-slate-300 font-normal">/</span>
+                        </span>
+                      ))}
+                      <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
+                    </div>
+                  ) : (
+                    group.categoryName || '-'
                   )}
-                </FactGrid>
-              </div>
-            </section>
-          )}
+                </Fact>
+                <Fact
+                  label="Owner / Creator"
+                  colSpan="full"
+                  valueClassName="font-bold"
+                >
+                  {group.createdBy || 'System Admin'}
+                </Fact>
+                {group.description && (
+                  <Fact label="Description" colSpan="full">
+                    {group.description}
+                  </Fact>
+                )}
+              </FactGrid>
+            </div>
+          </section>
 
-          {detailTab === 'members' && (
-            <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
+          <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+            <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
 
               <div className="overflow-x-auto max-h-140 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
@@ -692,8 +670,7 @@ export function LearnerGroupDetailPage() {
                   </tbody>
                 </table>
               </div>
-            </section>
-          )}
+          </section>
         </main>
 
       </DetailLayout>

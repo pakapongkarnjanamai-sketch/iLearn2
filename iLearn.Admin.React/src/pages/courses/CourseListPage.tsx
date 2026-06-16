@@ -17,7 +17,9 @@ import {
 } from 'lucide-react'
 
 import { AppButton } from '../../components/ui/AppButton'
+import { CourseStatusBadge } from '../../components/ui/CourseStatusBadge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { Modal } from '../../components/ui/Modal'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer/ExplorerTable'
 import { useExplorer } from '../../components/ui/explorer/useExplorer'
@@ -279,7 +281,7 @@ export function CourseListPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // GET api/Courses filters by status: isActive=true → Open only; isActive=false → Draft/Closed/Retired only.
+      // GET api/Courses filters by status: isActive=true → Open only; isActive=false → Draft/Closed only.
       // Neither returns all, so fetch both and merge for the admin explorer (disjoint sets, no dupes).
       const [activeResp, inactiveResp, divisionsResp, categoriesResp, typesResp] = await Promise.all([
         fetchWithAccessControl<ApiEnvelope<CourseDto[]>>('Courses?isActive=true'),
@@ -615,23 +617,9 @@ export function CourseListPage() {
       render: item => (
         item.isFolder ? (
           <span className="text-xs font-bold text-slate-500">{item.countText}</span>
-        ) : (() => {
-          const status = item.statusName || '—'
-          const isDraft = status.toLowerCase() === 'draft'
-          const isRetired = status.toLowerCase() === 'retired'
-          const isOpen = status.toLowerCase() === 'open' || status.toLowerCase() === 'active'
-
-          let toneClass = 'bg-slate-100 text-slate-800 border-slate-200'
-          if (isOpen) toneClass = 'bg-emerald-100 text-emerald-800 border-emerald-200 font-bold'
-          else if (isDraft) toneClass = 'bg-amber-100 text-amber-800 border-amber-200'
-          else if (isRetired) toneClass = 'bg-rose-100 text-rose-800 border-rose-200'
-
-          return (
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-semibold border ${toneClass}`}>
-              {status}
-            </span>
-          )
-        })()
+        ) : (
+          <CourseStatusBadge status={item.statusName} />
+        )
       ),
     },
     {
@@ -772,13 +760,13 @@ export function CourseListPage() {
         </div>
       </DataGridSurface>
 
-      {isCreateModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
-          <form
-            className="modal-window"
-            onClick={event => event.stopPropagation()}
-            onSubmit={handleCreateCategory}
-          >
+      <Modal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        as="form"
+        onSubmit={handleCreateCategory}
+        ariaLabel="Create Category"
+      >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <FolderPlus className="h-5 w-5 text-indigo-500" />
@@ -844,17 +832,15 @@ export function CourseListPage() {
                 Create Category
               </button>
             </div>
-          </form>
-        </div>
-      )}
+      </Modal>
 
-      {editingCategory && (
-        <div className="modal-overlay" onClick={() => setEditingCategory(null)}>
-          <form
-            className="modal-window"
-            onClick={event => event.stopPropagation()}
-            onSubmit={handleRenameCategory}
-          >
+      <Modal
+        open={!!editingCategory}
+        onClose={() => setEditingCategory(null)}
+        as="form"
+        onSubmit={handleRenameCategory}
+        ariaLabel="Rename Category"
+      >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-indigo-500" />
@@ -901,9 +887,7 @@ export function CourseListPage() {
                 Rename Category
               </button>
             </div>
-          </form>
-        </div>
-      )}
+      </Modal>
 
       {confirmDialog}
     </>

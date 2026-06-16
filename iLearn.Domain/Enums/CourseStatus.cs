@@ -4,7 +4,6 @@ namespace iLearn.Domain.Enums
     {
         Draft = 0,
         Open = 1,
-        Closed = 2,
-        Retired = 3
+        Closed = 2
     }
 }

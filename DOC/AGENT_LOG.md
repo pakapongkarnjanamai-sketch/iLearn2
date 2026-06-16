@@ -14,6 +14,121 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-16 09:09] GitHub Copilot (GPT-5.3-Codex) — Standardize Overview title and make Fact <dd> plain text
+- ทำอะไร: ปรับหัวกล่อง section หลักให้ใช้ชื่อ `Overview` เหมือนกันทุกหน้า detail ที่เคยใช้ชื่อเฉพาะ (`Course/User/Content/Version Overview`) และปรับ shared detail primitive `Fact` ให้ `<dd>` เป็นข้อความปกติแบบไม่ผูก CSS class แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/detail/index.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, grep ยืนยันไม่เหลือข้อความ `Course/Content/Version/User Overview`
+
+## [2026-06-16 08:56] GitHub Copilot (GPT-5.3-Codex) — Refactor ControlsSidebar top-right alignment and remove Controls header
+- ทำอะไร: ปรับคอมโพเนนต์กลาง `ControlsSidebar` ให้ใช้งานแบบชิดขวาบนเหมือนกันทุกหน้าที่ใช้ sidebar (`lg:sticky lg:top-0`) และเอา header ที่มีคำว่า `Controls` ออกทั้งหมดจากกล่อง controls; เก็บจุดเรียกใช้ที่ส่ง prop เดิม `stickyTopClass` ให้ตรงกับ API ใหม่
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/ControlsSidebar.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี API/DB change; UI component props เปลี่ยนโดยถอด `title/icon/stickyTopClass` และใช้ `className?` แทน
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 08:46] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-034 collapse course status to 3 states
+- ทำอะไร: ทำตาม Scope ของ PLAN-034 โดยยุบ `CourseStatus` เหลือ `Draft/Open/Closed` (ลบ `Retired=3`), ลบ reference `CourseStatus.Retired` ใน backend ทั้งหมด (`CourseService`, `CourseVersionService`, `CoursesCRUDController`, `Course` entity), ปรับ test lifecycle ที่อ้าง Retired เป็น Closed, และ sync frontend ให้สถานะ `2` แปลว่า Closed จริง (`CourseDetailPage` เปลี่ยน `isRetired` เป็น `isClosed` + ปุ่ม `Close Course`; `CourseStatusBadge` เปลี่ยน tone ของ status 2 เป็น neutral)
+- ไฟล์หลักที่แตะ: `iLearn.Domain/Enums/CourseStatus.cs`, `iLearn.Domain/Entities/Course.cs`, `iLearn.Application/Services/CourseService.cs`, `iLearn.Application/Services/CourseVersionService.cs`, `iLearn.API/Controllers/Base/CoursesCRUDController.cs`, `iLearn.Tests/LifecycleContractDtoTests.cs`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/components/ui/CourseStatusBadge.tsx`, `DOC/PLANS/PLAN-034-course-status-collapse-3-states.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีการเปลี่ยน shape API; เปลี่ยน semantic status ฝั่งโค้ดให้เหลือ 3 สถานะตามแผน (`Retired` ถูกถอดออก)
+- Verified: `dotnet build iLearn.Tests -o artifacts/verify-test` ผ่าน, `dotnet test artifacts/verify-test/iLearn.Tests.dll` ผ่าน (Passed 118, Failed 0), `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 08:42] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-033 remove tabs from detail pages
+- ทำอะไร: แปลงหน้า detail 3 หน้าเป็น stacked sections ตาม scope ของ PLAN-033 โดยเอา `DetailTabs` และ state tab ออกทั้งหมดจาก `CourseDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`; ปรับ `CourseDetailPage` จาก lazy-per-tab เป็น load-on-mount สำหรับ learners/assignments และคง section-level loading state; อัปเดต `DOC/ux_ui_analysis.md` §2.4 ให้ตรงมาตรฐานใหม่ (ไม่ใช้ tab ใน detail pages)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `DOC/ux_ui_analysis.md`, `DOC/PLANS/PLAN-033-detail-pages-remove-tabs.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 10:30] Claude Code — Audit lifecycle เจาะลึก + เขียน PLAN-034 (ยุบ Course เหลือ 3 สถานะ)
+- ทำอะไร: เจาะ 2 risk จาก lifecycle_analysis — (#4 ResetAt) ตรวจทุก query แล้ว **ไม่มีบั๊ก** (learner/player reads filter ResetAt ครบ, admin/dashboard นับทั้งหมด=ตั้งใจ); (#1 Course transition) **เจอบั๊ก: FE↔BE status code ไม่ตรง** — FE ใช้ 2=Retired แต่ BE Closed=2/Retired=3, ปุ่ม "Retire" ส่ง 2(Closed), Retired(3)+guard ตายสนิท, badge tone เพี้ยน; เจาะเพิ่มพบ Closed(2) ใช้จริง (CanLearnerAccess=Open||Closed) ส่วน Retired(3) ตาย — ผู้ใช้เลือกยุบเหลือ 3 สถานะ → เขียน **PLAN-034** (GPT): ตัด Retired(3), เก็บ Closed(2), แก้ FE label/badge ให้ตรง (learner-access เดิมไม่เปลี่ยน)
+- ไฟล์หลักที่แตะ: `DOC/lifecycle_analysis.md` (audit), `DOC/PLANS/PLAN-034-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี (PLAN-034 ตอน implement จะลบ enum Retired=3)
+- Verified: n/a (planner) — audit อ่านโค้ดจริง
+
+## [2026-06-16 09:40] Claude Code — วิเคราะห์ Lifecycle ทั้งระบบ → DOC/lifecycle_analysis.md
+- ทำอะไร: อ่าน enums + Application/Common policies + services เพื่อ map lifecycle ของ entity หลัก: **Course** (Draft→Open→Closed→Retired + guard readiness/enrollment), **Course Version** (active+readiness), **Content Item** (Draft⇄Published + impact preview), **Assignment** (computed status จาก date+progress, DueSoon 7วัน), **Enrollment** (created→progress→completed→reset ด้วย ResetAt เก็บ history), **SCORM runtime** (resolve status: exam ต้อง pass ไม่ใช่แค่ complete) + cross-cutting (AdminActivity log, division isolation, soft delete) + ข้อสังเกต/ความเสี่ยง 5 ข้อ
+- ไฟล์หลักที่แตะ: `DOC/lifecycle_analysis.md` (เอกสารใหม่ — ไม่แตะโค้ด)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (analysis)
+
+## [2026-06-16 09:00] Claude Code — เขียน PLAN-033 (เอา Tab ออกจากหน้า Detail → stack section)
+- ทำอะไร: ผู้ใช้เปลี่ยนทิศ — ไม่เอา tab ในหน้า detail (ตรงข้าม PLAN-031) สำรวจพบ 3 หน้ามี tab: CourseDetail (overview/versions/learners/assignments), AssignmentDetail (overview/courses/learners), LearnerGroupDetail (overview/members) — เขียน **PLAN-033** (GPT): แปลง tab→stacked section เรียงหน้าเดียว (ใช้ DetailCard/SectionHeader), เปลี่ยน lazy-per-tab → load-on-mount + section loading state, คง CourseEditor (editor) ที่ยังใช้ DetailTabs, sync ux_ui_analysis §2.4
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-033-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner) — หมายเหตุ: PLAN-031 (DetailTabs) ยัง DONE รอรีวิว; DetailTabs จะเหลือผู้ใช้แค่ CourseEditor หลัง PLAN-033
+
+## [2026-06-16 08:22] GitHub Copilot (GPT-5.3-Codex) — Complete PLAN-031 Optional Scope C (shared Modal shell)
+- ทำอะไร: สกัด modal shell กลางเป็น `Modal` component (รองรับ `open`, `onClose`, `title?`, `children`, `size`, และ `as="div"|"form"`) แล้ว migrate modal wrapper ที่ซ้ำให้ใช้ร่วม โดยคงเนื้อหา/ฟอร์ม/พฤติกรรมเดิม: `CourseDetailPage` (Edit Course Properties), `CourseListPage` (Create/Rename Category), และ `ConfirmDialog`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/Modal.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/components/ui/ConfirmDialog.tsx`, `DOC/PLANS/PLAN-031-detail-pages-shared-primitives.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน (`LINT_OK`), `npm run build` ผ่าน, และอัปเดต PLAN-031 ให้ติ๊ก Optional Scope C แล้ว
+
+## [2026-06-15 23:30] Claude Code — เขียน API style guide + PLAN-032 (refactor AssignmentsController)
+- ทำอะไร: (1) เขียน `DOC/api_style_guide.md` — มาตรฐานกลาง: routing, auth, **response envelope (ApiResponse<T> ห้าม anonymous)**, error (ProblemDetails/throw), DTO (+ คำเตือน EF GroupBy DTO ctor), controller thinness, division isolation — อิง pattern จริง; (2) เขียน **PLAN-032** (GPT): refactor `AssignmentsController` (1316 บรรทัด, inject raw repo 4 ตัว, anonymous 9 จุด) → ดึง logic ลง AssignmentService + แปลง anonymous→DTO ตาม style guide, pure refactor contract-preserving (ถ้าใหญ่เกินทำ B ก่อน)
+- ไฟล์หลักที่แตะ: `DOC/api_style_guide.md`, `DOC/PLANS/PLAN-032-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner)
+
+## [2026-06-16 08:15] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-031 (DetailTabs + CourseStatus primitive, pure refactor)
+- ทำอะไร: ทำตาม `PLAN-031` scope A+B แบบ pure refactor โดยเพิ่ม primitive ใหม่ `DetailTabs` แล้ว migrate หน้าแท็บ 4 ไฟล์ (`AssignmentDetailPage`, `CourseDetailPage`, `LearnerGroupDetailPage`, `CourseEditorPage`) และเพิ่ม primitive สถานะคอร์ส `CourseStatusBadge`/`CourseStatusText` เพื่อลดการ re-implement class สีใน `CourseListPage` + `CourseDetailPage`; Optional scope C (`<Modal>` shared shell) ยังไม่ทำและบันทึกไว้ใน Implementer Notes ของแผน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/DetailTabs.tsx`, `iLearn.Admin.React/src/components/ui/CourseStatusBadge.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `DOC/PLANS/PLAN-031-detail-pages-shared-primitives.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, grep ยืนยัน pattern แท็บ class ซ้ำและ inline status tone logic ที่ migrate ถูกย้ายไป primitive แล้ว
+
+## [2026-06-15 22:50] Claude Code — สำรวจหน้า Detail + เขียน PLAN-031 (สกัด primitive ร่วม ลด class ซ้ำ)
+- ทำอะไร: สำรวจหน้า detail ทั้ง 8 (Course/Version/ContentItem/LearnerGroup/User/Assignment/MasterData/LearnerProfile) — ทุกหน้าใช้ shared layout (DetailLayout/Fact*) แล้ว และแทบไม่มี `style={{}}` (1 จุด) มาตรฐานโครงหน้าเสร็จ; ที่เหลือซ้ำคือ class string Tailwind: **A. Tab buttons** (4 ไฟล์), **B. course status badge logic** (CourseDetail/CourseList re-implement สีเอง ทั้งที่มี StatusBadge), **C. centered modal shell** (3 ไฟล์) → เขียน **PLAN-031** (GPT): สกัด `<DetailTabs>` + course status badge ร่วม + (optional) `<Modal>` — pure refactor หน้าตา/พฤติกรรมเหมือนเดิม
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-031-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner)
+
+## [2026-06-15 22:10] Claude Code — PLAN-030: สแกน + ลบ dead code ทั้งโปรเจกต์ (ทำเอง+verify)
+- ทำอะไร: ผู้ใช้สั่งให้ทำเอง — สแกน dead component/CSS token/lib utility ทั้ง React project พบ dead ที่ลบได้ปลอดภัยมีแค่ **`PageHeader.tsx`** (13 บรรทัด, 0 refs, ไม่มี barrel) → ลบทิ้ง; **ไม่แตะ:** `--admin-*` CSS `@theme` tokens (utility=0 แต่เป็น design palette — design decision ไม่ใช่ dead ชัด), `useSyncExternalStoreWithSelectorShim` (CLAUDE.md ห้ามลบ ใช้ผ่าน vite alias recharts)
+- ไฟล์หลักที่แตะ: ลบ `iLearn.Admin.React/src/components/ui/PageHeader.tsx`, `DOC/PLANS/PLAN-030-*.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: grep PageHeader=0, `npm run build` ผ่าน, `npm run lint` 0/0 — PLAN-030 = VERIFIED
+
+## [2026-06-15 21:40] Claude Code — Review + ปิด PLAN-028/029 เป็น VERIFIED (+ แก้ doc ค้าง)
+- ทำอะไร: รีวิว 2 แผน — **028** (AppTable flicker): overlay condition = `loading && data.length === 0` ถูกต้อง (initial มี spinner, scroll/refetch ไม่แฟลช); **029** (dead CSS): 8 รายการลบหมด (=0) keep ครบ — **เจอ doc sync ไม่ครบ:** PLAN-029 แก้แค่ ux_ui_analysis §2.3 แต่ §2.1 (`.neon-glow-dot`) และ §2.5 (`.selected-floating-badge`/`badge-pulse`) ยังอ้าง class ที่ลบ → ผมแก้ doc ให้ครบเอง ปรับทั้ง 2 แผนเป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/ux_ui_analysis.md` (แก้ §2.1/§2.5), `DOC/PLANS/PLAN-028/029-*.md` (สถานะ)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run build` ผ่าน, `npm run lint` 0/0
+- ค้าง: working tree มี Breadcrumbs.tsx + VersionDetailPage.tsx modified (WIP นอกแผน 028/029 — ยังไม่รีวิว) + งาน PLAN-030 scan (dead component: PageHeader.tsx 0 refs) ที่ผู้ใช้ขอ ยังไม่ได้เขียน
+
+## [2026-06-16 07:55] GitHub Copilot (GPT-5.3-Codex) — Remove Current Content edit button and add Open SCORM Player action
+- ทำอะไร: ปรับ section `Current Content` ใน `VersionDetailPage` ให้เอาปุ่ม `Edit Content` ออกจากหัว section และเพิ่มคอลัมน์ `Player` พร้อมปุ่ม `Open SCORM Player` รายแถว (เปิดลิงก์ launch ใหม่ในแท็บใหม่); ถ้าไม่มี launch URL จะแสดง `Unavailable`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser check ที่ `/courses/848/version/541` ยืนยันไม่มีปุ่ม `Edit Content` ใน `Current Content` และมีปุ่ม `Open SCORM Player` ต่อรายการ
+
+## [2026-06-16 07:52] GitHub Copilot (GPT-5.3-Codex) — Show current content list on Version Detail
+- ทำอะไร: เพิ่ม section ใหม่ `Current Content` ในหน้า `VersionDetailPage` เพื่อแสดงรายการ content ที่ผูกกับเวอร์ชันปัจจุบันแบบ read-only (Order / Content Name / Type / Status) และเพิ่มปุ่ม `Edit Content` ใน section นี้เพื่อเปิด popup จัดการ content ได้ทันที
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser check ที่ `/courses/848/version/541` เห็น section `Current Content` พร้อมรายการ content ปัจจุบัน
+
+## [2026-06-15 17:17] GitHub Copilot (GPT-5.3-Codex) — Make Version Detail Edit Content match Version/New CONTENT flow (with upload)
+- ทำอะไร: ปรับ popup `Edit Content` ใน `VersionDetailPage` ให้ใช้รูปแบบเดียวกับหน้า `/courses/:courseId/version/new` แท็บ `Content` โดยเพิ่ม action cards `Upload New SCORM` + `Select Existing Content`, ตารางรายการ content แบบมี `Source`/`Content Type`/`Status`, และรองรับไฟล์ใหม่ในลำดับเดียวกันกับรายการเดิม
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ใช้ contract เดิม `PUT Courses/versions/{id}` ที่รองรับ `Files`, `ContentItemIds`, `ContentTypeIds`)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser check ที่ `/courses/848/version/541` ยืนยัน popup `Edit Content` มี `Upload New SCORM` และเปิด `Select Existing Content` ได้
+
+## [2026-06-15 17:10] GitHub Copilot (GPT-5.3-Codex) — Remove "SCORM" wording from Version breadcrumb
+- ทำอะไร: ปรับ breadcrumb label ของ segment `version` จาก `SCORM Version` เป็น `Version` ตาม feedback ผู้ใช้ เพื่อให้เส้นทางอ่านง่ายขึ้นและไม่ใช้คำที่ไม่ต้องการ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/layout/Breadcrumbs.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-15 17:03] GitHub Copilot (GPT-5.3-Codex) — Fix broken Version Detail breadcrumb link
+- ทำอะไร: ตรวจหน้า `/courses/848/version/541` แล้วพบว่า breadcrumb ชั้น `SCORM Version` ชี้ไป `/courses/:id/version` ซึ่งไม่มี route และพาไป Not Found; แก้ logic ใน `Breadcrumbs.tsx` ให้กรณีเส้นทาง `courses/:courseId/version/...` ลิงก์ชั้น `version` กลับไป `/courses/:courseId` แทน พร้อมแก้ key ของ breadcrumb item ให้ unique (`${to}-${index}`) เพื่อแก้ React warning key ซ้ำ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/layout/Breadcrumbs.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser check ที่ `/courses/848/version/541` ยืนยัน breadcrumb `SCORM Version` ชี้ไป `/courses/848` (ไม่พาไป `/courses/848/version` แล้ว)
+
+## [2026-06-15 16:59] GitHub Copilot (GPT-5.3-Codex) — Enlarge Version Detail Edit Content popup for high-density data
+- ทำอะไร: ปรับ popup `Edit Content` ใน `VersionDetailPage` ให้ใหญ่ขึ้นทั้งกว้างและสูง (เปลี่ยนจาก `modal-window-lg` เดิมที่ถูกจำกัดด้วย `max-width: 780px !important` ไปเป็นขนาดเฉพาะหน้านี้ `width: min(95vw, 1320px)` + `maxHeight: 88vh`) พร้อมเพิ่มพื้นที่แสดงผลภายใน (`lg` side panel กว้างขึ้นและ list/table viewport สูงขึ้น) เพื่อรองรับข้อมูลจำนวนมาก
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, browser measure ที่ `/courses/829/version/533` ยืนยัน modal กว้างขึ้นจากประมาณ 733px เป็นประมาณ 1109px (viewport 1280px)
+
 ## [2026-06-15 16:53] GitHub Copilot (GPT-5.3-Codex) — Refactor Version Detail to 2 popup editors (General + Content)
 - ทำอะไร: ปรับ `VersionDetailPage` ให้เหลือเฉพาะ `Version Overview` และย้าย `SCORM Content` + `Content Library` ออกจากหน้า detail ไปอยู่ใน popup ตามปุ่ม Controls 2 ปุ่มคือ `Edit General Info` และ `Edit Content`; โดย `Edit Content` รองรับการจัดลำดับขึ้น/ลง, ลบรายการที่เลือก, และเพิ่มจากรายการ `SCORM Content` พร้อม search แล้วบันทึกผ่าน `PUT Courses/versions/{id}`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`

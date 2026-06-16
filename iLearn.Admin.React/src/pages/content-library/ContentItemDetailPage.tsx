@@ -233,7 +233,7 @@ export function ContentItemDetailPage() {
         }
       >
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-          <SectionHeader icon={Layers} variant="card">Content Overview</SectionHeader>
+          <SectionHeader icon={Layers} variant="card">Overview</SectionHeader>
 
           <div className="p-5 space-y-5">
             <FactGrid>
