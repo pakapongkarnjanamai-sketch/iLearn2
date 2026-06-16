@@ -15,7 +15,7 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { StatusText } from '../../components/ui/StatusText'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
@@ -389,10 +389,7 @@ export function AssignmentDetailPage() {
         }
       >
         <main className="space-y-6">
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={FileBarChart} variant="card">Overview</SectionHeader>
-
-            <div className="p-5">
+          <Card icon={FileBarChart} title="Overview" bodyClassName="p-5">
               <FactGrid className="pt-2">
                 <Fact label="Learners" valueClassName="font-bold text-slate-800">
                   {assignment.totalEmployees}
@@ -430,8 +427,7 @@ export function AssignmentDetailPage() {
                   </Fact>
                 )}
               </FactGrid>
-            </div>
-          </section>
+          </Card>
 
           <DetailTabs
             tabs={detailTabs}
@@ -440,8 +436,7 @@ export function AssignmentDetailPage() {
           />
 
           {activeDetailTab === 'courses' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
+            <Card icon={BookOpen} title="Courses">
 
               <ul className="divide-y divide-slate-100 px-4">
                 {visibleCourses.map((c) => (
@@ -485,12 +480,11 @@ export function AssignmentDetailPage() {
                   )}
                 </div>
               )}
-            </section>
+            </Card>
           )}
 
           {activeDetailTab === 'learners' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+            <Card icon={Users} title="Learners">
  
               <div className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
@@ -543,11 +537,9 @@ export function AssignmentDetailPage() {
                               <span className="text-xs font-bold text-slate-700">
                                 {completedCount} / {totalCount} Completed
                               </span>
-                              <span className={`text-xxs font-extrabold w-max px-1.5 py-0.5 rounded ${
-                                allCompleted ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-500 border border-slate-150'
-                              }`}>
+                              <StatusBadge size="xxs" tone={allCompleted ? 'success' : 'neutral'}>
                                 {allCompleted ? 'Completed' : 'In Progress'}
-                              </span>
+                              </StatusBadge>
                             </div>
                           </td>
                           <td className="p-3 text-center align-top">
@@ -591,7 +583,7 @@ export function AssignmentDetailPage() {
                   )}
                 </div>
               )}
-            </section>
+            </Card>
           )}
         </main>
 

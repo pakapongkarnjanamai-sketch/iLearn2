@@ -18,12 +18,12 @@ import {
   Fact,
   FactGrid,
 } from '../../components/ui/detail'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
-import { formatDateTime } from '../../lib/format'
+import { formatBytes, formatDateTime, formatNumber } from '../../lib/format'
 
 type ContentItemDetail = {
   id: number
@@ -45,18 +45,6 @@ type ContentLaunchResponse = {
 }
 
 const TYPE_LABEL: Record<number, string> = { 1: 'Learn', 2: 'Exam' }
-
-const fmtBytes = (bytes?: number | null) => {
-  if (!bytes || bytes <= 0) return '—'
-  const units = ['B', 'KB', 'MB', 'GB']
-  let n = bytes
-  let i = 0
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024
-    i++
-  }
-  return `${n.toFixed(n >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
-}
 
 export function ContentItemDetailPage() {
   const { id } = useParams()
@@ -232,56 +220,52 @@ export function ContentItemDetailPage() {
           </ControlsSidebar>
         }
       >
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-          <SectionHeader icon={Layers} variant="card">Overview</SectionHeader>
+        <Card icon={Layers} title="Overview" bodyClassName="p-5 space-y-5">
+          <FactGrid>
+            <Fact label="Status">
+              <StatusText tone={item.isActive ? 'success' : 'neutral'}>
+                {item.isActive ? 'Published' : 'Draft'}
+              </StatusText>
+            </Fact>
 
-          <div className="p-5 space-y-5">
-            <FactGrid>
-              <Fact label="Status">
-                <StatusText tone={item.isActive ? 'success' : 'neutral'}>
-                  {item.isActive ? 'Published' : 'Draft'}
-                </StatusText>
-              </Fact>
+            <Fact label="Type" valueClassName="font-semibold">
+              {TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}
+            </Fact>
 
-              <Fact label="Type" valueClassName="font-semibold">
-                {TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}
-              </Fact>
+            <Fact label="SCORM Version" valueClassName="font-semibold">
+              {item.schemaVersion || '—'}
+            </Fact>
 
-              <Fact label="SCORM Version" valueClassName="font-semibold">
-                {item.schemaVersion || '—'}
-              </Fact>
+            <Fact label="Package Size" valueClassName="font-bold text-slate-800">
+                {formatBytes(item.fileLength)}
+            </Fact>
 
-              <Fact label="Package Size" valueClassName="font-bold text-slate-800">
-                {fmtBytes(item.fileLength)}
-              </Fact>
+            <Fact label="Courses Linked" valueClassName="font-bold text-slate-800">
+                {formatNumber(item.courseIdsCount ?? 0)}
+            </Fact>
 
-              <Fact label="Courses Linked" valueClassName="font-bold text-slate-800">
-                {item.courseIdsCount ?? 0}
-              </Fact>
+            <Fact label="File Storage Id" mono valueClassName="font-semibold">
+              {item.fileStorageId ?? '—'}
+            </Fact>
 
-              <Fact label="File Storage Id" mono valueClassName="font-semibold">
-                {item.fileStorageId ?? '—'}
-              </Fact>
+            <Fact label="Created" valueClassName="font-semibold">
+              {item.createdAt ? formatDateTime(item.createdAt) : '—'}
+            </Fact>
 
-              <Fact label="Created" valueClassName="font-semibold">
-                {item.createdAt ? formatDateTime(item.createdAt) : '—'}
-              </Fact>
+            <Fact label="Updated" valueClassName="font-semibold">
+              {item.updatedAt ? formatDateTime(item.updatedAt) : '—'}
+            </Fact>
+          </FactGrid>
 
-              <Fact label="Updated" valueClassName="font-semibold">
-                {item.updatedAt ? formatDateTime(item.updatedAt) : '—'}
-              </Fact>
-            </FactGrid>
-
-            <FactGrid className="border-t border-slate-100 pt-5">
-              <Fact label="Launch Resource" mono colSpan="full">
-                {item.launchHref || '—'}
-              </Fact>
-              <Fact label="Server Path" mono colSpan="full">
-                {item.url || '—'}
-              </Fact>
-            </FactGrid>
-          </div>
-        </section>
+          <FactGrid className="border-t border-slate-100 pt-5">
+            <Fact label="Launch Resource" mono colSpan="full">
+              {item.launchHref || '—'}
+            </Fact>
+            <Fact label="Server Path" mono colSpan="full">
+              {item.url || '—'}
+            </Fact>
+          </FactGrid>
+        </Card>
       </DetailLayout>
 
       {confirmDialog}

@@ -33,9 +33,11 @@ repo นี้มี AI agent มากกว่าหนึ่งตัวท�
 
 ## กติกาสำคัญฝั่ง React (สรุปจาก README)
 
-- ใช้ shared components ใน `src/components/ui` เสมอ: `LoadingState`, `NotFoundState`, `StatusBadge`, `StatusText`, `SectionHeader`, `ProgressBar`, `ControlsSidebar`/`ControlAction`, `useConfirm` (ห้าม `window.confirm`), `AppButton`, `AppTable`
-- เนื้อหาหลักทุกหน้าต้องอยู่ในการ์ด `rounded-lg border border-slate-200 bg-white`
-- วันที่ format ผ่าน `formatDate`/`formatDateTime` จาก `src/lib/format.ts` เท่านั้น
+- ใช้ shared components ใน `src/components/ui` เสมอ: `Card`, `LoadingState`, `NotFoundState`, `Badge` (+wrapper `StatusBadge`/`StatusText`/`ReadinessBadge`), `SectionHeader`, `ListToolbar`, `ProgressBar`, `ControlsSidebar`/`ControlAction`, `useConfirm` (ห้าม `window.confirm`), `AppButton` (ใช้ prop `loading` แทนเขียนสปินเนอร์เอง), `AppTable`
+- เนื้อหาหลักทุกหน้าต้องอยู่ในการ์ด — ใช้ `<Card>` (อย่าเขียน `<section className="rounded-lg border border-slate-200 bg-white ...">` เอง)
+- ป้ายสถานะ/ชนิด/ตัวเลขทั้งหมดใช้ `Badge` (tone × variant soft/outline/tag) — ห้าม hardcode `<span>` pill เอง
+- วันที่/ตัวเลข format ผ่าน `src/lib/format.ts` เท่านั้น: `formatDate`/`formatDateTime`, `formatNumber`, `formatPercent`, `formatBytes` (ห้าม `toLocaleString`/`toFixed`/`Math.round(.../1024)` inline; ห้ามใส่ comma กับ ID/version/index)
+- ตารางรายละเอียดยาว ๆ แบ่งหน้าด้วย `DETAIL_TABLE_CHUNK_SIZE` จาก `src/lib/tableStandards.ts` (Showing X of Y + Load more)
 - **API Contract Sync:** ทุก response type ต้องลอกจาก C# DTO/controller จริง พร้อมคอมเมนต์ `// Mirrors <DtoName> (<path>)` — แก้ DTO ฝั่ง backend ต้อง grep endpoint ใน `src/` แล้วแก้ type ฝั่ง React ในงานเดียวกัน
 - **Route remount:** route detail/editor ทุกตัวใน `App.tsx` ต้องครอบ `<Remount>` (กัน state ค้างข้าม route เพราะ React reuse component instance) — list page ใช้ `key={config.controller}` บน `AppTable`
 - Learners rows เป็น **camelCase** (`nid`, `eId`) — backend deserialize เป็น typed DTO แล้ว

@@ -10,7 +10,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import {
   DetailCard,
   DetailSubSection,
@@ -120,88 +120,84 @@ export function LearnerProfilePage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         {/* Transcript (main) */}
         <div className="min-w-0">
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={FileBadge} variant="card">Transcript</SectionHeader>
-
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                    <th className="p-3">Course Identity</th>
-                    <th className="p-3">Progress</th>
-                    <th className="p-3">Grade / Score</th>
-                    <th className="p-3">Time Spent</th>
-                    <th className="p-3">Timeline</th>
-                    <th className="p-3">Status</th>
+          <Card icon={FileBadge} title="Transcript" bodyClassName="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                  <th className="p-3">Course Identity</th>
+                  <th className="p-3">Progress</th>
+                  <th className="p-3">Grade / Score</th>
+                  <th className="p-3">Time Spent</th>
+                  <th className="p-3">Timeline</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {profile.enrollments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400">
+                      No enrollments.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {profile.enrollments.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-400">
-                        No enrollments.
-                      </td>
-                    </tr>
-                  ) : (
-                    profile.enrollments.map((e) => {
-                      const isCancelled = e.isAssignmentCancelled
-                      const isFinished = e.isCompleted
+                ) : (
+                  profile.enrollments.map((e) => {
+                    const isCancelled = e.isAssignmentCancelled
+                    const isFinished = e.isCompleted
 
-                      return (
-                        <tr key={e.enrollmentId} className="hover:bg-slate-50 transition">
-                          <td className="p-3">
-                            <div className="flex flex-col">
-                              <span className={`font-bold text-slate-800 leading-tight ${e.isCourseDeleted ? 'line-through text-slate-400' : ''}`}>
-                                {e.courseTitle}
+                    return (
+                      <tr key={e.enrollmentId} className="hover:bg-slate-50 transition">
+                        <td className="p-3">
+                          <div className="flex flex-col">
+                            <span className={`font-bold text-slate-800 leading-tight ${e.isCourseDeleted ? 'line-through text-slate-400' : ''}`}>
+                              {e.courseTitle}
+                            </span>
+                            <span className="text-xxs font-mono text-slate-400 mt-0.5">
+                              {e.courseCode} {e.isCourseDeleted && '(Syllabus Deleted)'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <ProgressBar value={e.progress} completed={isFinished} />
+                        </td>
+                        <td className="p-3 font-mono font-bold text-slate-800 text-xs">
+                          {e.totalScore > 0 ? `${Math.round(e.totalScore)}pt` : '—'}
+                        </td>
+                        <td className="p-3 font-mono text-slate-500 text-xs">
+                          {formatTimeSpent(e.totalTimeSpent)}
+                        </td>
+                        <td className="p-3 text-slate-400 text-xxs">
+                          {e.completedDate ? (
+                            <div className="text-emerald-600 font-semibold">Done: {formatDate(e.completedDate)}</div>
+                          ) : (
+                            <>
+                              {e.startDate && <div>Start: {formatDate(e.startDate)}</div>}
+                              {e.dueDate && <div className="mt-0.5">Due: {formatDate(e.dueDate)}</div>}
+                            </>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          {isFinished ? (
+                            <StatusBadge tone="success" size="xxs">Passed</StatusBadge>
+                          ) : isCancelled ? (
+                            <StatusBadge tone="warning" size="xxs">
+                              <span className="inline-flex items-center gap-1" title="Rule Deleted">
+                                <AlertTriangle className="h-3 w-3" />
+                                Cancelled
                               </span>
-                              <span className="text-xxs font-mono text-slate-400 mt-0.5">
-                                {e.courseCode} {e.isCourseDeleted && '(Syllabus Deleted)'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <ProgressBar value={e.progress} completed={isFinished} />
-                          </td>
-                          <td className="p-3 font-mono font-bold text-slate-800 text-xs">
-                            {e.totalScore > 0 ? `${Math.round(e.totalScore)}pt` : '—'}
-                          </td>
-                          <td className="p-3 font-mono text-slate-500 text-xs">
-                            {formatTimeSpent(e.totalTimeSpent)}
-                          </td>
-                          <td className="p-3 text-slate-400 text-xxs">
-                            {e.completedDate ? (
-                              <div className="text-emerald-600 font-semibold">Done: {formatDate(e.completedDate)}</div>
-                            ) : (
-                              <>
-                                {e.startDate && <div>Start: {formatDate(e.startDate)}</div>}
-                                {e.dueDate && <div className="mt-0.5">Due: {formatDate(e.dueDate)}</div>}
-                              </>
-                            )}
-                          </td>
-                          <td className="p-3">
-                            {isFinished ? (
-                              <StatusBadge tone="success" size="xxs">Passed</StatusBadge>
-                            ) : isCancelled ? (
-                              <StatusBadge tone="warning" size="xxs">
-                                <span className="inline-flex items-center gap-1" title="Rule Deleted">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  Cancelled
-                                </span>
-                              </StatusBadge>
-                            ) : e.hasActiveAssignment ? (
-                              <StatusBadge tone="info" size="xxs">Assigned</StatusBadge>
-                            ) : (
-                              <StatusBadge tone="neutral" size="xxs">Self-Enroll</StatusBadge>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                            </StatusBadge>
+                          ) : e.hasActiveAssignment ? (
+                            <StatusBadge tone="info" size="xxs">Assigned</StatusBadge>
+                          ) : (
+                            <StatusBadge tone="neutral" size="xxs">Self-Enroll</StatusBadge>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </Card>
         </div>
 
         {/* Learner identity + summary (sidebar) */}

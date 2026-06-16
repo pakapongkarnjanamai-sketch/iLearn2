@@ -17,8 +17,10 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { Badge } from '../../components/ui/Badge'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { LoadingState } from '../../components/ui/LoadingState'
+import { getContentReadinessBadgeModel, ReadinessBadge } from '../../components/ui/ReadinessBadge'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -138,19 +140,11 @@ function createLibrarySelection(contentItem: CourseContentApiItem): SelectedCont
 }
 
 function getContentReadiness(item: SelectedContentItem) {
-  if (item.source === 'upload') {
-    return { label: 'Queued Upload', className: 'bg-indigo-50 text-blue-700 border-indigo-100' }
-  }
-
-  if (!item.isActive) {
-    return { label: 'Not Ready', className: 'bg-red-50 text-red-700 border-red-100' }
-  }
-
-  if (!item.url) {
-    return { label: 'Missing Launch', className: 'bg-amber-50 text-amber-700 border-amber-100' }
-  }
-
-  return { label: 'Published', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' }
+  return getContentReadinessBadgeModel({
+    source: item.source,
+    isActive: item.isActive,
+    url: item.url,
+  })
 }
 
 export function CourseEditorPage() {
@@ -609,7 +603,7 @@ export function CourseEditorPage() {
                     )}
                   </td>
                   <td className="px-3 py-2 select-none">
-                    <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>{readiness.label}</span>
+                    <ReadinessBadge label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
@@ -636,7 +630,7 @@ export function CourseEditorPage() {
   const renderContentStep = () => (
     <div className="space-y-4">
       <div className="flex justify-end mb-1 select-none">
-        <span className="border border-slate-200 bg-white px-2 py-0.5 rounded text-xs font-bold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <Badge tone="neutral">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
@@ -704,7 +698,7 @@ export function CourseEditorPage() {
 
       <div className="flex items-center justify-between pt-1 select-none">
         <span className="wiz-label">Content Items</span>
-        <span className="text-sm font-semibold text-slate-500">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</span>
+        <Badge tone="neutral">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</Badge>
       </div>
       {renderContentRows()}
     </div>
@@ -784,7 +778,7 @@ export function CourseEditorPage() {
                         <div className="truncate font-bold text-slate-800 text-xs">{item.name}</div>
                         <div className="mt-0.5 flex items-center gap-2 text-xxs text-slate-500 font-semibold">
                           <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
-                          <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>{readiness.label}</span>
+                          <ReadinessBadge size="xxs" label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                         </div>
                       </div>
                       <button
@@ -922,7 +916,7 @@ export function CourseEditorPage() {
                       <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
                         <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
-                        <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>{readiness.label}</span>
+                        <ReadinessBadge size="xxs" label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                       </div>
                     </div>
                     <button

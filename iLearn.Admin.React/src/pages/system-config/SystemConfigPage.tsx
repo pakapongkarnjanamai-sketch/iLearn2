@@ -10,6 +10,7 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppButton } from '../../components/ui/AppButton'
+import { Badge } from '../../components/ui/Badge'
 import { LoadingState } from '../../components/ui/LoadingState'
 
 type DbConfigInfo = {
@@ -119,13 +120,9 @@ export function SystemConfigPage() {
                 <div className="bg-slate-50 p-3 rounded">
                   <dt className="text-xs font-semibold text-slate-500 uppercase">Trust Server Certificate</dt>
                   <dd className="mt-1 text-sm">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                      config.database.trustCert === 'true' 
-                        ? 'bg-amber-100 text-amber-800' 
-                        : 'bg-emerald-100 text-emerald-800'
-                    }`}>
+                    <Badge tone={config.database.trustCert === 'true' ? 'warning' : 'success'}>
                       {config.database.trustCert === 'true' ? 'Enabled' : 'Disabled (Secure)'}
-                    </span>
+                    </Badge>
                   </dd>
                 </div>
               </dl>

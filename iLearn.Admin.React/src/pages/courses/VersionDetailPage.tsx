@@ -6,12 +6,14 @@ import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
+import { Badge } from '../../components/ui/Badge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
+import { getContentReadinessBadgeModel, ReadinessBadge } from '../../components/ui/ReadinessBadge'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import { formatDate } from '../../lib/format'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
@@ -132,19 +134,11 @@ const getContentTypeLabel = (item: Pick<VersionContentDraftItem, 'typeId' | 'typ
 }
 
 const getContentReadiness = (item: Pick<VersionContentDraftItem, 'source' | 'isPublished' | 'url'>) => {
-  if (item.source === 'upload') {
-    return { label: 'Queued Upload', className: 'bg-indigo-50 text-blue-700 border-indigo-100' }
-  }
-
-  if (!item.isPublished) {
-    return { label: 'Not Ready', className: 'bg-red-50 text-red-700 border-red-100' }
-  }
-
-  if (!item.url) {
-    return { label: 'Missing Launch', className: 'bg-amber-50 text-amber-700 border-amber-100' }
-  }
-
-  return { label: 'Published', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' }
+  return getContentReadinessBadgeModel({
+    source: item.source,
+    isPublished: item.isPublished,
+    url: item.url,
+  })
 }
 
 const getApiErrorText = (error: unknown, fallback: string) => {
@@ -475,10 +469,7 @@ export function VersionDetailPage() {
         }
       >
         <main className="space-y-6">
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={FileText} variant="card">Overview</SectionHeader>
-
-            <div className="p-5 space-y-5">
+          <Card icon={FileText} title="Overview" bodyClassName="p-5 space-y-5">
               {selectedVersion.note && (
                 <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
                   {selectedVersion.note}
@@ -500,8 +491,7 @@ export function VersionDetailPage() {
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                 Use the Controls panel to edit general information and manage version content.
               </div>
-            </div>
-          </section>
+          </Card>
 
           <DetailTabs
             tabs={[{ key: 'content', label: `Current Content (${currentContentItems.length})` }]}
@@ -510,10 +500,7 @@ export function VersionDetailPage() {
           />
 
           {activeDetailTab === 'content' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-              <SectionHeader icon={BookOpen} variant="card">Current Content</SectionHeader>
-
-              <div className="p-5 space-y-4">
+            <Card icon={BookOpen} title="Current Content" bodyClassName="p-5 space-y-4">
                 <p className="text-xs font-semibold text-slate-500">Attached content items in this version.</p>
 
                 <div className="overflow-auto border border-slate-200 rounded custom-scrollbar">
@@ -544,9 +531,7 @@ export function VersionDetailPage() {
                               <td className="px-3 py-2 font-semibold text-slate-700 max-w-xl truncate">{item.name}</td>
                               <td className="px-3 py-2 text-xs font-semibold text-slate-500">{getContentTypeLabel(item)}</td>
                               <td className="px-3 py-2 select-none">
-                                <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>
-                                  {readiness.label}
-                                </span>
+                                <ReadinessBadge label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                               </td>
                               <td className="px-3 py-2">
                                 {launchUrl ? (
@@ -587,8 +572,7 @@ export function VersionDetailPage() {
                     )}
                   </div>
                 )}
-              </div>
-            </section>
+            </Card>
           )}
         </main>
       </DetailLayout>
@@ -683,9 +667,9 @@ export function VersionDetailPage() {
 
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
               <div className="flex justify-end mb-1 select-none">
-                <span className="border border-slate-200 bg-white px-2 py-0.5 rounded text-xs font-bold text-slate-500">
+                <Badge tone="neutral">
                   {contentDraft.length} item{contentDraft.length === 1 ? '' : 's'}
-                </span>
+                </Badge>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
@@ -760,9 +744,7 @@ export function VersionDetailPage() {
                               )}
                             </td>
                             <td className="px-3 py-2 select-none">
-                              <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>
-                                {readiness.label}
-                              </span>
+                              <ReadinessBadge label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                             </td>
                             <td className="px-3 py-2">
                               <div className="flex justify-end gap-1">
@@ -870,9 +852,7 @@ export function VersionDetailPage() {
                       <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
                         <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
-                        <span className={`border px-1 py-0.5 rounded-sm font-extrabold ${readiness.className}`}>
-                          {readiness.label}
-                        </span>
+                        <ReadinessBadge size="xxs" label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                       </div>
                     </div>
                     <button

@@ -7,7 +7,7 @@ import { DetailCard, DetailLayout, DetailSubSection, Fact, FactGrid } from '../.
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { SectionHeader } from '../../components/ui/SectionHeader'
-import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -100,14 +100,6 @@ export function AssignmentReportPage() {
       )
     })
   }, [data, statusFilter, search])
-
-  const counts = useMemo(() => {
-    const map: Record<string, number> = { All: data?.learners.length ?? 0 }
-    STATUS_BUCKETS.forEach((s) => {
-      map[s] = data?.learners.filter((l) => l.status === s).length ?? 0
-    })
-    return map
-  }, [data])
 
   const exportCsv = () => {
     if (!data) return
@@ -217,7 +209,7 @@ export function AssignmentReportPage() {
           </DetailCard>
 
           {/* Learner table */}
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+          <Card>
             {/* Filter & Search bar */}
             <div className="border-b border-slate-100 bg-slate-50/20 px-5">
               <ListToolbar
@@ -238,9 +230,6 @@ export function AssignmentReportPage() {
                         }`}
                       >
                         {s}
-                        <span className={`ml-1.5 text-[10px] ${statusFilter === s ? 'text-indigo-100' : 'text-slate-400'}`}>
-                          {counts[s] ?? 0}
-                        </span>
                       </button>
                     ))}
                   </div>
@@ -248,44 +237,34 @@ export function AssignmentReportPage() {
               />
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
                     <th className="p-3 pl-5">Learner</th>
-                    <th className="p-3">Course</th>
-                    <th className="p-3">Status</th>
+                    <th className="p-3">Course Code & Title</th>
                     <th className="p-3">Progress</th>
-                    <th className="p-3 pr-5">Completed</th>
+                    <th className="p-3">Timeline</th>
+                    <th className="p-3 pr-5">Completed Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {filtered.map((row, index) => (
-                    <tr
-                      key={`${row.learnerCode}-${row.assignmentRuleId ?? index}`}
-                      className="hover:bg-slate-50/60 transition"
-                    >
+                    <tr key={index} className="hover:bg-slate-50/50 transition duration-100">
                       <td className="p-3 pl-5">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 leading-tight">{row.learnerName || row.learnerCode}</span>
-                          <span className="text-xxs font-mono text-slate-400 mt-0.5">{row.learnerCode}</span>
-                        </div>
+                        <div className="font-bold text-slate-800 text-xs sm:text-[13px]">{row.learnerName || '—'}</div>
+                        <div className="text-xxs font-mono text-slate-400 mt-0.5">{row.learnerCode}</div>
                       </td>
-                      <td className="p-3 text-xxs text-slate-500">
-                        {row.courseTitle ? (
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-slate-600">{row.courseTitle}</span>
-                            <span className="font-mono text-slate-400 mt-0.5">{row.courseCode}</span>
-                          </div>
-                        ) : (
-                          '—'
-                        )}
+                      <td className="p-3 select-all">
+                        <div className="font-bold text-slate-700 text-xs">{row.courseTitle || '—'}</div>
+                        <div className="text-xxs font-mono text-slate-400 mt-0.5">{row.courseCode}</div>
                       </td>
                       <td className="p-3">
-                        <StatusBadge size="xxs">{row.status}</StatusBadge>
+                        <ProgressBar value={row.progress} completed={row.isCompleted} />
                       </td>
-                      <td className="p-3">
-                        <ProgressBar value={row.progress} completed={row.isCompleted} maxWidthClass="max-w-24" />
+                      <td className="p-3 text-slate-400 text-xxs leading-relaxed">
+                        {row.startDate && <div>Start: {formatDate(row.startDate)}</div>}
+                        {row.dueDate && <div className="mt-0.5">Due: {formatDate(row.dueDate)}</div>}
                       </td>
                       <td className="p-3 pr-5 text-slate-600 text-xs">
                         {row.completedDate ? formatDate(row.completedDate) : '—'}
@@ -296,13 +275,13 @@ export function AssignmentReportPage() {
                     <tr>
                       <td className="p-6 text-center text-slate-400" colSpan={5}>
                         No learners found.
-                  </td>
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </section>
+          </Card>
         </div>
       </DetailLayout>
     </div>

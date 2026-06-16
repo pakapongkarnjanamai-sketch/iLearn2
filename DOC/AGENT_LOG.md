@@ -14,6 +14,54 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-16 17:30] Claude Code — รีวิว PLAN-037/038/039 → VERIFIED + เขียน PLAN-040 follow-up
+- ทำอะไร: รีวิว implementation ของ 3 แผน (Badge/Card/format) เทียบ scope — ตรวจ diff จริง, `npm run build` ผ่าน (exit 0), residue greps (number/card สะอาด; Dashboard ข้าม Card โดยตั้งใจ+จดไว้). ยืนยัน wrapper คง public API, Card refactor เป็น pure re-indent ไม่แตะ logic, readiness รวมเป็น helper กลาง `getContentReadinessBadgeModel`. ปรับสถานะ PLAN-037/038/039 เป็น VERIFIED. พบ minor 2 ข้อ → เขียน `PLAN-040`: (1) `formatPercent` ทำทศนิยมหายใน Dashboard KPI (แผน 039 บอกคง behaviour แต่ไม่ครบ), (2) hand-rolled pill ที่ตกหล่นใน `AdminUsersPage`/`UserEditorPage` (037 บอก list ไม่ exhaustive)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-037..039` (status→VERIFIED), `DOC/PLANS/PLAN-040-badge-format-followups.md` (ใหม่, READY, assign GPT)
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว+เอกสาร)
+- Verified: `npm run build` ผ่าน (exit 0); review-only ไม่แก้โค้ด
+
+## [2026-06-16 17:10] Claude Code — promote มาตรฐานที่ตกผลึกลงเอกสารกลาง (README + CLAUDE.md)
+- ทำอะไร: ผู้ใช้ขอให้นำมาตรฐานจากแผนรอบหลัง ๆ มาเขียนเป็นกติกากลาง — sync เฉพาะของที่ DONE/นิ่งแล้ว: `Badge` (tone×variant) + wrapper `StatusBadge`/`StatusText`/`ReadinessBadge` (PLAN-037), `Card` panel (PLAN-038), `formatNumber`/`formatPercent`/`formatBytes` (PLAN-039), `ListToolbar` (PLAN-035), `AppButton loading` (PLAN-036), `DETAIL_TABLE_CHUNK_SIZE`. อัปเดต `iLearn.Admin.React/README.md` (UI Conventions) และ sync สรุปใน `CLAUDE.md` (กติกาสำคัญฝั่ง React) — ไม่แก้โค้ด
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/README.md`, `CLAUDE.md`
+- Contract ที่เปลี่ยน: ไม่มี (เอกสารอย่างเดียว)
+- Verified: n/a (docs)
+
+## [2026-06-16 16:56] Antigravity (Gemini 3.5 Flash) — Implement PLAN-038 shared card panel (pure refactor)
+- ทำอะไร: ทำตาม scope PLAN-038 โดยเพิ่ม shared UI primitive `Card` และ refactor HTML section wrapper + SectionHeader (variant="card") ให้มารวมศูนย์เป็นหนึ่งเดียว, ปรับ `SectionHeader` และ `Card` prop `icon` เป็น optional (`icon?: LucideIcon | undefined`) เพื่อรองรับการ์ดไม่มีไอคอนและแก้ปัญหา `exactOptionalPropertyTypes: true` ของ TypeScript, ทำการ refactor cards 16 จุด ใน 9 หน้าหลัก (Overview, Courses, Learners, Versions, Transcript, Members, รายละเอียดอื่นๆ), ประเมินข้าม `DashboardPage` เนื่องจากใช้ local `SectionHeader` ที่มีโครงสร้างต่างกันโดยตั้งใจ, และแก้ไข compile warnings เรื่อง unused variables / imports ใน `AssignmentReportPage`, `AssignmentDetailPage`, `CourseDetailPage`, และ `VersionDetailPage`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/Card.tsx`, `iLearn.Admin.React/src/components/ui/SectionHeader.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/PLANS/PLAN-038-shared-card-panel.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี API/DB change; เพิ่ม shared component `Card` และขยาย optional icon ให้ `SectionHeader`
+- Verified: `npm run lint` ผ่าน 100%, `npm run build` (vite build client) ผ่าน 100%, `dotnet test` (118 test cases) ผ่าน 100%
+
+## [2026-06-16 16:52] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-039 number format utilities (pure refactor)
+- ทำอะไร: เพิ่ม formatter กลางใน `iLearn.Admin.React/src/lib/format.ts` คือ `formatNumber`, `formatPercent`, `formatBytes` (cache `Intl.NumberFormat('en-GB')` ที่ระดับ module) แล้ว migrate call sites ตาม scope: `DashboardPage` (ลบ local formatter + เปลี่ยน `toFixed`), `ContentItemDetailPage` (ลบ `fmtBytes` local), `ContentItemEditorPage` (ลบ `Math.round(file.size / 1024) KB` ทั้ง 2 จุด) พร้อมย้าย quantity display ที่เหมาะสมให้ใช้ `formatNumber` โดยไม่แตะรหัส/ลำดับ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/format.ts`, `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `DOC/PLANS/PLAN-039-format-number-utilities.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่านในระดับไม่มี error (มี warning เดิมนอก scope ที่ `src/pages/learners/LearnerProfilePage.tsx`), `npm run build` ไม่ผ่านเพราะ issue นอก scope ที่ `src/components/ui/Card.tsx` (`exactOptionalPropertyTypes` prop `icon`), `rg "toFixed\(|/ 1024|fmtBytes" src/pages` ไม่พบผลลัพธ์
+
+## [2026-06-16 13:45] Claude Code — เขียน PLAN-038 (Card/Panel) + PLAN-039 (format number) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ถามหา reuse opportunity เพิ่ม — สำรวจพบ 2 จุดใหญ่: (1) การ์ดเนื้อหา `overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs` + `SectionHeader variant="card"` ซ้ำ 19 จุด/10 ไฟล์ (มี drift เรื่อง shadow-xs) → PLAN-038 สร้าง `Card` component (assign Gemini); (2) `format.ts` ไม่มี number formatter ทำให้หน้าฟอร์แมต %/bytes เอง ไม่มี thousands separator → PLAN-039 เพิ่ม `formatNumber/formatPercent/formatBytes` (assign GPT, เชื่อมกับ datagrid_skill_gap_analysis.md). ตรวจแล้วว่าไม่มี window.confirm/alert เหลือ (เป็น useConfirm ทั้งหมด)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-038-shared-card-panel.md` (ใหม่), `DOC/PLANS/PLAN-039-format-number-utilities.md` (ใหม่)
+- Contract ที่เปลี่ยน: ไม่มี (แผนคง public API เดิม)
+- Verified: n/a (planning only)
+
+## [2026-06-16 16:33] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-037 standardize badge/pills (pure refactor)
+- ทำอะไร: ทำตาม scope PLAN-037 โดยเพิ่ม primitive `Badge` (tone + variant soft/outline/tag + size), เพิ่ม `ReadinessBadge` พร้อม helper กลาง `getContentReadinessBadgeModel`, และ refactor `StatusBadge`/`StatusText`/`CourseStatusBadge` ให้เป็น wrapper บน `Badge`; migrate call sites ที่เป็น badge จริงใน `CourseListPage`, `LearnerGroupListPage`, `EntityListPage`, `SystemConfigPage`, `BulkAssignPage`, `AssignmentDetailPage`, `CourseEditorPage`, `VersionFormPage`, `VersionDetailPage`, `ContentItemEditorPage` รวมถึง normalize โทน `rose` -> `danger` ใน course status
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/Badge.tsx`, `iLearn.Admin.React/src/components/ui/ReadinessBadge.tsx`, `iLearn.Admin.React/src/components/ui/StatusBadge.tsx`, `iLearn.Admin.React/src/components/ui/StatusText.tsx`, `iLearn.Admin.React/src/components/ui/CourseStatusBadge.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/EntityListPage.tsx`, `iLearn.Admin.React/src/pages/system-config/SystemConfigPage.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `DOC/PLANS/PLAN-037-standardize-badge-pills.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี API/DB change; เพิ่ม shared UI component ใหม่ (`Badge`, `ReadinessBadge`) และคง public API เดิมของ wrapper เดิมทั้งหมด
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 13:30] Claude Code — เขียน PLAN-037 รวมมาตรฐาน Badge/Pill/Tag (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้พบว่ามี `<span>` badge หลายแบบ drift กัน — สำรวจ shared component เดิม (`StatusBadge`/`StatusText`/`CourseStatusBadge`) พบว่าครอบ use case ส่วนใหญ่ได้แต่ยังไม่ถูกใช้ + ยังขาด type tag/readiness/count → ออกแบบ primitive เดียว `Badge` (tone × variant soft/outline/tag), ทำ component เดิมเป็น wrapper, เพิ่ม `ReadinessBadge`, รวมเฉดสี (rose→danger, เลิก text-[10px]/font-extrabold นอก tag) แล้วเขียนเป็น `DOC/PLANS/PLAN-037-...md` (READY, assign GPT)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-037-standardize-badge-pills.md` (ใหม่)
+- Contract ที่เปลี่ยน: ไม่มี (แผนเน้นคง public API ของ component เดิม)
+- Verified: n/a (planning only)
+
+## [2026-06-16 13:00] Claude Code — Gap analysis: GPCS datagrid skill ↔ iLearn2 (เอกสาร ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ขอให้อ่าน skill `datagrid-design` ของ GPCS.Workspace (component `NativeDataGrid`) มาปรับใช้ — อธิบายว่าใช้ตรง ๆ ไม่ได้ (คนละ component/data-loading/paging paradigm: GPCS=pagination footer+per-column filter, iLearn2=infinite scroll+global search) + เขียน gap analysis เทียบหลักการ: ตรงกันเกือบครบ (viewport-fill, dataType, null em-dash, width, memoized cellRender) — ช่องว่างจริงที่ฟิต = **number formatting (thousands)** ที่ iLearn2 ยังแสดงเลขดิบ; ส่วน pagination/per-column filter/single-click เป็น convention ที่ iLearn2 เลือกต่างโดยตั้งใจ → `DOC/datagrid_skill_gap_analysis.md`
+- ไฟล์หลักที่แตะ: `DOC/datagrid_skill_gap_analysis.md` (เอกสารใหม่)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (analysis — ยังไม่แก้โค้ดตามที่ผู้ใช้สั่ง)
+
 ## [2026-06-16 11:38] Antigravity (Gemini 3.5 Flash) — รีวิวโค้ดและปรับ PLAN-032 / PLAN-036 เป็น VERIFIED
 - ทำอะไร: ตรวจสอบโค้ดที่ GPT พัฒนาตามแผน PLAN-032 และ PLAN-036:
   - **PLAN-036**: การขยาย `AppButton` และ `LoadingState` พร้อม refactor UI page views/tables ทำได้เรียบร้อยและตรงขอบเขตงาน มีการป้องกัน runtime error เรื่องการประเมินประเภท child object บนไอคอนอย่างดี

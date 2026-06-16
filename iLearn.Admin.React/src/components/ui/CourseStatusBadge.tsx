@@ -1,17 +1,10 @@
-import { StatusText } from './StatusText'
+import { Badge } from './Badge'
 
 export type CourseStatusTone = 'success' | 'warning' | 'danger' | 'neutral'
 
 type CourseStatusBadgeProps = {
   status: string | null | undefined
   statusCode?: number | null
-}
-
-const toneClassByTone: Record<CourseStatusTone, string> = {
-  success: 'bg-emerald-100 text-emerald-800 border-emerald-200 font-bold',
-  warning: 'bg-amber-100 text-amber-800 border-amber-200',
-  danger: 'bg-rose-100 text-rose-800 border-rose-200',
-  neutral: 'bg-slate-100 text-slate-800 border-slate-200',
 }
 
 function normalizeStatus(status: string | null | undefined) {
@@ -37,9 +30,9 @@ export function CourseStatusBadge({ status, statusCode }: CourseStatusBadgeProps
   const text = status?.trim() || '-'
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-semibold border ${toneClassByTone[tone]}`}>
+    <Badge variant="soft" tone={tone} size="xxs">
       {text}
-    </span>
+    </Badge>
   )
 }
 
@@ -51,8 +44,8 @@ type CourseStatusTextProps = {
 export function CourseStatusText({ status, statusCode }: CourseStatusTextProps) {
   const text = status?.trim() || '-'
   return (
-    <StatusText tone={getCourseStatusTone(status, statusCode)}>
+    <Badge variant="outline" tone={getCourseStatusTone(status, statusCode)}>
       {text}
-    </StatusText>
+    </Badge>
   )
 }

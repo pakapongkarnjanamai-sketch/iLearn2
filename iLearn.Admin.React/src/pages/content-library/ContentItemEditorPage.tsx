@@ -9,6 +9,8 @@ import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { LoadingState } from '../../components/ui/LoadingState'
+import { ReadinessBadge } from '../../components/ui/ReadinessBadge'
+import { formatBytes } from '../../lib/format'
 
 const TYPE_OPTIONS = [
   { value: 1, label: 'Learn — instructional content' },
@@ -197,7 +199,7 @@ export function ContentItemEditorPage() {
               <tr className="hover:bg-slate-50/30 transition-colors">
                 <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">
                   <span>{file.name}</span>
-                  <span className="block text-[10px] font-semibold text-slate-400 mt-0.5 font-mono">{Math.round(file.size / 1024)} KB</span>
+                  <span className="block text-[10px] font-semibold text-slate-400 mt-0.5 font-mono">{formatBytes(file.size)}</span>
                 </td>
                 <td className="px-3 py-2 text-slate-400 font-semibold">New upload</td>
                 <td className="px-3 py-2">
@@ -214,7 +216,7 @@ export function ContentItemEditorPage() {
                   </select>
                 </td>
                 <td className="px-3 py-2 select-none">
-                  <span className="inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm border-blue-200 bg-blue-50 text-blue-700">Ready</span>
+                  <ReadinessBadge ready tone="info" label="Ready" />
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
@@ -252,7 +254,7 @@ export function ContentItemEditorPage() {
             <div className="grid grid-cols-3 py-2.5 font-semibold">
               <dt className="wiz-label">Target SCORM Package</dt>
               <dd className="col-span-2 text-slate-700 font-mono">
-                {file ? `${file.name} (${Math.round(file.size / 1024)} KB)` : 'No file selected'}
+                {file ? `${file.name} (${formatBytes(file.size)})` : 'No file selected'}
               </dd>
             </div>
           )}

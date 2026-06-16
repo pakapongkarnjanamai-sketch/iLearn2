@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 
 import { AppButton } from '../../components/ui/AppButton'
+import { Badge } from '../../components/ui/Badge'
 import { CourseStatusBadge } from '../../components/ui/CourseStatusBadge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { ListToolbar } from '../../components/ui/ListToolbar'
@@ -594,17 +595,13 @@ export function CourseListPage() {
       cellClassName: 'text-center',
       render: item => (
         item.isFolder ? (
-          <span className="inline-flex rounded border border-amber-100 bg-amber-50 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-700">
+          <Badge variant="tag" tone="warning">
             Folder
-          </span>
+          </Badge>
         ) : (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-bold ${
-            (item.typeName || '').toLowerCase().includes('special')
-              ? 'bg-purple-100 text-purple-800 border border-purple-200/50'
-              : 'bg-blue-100 text-blue-800 border border-blue-200/50'
-          }`}>
+          <Badge tone={(item.typeName || '').toLowerCase().includes('special') ? 'warning' : 'info'} size="xxs">
             {item.typeName || 'General'}
-          </span>
+          </Badge>
         )
       ),
     },
@@ -615,7 +612,7 @@ export function CourseListPage() {
       cellClassName: 'text-center text-xs font-bold text-slate-500',
       render: item => (
         item.isFolder ? (
-          <span className="text-xs font-bold text-slate-500">{item.countText}</span>
+          <Badge tone="neutral">{item.countText}</Badge>
         ) : (
           <CourseStatusBadge status={item.statusName} />
         )

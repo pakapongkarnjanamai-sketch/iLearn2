@@ -12,7 +12,7 @@ import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusText } from '../../components/ui/StatusText'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDateTime } from '../../lib/format'
 import { adminListConfigs } from '../moduleConfigs'
@@ -206,75 +206,71 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
           }
         >
           {/* Main Details Panel */}
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={Settings} variant="card">{entityTitle} Details</SectionHeader>
+          <Card icon={Settings} title={`${entityTitle} Details`} bodyClassName="p-5 space-y-5">
+            <div className="space-y-4 max-w-xl">
+              {isEditing ? (
+                // Edit Form Fields
+                <>
+                  <div className="space-y-1.5">
+                    <label htmlFor="name-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
+                      {entityTitle} Name
+                    </label>
+                    <input
+                      id="name-field"
+                      type="text"
+                      required
+                      value={activeValues.name || ''}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      placeholder={`Enter ${entityTitle.toLowerCase()} name...`}
+                      className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
+                    />
+                  </div>
 
-            <div className="p-5 space-y-5">
-              <div className="space-y-4 max-w-xl">
-                {isEditing ? (
-                  // Edit Form Fields
-                  <>
-                    <div className="space-y-1.5">
-                      <label htmlFor="name-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                        {entityTitle} Name
-                      </label>
-                      <input
-                        id="name-field"
-                        type="text"
-                        required
-                        value={activeValues.name || ''}
-                        onChange={(e) => handleFieldChange('name', e.target.value)}
-                        placeholder={`Enter ${entityTitle.toLowerCase()} name...`}
-                        className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3 py-2">
-                      <input
-                        type="checkbox"
-                        id="active-field"
-                        checked={Boolean(activeValues.isActive)}
-                        onChange={(e) => handleFieldChange('isActive', e.target.checked)}
-                        className="h-4.5 w-4.5 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
-                      />
-                      <label
-                        htmlFor="active-field"
-                        className="text-xs sm:text-[13px] font-bold text-slate-700 select-none cursor-pointer"
-                      >
-                        Active Status
-                      </label>
-                    </div>
-                  </>
-                ) : (
-                  // Read-only Details View
-                  <FactGrid cols={2} className="text-sm gap-y-4">
-                    <Fact
-                      label="Name"
-                      colSpan="full"
-                      valueClassName="text-slate-800 font-bold text-base select-all"
+                  <div className="flex items-center gap-3 py-2">
+                    <input
+                      type="checkbox"
+                      id="active-field"
+                      checked={Boolean(activeValues.isActive)}
+                      onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+                      className="h-4.5 w-4.5 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="active-field"
+                      className="text-xs sm:text-[13px] font-bold text-slate-700 select-none cursor-pointer"
                     >
-                      {item?.name || '—'}
-                    </Fact>
+                      Active Status
+                    </label>
+                  </div>
+                </>
+              ) : (
+                // Read-only Details View
+                <FactGrid cols={2} className="text-sm gap-y-4">
+                  <Fact
+                    label="Name"
+                    colSpan="full"
+                    valueClassName="text-slate-800 font-bold text-base select-all"
+                  >
+                    {item?.name || '—'}
+                  </Fact>
 
-                    <Fact
-                      label="Status"
-                    >
-                      <StatusText tone={item?.isActive ? 'success' : 'neutral'}>
-                        {item?.isActive ? 'Active' : 'Inactive'}
-                      </StatusText>
-                    </Fact>
+                  <Fact
+                    label="Status"
+                  >
+                    <StatusText tone={item?.isActive ? 'success' : 'neutral'}>
+                      {item?.isActive ? 'Active' : 'Inactive'}
+                    </StatusText>
+                  </Fact>
 
-                    <Fact
-                      label="Last Modified"
-                      valueClassName="text-slate-500 font-bold mt-1 text-xs"
-                    >
-                      {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}
-                    </Fact>
-                  </FactGrid>
-                )}
-              </div>
+                  <Fact
+                    label="Last Modified"
+                    valueClassName="text-slate-500 font-bold mt-1 text-xs"
+                  >
+                    {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}
+                  </Fact>
+                </FactGrid>
+              )}
             </div>
-          </section>
+          </Card>
         </DetailLayout>
       </form>
 

@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Layers, Plus } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
+import { Badge } from '../components/ui/Badge'
 import { DataGridSurface } from '../components/ui/DataGridSurface'
 import { AppTable } from '../components/ui/AppTable'
 import { createAdminDataSource } from '../lib/createDataSource'
@@ -61,9 +62,9 @@ export function EntityListPage({ config }: EntityListPageProps) {
             return (
               <div className="flex items-center gap-1.5 max-w-[280px]" title={tooltip}>
                 <span className="truncate">{list[0]}</span>
-                <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-xxs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <Badge variant="outline" tone="info" size="xxs" className="min-h-0 px-1.5">
                   +{list.length - 1}
-                </span>
+                </Badge>
               </div>
             )
           }

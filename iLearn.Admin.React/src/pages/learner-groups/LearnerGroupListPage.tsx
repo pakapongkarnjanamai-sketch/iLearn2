@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import { AppButton } from '../../components/ui/AppButton'
+import { Badge } from '../../components/ui/Badge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
@@ -567,13 +568,9 @@ export function LearnerGroupListPage() {
       headerClassName: 'w-32 text-center',
       cellClassName: 'text-center',
       render: item => (
-        <span className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-          item.isFolder
-            ? 'border-amber-100 bg-amber-50 text-amber-700'
-            : 'border-indigo-100 bg-indigo-50 text-indigo-700'
-        }`}>
+        <Badge variant="tag" tone={item.isFolder ? 'warning' : 'info'}>
           {item.isFolder ? 'Folder' : 'Group'}
-        </span>
+        </Badge>
       ),
     },
     {

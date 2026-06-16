@@ -25,7 +25,7 @@ import { LoadingState } from '../components/ui/LoadingState'
 import { StatusText } from '../components/ui/StatusText'
 import { useSession } from '../lib/sessionContext'
 import { toast } from '../lib/toast'
-import { formatDateTime } from '../lib/format'
+import { formatDateTime, formatNumber, formatPercent } from '../lib/format'
 import { appConfig } from '../config/appConfig'
 import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr'
 import {
@@ -51,12 +51,6 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> 
   Upcoming: 'neutral',
   Unassigned: 'neutral',
 }
-
-const formatNumber = (n: number | null | undefined) =>
-  n === null || n === undefined ? '—' : new Intl.NumberFormat('en-GB').format(n)
-
-const formatPercent = (n: number | null | undefined) =>
-  n === null || n === undefined ? '—' : `${n.toFixed(n % 1 === 0 ? 0 : 1)}%`
 
 const formatDateShort = (value: string | null) => {
   if (!value) return '—'
@@ -681,7 +675,7 @@ function CompletionBar({ value }: { value: number }) {
         <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
       </div>
       <span className="text-xxs font-bold text-slate-600 tabular-nums w-10 text-right">
-        {pct.toFixed(0)}%
+        {formatPercent(pct)}
       </span>
     </div>
   )

@@ -11,6 +11,7 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { Badge } from '../../components/ui/Badge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 
@@ -248,7 +249,7 @@ export function BulkAssignPage() {
         <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
             <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Syllabus Catalog</span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xs font-bold text-slate-600">{availableCourses.length}</span>
+            <Badge tone="neutral">{availableCourses.length}</Badge>
           </div>
           
           <div className="p-1.5 border-b border-slate-100 shrink-0 select-none">
@@ -291,7 +292,7 @@ export function BulkAssignPage() {
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
             <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Selected Courses</span>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-blue-100 text-xs font-bold text-blue-700">{selectedCourseIds.length}</span>
+              <Badge tone="info">{selectedCourseIds.length}</Badge>
               {selectedCourseIds.length > 0 && (
                 <button
                   type="button"
@@ -366,7 +367,7 @@ export function BulkAssignPage() {
         <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
           <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
             <span className="font-bold text-xs text-slate-500 uppercase tracking-wide">Available Learner Groups</span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-xs font-bold text-slate-600">{groups.length}</span>
+            <Badge tone="neutral">{groups.length}</Badge>
           </div>
 
           <div className="p-2 border-b border-slate-100 shrink-0">

@@ -30,7 +30,7 @@ import {
   Fact,
   FactGrid,
 } from '../../components/ui/detail'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
@@ -507,10 +507,7 @@ export function CourseDetailPage() {
         }
       >
         <main className="space-y-6">
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={BookOpen} variant="card">Overview</SectionHeader>
-
-            <div className="p-5 space-y-5">
+          <Card icon={BookOpen} title="Overview" bodyClassName="p-5 space-y-5">
               {course.description && (
                 <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
                   {course.description}
@@ -547,8 +544,7 @@ export function CourseDetailPage() {
                   </>
                 )}
               </FactGrid>
-            </div>
-          </section>
+          </Card>
 
           <DetailTabs
             tabs={detailTabs}
@@ -557,8 +553,7 @@ export function CourseDetailPage() {
           />
 
           {activeDetailTab === 'versions' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
+            <Card icon={FileText} title="Versions">
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
@@ -651,12 +646,11 @@ export function CourseDetailPage() {
                   )}
                 </div>
               )}
-            </section>
+            </Card>
           )}
 
           {activeDetailTab === 'learners' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+            <Card icon={Users} title="Learners">
 
               {loadingLearners || !hasLoadedLearners ? (
                 <LoadingState size="section" />
@@ -727,12 +721,11 @@ export function CourseDetailPage() {
                   )}
                 </>
               )}
-            </section>
+            </Card>
           )}
 
           {activeDetailTab === 'assignments' && (
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <SectionHeader icon={Calendar} variant="card">Assignments</SectionHeader>
+            <Card icon={Calendar} title="Assignments">
 
               {loadingAssignments || !hasLoadedAssignments ? (
                 <LoadingState size="section" />
@@ -802,7 +795,7 @@ export function CourseDetailPage() {
                   )}
                 </>
               )}
-            </section>
+            </Card>
           )}
         </main>
       </DetailLayout>

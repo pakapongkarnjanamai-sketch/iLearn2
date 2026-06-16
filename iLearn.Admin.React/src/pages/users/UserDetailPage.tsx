@@ -10,7 +10,7 @@ import {
   Fact,
   FactGrid,
 } from '../../components/ui/detail'
-import { SectionHeader } from '../../components/ui/SectionHeader'
+import { Card } from '../../components/ui/Card'
 import { StatusText } from '../../components/ui/StatusText'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -125,78 +125,74 @@ export function UserDetailPage() {
           </ControlsSidebar>
         }
       >
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-          <SectionHeader icon={User} variant="card">Overview</SectionHeader>
+        <Card icon={User} title="Overview" bodyClassName="p-5 space-y-6">
+          <FactGrid>
+            <Fact label="Status">
+              <StatusText tone={user.isActive ? 'success' : 'neutral'}>
+                {user.isActive ? 'Active' : 'Inactive'}
+              </StatusText>
+            </Fact>
 
-          <div className="p-5 space-y-6">
-            <FactGrid>
-              <Fact label="Status">
-                <StatusText tone={user.isActive ? 'success' : 'neutral'}>
-                  {user.isActive ? 'Active' : 'Inactive'}
-                </StatusText>
+            <Fact label="Employee NID" mono valueClassName="font-bold">{user.nid}</Fact>
+
+            <Fact label="Last Login">
+              {user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : '—'}
+            </Fact>
+
+            {user.email && (
+              <Fact label="Email Address" colSpan={2} valueClassName="break-all">
+                {user.email}
               </Fact>
+            )}
+          </FactGrid>
 
-              <Fact label="Employee NID" mono valueClassName="font-bold">{user.nid}</Fact>
-
-              <Fact label="Last Login">
-                {user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : '—'}
+          <DetailSubSection title="Organization Info">
+            <FactGrid cols={2} className="gap-4 select-none">
+              <Fact
+                label="Division"
+                labelClassName="text-slate-400 font-semibold"
+                valueClassName="mt-0.5 font-bold"
+              >
+                {user.division || '—'}
               </Fact>
-
-              {user.email && (
-                <Fact label="Email Address" colSpan={2} valueClassName="break-all">
-                  {user.email}
-                </Fact>
-              )}
+              <Fact
+                label="Department"
+                labelClassName="text-slate-400 font-semibold"
+                valueClassName="mt-0.5 font-bold"
+              >
+                {user.department || '—'}
+              </Fact>
+              <Fact
+                label="Position"
+                labelClassName="text-slate-400 font-semibold"
+                valueClassName="mt-0.5 font-bold"
+              >
+                {user.position || '—'}
+              </Fact>
             </FactGrid>
+          </DetailSubSection>
 
-            <DetailSubSection title="Organization Info">
-              <FactGrid cols={2} className="gap-4 select-none">
-                <Fact
-                  label="Division"
-                  labelClassName="text-slate-400 font-semibold"
-                  valueClassName="mt-0.5 font-bold"
-                >
-                  {user.division || '—'}
-                </Fact>
-                <Fact
-                  label="Department"
-                  labelClassName="text-slate-400 font-semibold"
-                  valueClassName="mt-0.5 font-bold"
-                >
-                  {user.department || '—'}
-                </Fact>
-                <Fact
-                  label="Position"
-                  labelClassName="text-slate-400 font-semibold"
-                  valueClassName="mt-0.5 font-bold"
-                >
-                  {user.position || '—'}
-                </Fact>
-              </FactGrid>
-            </DetailSubSection>
-
-            <DetailSubSection title="Administrative Roles">
-              <div className="flex flex-wrap gap-1.5 select-none pt-1">
-                {roles.length === 0 ? (
-                  <span className="text-xs text-slate-400 font-semibold italic">No roles assigned</span>
-                ) : (
-                  roles.map((r, i) => (
-                    <span
-                      key={i}
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${
-                        r === 'SuperAdmin'
-                          ? 'bg-purple-100 text-purple-700 border-purple-200'
-                          : 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                      }`}
-                    >
-                      {r}
-                    </span>
-                  ))
-                )}
-              </div>
-            </DetailSubSection>
-          </div>
-        </section>
+          <DetailSubSection title="Administrative Roles">
+            <div className="flex flex-wrap gap-1.5 select-none pt-1">
+              {roles.length === 0 ? (
+                <span className="text-xs text-slate-400 font-semibold italic">No roles assigned</span>
+              ) : (
+                roles.map((r, i) => (
+                  <span
+                    key={i}
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${
+                      r === 'SuperAdmin'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                        : 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                    }`}
+                  >
+                    {r}
+                  </span>
+                ))
+              )}
+            </div>
+          </DetailSubSection>
+        </Card>
       </DetailLayout>
     </>
   )
