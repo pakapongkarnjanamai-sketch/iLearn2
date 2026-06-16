@@ -1,6 +1,6 @@
 # PLAN-034: ยุบ Course เหลือ 3 สถานะ (Draft/Open/Closed) — ตัด Retired(3) ที่ตายแล้ว + แก้ label ให้ตรง
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-16: enum 3 ค่า (Retired ลบ, refs=0), badge tone สอดคล้อง (statusCode 2=neutral=string 'closed'), CanLearnerAccess=Open||Closed คงไว้, FE isRetired→isClosed/Close Course, test 118 + build/lint ผ่าน. nit: CourseDetail:383 คอมเมนต์ยังเขียน "Retire" — cosmetic)
 - **Assigned:** GPT (GPT-5.3 Codex)
 - **Priority:** Medium
 - **Estimated scope:** enum + ~6 backend refs + frontend CourseDetailPage/CourseStatusBadge + tests

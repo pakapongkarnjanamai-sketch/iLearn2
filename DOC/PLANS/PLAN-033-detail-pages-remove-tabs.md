@@ -1,6 +1,6 @@
 # PLAN-033: เอา Tab ออกจากหน้า Detail ทั้งหมด → stack section เรียงหน้าเดียว
 
-- **Status:** DONE
+- **Status:** VERIFIED ✅ (Claude review 2026-06-16: 3 detail pages ไม่มี DetailTabs/activeTab (stacked sections), CourseDetail lazy→load-on-mount, DetailTabs เหลือ CourseEditor, ux_ui_analysis §2.4 = Stacked Sections, build/lint 0/0)
 - **Assigned:** GPT (GPT-5.3 Codex)
 - **Priority:** Medium
 - **Estimated scope:** 3 หน้า detail + ลบ/อัปเดต `DetailTabs` + sync `ux_ui_analysis.md`
