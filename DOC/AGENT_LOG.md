@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-16 10:43] Antigravity (Gemini 3.5 Flash) — เขียนแผน PLAN-036 (Standardize Loading Indicators)
+- ทำอะไร: สำรวจและเขียนแผน **PLAN-036** (GPT) เพื่อทำการปรับปรุงเรื่อง loading indicator ให้มีมาตรฐานเดียวกันทั่วทั้งระบบ: ขยายขีดความสามารถของ `AppButton` (รองรับ prop `loading`) และ `LoadingState` (รองรับ label ใน size="section" และรับ `className` สำหรับ customize height), refactor `ExplorerTable` และ `DashboardPage` ให้ใช้ `LoadingState` แทน custom markup, และ refactor ปุ่ม submit ใน modal/form ต่างๆ มาใช้ `AppButton` ร่วมกับ prop `loading` เพื่อการแสดงผลสปินเนอร์และ disable state ที่สม่ำเสมอ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-036-standardize-loading-indicators.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: n/a (planner)
+
 ## [2026-06-16 09:38] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-035 shared ListToolbar refactor
 - ทำอะไร: ทำตาม Scope ของ PLAN-035 แบบ pure refactor โดยเพิ่ม `ListToolbar` เป็น source of truth สำหรับแถว Showing/search/chips, ปรับ `AppTableSearch` ให้เป็น thin wrapper ที่ใช้ `ListToolbar`, และ migrate toolbar ของ `CourseListPage` + `LearnerGroupListPage`; เพิ่มการใช้ `ListToolbar` ใน `AssignmentReportPage` (filter chips + search) เพื่อให้ spacing/search style ตรงมาตรฐานเดียวกันทั้งระบบที่เข้า pattern
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/ListToolbar.tsx`, `iLearn.Admin.React/src/components/ui/table/AppTableSearch.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-035-shared-list-toolbar.md`, `DOC/AGENT_LOG.md`

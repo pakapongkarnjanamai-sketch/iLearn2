@@ -596,13 +596,7 @@ export function CourseDetailPage() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Link>
-                              <Link
-                                to={`/courses/${id}/version/${v.id}/edit`}
-                                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition"
-                                title="Edit version"
-                              >
-                                <Edit3 className="h-4 w-4" />
-                              </Link>
+                       
                               <button
                                 onClick={() => handleDeleteVersion(v.id)}
                                 className="p-1 text-slate-400 hover:text-red-600 rounded transition"
