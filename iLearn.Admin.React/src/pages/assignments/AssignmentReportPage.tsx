@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { BookOpen, Download, FileBarChart, Printer, Search, X } from 'lucide-react'
+import { BookOpen, Download, FileBarChart, Printer } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { DetailCard, DetailLayout, DetailSubSection, Fact, FactGrid } from '../../components/ui/detail'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { ListToolbar } from '../../components/ui/ListToolbar'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ProgressBar } from '../../components/ui/ProgressBar'
@@ -218,48 +219,33 @@ export function AssignmentReportPage() {
           {/* Learner table */}
           <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
             {/* Filter & Search bar */}
-            <div className="p-5 border-b border-slate-100 bg-slate-50/20">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {(['All', ...STATUS_BUCKETS] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setStatusFilter(s)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
-                        statusFilter === s
-                          ? 'border-indigo-500 bg-indigo-600 text-white shadow-3xs font-bold'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      {s}
-                      <span className={`ml-1.5 text-[10px] ${statusFilter === s ? 'text-indigo-100' : 'text-slate-400'}`}>
-                        {counts[s] ?? 0}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="relative w-full sm:w-72 shrink-0">
-                  <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search code, name, course..."
-                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch('')}
-                      className="absolute right-2.5 top-2.5 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
+            <div className="border-b border-slate-100 bg-slate-50/20 px-5">
+              <ListToolbar
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Search code, name, course..."
+                toolbarContent={
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(['All', ...STATUS_BUCKETS] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setStatusFilter(s)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                          statusFilter === s
+                            ? 'border-indigo-500 bg-indigo-600 text-white shadow-3xs font-bold'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {s}
+                        <span className={`ml-1.5 text-[10px] ${statusFilter === s ? 'text-indigo-100' : 'text-slate-400'}`}>
+                          {counts[s] ?? 0}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                }
+              />
             </div>
 
             <div className="overflow-x-auto">

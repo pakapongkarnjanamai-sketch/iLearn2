@@ -12,6 +12,7 @@ import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSide
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { formatDate } from '../../lib/format'
+import { DetailTabs } from '../../components/ui/DetailTabs'
 
 type LookupResult<T> = T[] | { data?: T[] }
 
@@ -178,6 +179,7 @@ export function VersionDetailPage() {
   const [showContentLibraryPopup, setShowContentLibraryPopup] = useState(false)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [savingContent, setSavingContent] = useState(false)
+  const [activeDetailTab, setActiveDetailTab] = useState<'content'>('content')
 
   const [generalForm, setGeneralForm] = useState<VersionGeneralForm>({
     note: '',
@@ -489,68 +491,76 @@ export function VersionDetailPage() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={BookOpen} variant="card">Current Content</SectionHeader>
+          <DetailTabs
+            tabs={[{ key: 'content', label: `Current Content (${currentContentItems.length})` }]}
+            active={activeDetailTab}
+            onChange={setActiveDetailTab}
+          />
 
-            <div className="p-5 space-y-4">
-              <p className="text-xs font-semibold text-slate-500">Attached content items in this version.</p>
+          {activeDetailTab === 'content' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={BookOpen} variant="card">Current Content</SectionHeader>
 
-              <div className="overflow-auto border border-slate-200 rounded custom-scrollbar">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
-                    <tr>
-                      <th className="w-12 px-3 py-2 text-left">Order</th>
-                      <th className="px-3 py-2 text-left">Content Name</th>
-                      <th className="w-28 px-3 py-2 text-left">Type</th>
-                      <th className="w-28 px-3 py-2 text-left">Status</th>
-                      <th className="w-48 px-3 py-2 text-left">Player</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {currentContentItems.length === 0 ? (
+              <div className="p-5 space-y-4">
+                <p className="text-xs font-semibold text-slate-500">Attached content items in this version.</p>
+
+                <div className="overflow-auto border border-slate-200 rounded custom-scrollbar">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
                       <tr>
-                        <td colSpan={5} className="px-3 py-8 text-center text-xs font-semibold text-slate-400">
-                          No content attached in this version.
-                        </td>
+                        <th className="w-12 px-3 py-2 text-left">Order</th>
+                        <th className="px-3 py-2 text-left">Content Name</th>
+                        <th className="w-28 px-3 py-2 text-left">Type</th>
+                        <th className="w-28 px-3 py-2 text-left">Status</th>
+                        <th className="w-48 px-3 py-2 text-left">Player</th>
                       </tr>
-                    ) : (
-                      currentContentItems.map((item, index) => {
-                        const readiness = getContentReadiness(item)
-                        const launchUrl = item.url?.trim() || ''
-                        return (
-                          <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
-                            <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
-                            <td className="px-3 py-2 font-semibold text-slate-700 max-w-xl truncate">{item.name}</td>
-                            <td className="px-3 py-2 text-xs font-semibold text-slate-500">{getContentTypeLabel(item)}</td>
-                            <td className="px-3 py-2 select-none">
-                              <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>
-                                {readiness.label}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2">
-                              {launchUrl ? (
-                                <a
-                                  href={launchUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded border border-indigo-100 px-2 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                  Open SCORM Player
-                                </a>
-                              ) : (
-                                <span className="text-xs font-semibold text-slate-400">Unavailable</span>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {currentContentItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-3 py-8 text-center text-xs font-semibold text-slate-400">
+                            No content attached in this version.
+                          </td>
+                        </tr>
+                      ) : (
+                        currentContentItems.map((item, index) => {
+                          const readiness = getContentReadiness(item)
+                          const launchUrl = item.url?.trim() || ''
+                          return (
+                            <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
+                              <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-700 max-w-xl truncate">{item.name}</td>
+                              <td className="px-3 py-2 text-xs font-semibold text-slate-500">{getContentTypeLabel(item)}</td>
+                              <td className="px-3 py-2 select-none">
+                                <span className={`inline-flex border px-1.5 py-0.5 text-xs font-extrabold rounded-sm ${readiness.className}`}>
+                                  {readiness.label}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2">
+                                {launchUrl ? (
+                                  <a
+                                    href={launchUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 rounded border border-indigo-100 px-2 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    Open SCORM Player
+                                  </a>
+                                ) : (
+                                  <span className="text-xs font-semibold text-slate-400">Unavailable</span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
         </main>
       </DetailLayout>
 

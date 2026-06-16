@@ -14,6 +14,37 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-16 09:38] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-035 shared ListToolbar refactor
+- ทำอะไร: ทำตาม Scope ของ PLAN-035 แบบ pure refactor โดยเพิ่ม `ListToolbar` เป็น source of truth สำหรับแถว Showing/search/chips, ปรับ `AppTableSearch` ให้เป็น thin wrapper ที่ใช้ `ListToolbar`, และ migrate toolbar ของ `CourseListPage` + `LearnerGroupListPage`; เพิ่มการใช้ `ListToolbar` ใน `AssignmentReportPage` (filter chips + search) เพื่อให้ spacing/search style ตรงมาตรฐานเดียวกันทั้งระบบที่เข้า pattern
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/ListToolbar.tsx`, `iLearn.Admin.React/src/components/ui/table/AppTableSearch.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-035-shared-list-toolbar.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 12:10] Claude Code — วินิจฉัย spacing ไม่เท่า + เขียน PLAN-035 (shared ListToolbar)
+- ทำอะไร: ผู้ใช้ถามทำไม /courses /assignments /learner-groups spacing ไม่เท่า — วินิจฉัย: ทั้ง 3 อยู่ใน AppLayout+DataGridSurface เดียวกัน แต่ toolbar (Showing/search/chips) ใช้คนละ component → explorer (Course/LearnerGroup) hand-roll `pt-4 pb-0` + search `py-1.5`, ส่วน AppTable ใช้ AppTableSearch `pt-3 pb-2` + `py-2` สำรวจเจอ LearnerGroupCategories/Gantt มี toolbar เองด้วย → เขียน **PLAN-035** (GPT): สกัด `<ListToolbar>` (count+search+chips slot, ยึดค่ามาตรฐาน AppTableSearch), ให้ AppTableSearch + explorer + หน้าอื่นใช้ร่วม → spacing เท่ากันถาวร (pure refactor)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-035-*.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: n/a (planner)
+
+## [2026-06-16 09:27] GitHub Copilot (GPT-5.3-Codex) — Put non-Overview Detail sections into tabs below Overview
+- ทำอะไร: ปรับหน้า Detail ตาม requirement ให้ `Overview` คงเป็นกล่องแรก และย้ายกล่องที่เหลือไปอยู่ในรูปแบบแท็บด้านล่าง Overview โดยใช้ shared `DetailTabs` ในหน้า `CourseDetailPage`, `AssignmentDetailPage`, `LearnerGroupDetailPage`, และ `VersionDetailPage` (เนื้อหา/action เดิมคงไว้)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 09:19] GitHub Copilot (GPT-5.3-Codex) — Tune Overview spacing between label/value facts
+- ทำอะไร: ปรับ spacing ในบล็อก Overview ผ่าน shared `Fact` component ให้มีช่องไฟระหว่าง `dt` และ `dd` ที่สม่ำเสมอ (`space-y-1`) โดยยังคงให้ `<dd>` เป็น plain text ไม่ใส่ class/css ตาม requirement เดิม
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/detail/index.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 11:30] Claude Code — Review + ปิด PLAN-031/033/034 เป็น VERIFIED
+- ทำอะไร: รีวิว 3 แผนที่ทำต่อกัน — **031** (shared primitives): DetailTabs+CourseStatusBadge+Modal สร้าง+ใช้ร่วม (A+B+C); **033** (เอา tab ออก): 3 detail page เป็น stacked sections, lazy→load-on-mount, DetailTabs เหลือ CourseEditor, ux §2.4 sync; **034** (Course 3 สถานะ): enum ลบ Retired (refs=0), badge tone สอดคล้อง (2=neutral), CanLearnerAccess=Open||Closed คงไว้, FE isRetired→isClosed — ปรับทั้ง 3 เป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-031/033/034-*.md` (สถานะ)
+- Contract ที่เปลี่ยน: ไม่มี (PLAN-034 ลบ enum Retired=3 ที่ตายอยู่แล้ว — learner-access ไม่เปลี่ยน)
+- Verified: รันเอง `dotnet test` 118/118, `npm run build` ผ่าน, `npm run lint` 0/0
+- nit เล็ก (ไม่ block): CourseDetailPage:383 คอมเมนต์ยังเขียน "Retire" ควรเป็น "Close"
+
 ## [2026-06-16 09:09] GitHub Copilot (GPT-5.3-Codex) — Standardize Overview title and make Fact <dd> plain text
 - ทำอะไร: ปรับหัวกล่อง section หลักให้ใช้ชื่อ `Overview` เหมือนกันทุกหน้า detail ที่เคยใช้ชื่อเฉพาะ (`Course/User/Content/Version Overview`) และปรับ shared detail primitive `Fact` ให้ `<dd>` เป็นข้อความปกติแบบไม่ผูก CSS class แล้ว
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/detail/index.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/pages/users/UserDetailPage.tsx`, `DOC/AGENT_LOG.md`

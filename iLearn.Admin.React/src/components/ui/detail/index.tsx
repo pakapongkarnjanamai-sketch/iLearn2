@@ -64,7 +64,7 @@ export function Fact({
   const spanClass =
     colSpan === 'full' ? 'col-span-full' : colSpan === 2 ? 'sm:col-span-2' : ''
 
-  const containerClass = [spanClass, className].filter(Boolean).join(' ')
+  const containerClass = ['space-y-1', spanClass, className].filter(Boolean).join(' ')
   const labelClass = [
     'text-slate-400 font-bold uppercase tracking-wider',
     labelClassName,

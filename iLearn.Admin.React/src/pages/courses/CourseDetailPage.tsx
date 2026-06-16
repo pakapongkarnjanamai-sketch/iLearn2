@@ -34,6 +34,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
+import { DetailTabs } from '../../components/ui/DetailTabs'
 
 type LookupResult<T> = T[] | { data?: T[] }
 
@@ -183,6 +184,7 @@ export function CourseDetailPage() {
   const [assignments, setAssignments] = useState<CourseAssignment[]>([])
   const [loadingAssignments, setLoadingAssignments] = useState(true)
   const [mutatingStatus, setMutatingStatus] = useState(false)
+  const [activeDetailTab, setActiveDetailTab] = useState<'versions' | 'learners' | 'assignments'>('versions')
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [categories, setCategories] = useState<CategoryLookup[]>([])
@@ -460,6 +462,11 @@ export function CourseDetailPage() {
   const isDraft = course.status === 0
   const isOpen = course.status === 1
   const isClosed = course.status === 2
+  const detailTabs: Array<{ key: 'versions' | 'learners' | 'assignments'; label: string }> = [
+    { key: 'versions', label: 'Versions' },
+    { key: 'learners', label: 'Learners' },
+    { key: 'assignments', label: 'Assignments' },
+  ]
 
   return (
     <>
@@ -521,189 +528,88 @@ export function CourseDetailPage() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
+          <DetailTabs
+            tabs={detailTabs}
+            active={activeDetailTab}
+            onChange={setActiveDetailTab}
+          />
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                    <th className="p-3">Version No.</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Content Items</th>
-                    <th className="p-3">Created Date</th>
-                    <th className="p-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {versions.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400">
-                        No versions.
-                      </td>
-                    </tr>
-                  ) : (
-                    versions.map(v => (
-                      <tr key={v.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 font-bold text-slate-900">
-                          v{v.versionNumber}
-                          {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
-                        </td>
-                        <td className="p-3">
-                          {v.isActive ? (
-                            <StatusBadge tone="success">Active Version</StatusBadge>
-                          ) : (
-                            <StatusBadge tone="neutral">Inactive</StatusBadge>
-                          )}
-                        </td>
-                        <td className="p-3 text-xs text-slate-500">
-                          {v.contentItems.length === 0
-                            ? '—'
-                            : v.contentItems.map(ci => ci.name).join(', ')}
-                        </td>
-                        <td className="p-3 text-slate-400 text-xs">
-                          {formatDate(v.createdAt)}
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="inline-flex items-center gap-2">
-                            {!v.isActive && (
-                              <button
-                                onClick={() => handleSetActiveVersion(v.id)}
-                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
-                                title="Set active version"
-                              >
-                                <Check className="h-4 w-4" />
-                              </button>
-                            )}
-                            <Link
-                              to={`/courses/${id}/version/${v.id}`}
-                              className="p-1 text-slate-500 hover:bg-slate-100 rounded-md transition"
-                              title="View version details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                            <Link
-                              to={`/courses/${id}/version/${v.id}/edit`}
-                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition"
-                              title="Edit version"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteVersion(v.id)}
-                              className="p-1 text-slate-400 hover:text-red-600 rounded transition"
-                              title="Delete version"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          {activeDetailTab === 'versions' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <SectionHeader icon={FileText} variant="card">Versions</SectionHeader>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
-
-            {loadingLearners ? (
-              <LoadingState size="section" />
-            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                      <th className="p-3">Learner Code (EId)</th>
-                      <th className="p-3">Name</th>
-                      <th className="p-3">Department</th>
-                      <th className="p-3">Progress</th>
-                      <th className="p-3">Timeline</th>
-                      <th className="p-3">Access Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {learners.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400">
-                          No learners.
-                        </td>
-                      </tr>
-                    ) : (
-                      learners.map(l => {
-                        const isDone = l.isCompleted
-                        return (
-                          <tr key={l.id} className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-mono font-bold text-slate-800">{l.learnerCode}</td>
-                            <td className="p-3 font-semibold text-slate-900">{l.learnerName}</td>
-                            <td className="p-3 text-slate-500 text-xs">
-                              {l.division || '-'} {l.department ? `/ ${l.department}` : ''}
-                            </td>
-                            <td className="p-3">
-                              <ProgressBar value={l.progress} completed={isDone} maxWidthClass="max-w-30" />
-                            </td>
-                            <td className="p-3 text-slate-400 text-xs">
-                              <div>Start: {formatDate(l.startDate)}</div>
-                              <div className="mt-0.5">Due: {formatDate(l.dueDate)}</div>
-                            </td>
-                            <td className="p-3">
-                              <StatusBadge>{l.status}</StatusBadge>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <SectionHeader icon={Calendar} variant="card">Assignments</SectionHeader>
-
-            {loadingAssignments ? (
-              <LoadingState size="section" />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                      <th className="p-3">Batch No</th>
-                      <th className="p-3">Description</th>
-                      <th className="p-3">Start Date</th>
-                      <th className="p-3">Due Date</th>
+                      <th className="p-3">Version No.</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3">Progress</th>
+                      <th className="p-3">Content Items</th>
+                      <th className="p-3">Created Date</th>
+                      <th className="p-3 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {assignments.length === 0 ? (
+                    {versions.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400">
-                          No assignments.
+                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                          No versions.
                         </td>
                       </tr>
                     ) : (
-                      assignments.map(a => (
-                        <tr key={a.id} className="hover:bg-slate-50 transition">
-                          <td className="p-3 font-mono font-bold text-indigo-500">
-                            <Link to={`/assignments/${a.id}`} className="hover:underline">
-                              {a.assignmentNo}
-                            </Link>
-                          </td>
-                          <td className="p-3 text-slate-700 font-medium">{a.description || '-'}</td>
-                          <td className="p-3 text-slate-400 text-xs">{formatDate(a.startDate)}</td>
-                          <td className="p-3 text-slate-400 text-xs">{formatDate(a.dueDate)}</td>
-                          <td className="p-3">
-                            <StatusBadge>{a.status}</StatusBadge>
+                      versions.map(v => (
+                        <tr key={v.id} className="hover:bg-slate-50 transition">
+                          <td className="p-3 font-bold text-slate-900">
+                            v{v.versionNumber}
+                            {v.note && <span className="block text-xxs font-normal text-slate-400 mt-0.5">{v.note}</span>}
                           </td>
                           <td className="p-3">
-                            <div className="flex flex-col font-bold text-xs text-slate-600">
-                              <span>{a.completedEnrollmentCount} / {a.totalEnrollmentCount} Learner</span>
-                              <span className="text-slate-400 font-normal mt-0.5">({a.completionPct}% completed)</span>
+                            {v.isActive ? (
+                              <StatusBadge tone="success">Active Version</StatusBadge>
+                            ) : (
+                              <StatusBadge tone="neutral">Inactive</StatusBadge>
+                            )}
+                          </td>
+                          <td className="p-3 text-xs text-slate-500">
+                            {v.contentItems.length === 0
+                              ? '—'
+                              : v.contentItems.map(ci => ci.name).join(', ')}
+                          </td>
+                          <td className="p-3 text-slate-400 text-xs">
+                            {formatDate(v.createdAt)}
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="inline-flex items-center gap-2">
+                              {!v.isActive && (
+                                <button
+                                  onClick={() => handleSetActiveVersion(v.id)}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
+                                  title="Set active version"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                              )}
+                              <Link
+                                to={`/courses/${id}/version/${v.id}`}
+                                className="p-1 text-slate-500 hover:bg-slate-100 rounded-md transition"
+                                title="View version details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                              <Link
+                                to={`/courses/${id}/version/${v.id}/edit`}
+                                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition"
+                                title="Edit version"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteVersion(v.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                                title="Delete version"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -712,8 +618,121 @@ export function CourseDetailPage() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
+            </section>
+          )}
+
+          {activeDetailTab === 'learners' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+
+              {loadingLearners ? (
+                <LoadingState size="section" />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
+                        <th className="p-3">Learner Code (EId)</th>
+                        <th className="p-3">Name</th>
+                        <th className="p-3">Department</th>
+                        <th className="p-3">Progress</th>
+                        <th className="p-3">Timeline</th>
+                        <th className="p-3">Access Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {learners.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-slate-400">
+                            No learners.
+                          </td>
+                        </tr>
+                      ) : (
+                        learners.map(l => {
+                          const isDone = l.isCompleted
+                          return (
+                            <tr key={l.id} className="hover:bg-slate-50 transition">
+                              <td className="p-3 font-mono font-bold text-slate-800">{l.learnerCode}</td>
+                              <td className="p-3 font-semibold text-slate-900">{l.learnerName}</td>
+                              <td className="p-3 text-slate-500 text-xs">
+                                {l.division || '-'} {l.department ? `/ ${l.department}` : ''}
+                              </td>
+                              <td className="p-3">
+                                <ProgressBar value={l.progress} completed={isDone} maxWidthClass="max-w-30" />
+                              </td>
+                              <td className="p-3 text-slate-400 text-xs">
+                                <div>Start: {formatDate(l.startDate)}</div>
+                                <div className="mt-0.5">Due: {formatDate(l.dueDate)}</div>
+                              </td>
+                              <td className="p-3">
+                                <StatusBadge>{l.status}</StatusBadge>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeDetailTab === 'assignments' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <SectionHeader icon={Calendar} variant="card">Assignments</SectionHeader>
+
+              {loadingAssignments ? (
+                <LoadingState size="section" />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
+                        <th className="p-3">Batch No</th>
+                        <th className="p-3">Description</th>
+                        <th className="p-3">Start Date</th>
+                        <th className="p-3">Due Date</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {assignments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-slate-400">
+                            No assignments.
+                          </td>
+                        </tr>
+                      ) : (
+                        assignments.map(a => (
+                          <tr key={a.id} className="hover:bg-slate-50 transition">
+                            <td className="p-3 font-mono font-bold text-indigo-500">
+                              <Link to={`/assignments/${a.id}`} className="hover:underline">
+                                {a.assignmentNo}
+                              </Link>
+                            </td>
+                            <td className="p-3 text-slate-700 font-medium">{a.description || '-'}</td>
+                            <td className="p-3 text-slate-400 text-xs">{formatDate(a.startDate)}</td>
+                            <td className="p-3 text-slate-400 text-xs">{formatDate(a.dueDate)}</td>
+                            <td className="p-3">
+                              <StatusBadge>{a.status}</StatusBadge>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex flex-col font-bold text-xs text-slate-600">
+                                <span>{a.completedEnrollmentCount} / {a.totalEnrollmentCount} Learner</span>
+                                <span className="text-slate-400 font-normal mt-0.5">({a.completionPct}% completed)</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
         </main>
       </DetailLayout>
 

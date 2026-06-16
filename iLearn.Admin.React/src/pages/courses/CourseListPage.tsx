@@ -6,7 +6,6 @@ import {
   BookOpen,
   Loader2,
   Plus,
-  Search,
   X,
   Info,
   ArrowUpRight,
@@ -19,6 +18,7 @@ import {
 import { AppButton } from '../../components/ui/AppButton'
 import { CourseStatusBadge } from '../../components/ui/CourseStatusBadge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { ListToolbar } from '../../components/ui/ListToolbar'
 import { Modal } from '../../components/ui/Modal'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer/ExplorerTable'
@@ -686,17 +686,16 @@ export function CourseListPage() {
           </div>
         }
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-3 pt-4 pb-0">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="text-xs font-semibold text-slate-500 shrink-0">
-              Showing <span className="font-bold text-slate-800">{filteredItems.length}</span> items in this folder
-            </div>
-
-            {/* Course Type chips + search on the same row */}
-            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:w-auto lg:justify-end">
-              {currentCategoryId !== null && (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <ListToolbar
+            count={filteredItems.length}
+            countUnit="items in this folder"
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search folders or courses in this folder..."
+            toolbarContent={
+              currentCategoryId !== null ? (
                 <div className="flex min-w-0 items-center gap-2 overflow-x-auto custom-scrollbar max-sm:pb-1">
-                 
                   <button
                     key="all"
                     type="button"
@@ -724,29 +723,9 @@ export function CourseListPage() {
                     </button>
                   ))}
                 </div>
-              )}
-
-              <div className="relative w-full sm:w-72 shrink-0">
-                <Search className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={event => setSearchTerm(event.target.value)}
-                  placeholder="Search folders or courses in this folder..."
-                  className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-8 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-2.5 top-2 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+              ) : undefined
+            }
+          />
 
           <ExplorerTable
             loading={loading}

@@ -26,6 +26,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
+import { DetailTabs } from '../../components/ui/DetailTabs'
 
 // Mirrors AssignmentDashboardDto returned by GET Assignments/dashboard/{id}
 type AssignmentDetail = {
@@ -101,6 +102,7 @@ export function AssignmentDetailPage() {
   const [pendingAddLearners, setPendingAddLearners] = useState<LearnerSelection[]>([])
   const [learnerCodesInput, setLearnerCodesInput] = useState('')
   const [savingLearners, setSavingLearners] = useState(false)
+  const [activeDetailTab, setActiveDetailTab] = useState<'courses' | 'learners'>('courses')
 
   const groupedLearners = useMemo(() => {
     if (!assignment?.learners) return []
@@ -359,6 +361,10 @@ export function AssignmentDetailPage() {
   }
 
   const assignmentStatus = deriveAssignmentStatus(assignment)
+  const detailTabs: Array<{ key: 'courses' | 'learners'; label: string }> = [
+    { key: 'courses', label: 'Courses' },
+    { key: 'learners', label: 'Learners' },
+  ]
 
   return (
     <>
@@ -417,38 +423,47 @@ export function AssignmentDetailPage() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
+          <DetailTabs
+            tabs={detailTabs}
+            active={activeDetailTab}
+            onChange={setActiveDetailTab}
+          />
 
-            <ul className="divide-y divide-slate-100 px-4">
-              {assignment.courses.map((c) => (
-                <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                      {c.courseTitle}
-                      {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
-                    </span>
-                    <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xxs font-bold text-slate-500">
-                      {c.completedLearners} / {c.totalLearners} completed
-                    </span>
-                    <button
-                      onClick={() => handleRemoveCourse(c.assignmentRuleId)}
-                      className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                      title="Remove course from assignment"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+          {activeDetailTab === 'courses' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
 
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
+              <ul className="divide-y divide-slate-100 px-4">
+                {assignment.courses.map((c) => (
+                  <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                        {c.courseTitle}
+                        {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
+                      </span>
+                      <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xxs font-bold text-slate-500">
+                        {c.completedLearners} / {c.totalLearners} completed
+                      </span>
+                      <button
+                        onClick={() => handleRemoveCourse(c.assignmentRuleId)}
+                        className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                        title="Remove course from assignment"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {activeDetailTab === 'learners' && (
+            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
  
               <div className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
@@ -532,7 +547,8 @@ export function AssignmentDetailPage() {
                   </tbody>
                 </table>
               </div>
-          </section>
+            </section>
+          )}
         </main>
 
       </DetailLayout>

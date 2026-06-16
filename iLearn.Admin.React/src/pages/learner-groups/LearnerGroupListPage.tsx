@@ -10,13 +10,13 @@ import {
   Layers,
   Loader2,
   Plus,
-  Search,
   Trash2,
   X,
 } from 'lucide-react'
 
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { ListToolbar } from '../../components/ui/ListToolbar'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer/ExplorerTable'
@@ -677,32 +677,14 @@ export function LearnerGroupListPage() {
           </div>
         }
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-3 pt-4 pb-0">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs font-semibold text-slate-500">
-              Showing <span className="font-bold text-slate-800">{filteredItems.length}</span> items in this folder
-            </div>
-
-            <div className="relative w-full sm:w-80">
-              <Search className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={event => setSearchTerm(event.target.value)}
-                placeholder="Search folders or groups in this folder..."
-                className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-8 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-2 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <ListToolbar
+            count={filteredItems.length}
+            countUnit="items in this folder"
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search folders or groups in this folder..."
+          />
 
           <ExplorerTable
             loading={loading}

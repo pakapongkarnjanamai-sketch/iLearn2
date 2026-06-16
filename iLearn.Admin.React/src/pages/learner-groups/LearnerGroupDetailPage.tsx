@@ -24,6 +24,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
+import { DetailTabs } from '../../components/ui/DetailTabs'
 
 type LearnerGroupMember = {
   id: number
@@ -244,7 +245,7 @@ export function LearnerGroupDetailPage() {
 
     return (
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
+        className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
         onClick={() => setIsExplorerOpen(false)}
       >
         <div
@@ -329,6 +330,7 @@ export function LearnerGroupDetailPage() {
 
   // Modal / Operations drawers
   const [managerMode, setManagerMode] = useState<'none' | 'add' | 'remove'>('none')
+  const [activeDetailTab, setActiveDetailTab] = useState<'members'>('members')
   
   // Member additions workspace state
   const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
@@ -615,8 +617,15 @@ export function LearnerGroupDetailPage() {
             </div>
           </section>
 
-          <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-            <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
+          <DetailTabs
+            tabs={[{ key: 'members', label: `Members (${group.members.length})` }]}
+            active={activeDetailTab}
+            onChange={setActiveDetailTab}
+          />
+
+          {activeDetailTab === 'members' && (
+            <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+              <SectionHeader icon={Users} variant="card">Members ({group.members.length})</SectionHeader>
 
               <div className="overflow-x-auto max-h-140 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
@@ -670,7 +679,8 @@ export function LearnerGroupDetailPage() {
                   </tbody>
                 </table>
               </div>
-          </section>
+            </section>
+          )}
         </main>
 
       </DetailLayout>
