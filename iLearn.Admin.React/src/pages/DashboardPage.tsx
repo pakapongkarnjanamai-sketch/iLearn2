@@ -318,7 +318,9 @@ export function DashboardPage() {
           to={isSuperAdmin ? '/learners' : '/assignments'}
           meta={
             <>
-              <span className="font-bold text-emerald-700">{formatPercent(kpi.completionRate)}</span>{' '}
+              <span className="font-bold text-emerald-700">
+                {formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)}
+              </span>{' '}
               completion
               <span className="text-slate-300 mx-1.5">·</span>
               <span className="font-bold text-slate-700">

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { UserPlus, Edit3 } from 'lucide-react'
 import { AppTable, type AdminGridColumn } from '../../components/ui/AppTable'
+import { Badge } from '../../components/ui/Badge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppButton } from '../../components/ui/AppButton'
 import { createAdminDataSource } from '../../lib/createDataSource'
@@ -62,16 +63,15 @@ export function AdminUsersPage() {
           return (
             <div className="flex flex-wrap gap-1">
               {roles.map((r, i) => (
-                <span
+                <Badge
                   key={i}
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    r === 'SuperAdmin'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-indigo-100 text-indigo-700'
-                  }`}
+                  variant="soft"
+                  size="xxs"
+                  tone={r === 'SuperAdmin' ? 'warning' : 'info'}
+                  className="rounded-full"
                 >
                   {r}
-                </span>
+                </Badge>
               ))}
             </div>
           )

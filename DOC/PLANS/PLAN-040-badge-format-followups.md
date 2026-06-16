@@ -1,6 +1,6 @@
 # PLAN-040: Follow-up จากรีวิว PLAN-037/039 — percent precision + pill ที่ตกหล่น
 
-- **Status:** READY
+- **Status:** DONE
 - **Assigned:** GPT (GPT-5.3-Codex)
 - **Priority:** Low
 - **Estimated scope:** แก้ formatPercent 1 จุด + migrate hand-rolled pill 2 จุดมาใช้ `Badge`
@@ -51,4 +51,8 @@ rg "rounded-full .*(text-\[10px\]|rose-)" src/pages/users
 - เปิดด้วยตา: Dashboard (KPI percent ที่มีเศษต้องโชว์ 1 ตำแหน่งเหมือนเดิม), Admin users list, User editor (chip ถอด role)
 
 ## Implementer Notes
-(เติมหลังทำ: tone ที่เลือกให้แต่ละ pill + จุดที่ตัดสินใจไม่แตะ)
+- Dashboard KPI completion percent call-site ใช้ adaptive precision ตามแผน: `formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)` เพื่อคง behavior เดิมกรณีมีทศนิยม
+- ไม่แตะ default `formatPercent` ใน `src/lib/format.ts` และไม่แตะ `CompletionBar` (ยังคง 0 ตำแหน่งตามเดิม)
+- `AdminUsersPage` role pill migrate ไป `Badge` โดยเลือก `variant="soft"`, `size="xxs"`, และ map tone เป็น `warning` สำหรับ `SuperAdmin` / `info` สำหรับ role อื่น; คงทรง pill เดิมด้วย `className="rounded-full"`
+- `UserEditorPage` chip "To Be Removed" migrate ไป `Badge` แบบ `variant="outline" tone="danger" size="xxs"`
+- ไม่แตะ inline text สีแดงที่ไม่ใช่ pill ตามขอบเขตที่ห้ามทำ

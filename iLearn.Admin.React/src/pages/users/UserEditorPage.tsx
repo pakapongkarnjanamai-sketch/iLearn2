@@ -4,6 +4,7 @@ import { Search, UserPlus, Check } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { Badge } from '../../components/ui/Badge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import type { RoleInfo, UserRoleInfo, AdminUser } from './AdminUsersPage'
@@ -308,9 +309,9 @@ export function UserEditorPage() {
                   <div className="font-bold text-rose-600 mb-1">To Be Removed:</div>
                   <div className="flex flex-wrap gap-1.5">
                     {removedRoles.map((name) => (
-                      <span key={name} className="inline-flex items-center rounded-full bg-rose-50 border border-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-700">
+                      <Badge key={name} variant="outline" tone="danger" size="xxs">
                         - {name}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>

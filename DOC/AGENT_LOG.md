@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-16 17:07] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-040 badge/format follow-ups (pure refactor)
+- ทำอะไร: ทำตาม scope PLAN-040 ครบ 2 ข้อ: (1) คืน adaptive percent precision เฉพาะ KPI completion ใน `DashboardPage` ด้วย `formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)` โดยไม่แตะ default formatter และไม่แตะ `CompletionBar`; (2) migrate hand-rolled pills ที่ตกหล่นใน users pages มาใช้ `Badge` (`AdminUsersPage` role pills และ `UserEditorPage` removed-role chips)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Admin.React/src/pages/users/UserEditorPage.tsx`, `DOC/PLANS/PLAN-040-badge-format-followups.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `rg "rounded-full .*(text-\[10px\]|rose-)" src/pages/users` ไม่พบผลลัพธ์ (exit 1 เพราะ no matches)
+
 ## [2026-06-16 17:30] Claude Code — รีวิว PLAN-037/038/039 → VERIFIED + เขียน PLAN-040 follow-up
 - ทำอะไร: รีวิว implementation ของ 3 แผน (Badge/Card/format) เทียบ scope — ตรวจ diff จริง, `npm run build` ผ่าน (exit 0), residue greps (number/card สะอาด; Dashboard ข้าม Card โดยตั้งใจ+จดไว้). ยืนยัน wrapper คง public API, Card refactor เป็น pure re-indent ไม่แตะ logic, readiness รวมเป็น helper กลาง `getContentReadinessBadgeModel`. ปรับสถานะ PLAN-037/038/039 เป็น VERIFIED. พบ minor 2 ข้อ → เขียน `PLAN-040`: (1) `formatPercent` ทำทศนิยมหายใน Dashboard KPI (แผน 039 บอกคง behaviour แต่ไม่ครบ), (2) hand-rolled pill ที่ตกหล่นใน `AdminUsersPage`/`UserEditorPage` (037 บอก list ไม่ exhaustive)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-037..039` (status→VERIFIED), `DOC/PLANS/PLAN-040-badge-format-followups.md` (ใหม่, READY, assign GPT)
