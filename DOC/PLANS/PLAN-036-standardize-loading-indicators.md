@@ -1,6 +1,6 @@
 # PLAN-036: ปรับปรุง Loading Indicator ให้มีมาตรฐานเดียวกันทั่วทั้งระบบ
 
-- **Status:** READY
+- **Status:** VERIFIED ✅ (Gemini review 2026-06-16)
 - **Assigned:** GPT (GPT-5.3-Codex)
 - **Priority:** Medium
 - **Estimated scope:** 2 shared components + refactor component/page views ที่เขียนสปินเนอร์เอง
@@ -119,12 +119,12 @@
 
 ## Acceptance criteria
 
-- [ ] `AppButton` มี prop `loading?: boolean` ที่ทำงานอย่างถูกต้อง (disables button + แสดงไอคอนหมุน `Loader2` แทนที่ icon/นำหน้าข้อความ)
-- [ ] `LoadingState` ทำงานแบบถอยหลังเข้ากันได้ (backward compatible) และรองรับการแสดง label เมื่อระบุขนาดเป็น `size="section"` ร่วมกับเปิดให้ส่ง `className` ปรับแต่ง wrapper ได้
-- [ ] `ExplorerTable` และ `DashboardPage` แสดง Loading State ผ่าน shared `LoadingState`
-- [ ] ปุ่มบันทึก/ส่งข้อมูลทั้งหมดในฟอร์มย่อย/Modal ตามที่ระบุ ได้รับการ Refactor ให้ใช้ `AppButton` ร่วมกับ prop `loading` อย่างสมบูรณ์
-- [ ] สปินเนอร์ในปุ่มทั้งหมดใช้ไอคอนมาตรฐานตัวเดียวกัน มีความสูงปุ่ม ระยะห่าง และความสมมาตรตามมาตรฐานของ `AppButton`
-- [ ] รันคำสั่งตรวจสอบ `npm run lint` และ `npm run build` ผ่านทั้งหมดโดยไม่มีข้อผิดพลาด
+- [x] `AppButton` มี prop `loading?: boolean` ที่ทำงานอย่างถูกต้อง (disables button + แสดงไอคอนหมุน `Loader2` แทนที่ icon/นำหน้าข้อความ)
+- [x] `LoadingState` ทำงานแบบถอยหลังเข้ากันได้ (backward compatible) และรองรับการแสดง label เมื่อระบุขนาดเป็น `size="section"` ร่วมกับเปิดให้ส่ง `className` ปรับแต่ง wrapper ได้
+- [x] `ExplorerTable` และ `DashboardPage` แสดง Loading State ผ่าน shared `LoadingState`
+- [x] ปุ่มบันทึก/ส่งข้อมูลทั้งหมดในฟอร์มย่อย/Modal ตามที่ระบุ ได้รับการ Refactor ให้ใช้ `AppButton` ร่วมกับ prop `loading` อย่างสมบูรณ์
+- [x] สปินเนอร์ในปุ่มทั้งหมดใช้ไอคอนมาตรฐานตัวเดียวกัน มีความสูงปุ่ม ระยะห่าง และความสมมาตรตามมาตรฐานของ `AppButton`
+- [x] รันคำสั่งตรวจสอบ `npm run lint` และ `npm run build` ผ่านทั้งหมดโดยไม่มีข้อผิดพลาด
 
 ---
 
@@ -144,4 +144,9 @@ npm run build
 ---
 
 ## Implementer Notes
-*(ผู้ลงมือแก้โค้ดใส่ข้อมูลสรุปผลหลังจากทำงานเสร็จเรียบร้อยที่นี่)*
+- เพิ่ม `loading?: boolean` ให้ `AppButton` พร้อม disable อัตโนมัติและ spinner มาตรฐาน `Loader2`; ขยาย `icon` ให้รองรับทั้ง `LucideIcon` และ `ReactNode` เพื่อให้ `AppWizard submitIcon` ใช้ต่อได้โดยไม่เปลี่ยน contract
+- ปรับ `LoadingState` ให้รองรับ `className` และรองรับ `label` ใน `size="section"`
+- Refactor ตาม Scope ครบ: `ExplorerTable`, `DashboardPage`, `AppWizard` footer buttons, และปุ่ม submit/save ในหน้า Course/LearnerGroup/SystemConfig ที่ระบุไว้ทั้งหมด
+- Verification ผ่าน:
+  - `npm run lint`
+  - `npm run build`

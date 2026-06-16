@@ -5,11 +5,11 @@ import {
   ShieldCheck, 
   Terminal, 
   Trash2,
-  RefreshCw,
   Server
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 
 type DbConfigInfo = {
@@ -217,24 +217,16 @@ export function SystemConfigPage() {
               <p className="text-sm text-slate-500 leading-relaxed">Clears cached dropdowns, trees, and reports.</p>
               
               <div className="pt-2">
-                <button
+                <AppButton
                   type="button"
-                  disabled={clearingCache}
                   onClick={handleClearCache}
-                  className="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-semibold transition disabled:opacity-55 disabled:cursor-not-allowed shadow"
+                  variant="danger"
+                  icon={Trash2}
+                  loading={clearingCache}
+                  className="w-full px-4 py-2.5 text-sm font-semibold shadow"
                 >
-                  {clearingCache ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Clearing Cache...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4" />
-                      <span>Clear System Cache</span>
-                    </>
-                  )}
-                </button>
+                  Clear System Cache
+                </AppButton>
               </div>
             </div>
           </section>

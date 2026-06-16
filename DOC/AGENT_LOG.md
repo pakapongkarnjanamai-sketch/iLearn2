@@ -14,6 +14,58 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-16 11:38] Antigravity (Gemini 3.5 Flash) — รีวิวโค้ดและปรับ PLAN-032 / PLAN-036 เป็น VERIFIED
+- ทำอะไร: ตรวจสอบโค้ดที่ GPT พัฒนาตามแผน PLAN-032 และ PLAN-036:
+  - **PLAN-036**: การขยาย `AppButton` และ `LoadingState` พร้อม refactor UI page views/tables ทำได้เรียบร้อยและตรงขอบเขตงาน มีการป้องกัน runtime error เรื่องการประเมินประเภท child object บนไอคอนอย่างดี
+  - **PLAN-032**: `AssignmentsController` ได้รับการ refactor ลดความหนาลงไป 68% (เหลือ 213 บรรทัด) โดยย้าย logic, database transactions, และ query ไปยัง `AssignmentService` และแปลง anonymous error payload ไปใช้ exception เพื่อให้ middleware แปลงเป็น standard `ProblemDetails`
+  - ปรับปรุงและตรวจสอบเพิ่มเติมความสม่ำเสมอของ `DETAIL_TABLE_CHUNK_SIZE` ใน React page views
+  - ปรับสถานะแผนทั้งสองเป็น VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-032-assignments-controller-refactor.md` (สถานะ), `DOC/PLANS/PLAN-036-standardize-loading-indicators.md` (สถานะ), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ความเปลี่ยนแปลงเป็นแบบ pure refactor และ error payload ปรับเข้าสู่รูปแบบ standard envelope ProblemDetails)
+- Verified: `dotnet build iLearn.Tests` ผ่าน, `dotnet test` (Passed 118) ผ่าน, `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 11:15] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-032 AssignmentsController refactor (service-first + standard exceptions)
+- ทำอะไร: ทำ PLAN-032 แบบ pure refactor โดยย้าย mutation/business logic ที่เคยอยู่ใน `AssignmentsController` (Delete, ResetEnrollments, ExtendDueDate, Add/Remove Courses, Add/Remove Learners) ลง `AssignmentService`, ขยาย `IAssignmentService` ให้รองรับ operation ใหม่, ตัด raw repository injection ออกจาก controller และแปลง anonymous error responses เป็นการโยน exception มาตรฐาน (`KeyNotFoundException`/`ArgumentException`) เพื่อให้ `GlobalExceptionMiddleware` จัดการ `ProblemDetails`
+- ไฟล์หลักที่แตะ: `iLearn.Application/Interfaces/Services/IAssignmentService.cs`, `iLearn.Application/Services/AssignmentService.cs`, `iLearn.API/Controllers/AssignmentsController.cs`, `DOC/PLANS/PLAN-032-assignments-controller-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): success response shape คงเดิม; error payload ของบาง assignments endpoints ถูกทำให้เป็นมาตรฐานผ่าน `ProblemDetails` (แทน anonymous `{ message }`)
+- Verified: `dotnet build iLearn.API/iLearn.API.csproj --artifacts-path artifacts/verify-plan032-api` ผ่าน, `dotnet build iLearn.Tests -o artifacts/verify-test` ผ่าน, `dotnet test artifacts/verify-test/iLearn.Tests.dll` ผ่าน (Passed 118), `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 11:00] GitHub Copilot (GPT-5.3-Codex) — Roll out shared table amount standard to other detail pages
+- ทำอะไร: นำมาตรฐานจำนวนข้อมูลต่อการแสดงผลไปใช้หน้าอื่น ๆ โดยย้ายค่ากลางเป็น `DETAIL_TABLE_CHUNK_SIZE` ใน `src/lib/tableStandards.ts` และผูก `Showing X of Y + Load more` แบบเดียวกันใน `AssignmentDetailPage` (Courses/Learners), `LearnerGroupDetailPage` (Members), และ `VersionDetailPage` (Current Content) รวมถึงปรับ `CourseDetailPage` ให้ใช้ค่ากลางเดียวกันแทน hardcode
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/tableStandards.ts`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 11:00] Antigravity (Gemini 3.5 Flash) — ตรวจสอบและอัปเดต PLAN-032 (AssignmentsController Refactor)
+- ทำอะไร: ตรวจสอบความถูกต้องของแผน **PLAN-032** เทียบกับโค้ด `AssignmentsController.cs` จริงในปัจจุบัน: แก้ไขจำนวนบรรทัดที่ระบุคลาดเคลื่อน (จาก 1316 บรรทัด เป็น 675 บรรทัด), ระบุ repository ดิบจริงที่ใช้ฉีด (3 ตัว แทนที่ 4 ตัว), และชี้ประเด็น anonymous object เพิ่มเติมที่พบในฝั่ง API (ตรวจพบ 19 จุดในการส่งกลับข้อความ Error แบบ Custom `NotFound`/`BadRequest` แทนการโยน Exception เข้า middleware)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-032-assignments-controller-refactor.md` (เอกสารล้วน)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: n/a (planner)
+
+## [2026-06-16 10:57] GitHub Copilot (GPT-5.3-Codex) — Standardize Course Detail table amount with shared chunk size
+- ทำอะไร: กำหนดมาตรฐานจำนวนข้อมูลที่แสดงในตารางแท็บ `Versions`/`Learners`/`Assignments` ของ `CourseDetailPage` ให้เหมือนกันด้วย `DETAIL_TABLE_CHUNK_SIZE = 100`, แสดงสถานะ `Showing X of Y` และปุ่ม `Load more` แบบเดียวกันทุกตาราง เพื่อรองรับกรณีข้อมูลจำนวนมาก
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 10:52] GitHub Copilot (GPT-5.3-Codex) — Add loading indicator on Course Detail tab switch
+- ทำอะไร: ปรับ `CourseDetailPage` ให้แสดง loading indicator ตอนคลิกเปลี่ยนแท็บ `Learners`/`Assignments` โดยเปลี่ยนเป็น lazy-load ครั้งแรกต่อแท็บ (แทน preload ตอนเข้าเพจ), เพิ่มสถานะ `hasLoadedLearners/hasLoadedAssignments`, และใช้ handler `handleDetailTabChange` เพื่อ trigger fetch ตอนผู้ใช้คลิกแท็บ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 10:49] GitHub Copilot (GPT-5.3-Codex) — Hotfix AppButton icon runtime crash (forwardRef object child)
+- ทำอะไร: แก้ runtime error `Objects are not valid as a React child (found: object with keys {$$typeof, render})` ที่เกิดใน `AppButton` หลัง refactor โดยปรับการ render `icon` ให้รองรับทั้ง React element และ component type (รวม `forwardRef`/`memo` object) ด้วย `isValidElement` + `createElement` แทนการคืน object ตรง ๆ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppButton.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
+## [2026-06-16 10:47] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-036 standardize loading indicators (pure refactor)
+- ทำอะไร: ทำตาม Scope ของ PLAN-036 แบบ pure refactor โดยขยาย shared primitives (`AppButton` รองรับ `loading` + spinner มาตรฐาน, `LoadingState` รองรับ `label` ใน `size="section"` และ `className`) แล้ว migrate จุดที่ระบุทั้งหมดให้ใช้มาตรฐานเดียวกัน: `ExplorerTable`, `DashboardPage`, footer actions ใน `AppWizard`, และปุ่ม submit/save ใน `CourseDetailPage`, `CourseEditorPage`, `CourseListPage`, `VersionDetailPage`, `LearnerGroupDetailPage`, `LearnerGroupListPage`, `SystemConfigPage`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppButton.tsx`, `iLearn.Admin.React/src/components/ui/LoadingState.tsx`, `iLearn.Admin.React/src/components/ui/explorer/ExplorerTable.tsx`, `iLearn.Admin.React/src/components/ui/AppWizard.tsx`, `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/system-config/SystemConfigPage.tsx`, `DOC/PLANS/PLAN-036-standardize-loading-indicators.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี API/DB change; UI component contract ของ `AppButton` ขยายแบบ backward-compatible (`loading?: boolean`, `icon` รับ `LucideIcon | ReactNode`)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน
+
 ## [2026-06-16 10:43] Antigravity (Gemini 3.5 Flash) — เขียนแผน PLAN-036 (Standardize Loading Indicators)
 - ทำอะไร: สำรวจและเขียนแผน **PLAN-036** (GPT) เพื่อทำการปรับปรุงเรื่อง loading indicator ให้มีมาตรฐานเดียวกันทั่วทั้งระบบ: ขยายขีดความสามารถของ `AppButton` (รองรับ prop `loading`) และ `LoadingState` (รองรับ label ใน size="section" และรับ `className` สำหรับ customize height), refactor `ExplorerTable` และ `DashboardPage` ให้ใช้ `LoadingState` แทน custom markup, และ refactor ปุ่ม submit ใน modal/form ต่างๆ มาใช้ `AppButton` ร่วมกับ prop `loading` เพื่อการแสดงผลสปินเนอร์และ disable state ที่สม่ำเสมอ
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-036-standardize-loading-indicators.md` (เอกสารล้วน)

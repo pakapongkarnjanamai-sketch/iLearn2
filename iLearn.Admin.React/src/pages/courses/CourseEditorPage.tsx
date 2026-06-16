@@ -15,6 +15,7 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { AppButton } from '../../components/ui/AppButton'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { LoadingState } from '../../components/ui/LoadingState'
@@ -861,18 +862,15 @@ export function CourseEditorPage() {
             <span>Cancel</span>
           </button>
 
-          <button 
-            type="submit" 
-            disabled={saving} 
-            className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 cursor-pointer text-xs font-bold shadow-3xs disabled:opacity-55"
+          <AppButton
+            type="submit"
+            variant="primary"
+            icon={Save}
+            loading={saving}
+            className="px-4 py-2 text-xs font-bold shadow-3xs"
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Save className="h-4 w-4" aria-hidden="true" />
-            )}
-            <span>Save Changes</span>
-          </button>
+            Save Changes
+          </AppButton>
         </div>
       </form>
 

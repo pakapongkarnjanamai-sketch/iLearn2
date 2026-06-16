@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Loader2 } from 'lucide-react'
+import { LoadingState } from '../LoadingState'
 
 export type ExplorerColumn<TItem> = {
   key: string
@@ -33,12 +33,7 @@ export function ExplorerTable<TItem>({
   return (
     <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-3xs">
       {loading ? (
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-2 text-slate-400">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-            <span className="text-xs font-bold uppercase tracking-wide">{loadingLabel}</span>
-          </div>
-        </div>
+        <LoadingState size="section" label={loadingLabel} className="h-full" />
       ) : (
         <div className="custom-scrollbar h-full overflow-auto">
           <table className="min-w-full divide-y divide-slate-100 text-left text-xs">

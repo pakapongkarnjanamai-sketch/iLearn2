@@ -1,0 +1,1 @@
+export const DETAIL_TABLE_CHUNK_SIZE = 100

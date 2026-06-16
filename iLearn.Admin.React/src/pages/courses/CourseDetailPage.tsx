@@ -13,12 +13,12 @@ import {
   Power,
   Lock,
   BookOpen,
-  Loader2,
   X
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { AppButton } from '../../components/ui/AppButton'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { CourseStatusText } from '../../components/ui/CourseStatusBadge'
 import { Modal } from '../../components/ui/Modal'
@@ -35,6 +35,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
 import { DetailTabs } from '../../components/ui/DetailTabs'
+import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
 type LookupResult<T> = T[] | { data?: T[] }
 
@@ -180,11 +181,16 @@ export function CourseDetailPage() {
   }
   const [data, setData] = useState<CourseDashboardData | null>(null)
   const [learners, setLearners] = useState<CourseLearner[]>([])
-  const [loadingLearners, setLoadingLearners] = useState(true)
+  const [loadingLearners, setLoadingLearners] = useState(false)
+  const [hasLoadedLearners, setHasLoadedLearners] = useState(false)
   const [assignments, setAssignments] = useState<CourseAssignment[]>([])
-  const [loadingAssignments, setLoadingAssignments] = useState(true)
+  const [loadingAssignments, setLoadingAssignments] = useState(false)
+  const [hasLoadedAssignments, setHasLoadedAssignments] = useState(false)
   const [mutatingStatus, setMutatingStatus] = useState(false)
   const [activeDetailTab, setActiveDetailTab] = useState<'versions' | 'learners' | 'assignments'>('versions')
+  const [visibleVersionRows, setVisibleVersionRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
+  const [visibleLearnerRows, setVisibleLearnerRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
+  const [visibleAssignmentRows, setVisibleAssignmentRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
   const [categories, setCategories] = useState<CategoryLookup[]>([])
@@ -262,6 +268,7 @@ export function CourseDetailPage() {
       const resp = await fetchWithAccessControl<{ success: boolean; data: CourseLearner[] }>(`Courses/${id}/learners`)
       if (resp.success) {
         setLearners(resp.data)
+        setHasLoadedLearners(true)
       }
     } catch (err) {
       console.error(err)
@@ -277,6 +284,7 @@ export function CourseDetailPage() {
       const resp = await fetchWithAccessControl<{ success: boolean; data: CourseAssignment[] }>(`Courses/${id}/assignments`)
       if (resp.success) {
         setAssignments(resp.data)
+        setHasLoadedAssignments(true)
       }
     } catch (err) {
       console.error(err)
@@ -294,14 +302,24 @@ export function CourseDetailPage() {
     return () => window.clearTimeout(timeoutId)
   }, [loadDashboardData])
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadLearners()
-      void loadAssignments()
-    }, 0)
+  const handleDetailTabChange = useCallback((nextTab: 'versions' | 'learners' | 'assignments') => {
+    setActiveDetailTab(nextTab)
 
-    return () => window.clearTimeout(timeoutId)
-  }, [loadAssignments, loadLearners])
+    if (nextTab === 'learners' && !hasLoadedLearners && !loadingLearners) {
+      void loadLearners()
+      return
+    }
+
+    if (nextTab === 'assignments' && !hasLoadedAssignments && !loadingAssignments) {
+      void loadAssignments()
+    }
+  }, [hasLoadedAssignments, hasLoadedLearners, loadAssignments, loadLearners, loadingAssignments, loadingLearners])
+
+  useEffect(() => {
+    setVisibleVersionRows(DETAIL_TABLE_CHUNK_SIZE)
+    setVisibleLearnerRows(DETAIL_TABLE_CHUNK_SIZE)
+    setVisibleAssignmentRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [id])
 
   const filteredCategories = useMemo(() => {
     if (!editForm.divisionId) return categories
@@ -468,6 +486,10 @@ export function CourseDetailPage() {
     { key: 'assignments', label: 'Assignments' },
   ]
 
+  const visibleVersions = versions.slice(0, visibleVersionRows)
+  const visibleLearners = learners.slice(0, visibleLearnerRows)
+  const visibleAssignments = assignments.slice(0, visibleAssignmentRows)
+
   return (
     <>
       <DetailLayout
@@ -531,7 +553,7 @@ export function CourseDetailPage() {
           <DetailTabs
             tabs={detailTabs}
             active={activeDetailTab}
-            onChange={setActiveDetailTab}
+            onChange={handleDetailTabChange}
           />
 
           {activeDetailTab === 'versions' && (
@@ -557,7 +579,7 @@ export function CourseDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      versions.map(v => (
+                      visibleVersions.map(v => (
                         <tr key={v.id} className="hover:bg-slate-50 transition">
                           <td className="p-3 font-bold text-slate-900">
                             v{v.versionNumber}
@@ -612,6 +634,23 @@ export function CourseDetailPage() {
                   </tbody>
                 </table>
               </div>
+
+              {versions.length > 0 && (
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                    Showing {visibleVersions.length} of {versions.length}
+                  </span>
+                  {versions.length > visibleVersions.length && (
+                    <AppButton
+                      variant="ghost"
+                      onClick={() => setVisibleVersionRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                      className="px-3 py-1 text-xxs font-bold"
+                    >
+                      Load more
+                    </AppButton>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
@@ -619,55 +658,74 @@ export function CourseDetailPage() {
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               <SectionHeader icon={Users} variant="card">Learners</SectionHeader>
 
-              {loadingLearners ? (
+              {loadingLearners || !hasLoadedLearners ? (
                 <LoadingState size="section" />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                        <th className="p-3">Learner Code (EId)</th>
-                        <th className="p-3">Name</th>
-                        <th className="p-3">Department</th>
-                        <th className="p-3">Progress</th>
-                        <th className="p-3">Timeline</th>
-                        <th className="p-3">Access Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {learners.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="p-8 text-center text-slate-400">
-                            No learners.
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
+                          <th className="p-3">Learner Code (EId)</th>
+                          <th className="p-3">Name</th>
+                          <th className="p-3">Department</th>
+                          <th className="p-3">Progress</th>
+                          <th className="p-3">Timeline</th>
+                          <th className="p-3">Access Status</th>
                         </tr>
-                      ) : (
-                        learners.map(l => {
-                          const isDone = l.isCompleted
-                          return (
-                            <tr key={l.id} className="hover:bg-slate-50 transition">
-                              <td className="p-3 font-mono font-bold text-slate-800">{l.learnerCode}</td>
-                              <td className="p-3 font-semibold text-slate-900">{l.learnerName}</td>
-                              <td className="p-3 text-slate-500 text-xs">
-                                {l.division || '-'} {l.department ? `/ ${l.department}` : ''}
-                              </td>
-                              <td className="p-3">
-                                <ProgressBar value={l.progress} completed={isDone} maxWidthClass="max-w-30" />
-                              </td>
-                              <td className="p-3 text-slate-400 text-xs">
-                                <div>Start: {formatDate(l.startDate)}</div>
-                                <div className="mt-0.5">Due: {formatDate(l.dueDate)}</div>
-                              </td>
-                              <td className="p-3">
-                                <StatusBadge>{l.status}</StatusBadge>
-                              </td>
-                            </tr>
-                          )
-                        })
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {learners.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-400">
+                              No learners.
+                            </td>
+                          </tr>
+                        ) : (
+                          visibleLearners.map(l => {
+                            const isDone = l.isCompleted
+                            return (
+                              <tr key={l.id} className="hover:bg-slate-50 transition">
+                                <td className="p-3 font-mono font-bold text-slate-800">{l.learnerCode}</td>
+                                <td className="p-3 font-semibold text-slate-900">{l.learnerName}</td>
+                                <td className="p-3 text-slate-500 text-xs">
+                                  {l.division || '-'} {l.department ? `/ ${l.department}` : ''}
+                                </td>
+                                <td className="p-3">
+                                  <ProgressBar value={l.progress} completed={isDone} maxWidthClass="max-w-30" />
+                                </td>
+                                <td className="p-3 text-slate-400 text-xs">
+                                  <div>Start: {formatDate(l.startDate)}</div>
+                                  <div className="mt-0.5">Due: {formatDate(l.dueDate)}</div>
+                                </td>
+                                <td className="p-3">
+                                  <StatusBadge>{l.status}</StatusBadge>
+                                </td>
+                              </tr>
+                            )
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {learners.length > 0 && (
+                    <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                      <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                        Showing {visibleLearners.length} of {learners.length}
+                      </span>
+                      {learners.length > visibleLearners.length && (
+                        <AppButton
+                          variant="ghost"
+                          onClick={() => setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                          className="px-3 py-1 text-xxs font-bold"
+                        >
+                          Load more
+                        </AppButton>
                       )}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           )}
@@ -676,54 +734,73 @@ export function CourseDetailPage() {
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               <SectionHeader icon={Calendar} variant="card">Assignments</SectionHeader>
 
-              {loadingAssignments ? (
+              {loadingAssignments || !hasLoadedAssignments ? (
                 <LoadingState size="section" />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
-                        <th className="p-3">Batch No</th>
-                        <th className="p-3">Description</th>
-                        <th className="p-3">Start Date</th>
-                        <th className="p-3">Due Date</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Progress</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {assignments.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="p-8 text-center text-slate-400">
-                            No assignments.
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
+                          <th className="p-3">Batch No</th>
+                          <th className="p-3">Description</th>
+                          <th className="p-3">Start Date</th>
+                          <th className="p-3">Due Date</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3">Progress</th>
                         </tr>
-                      ) : (
-                        assignments.map(a => (
-                          <tr key={a.id} className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-mono font-bold text-indigo-500">
-                              <Link to={`/assignments/${a.id}`} className="hover:underline">
-                                {a.assignmentNo}
-                              </Link>
-                            </td>
-                            <td className="p-3 text-slate-700 font-medium">{a.description || '-'}</td>
-                            <td className="p-3 text-slate-400 text-xs">{formatDate(a.startDate)}</td>
-                            <td className="p-3 text-slate-400 text-xs">{formatDate(a.dueDate)}</td>
-                            <td className="p-3">
-                              <StatusBadge>{a.status}</StatusBadge>
-                            </td>
-                            <td className="p-3">
-                              <div className="flex flex-col font-bold text-xs text-slate-600">
-                                <span>{a.completedEnrollmentCount} / {a.totalEnrollmentCount} Learner</span>
-                                <span className="text-slate-400 font-normal mt-0.5">({a.completionPct}% completed)</span>
-                              </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {assignments.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-400">
+                              No assignments.
                             </td>
                           </tr>
-                        ))
+                        ) : (
+                          visibleAssignments.map(a => (
+                            <tr key={a.id} className="hover:bg-slate-50 transition">
+                              <td className="p-3 font-mono font-bold text-indigo-500">
+                                <Link to={`/assignments/${a.id}`} className="hover:underline">
+                                  {a.assignmentNo}
+                                </Link>
+                              </td>
+                              <td className="p-3 text-slate-700 font-medium">{a.description || '-'}</td>
+                              <td className="p-3 text-slate-400 text-xs">{formatDate(a.startDate)}</td>
+                              <td className="p-3 text-slate-400 text-xs">{formatDate(a.dueDate)}</td>
+                              <td className="p-3">
+                                <StatusBadge>{a.status}</StatusBadge>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-col font-bold text-xs text-slate-600">
+                                  <span>{a.completedEnrollmentCount} / {a.totalEnrollmentCount} Learner</span>
+                                  <span className="text-slate-400 font-normal mt-0.5">({a.completionPct}% completed)</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {assignments.length > 0 && (
+                    <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                      <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                        Showing {visibleAssignments.length} of {assignments.length}
+                      </span>
+                      {assignments.length > visibleAssignments.length && (
+                        <AppButton
+                          variant="ghost"
+                          onClick={() => setVisibleAssignmentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                          className="px-3 py-1 text-xxs font-bold"
+                        >
+                          Load more
+                        </AppButton>
                       )}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           )}
@@ -848,14 +925,14 @@ export function CourseDetailPage() {
               >
                 Cancel
               </button>
-              <button
+              <AppButton
                 type="submit"
-                disabled={savingProperties}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                variant="primary"
+                loading={savingProperties}
+                className="px-4 py-2 text-sm font-semibold"
               >
-                {savingProperties && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save Changes
-              </button>
+              </AppButton>
             </div>
       </Modal>
 

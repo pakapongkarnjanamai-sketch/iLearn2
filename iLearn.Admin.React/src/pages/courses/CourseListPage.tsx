@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   Folder,
   BookOpen,
-  Loader2,
   Plus,
   X,
   Info,
@@ -686,7 +685,7 @@ export function CourseListPage() {
           </div>
         }
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 flex-1 flex-col">
           <ListToolbar
             count={filteredItems.length}
             countUnit="items in this folder"
@@ -802,14 +801,15 @@ export function CourseListPage() {
               >
                 Cancel
               </button>
-              <button
+              <AppButton
                 type="submit"
+                variant="primary"
+                loading={submittingCreate}
                 disabled={submittingCreate || !newCategoryName.trim() || (isSuperAdmin && currentDivisionId === null && !newCategoryDivisionId)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 cursor-pointer shadow-3xs disabled:opacity-55"
+                className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                {submittingCreate && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Create Category
-              </button>
+              </AppButton>
             </div>
       </Modal>
 
@@ -857,14 +857,15 @@ export function CourseListPage() {
               >
                 Cancel
               </button>
-              <button
+              <AppButton
                 type="submit"
+                variant="primary"
+                loading={submittingRename}
                 disabled={submittingRename || !editCategoryName.trim()}
-                className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 cursor-pointer shadow-3xs disabled:opacity-55"
+                className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                {submittingRename && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Rename Category
-              </button>
+              </AppButton>
             </div>
       </Modal>
 

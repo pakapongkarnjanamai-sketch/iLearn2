@@ -10,7 +10,6 @@ import {
   Plus,
   Folder,
   FolderOpen,
-  Loader2
 } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
@@ -25,6 +24,7 @@ import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { DetailTabs } from '../../components/ui/DetailTabs'
+import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
 type LearnerGroupMember = {
   id: number
@@ -331,6 +331,7 @@ export function LearnerGroupDetailPage() {
   // Modal / Operations drawers
   const [managerMode, setManagerMode] = useState<'none' | 'add' | 'remove'>('none')
   const [activeDetailTab, setActiveDetailTab] = useState<'members'>('members')
+  const [visibleMemberRows, setVisibleMemberRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
   
   // Member additions workspace state
   const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
@@ -365,6 +366,10 @@ export function LearnerGroupDetailPage() {
   useEffect(() => {
     void loadGroupDetails()
   }, [loadGroupDetails])
+
+  useEffect(() => {
+    setVisibleMemberRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [id])
 
   const parseLearnerCodes = (value: string) => {
     return Array.from(new Set(
@@ -557,6 +562,8 @@ export function LearnerGroupDetailPage() {
     )
   }
 
+  const visibleMembers = group.members.slice(0, visibleMemberRows)
+
   return (
     <>
       <DetailLayout
@@ -646,7 +653,7 @@ export function LearnerGroupDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      group.members.map((m) => {
+                      visibleMembers.map((m) => {
                         const isChecked = selectedMemberIds.includes(m.id)
                         return (
                           <tr key={m.id} className={`hover:bg-slate-50/60 transition ${isChecked ? 'bg-indigo-50/20' : ''}`}>
@@ -679,6 +686,23 @@ export function LearnerGroupDetailPage() {
                   </tbody>
                 </table>
               </div>
+
+              {group.members.length > 0 && (
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                    Showing {visibleMembers.length} of {group.members.length}
+                  </span>
+                  {group.members.length > visibleMembers.length && (
+                    <AppButton
+                      variant="ghost"
+                      onClick={() => setVisibleMemberRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                      className="px-3 py-1 text-xxs font-bold"
+                    >
+                      Load more
+                    </AppButton>
+                  )}
+                </div>
+              )}
             </section>
           )}
         </main>
@@ -1055,23 +1079,15 @@ export function LearnerGroupDetailPage() {
                 >
                   Cancel
                 </button>
-                <button
+                <AppButton
                   type="submit"
-                  disabled={savingProperties}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md text-xs transition flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                  variant="primary"
+                  icon={Check}
+                  loading={savingProperties}
+                  className="px-4 py-2 text-xs font-bold shadow-3xs"
                 >
-                  {savingProperties ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      <span>Save Changes</span>
-                    </>
-                  )}
-                </button>
+                  {savingProperties ? 'Saving...' : 'Save Changes'}
+                </AppButton>
               </div>
             </form>
           </div>

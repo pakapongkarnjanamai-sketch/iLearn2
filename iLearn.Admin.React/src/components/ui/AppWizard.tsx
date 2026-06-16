@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, Check, X, Loader2 } from 'lucide-react'
+import { AppButton } from './AppButton'
 
 export type WizardStep = {
   label: string
@@ -177,40 +178,37 @@ export function AppWizard({
           {/* Right: action buttons */}
           <div className="flex items-center gap-2">
             {currentStep > 1 && (
-              <button
+              <AppButton
                 type="button"
                 onClick={() => onStepChange(currentStep - 1)}
-                className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 cursor-pointer transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                variant="secondary"
+                icon={ArrowLeft}
+                className="px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-3xs"
               >
-                <ArrowLeft className="h-4 w-4" />
-                <span>{prevLabel}</span>
-              </button>
+                {prevLabel}
+              </AppButton>
             )}
 
             {!isLastStep ? (
-              <button
+              <AppButton
                 type="button"
                 onClick={handleContinue}
-                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700"
+                variant="primary"
+                icon={ArrowRight}
+                className="flex-row-reverse px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-3xs"
               >
-                <span>{nextLabel}</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+                {nextLabel}
+              </AppButton>
             ) : (
-              <button
+              <AppButton
                 type="submit"
-                disabled={isSubmitting}
-                className="inline-flex items-center gap-1.5 rounded border border-transparent bg-indigo-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-3xs cursor-pointer transition-all duration-150 hover:bg-indigo-700 disabled:opacity-55"
+                variant="primary"
+                loading={isSubmitting}
+                icon={submitIcon ?? Check}
+                className="px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-3xs"
               >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : submitIcon ? (
-                  submitIcon
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                <span>{submitLabel}</span>
-              </button>
+                {submitLabel}
+              </AppButton>
             )}
           </div>
         </div>

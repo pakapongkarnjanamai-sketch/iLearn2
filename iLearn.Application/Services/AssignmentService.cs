@@ -13,19 +13,34 @@ namespace iLearn.Application.Services
     {
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
+        private readonly IGenericRepository<Enrollment> _enrollmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly ILearnerApiService _learnerApiService;
+        private readonly IAssignmentBatchService _assignmentBatchService;
+        private readonly ICourseAssignmentService _courseAssignmentService;
+        private readonly IDateTime _dateTime;
+        private readonly IUnitOfWork _unitOfWork;
 
         public AssignmentService(
             IGenericRepository<Assignment> assignmentRepo,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
+            IGenericRepository<Enrollment> enrollmentRepo,
             IGenericRepository<Course> courseRepo,
-            ILearnerApiService learnerApiService)
+            ILearnerApiService learnerApiService,
+            IAssignmentBatchService assignmentBatchService,
+            ICourseAssignmentService courseAssignmentService,
+            IDateTime dateTime,
+            IUnitOfWork unitOfWork)
         {
             _assignmentRepo = assignmentRepo;
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
+            _enrollmentRepo = enrollmentRepo;
             _courseRepo = courseRepo;
             _learnerApiService = learnerApiService;
+            _assignmentBatchService = assignmentBatchService;
+            _courseAssignmentService = courseAssignmentService;
+            _dateTime = dateTime;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<AssignmentHistoryResponseDto> GetHistoryAsync(
@@ -136,6 +151,499 @@ namespace iLearn.Application.Services
             };
         }
 
+        public async Task DeleteAssignmentAsync(
+            int assignmentId,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var assignment = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(assignment.DivisionId, divisionId);
+
+            var relatedRules = await _assignmentBatchService.LoadBatchAsync(assignment);
+            var relatedIds = relatedRules.Select(r => r.Id).ToList();
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    ea => relatedIds.Contains(ea.AssignmentId));
+
+                foreach (var link in links)
+                {
+                    link.IsDeleted = true;
+                    link.DeletedAt = _dateTime.Now;
+                }
+
+                foreach (var relatedRule in relatedRules)
+                {
+                    relatedRule.IsDeleted = true;
+                    relatedRule.DeletedAt = _dateTime.Now;
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        public async Task<AssignmentResetEnrollmentsResponseDto> ResetEnrollmentsAsync(
+            int assignmentId,
+            ResetEnrollmentsDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var targetRuleIds = batchRules.Select(r => r.Id).ToList();
+
+            if (dto.RuleIds is { Count: > 0 })
+            {
+                targetRuleIds = targetRuleIds.Intersect(dto.RuleIds).ToList();
+            }
+
+            if (targetRuleIds.Count == 0)
+            {
+                throw new ArgumentException("No matching courses found in this assignment.");
+            }
+
+            var normalizedLearnerCodes = dto.LearnerCodes is { Count: > 0 }
+                ? NormalizeLearnerCodes(dto.LearnerCodes)
+                : null;
+
+            var linksQuery = _enrollmentAssignmentRepo.GetQuery()
+                .Where(ea => targetRuleIds.Contains(ea.AssignmentId)
+                    && !ea.IsDeleted
+                    && ea.Enrollment != null);
+
+            if (normalizedLearnerCodes != null)
+            {
+                linksQuery = linksQuery.Where(ea => normalizedLearnerCodes.Contains(ea.Enrollment!.LearnerCode));
+            }
+
+            var enrollmentIds = await linksQuery
+                .Select(ea => ea.EnrollmentId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            if (enrollmentIds.Count == 0)
+            {
+                throw new ArgumentException("No enrollments found matching the selected criteria.");
+            }
+
+            var courseIds = batchRules
+                .Where(r => targetRuleIds.Contains(r.Id) && r.CourseId.HasValue)
+                .Select(r => r.CourseId!.Value)
+                .ToList();
+
+            var enrollments = await _enrollmentRepo.GetQuery()
+                .Where(e => enrollmentIds.Contains(e.Id)
+                    && !e.IsDeleted
+                    && (courseIds.Count == 0 || courseIds.Contains(e.CourseId ?? 0)))
+                .ToListAsync(cancellationToken);
+
+            if (enrollments.Count == 0)
+            {
+                throw new ArgumentException("No enrollments found matching the selected criteria.");
+            }
+
+            var now = _dateTime.Now;
+            var resetCount = 0;
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var enrollmentIdsToReset = enrollments.Select(e => e.Id).ToList();
+                var links = await _enrollmentAssignmentRepo.GetQuery()
+                    .Where(ea => targetRuleIds.Contains(ea.AssignmentId)
+                        && enrollmentIdsToReset.Contains(ea.EnrollmentId)
+                        && !ea.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var link in links)
+                {
+                    link.SnapshotCompleted = false;
+                    link.SnapshotCompletedDate = null;
+                    link.SnapshotProgress = 0;
+                }
+
+                foreach (var enrollment in enrollments)
+                {
+                    enrollment.IsCompleted = false;
+                    enrollment.CompletedDate = null;
+                    enrollment.Progress = 0;
+                    enrollment.TotalScore = 0;
+                    enrollment.ResetAt = now;
+                    resetCount++;
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            return new AssignmentResetEnrollmentsResponseDto
+            {
+                Success = true,
+                Message = $"Successfully reset {resetCount} enrollment(s).",
+                ResetCount = resetCount,
+            };
+        }
+
+        public async Task<AssignmentExtendDueDateResponseDto> ExtendDueDateAsync(
+            int assignmentId,
+            DateTime newDueDate,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            if (mainRule.StartDate.HasValue && newDueDate <= mainRule.StartDate.Value)
+            {
+                throw new ArgumentException("Due date must be after the start date.");
+            }
+
+            var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                foreach (var rule in allRules)
+                {
+                    rule.DueDate = newDueDate;
+                }
+
+                var ruleIds = allRules.Select(r => r.Id).ToList();
+                var activeLinks = await _enrollmentAssignmentRepo.GetAsync(
+                    ea => ruleIds.Contains(ea.AssignmentId),
+                    includeProperties: "Enrollment");
+
+                foreach (var link in activeLinks.Where(ea => ea.Enrollment != null && !(ea.SnapshotCompleted || ea.Enrollment.IsCompleted)))
+                {
+                    link.DueDate = newDueDate;
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            return new AssignmentExtendDueDateResponseDto
+            {
+                Success = true,
+                Message = "Due date extended successfully.",
+                NewDueDate = newDueDate,
+            };
+        }
+
+        public async Task<AssignmentMutationResponseDto> AddCoursesToAssignmentAsync(
+            int assignmentId,
+            ManageAssignmentCoursesDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
+
+            var requestedCourseIds = dto.CourseIds?
+                .Distinct()
+                .ToList() ?? [];
+
+            if (requestedCourseIds.Count == 0)
+            {
+                throw new ArgumentException("At least one course is required.");
+            }
+
+            var accessibleCourses = await GetAccessibleCoursesAsync(requestedCourseIds, divisionId);
+            if (HasUnauthorizedCourses(requestedCourseIds, accessibleCourses))
+            {
+                throw new UnauthorizedAccessException("Forbidden.");
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var existingCourseIds = batchRules
+                .Where(rule => rule.CourseId.HasValue)
+                .Select(rule => rule.CourseId!.Value)
+                .Distinct()
+                .ToHashSet();
+
+            var newCourseIds = requestedCourseIds
+                .Where(courseId => !existingCourseIds.Contains(courseId))
+                .ToList();
+
+            if (newCourseIds.Count == 0)
+            {
+                return new AssignmentMutationResponseDto
+                {
+                    Success = true,
+                    Message = "No new courses were added.",
+                    AddedCount = 0,
+                };
+            }
+
+            var learnerCodes = await GetBatchLearnerCodesAsync(batchRules.Select(rule => rule.Id).ToList(), batchRules, cancellationToken);
+            var employeeCodesText = string.Join(",", learnerCodes);
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var newRules = newCourseIds.Select(courseId => new Assignment
+                {
+                    AssignmentNo = mainRule.AssignmentNo,
+                    Description = mainRule.Description,
+                    CourseId = courseId,
+                    EmployeeCodes = employeeCodesText,
+                    StartDate = mainRule.StartDate,
+                    DueDate = mainRule.DueDate,
+                    Division = mainRule.Division,
+                    LearnerGroupId = mainRule.LearnerGroupId,
+                    DivisionId = mainRule.DivisionId,
+                }).ToList();
+
+                await _unitOfWork.AddRangeAsync(newRules, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                if (learnerCodes.Count > 0)
+                {
+                    var assignmentRuleIdsByCourseId = newRules
+                        .Where(rule => rule.CourseId.HasValue)
+                        .ToDictionary(rule => rule.CourseId!.Value, rule => rule.Id);
+
+                    await _courseAssignmentService.AssignCoursesToEmployees(
+                        assignmentRuleIdsByCourseId,
+                        learnerCodes,
+                        mainRule.StartDate,
+                        mainRule.DueDate,
+                        forceReset: false);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            return new AssignmentMutationResponseDto
+            {
+                Success = true,
+                Message = "Courses added successfully.",
+                AddedCount = newCourseIds.Count,
+            };
+        }
+
+        public async Task<AssignmentRemoveCourseResponseDto> RemoveCourseFromAssignmentAsync(
+            int assignmentId,
+            int ruleId,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var targetRule = batchRules.FirstOrDefault(rule => rule.Id == ruleId)
+                ?? throw new KeyNotFoundException("Assigned course not found.");
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    link => link.AssignmentId == targetRule.Id,
+                    includeProperties: "Enrollment");
+
+                foreach (var link in links)
+                {
+                    link.IsDeleted = true;
+                    link.DeletedAt = _dateTime.Now;
+                }
+
+                targetRule.IsDeleted = true;
+                targetRule.DeletedAt = _dateTime.Now;
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            var remainingRules = batchRules.Count(rule => rule.Id != targetRule.Id);
+            return new AssignmentRemoveCourseResponseDto
+            {
+                Success = true,
+                Message = "Assigned course removed successfully.",
+                AssignmentDeleted = remainingRules == 0,
+            };
+        }
+
+        public async Task<AssignmentMutationResponseDto> AddLearnersToAssignmentAsync(
+            int assignmentId,
+            ManageAssignmentLearnersDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
+
+            var requestedLearnerCodes = NormalizeLearnerCodes(dto.EmployeeCodes);
+            if (requestedLearnerCodes.Count == 0)
+            {
+                throw new ArgumentException("At least one learner is required.");
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var ruleIds = batchRules.Select(rule => rule.Id).ToList();
+            var currentLearnerCodes = await GetBatchLearnerCodesAsync(ruleIds, batchRules, cancellationToken);
+            var newLearnerCodes = requestedLearnerCodes
+                .Except(currentLearnerCodes, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (newLearnerCodes.Count == 0)
+            {
+                return new AssignmentMutationResponseDto
+                {
+                    Success = true,
+                    Message = "No new learners were added.",
+                    AddedCount = 0,
+                };
+            }
+
+            var updatedLearnerCodes = currentLearnerCodes
+                .Union(newLearnerCodes, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                foreach (var rule in batchRules)
+                {
+                    rule.EmployeeCodes = string.Join(",", updatedLearnerCodes);
+                }
+
+                var assignmentRuleIdsByCourseId = batchRules
+                    .Where(rule => rule.CourseId.HasValue)
+                    .ToDictionary(rule => rule.CourseId!.Value, rule => rule.Id);
+
+                if (assignmentRuleIdsByCourseId.Count > 0)
+                {
+                    await _courseAssignmentService.AssignCoursesToEmployees(
+                        assignmentRuleIdsByCourseId,
+                        newLearnerCodes,
+                        mainRule.StartDate,
+                        mainRule.DueDate,
+                        forceReset: false);
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            return new AssignmentMutationResponseDto
+            {
+                Success = true,
+                Message = "Learners added successfully.",
+                AddedCount = newLearnerCodes.Count,
+            };
+        }
+
+        public async Task<AssignmentActionResponseDto> RemoveLearnerFromAssignmentAsync(
+            int assignmentId,
+            string learnerCode,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
+
+            var normalizedLearnerCode = learnerCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedLearnerCode))
+            {
+                throw new ArgumentException("Learner code is required.");
+            }
+
+            var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var ruleIds = batchRules.Select(rule => rule.Id).ToList();
+            var currentLearnerCodes = await GetBatchLearnerCodesAsync(ruleIds, batchRules, cancellationToken);
+            if (!currentLearnerCodes.Contains(normalizedLearnerCode, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new KeyNotFoundException("Learner is not assigned to this assignment.");
+            }
+
+            var remainingLearnerCodes = currentLearnerCodes
+                .Where(code => !string.Equals(code, normalizedLearnerCode, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var links = await _enrollmentAssignmentRepo.GetAsync(
+                    link => ruleIds.Contains(link.AssignmentId)
+                        && link.Enrollment != null
+                        && link.Enrollment.LearnerCode == normalizedLearnerCode,
+                    includeProperties: "Enrollment");
+
+                foreach (var link in links)
+                {
+                    link.IsDeleted = true;
+                    link.DeletedAt = _dateTime.Now;
+                }
+
+                var employeeCodesText = string.Join(",", remainingLearnerCodes);
+                foreach (var rule in batchRules)
+                {
+                    rule.EmployeeCodes = employeeCodesText;
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            return new AssignmentActionResponseDto
+            {
+                Success = true,
+                Message = "Learner removed successfully.",
+            };
+        }
+
         public async Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(
             IEnumerable<int> courseIds,
             int? divisionId,
@@ -192,6 +700,14 @@ namespace iLearn.Application.Services
                 .Select(code => code.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList() ?? [];
+        }
+
+        private static void EnsureDivisionAccess(int? resourceDivisionId, int? userDivisionId)
+        {
+            if (userDivisionId.HasValue && resourceDivisionId != userDivisionId.Value)
+            {
+                throw new UnauthorizedAccessException("Forbidden.");
+            }
         }
 
         private async Task<List<AssignmentHistoryDto>> BuildAssignmentHistoryAsync(

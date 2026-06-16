@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
+import { LoadingState } from '../components/ui/LoadingState'
 import { StatusText } from '../components/ui/StatusText'
 import { useSession } from '../lib/sessionContext'
 import { toast } from '../lib/toast'
@@ -214,12 +215,7 @@ export function DashboardPage() {
   }, [overview, user])
 
   if (isLoading && !overview) {
-    return (
-      <div className="flex items-center justify-center py-24 text-slate-500 gap-2 text-sm">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        Loading dashboard…
-      </div>
-    )
+    return <LoadingState label="Loading dashboard..." />
   }
 
   if (!overview) {

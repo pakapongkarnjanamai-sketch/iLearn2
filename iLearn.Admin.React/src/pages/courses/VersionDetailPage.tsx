@@ -1,10 +1,11 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BookOpen, Edit3, ExternalLink, FileText, Loader2, Plus, Search, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, BookOpen, Edit3, ExternalLink, FileText, Plus, Search, Upload, X } from 'lucide-react'
 
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { AppButton } from '../../components/ui/AppButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -13,6 +14,7 @@ import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { formatDate } from '../../lib/format'
 import { DetailTabs } from '../../components/ui/DetailTabs'
+import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
 type LookupResult<T> = T[] | { data?: T[] }
 
@@ -180,6 +182,7 @@ export function VersionDetailPage() {
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [savingContent, setSavingContent] = useState(false)
   const [activeDetailTab, setActiveDetailTab] = useState<'content'>('content')
+  const [visibleContentRows, setVisibleContentRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
   const [generalForm, setGeneralForm] = useState<VersionGeneralForm>({
     note: '',
@@ -198,6 +201,15 @@ export function VersionDetailPage() {
     () => selectedVersion?.contentItems.map(createDraftFromVersionItem) ?? [],
     [selectedVersion],
   )
+
+  const visibleCurrentContentItems = useMemo(
+    () => currentContentItems.slice(0, visibleContentRows),
+    [currentContentItems, visibleContentRows],
+  )
+
+  useEffect(() => {
+    setVisibleContentRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [courseId, versionId])
 
   useEffect(() => {
     if (data?.course?.courseCode && courseId) {
@@ -523,7 +535,7 @@ export function VersionDetailPage() {
                           </td>
                         </tr>
                       ) : (
-                        currentContentItems.map((item, index) => {
+                        visibleCurrentContentItems.map((item, index) => {
                           const readiness = getContentReadiness(item)
                           const launchUrl = item.url?.trim() || ''
                           return (
@@ -558,6 +570,23 @@ export function VersionDetailPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {currentContentItems.length > 0 && (
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                    <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                      Showing {visibleCurrentContentItems.length} of {currentContentItems.length}
+                    </span>
+                    {currentContentItems.length > visibleCurrentContentItems.length && (
+                      <AppButton
+                        variant="ghost"
+                        onClick={() => setVisibleContentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                        className="px-3 py-1 text-xxs font-bold"
+                      >
+                        Load more
+                      </AppButton>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -617,14 +646,14 @@ export function VersionDetailPage() {
               >
                 Cancel
               </button>
-              <button
+              <AppButton
                 type="submit"
-                disabled={savingGeneral}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                variant="primary"
+                loading={savingGeneral}
+                className="px-4 py-2 text-sm font-semibold"
               >
-                {savingGeneral && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save General Info
-              </button>
+              </AppButton>
             </div>
           </form>
         </div>
@@ -782,14 +811,14 @@ export function VersionDetailPage() {
               >
                 Cancel
               </button>
-              <button
+              <AppButton
                 type="submit"
-                disabled={savingContent}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                variant="primary"
+                loading={savingContent}
+                className="px-4 py-2 text-sm font-semibold"
               >
-                {savingContent && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save Content
-              </button>
+              </AppButton>
             </div>
           </form>
         </div>

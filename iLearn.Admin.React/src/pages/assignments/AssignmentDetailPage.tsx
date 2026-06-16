@@ -27,6 +27,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
 import { DetailTabs } from '../../components/ui/DetailTabs'
+import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
 // Mirrors AssignmentDashboardDto returned by GET Assignments/dashboard/{id}
 type AssignmentDetail = {
@@ -103,6 +104,8 @@ export function AssignmentDetailPage() {
   const [learnerCodesInput, setLearnerCodesInput] = useState('')
   const [savingLearners, setSavingLearners] = useState(false)
   const [activeDetailTab, setActiveDetailTab] = useState<'courses' | 'learners'>('courses')
+  const [visibleCourseRows, setVisibleCourseRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
+  const [visibleLearnerRows, setVisibleLearnerRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
   const groupedLearners = useMemo(() => {
     if (!assignment?.learners) return []
@@ -162,6 +165,11 @@ export function AssignmentDetailPage() {
   useEffect(() => {
     void loadAssignmentDetails()
   }, [loadAssignmentDetails])
+
+  useEffect(() => {
+    setVisibleCourseRows(DETAIL_TABLE_CHUNK_SIZE)
+    setVisibleLearnerRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [id])
 
   // Extend due date
   const handleExtendDueDate = async () => {
@@ -365,6 +373,8 @@ export function AssignmentDetailPage() {
     { key: 'courses', label: 'Courses' },
     { key: 'learners', label: 'Learners' },
   ]
+  const visibleCourses = assignment.courses.slice(0, visibleCourseRows)
+  const visibleGroupedLearners = groupedLearners.slice(0, visibleLearnerRows)
 
   return (
     <>
@@ -434,7 +444,7 @@ export function AssignmentDetailPage() {
               <SectionHeader icon={BookOpen} variant="card">Courses</SectionHeader>
 
               <ul className="divide-y divide-slate-100 px-4">
-                {assignment.courses.map((c) => (
+                {visibleCourses.map((c) => (
                   <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
                     <div className="flex flex-col">
                       <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
@@ -458,6 +468,23 @@ export function AssignmentDetailPage() {
                   </li>
                 ))}
               </ul>
+
+              {assignment.courses.length > 0 && (
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                    Showing {visibleCourses.length} of {assignment.courses.length}
+                  </span>
+                  {assignment.courses.length > visibleCourses.length && (
+                    <AppButton
+                      variant="ghost"
+                      onClick={() => setVisibleCourseRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                      className="px-3 py-1 text-xxs font-bold"
+                    >
+                      Load more
+                    </AppButton>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
@@ -476,7 +503,7 @@ export function AssignmentDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {groupedLearners.map((l) => {
+                    {visibleGroupedLearners.map((l) => {
                       const completedCount = l.courses.filter(c => c.isCompleted).length
                       const totalCount = l.courses.length
                       const allCompleted = totalCount > 0 && completedCount === totalCount
@@ -547,6 +574,23 @@ export function AssignmentDetailPage() {
                   </tbody>
                 </table>
               </div>
+
+              {groupedLearners.length > 0 && (
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
+                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                    Showing {visibleGroupedLearners.length} of {groupedLearners.length}
+                  </span>
+                  {groupedLearners.length > visibleGroupedLearners.length && (
+                    <AppButton
+                      variant="ghost"
+                      onClick={() => setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                      className="px-3 py-1 text-xxs font-bold"
+                    >
+                      Load more
+                    </AppButton>
+                  )}
+                </div>
+              )}
             </section>
           )}
         </main>

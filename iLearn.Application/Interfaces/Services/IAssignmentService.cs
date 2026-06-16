@@ -34,6 +34,46 @@ namespace iLearn.Application.Interfaces.Services
             int? divisionId,
             CancellationToken cancellationToken = default);
 
+        Task DeleteAssignmentAsync(
+            int assignmentId,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
+        Task<AssignmentResetEnrollmentsResponseDto> ResetEnrollmentsAsync(
+            int assignmentId,
+            ResetEnrollmentsDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
+        Task<AssignmentExtendDueDateResponseDto> ExtendDueDateAsync(
+            int assignmentId,
+            DateTime newDueDate,
+            CancellationToken cancellationToken = default);
+
+        Task<AssignmentMutationResponseDto> AddCoursesToAssignmentAsync(
+            int assignmentId,
+            ManageAssignmentCoursesDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
+        Task<AssignmentRemoveCourseResponseDto> RemoveCourseFromAssignmentAsync(
+            int assignmentId,
+            int ruleId,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
+        Task<AssignmentMutationResponseDto> AddLearnersToAssignmentAsync(
+            int assignmentId,
+            ManageAssignmentLearnersDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
+        Task<AssignmentActionResponseDto> RemoveLearnerFromAssignmentAsync(
+            int assignmentId,
+            string learnerCode,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(
             IEnumerable<int> courseIds,
             int? divisionId,
