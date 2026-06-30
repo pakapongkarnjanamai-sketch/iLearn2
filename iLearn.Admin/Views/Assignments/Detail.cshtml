@@ -670,7 +670,7 @@
                 const empGrid = initDxGrid("#add-learners-grid", {
                     preset: "selectionGrid",
                     dataSource: DevExpress.data.AspNet.createStore({
-                        key: "EId",
+                        key: "eId",
                         loadUrl: `${serviceUrl}/Learners/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
@@ -682,7 +682,7 @@
                     selection: { mode: "multiple", showCheckBoxesMode: "always" },
                     columns: [
                         {
-                            dataField: "EId", caption: "ID", width: 110,
+                            dataField: "eId", caption: "ID", width: 110,
                             cellTemplate: function(container, options) {
                                 window.renderAdminGridTextCell(container, options.value, "captionStrong");
                             }
@@ -690,21 +690,21 @@
                         {
                             caption: "Name", minWidth: 180,
                             calculateCellValue: function(data) {
-                                return [data.EnglishFirstName, data.EnglishLastName].filter(Boolean).join(" ");
+                                return [data.englishFirstName, data.englishLastName].filter(Boolean).join(" ");
                             },
                             cssClass: "fw-medium text-dark"
                         },
                         {
-                            dataField: "Position", caption: "Position", width: 120, alignment: "center",
+                            dataField: "position", caption: "Position", width: 120, alignment: "center",
                             cellTemplate: function(container, options) {
                                 if (options.value) {
                                     window.renderAdminGridTextCell(container, options.value, "captionMuted");
                                 }
                             }
                         },
-                        { dataField: "Department", caption: "Department", width: 120 },
+                        { dataField: "department", caption: "Department", width: 120 },
                         {
-                            dataField: "Section", caption: "Section", minWidth: 140,
+                            dataField: "section", caption: "Section", minWidth: 140,
                             cssClass: "cell-muted",
                             customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }

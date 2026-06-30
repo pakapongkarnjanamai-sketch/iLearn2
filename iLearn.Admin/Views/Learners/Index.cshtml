@@ -27,13 +27,13 @@
         $(() => {
             gridInstance = initDxGrid("#grid", buildAdminGridOptions("Search learners by name, ID, or division...", {
                 height: "100%",
-                dataSource: createDataStore(serviceUrl, 'Learners', { key: 'EId' }),
+                dataSource: createDataStore(serviceUrl, 'Learners', { key: 'eId' }),
                 remoteOperations: true,
                 export: { enabled: true, allowExportSelectedData: true },
                 onExporting: (e) => handleExporting(e, 'Learners_Employees'),
                 editing: { allowUpdating: false, allowDeleting: false, allowAdding: false },
                 columns: [
-                    { dataField: "EId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,
+                    { dataField: "eId", caption: "Employee ID", width: 160, alignment: "center", fixed: true,
                         cellTemplate: (container, options) => {
                             $("<a>").attr("href", `@learnerReportUrlTemplate`.replace("__STUDENT_CODE__", encodeURIComponent(options.value || "")))
                                    .attr("target", "_blank")
@@ -41,12 +41,12 @@
                                    .text(options.value || "—").appendTo(container);
                         }
                     },
-                    { dataField: "EnglishFirstName", caption: "First Name", width: 250 },
-                    { dataField: "EnglishLastName", caption: "Last Name", width: 250 },
-                    { dataField: "Position", caption: "Position", width: 150 },
-                    { dataField: "Division", caption: "Division", width: 120, alignment: "center" },
-                    { dataField: "Department", caption: "Department", width: 120, alignment: "center" },
-                    { dataField: "Section", caption: "Section" }
+                    { dataField: "englishFirstName", caption: "First Name", width: 250 },
+                    { dataField: "englishLastName", caption: "Last Name", width: 250 },
+                    { dataField: "position", caption: "Position", width: 150 },
+                    { dataField: "division", caption: "Division", width: 120, alignment: "center" },
+                    { dataField: "department", caption: "Department", width: 120, alignment: "center" },
+                    { dataField: "section", caption: "Section" }
                 ]
             }));
 

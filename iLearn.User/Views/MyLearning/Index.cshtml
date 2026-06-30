@@ -876,15 +876,13 @@ else
 @section Scripts {
     <script>
         const learnerCode = '@empCode';
-        const divisionName = '@div';
-        const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const myCoursesUrl = '@Url.Action("GetMyCourses", "MyLearning")';
+        const courseCatalogUrl = '@Url.Action("GetCourseCatalog", "MyLearning")';
         let allCoursesData = [];
         let myCoursesData = [];
         let currentFilter = 'progress';
         let selectedCategoryId = 'all';
         let selectedCourseType = 'all';
-        let allCourseTypes = []; // dynamic course types loaded from API
         let categorizedCourses = {};
         let catalogViewMode = 'list'; // 'list' or 'grid'
 
@@ -908,7 +906,7 @@ else
             initSearchBox();
             initLogout();
             loadMyCourses();
-            loadCourseTypes();
+            loadAllCourses();
         });
         function initLogout() {
             $('#btnLogout').on('click', function (e) {
@@ -1131,22 +1129,6 @@ else
             renderCurrentMyCourses();
         }
 
-        // ========== Load Course Types (dynamic) ==========
-        function loadCourseTypes() {
-            $.ajax({
-                url: `${baseUrl}/admin/CourseTypesCRUD/Get`,
-                method: 'GET',
-                xhrFields: { withCredentials: true },
-                success: function(res) {
-                    allCourseTypes = res.data || (Array.isArray(res) ? res : []);
-                    loadAllCourses();
-                },
-                error: function() {
-                    loadAllCourses(); // load courses even if types fail
-                }
-            });
-        }
-
         // ========== Render Type Filter Pills ==========
         function getCatalogBaseCourses(categoryId) {
             return categoryId === 'all'
@@ -1159,9 +1141,8 @@ else
             return typeId === null || typeId === undefined || typeId === '' ? null : String(typeId);
         }
 
-        function getCatalogTypeName(course, typeId) {
-            const configuredType = allCourseTypes.find(type => String(type.id) === String(typeId));
-            return configuredType?.name || course.typeName || course.courseTypeName || 'ไม่ระบุประเภท';
+        function getCatalogTypeName(course) {
+            return course.courseTypeName || course.typeName || 'ไม่ระบุประเภท';
         }
 
         function getAvailableCatalogTypes(categoryId) {
@@ -1173,7 +1154,7 @@ else
                 if (!typeMap.has(typeId)) {
                     typeMap.set(typeId, {
                         id: typeId,
-                        name: getCatalogTypeName(course, typeId),
+                        name: getCatalogTypeName(course),
                         count: 0
                     });
                 }
@@ -1222,11 +1203,12 @@ else
             $("#catalogLayout").show();
             showSkeletonCards('#catalogContent', 4, 'col-md-6 col-lg-4 col-xl-3');
             $.ajax({
-                url: `${baseUrl}/courses`,
+                url: courseCatalogUrl,
                 method: 'GET',
-                data: { isActive: true, divisionName: divisionName !== '-' ? divisionName : '' },
                 xhrFields: { withCredentials: true },
                 success: function(res) {
+                    if (handleLearnerSessionExpired(res)) return;
+
                     allCoursesData = res.data || (Array.isArray(res) ? res : []);
 
                     if (allCoursesData.length > 0) {
@@ -1239,7 +1221,9 @@ else
                         renderEmptyState('#catalogContent', 'ยังไม่มีหลักสูตรในขณะนี้');
                     }
                 },
-                error: function() {
+                error: function(xhr) {
+                    if (handleLearnerSessionExpired(xhr)) return;
+
                     renderTypeFilterPills(selectedCategoryId);
                     renderEmptyState('#catalogContent', 'ไม่สามารถโหลดข้อมูลหลักสูตรได้');
                     showToast("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error");

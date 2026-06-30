@@ -69,6 +69,46 @@ namespace iLearn.User.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> GetCourseCatalog()
+        {
+            var learnerCode = GetAuthenticatedLearnerCode();
+            if (string.IsNullOrWhiteSpace(learnerCode))
+                return LearnerSessionExpired();
+
+            var relativeUrl = "Enrollments/course-catalog";
+            var divisionName = GetAuthenticatedLearnerDivisionName();
+            if (!string.IsNullOrWhiteSpace(divisionName))
+            {
+                relativeUrl += $"?divisionName={Uri.EscapeDataString(divisionName)}";
+            }
+
+            try
+            {
+                var response = await SendLearnerProxyRequestAsync(
+                    HttpMethod.Get,
+                    relativeUrl,
+                    learnerCode);
+                return await CreateProxyResultAsync(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    success = false,
+                    message = "ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง"
+                });
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetPlayerInfo(int courseId)
         {
             var learnerCode = GetAuthenticatedLearnerCode();
@@ -215,6 +255,17 @@ namespace iLearn.User.Controllers
         private string? GetAuthenticatedLearnerCode()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private string? GetAuthenticatedLearnerDivisionName()
+        {
+            var division = User.FindFirst("Division")?.Value;
+            if (string.IsNullOrWhiteSpace(division) || division == "-")
+            {
+                return null;
+            }
+
+            return division;
         }
 
         private IActionResult LearnerSessionExpired()

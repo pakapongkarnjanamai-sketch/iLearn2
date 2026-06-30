@@ -24,6 +24,7 @@ namespace iLearn.API.Controllers
     public class EnrollmentsController : ControllerBase
     {
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        private readonly IGenericRepository<Course> _courseRepo;
         private readonly IEnrollmentService _enrollmentAdminService;
         private readonly IGenericRepository<LearningLog> _logRepo;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
@@ -35,6 +36,7 @@ namespace iLearn.API.Controllers
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<Course> courseRepo,
             IEnrollmentService enrollmentAdminService,
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<CourseVersion> versionRepo,
@@ -45,6 +47,7 @@ namespace iLearn.API.Controllers
             IScormRuntimeStateService scormRuntimeStateService)
         {
             _enrollmentRepo = enrollmentRepo;
+            _courseRepo = courseRepo;
             _enrollmentAdminService = enrollmentAdminService;
             _logRepo = logRepo;
             _versionRepo = versionRepo;
@@ -136,6 +139,58 @@ namespace iLearn.API.Controllers
             {
                 Success = true,
                 Data    = dtos
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("course-catalog")]
+        public async Task<IActionResult> GetCourseCatalog([FromQuery] string? divisionName = null)
+        {
+            if (!TryGetTrustedLearnerLearnerCode(out _, out var errorResult))
+            {
+                return errorResult;
+            }
+
+            if (string.IsNullOrWhiteSpace(divisionName))
+            {
+                return Ok(new ApiResponse<IEnumerable<LearnerCourseCatalogDto>>
+                {
+                    Success = true,
+                    Data = Array.Empty<LearnerCourseCatalogDto>()
+                });
+            }
+
+            var normalizedDivisionName = divisionName.Trim();
+
+            var courses = await _courseRepo.GetAsync(
+                filter: c => !c.IsDeleted
+                    && c.Status == CourseStatus.Open
+                    && c.Category != null
+                    && c.Category.Division != null
+                    && c.Category.Division.Name == normalizedDivisionName,
+                includeProperties: "Category,Category.Division,CourseType"
+            );
+
+            var catalogItems = courses
+                .OrderBy(c => c.Code)
+                .ThenBy(c => c.Title)
+                .Select(c => new LearnerCourseCatalogDto
+                {
+                    Id = c.Id,
+                    Code = c.Code,
+                    Title = c.Title,
+                    CategoryId = c.CategoryId,
+                    CategoryName = c.Category?.Name ?? "ไม่ระบุหมวดหมู่",
+                    CourseTypeId = c.CourseTypeId,
+                    CourseTypeName = c.CourseType?.Name ?? "ไม่ระบุประเภท",
+                    CoverImageUrl = null
+                })
+                .ToList();
+
+            return Ok(new ApiResponse<IEnumerable<LearnerCourseCatalogDto>>
+            {
+                Success = true,
+                Data = catalogItems
             });
         }
 

@@ -761,7 +761,7 @@
                     preset: "wizardSelectionContinuousGrid",
                     height: SELECTION_GRID_HEIGHT,
                     dataSource: DevExpress.data.AspNet.createStore({
-                        key: "EId",
+                        key: "eId",
                         loadUrl: `${serviceUrl}/Learners/Get`,
                         onBeforeSend: function(method, ajaxOptions) {
                             ajaxOptions.xhrFields = { withCredentials: true };
@@ -775,18 +775,18 @@
                     noDataText: getNoDataText("learners"),
                     columns: [
                         {
-                            dataField: "EId", caption: "ID", width: 95,
+                            dataField: "eId", caption: "ID", width: 95,
                             cellTemplate: function(container, options) {
                                 window.renderAdminGridTextCell(container, options.value, 'captionStrong');
                             }
                         },
                         {
                             caption: "Name", minWidth: 160,
-                            calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
+                            calculateCellValue: (d) => [d.englishFirstName, d.englishLastName].filter(Boolean).join(" "),
                             cssClass: "fw-medium text-dark"
                         },
                         {
-                            dataField: "Position", caption: "Position", width: 90, alignment: "center",
+                            dataField: "position", caption: "Position", width: 90, alignment: "center",
                             cellTemplate: function(container, options) {
                                 if (!options.value) {
                                     return;
@@ -795,8 +795,8 @@
                                 window.renderAdminGridTextCell(container, options.value, 'captionMuted');
                             }
                         },
-                        { dataField: "Department", caption: "Dept.", width: 90 },
-                        { dataField: "Section", caption: "Section", minWidth: 120,
+                        { dataField: "department", caption: "Dept.", width: 90 },
+                        { dataField: "section", caption: "Section", minWidth: 120,
                             cssClass: "cell-muted",
                             customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }
@@ -804,7 +804,7 @@
                     selectedRowKeys: selectedLearnerCodes,
                     onSelectionChanged: function(e) {
                         selectedLearnerCodes = e.selectedRowKeys;
-                        (e.selectedRowsData || []).forEach(function(row) { learnerDataCache.set(String(row.EId), row); });
+                        (e.selectedRowsData || []).forEach(function(row) { learnerDataCache.set(String(row.eId), row); });
                         updateLearnerSelectionUi();
                         renderLearnerSelectionTray();
                     }
@@ -1316,7 +1316,7 @@
                     const displayCode = window.escapeHtml(normalizedCode);
                     const encodedCode = encodeURIComponent(normalizedCode);
                     const name = row
-                        ? window.escapeHtml([row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(" ") || "")
+                        ? window.escapeHtml([row.englishFirstName, row.englishLastName].filter(Boolean).join(" ") || "")
                         : "";
                     const namePart = name
                         ? `<span class="admin-selection-chip-sep">·</span><span class="admin-selection-chip-name" title="${name}">${name}</span>`
@@ -1381,14 +1381,14 @@
                 }
 
                 const tableRows = rows.map(function(row) {
-                    const name = [row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(' ') || EMPTY_TEXT;
-                    const org = [row.Department, row.Section].filter(Boolean).join(' / ') || EMPTY_TEXT;
+                    const name = [row.englishFirstName, row.englishLastName].filter(Boolean).join(' ') || EMPTY_TEXT;
+                    const org = [row.department, row.section].filter(Boolean).join(' / ') || EMPTY_TEXT;
                     return `<tr>
-                        <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.EId || EMPTY_TEXT)}</span></td>
+                        <td><span class="tag-pill pill-default fw-bold">${window.escapeHtml(row.eId || EMPTY_TEXT)}</span></td>
                         <td>
                             <div class="admin-review-item-name">${window.escapeHtml(name)}</div>
                         </td>
-                        <td>${window.escapeHtml(row.Position || EMPTY_TEXT)}</td>
+                        <td>${window.escapeHtml(row.position || EMPTY_TEXT)}</td>
                     </tr>`;
                 }).join('');
 

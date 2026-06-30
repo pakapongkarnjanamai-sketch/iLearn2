@@ -440,6 +440,7 @@ namespace iLearn.Tests
         {
             var controller = new EnrollmentsController(
                 new InMemoryGenericRepository<Enrollment>(enrollments),
+                new InMemoryGenericRepository<Course>([]),
                 new FakeEnrollmentService(),
                 new InMemoryGenericRepository<LearningLog>(logs),
                 new InMemoryGenericRepository<CourseVersion>(versions),

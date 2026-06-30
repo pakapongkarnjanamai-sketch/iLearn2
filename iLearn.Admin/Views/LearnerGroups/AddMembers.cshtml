@@ -421,7 +421,7 @@
             preset: "wizardSelectionContinuousGrid",
             height: STUDENT_SELECTION_GRID_HEIGHT,
             dataSource: DevExpress.data.AspNet.createStore({
-                key: "EId",
+                key: "eId",
                 loadUrl: `${STUDENTS_API_URL}/Get`,
                 onBeforeSend: function(method, options) {
                     options.xhrFields = { withCredentials: true };
@@ -430,18 +430,18 @@
             noDataText: getNoDataText("learners"),
             columns: [
                         {
-                            dataField: "EId", caption: "ID", width: 95,
+                            dataField: "eId", caption: "ID", width: 95,
                             cellTemplate: function(container, options) {
                                 window.renderAdminGridTextCell(container, options.value, 'captionStrong');
                             }
                         },
                         {
                             caption: "Name", minWidth: 160,
-                            calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
+                            calculateCellValue: (d) => [d.englishFirstName, d.englishLastName].filter(Boolean).join(" "),
                             cssClass: "fw-medium text-dark"
                         },
                         {
-                            dataField: "Position", caption: "Position", width: 90, alignment: "center",
+                            dataField: "position", caption: "Position", width: 90, alignment: "center",
                             cellTemplate: function(container, options) {
                                 if (!options.value) {
                                     return;
@@ -450,8 +450,8 @@
                                 window.renderAdminGridTextCell(container, options.value, 'captionMuted');
                             }
                         },
-                        { dataField: "Department", caption: "Dept.", width: 90 },
-                        { dataField: "Section", caption: "Section", minWidth: 120,
+                        { dataField: "department", caption: "Dept.", width: 90 },
+                        { dataField: "section", caption: "Section", minWidth: 120,
                             cssClass: "cell-muted",
                             customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }
@@ -459,11 +459,11 @@
             onSelectionChanged: function(event) {
                 const selectedLearnerCodes = (event.selectedRowKeys || []).map(String);
                 (event.selectedRowsData || []).forEach(function(row) {
-                    if (!row || !row.EId) {
+                    if (!row || !row.eId) {
                         return;
                     }
 
-                    selectedLearnerCache.set(String(row.EId), row);
+                    selectedLearnerCache.set(String(row.eId), row);
                 });
 
                 selectedLearnerCache.forEach(function(_, key) {
@@ -499,7 +499,7 @@
             const safeCode = escapeHtml(normalizedCode || EMPTY_TEXT);
             const encodedCode = encodeURIComponent(normalizedCode);
             const name = row
-                ? escapeHtml([row.EnglishFirstName, row.EnglishLastName].filter(Boolean).join(" ") || "")
+                ? escapeHtml([row.englishFirstName, row.englishLastName].filter(Boolean).join(" ") || "")
                 : "";
             const namePart = name
                 ? `<span class="admin-selection-chip-sep">·</span><span class="admin-selection-chip-name" title="${name}">${name}</span>`

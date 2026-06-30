@@ -522,7 +522,7 @@ else
             preset: "wizardSelectionContinuousGrid",
             height: INITIAL_MEMBER_GRID_HEIGHT,
             dataSource: DevExpress.data.AspNet.createStore({
-                key: "EId",
+                key: "eId",
                 loadUrl: `${STUDENTS_API_URL}/Get`,
                 onBeforeSend: function(method, options) {
                     options.xhrFields = { withCredentials: true };
@@ -531,18 +531,18 @@ else
             noDataText: getNoDataText("learners"),
             columns: [
                         {
-                            dataField: "EId", caption: "ID", width: 95,
+                            dataField: "eId", caption: "ID", width: 95,
                             cellTemplate: function(container, options) {
                                 window.renderAdminGridTextCell(container, options.value, 'captionStrong');
                             }
                         },
                         {
                             caption: "Name", minWidth: 160,
-                            calculateCellValue: (d) => [d.EnglishFirstName, d.EnglishLastName].filter(Boolean).join(" "),
+                            calculateCellValue: (d) => [d.englishFirstName, d.englishLastName].filter(Boolean).join(" "),
                             cssClass: "fw-medium text-dark"
                         },
                         {
-                            dataField: "Position", caption: "Position", width: 90, alignment: "center",
+                            dataField: "position", caption: "Position", width: 90, alignment: "center",
                             cellTemplate: function(container, options) {
                                 if (!options.value) {
                                     return;
@@ -551,8 +551,8 @@ else
                                 window.renderAdminGridTextCell(container, options.value, 'captionMuted');
                             }
                         },
-                        { dataField: "Department", caption: "Dept.", width: 90 },
-                        { dataField: "Section", caption: "Section", minWidth: 120,
+                        { dataField: "department", caption: "Dept.", width: 90 },
+                        { dataField: "section", caption: "Section", minWidth: 120,
                             cssClass: "cell-muted",
                             customizeText: function(e) { return e.value || EMPTY_TEXT; }
                         }
@@ -802,7 +802,7 @@ else
     function syncSelectedLearnerCache(event) {
         const selectedRows = event.selectedRowsData || [];
         selectedRows.forEach(function(row) {
-            const learner = normalizeLearnerProfile(row, row?.EId || row?.eid || row?.Code || row?.code);
+            const learner = normalizeLearnerProfile(row, row?.eId || row?.Code || row?.code);
             if (learner.learnerCode) {
                 createState.selectedLearners.set(learner.learnerCode, learner);
             }
@@ -919,12 +919,12 @@ else
     }
 
     function normalizeLearnerProfile(source, fallbackCode) {
-        const learnerCode = String(source?.learnerCode || source?.LearnerCode || source?.EId || source?.eid || source?.Code || source?.code || fallbackCode || "");
+        const learnerCode = String(source?.learnerCode || source?.LearnerCode || source?.eId || source?.Code || source?.code || fallbackCode || "");
         const learnerName = source?.learnerName
             || source?.LearnerName
             || source?.Name
             || source?.name
-            || [source?.EnglishFirstName, source?.EnglishLastName].filter(Boolean).join(" ")
+            || [source?.englishFirstName, source?.englishLastName].filter(Boolean).join(" ")
             || learnerCode;
 
         return {
