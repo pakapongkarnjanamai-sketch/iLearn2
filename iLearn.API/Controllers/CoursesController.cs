@@ -226,8 +226,8 @@ namespace iLearn.API.Controllers
 
         [HttpPost("create-scorm")]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
-        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestSizeLimit(ScormPackageLimits.MaxRequestEnvelopeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxRequestEnvelopeBytes)]
         public async Task<IActionResult> CreateCourseWithScorm([FromForm] CourseCreateDto model)
         {
             if (!ModelState.IsValid)
@@ -357,8 +357,8 @@ namespace iLearn.API.Controllers
 
         [HttpPost("{courseId}/versions")]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
-        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestSizeLimit(ScormPackageLimits.MaxRequestEnvelopeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxRequestEnvelopeBytes)]
         public async Task<IActionResult> CreateVersion(int courseId, [FromForm] CreateCourseVersionDto model)
         {
             if (!ModelState.IsValid)
@@ -415,8 +415,8 @@ namespace iLearn.API.Controllers
 
         [HttpPut("versions/{versionId}")]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
-        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestSizeLimit(ScormPackageLimits.MaxRequestEnvelopeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxRequestEnvelopeBytes)]
         public async Task<IActionResult> UpdateVersion(int versionId, [FromForm] CreateCourseVersionDto model)
         {
             if (!ModelState.IsValid)

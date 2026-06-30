@@ -14,6 +14,48 @@ Format ต่อ entry:
 
 ---
 
+## [2026-06-30 11:45] Claude Code — รีวิว implementation PLAN-042 → VERIFIED (ไม่แก้โค้ด)
+- ทำอะไร: รีวิว implementation ของ PLAN-042 ที่ GPT ทำเสร็จ ตรวจอิสระทุกจุด (ไม่พึ่ง Implementer Notes อย่างเดียว) — `grep` ยืนยัน 4 endpoint เปลี่ยนเป็น `MaxRequestEnvelopeBytes` ครบและไม่เหลือ pattern เก่า, ยืนยัน `ScormUploadValidation`/`ScormService` ยังเช็คกับ `MaxCompressedPackageBytes` (100MB) เหมือนเดิม (ไม่ถูกแตะ), รัน `dotnet build iLearn.API` เอง (0 errors) และ `dotnet test` เอง (Passed 118, Failed 0) ตรงกับที่ implementer รายงาน, ตรวจเลขสอดคล้องข้าม 3 ชั้น (`web.config` 115343360 = global `IISServerOptions`/Kestrel = per-endpoint attribute) sync กันสมบูรณ์ — ไม่พบปัญหา ปรับสถานะเป็น VERIFIED พร้อม Review Notes
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-042-scorm-upload-envelope-limit-separation.md` (status→VERIFIED + Review Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิวอย่างเดียว)
+- Verified: `dotnet build iLearn.API -o artifacts/verify-plan042` ผ่าน 0 errors, `dotnet test` ผ่าน 118/118 (รันเองอิสระ), cleanup artifacts ชั่วคราวเรียบร้อย
+
+## [2026-06-30 11:23] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-042 แยก envelope limit จาก content limit
+- ทำอะไร: implement ตาม PLAN-042 โดยเพิ่ม `ScormPackageLimits.MaxRequestEnvelopeBytes` และเปลี่ยน `[RequestSizeLimit]`/`[RequestFormLimits]` 4 endpoint จาก `MaxCompressedPackageBytes` เป็น `MaxRequestEnvelopeBytes`; ปรับ `Program.cs` ให้ใช้ constant เดียวกันแทน magic number เพื่อปิด edge case ที่ไฟล์ >100MB ควรเข้า validation และคืน business error แทน 413 ดิบ
+- ไฟล์หลักที่แตะ: `iLearn.Application/Common/ScormPackageLimits.cs`, `iLearn.API/Controllers/CoursesController.cs`, `iLearn.API/Controllers/ContentItemsController.cs`, `iLearn.API/Program.cs`, `DOC/PLANS/PLAN-042-scorm-upload-envelope-limit-separation.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ปรับ request envelope gate/config only)
+- Verified: `dotnet build iLearn.API/iLearn.API.csproj -o artifacts/verify-plan042` ผ่าน, `dotnet build iLearn.Tests -o artifacts/verify-test` ผ่าน, `dotnet test artifacts/verify-test/iLearn.Tests.dll` ผ่าน (Passed 118, Failed 0), `rg` ตรวจไม่พบ `MaxCompressedPackageBytes` ใน RequestSizeLimit/RequestFormLimits แล้ว, cleanup artifacts ผ่าน
+
+## [2026-06-30 11:30] Claude Code — รีวิว implementation PLAN-041 (DONE+deployed) → VERIFIED + เขียน PLAN-042 follow-up (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: รีวิว implementation ของ PLAN-041 ที่ GPT ทำเสร็จและ deploy ขึ้น production แล้ว (ผ่าน `tools/deploy-api.ps1` ซึ่งเป็น deploy infra เดิมของ repo) — ตรวจอิสระโดย `dotnet publish iLearn.API -c Release` ในเครื่องแล้วดู merged `web.config` ด้วยตาเอง ยืนยันว่า `<requestLimits maxAllowedContentLength="115343360">` + `<aspNetCore>` handler รวมกันถูกต้อง (site จะ start ได้). พยายามอ่าน production web.config ผ่าน UNC (`\\10.10.143.39\...`) เพื่อยืนยัน prod state แต่ถูก permission policy บล็อก (ต้องขออนุญาตชัดเจนก่อนอ่าน prod) จึงอ้างอิง Implementer Notes (deploy stamp + smoke test 200 OK บน `api/admin/session/me` ที่ตรวจแล้วว่ามีจริง) แทน. พบ gap จริง 1 จุด: per-endpoint `[RequestSizeLimit(MaxCompressedPackageBytes)]` (100MB เป๊ะ) ยังอยู่ครบ 4 endpoint ทำให้ AC#6 ของ PLAN-041 (ไฟล์ >100MB ต้องได้ friendly message ไม่ใช่ 413 ดิบ) ไม่มีทางผ่านได้ตามโครงสร้างปัจจุบัน (attribute abort ก่อนถึง validation เสมอ) — ไม่กระทบบั๊กที่ผู้ใช้รายงาน (28.1 MB ผ่านแล้ว) เขียน PLAN-042 (READY, assign GPT) แยก `MaxRequestEnvelopeBytes` ออกจาก `MaxCompressedPackageBytes` เพื่อปิด gap นี้โดยเฉพาะ ปรับ PLAN-041 เป็น VERIFIED (core fix) พร้อม Review Notes
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-041-scorm-upload-413-hosting-limit.md` (status→VERIFIED + Review Notes), `DOC/PLANS/PLAN-042-scorm-upload-envelope-limit-separation.md` (ใหม่, READY)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว+เอกสาร; โค้ด production ที่ deploy แล้วเป็นงานของ GPT ในรอบก่อนหน้า ไม่ใช่รอบนี้)
+- Verified: `dotnet publish iLearn.API -c Release` ผ่าน, ตรวจ merged web.config ด้วยตา; ไม่สามารถยืนยัน production state โดยตรงได้ (permission blocked) — ขึ้นกับหลักฐานที่ implementer บันทึกไว้
+
+## [2026-06-30 11:13] GitHub Copilot (GPT-5.3-Codex) — ตรวจสอบแผน + deploy PLAN-041 ขึ้น production
+- ทำอะไร: ตรวจ preflight deploy ด้วย `tools/deploy-api.ps1 -WhatIf`, จากนั้น deploy จริงด้วย side-by-side script ไปที่ `\\10.10.143.39\wwwroot\iLearnNew\Service\_deploy_20260630110749`; พบ warning recycle app pool ล้มเหลว (WinRM Access denied) จึงตรวจ config หลัง deploy และ patch root `web.config` ให้มี `requestLimits maxAllowedContentLength="115343360"` ที่ไฟล์ active ของ IIS (ไม่ใช่เฉพาะไฟล์ในโฟลเดอร์ `_deploy_*`); ยืนยัน endpoint `api/admin/session/me` ตอบ `200 OK`
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-041-scorm-upload-413-hosting-limit.md`, `DOC/AGENT_LOG.md` (และอัปเดตไฟล์ deploy ปลายทางบน `\\10.10.143.39\wwwroot\iLearnNew\Service\web.config`)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: deploy script สำเร็จและสลับ `aspNetCore arguments` ไป stamp ใหม่, root production `web.config` มีทั้ง `requestLimits` และ argument ใหม่, smoke test `GET /api/admin/session/me` = `200 OK`; ยังเหลือ E2E upload 3 เคสตามแผน
+
+## [2026-06-30 11:00] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-041 แก้ 413 upload limit (API hosting layer)
+- ทำอะไร: implement ตาม PLAN-041 โดยเพิ่ม `iLearn.API/web.config` เพื่อยก IIS request filtering (`maxAllowedContentLength=115343360`) และเพิ่ม global request-body limit ใน `iLearn.API/Program.cs` ทั้ง Kestrel + IISServerOptions (คำนวณจาก `ScormPackageLimits.MaxCompressedPackageBytes + 10MB`); อัปเดตสถานะแผนเป็น DONE พร้อม Implementer Notes และเช็กลิสต์ Acceptance Criteria ที่ยืนยันใน local ได้
+- ไฟล์หลักที่แตะ: `iLearn.API/Program.cs`, `iLearn.API/web.config`, `DOC/PLANS/PLAN-041-scorm-upload-413-hosting-limit.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เปลี่ยนเฉพาะ hosting/config limit behavior)
+- Verified: `dotnet build iLearn.API/iLearn.API.csproj --artifacts-path artifacts/verify-plan041` ผ่าน, `dotnet publish iLearn.API/iLearn.API.csproj -c Release -o artifacts/publish-plan041` ผ่าน, ตรวจ published web.config พบทั้ง `maxAllowedContentLength` และ `aspNetCore`, `dotnet build iLearn.Tests -o artifacts/verify-test` ผ่าน, `dotnet test artifacts/verify-test/iLearn.Tests.dll` ผ่าน (Passed 118, Failed 0), cleanup artifacts ชั่วคราวเรียบร้อย
+
+## [2026-06-30 10:47] GitHub Copilot (GPT-5.3-Codex) — ปรับปรุง PLAN-041 ให้ actionable และตรวจปิดงานได้ชัด
+- ทำอะไร: ปรับโครงสร้างแผน `PLAN-041` โดยคง technical approach เดิม แต่เพิ่ม `Objective`, แยก `Evidence และ Root Cause` ให้ชัด, เพิ่ม `Acceptance Criteria` แบบ checklist, ปรับคำสั่ง `Verification` ให้ explicit ขึ้น (project path ตรง ๆ), เพิ่ม `Rollback Plan`, และระบุ `Implementer Notes` ที่ต้องบันทึกหลังลง prod เพื่อยืนยันว่า gate ที่บล็อกจริงคือ IIS หรือ ASP.NET layer
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-041-scorm-upload-413-hosting-limit.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ปรับเอกสารแผนเท่านั้น)
+- Verified: n/a (docs-only)
+
+## [2026-06-30 ] Claude Code — วินิจฉัย HTTP 413 ตอนอัพโหลด SCORM + เขียน PLAN-041 (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้แจ้ง "Request Entity Too Large" ตอนสร้าง Course บน prod (ไฟล์ SCORM 28.1 MB) — ไล่ trace จาก React (`apiClient.ts` ใช้ `statusText` → ยืนยันเป็น HTTP 413) → endpoint `POST Courses/{courseId}/versions` (มี `[RequestSizeLimit(100MB)]` ครบแล้ว) → สรุปว่าเพดาน request-body ที่ "มีผลจริงบน prod" ยังเป็น default ~28.6MB (30,000,000 bytes) ของ .NET/IIS ไม่ใช่ 100MB ตามดีไซน์ (ไฟล์ 28.1MB เล็กกว่า design limit มาก = config/deploy bug ไม่ใช่ไฟล์ใหญ่เกิน) สาเหตุคือ IIS request filtering `maxAllowedContentLength` (override ด้วย attribute ไม่ได้ ต้องตั้งใน web.config) และ/หรือ build/limit ฝั่ง ASP.NET Core → เขียน PLAN-041 (READY, assign GPT): เพิ่ม `iLearn.API/web.config` requestLimits + ตั้ง global `MaxRequestBodySize` (Kestrel+IISServerOptions) ใน `Program.cs` + redeploy + verify
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-041-scorm-upload-413-hosting-limit.md` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน — ยังไม่แก้โค้ด)
+- Verified: n/a (planning only); ระหว่างตรวจมีรัน build iLearn.Admin/iLearn.User แยก artifacts ผ่าน 0 errors แต่ไม่เกี่ยวกับแผนนี้
+
 ## [2026-06-16 17:07] GitHub Copilot (GPT-5.3-Codex) — Implement PLAN-040 badge/format follow-ups (pure refactor)
 - ทำอะไร: ทำตาม scope PLAN-040 ครบ 2 ข้อ: (1) คืน adaptive percent precision เฉพาะ KPI completion ใน `DashboardPage` ด้วย `formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)` โดยไม่แตะ default formatter และไม่แตะ `CompletionBar`; (2) migrate hand-rolled pills ที่ตกหล่นใน users pages มาใช้ `Badge` (`AdminUsersPage` role pills และ `UserEditorPage` removed-role chips)
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `iLearn.Admin.React/src/pages/users/AdminUsersPage.tsx`, `iLearn.Admin.React/src/pages/users/UserEditorPage.tsx`, `DOC/PLANS/PLAN-040-badge-format-followups.md`, `DOC/AGENT_LOG.md`

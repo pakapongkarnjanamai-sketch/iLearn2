@@ -5,6 +5,7 @@ using iLearn.API.Services;
 using iLearn.Application;
 using iLearn.Application.Common;
 using iLearn.Infrastructure;
+using Microsoft.AspNetCore.Server.IIS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,13 @@ builder.Services.AddScoped<ILearnerProxyIdentityResolver, LearnerProxyIdentityRe
 // ── Clean Architecture: Register layers via extension methods ──
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// ── PLAN-041: Upload size limits for SCORM package requests ──
+const long maxRequestBodyBytes = ScormPackageLimits.MaxRequestEnvelopeBytes;
+builder.WebHost.ConfigureKestrel(options =>
+    options.Limits.MaxRequestBodySize = maxRequestBodyBytes);
+builder.Services.Configure<IISServerOptions>(options =>
+    options.MaxRequestBodySize = maxRequestBodyBytes);
 
 // ── Development-only CORS ──
 if (builder.Environment.IsDevelopment())

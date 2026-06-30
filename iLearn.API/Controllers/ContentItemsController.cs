@@ -212,8 +212,8 @@ namespace iLearn.API.Controllers
 
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(ScormPackageLimits.MaxCompressedPackageBytes)]
-        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxCompressedPackageBytes)]
+        [RequestSizeLimit(ScormPackageLimits.MaxRequestEnvelopeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ScormPackageLimits.MaxRequestEnvelopeBytes)]
         public async Task<IActionResult> Upload(IFormFile file, int typeId)
         {
             if (file == null || file.Length == 0)
