@@ -7,19 +7,16 @@ param(
 
     [string]$Stamp,
 
-    [string]$AppPoolName = 'iLearnNew.Service',
+    [string]$AppPoolName = 'iLearn.Service',
 
-    [string]$IisHost = 'AP-NTC2138-QAWB',
+    [string]$IisHost = 'ap-ntc2137-prwb',
 
     [pscredential]$IisCredential,
 
-    # Default offline strategy needs only file-write permission (no IIS admin / WinRM).
     [ValidateSet('AppOffline', 'AppPool', 'None')]
     [string]$OfflineStrategy = 'AppOffline',
 
-    # Optional post-deploy smoke check (auto-rollback on failure). Opt-in — confirm the deploy
-    # host can reach prod first. Suggested: 'https://ap-ntc2138-qawb/iLearnNew/Service/api/admin/session/me'
-    [string]$HealthCheckUrl = '',
+    [string]$HealthCheckUrl = 'https://ap-ntc2137-prwb/iLearn/Service/api/admin/session/me',
 
     [switch]$Rollback,
 
@@ -28,10 +25,10 @@ param(
 
 $params = @{
     ProjectPath        = 'iLearn.API/iLearn.API.csproj'
-    DeployRoot         = '\\AP-NTC2138-QAWB\wwwroot\iLearnNew\Service'
+    DeployRoot         = '\\ap-ntc2137-prwb\wwwroot\iLearn\Service'
     DllName            = 'iLearn.API.dll'
     DeployFolderPrefix = '_deploy_'
-    PublishOutput      = 'artifacts/publish/iLearn.API.Service'
+    PublishOutput      = 'artifacts/publish/iLearn.API.Service.prod'
     Configuration      = $Configuration
     OfflineStrategy    = $OfflineStrategy
     SkipPublish        = $SkipPublish

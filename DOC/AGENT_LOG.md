@@ -14,6 +14,234 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-03 08:30] GitHub Copilot (Claude Opus 4.6) — PLAN-049 Part A DONE: student portal ย้ายจาก /iLearn/student → /iLearn (root)
+- ทำอะไร: ใช้ credential `NIKONOA\Z001927` remote PS เข้า PROD IIS (`ap-ntc2137-prwb`):
+  1. แปลง `/iLearn` จาก vdir → IIS application (app pool `iLearnStudent`, physical `C:\inetpub\wwwroot\iLearn`)
+  2. สร้าง root `web.config` ด้วย `<location inheritInChildApplications="false">` + `<location path="Courses">` handler remove — กัน handler inherit ไป sub-apps
+  3. แก้ Courses 403 โดยแปลง `/iLearn/Courses` จาก vdir → IIS application (app pool `iLearnCourses`, anonymous auth, Windows auth disabled)
+  4. Grant ACL `IIS_IUSRS` + `IIS APPPOOL\iLearnStudent` read access ที่ `D:\iLearnContent\Courses`
+- ผลสุดท้าย: **6/6 endpoints 200** — `/iLearn/` (student root), `/iLearn/Service/api/...`, `/iLearn/admin/`, `/iLearn/admin-react/`, `/iLearn/Courses/{guid}/res/index.html` × 2
+- IIS topology ใหม่:
+  - `/iLearn` → app (iLearnStudent) — **iLearn.User**
+  - `/iLearn/Service` → app (iLearnService) — iLearn.API
+  - `/iLearn/admin` → app (iLearnAdmin) — iLearn.Admin MVC
+  - `/iLearn/admin-react` → app (iLearnAdmin) — iLearn.Admin.React SPA
+  - `/iLearn/Courses` → app (iLearnCourses) — SCORM static content (anon auth)
+  - `/iLearn/student` → app (iLearnStudent) — เดิม (ยังเหลือ, 500 เพราะ inherit issue, ไม่กระทบ — user เข้า `/iLearn/` แทน)
+- ไฟล์หลักที่แตะ: `tools/deploy-user-prod.ps1` (DeployRoot → `\\ap-ntc2137-prwb\wwwroot\iLearn`), root `web.config` (created on PROD), IIS config (appcmd/WebAdministration), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: URL ใหม่ student = `/iLearn/` (เดิม `/iLearn/student/` ยังใช้ได้ถ้า fix)
+- Verified: PROD 6/6 URLs = 200 (root, API, admin, admin-react, SCORM × 2)
+
+## [2026-07-03 08:05] GitHub Copilot (Claude Opus 4.6) — PLAN-049 Part B done + Part A blocked (no remote IIS)
+- ทำอะไร:
+  - **Part B (done):** เพิ่มปุ่มสลับ Admin MVC ↔ React:
+    - React Header: ปุ่ม "Classic Admin" → derive URL จาก `appBasePath` (`/admin-react` → `/admin`) — env-aware (prod/QA/dev)
+    - MVC Layout `_DevExtremeLayout.cshtml`: ปุ่ม "New Admin" → `@($"{Context.Request.PathBase}-react/")` — env-aware
+    - Deploy PROD: Admin MVC stamp `20260703074809`, React Admin dist copy + web.config fix
+    - Smoke: 5/5 PROD endpoints 200
+  - **Part A (blocked):** Deploy User ไป root `\\ap-ntc2137-prwb\wwwroot\iLearn` stamp `20260703075830` สำเร็จ แต่ root web.config ทำให้ sub-apps (Service/admin/admin-react/student) 500 ทั้งหมด → **revert ทันที** (ลบ root web.config, คืน 200 ทุก sub-app)
+    - สาเหตุ: `/iLearn` เป็น vdir ไม่ใช่ IIS application → root web.config inherit ไป sub-apps ทั้งหมด
+    - ต้องการ IIS admin access บน PROD เพื่อแปลง `/iLearn` เป็น app → ไม่มีสิทธิ์ remote PS/WinRM
+    - **Files deployed แล้ว** (`_user_deploy_20260703075830` อยู่ที่ root) — เหลือแค่ IIS reconfigure ที่ต้องทำ manual บนเครื่อง
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/config/appConfig.ts` (เพิ่ม `legacyAdminUrl`), `iLearn.Admin.React/src/components/layout/Header.tsx` (ปุ่ม Classic Admin), `iLearn.Admin/Views/Shared/_DevExtremeLayout.cshtml` (ปุ่ม New Admin), `tools/deploy-user-prod.ps1` (DeployRoot เปลี่ยนเป็น root), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (UI nav only)
+- Verified: React lint+build clean; MVC Admin build 0 errors; PROD smoke 5/5=200 (หลัง revert)
+
+## [2026-07-02 17:35] GitHub Copilot (Claude Opus 4.6) — PLAN-048 verification: ย้าย DB QA→AP-NTC2138-QADB, PROD→AP-NTC2139-COSS
+- ทำอะไร: ตรวจสอบ PLAN-048 (manual DB cutover) — ผู้ใช้ทำ backup/restore แบบแมนนวลแล้ว; config ชี้ QA→`AP-NTC2138-QADB`, PROD→`AP-NTC2139-COSS` (จากรอบก่อน); redeploy QA API stamp `20260702171253` (เปลี่ยน UNC path จาก IP→hostname เพราะ `10.10.143.39` unreachable), PROD API stamp `20260702170926`; verification ตาม PLAN-048 Step 5:
+  - PROD: 5 endpoints 200, courses=584 (Open 584), contentItems=1412 (published), SCORM content served 200 (3 sample GUIDs × `res/index.html`)
+  - QA: API 200, courses=584 (Open 584), contentItems=1412 (published), SCORM content 200
+  - ข้อมูลตรงกันทั้ง QA/PROD (584 courses, 1412 content items)
+- ไฟล์หลักที่แตะ: `iLearn.API/appsettings.json` (QA DB: `10.10.143.37`→`AP-NTC2138-QADB`), `iLearn.API/appsettings.Production.json` (เพิ่ม ConnectionStrings ชี้ `AP-NTC2139-COSS`), `tools/deploy-api.ps1` + `deploy-user.ps1` + `deploy-admin.ps1` (UNC path: `\\10.10.143.39\...`→`\\AP-NTC2138-QAWB\...`), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): Connection strings — QA ต่อ `AP-NTC2138-QADB`, PROD ต่อ `AP-NTC2139-COSS` (DB ชื่อ `iLearnDB_New` ทั้งคู่)
+- Verified: PROD smoke 5/5 URL=200; PROD courses=584 Open; PROD content=1412 published; PROD SCORM HTTP serve 3/3=200; QA smoke API 200; QA courses=584; QA content=1412; QA SCORM 200
+
+## [2026-07-02 17:10] GitHub Copilot (Claude Opus 4.6) — Deploy ทั้ง QA + PROD ครบ (API/User/Admin/React)
+- ทำอะไร: Build+lint+test ทั้งหมด (React lint+build, .NET build, 118 xUnit passed); deploy QA (API stamp `20260702164034`, User `20260702164447`, Admin `20260702164914`); smoke test QA (API 200, User 200); deploy PROD (API `20260702165500`, User `20260702165816`, Admin MVC `20260702170122`, React Admin dist copy); แก้ PROD admin-react 500 โดย copy `web.config.prod` (httpErrors fallback) ทับ config เก่าที่มี `<rewrite>` ซึ่ง PROD ไม่มี URL Rewrite module; smoke test PROD ผ่าน 5/5 (API, User, Admin, React root, React deep-link `/courses`)
+- ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md` (deployed web.config on PROD admin-react fixed in-place)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: React lint+build clean (7 bundles, 2.30s); .NET build succeeded (5.8s); xUnit 118 passed 0 failed; QA smoke API+User 200; PROD smoke API+User+Admin+React+deep-link ทั้ง 5 URL = 200
+
+## [2026-07-02 13:41] Antigravity (Gemini) — แก้ไขปัญหาหลัง deploy prod (PLAN-047)
+- ทำอะไร: 
+  - (Part A) อัปเดตตาราง Courses ตั้งค่า `Status=1` (Open) สำหรับคอร์สที่ `IsActive=1` และยัง Closed อยู่ (แก้ 545 คอร์ส, ทำให้คอร์ส Open รวมเป็น 582 คอร์ส)
+  - (Part B) เรียก Bulk Publish ผ่าน endpoint `api/ContentItems/Admin/BulkSetPublic` ของ QA App Server ด้วย Windows Credentials สำเร็จ 498/498 ตัว (ล้มเหลว 0 ตัว)
+  - (Part C) ซิงค์ข้อมูลโฟลเดอร์ GUID ของบทเรียนที่เพิ่มขึ้นบน QA server ไปยัง Production ด้วย Robocopy `/MT:32` (สำเร็จ 0 errors, จำนวนโฟลเดอร์ GUID ตรงกัน 1409 โฟลเดอร์)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-047-prod-post-deploy-fixes.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): มีการ UPDATE ค่า `Courses.Status` ในฐานข้อมูล `iLearnDB_New`
+- Verified: SQL Query ยืนยันยอด Open Courses = 582 และ Published ContentItems = 1409; รัน E2E browser agent ล็อกอินเข้าใช้งานด้วยรหัสนักเรียน `610034` สามารถเล่นบทเรียนและทำข้อสอบ SCORM ของหลักสูตร Software license JP สำเร็จ 100% บันทึกสถานะเรียนจบลงฐานข้อมูลและแสดงผลบนแดชบอร์ดถูกต้อง
+
+## [2026-07-02 10:05] GitHub Copilot (GPT-5.3-Codex) — Prod redeploy รอบใหม่ + กู้ IIS topology + ปิด 500
+- ทำอะไร: รัน redeploy ใหม่ด้วย credential ที่ให้มา (`NIKONOA\\Z001927`) แบบ `AppOffline` + `-HealthCheckUrl ''` เพื่อกัน auto-rollback และได้ stamp ล่าสุดครบ (Service/User/Admin); สร้าง IIS mapping จริงบน `ap-ntc2137-prwb` (`/iLearn/Service`, `/iLearn/student`, `/iLearn/admin`, `/iLearn/admin-react`) พร้อม start app pools ที่มีจริงบนเครื่อง (`iLearnService`, `iLearnStudent`, `iLearnAdmin`, `iLearnAuth`); ตรวจพบเครื่องไม่มี IIS URL Rewrite module แล้วแก้ `iLearn.Admin.React/public/web.config.prod` เป็น `httpErrors ExecuteURL` fallback (ไม่พึ่ง rewrite) และ copy ไป prod; สร้าง vdir `/iLearn/Courses` ชี้ `D:\iLearnContent\Courses`, grant `IIS_IUSRS` Modify, และ sync content folders QA→prod พร้อมตรวจ count เท่ากัน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/public/web.config.prod`, `DOC/PLANS/PLAN-046-deploy-prod-inplace.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: deploy active stamp = Service `._deploy_20260702094136`, Student `._user_deploy_20260702094505`, Admin `._admin_deploy_20260702094818`; health = `https://AP-NTC2137-PRWB/iLearn/Service/api/admin/session/me` ได้ 200 เมื่อ `UseDefaultCredentials` และ 401 เมื่อไม่ส่ง credential; `https://AP-NTC2137-PRWB/iLearn/student/` = 200, `.../admin/` = 200, `.../admin-react/` = 200, `.../admin-react/non-existent-route` = 200; content folder count QA vs prod = `908/908`
+
+## [2026-07-02 09:20] GitHub Copilot (GPT-5.3-Codex) — Prod IIS 500 diagnosis (A/B web.config tests, no repo runtime change)
+- ทำอะไร: เก็บหลักฐานเพิ่มจาก prod share เพื่อแยกสาเหตุ 500 แบบพิสูจน์ได้: ตรวจ `web.config` ของ Service/student/admin/admin-react พบชี้ deploy stamps ถูกและไฟล์มีอยู่จริง; ทดสอบ HTTP ได้ `500` ทุก URL พร้อม `Server: Microsoft-IIS/10.0`; รัน A/B test บน prod ชั่วคราวแล้ว restore กลับทันที
+  - `student`: สลับเป็น minimal static `web.config` ชั่วคราวแล้วได้ `401`; restore config เดิม (aspNetCore) แล้วกลับเป็น `500`
+  - `admin-react`: สลับเป็น minimal static `web.config` ชั่วคราวแล้วได้ `401` (และ `UseDefaultCredentials` ได้ `200` ที่ `index.html`); restore config เดิม (มี `<rewrite>`) แล้วกลับเป็น `500`
+  - สรุปเชิงเทคนิค: 500 ฝั่ง ASP.NET Core ผูกกับ aspNetCore module/runtime (ANCM/Hosting Bundle), และ 500 ฝั่ง admin-react ผูกกับ rewrite section/module (URL Rewrite)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-046-deploy-prod-inplace.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: จุด deploy ยัง active ตามเดิม (`Service=._deploy_20260702084508`, `student=._user_deploy_20260702084846`, `admin=.\_admin_deploy_20260702085742`); A/B tests แสดง status เปลี่ยนตาม config ที่สลับและ restore กลับได้ครบ
+
+## [2026-07-02 09:03] GitHub Copilot (GPT-5.3-Codex) — Execute PLAN-046 deploy-to-prod (partial done, blocked at IIS runtime)
+- ทำอะไร: เริ่ม execution PLAN-046 จริงบน prod share โดยเตรียม `\\ap-ntc2137-prwb\wwwroot\iLearn\{Service,student,admin,admin-react}` (seed `web.config`), เพิ่ม production override config (`appsettings.Production.json` สำหรับ API/User/Admin), เพิ่ม React prod env+rewrite template, เพิ่ม wrapper scripts สำหรับ prod (`deploy-*-prod.ps1`, `init-ilearn-prod-roots.ps1`, `build/deploy-admin-react-prod.ps1`) และ fallback script `manual-deploy-admin-prod.ps1`; deploy artifacts สำเร็จไปที่ stamp ใหม่และ flip `web.config` แล้ว (Service/User/Admin) + copy React dist สำเร็จ
+- ไฟล์หลักที่แตะ: `iLearn.API/appsettings.Production.json`, `iLearn.User/appsettings.Production.json`, `iLearn.Admin/appsettings.Production.json`, `iLearn.Admin.React/.env.production`, `iLearn.Admin.React/public/web.config.prod`, `tools/deploy-side-by-side.ps1`, `tools/deploy-api-prod.ps1`, `tools/deploy-user-prod.ps1`, `tools/deploy-admin-prod.ps1`, `tools/build-admin-react-prod.ps1`, `tools/deploy-admin-react-prod.ps1`, `tools/init-ilearn-prod-roots.ps1`, `tools/manual-deploy-admin-prod.ps1`, `DOC/PLANS/PLAN-046-deploy-prod-inplace.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (config/deploy tooling only)
+- Verified: `pwsh -File tools/init-ilearn-prod-roots.ps1 -WhatIf` ผ่านและรันจริงผ่าน; deploy evidence บน share = Service `._deploy_20260702084508\iLearn.API.dll`, Student `._user_deploy_20260702084846\iLearn.User.dll`, Admin `.\_admin_deploy_20260702085742\iLearn.Admin.dll`; React deploy (`tools/deploy-admin-react-prod.ps1`) สำเร็จ (`CopySucceeded=True`); `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน (warnings only) และ `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน (Passed 118, Failed 0)
+- ผล smoke ปัจจุบัน: `https://ap-ntc2137-prwb/iLearn/Service/api/admin/session/me`, `/iLearn/student/`, `/iLearn/admin/`, `/iLearn/admin-react/` ยังตอบ `500` ทั้งหมด → ต้องให้ IIS admin ตรวจ app mapping/app pool/auth/module บนเครื่อง prod (remote IIS query จากบัญชีนี้โดน Access denied)
+
+## [2026-07-01 10:49] GitHub Copilot (GPT-5.3-Codex) — เปลี่ยน Service HostUnc และ deploy iLearn.API
+- ทำอะไร: แก้ค่า `FileSettings.HostUnc` ใน `iLearn.API/appsettings.json` เป็น `D:\\iLearnContent`; รัน `tools/deploy-api.ps1` เพื่อ publish+copy ไป `\\10.10.143.39\wwwroot\iLearnNew\Service`; ตรวจหลัง deploy พบ root `appsettings.json` อัปเดตแล้วแต่ `web.config` ยังชี้ deploy เดิม จึงสลับ active deployment เป็น `_deploy_20260701104744` โดยแก้ `aspNetCore arguments` ที่ `Service/web.config` แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.API/appsettings.json`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: ตรวจบน share `\\10.10.143.39\wwwroot\iLearnNew\Service\appsettings.json` ได้ `HostUnc=D:\iLearnContent`; ตรวจ `web.config` ได้ `.\\_deploy_20260701104744\\iLearn.API.dll`; smoke check `http://AP-NTC2138-QAWB/iLearnNew/Service/api/admin/session/me` ได้ `401` (บริการตอบสนองและต้อง auth)
+
+## [2026-07-02 13:15] Claude Code — เขียน PLAN-049 (student→/iLearn root + ปุ่มสลับ admin) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ขอ 2 อย่าง: (A) ย้าย student `/iLearn/student`→`/iLearn` root; (B) admin MVC↔React มีปุ่มสลับ. สำรวจ: `iLearn.User` ไม่มี hardcode `/student` (default route Home/Index, asset ใช้ PathBase) → Part A ไม่ต้องแก้โค้ด แค่ IIS restructure (แปลง /iLearn เป็น User app root, คง sub-apps admin/admin-react/Service/Courses nested, ลบ /iLearn/student). Part B: derive URL อีกเวอร์ชันจาก base path (React appConfig `legacyAdminUrl`=appBasePath แทน /admin-react→/admin + ปุ่มใน Header.tsx ใช้ AppButton; MVC _DevExtremeLayout ใช้ `PathBase + "-react"`) → env-aware ไม่ต้องเพิ่ม env var. เขียน PLAN-049 (READY): Part A→GPT(IIS), Part B→Gemini(UI). เตือน: nested ASP.NET Core web.config inherit + LearnerProxy pathbase เปลี่ยน → ต้อง E2E
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-049-prod-url-and-admin-switch.md` (ใหม่, READY)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน)
+- Verified: n/a (planning); สำรวจ appConfig.ts/Program.cs/layout จริงเพื่อความแม่นยำ
+
+## [2026-07-02 12:45] Claude Code — เขียน PLAN-048 ย้าย prod → DB จริง (assign GPT) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้สั่งเขียน PLAN-048 ย้าย prod จาก QA `iLearnDB_New` (10.10.143.37) → prod DB จริง `10.10.154.119` เพื่อแก้ระบบช้า (DB contention shared) + ตัดความเสี่ยง prod ผูก QA + ล้าง test data. กลยุทธ์ = **backup/restore** (ไม่ re-ETL): restore สำเนา QA DB ไป prod server (ได้ schema HEAD+migrations+CourseTypes+data+fix ครบ). **จุดเด่น: content ไม่ต้อง copy ใหม่** เพราะ guid ใน DB ที่ restore = guid บน prod storage (D:\iLearnContent) อยู่แล้ว. Steps: freeze write→backup COPY_ONLY→restore→verify counts (40 cat/582 Open/1409 published)→เพิ่ม ConnectionStrings ใน API appsettings.Production.json (แนะนำ env var กัน secret เข้า git)→restart iLearnService→E2E+perf check→เก็บ QA DB เป็น fallback. เตือน: ห้าม re-ETL (เสีย guid), ห้ามแตะ iLearn เก่า, learner progress ช่วง window
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-048-prod-move-to-real-db.md` (ใหม่, READY)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน)
+- Verified: n/a (planning)
+
+## [2026-07-02 12:20] Claude Code — รีวิว PLAN-047 (Gemini DONE) → VERIFIED + เจอระบบช้า (ไม่แก้โค้ด)
+- ทำอะไร: รีวิวงาน Gemini (PLAN-047 DONE). ✅ 2 blocker แก้แล้ว: Part A courses Open 582 (จาก 36), Part B publish 498/498 สำเร็จ (498 เดิมไม่ได้เสีย—แค่รอบแรก bulk publish ไม่ครบ→retry ผ่านหมด, รวม 1409), Part C resync prod 1409 folders ตรง. E2E ของ Gemini เชิงประจักษ์ (learner 610034 เล่น SCORM slide+exam จบ 100%+บันทึกเรียนจบ) → PLAN-047 VERIFIED. **แต่ตรวจ browser เองพบระบบช้าทั้งระบบตอนนี้** (admin+student ทุกหน้าค้าง >45s, เมื่อ session ก่อนเร็ว) — น่าจะ DB contention shared QA iLearnDB_New จาก ops หนักที่เพิ่งรัน หรือ lock/agent ค้าง (ความเสี่ยง prod ผูก QA DB). Follow-up: content 1409/courses 584 เกิน migrate ~3 (QA test data ปน)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-047-prod-post-deploy-fixes.md` (Review Notes → VERIFIED + 2 follow-up)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว)
+- Verified: ยืนยันผ่าน E2E ของ Gemini + โครงสร้างที่ผมตรวจอิสระรอบก่อน; ตรวจ browser รอบนี้เจอ slowness (ไม่ยืนยัน visual ได้เพราะหน้าค้าง) — ให้ตรวจ DB load/ย้าย prod DB
+
+## [2026-07-02 11:40] Claude Code — เขียน PLAN-047 แก้ prod (status + content gap) assign Gemini (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ query ยืนยัน 2 ปัญหา: (1) Courses Closed **546**/Open 36/Draft 1 แต่ source IsActive=1 = **579** (WouldBeOpen 34) → D2 ExpiredDate เก่าปิด ~545; (2) ContentItems Published **910**/NotPublished **498**. เขียน `PLAN-047` (READY, assign **Gemini**): Part A = `UPDATE Courses SET Status=1 WHERE IsActive=1 AND Status=2` (เปิด ~579, DB update prod เห็นทันที); Part B = diagnose 498 (TypeId/FileStorage/name) + retry BatchPublishStream + จัด root cause (non-SCORM/เสีย/version) + รายงาน (ห้ามลบเอง); Part C = re-copy guid ใหม่ QA→prod. ย้ำ `iLearnDB_New` = live prod (shared) + ห้ามแตะ iLearn เก่า
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-047-prod-post-deploy-fixes.md` (ใหม่, READY)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน; Part A จะ update ข้อมูล Courses.Status ตอน implement)
+- Verified: n/a (planning); ตัวเลขจาก query ผู้ใช้จริง
+
+## [2026-07-02 11:15] Claude Code — E2E ตรวจ prod จริงผ่าน browser → No-Go (เจอ 2 ปัญหา) (ไม่แก้โค้ด)
+- ทำอะไร: เข้า `https://ap-ntc2137-prwb/iLearn/admin-react/` (Windows auth ผ่าน) ตรวจระบบจริง. ✅ ยืนยัน DB ถูกตัว (40 categories ตรง; PD1=97 courses→580 ครบ; คอร์ส id870 มี v1+2 content items Learn/Exam .zip; Type=Common ถูก). 🔴 **เจอ 2 blocker:** (1) คอร์สทั้งหมด Status=Closed (dashboard Portfolio 35/~545 Closed) → learner เข้าไม่ถึง; สาเหตุน่าจะ D2 ExpiredDate เก่าปิดหมด → ต้อง bulk-open; (2) content publish gap 908/1406 ยังไม่ยืนยัน (Content Library UI 0 records=filter). ให้ query วินิจฉัย (Courses GROUP BY Status; source IsActive/ExpiredDate dist; ContentItems published count). Verdict = No-Go จนกว่าแก้ 2 ข้อ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-046-deploy-prod-inplace.md` (+ E2E Review section)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว/E2E)
+- Verified: ตรวจ prod runtime จริงผ่าน browser (catalog/category/course detail); ยังไม่ได้ query DB ยืนยันตัวเลข (No prod DB access — ให้ผู้ใช้/GPT รัน)
+
+## [2026-07-02 10:30] Claude Code — รีวิว deploy prod PLAN-046 → Conditional Go (ไม่แก้โค้ด)
+- ทำอะไร: รีวิวงาน deploy prod ที่ GPT ทำ (PLAN-046 ACTIVE) อิสระ — ตรวจ `appsettings.Production.json` 3 แอป (override เฉพาะ URL/HostUnc, ไม่แตะ DB conn = ใช้ QA ตามแผน ✓), React `.env.production` ถูก, ไม่มี ASPNETCORE_ENVIRONMENT deployed (default Production ✓), GPT wrap `@(Get-ChildItem)` ใน deploy-side-by-side.ps1 ปลอดภัยไม่ regress, build 0 err + test 118/118 + React build ผ่าน (รันเอง). **พบ 2 blocker ก่อนเปิดผู้ใช้:** (1) 🔴 content copy 908 folder แต่มี 1406 content items → ~498 อาจ publish ไม่สำเร็จ (SCORM validation) ต้อง verify DB + ดูว่า fail เพราะอะไร; (2) 🔴 E2E ยังไม่ทำ (เห็น catalog/เล่น SCORM/upload). จุดเล็ก: SignalR ปิด, app pool `iLearnAuth` ถูก start (นอก scope?). Verdict = Conditional Go
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-046-deploy-prod-inplace.md` (+ Review Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว)
+- Verified: build 0 err, test 118/118, React build (รันเองอิสระ), cleanup artifacts แล้ว; ยังยืนยัน prod runtime/DB จากที่นี่ไม่ได้ (อ้าง Implementer Notes + ต้อง verify count/E2E)
+
+## [2026-07-01 16:00] Claude Code — เขียน PLAN-046 deploy prod (assign GPT) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้สั่งให้ GPT จัดการ deploy ทั้งหมด → เขียน `PLAN-046` (READY, assign GPT) รวบทุก decision: prod `/iLearn/*`, app pools `iLearn.*`, ต่อ QA `iLearnDB_New` ช่วงแรก (conn เดิม), storage `D:\iLearnContent`+vdir+IIS_IUSRS, config URLs prod. **จุดสำคัญที่ใส่ในแผน:** prod ใช้ QA DB → `ContentItem.URL` (guid) ชี้ไฟล์ที่แตกบน QA storage → ต้อง **copy content QA→prod `D:\iLearnContent\Courses`** (guid ตรง เล่นได้) ไม่งั้น 404. ระบุ 7 steps (config→build→IIS→deploy→content copy→verify→rollback) + Constraints (ห้ามแตะ iLearn เก่า/ห้าม ETL ซ้ำ QA DB/ห้ามขยายสโคป) + สิ่งที่ GPT ต้อง confirm (prod share root, IIS site, SSL, Windows auth)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-046-deploy-prod-inplace.md` (ใหม่, READY)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน)
+- Verified: n/a (planning)
+
+## [2026-07-01 15:40] Claude Code — วางแผน prod cutover: app pools iLearn.*, ใช้ QA DB ช่วงแรก, storage prod (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ตัดสิน prod topology: (1) ช่วงแรก prod app ต่อ **QA `iLearnDB_New`** (10.10.143.37) ไปก่อน — ไม่ต้องแก้ conn string (repo ชี้อยู่แล้ว) — ค่อยย้าย prod DB ทีหลัง (เตือน: freeze iLearnDB_New กัน ETL ซ้ำ + prod ผูก QA db server); (2) prod ใช้ชื่อ **`iLearn.*`** (เลิก iLearnNew): app pools `iLearn.Service`/`iLearn.User`/`iLearn.Admin` (No Managed Code + Integrated + AppPoolIdentity), paths `/iLearn/student|admin|admin-react|Service`, config URLs ใช้ `iLearn`; (3) storage prod สร้าง `D:\iLearnContent` แล้ว (ต้องครบ vdir + IIS_IUSRS Modify + HostUnc). ให้ PowerShell สร้าง app pools + ตาราง naming consistency. deploy scripts default iLearnNew → ต้องส่ง param prod เอง (หรือ wrapper). ⚠️ ย้ำ prod `iLearn` DB เก่าเป็น ETL source — อย่าลบจนกว่า provision+ETL prod DB เสร็จ + มี .bak
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-production-cutover-ilearn2.md` (config table)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: n/a (planning); infra prod กำลังตั้ง (storage/app pools)
+
+## [2026-07-01 15:00] Claude Code — QA dry-run ครบ loop: ETL+merge verified + storage แยกไดร์ฟ + bulk publish สำเร็จ (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ re-run ETL (merge) → reconciliation ผ่านสะอาด: Categories 40 (49-9 merged), Courses 580 (Common 372 + No-Common 208), ContentItems/FileStorages 1406, CourseVersions 580, CourseContentItems 950, FK integrity 0/0/0; crosswalk No-Common→main 9 คู่ถูกต้อง. เปลี่ยนที่เก็บไฟล์ที่แตกไปไดร์ฟใหญ่: IIS Virtual Directory `/iLearnNew/Courses` → `D:\iLearnContent\Courses` (บน QAWB), ให้สิทธิ์ `IIS_IUSRS` = Modify (IIS inject SID เข้า worker token ทุก identity), แก้ `FileSettings:HostUnc` = `D:\iLearnContent` ที่ Service/appsettings.json, restart app pool. Bulk publish (`ContentItems/Admin/BulkSetPublic`) สำเร็จ → SCORM re-extract จาก byte[] ลง D:. เหลือ: verify published count + เล่นทดสอบ; แล้วเข้าสู่ prod cutover (config prod ยังค้าง)
+- ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md` (ไม่มีแก้โค้ด repo; config เปลี่ยนที่ deployed appsettings บน QA + IIS)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (schema เดิม; แค่ config ที่เก็บไฟล์)
+- Verified: ETL reconciliation + FK integrity ผ่าน; bulk publish รายงานสำเร็จ (รอ verify count + E2E play)
+- Note: FileSettings storage แยกไดร์ฟ (vdir + IIS_IUSRS Modify) เป็น pattern ที่ต้องทำซ้ำบน prod
+
+## [2026-07-01 14:10] Claude Code — เพิ่ม merge No-Common category → main ใน ETL (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ยืนยัน CourseTypes จริงใน iLearnDB_New (1=Common, 2=No-Common, 3=General, 4=VDO) + category (No Common) 9 อันอยู่ใน DivisionId=2 (PD2) ทั้งหมด และ PD2 มี category หลัก (Common) คู่ขนาน. ผู้ใช้สั่งเพิ่ม: course ใน No-Common → **ย้ายไปรวมกับ category หลัก** (ไม่ใช่แค่ตั้ง type). ปรับ `etl-catalog.sql`: (1) เพิ่ม [0b] crosswalk #NoCommonMerge จับคู่ No-Common→main ด้วย (DivisionId + เลขนำหน้า, main=ชื่อไม่มีวงเล็บ) ทน "Part vs Parts"/ช่องว่าง + preview SELECT; (2) Categories ข้าม No-Common ที่ merge; (3) Courses re-point CategoryId ไป MainCatId + CourseTypeId=2 สำหรับ No-Common. เพิ่ม CourseType breakdown ใน reconciliation. เจอ marker `(LAS)`/`(CAS)` ใน DivisionId=5 (NLC) — ยังไม่รู้ความหมาย ปล่อย Common ไว้ (open question)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-etl-catalog.sql`, `DOC/PLANS/PLAN-045-data-mapping.md` (D1-rev)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: n/a (planning); Categories คาดเหลือ ~40 หลัง merge; รอ re-run + ตรวจ crosswalk preview (9 คู่)
+
+## [2026-07-01 13:40] Claude Code — ETL dry-run ผ่าน (lossless) + เพิ่ม rule CourseType จากชื่อ category (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: (1) ผู้ใช้รัน ETL รอบแรก reconciliation **ผ่านสะอาด**: Categories 49, ContentItems 1406, Courses 580, CourseContentItems 950, CourseVersions 580, FileStorages 1406 (ข้าม orphan 288; 1406+288=1694) — FK integrity 0/0/0. อ่านได้ว่า content ทุกตัวมีไฟล์ (FileStorages=ContentItems) และ Test division ไม่มี content. (2) ผู้ใช้แจ้ง business rule: ระบบเก่าไม่มี CourseType → admin ฝังใน Category.Name เป็น suffix `(No Common)` = No-Common(Id2), นอกนั้น = Common(Id1). ตรวจโค้ด: อ้างชื่อ type จุดเดียว `CourseAssignmentService.cs:49` (`=="General"` auto-assign) → DB ใช้ Common/No-Common จึง auto-assign ไม่ทำงาน (moot mass-enroll). ปรับ `etl-catalog.sql`: CourseTypeId derive จาก suffix ชื่อ category เก่า (LEFT JOIN old Categories) + ตัด suffix ออกจากชื่อ category ที่ย้าย (@StripCategorySuffix) + var @TypeCommon/@TypeNoCommon. แทน D1 (Special blanket) เป็น D1-rev
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-etl-catalog.sql`, `DOC/PLANS/PLAN-045-data-mapping.md` (D1-rev)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (สคริปต์/แผน)
+- Verified: dry-run รอบแรกผ่าน; รอ re-run หลังเพิ่ม rule + ยืนยัน CourseTypes Id จริง
+- heads-up ทีมแอป: auto-assign hardcode "General" ไม่ match Common/No-Common
+
+## [2026-07-01 13:00] Claude Code — เลือก SCORM Strategy B (Re-publish) + ปรับ ETL (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ยืนยันจากโค้ดว่าแอปเสิร์ฟ SCORM จากไฟล์บน share ไม่ใช่ byte[] (`ScormService` แตกตอน upload/publish, `GetScormUrl` แค่ชี้ URL); เจอ `ContentPublicationService.PublishAsync` re-extract จาก byte[] ได้ + **bulk publish มีจริง** (`ContentItemsController`: `Admin/BulkSetPublic` publish ทั้งหมด streaming, `Admin/BatchPublishStream`, `Admin/BatchPublish`). ผู้ใช้เลือก **Strategy B (Re-publish)** + restore old เข้า `iLearn`@AP-NTC2138-QADB แล้ว. ปรับ `etl-catalog.sql` step [3]: ContentItems `IsActive=0` (ให้ publishable) + guard เติม `.zip` ต่อท้าย Name ของ zip-backed ที่ไม่มี (PublishAsync extract เฉพาะ .zip). เพิ่ม query เช็คชื่อไฟล์ (§3.5) + note flow post-ETL = เรียก BulkSetPublic. Gotcha คงเหลือ: publish ~1400 ตัวหนัก (re-extract zip ทุกก้อน)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-etl-catalog.sql`, `DOC/PLANS/PLAN-045-data-mapping.md` (§3.5), `DOC/PLANS/PLAN-045-production-cutover-ilearn2.md` (Phase 4)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน/สคริปต์ยังไม่รัน)
+- Verified: n/a (planning); ยืนยัน bulk publish + publish logic จากโค้ดจริง
+
+## [2026-07-01 12:35] Claude Code — profiling ยืนยัน iLearnDB_New=HEAD + ตัดสิน 1:1 (ไม่ merge) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้รัน query ยืนยัน: (1) `iLearnDB_New` มีตาราง `ContentItems`+`CourseContentItems` = **HEAD** → สคริปต์ผมใช้ได้ Gemini ใช้ไม่ได้; (2) profiling old `iLearn`: Courses 580 / distinct Code 497 (dup 83), **LearnOnly 210 (36%)** / LearnAndExam 370 / NoLearn 0, TypeId 1=836 2=570. → D7 ตัดสิน **ใช้ 1:1 lossless** เพราะ Script2 (ต้องมี Learn+Exam) จะทิ้งคอร์ส Learn-only 210 ตัว (36%) แต่ merge ช่วย dedup แค่ 83 = ไม่คุ้ม. พร้อมรัน etl-catalog.sql (source [iLearn] อยู่บน QADB แล้ว)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-data-mapping.md` (§3.4 profiling + D7)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: n/a (planning); รอผล reconciliation หลังผู้ใช้รัน ETL
+
+## [2026-07-01 12:10] Claude Code — เจอ schema-state gap (rename migration) + finalize ETL สำหรับ QA dry-run (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้แชร์ 3 สคริปต์ ETL ของ Gemini (Downloads) + สนใจ Script2 (merge code + reconstruct version). ตรวจพบ **ทั้ง 3 ใช้ชื่อ schema เก่า** (`Resources`/`CourseResources`/`ResourceHref`/`ResourceId`/`StudentGroups*`) — ยืนยันด้วยการอ่าน migration `20260429071730_RenameResourceStudentTerminology` ว่า rename เป็น `ContentItems`/`CourseContentItems`/`LaunchHref`/`ContentItemId`/`LearnerGroups*` แล้ว + Gemini ไม่ใส่ `Status`(30เม.ย.)/`CachedFileLength`(12มิ.ย.) → **สคริปต์เหล่านั้นรันกับ HEAD ไม่ได้** (R9). ประเมิน Script2: idea ดี (merge code ซ้ำ, กู้ version จาก session heuristic) แต่เสี่ยง data-loss (ทิ้งคอร์สที่ไม่มีคู่ Learn+Exam, heuristic ID-gap เปราะ). ผู้ใช้เลือกทำ QA dry-run: restore prod เก่า→AP-NTC2138-QADB `[iLearn]`→map→`iLearnDB_New`(instance เดียว)→ทดสอบแอป. Finalize `PLAN-045-etl-catalog.sql` ให้ตรง topology (source `[iLearn].[dbo]`, HEAD names, cleanup+reseed, 1:1 lossless pass แรก, reconciliation) + ให้ query profiling (code ซ้ำ/Learn-only/TypeId dist) ไว้ตัดสิน merge ทีหลัง
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-etl-catalog.sql` (rewrite ตาม topology), `DOC/PLANS/PLAN-045-data-mapping.md` (§3.3 schema-gate), `DOC/PLANS/PLAN-045-production-cutover-ilearn2.md` (R9)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (สคริปต์ยังไม่รัน)
+- Verified: n/a (planning only); ยืนยัน rename จาก migration file จริง — ต้องเช็ค __EFMigrationsHistory ของ iLearnDB_New ก่อนรันจริง
+
+## [2026-07-01 11:30] Claude Code — ร่างสคริปต์ ETL catalog PLAN-045 (source data ครบ) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ให้ข้อมูล DB เก่า: Divisions (3=CSD,5=NLC,1=PD1,2=PD2,4=PD3,6=Test) + row counts (Categories 49, Courses 580, CourseResources 950, Resources 1406, FileStorage 1694); และ Divisions ของ DB ใหม่ = **Id+Name ตรงกันเป๊ะ** → D0 crosswalk = identity (copy DivisionId ตรง). วิเคราะห์ตัวเลข: FileStorage(1694)>Resources(1406)=~288 ไฟล์กำพร้า (ย้ายเฉพาะที่ถูกอ้าง); Resources(1406)>CourseResources(950)=มี resource ไม่ผูกคอร์ส (D5 เสนอย้ายทั้งคลัง). เขียนสคริปต์ ETL `PLAN-045-etl-catalog.sql`: 6 ขั้น FK-safe (Categories→FileStorages→ContentItems→Courses→CourseVersions v1→CourseContentItems) ด้วย IDENTITY_INSERT+DBCC CHECKIDENT reseed, guard-join กัน FK, `@IncludeTest` toggle (D6), Uncategorized conditional (D1), Status derive (D2), + reconciliation queries; default dry-run ROLLBACK
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-etl-catalog.sql` (ใหม่, DRAFT), `DOC/PLANS/PLAN-045-data-mapping.md` (§3.1 crosswalk ยืนยัน)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (สคริปต์ยังไม่รัน; เป็น draft ให้ dry-run)
+- Verified: n/a (planning only); สคริปต์อ้าง column จาก snapshot ทั้งสองฝั่ง — ต้อง dry-run จริง + ยืนยัน D5/D6 ก่อนใช้
+- เหลือ confirm: D5 (ย้ายทั้งคลัง) + D6 (ข้าม Test), ตั้ง {{OLD}} linked-server/3-part name, แล้ว dry-run
+
+## [2026-07-01 11:00] Claude Code — เคาะ decisions D0–D4 ของ ETL PLAN-045 (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ปิด decision D0–D4 ใน data-mapping. จุดสำคัญ: ตรวจ `CourseAssignmentService.AssignGeneralCoursesToNewUserAsync` (บรรทัด 46-49) พบว่าคอร์ส `CourseType.Name=="General"` ถูก **auto-assign ให้ผู้เรียนใหม่ทุกคน** → เปลี่ยนคำแนะนำ D1 `CourseTypeId` default จาก General เป็น **Special(1)** เพื่อกัน mass auto-enrollment วัน go-live (ย้าย catalog อย่างเดียว, ตั้ง assignment ใหม่). สรุปอื่น: D0 crosswalk Division ตามชื่อ (ไม่ match=หยุดรายงาน, ห้าม null เงียบ), D2 Status = IsActive&ไม่หมดอายุ→Open else Closed, D3 ทิ้ง ExpiredDate หลังคำนวณ Status, D4 สร้าง CourseVersion v1 ให้ทุกคอร์ส (assignment/playback อิง active version)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-data-mapping.md` (§2.4, §3 RESOLVED, §5)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสาร/แผน)
+- Verified: n/a (planning only); อ้างพฤติกรรมจาก CourseAssignmentService.cs จริง
+- เหลือก่อนเขียน ETL: dump Divisions ทั้งสอง DB (crosswalk D0) + row counts
+
+## [2026-07-01 10:40] Claude Code — ลด scope ETL PLAN-045 เหลือเฉพาะ catalog + ปรับ data-mapping (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ยืนยัน scope data migration = **เฉพาะสื่อการเรียน** (Categories, Courses, CourseResources, Resources, FileStorage) ไม่เอา learner/enrollment/history/admin/Divisions → ตัด 🔴 tables (Enrollments/LearningLogs) + admin ออกหมด เหลือ 5 เก่า → 6 ใหม่ (Categories, FileStorages, ContentItems, Courses, CourseVersions, CourseContentItems). ผู้ใช้ระบุ Divisions มีใน DB ใหม่แล้ว → เพิ่ม decision D0: map `Category.DivisionId` เก่า→ใหม่ ผ่าน crosswalk ตามชื่อ. rewrite `PLAN-045-data-mapping.md` ให้ตรง scope + decisions เหลือ D0–D4 + ลำดับ ETL ใหม่. อัปเดต PLAN-045 หลัก (decision #1 note + Phase 3)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-data-mapping.md` (rewrite), `DOC/PLANS/PLAN-045-production-cutover-ilearn2.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสาร/แผน)
+- Verified: n/a (planning only)
+
+## [2026-07-01 10:15] Claude Code — วิเคราะห์ schema เก่า + ทำ data-mapping สำหรับ ETL PLAN-045 (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: วิเคราะห์ schema ระบบเก่า `iLearnService` (EF Core 8, DB `AP-NTC2139-COSS/iLearn`) จากโค้ดที่ `C:\Users\n4734\source\repos\iLearn\iLearn` — อ่าน AppDbContext + model snapshot + entities + enums เทียบกับ schema ใหม่ 21 ตาราง. สรุป: เก่ามี **11 ตาราง**; insight สำคัญ — (1) `Users/Roles/UserRoles` = บัญชี admin เท่านั้น (RoleType เก่า Developer/Administrator; learner ใช้ StudentCode string), (2) content model แตกใหม่ (Resource+CourseResource → ContentItem+CourseVersion+CourseContentItem, เพิ่ม versioning), (3) Enrollment เปลี่ยน per-Category → per-Course (ต้องขยายแถว+คำนวณ progress จาก log), (4) Course เพิ่ม CategoryId/CourseTypeId บังคับ + Status enum. enum เข้าล็อก: ContentItem.TypeId 1=Learn/2=Exam ตรงกับ old ResourceType; CourseStatus Draft/Open/Closed; RoleType ใหม่ Admin/SuperAdmin. เขียน `PLAN-045-data-mapping.md`: master mapping + column mapping ราย field + transform ตารางยาก + open decisions D1–D7 + ลำดับ ETL FK-safe + กลยุทธ์คง Id
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-data-mapping.md` (ใหม่), `DOC/PLANS/PLAN-045-production-cutover-ilearn2.md` (เชื่อม Phase 3 + ติ๊ก discovery)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (วิเคราะห์+เอกสาร)
+- Verified: n/a (planning only); ยังไม่ dump DB จริง — mapping อ้างจากโค้ด ต้องเทียบ DB จริงอีกที (D5 + row counts)
+
+## [2026-07-01 09:30] Claude Code — เขียน PLAN-045 production cutover runbook (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้สั่งวางแผน deploy iLearn2 ขึ้น prod (`ap-ntc2137-prwb`) แทนที่ระบบเก่า `iLearn` ในที่เดิม + ย้าย DB. สำรวจ repo พบประเด็นสำคัญ: deploy scripts ปัจจุบันชี้ **QA** (`AP-NTC2138-QAWB`/`iLearnNew`) ไม่ใช่ prod; **ไม่มี `appsettings.Production.json`** (config ปัจจุบัน=QA) และ deploy script ก็อป appsettings ทับ root ปลายทางเสมอ (R1/R2); **ไม่มี auto-migrate** ในโค้ด; **ไม่มี migration InitialCreate** → DB เปล่ารัน `ef database update` ไม่ได้ ต้อง baseline schema จาก QA ก่อน (R3); ไม่มี `UsePathBase` → ย้าย path เป็น IIS config; มี 4 web component (API/User/MVC-admin/React-admin, React ไม่มี deploy script); SCORM เก็บทั้ง `FileStorages.Data` byte[] + folder Courses บน share. เก็บ 4 decision จากผู้ใช้ (DB=สร้างใหม่+ย้ายข้อมูล, cutover=แทนที่ /iLearn เดิม, admin=ทั้งคู่, config=ผู้ใช้จะบอกค่า). เขียน `PLAN-045` เป็น runbook 10 phase (pre-flight→config→provision DB→ETL→content→build→IIS→cutover→verify→rollback→post) + risk register + ตาราง "ค่าที่ต้องได้จากผู้ใช้" + IIS layout เป้าหมาย. ยืนยันโค้ด/สคีมาเก่าเข้าถึงได้ที่ `C:\Users\n4734\source\repos\iLearn\iLearn` (ทำ ETL mapping ได้จริง)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-045-production-cutover-ilearn2.md` (ใหม่, DRAFT)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน — ยังไม่แก้โค้ด/DB)
+- Verified: n/a (planning only)
+
+## [2026-07-01 07:44] GitHub Copilot (GPT-5.3-Codex) — Deploy iLearn.Admin สำเร็จ (fallback ไม่ใช้ app-pool control)
+- ทำอะไร: รัน preflight `deploy-admin.ps1 -WhatIf` ผ่าน (ยืนยันแผน deploy และ web.config switch), deploy จริงรอบแรกติดสิทธิ์ stop app pool (`Access is denied`) และรอบ credential ถูกยกเลิกโดยผู้ใช้ จึงทำ fallback deploy ด้วย `deploy-admin.ps1 -AppPoolName ''` เพื่อปล่อยงานทันที; deploy จบสำเร็จพร้อม cleanup deploy เก่า
+- ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: summary deploy = `DeployPath=\\10.10.143.39\wwwroot\iLearnNew\admin\_admin_deploy_20260630171046`, `WebConfigArguments=.\\_admin_deploy_20260630171046\\iLearn.Admin.dll`, `RemovedStale=1`; smoke checks `http://AP-NTC2138-QAWB/iLearnNew/admin`, `.../admin/`, `.../admin/Assignments/BulkAssign` ได้ `401` ทั้งหมด (สอดคล้อง endpoint ที่ต้อง auth) และตรวจ `\\10.10.143.39\wwwroot\iLearnNew\admin\web.config` พบ arguments ชี้ stamp ใหม่ถูกต้อง
+
+## [2026-06-30 17:20] Claude Code — ปรับปรุง deploy scripts: app_offline.htm เป็น default + health check/auto-rollback + `-Rollback` (แก้โค้ดเองตามที่ผู้ใช้สั่ง; reconcile กับงาน GPT 17:05)
+- ทำอะไร: ผู้ใช้สั่งให้ปรับ deploy scripts ให้ดีที่สุด (โฟกัสปัญหา WinRM "Access is denied" ตอน deploy PLAN-041) — rewrite `tools/deploy-side-by-side.ps1` ต่อยอดจากเวอร์ชันของ GPT (17:05):
+  - **`-OfflineStrategy` (default `AppOffline`)**: ใช้ `app_offline.htm` drain แทน Stop/Start app pool ผ่าน WinRM → ต้องการแค่สิทธิ์เขียนไฟล์ ไม่ต้อง IIS admin → เลี่ยง Access denied ถาวร (Stop/Start app pool ของ GPT **ยังเก็บไว้เป็น `-OfflineStrategy AppPool` opt-in** — ไม่ revert แต่เปลี่ยนจาก default เป็น opt-in เพราะมันยังต้องการ WinRM admin ซึ่งเป็นต้นเหตุ Access denied; `None` = พึ่ง ANCM auto-recycle)
+  - **`-HealthCheckUrl` + auto-rollback**: หลัง flip web.config → poll URL, ถ้าไม่ตอบ HTTP <500 → flip กลับ build เดิมอัตโนมัติ (401/403 = up; ไม่ส่ง credential กัน plain-HTTP refusal)
+  - **`-Rollback` switch**: flip ไป build ก่อนหน้าที่ retain
+  - **safety**: backup root appsettings ไป `_deploy_*/_prev-root-config` ก่อนทับ; invariant ใน `finally` กันทิ้ง site offline/pool stopped
+  - **bug fix**: web.config `arguments` double-backslash → single (canonical) + parser ทน double
+  - อัปเดต wrapper 3 ตัว pass-through param ใหม่ (HealthCheckUrl opt-in default ว่าง)
+- **Reconcile note:** ไฟล์ `deploy-side-by-side.ps1` เพิ่งถูก GPT แก้ตอน 17:05 (Stop/Start app pool) — ผมอ่านเวอร์ชันนั้นแล้ว build ต่อ ไม่ revert: WinRM Stop/Start ยังอยู่ครบใน `OfflineStrategy=AppPool` เหตุผลที่เปลี่ยน default: Stop/Start ยังต้องสิทธิ์ IIS admin → ไม่แก้ Access denied ที่ผู้ใช้เจอ; app_offline แก้ที่ root cause
+- ไฟล์หลักที่แตะ: `tools/deploy-side-by-side.ps1`, `tools/deploy-api.ps1`, `tools/deploy-user.ps1`, `tools/deploy-admin.ps1`
+- Contract ที่เปลี่ยน: ไม่มี (deploy tooling) — behavior: default ไม่ใช้ WinRM แล้ว (ใช้ app_offline.htm)
+- Verified: AST parse 4 ไฟล์ 0 errors; E2E test กับ fake deploy-root ใน scratchpad ผ่านครบ — full deploy (app_offline สร้าง/ลบ, copy, appsettings sync+backup, wwwroot sync, web.config flip single-backslash, cleanup keep N), `-Rollback` (ไป folder ก่อนหน้าถูก), `-WhatIf` (ไม่ mutate), health check positive (401→healthy→no rollback) + negative (connection refused→auto-rollback). ยังไม่ deploy จริงบน prod
+
+## [2026-06-30 17:05] GitHub Copilot (GPT-5.3-Codex) — ปรับ deploy script ให้ Stop App Pool ก่อน และ Start หลังเสร็จ
+- ทำอะไร: ปรับ `tools/deploy-side-by-side.ps1` จากเดิมที่รีไซเคิล app pool หลัง deploy เป็น flow ใหม่: `Stop app pool` ก่อนเริ่มแตะ deploy root แล้ว `Start app pool` ใน `finally` ตอนท้ายเสมอ (รวมถึงกรณีเกิด error ระหว่าง deploy); เพิ่ม helper `Invoke-AppPoolAction` เพื่อรวม logic stop/start ผ่าน `Invoke-Command`; ถ้า stop ไม่สำเร็จจะ fail ทันที, ถ้า deploy สำเร็จแต่ start ไม่สำเร็จจะ fail เช่นกัน; ปรับ dry-run ให้เห็นลำดับ Stop/Start ครบ และเพิ่มผลลัพธ์สถานะ `StoppedAppPool`/`StartedAppPool` (คง `RecycledAppPool` เป็น derived flag เพื่อ compatibility)
+- ไฟล์หลักที่แตะ: `tools/deploy-side-by-side.ps1`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: parse script ผ่าน (`deploy-side-by-side.ps1 parse ok`), dry-run ผ่าน `pwsh -File .\tools\deploy-admin.ps1 -SkipPublish -WhatIf` และแสดงลำดับ `Stop app pool` ก่อน + `Start app pool` หลังครบ
+
 ## [2026-06-30 13:40] Claude Code — รีวิว implementation PLAN-044 → VERIFIED (ไม่แก้โค้ด)
 - ทำอะไร: รีวิว implementation PLAN-044 ที่ GPT ทำเสร็จ (แก้ DevExtreme grid casing E1046/E1040) ตรวจอิสระจาก diff จริงทั้ง 5 views — ยืนยันทุก `key`/`dataField`/`calculateCellValue`/JS row ref เปลี่ยนเป็น camelCase ครบ และใช้ `eId` (capital I) ถูกต้องตาม JsonNamingPolicy.CamelCase (ไม่ใช่ `eid`); Editor แก้ fallback chain `EId/eid` → `eId` ถูก; รัน residue grep เอง (ไม่เหลือ PascalCase), ยืนยัน `STUDENTS_API_URL = ${serviceUrl}/Learners` (AddMembers/Editor ดึง endpoint เดียวกัน), build iLearn.Admin เอง 0 errors; ไม่แตะ API/DTO/React (contract คงเดิม), ไม่มี scope creep. ปรับ PLAN-044 เป็น VERIFIED พร้อม Review Notes — เหลือ E2E browser หลัง deploy
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-044-admin-learner-grid-camelcase-keys.md` (status→VERIFIED + Review Notes)

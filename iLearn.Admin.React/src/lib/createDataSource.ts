@@ -48,7 +48,7 @@ export const createAdminDataSource = <T>({
     searchExpr?: string | string[] | undefined
     filter?: any[] | undefined
   }): Promise<{ data: T[]; totalCount: number }> => {
-    const url = new URL(loadUrl)
+    const url = new URL(loadUrl, window.location.origin)
 
     // Apply generic custom loadParams first if configured
     if (loadParams) {

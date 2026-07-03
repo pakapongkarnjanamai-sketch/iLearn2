@@ -13,16 +13,27 @@ param(
 
     [pscredential]$IisCredential,
 
+    # Default offline strategy needs only file-write permission (no IIS admin / WinRM).
+    [ValidateSet('AppOffline', 'AppPool', 'None')]
+    [string]$OfflineStrategy = 'AppOffline',
+
+    # Optional post-deploy smoke check (auto-rollback on failure). Opt-in — confirm the deploy
+    # host can reach prod first. Suggested: 'https://ap-ntc2138-qawb/iLearnNew/admin/'
+    [string]$HealthCheckUrl = '',
+
+    [switch]$Rollback,
+
     [switch]$SkipPublish
 )
 
 $params = @{
     ProjectPath        = 'iLearn.Admin/iLearn.Admin.csproj'
-    DeployRoot         = '\\10.10.143.39\wwwroot\iLearnNew\admin'
+    DeployRoot         = '\\AP-NTC2138-QAWB\wwwroot\iLearnNew\admin'
     DllName            = 'iLearn.Admin.dll'
     DeployFolderPrefix = '_admin_deploy_'
     PublishOutput      = 'artifacts/publish/iLearn.Admin'
     Configuration      = $Configuration
+    OfflineStrategy    = $OfflineStrategy
     SkipPublish        = $SkipPublish
 }
 
@@ -35,6 +46,12 @@ if ($AppPoolName) {
 }
 if ($IisCredential) {
     $params.IisCredential = $IisCredential
+}
+if ($HealthCheckUrl) {
+    $params.HealthCheckUrl = $HealthCheckUrl
+}
+if ($Rollback) {
+    $params.Rollback = $true
 }
 
 & (Join-Path $PSScriptRoot 'deploy-side-by-side.ps1') @params -WhatIf:$WhatIfPreference

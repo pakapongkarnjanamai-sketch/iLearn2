@@ -1,5 +1,6 @@
-import { Bell, Menu } from 'lucide-react'
+import { ArrowLeftRight, Bell, Menu } from 'lucide-react'
 import type { CurrentAdminUser } from '../../lib/auth'
+import { appConfig } from '../../config/appConfig'
 import { Breadcrumbs } from './Breadcrumbs'
 
 type HeaderProps = {
@@ -36,6 +37,15 @@ export function Header({ currentUser, sessionState: _sessionState, onMenuClick }
       </div>
 
       <div className="flex min-w-0 items-center gap-3">
+        {appConfig.legacyAdminUrl && (
+          <a
+            href={appConfig.legacyAdminUrl}
+            className="admin-button inline-flex items-center gap-1.5 text-xxs font-extrabold text-slate-500 border border-slate-200 bg-white hover:bg-slate-50 rounded-md px-2.5 py-1.5 no-underline"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
+            Classic Admin
+          </a>
+        )}
         <button type="button" className="inline-grid h-[34px] w-[34px] place-items-center rounded-md border border-slate-200 bg-white text-slate-500 cursor-pointer [&_svg]:w-[17px] [&_svg]:h-[17px]" aria-label="Notifications">
           <Bell aria-hidden="true" />
         </button>

@@ -48,7 +48,7 @@ export const createRestDataSource = <T>({
     searchExpr?: string | string[] | undefined
     filter?: any[] | undefined
   }): Promise<{ data: T[]; totalCount: number }> => {
-    const url = new URL(loadUrl)
+    const url = new URL(loadUrl, window.location.origin)
 
     // Calculate 1-based page index from skip/take
     const skip = options.skip ?? 0

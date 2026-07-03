@@ -88,4 +88,11 @@ export const appConfig = {
     getEnv('VITE_ILEARN_ADMIN_ENABLE_SIGNALR', 'VITE_ENABLE_SIGNALR') === 'true',
   enableSessionBootstrap:
     getEnv('VITE_ILEARN_ADMIN_ENABLE_SESSION_BOOTSTRAP', 'VITE_ENABLE_SESSION_BOOTSTRAP') !== 'false',
+  legacyAdminUrl: (() => {
+    const base = normalizeBasePath(
+      getEnv('VITE_ILEARN_ADMIN_APP_BASE_PATH', 'VITE_APP_BASE_PATH'),
+    )
+    const match = base.match(/\/admin-react\/?$/i)
+    return match ? base.replace(/\/admin-react\/?$/i, '/admin') : ''
+  })(),
 } as const
