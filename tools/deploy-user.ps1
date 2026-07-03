@@ -7,7 +7,7 @@ param(
 
     [string]$Stamp,
 
-    [string]$AppPoolName = 'iLearnNew.User',
+    [string]$AppPoolName = 'iLearn.User',
 
     [string]$IisHost = 'AP-NTC2138-QAWB',
 
@@ -18,7 +18,7 @@ param(
     [string]$OfflineStrategy = 'AppOffline',
 
     # Optional post-deploy smoke check (auto-rollback on failure). Opt-in — confirm the deploy
-    # host can reach prod first. Suggested: 'https://ap-ntc2138-qawb/iLearnNew/'
+    # host can reach QA first. Suggested: 'https://ap-ntc2138-qawb/iLearn/'
     [string]$HealthCheckUrl = '',
 
     [switch]$Rollback,
@@ -28,7 +28,7 @@ param(
 
 $params = @{
     ProjectPath        = 'iLearn.User/iLearn.User.csproj'
-    DeployRoot         = '\\AP-NTC2138-QAWB\wwwroot\iLearnNew'
+    DeployRoot         = '\\AP-NTC2138-QAWB\wwwroot\iLearn'
     DllName            = 'iLearn.User.dll'
     DeployFolderPrefix = '_user_deploy_'
     PublishOutput      = 'artifacts/publish/iLearn.User'
