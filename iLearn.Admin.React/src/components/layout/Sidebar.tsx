@@ -37,8 +37,8 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
   return (
     <aside
       className={`
-        flex h-screen flex-col overflow-hidden border-r border-[#1d3554] bg-slate-900 text-blue-50 
-        transition-all duration-200 ease-in-out shrink-0
+        flex h-screen flex-col overflow-hidden border-r border-[#1d3554] bg-slate-900 text-blue-50
+        transition-all duration-200 ease-in-out shrink-0 print:hidden
         
         min-[1121px]:sticky min-[1121px]:top-0
         ${isOpen ? 'min-[1121px]:w-[210px] min-[1121px]:opacity-100' : 'min-[1121px]:w-0 min-[1121px]:opacity-0 min-[1121px]:invisible min-[1121px]:border-r-0'}

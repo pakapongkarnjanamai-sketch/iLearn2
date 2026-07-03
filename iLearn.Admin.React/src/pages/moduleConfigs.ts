@@ -70,11 +70,14 @@ export const adminListConfigs = {
     searchExpr: ['assignmentNo', 'description'],
     columns: [
       { dataField: 'assignmentNo', caption: 'Assignment No.', width: 150 },
-      { dataField: 'description', caption: 'Description', minWidth: 240 },
-      { dataField: 'courseNames', caption: 'Courses', minWidth: 240 },
-      { dataField: 'divisionId', caption: 'Division', dataType: 'number', width: 150 },
-      { dataField: 'startDate', caption: 'Start Date', dataType: 'date', width: 140 },
-      { dataField: 'dueDate', caption: 'Due Date', dataType: 'date', width: 140 },
+      { dataField: 'description', caption: 'Description', minWidth: 220 },
+      { dataField: 'courseNames', caption: 'Courses', minWidth: 220 },
+      // status + learnerCount are computed inside vw_AssignmentList (AssignmentListRow)
+      { dataField: 'status', caption: 'Status', width: 120, alignment: 'center' },
+      { dataField: 'learnerCount', caption: 'Learners', dataType: 'number', width: 100, alignment: 'center' },
+      { dataField: 'divisionId', caption: 'Division', dataType: 'number', width: 140 },
+      { dataField: 'startDate', caption: 'Start Date', dataType: 'date', width: 130 },
+      { dataField: 'dueDate', caption: 'Due Date', dataType: 'date', width: 130 },
     ],
   },
   learners: {

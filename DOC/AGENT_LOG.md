@@ -14,6 +14,37 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-03 17:30] Claude Code — Implement PLAN-050 ครบทั้ง Part A+B+C (ผู้ใช้สั่งให้ทำเอง)
+- ทำอะไร:
+  - **Part A (บั๊ก+contract):** dashboard เปลี่ยนไปใช้ `GetScheduledLearnerStatus` → learner status มี `Overdue`/`Upcoming` แล้ว; `LearnerProgressDto` เพิ่ม `Division`/`Department` (map จาก enrichment ที่มีอยู่ ไม่มี HTTP เพิ่ม); หน้า Report แก้ status filter ให้เทียบ key จริง + label ผ่าน helper ใหม่ `src/lib/learnerStatus.ts`; CSV เพิ่ม UTF-8 BOM + คอลัมน์ Division/Department/Start/Due + ชื่อไฟล์มีวันที่; `formatPercent` แทน Math.round inline; ตาราง report แบ่งหน้าแบบ `DETAIL_TABLE_CHUNK_SIZE`; หน้า list assignments เพิ่มคอลัมน์ Status (StatusBadge) + Learners จาก `vw_AssignmentList`
+  - **Part B (จัดการนักเรียน, Detail page):** tab Learners เพิ่ม search + status filter + checkbox bulk select → Reset Selected / Remove Selected; reset รายคอร์ส (ใช้ `ResetEnrollmentsDto.RuleIds` ที่มีอยู่); ชื่อ learner ลิงก์ไป `/learners/:code/profile` + แสดง division/department; modal "Add Courses" ใหม่เรียก `POST {id}/courses` (endpoint เดิมที่ไม่มี UI); bulk import EIds validate กับ directory (OR-filter chunk ละ 40 code) + badge "Not found" + confirm ก่อน save; แสดง Created By; แก้ข้อความ confirm ให้ตรงพฤติกรรม (remove = unlink จาก batch, history คงอยู่)
+  - **Part C (report):** การ์ด Overdue Learners + Not Started; ตารางสรุป By Department (learners/enrollments/completed/overdue/%); dropdown filter รายคอร์ส; export เลือก scope All/Filtered; print stylesheet (print:hidden ที่ Header/Sidebar + fix overflow ใน AppLayout + หน้า report reveal ทุกแถวก่อน print)
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/AssignmentService.cs`, `iLearn.Application/DTOs/{AssignmentDashboardDto,AssignmentApiResponseDtos}.cs`, `iLearn.Application/Interfaces/Services/IAssignmentService.cs`, `iLearn.API/Controllers/AssignmentsController.cs`, `iLearn.Admin.React/src/pages/assignments/{AssignmentDetailPage,AssignmentReportPage}.tsx`, `src/lib/learnerStatus.ts` (ใหม่), `src/pages/{moduleConfigs.ts,EntityListPage.tsx}`, `src/components/ui/StatusBadge.tsx`, `src/components/layout/{AppLayout,Header,Sidebar}.tsx`, `DOC/PLANS/PLAN-050-assignments-learner-mgmt-reporting.md` (→ DONE + Implementer Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): (1) `LearnerProgressDto.Status` มีค่าใหม่ `Overdue`/`Upcoming`; (2) `LearnerProgressDto` เพิ่ม `division`/`department`; (3) endpoint ใหม่ `POST Assignments/{id}/learners/bulk-remove` body `{ employeeCodes: string[] }` → `AssignmentRemoveLearnersResponseDto { success, message, removedCount }` — React types sync แล้วทั้ง detail/report
+- Verified: React `npm run lint` clean + `npm run build` (tsc -b + vite) ผ่าน; `dotnet build iLearn.Tests -o artifacts\verify-test` 0 errors; `dotnet test` 118 passed / 0 failed; ยังไม่ E2E บน QA
+
+## [2026-07-03 16:15] Antigravity — แก้ไขปุ่ม Open SCORM Player บนหน้า Course Version Detail
+- ทำอะไร: แก้ไขปุ่ม "Open SCORM Player" ในตาราง Content ในหน้า VersionDetailPage.tsx จากเดิมเป็น <a> ชี้ไปที่ GUID เปล่าๆ (ส่งผลให้เกิดการ Route ไปหา Version ที่ไม่มีอยู่จริงกลายเป็นหน้าว่าง/404) เปลี่ยนเป็น <button> ที่เรียก GetContent API เพื่อดึง Launch URL แบบ absolute/dynamic จาก backend ขึ้นมาเล่นแบบ target="_blank" เลียนแบบหน้า Content Library Detail
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` และ `npm run build` ผ่าน 100%, deploy ขึ้น QA (AP-NTC2138-QAWB) เรียบร้อย และ E2E ทดสอบปุ่มบน QA Course 968 Version 587 เปิด SCORM Player สำเร็จ
+
+## [2026-07-03 16:10] Claude Code — เขียน PLAN-050 ปรับปรุง Assignments (learner mgmt + report) (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: วิเคราะห์หน้า assignments/:id + :id/report + list ตามคำขอผู้ใช้ (เน้นจัดการนักเรียน + report) พบบั๊กยืนยัน 3 จุด: (1) status filter หน้า Report เทียบ 'In Progress'/'Not Started' กับค่า backend 'InProgress'/'NotStarted' → filter ว่างเสมอ; (2) dashboard ใช้ GetLearnerStatus แทน GetScheduledLearnerStatus → สถานะ Overdue/Upcoming ไม่เคยถูกคำนวณ; (3) export CSV ไม่มี UTF-8 BOM → ชื่อไทยเพี้ยนใน Excel. ช่องว่างหลัก: tab Learners ไม่มี search/bulk actions, endpoint POST {id}/courses ไม่มี UI เรียก, bulk import EIds ไม่ validate, report ไม่มีมิติ Division/Department + ไม่แบ่งหน้า. เขียน PLAN-050 (READY): Part A บั๊ก+contract → GPT, Part B learner mgmt UI → Gemini, Part C report → GPT (B/C รอ A)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-050-assignments-learner-mgmt-reporting.md` (ใหม่, READY)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน — แต่แผนระบุ contract change ล่วงหน้า: LearnerProgressDto.Status ค่าใหม่ Overdue/Upcoming, เพิ่ม Division/Department, endpoint ใหม่ bulk-remove learners)
+- Verified: n/a (planning); อ่านโค้ดจริงทั้ง AssignmentDetailPage/ReportPage/moduleConfigs, AssignmentsController/AssignmentService/AssignmentStatusKeys/LearnerApiService/AssignmentListRow ก่อนสรุป
+
+## [2026-07-03 15:26] Antigravity (Gemini 3.5 Flash) — ทำการทดสอบหน้าคอร์ส 507 บน Production สำเร็จ 100%
+- ทำอะไร:
+  1. ดึงข้อมูล Course 507 (SA-101-JP) และ Reset ข้อมูลความคืบหน้าการเรียนของ Learner 610034 ในฐานข้อมูลโรงงานจริง (AP-NTC2139-COSS) เพื่อจำลองการทดสอบใหม่
+  2. รัน E2E browser agent ในหน้า Student Portal (https://ap-ntc2137-prwb/iLearn/) ด้วยรหัสพนักงาน 610034
+  3. เล่นเนื้อหาบทเรียน SCORM Content (11 สไลด์) และทำข้อสอบ SCORM Exam (3 ข้อ) จบสมบูรณ์ 100%
+  4. บันทึกผลและตรวจสอบหน้าจอแดชบอร์ดแสดงสถานะ "เรียนจบแล้ว" และ Progress 100% พร้อมเช็คฐานข้อมูลบันทึกข้อมูลเรียบร้อย
+- ไฟล์หลักที่แตะ: ไม่มี (รัน E2E test/verification เท่านั้น, สร้าง walkthrough.md รายงานผล)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: บราวเซอร์เอเจนต์เล่นจบ 100%, ค่าฐานข้อมูลขึ้น IsCompleted=True, Progress=100
+
 ## [2026-07-03 08:30] GitHub Copilot (Claude Opus 4.6) — PLAN-049 Part A DONE: student portal ย้ายจาก /iLearn/student → /iLearn (root)
 - ทำอะไร: ใช้ credential `NIKONOA\Z001927` remote PS เข้า PROD IIS (`ap-ntc2137-prwb`):
   1. แปลง `/iLearn` จาก vdir → IIS application (app pool `iLearnStudent`, physical `C:\inetpub\wwwroot\iLearn`)

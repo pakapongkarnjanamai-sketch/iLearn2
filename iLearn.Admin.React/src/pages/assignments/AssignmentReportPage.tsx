@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { BookOpen, Download, FileBarChart, Printer } from 'lucide-react'
+import { BookOpen, Building2, ChevronDown, Download, FileBarChart, Printer } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { DetailCard, DetailLayout, DetailSubSection, Fact, FactGrid } from '../../components/ui/detail'
@@ -9,20 +9,27 @@ import { ListToolbar } from '../../components/ui/ListToolbar'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { AppButton } from '../../components/ui/AppButton'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
-import { formatDate } from '../../lib/format'
+import { formatDate, formatPercent } from '../../lib/format'
+import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
+import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
 // Mirrors LearnerProgressDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
 type LearnerRow = {
   learnerCode: string
   learnerName?: string | null
+  division?: string | null
+  department?: string | null
   assignmentRuleId?: number | null
   courseCode?: string | null
   courseTitle?: string | null
   progress: number
   isCompleted: boolean
+  // AssignmentStatusKeys.Learner: Completed | InProgress | NotStarted | Overdue | Upcoming
   status: string
   completedDate?: string | null
   startDate?: string | null
@@ -53,7 +60,16 @@ type AssignmentDashboard = {
   learners: LearnerRow[]
 }
 
-const STATUS_BUCKETS = ['Completed', 'In Progress', 'Not Started', 'Overdue'] as const
+type DepartmentSummary = {
+  department: string
+  learnerCount: number
+  enrollments: number
+  completed: number
+  overdue: number
+  completionRate: number
+}
+
+const STATUS_FILTERS = ['All', ...LEARNER_STATUS_KEYS] as const
 
 export function AssignmentReportPage() {
   const { id } = useParams()
@@ -61,7 +77,9 @@ export function AssignmentReportPage() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<AssignmentDashboard | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('All')
+  const [courseFilter, setCourseFilter] = useState<'All' | number>('All')
   const [search, setSearch] = useState('')
+  const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
   useEffect(() => {
     let cancelled = false
@@ -86,43 +104,116 @@ export function AssignmentReportPage() {
     }
   }, [data, id, setLabel])
 
+  useEffect(() => {
+    setVisibleRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [statusFilter, courseFilter, search])
+
   const filtered = useMemo(() => {
     if (!data) return []
     const q = search.trim().toLowerCase()
     return data.learners.filter((row) => {
       if (statusFilter !== 'All' && row.status !== statusFilter) return false
+      if (courseFilter !== 'All' && row.assignmentRuleId !== courseFilter) return false
       if (!q) return true
       return (
         row.learnerCode.toLowerCase().includes(q) ||
         (row.learnerName ?? '').toLowerCase().includes(q) ||
+        (row.division ?? '').toLowerCase().includes(q) ||
+        (row.department ?? '').toLowerCase().includes(q) ||
         (row.courseCode ?? '').toLowerCase().includes(q) ||
         (row.courseTitle ?? '').toLowerCase().includes(q)
       )
     })
-  }, [data, statusFilter, search])
+  }, [data, statusFilter, courseFilter, search])
 
-  const exportCsv = () => {
-    if (!data) return
-    const header = ['Learner Code', 'Name', 'Course Code', 'Course Title', 'Status', 'Progress %', 'Completed Date']
-    const rows = filtered.map((l) => [
+  const overdueLearnerCount = useMemo(() => {
+    if (!data) return 0
+    return new Set(
+      data.learners.filter((row) => row.status === 'Overdue').map((row) => row.learnerCode),
+    ).size
+  }, [data])
+
+  const departmentSummaries = useMemo<DepartmentSummary[]>(() => {
+    if (!data) return []
+    const groups = new Map<string, LearnerRow[]>()
+    data.learners.forEach((row) => {
+      const key = row.department?.trim() || 'Unspecified'
+      const list = groups.get(key)
+      if (list) {
+        list.push(row)
+      } else {
+        groups.set(key, [row])
+      }
+    })
+
+    return Array.from(groups.entries())
+      .map(([department, rows]) => {
+        const completed = rows.filter((row) => row.isCompleted).length
+        return {
+          department,
+          learnerCount: new Set(rows.map((row) => row.learnerCode)).size,
+          enrollments: rows.length,
+          completed,
+          overdue: rows.filter((row) => row.status === 'Overdue').length,
+          completionRate: rows.length === 0 ? 0 : (completed / rows.length) * 100,
+        }
+      })
+      .sort((a, b) => {
+        if (a.department === 'Unspecified') return 1
+        if (b.department === 'Unspecified') return -1
+        return a.department.localeCompare(b.department)
+      })
+  }, [data])
+
+  const exportCsv = (rows: LearnerRow[], scope: 'all' | 'filtered') => {
+    if (!data || rows.length === 0) {
+      toast.info('No rows to export')
+      return
+    }
+    const header = [
+      'Learner Code',
+      'Name',
+      'Division',
+      'Department',
+      'Course Code',
+      'Course Title',
+      'Status',
+      'Progress %',
+      'Start Date',
+      'Due Date',
+      'Completed Date',
+    ]
+    const body = rows.map((l) => [
       l.learnerCode,
       l.learnerName ?? l.learnerCode,
+      l.division ?? '',
+      l.department ?? '',
       l.courseCode ?? '',
       l.courseTitle ?? '',
-      l.status,
-      String(Math.round(l.progress)),
+      learnerStatusLabel(l.status),
+      formatPercent(l.progress).replace('%', ''),
+      l.startDate ? formatDate(l.startDate) : '',
+      l.dueDate ? formatDate(l.dueDate) : '',
       l.completedDate ? formatDate(l.completedDate) : '',
     ])
-    const csv = [header, ...rows]
+    const csv = [header, ...body]
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    // The first blob part is a literal (invisible) U+FEFF BOM char — required so Excel decodes Thai names as UTF-8
+    const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
     a.href = url
-    a.download = `assignment-${data.assignmentNo || id}-report.csv`
+    a.download = `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handlePrint = () => {
+    // Reveal every row first so the printout is not cut off at the current chunk
+    setVisibleRows(filtered.length)
+    setTimeout(() => window.print(), 150)
   }
 
   if (loading) {
@@ -140,16 +231,27 @@ export function AssignmentReportPage() {
     )
   }
 
+  const visible = filtered.slice(0, visibleRows)
+  const isFiltered = statusFilter !== 'All' || courseFilter !== 'All' || search.trim() !== ''
+
   return (
     <div className="space-y-6">
       <DetailLayout
         sidebar={
-          <ControlsSidebar>
-            <ControlAction icon={Printer} onClick={() => window.print()}>
+          <ControlsSidebar className="print:hidden">
+            <ControlAction icon={Printer} onClick={handlePrint}>
               Print Report
             </ControlAction>
-            <ControlAction icon={Download} onClick={exportCsv}>
-              Export CSV
+            <ControlAction icon={Download} onClick={() => exportCsv(data.learners, 'all')}>
+              Export CSV (All)
+            </ControlAction>
+            <ControlAction
+              icon={Download}
+              onClick={() => exportCsv(filtered, 'filtered')}
+              disabled={!isFiltered}
+              title={isFiltered ? undefined : 'Apply a filter or search to export a subset'}
+            >
+              Export CSV (Filtered)
             </ControlAction>
           </ControlsSidebar>
         }
@@ -169,16 +271,24 @@ export function AssignmentReportPage() {
                 {data.chartData.completed}
               </Fact>
               <Fact label="Completion" valueClassName="font-bold text-slate-800 text-lg">
-                {Math.round(data.completionRate)}%
+                {formatPercent(data.completionRate)}
+              </Fact>
+              <Fact label="Not Started">
+                <span className="font-bold text-slate-800 text-lg">{data.chartData.notStarted}</span>
+              </Fact>
+              <Fact label="Overdue Learners">
+                <span className={`font-bold text-lg ${overdueLearnerCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>
+                  {overdueLearnerCount}
+                </span>
+              </Fact>
+              <Fact label="Courses" valueClassName="font-bold text-slate-800 text-lg">
+                {data.totalCourses}
               </Fact>
               <Fact label="Start Date" valueClassName="font-semibold text-slate-700">
                 {data.startDate ? formatDate(data.startDate) : '—'}
               </Fact>
               <Fact label="Due Date" valueClassName="font-semibold text-slate-700">
                 {data.dueDate ? formatDate(data.dueDate) : '—'}
-              </Fact>
-              <Fact label="Courses" valueClassName="font-bold text-slate-800 text-lg">
-                {data.totalCourses}
               </Fact>
             </FactGrid>
 
@@ -208,17 +318,58 @@ export function AssignmentReportPage() {
             )}
           </DetailCard>
 
+          {/* Department breakdown */}
+          {departmentSummaries.length > 0 && (
+            <Card icon={Building2} title="By Department">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                      <th className="p-3 pl-5">Department</th>
+                      <th className="p-3 text-center">Learners</th>
+                      <th className="p-3 text-center">Enrollments</th>
+                      <th className="p-3 text-center">Completed</th>
+                      <th className="p-3 text-center">Overdue</th>
+                      <th className="p-3 pr-5">Completion</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {departmentSummaries.map((row) => (
+                      <tr key={row.department} className="hover:bg-slate-50/50 transition duration-100">
+                        <td className="p-3 pl-5 font-semibold text-slate-800 text-xs">{row.department}</td>
+                        <td className="p-3 text-center text-xs">{row.learnerCount}</td>
+                        <td className="p-3 text-center text-xs">{row.enrollments}</td>
+                        <td className="p-3 text-center text-xs">{row.completed}</td>
+                        <td className="p-3 text-center text-xs">
+                          <span className={row.overdue > 0 ? 'font-bold text-red-600' : 'text-slate-400'}>
+                            {row.overdue}
+                          </span>
+                        </td>
+                        <td className="p-3 pr-5">
+                          <div className="flex items-center gap-3">
+                            <ProgressBar value={row.completionRate} completed={row.completionRate >= 100} maxWidthClass="max-w-28" />
+                            <span className="text-xxs font-bold text-slate-500">{formatPercent(row.completionRate)}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
           {/* Learner table */}
           <Card>
             {/* Filter & Search bar */}
-            <div className="border-b border-slate-100 bg-slate-50/20 px-5">
+            <div className="border-b border-slate-100 bg-slate-50/20 px-5 print:hidden">
               <ListToolbar
                 searchValue={search}
                 onSearchChange={setSearch}
-                searchPlaceholder="Search code, name, course..."
+                searchPlaceholder="Search code, name, department, course..."
                 toolbarContent={
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {(['All', ...STATUS_BUCKETS] as const).map((s) => (
+                    {STATUS_FILTERS.map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -229,9 +380,29 @@ export function AssignmentReportPage() {
                             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        {s}
+                        {s === 'All' ? 'All' : learnerStatusLabel(s)}
                       </button>
                     ))}
+
+                    {data.courses.length > 1 && (
+                      <div className="relative shrink-0">
+                        <select
+                          value={courseFilter === 'All' ? 'All' : String(courseFilter)}
+                          onChange={(e) =>
+                            setCourseFilter(e.target.value === 'All' ? 'All' : Number(e.target.value))
+                          }
+                          className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-600 hover:border-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        >
+                          <option value="All">All Courses</option>
+                          {data.courses.map((c) => (
+                            <option key={c.assignmentRuleId} value={c.assignmentRuleId}>
+                              {c.courseCode} — {c.courseTitle}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    )}
                   </div>
                 }
               />
@@ -243,21 +414,33 @@ export function AssignmentReportPage() {
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
                     <th className="p-3 pl-5">Learner</th>
                     <th className="p-3">Course Code & Title</th>
+                    <th className="p-3">Status</th>
                     <th className="p-3">Progress</th>
                     <th className="p-3">Timeline</th>
                     <th className="p-3 pr-5">Completed Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {filtered.map((row, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50 transition duration-100">
+                  {visible.map((row) => (
+                    <tr
+                      key={`${row.learnerCode}-${row.assignmentRuleId ?? row.courseCode ?? ''}`}
+                      className="hover:bg-slate-50/50 transition duration-100"
+                    >
                       <td className="p-3 pl-5">
                         <div className="font-bold text-slate-800 text-xs sm:text-[13px]">{row.learnerName || '—'}</div>
                         <div className="text-xxs font-mono text-slate-400 mt-0.5">{row.learnerCode}</div>
+                        {(row.division || row.department) && (
+                          <div className="text-xxs text-slate-400 mt-0.5">
+                            {[row.division, row.department].filter(Boolean).join(' · ')}
+                          </div>
+                        )}
                       </td>
                       <td className="p-3 select-all">
                         <div className="font-bold text-slate-700 text-xs">{row.courseTitle || '—'}</div>
                         <div className="text-xxs font-mono text-slate-400 mt-0.5">{row.courseCode}</div>
+                      </td>
+                      <td className="p-3">
+                        <StatusBadge size="xxs">{learnerStatusLabel(row.status)}</StatusBadge>
                       </td>
                       <td className="p-3">
                         <ProgressBar value={row.progress} completed={row.isCompleted} />
@@ -273,7 +456,7 @@ export function AssignmentReportPage() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td className="p-6 text-center text-slate-400" colSpan={5}>
+                      <td className="p-6 text-center text-slate-400" colSpan={6}>
                         No learners found.
                       </td>
                     </tr>
@@ -281,6 +464,23 @@ export function AssignmentReportPage() {
                 </tbody>
               </table>
             </div>
+
+            {filtered.length > 0 && (
+              <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2 print:hidden">
+                <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
+                  Showing {visible.length} of {filtered.length}
+                </span>
+                {filtered.length > visible.length && (
+                  <AppButton
+                    variant="ghost"
+                    onClick={() => setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)}
+                    className="px-3 py-1 text-xxs font-bold"
+                  >
+                    Load more
+                  </AppButton>
+                )}
+              </div>
+            )}
           </Card>
         </div>
       </DetailLayout>

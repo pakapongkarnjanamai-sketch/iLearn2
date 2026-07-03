@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Layers, Plus } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
 import { Badge } from '../components/ui/Badge'
+import { StatusBadge } from '../components/ui/StatusBadge'
+import { learnerStatusLabel } from '../lib/learnerStatus'
 import { DataGridSurface } from '../components/ui/DataGridSurface'
 import { AppTable } from '../components/ui/AppTable'
 import { createAdminDataSource } from '../lib/createDataSource'
@@ -49,6 +51,15 @@ export function EntityListPage({ config }: EntityListPageProps) {
           }
         }
       }
+      if (col.dataField === 'status' && config.controller === 'AssignmentsCRUD') {
+        return {
+          ...col,
+          cellRender: ({ value }: any) => {
+            if (!value) return '—'
+            return <StatusBadge size="xxs">{learnerStatusLabel(String(value))}</StatusBadge>
+          }
+        }
+      }
       if (col.dataField === 'courseNames') {
         return {
           ...col,
@@ -72,7 +83,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
       }
       return col
     })
-  }, [config.columns, divisions])
+  }, [config.columns, config.controller, divisions])
 
   const isCrudEnabled = false
   const isReadOnly =

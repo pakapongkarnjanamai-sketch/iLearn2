@@ -48,6 +48,8 @@ namespace iLearn.Application.DTOs
     {
         public string LearnerCode { get; set; }
         public string? LearnerName { get; set; }
+        public string? Division { get; set; }
+        public string? Department { get; set; }
         public int? AssignmentRuleId { get; set; }
         public string? CourseCode { get; set; }
         public string? CourseTitle { get; set; }

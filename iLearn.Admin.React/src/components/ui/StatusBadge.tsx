@@ -16,6 +16,8 @@ export function statusTone(status: string | null | undefined): StatusTone {
     case 'Overdue':
     case 'Expired':
       return 'danger'
+    case 'Upcoming':
+      return 'warning'
     default:
       return 'neutral'
   }

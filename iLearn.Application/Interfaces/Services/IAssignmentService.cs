@@ -74,6 +74,12 @@ namespace iLearn.Application.Interfaces.Services
             int? divisionId,
             CancellationToken cancellationToken = default);
 
+        Task<AssignmentRemoveLearnersResponseDto> RemoveLearnersFromAssignmentAsync(
+            int assignmentId,
+            ManageAssignmentLearnersDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyList<Course>> GetAccessibleCoursesAsync(
             IEnumerable<int> courseIds,
             int? divisionId,

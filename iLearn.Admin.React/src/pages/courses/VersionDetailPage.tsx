@@ -79,6 +79,11 @@ type VersionGeneralForm = {
   isActive: boolean
 }
 
+// Mirrors anonymous object returned by GET ContentItems/{id}/content in ContentItemsController.cs
+type ContentLaunchResponse = {
+  url: string
+}
+
 type VersionContentDraftItem = {
   uid: string
   source: 'library' | 'upload'
@@ -185,6 +190,24 @@ export function VersionDetailPage() {
 
   const [contentSearch, setContentSearch] = useState('')
   const [contentDraft, setContentDraft] = useState<VersionContentDraftItem[]>([])
+  const [openingPlayerId, setOpeningPlayerId] = useState<number | null>(null)
+
+  const handleOpenPlayer = async (itemId?: number) => {
+    if (!itemId) return
+    setOpeningPlayerId(itemId)
+    try {
+      const result = await fetchWithAccessControl<ContentLaunchResponse>(`ContentItems/${itemId}/content`)
+      if (!result.url) {
+        toast.error('Launch URL is not available for this content item')
+        return
+      }
+      window.open(result.url, '_blank', 'noopener,noreferrer')
+    } catch {
+      toast.error('Failed to open SCORM content')
+    } finally {
+      setOpeningPlayerId(null)
+    }
+  }
 
   const selectedVersion = useMemo(
     () => data?.versions.find(item => item.id === parsedVersionId) ?? null,
@@ -535,15 +558,14 @@ export function VersionDetailPage() {
                               </td>
                               <td className="px-3 py-2">
                                 {launchUrl ? (
-                                  <a
-                                    href={launchUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded border border-indigo-100 px-2 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition"
+                                  <button
+                                    onClick={() => handleOpenPlayer(item.id)}
+                                    disabled={openingPlayerId === item.id}
+                                    className="inline-flex items-center gap-1.5 rounded border border-indigo-100 px-2 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                   >
                                     <ExternalLink className="h-3.5 w-3.5" />
-                                    Open SCORM Player
-                                  </a>
+                                    {openingPlayerId === item.id ? 'Opening...' : 'Open SCORM Player'}
+                                  </button>
                                 ) : (
                                   <span className="text-xs font-semibold text-slate-400">Unavailable</span>
                                 )}

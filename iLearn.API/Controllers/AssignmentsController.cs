@@ -178,6 +178,14 @@ namespace iLearn.API.Controllers
         }
 
         [Authorize(Policy = "AdminOnly")]
+        [HttpPost("{id}/learners/bulk-remove")]
+        public async Task<IActionResult> RemoveLearners(int id, [FromBody] ManageAssignmentLearnersDto dto)
+        {
+            var response = await _assignmentService.RemoveLearnersFromAssignmentAsync(id, dto, _currentUser.DivisionId);
+            return Ok(response);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("lookup-courses")]
         public async Task<IActionResult> GetLookupCourses(DataSourceLoadOptions loadOptions)
         {

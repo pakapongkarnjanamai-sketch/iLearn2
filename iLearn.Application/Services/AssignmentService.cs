@@ -584,27 +584,57 @@ namespace iLearn.Application.Services
             int? divisionId,
             CancellationToken cancellationToken = default)
         {
-            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
-                ?? throw new KeyNotFoundException("Assignment not found");
-
-            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
-
             var normalizedLearnerCode = learnerCode?.Trim();
             if (string.IsNullOrWhiteSpace(normalizedLearnerCode))
             {
                 throw new ArgumentException("Learner code is required.");
             }
 
+            var result = await RemoveLearnersFromAssignmentAsync(
+                assignmentId,
+                new ManageAssignmentLearnersDto { EmployeeCodes = [normalizedLearnerCode] },
+                divisionId,
+                cancellationToken);
+
+            return new AssignmentActionResponseDto
+            {
+                Success = result.Success,
+                Message = "Learner removed successfully.",
+            };
+        }
+
+        public async Task<AssignmentRemoveLearnersResponseDto> RemoveLearnersFromAssignmentAsync(
+            int assignmentId,
+            ManageAssignmentLearnersDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            EnsureDivisionAccess(mainRule.DivisionId, divisionId);
+
+            var requestedLearnerCodes = NormalizeLearnerCodes(dto.EmployeeCodes);
+            if (requestedLearnerCodes.Count == 0)
+            {
+                throw new ArgumentException("At least one learner is required.");
+            }
+
             var batchRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
             var ruleIds = batchRules.Select(rule => rule.Id).ToList();
             var currentLearnerCodes = await GetBatchLearnerCodesAsync(ruleIds, batchRules, cancellationToken);
-            if (!currentLearnerCodes.Contains(normalizedLearnerCode, StringComparer.OrdinalIgnoreCase))
+
+            var codesToRemove = currentLearnerCodes
+                .Where(code => requestedLearnerCodes.Contains(code, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (codesToRemove.Count == 0)
             {
-                throw new KeyNotFoundException("Learner is not assigned to this assignment.");
+                throw new KeyNotFoundException("None of the selected learners are assigned to this assignment.");
             }
 
             var remainingLearnerCodes = currentLearnerCodes
-                .Where(code => !string.Equals(code, normalizedLearnerCode, StringComparison.OrdinalIgnoreCase))
+                .Where(code => !codesToRemove.Contains(code, StringComparer.OrdinalIgnoreCase))
                 .ToList();
 
             await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -613,7 +643,7 @@ namespace iLearn.Application.Services
                 var links = await _enrollmentAssignmentRepo.GetAsync(
                     link => ruleIds.Contains(link.AssignmentId)
                         && link.Enrollment != null
-                        && link.Enrollment.LearnerCode == normalizedLearnerCode,
+                        && codesToRemove.Contains(link.Enrollment.LearnerCode),
                     includeProperties: "Enrollment");
 
                 foreach (var link in links)
@@ -637,10 +667,11 @@ namespace iLearn.Application.Services
                 throw;
             }
 
-            return new AssignmentActionResponseDto
+            return new AssignmentRemoveLearnersResponseDto
             {
                 Success = true,
-                Message = "Learner removed successfully.",
+                Message = $"Removed {codesToRemove.Count} learner(s) from this assignment.",
+                RemovedCount = codesToRemove.Count,
             };
         }
 
@@ -934,6 +965,7 @@ namespace iLearn.Application.Services
                 })
                 .ToList();
 
+            var now = _dateTime.Now;
             var learners = learnerRows
                 .Select(row =>
                 {
@@ -944,11 +976,15 @@ namespace iLearn.Application.Services
                         courseMap.TryGetValue(assignment.CourseId.Value, out course);
                     }
 
-                    var status = AssignmentStatusKeys.GetLearnerStatus(row.IsCompleted, row.Progress);
+                    var status = AssignmentStatusKeys.GetScheduledLearnerStatus(
+                        row.IsCompleted, row.Progress, row.StartDate, row.DueDate, now);
+                    var learnerInfo = learnerNames.GetValueOrDefault(row.LearnerCode);
                     return new LearnerProgressDto
                     {
                         LearnerCode = row.LearnerCode,
-                        LearnerName = learnerNames.GetValueOrDefault(row.LearnerCode)?.Name ?? row.LearnerCode,
+                        LearnerName = learnerInfo?.Name ?? row.LearnerCode,
+                        Division = learnerInfo?.Division,
+                        Department = learnerInfo?.Department,
                         AssignmentRuleId = row.AssignmentId,
                         CourseCode = course?.Code ?? "-",
                         CourseTitle = course?.Title ?? "Unknown Course",

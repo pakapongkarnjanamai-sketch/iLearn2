@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   Users,
   BookOpen,
+  BookPlus,
   RotateCcw,
   Trash2,
   UserPlus,
   FileBarChart,
   CalendarClock,
+  Search,
   X,
   Plus
 } from 'lucide-react'
@@ -21,11 +23,13 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { AppButton } from '../../components/ui/AppButton'
+import { ListToolbar } from '../../components/ui/ListToolbar'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
-import { formatDate } from '../../lib/format'
+import { formatDate, formatPercent } from '../../lib/format'
+import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
@@ -52,14 +56,18 @@ type AssignmentDetail = {
     totalLearners: number
     isCourseDeleted: boolean
   }>
+  // Mirrors LearnerProgressDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
   learners: Array<{
     learnerCode: string
     learnerName?: string | null
+    division?: string | null
+    department?: string | null
     assignmentRuleId?: number | null
     courseCode?: string | null
     courseTitle?: string | null
     progress: number
     isCompleted: boolean
+    // AssignmentStatusKeys.Learner: Completed | InProgress | NotStarted | Overdue | Upcoming
     status: string
     completedDate?: string | null
     startDate?: string | null
@@ -68,6 +76,29 @@ type AssignmentDetail = {
   learnerGroupId?: number | null
   learnerGroupName?: string | null
   hasDeletedCourse: boolean
+}
+
+// Mirrors LookupCourseDto returned by GET Assignments/lookup-courses
+type LookupCourse = {
+  id: number
+  code: string
+  title: string
+  courseTypeName?: string | null
+}
+
+type GroupedLearner = {
+  learnerCode: string
+  learnerName: string | null | undefined
+  division: string | null | undefined
+  department: string | null | undefined
+  courses: Array<{
+    assignmentRuleId: number | null | undefined
+    courseCode: string | null | undefined
+    courseTitle: string | null | undefined
+    progress: number
+    isCompleted: boolean
+    status: string
+  }>
 }
 
 const deriveAssignmentStatus = (a: AssignmentDetail) => {
@@ -92,35 +123,41 @@ export function AssignmentDetailPage() {
       setLabel(String(id), assignment.assignmentNo)
     }
   }, [assignment, id, setLabel])
-  
+
   // Operational states
   const [extendingDate, setExtendingDate] = useState(false)
   const [newDueDateInput, setNewDueDateInput] = useState('')
   const [showDueDateModal, setShowDueDateModal] = useState(false)
-  
+
   const [addingLearners, setAddingLearners] = useState(false)
   const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
   const [pendingAddLearners, setPendingAddLearners] = useState<LearnerSelection[]>([])
+  const [unverifiedCodes, setUnverifiedCodes] = useState<Set<string>>(new Set())
   const [learnerCodesInput, setLearnerCodesInput] = useState('')
+  const [importingCodes, setImportingCodes] = useState(false)
   const [savingLearners, setSavingLearners] = useState(false)
+
+  const [addingCourses, setAddingCourses] = useState(false)
+  const [lookupCourses, setLookupCourses] = useState<LookupCourse[]>([])
+  const [loadingLookupCourses, setLoadingLookupCourses] = useState(false)
+  const [pendingCourseIds, setPendingCourseIds] = useState<number[]>([])
+  const [courseSearch, setCourseSearch] = useState('')
+  const [savingCourses, setSavingCourses] = useState(false)
+
   const [activeDetailTab, setActiveDetailTab] = useState<'courses' | 'learners'>('courses')
   const [visibleCourseRows, setVisibleCourseRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
   const [visibleLearnerRows, setVisibleLearnerRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
-  const groupedLearners = useMemo(() => {
+  // Learners tab: search / status filter / bulk selection
+  const [learnerSearch, setLearnerSearch] = useState('')
+  const [learnerStatusFilter, setLearnerStatusFilter] = useState<string>('All')
+  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set())
+  const [bulkWorking, setBulkWorking] = useState<'reset' | 'remove' | null>(null)
+
+  const groupedLearners = useMemo<GroupedLearner[]>(() => {
     if (!assignment?.learners) return []
 
-    const map = new Map<string, {
-      learnerCode: string
-      learnerName: string | null | undefined
-      courses: Array<{
-        courseCode: string | null | undefined
-        courseTitle: string | null | undefined
-        progress: number
-        isCompleted: boolean
-        status: string
-      }>
-    }>()
+    const map = new Map<string, GroupedLearner>()
 
     assignment.learners.forEach(l => {
       let entry = map.get(l.learnerCode)
@@ -128,12 +165,15 @@ export function AssignmentDetailPage() {
         entry = {
           learnerCode: l.learnerCode,
           learnerName: l.learnerName,
+          division: l.division,
+          department: l.department,
           courses: []
         }
         map.set(l.learnerCode, entry)
       }
       if (l.courseCode || l.courseTitle) {
         entry.courses.push({
+          assignmentRuleId: l.assignmentRuleId,
           courseCode: l.courseCode,
           courseTitle: l.courseTitle,
           progress: l.progress,
@@ -145,6 +185,22 @@ export function AssignmentDetailPage() {
 
     return Array.from(map.values())
   }, [assignment])
+
+  const filteredLearners = useMemo(() => {
+    const q = learnerSearch.trim().toLowerCase()
+    return groupedLearners.filter(l => {
+      if (learnerStatusFilter !== 'All' && !l.courses.some(c => c.status === learnerStatusFilter)) {
+        return false
+      }
+      if (!q) return true
+      return (
+        l.learnerCode.toLowerCase().includes(q) ||
+        (l.learnerName ?? '').toLowerCase().includes(q) ||
+        (l.division ?? '').toLowerCase().includes(q) ||
+        (l.department ?? '').toLowerCase().includes(q)
+      )
+    })
+  }, [groupedLearners, learnerSearch, learnerStatusFilter])
 
   const loadAssignmentDetails = useCallback(async () => {
     setLoading(true)
@@ -169,7 +225,22 @@ export function AssignmentDetailPage() {
   useEffect(() => {
     setVisibleCourseRows(DETAIL_TABLE_CHUNK_SIZE)
     setVisibleLearnerRows(DETAIL_TABLE_CHUNK_SIZE)
+    setSelectedCodes(new Set())
   }, [id])
+
+  useEffect(() => {
+    setVisibleLearnerRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [learnerSearch, learnerStatusFilter])
+
+  // Drop selections that no longer exist after a reload (e.g. removed learners)
+  useEffect(() => {
+    setSelectedCodes(prev => {
+      if (prev.size === 0) return prev
+      const valid = new Set(groupedLearners.map(l => l.learnerCode))
+      const next = new Set([...prev].filter(code => valid.has(code)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [groupedLearners])
 
   // Extend due date
   const handleExtendDueDate = async () => {
@@ -203,33 +274,90 @@ export function AssignmentDetailPage() {
     ))
   }
 
-  const handleImportCodes = () => {
+  // Look up pasted EIds in the employee directory so typos are caught before enrolling.
+  // Returns a map of found code -> directory info.
+  const verifyCodesInDirectory = async (codes: string[]) => {
+    const found = new Map<string, { name: string; division: string; department: string }>()
+    const chunkSize = 40 // keep the OR-filter query string well under URL limits
+    for (let i = 0; i < codes.length; i += chunkSize) {
+      const chunk = codes.slice(i, i + chunkSize)
+      let filter: unknown = ['EId', '=', chunk[0]]
+      for (let j = 1; j < chunk.length; j++) {
+        filter = [filter, 'or', ['EId', '=', chunk[j]]]
+      }
+      const url = `Learners/Get?skip=0&take=${chunk.length}&filter=${encodeURIComponent(JSON.stringify(filter))}`
+      const resp = await fetchWithAccessControl<any>(url)
+      const list: any[] = Array.isArray(resp) ? resp : resp?.data || []
+      list.forEach(item => {
+        // Learners rows are camelCase (typed DTO on the backend)
+        const code = String(item.eId || '').trim().toUpperCase()
+        if (!code) return
+        const name = `${item.englishFirstName || ''} ${item.englishLastName || ''}`.trim()
+        found.set(code, {
+          name: name || code,
+          division: item.division || '',
+          department: item.department || '',
+        })
+      })
+    }
+    return found
+  }
+
+  const handleImportCodes = async () => {
     const parsedCodes = parseLearnerCodes(learnerCodesInput)
     if (parsedCodes.length === 0) {
       toast.error('Enter at least one EId code')
       return
     }
 
-    const newSelections = parsedCodes.map(code => ({
-      code,
-      name: code, // fallback to code
-      division: '',
-      department: ''
-    }))
+    setImportingCodes(true)
+    let directory = new Map<string, { name: string; division: string; department: string }>()
+    try {
+      directory = await verifyCodesInDirectory(parsedCodes)
+    } catch (err) {
+      console.error(err)
+      toast.error('Directory check failed — codes were queued without verification')
+    } finally {
+      setImportingCodes(false)
+    }
+
+    const notFound = parsedCodes.filter(code => !directory.has(code))
+    const newSelections = parsedCodes.map(code => {
+      const info = directory.get(code)
+      return {
+        code,
+        name: info?.name || code,
+        division: info?.division || '',
+        department: info?.department || ''
+      }
+    })
 
     setPendingAddLearners(prev => {
       const existingCodes = new Set(prev.map(l => l.code))
-      const currentCodes = new Set(assignment?.learners.map(m => m.learnerCode) || [])
-      
+      const currentCodes = new Set(assignment?.learners.map(m => m.learnerCode.toUpperCase()) || [])
+
       const uniqueNew = newSelections.filter(l => !existingCodes.has(l.code) && !currentCodes.has(l.code))
       const duplicateCount = parsedCodes.length - uniqueNew.length
       if (duplicateCount > 0) {
         toast.info(`${duplicateCount} code(s) were skipped (already selected or in the assignment)`)
       }
+      if (uniqueNew.length > 0) {
+        toast.success(`Queued ${uniqueNew.length} learner code(s)`)
+      }
       return [...prev, ...uniqueNew]
     })
+    if (notFound.length > 0) {
+      setUnverifiedCodes(prev => new Set([...prev, ...notFound]))
+      toast.info(`${notFound.length} code(s) not found in the employee directory — review before saving`)
+    }
     setLearnerCodesInput('')
-    toast.success(`Imported ${parsedCodes.length} learner code(s) to queue`)
+  }
+
+  const closeAddLearnersModal = () => {
+    setAddingLearners(false)
+    setPendingAddLearners([])
+    setUnverifiedCodes(new Set())
+    setLearnerCodesInput('')
   }
 
   // Add more learners to this existing batch
@@ -238,6 +366,15 @@ export function AssignmentDetailPage() {
     if (codes.length === 0) {
       toast.error('Please select or import at least one learner')
       return
+    }
+
+    const unverifiedQueued = codes.filter(code => unverifiedCodes.has(code))
+    if (unverifiedQueued.length > 0) {
+      if (!(await confirm({
+        title: 'Unverified Codes in Queue',
+        message: `${unverifiedQueued.length} queued code(s) were not found in the employee directory (${unverifiedQueued.slice(0, 5).join(', ')}${unverifiedQueued.length > 5 ? ', …' : ''}). Add them anyway?`,
+        confirmLabel: 'Add Anyway',
+      }))) return
     }
 
     setSavingLearners(true)
@@ -249,9 +386,7 @@ export function AssignmentDetailPage() {
       })
       if (resp.success) {
         toast.success(resp.message)
-        setAddingLearners(false)
-        setPendingAddLearners([])
-        setLearnerCodesInput('')
+        closeAddLearnersModal()
         loadAssignmentDetails()
       }
     } catch (err: any) {
@@ -262,34 +397,72 @@ export function AssignmentDetailPage() {
     }
   }
 
-  // Reset progress attempt
-  const handleResetLearner = async (learnerCode: string) => {
-    if (!(await confirm({
-      title: 'Reset Progress',
-      message: `Reset progress attempt for learner ${learnerCode}? This will clear test history.`,
-      confirmLabel: 'Reset',
-    }))) return
-    try {
-      const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Assignments/${id}/reset-enrollments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ learnerCodes: [learnerCode] })
-      })
-      if (resp.success) {
-        toast.success(resp.message)
-        loadAssignmentDetails()
-      }
-    } catch (err) {
-      console.error(err)
-      toast.error('Failed to reset progress attempt')
+  // Reset progress — whole batch or a single course rule for one or more learners
+  const resetEnrollments = async (learnerCodes: string[], ruleIds?: number[]) => {
+    const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Assignments/${id}/reset-enrollments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ruleIds && ruleIds.length > 0 ? { learnerCodes, ruleIds } : { learnerCodes })
+    })
+    if (resp.success) {
+      toast.success(resp.message)
+      loadAssignmentDetails()
     }
   }
 
-  // Remove learner from assignment
+  const handleResetLearner = async (learnerCode: string) => {
+    if (!(await confirm({
+      title: 'Reset Progress',
+      message: `Reset progress for learner ${learnerCode} across ALL courses in this batch? Progress and test history will be cleared.`,
+      confirmLabel: 'Reset',
+    }))) return
+    try {
+      await resetEnrollments([learnerCode])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to reset progress')
+    }
+  }
+
+  const handleResetLearnerCourse = async (learnerCode: string, ruleId: number, courseTitle: string) => {
+    if (!(await confirm({
+      title: 'Reset Course Progress',
+      message: `Reset progress for learner ${learnerCode} on "${courseTitle}" only? Progress and test history for this course will be cleared.`,
+      confirmLabel: 'Reset Course',
+    }))) return
+    try {
+      await resetEnrollments([learnerCode], [ruleId])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to reset course progress')
+    }
+  }
+
+  const handleBulkReset = async () => {
+    const codes = [...selectedCodes]
+    if (codes.length === 0) return
+    if (!(await confirm({
+      title: 'Reset Selected Learners',
+      message: `Reset progress for ${codes.length} selected learner(s) across ALL courses in this batch? Progress and test history will be cleared.`,
+      confirmLabel: `Reset ${codes.length} Learner(s)`,
+    }))) return
+    setBulkWorking('reset')
+    try {
+      await resetEnrollments(codes)
+      setSelectedCodes(new Set())
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to reset selected learners')
+    } finally {
+      setBulkWorking(null)
+    }
+  }
+
+  // Remove learner(s) from assignment — batch links are removed, learning history is retained
   const handleRemoveLearner = async (learnerCode: string) => {
     if (!(await confirm({
       title: 'Remove Learner',
-      message: `Remove learner ${learnerCode} from this assignment? Enrollment will be deleted.`,
+      message: `Remove learner ${learnerCode} from this assignment batch? They are unlinked from every course in the batch; recorded learning history is retained.`,
       confirmLabel: 'Remove',
       danger: true,
     }))) return
@@ -303,7 +476,37 @@ export function AssignmentDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to delete learner enrollment')
+      toast.error('Failed to remove learner')
+    }
+  }
+
+  const handleBulkRemove = async () => {
+    const codes = [...selectedCodes]
+    if (codes.length === 0) return
+    if (!(await confirm({
+      title: 'Remove Selected Learners',
+      message: `Remove ${codes.length} selected learner(s) from this assignment batch? They are unlinked from every course in the batch; recorded learning history is retained.`,
+      confirmLabel: `Remove ${codes.length} Learner(s)`,
+      danger: true,
+    }))) return
+    setBulkWorking('remove')
+    try {
+      // Mirrors AssignmentRemoveLearnersResponseDto (POST Assignments/{id}/learners/bulk-remove)
+      const resp = await fetchWithAccessControl<{ success: boolean; message: string; removedCount: number }>(`Assignments/${id}/learners/bulk-remove`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeCodes: codes })
+      })
+      if (resp.success) {
+        toast.success(resp.message)
+        setSelectedCodes(new Set())
+        loadAssignmentDetails()
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to remove selected learners')
+    } finally {
+      setBulkWorking(null)
     }
   }
 
@@ -333,6 +536,63 @@ export function AssignmentDetailPage() {
     }
   }
 
+  // Add courses to this existing batch (POST Assignments/{id}/courses)
+  const openAddCoursesModal = async () => {
+    setAddingCourses(true)
+    setPendingCourseIds([])
+    setCourseSearch('')
+    setLoadingLookupCourses(true)
+    try {
+      const resp = await fetchWithAccessControl<any>('Assignments/lookup-courses')
+      const list: LookupCourse[] = Array.isArray(resp) ? resp : resp?.data || []
+      setLookupCourses(list)
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load course lookup')
+    } finally {
+      setLoadingLookupCourses(false)
+    }
+  }
+
+  const availableCourses = useMemo(() => {
+    const existingCodes = new Set(
+      (assignment?.courses || [])
+        .filter(c => !c.isCourseDeleted)
+        .map(c => c.courseCode)
+    )
+    const q = courseSearch.trim().toLowerCase()
+    return lookupCourses.filter(c => {
+      if (existingCodes.has(c.code)) return false
+      if (!q) return true
+      return c.code.toLowerCase().includes(q) || c.title.toLowerCase().includes(q)
+    })
+  }, [lookupCourses, assignment, courseSearch])
+
+  const handleAddCourses = async () => {
+    if (pendingCourseIds.length === 0) {
+      toast.error('Select at least one course to add')
+      return
+    }
+    setSavingCourses(true)
+    try {
+      const resp = await fetchWithAccessControl<{ success: boolean; message: string; addedCount: number }>(`Assignments/${id}/courses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseIds: pendingCourseIds })
+      })
+      if (resp.success) {
+        toast.success(resp.message)
+        setAddingCourses(false)
+        loadAssignmentDetails()
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Failed to add courses')
+    } finally {
+      setSavingCourses(false)
+    }
+  }
+
   // Delete entire assignment batch
   const handleDeleteBatch = async () => {
     if (!(await confirm({
@@ -351,6 +611,18 @@ export function AssignmentDetailPage() {
       console.error(err)
       toast.error('Failed to delete assignment rules')
     }
+  }
+
+  const toggleLearnerSelection = (code: string) => {
+    setSelectedCodes(prev => {
+      const next = new Set(prev)
+      if (next.has(code)) {
+        next.delete(code)
+      } else {
+        next.add(code)
+      }
+      return next
+    })
   }
 
   if (loading) {
@@ -374,7 +646,21 @@ export function AssignmentDetailPage() {
     { key: 'learners', label: 'Learners' },
   ]
   const visibleCourses = assignment.courses.slice(0, visibleCourseRows)
-  const visibleGroupedLearners = groupedLearners.slice(0, visibleLearnerRows)
+  const visibleGroupedLearners = filteredLearners.slice(0, visibleLearnerRows)
+  const allFilteredSelected =
+    filteredLearners.length > 0 && filteredLearners.every(l => selectedCodes.has(l.learnerCode))
+
+  const toggleSelectAllFiltered = () => {
+    setSelectedCodes(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) {
+        filteredLearners.forEach(l => next.delete(l.learnerCode))
+      } else {
+        filteredLearners.forEach(l => next.add(l.learnerCode))
+      }
+      return next
+    })
+  }
 
   return (
     <>
@@ -383,6 +669,7 @@ export function AssignmentDetailPage() {
           <ControlsSidebar>
             <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
+            <ControlAction icon={BookPlus} onClick={openAddCoursesModal}>Add Courses</ControlAction>
             <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
             <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</ControlAction>
           </ControlsSidebar>
@@ -398,7 +685,7 @@ export function AssignmentDetailPage() {
                   {assignment.chartData.completed}
                 </Fact>
                 <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
-                  {Math.round(assignment.completionRate)}%
+                  {formatPercent(assignment.completionRate)}
                 </Fact>
                 <Fact label="Status">
                   <StatusText
@@ -421,6 +708,11 @@ export function AssignmentDetailPage() {
                 <Fact label="Due Date" valueClassName="font-semibold">
                   {formatDate(assignment.dueDate)}
                 </Fact>
+                {assignment.createdBy && (
+                  <Fact label="Created By" valueClassName="font-semibold">
+                    {assignment.createdBy}
+                  </Fact>
+                )}
                 {assignment.learnerGroupName && (
                   <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
                     {assignment.learnerGroupName}
@@ -485,11 +777,83 @@ export function AssignmentDetailPage() {
 
           {activeDetailTab === 'learners' && (
             <Card icon={Users} title="Learners">
- 
+
+              <div className="border-b border-slate-100 bg-slate-50/20 px-4">
+                <ListToolbar
+                  searchValue={learnerSearch}
+                  onSearchChange={setLearnerSearch}
+                  searchPlaceholder="Search code, name, division, department..."
+                  toolbarContent={
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(['All', ...LEARNER_STATUS_KEYS] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setLearnerStatusFilter(s)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                            learnerStatusFilter === s
+                              ? 'border-indigo-500 bg-indigo-600 text-white shadow-3xs font-bold'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          {s === 'All' ? 'All' : learnerStatusLabel(s)}
+                        </button>
+                      ))}
+                    </div>
+                  }
+                />
+              </div>
+
+              {selectedCodes.size > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-indigo-100 bg-indigo-50/60 px-4 py-2">
+                  <span className="text-xs font-bold text-indigo-700 select-none">
+                    {selectedCodes.size} learner(s) selected
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <AppButton
+                      variant="secondary"
+                      icon={RotateCcw}
+                      onClick={handleBulkReset}
+                      loading={bulkWorking === 'reset'}
+                      disabled={bulkWorking !== null}
+                      className="px-3 py-1.5 text-xs"
+                    >
+                      Reset Selected
+                    </AppButton>
+                    <AppButton
+                      variant="danger"
+                      icon={Trash2}
+                      onClick={handleBulkRemove}
+                      loading={bulkWorking === 'remove'}
+                      disabled={bulkWorking !== null}
+                      className="px-3 py-1.5 text-xs"
+                    >
+                      Remove Selected
+                    </AppButton>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCodes(new Set())}
+                      className="text-xs font-bold text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-white/70 transition cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
+                      <th className="p-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={allFilteredSelected}
+                          onChange={toggleSelectAllFiltered}
+                          className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
+                          title="Select all filtered learners"
+                        />
+                      </th>
                       <th className="p-3">Learner</th>
                       <th className="p-3">Assigned Courses & Progress</th>
                       <th className="p-3">Summary</th>
@@ -501,13 +865,33 @@ export function AssignmentDetailPage() {
                       const completedCount = l.courses.filter(c => c.isCompleted).length
                       const totalCount = l.courses.length
                       const allCompleted = totalCount > 0 && completedCount === totalCount
+                      const isSelected = selectedCodes.has(l.learnerCode)
 
                       return (
-                        <tr key={l.learnerCode} className="hover:bg-slate-50/60 transition">
+                        <tr key={l.learnerCode} className={`transition ${isSelected ? 'bg-indigo-50/40' : 'hover:bg-slate-50/60'}`}>
+                          <td className="p-3 w-10 text-center align-top">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleLearnerSelection(l.learnerCode)}
+                              className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
+                            />
+                          </td>
                           <td className="p-3 align-top">
                             <div className="flex flex-col">
-                              <span className="font-bold text-slate-800 leading-tight">{l.learnerName || l.learnerCode}</span>
+                              <Link
+                                to={`/learners/${l.learnerCode}/profile`}
+                                className="font-bold text-slate-800 leading-tight hover:text-indigo-700 hover:underline"
+                                title="Open learner profile"
+                              >
+                                {l.learnerName || l.learnerCode}
+                              </Link>
                               <span className="text-xxs font-mono text-slate-400 mt-0.5">{l.learnerCode}</span>
+                              {(l.division || l.department) && (
+                                <span className="text-xxs text-slate-400 mt-0.5">
+                                  {[l.division, l.department].filter(Boolean).join(' · ')}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="p-3">
@@ -516,7 +900,7 @@ export function AssignmentDetailPage() {
                                 <span className="text-slate-400 text-xs italic">No courses assigned</span>
                               ) : (
                                 l.courses.map((c) => (
-                                  <div key={c.courseCode || ''} className="flex items-center justify-between gap-6 border-b border-slate-100/50 last:border-0 pb-1.5 last:pb-0">
+                                  <div key={c.assignmentRuleId ?? c.courseCode ?? ''} className="flex items-center justify-between gap-6 border-b border-slate-100/50 last:border-0 pb-1.5 last:pb-0">
                                     <div className="flex flex-col min-w-0 flex-1">
                                       <span className="font-semibold text-slate-700 text-xs truncate" title={c.courseTitle || ''}>
                                         {c.courseTitle}
@@ -525,7 +909,16 @@ export function AssignmentDetailPage() {
                                     </div>
                                     <div className="flex items-center gap-3 shrink-0">
                                       <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-16" />
-                                      <StatusBadge size="xxs">{c.status}</StatusBadge>
+                                      <StatusBadge size="xxs">{learnerStatusLabel(c.status)}</StatusBadge>
+                                      {typeof c.assignmentRuleId === 'number' && (
+                                        <button
+                                          onClick={() => handleResetLearnerCourse(l.learnerCode, c.assignmentRuleId as number, c.courseTitle || c.courseCode || '')}
+                                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                                          title="Reset this course only"
+                                        >
+                                          <RotateCcw className="h-3 w-3" />
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 ))
@@ -547,14 +940,14 @@ export function AssignmentDetailPage() {
                               <button
                                 onClick={() => handleResetLearner(l.learnerCode)}
                                 className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                                title="Reset attempts"
+                                title="Reset all courses for this learner"
                               >
                                 <RotateCcw className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => handleRemoveLearner(l.learnerCode)}
                                 className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                                title="Remove learner"
+                                title="Remove learner from batch"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -563,16 +956,26 @@ export function AssignmentDetailPage() {
                         </tr>
                       )
                     })}
+                    {filteredLearners.length === 0 && (
+                      <tr>
+                        <td className="p-6 text-center text-slate-400" colSpan={5}>
+                          No learners match the current filter.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
 
-              {groupedLearners.length > 0 && (
+              {filteredLearners.length > 0 && (
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
                   <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    Showing {visibleGroupedLearners.length} of {groupedLearners.length}
+                    Showing {visibleGroupedLearners.length} of {filteredLearners.length}
+                    {filteredLearners.length !== groupedLearners.length && (
+                      <span className="normal-case font-normal text-slate-400"> (filtered from {groupedLearners.length})</span>
+                    )}
                   </span>
-                  {groupedLearners.length > visibleGroupedLearners.length && (
+                  {filteredLearners.length > visibleGroupedLearners.length && (
                     <AppButton
                       variant="ghost"
                       onClick={() => setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
@@ -645,18 +1048,113 @@ export function AssignmentDetailPage() {
         </div>
       )}
 
+      {/* Add Courses Modal */}
+      {addingCourses && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in" onClick={() => setAddingCourses(false)}>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-2xl h-[75vh] flex flex-col overflow-hidden animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none shrink-0">
+              <div className="flex items-center gap-2">
+                <BookPlus className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Add Courses to Batch</h3>
+              </div>
+              <button onClick={() => setAddingCourses(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-3 border-b border-slate-100 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search course code or title..."
+                  value={courseSearch}
+                  onChange={(e) => setCourseSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
+                />
+              </div>
+              <p className="text-xxs text-slate-400 font-medium mt-2">
+                Every learner currently in this batch will be enrolled in the added courses with the batch schedule.
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 min-h-0">
+              {loadingLookupCourses ? (
+                <div className="py-12"><LoadingState label="Loading courses..." /></div>
+              ) : availableCourses.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-xs font-semibold">
+                  No assignable courses found (already in the batch or none match your search).
+                </div>
+              ) : (
+                availableCourses.map(c => {
+                  const checked = pendingCourseIds.includes(c.id)
+                  return (
+                    <label
+                      key={c.id}
+                      className={`flex items-center gap-3 px-6 py-2.5 cursor-pointer transition ${checked ? 'bg-indigo-50/40' : 'hover:bg-slate-50/70'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setPendingCourseIds(prev =>
+                            checked ? prev.filter(x => x !== c.id) : [...prev, c.id]
+                          )
+                        }
+                        className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-slate-800 truncate">{c.title}</span>
+                        <span className="text-xxs font-mono text-slate-400 mt-0.5">
+                          {c.code}
+                          {c.courseTypeName ? ` · ${c.courseTypeName}` : ''}
+                        </span>
+                      </div>
+                    </label>
+                  )
+                })
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
+              <span className="text-xxs font-bold text-slate-500 uppercase tracking-wide select-none">
+                {pendingCourseIds.length} course(s) selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddingCourses(false)}
+                  className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <AppButton
+                  variant="primary"
+                  icon={Plus}
+                  onClick={handleAddCourses}
+                  loading={savingCourses}
+                  disabled={pendingCourseIds.length === 0}
+                >
+                  Add Courses
+                </AppButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Learners Modal */}
       {addingLearners && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-fade-in" onClick={() => { setAddingLearners(false); setPendingAddLearners([]); setLearnerCodesInput(''); }}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-fade-in" onClick={closeAddLearnersModal}>
           <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col p-6 gap-4 animate-scale-up" onClick={(e) => e.stopPropagation()}>
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 shrink-0 select-none">
               <div className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-indigo-500" />
                 <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Add More Learners</h2>
               </div>
-              
+
               <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100">
                 <button
                   type="button"
@@ -679,7 +1177,7 @@ export function AssignmentDetailPage() {
               </div>
 
               <button
-                onClick={() => { setAddingLearners(false); setPendingAddLearners([]); setLearnerCodesInput(''); }}
+                onClick={closeAddLearnersModal}
                 className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 p-1 transition cursor-pointer"
                 title="Close"
               >
@@ -699,7 +1197,8 @@ export function AssignmentDetailPage() {
               ) : (
                 <div className="space-y-4 h-full flex flex-col justify-start overflow-y-auto custom-scrollbar pr-1">
                   <p className="text-xs font-medium text-slate-500">
-                    Bulk import employee EIds separated by commas, spaces, or new lines. Duplicate or current assignment codes will be skipped automatically.
+                    Bulk import employee EIds separated by commas, spaces, or new lines. Codes are checked against the employee
+                    directory; duplicates and codes already in the assignment are skipped automatically.
                   </p>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] shrink-0">
                     <textarea
@@ -715,6 +1214,7 @@ export function AssignmentDetailPage() {
                       variant="primary"
                       icon={Plus}
                       onClick={handleImportCodes}
+                      loading={importingCodes}
                       disabled={!learnerCodesInput.trim()}
                       className="self-start"
                     >
@@ -726,15 +1226,29 @@ export function AssignmentDetailPage() {
                   <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
                     <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none shrink-0">
                       <span>Queued for Assignment Additions ({pendingAddLearners.length})</span>
-                      {pendingAddLearners.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingAddLearners([])}
-                          className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
-                        >
-                          Clear Queue
-                        </button>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {pendingAddLearners.some(l => unverifiedCodes.has(l.code)) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPendingAddLearners(prev => prev.filter(l => !unverifiedCodes.has(l.code)))
+                              setUnverifiedCodes(new Set())
+                            }}
+                            className="text-amber-600 hover:text-amber-800 font-bold cursor-pointer"
+                          >
+                            Remove Not Found
+                          </button>
+                        )}
+                        {pendingAddLearners.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => { setPendingAddLearners([]); setUnverifiedCodes(new Set()) }}
+                            className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
+                          >
+                            Clear Queue
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 bg-white min-h-0">
                       {pendingAddLearners.length === 0 ? (
@@ -746,6 +1260,9 @@ export function AssignmentDetailPage() {
                               <span className="font-bold text-slate-400 w-8">{idx + 1}</span>
                               <span className="font-mono text-slate-850 font-semibold">{l.code}</span>
                               {l.name !== l.code && <span className="text-slate-500 text-xxs">({l.name})</span>}
+                              {unverifiedCodes.has(l.code) && (
+                                <StatusBadge size="xxs" tone="warning">Not found in directory</StatusBadge>
+                              )}
                             </div>
                             <button
                               type="button"
@@ -766,7 +1283,7 @@ export function AssignmentDetailPage() {
             {/* Modal Footer */}
             <div className="shrink-0 border-t border-slate-100 pt-4 flex justify-end gap-2 select-none">
               <button
-                onClick={() => { setAddingLearners(false); setPendingAddLearners([]); setLearnerCodesInput(''); }}
+                onClick={closeAddLearnersModal}
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-bold transition cursor-pointer"
               >
                 Cancel
@@ -787,4 +1304,3 @@ export function AssignmentDetailPage() {
     </>
   )
 }
-

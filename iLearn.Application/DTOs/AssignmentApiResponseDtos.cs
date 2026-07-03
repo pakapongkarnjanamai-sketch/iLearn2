@@ -105,6 +105,13 @@ namespace iLearn.Application.DTOs
         public string Message { get; set; } = string.Empty;
     }
 
+    public class AssignmentRemoveLearnersResponseDto
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int RemovedCount { get; set; }
+    }
+
     public class AssignmentGroupHistoryResponseDto
     {
         public bool Success { get; set; }
