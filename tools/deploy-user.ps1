@@ -35,6 +35,10 @@ $params = @{
     Configuration      = $Configuration
     OfflineStrategy    = $OfflineStrategy
     SkipPublish        = $SkipPublish
+    # QA: never sync appsettings.Production.json to the server (it belongs only on PROD)
+    ExcludeConfigFiles = @('appsettings.Production.json')
+    # QA: pin environment so appsettings.Production.json can't be loaded even if it lands here
+    SetEnvironmentName = 'Staging'
 }
 
 if ($PSBoundParameters.ContainsKey('Stamp')) {

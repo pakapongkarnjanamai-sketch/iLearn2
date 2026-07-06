@@ -58,7 +58,18 @@ param(
     # retained folder that is not the currently active one) instead of publishing a new build.
     [switch]$Rollback,
 
-    [switch]$SkipPublish
+    [switch]$SkipPublish,
+
+    # Files to exclude from both the stamp-folder copy and the app-root config sync.
+    # QA wrappers pass @('appsettings.Production.json') to prevent PROD overrides leaking onto QA.
+    # PROD wrappers must NOT set this — they need every config file.
+    [string[]]$ExcludeConfigFiles = @(),
+
+    # When set, injects ASPNETCORE_ENVIRONMENT=<value> into the active web.config after the
+    # deployment flip.  Pass 'Staging' from QA wrappers for defense-in-depth: even if a PROD
+    # config file somehow lands on QA, ASP.NET Core won't load appsettings.Production.json.
+    # Leave empty (default) for PROD so the runtime defaults to 'Production'.
+    [string]$SetEnvironmentName = ''
 )
 
 Set-StrictMode -Version 3.0
@@ -119,6 +130,40 @@ function Set-AspNetCoreArguments {
     }
 
     $node.SetAttribute('arguments', $Arguments)
+    $doc.Save($WebConfigPath)
+}
+
+function Set-AspNetCoreEnvironment {
+    param(
+        [Parameter(Mandatory)][string]$WebConfigPath,
+        [Parameter(Mandatory)][string]$EnvironmentName
+    )
+
+    [xml]$doc = Get-Content -LiteralPath $WebConfigPath
+    $aspNetCore = $doc.SelectSingleNode('//aspNetCore')
+    if ($null -eq $aspNetCore) {
+        throw "aspNetCore node not found in $WebConfigPath"
+    }
+
+    # Find or create <environmentVariables>
+    $envVarsNode = $aspNetCore['environmentVariables']
+    if ($null -eq $envVarsNode) {
+        $envVarsNode = $doc.CreateElement('environmentVariables')
+        [void]$aspNetCore.AppendChild($envVarsNode)
+    }
+
+    # Find or create ASPNETCORE_ENVIRONMENT entry
+    $existing = $envVarsNode.SelectSingleNode("environmentVariable[@name='ASPNETCORE_ENVIRONMENT']")
+    if ($null -eq $existing) {
+        $envVarNode = $doc.CreateElement('environmentVariable')
+        $envVarNode.SetAttribute('name', 'ASPNETCORE_ENVIRONMENT')
+        $envVarNode.SetAttribute('value', $EnvironmentName)
+        [void]$envVarsNode.AppendChild($envVarNode)
+    }
+    else {
+        $existing.SetAttribute('value', $EnvironmentName)
+    }
+
     $doc.Save($WebConfigPath)
 }
 
@@ -268,6 +313,10 @@ if ($Rollback) {
         Write-Host "Rolled back to previous deployment: $($target.Name)" -ForegroundColor Yellow
     }
 
+    if ($SetEnvironmentName -and $PSCmdlet.ShouldProcess($webConfigPath, "Set ASPNETCORE_ENVIRONMENT to $SetEnvironmentName")) {
+        Set-AspNetCoreEnvironment -WebConfigPath $webConfigPath -EnvironmentName $SetEnvironmentName
+    }
+
     [pscustomobject]@{
         Action             = 'Rollback'
         DeployRoot         = $DeployRoot
@@ -350,6 +399,10 @@ try {
 
         $publishEntries = Get-ChildItem -LiteralPath $resolvedPublishOutput -Force
         foreach ($publishEntry in $publishEntries) {
+            if ($ExcludeConfigFiles.Count -gt 0 -and -not $publishEntry.PSIsContainer -and $ExcludeConfigFiles -contains $publishEntry.Name) {
+                Write-Verbose "Skipping excluded config file (stamp copy): $($publishEntry.Name)"
+                continue
+            }
             Copy-Item -LiteralPath $publishEntry.FullName -Destination $deployPath -Recurse -Force
         }
     }
@@ -360,6 +413,10 @@ try {
     $configBackupDir = Join-Path $deployPath '_prev-root-config'
     $appSettingsFiles = Get-ChildItem -LiteralPath $resolvedPublishOutput -Filter 'appsettings*.json' -File -ErrorAction SilentlyContinue
     foreach ($appSettingsFile in $appSettingsFiles) {
+        if ($ExcludeConfigFiles -contains $appSettingsFile.Name) {
+            Write-Verbose "Skipping excluded config file (root sync): $($appSettingsFile.Name)"
+            continue
+        }
         $rootConfigPath = Join-Path $DeployRoot $appSettingsFile.Name
         if ($PSCmdlet.ShouldProcess($rootConfigPath, "Sync config file from $($appSettingsFile.FullName)")) {
             if (Test-Path -LiteralPath $rootConfigPath) {
@@ -386,6 +443,12 @@ try {
     # Flip the active deployment by repointing aspNetCore arguments at the new folder.
     if ($PSCmdlet.ShouldProcess($webConfigPath, "Set aspNetCore arguments to $webConfigArguments")) {
         Set-AspNetCoreArguments -WebConfigPath $webConfigPath -Arguments $webConfigArguments
+    }
+
+    # Inject ASPNETCORE_ENVIRONMENT when requested (QA defense-in-depth: prevents accidental
+    # appsettings.Production.json load even if the file somehow lands on the server).
+    if ($SetEnvironmentName -and $PSCmdlet.ShouldProcess($webConfigPath, "Set ASPNETCORE_ENVIRONMENT to $SetEnvironmentName")) {
+        Set-AspNetCoreEnvironment -WebConfigPath $webConfigPath -EnvironmentName $SetEnvironmentName
     }
 
     # --- Cleanup old deploy folders, keeping the $KeepDeployments most recent ---

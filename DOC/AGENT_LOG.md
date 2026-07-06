@@ -14,6 +14,46 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-06 —] Claude Code — Review PLAN-051: ผ่าน อนุมัติปิดงาน (รีวิว ไม่แก้โค้ด)
+- ทำอะไร: ตรวจอิสระซ้ำทุกข้อของ PLAN-051 — git diff deploy scripts (exclude ครบ 2 ขา, env inject ครบขา deploy+rollback, PROD wrapper ไม่ถูกแตะ), ตรวจไฟล์จริงบน QA/PROD ผ่าน UNC (Production.json หายครบ 3 จุด, env=Staging ครบ 3 web.config, redirect web.config ถูกต้อง), HTTP probe ใหม่ 9/9 ผ่าน (QA admin 200, PROD /student 301→/iLearn), QA/PROD stats ต่างกันแล้ว (แยก DB สำเร็จ), grep ยืนยันไม่มีโค้ดอิงชื่อ env → เพิ่ม Reviewer Sign-off ในไฟล์แผน พร้อมข้อสังเกตเก็บกวาด 2 ข้อ (stamp folder เก่าบน QA ยังมี Production.json ข้างใน — inert; PROD \student เหลือไฟล์ค้าง — ไม่มีผล)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-051-qa-env-contamination-and-prod-student-500.md` (เพิ่ม Reviewer Sign-off)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: HTTP probe 9 URLs + stats compare + UNC file checks + XPath env check — ผ่านทั้งหมด
+
+## [2026-07-06 —] GitHub Copilot (Claude Sonnet 4.6) — PLAN-051 DONE: แก้ QA contamination + PROD /student 500.35
+- ทำอะไร:
+  - **A1**: ลบ `appsettings.Production.json` ออกจาก QA ทั้ง 3 จุด (`\iLearn`, `\iLearn\admin`, `\iLearn\Service` บน `\\AP-NTC2138-QAWB`) ผ่าน UNC โดยตรง
+  - **A2**: แก้ `tools/deploy-side-by-side.ps1` เพิ่ม `[string[]]$ExcludeConfigFiles` + `[string]$SetEnvironmentName` params + helper `Set-AspNetCoreEnvironment`; แก้ `deploy-admin.ps1`, `deploy-api.ps1`, `deploy-user.ps1` ส่ง `ExcludeConfigFiles = @('appsettings.Production.json')` + `SetEnvironmentName = 'Staging'`
+  - **A3**: inject `ASPNETCORE_ENVIRONMENT=Staging` เข้า web.config ทั้ง 3 QA app ทันที (ผ่าน XML manipulation บน UNC)
+  - **A4**: ยืนยัน QA Service stamp orphan (`_deploy_20260703163625`) — incomplete deploy, คง active stamp `_deploy_20260703105820` ไว้, จะ age out ใน deploy รอบถัดไป
+  - **A5**: audit PROD DB — พบ real training data ของ j2818 (courses 959/960/962/963 + assignments AS-20260702-001..006 + enrollments 18188-18200) สร้างผ่าน QA Admin contaminated ชี้ PROD DB; พบ LearningLogs 123-124 / ScormRuntimeStates 26,28 จาก Antigravity E2E intentional บน PROD (คงไว้); **ไม่ได้ลบ record ใด** — รอผู้ใช้ยืนยัน j2818 data
+  - **B1**: `Remove-Item 'IIS:\Sites\Default Web Site\iLearn\student'` ผ่าน WinRM (Z001927) บน `ap-ntc2137-prwb`
+  - **B2**: เขียน redirect web.config (`<httpRedirect destination="/iLearn" httpResponseStatus="Permanent">`) ที่ `\\ap-ntc2137-prwb\wwwroot\iLearn\student\web.config`
+  - **B3**: ลบ `_user_deploy_20260702*` เก่า 3 folders จาก `\iLearn\student` บน PROD
+- ไฟล์หลักที่แตะ:
+  - `tools/deploy-side-by-side.ps1` (เพิ่ม 2 params + helper function + 3 call sites)
+  - `tools/deploy-admin.ps1`, `tools/deploy-api.ps1`, `tools/deploy-user.ps1` (เพิ่ม ExcludeConfigFiles + SetEnvironmentName)
+  - `\\AP-NTC2138-QAWB\wwwroot\iLearn\{,admin\,Service\}web.config` (inject env var Staging)
+  - `\\ap-ntc2137-prwb\wwwroot\iLearn\student\web.config` (เปลี่ยนเป็น redirect)
+  - `DOC/PLANS/PLAN-051-...md` (→ DONE + Implementer Notes ครบ)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (config + IIS + deploy script เท่านั้น)
+- Verified:
+  - QA admin: 403 → **200** ✅
+  - PROD student: 500.35 → **301** ✅
+  - QA DB stats ต่างจาก PROD (584/1412 vs 585/1413) — แยก DB สำเร็จ ✅
+  - ทุก URL ครบชุด (QA+PROD) **200** ✅
+  - deploy dry-run (`deploy-api.ps1 -SkipPublish -WhatIf`): ไม่มี `appsettings.Production.json` ใน WhatIf output ✅
+
+---
+
+## [2026-07-06 —] Claude Code — ตรวจสถานะเว็บ PROD/QA + เขียน PLAN-051 (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้รายงาน QA admin 403 → probe ทุก endpoint ทั้ง 2 env + อ่าน config ที่ deploy จริงผ่าน UNC พบ 2 ปัญหา:
+  1. **QA ปนเปื้อน `appsettings.Production.json`** (ทั้ง student root, admin, Service บน `\\AP-NTC2138-QAWB\wwwroot\iLearn`) — ต้นตอคือ `deploy-side-by-side.ps1` sync `appsettings*.json` ทุกไฟล์ไป app root + QAWB ไม่ตั้ง `ASPNETCORE_ENVIRONMENT` (default=Production) → QA Admin ชี้ PROD API ข้ามเครื่อง → NTLM double-hop fail → sync role ไม่ได้ → FallbackPolicy 403 ทุก route; ที่หนักกว่า: QA Service ชี้ **PROD DB (AP-NTC2139-COSS)** — dashboard stats QA==PROD เหมือนกันทุกตัว (585/0/13/1413) → การทดสอบบน QA ช่วง 02–06 Jul อาจเขียนลง PROD DB
+  2. **PROD `/iLearn/student` = 500.35** — IIS app เก่าค้าง แชร์ app pool `iLearnStudent` กับ root app (ขั้น "ลบ/park" ใน PLAN-049 ที่ยังไม่ทำ)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-051-qa-env-contamination-and-prod-student-500.md` (ใหม่, READY, Assigned: GPT)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนอย่างเดียว)
+- Verified: n/a (planning) — หลักฐานจาก HTTP probe จริง (401/403/500.35 + error body), UNC read config ที่ deploy จริง, เทียบ `users/windows-auth` + dashboard stats สองฝั่ง
+
 ## [2026-07-03 17:30] Claude Code — Implement PLAN-050 ครบทั้ง Part A+B+C (ผู้ใช้สั่งให้ทำเอง)
 - ทำอะไร:
   - **Part A (บั๊ก+contract):** dashboard เปลี่ยนไปใช้ `GetScheduledLearnerStatus` → learner status มี `Overdue`/`Upcoming` แล้ว; `LearnerProgressDto` เพิ่ม `Division`/`Department` (map จาก enrichment ที่มีอยู่ ไม่มี HTTP เพิ่ม); หน้า Report แก้ status filter ให้เทียบ key จริง + label ผ่าน helper ใหม่ `src/lib/learnerStatus.ts`; CSV เพิ่ม UTF-8 BOM + คอลัมน์ Division/Department/Start/Due + ชื่อไฟล์มีวันที่; `formatPercent` แทน Math.round inline; ตาราง report แบ่งหน้าแบบ `DETAIL_TABLE_CHUNK_SIZE`; หน้า list assignments เพิ่มคอลัมน์ Status (StatusBadge) + Learners จาก `vw_AssignmentList`
