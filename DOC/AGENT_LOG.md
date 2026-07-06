@@ -14,6 +14,27 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-06 12:45] Antigravity — PLAN-053 DONE: UI Consistency Audit
+- ทำอะไร: ทำตามแผนปรับปรุงความสม่ำเสมอของ UI (Status Badge, Loaders, Badges, number formatting) ใน React admin shell ทั้งหมด:
+  - เพิ่มเคส `'Due Soon'` (warning) และ `'Unassigned'` (neutral) ใน `StatusBadge.tsx` ของระบบส่วนกลาง
+  - เปลี่ยนการแสดงผล Overview Status ของหน้า Assignment Detail จาก `StatusText` เขียนมือ เป็น `<StatusBadge>`
+  - ลบ map `STATUS_TONE` และ `STATUS_LABELS` ท้องถิ่นใน `DashboardPage` และ `AssignmentGanttPage` ทิ้ง แล้วแทนด้วย `StatusBadge` / `learnerStatusLabel`
+  - อัปเดตตารางสรุป learners/assignments ในหน้า Course Detail และหน้า Gantt ให้ครอบค่าสถานะดิบด้วย `learnerStatusLabel` เสมอ
+  - ปรับปรุงคอลัมน์ Status ของตาราง Enrollments Ledger ใน `moduleConfigs.ts` และ `EntityListPage.tsx` ให้ใช้ `calculateCellValue` คืนคีย์ของสถานะ เพื่อให้ sorting/filtering ทำงานถูกต้อง และ render ออกมาผ่าน `<StatusBadge>`
+  - เปลี่ยน span role badges ที่เขียนสไตล์เองใน `UserEditorPage` และ `UserDetailPage` ให้ใช้ component `<Badge>` มาตรฐาน
+  - เปลี่ยน loaders ที่เขียนมือ (Loader2) ในหน้า Bulk Assign และ Course Editor ให้ใช้ `<LoadingState>` ทั่วไป และนำ `Loader2` ที่ไม่ได้ใช้จาก import ออก
+  - เปลี่ยนเปอร์เซ็นต์ Math.round ใน DashboardCharts ให้จัดฟอร์แมตผ่าน `formatPercent` และเพิ่มเอกสารคำอธิบายความสอดคล้องของสี
+  - อัปเดตคู่มือใน `README.md` (UI Conventions) เกี่ยวกับการรันและใช้ Badge/Loader
+- ไฟล์หลักที่แตะ: `src/components/ui/StatusBadge.tsx`, `src/pages/moduleConfigs.ts`, `src/pages/EntityListPage.tsx`, `src/pages/assignments/AssignmentDetailPage.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/courses/CourseDetailPage.tsx`, `src/pages/assignments/AssignmentGanttPage.tsx`, `src/pages/users/UserEditorPage.tsx`, `src/pages/users/UserDetailPage.tsx`, `src/pages/assignments/BulkAssignPage.tsx`, `src/pages/courses/CourseEditorPage.tsx`, `src/pages/dashboard/DashboardCharts.tsx`, `README.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (React UI เท่านั้น)
+- Verified: npm run lint และ npm run build ผ่าน 100%
+
+## [2026-07-06 —] Claude Code — Audit UI consistency admin-react + เขียน PLAN-053 (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้พบ pill "In Progress" แบบ outline ขาว/เทา ไม่เหมือนหน้าอื่น → audit ทั้ง src พบ root cause: `AssignmentDetailPage.tsx:692` ใช้ `StatusText` + ternary เขียนมือที่ไม่มี branch 'In Progress' → ตก neutral; ภาพรวมพบ status tone/label map ซ้ำ ≥5 ชุด (DashboardPage `STATUS_TONE`, Gantt `BATCH_STATUS_LABELS`, ternary ใน detail, moduleConfigs literal, DashboardCharts colors) + hardcoded pill ใน users 3 จุด + Loader2 เขียนมือ 2 จุด + Math.round inline 1 จุด → เขียน PLAN-053 กำหนดนโยบายกลาง: workflow status → `StatusBadge`+`learnerStatusLabel` เสมอ, binary Active/Inactive → `StatusText`, ห้าม map เฉพาะหน้า
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-053-admin-react-ui-consistency.md` (ใหม่, READY, Assigned: Gemini)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน React-only; อนุญาตเพิ่ม case ใน `statusTone()` เท่านั้น)
+- Verified: n/a (planning) — ทุก finding ระบุไฟล์:บรรทัดจากการอ่านโค้ดจริง
+
 ## [2026-07-06 12:25] Claude Code — Review PLAN-052 ผ่าน + fix MVC _ReportLayout + deploy QA/PROD ครบ 3 แอป
 - ทำอะไร:
   - **Review PLAN-052:** ตรวจ diff ทั้ง backend/frontend — query เดียวไม่มี N+1, division isolation ตรง `LearnerGroupService`, UI ครบตามสเปก; รัน verification ซ้ำเอง (eslint clean, vite build, dotnet test 118/118) → อนุมัติ + ลง Reviewer Sign-off ในแผน
