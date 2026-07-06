@@ -81,3 +81,13 @@ Remove-Item -Recurse -Force artifacts\verify-test
 - พัฒนาเสร็จสิ้นตามขอบเขตงานในแผน 100%
 - ได้ทำการตรวจสอบด้วย .NET Unit Tests (118/118 passed) และ npm run lint/build บน React เรียบร้อย (ผ่านทั้งหมดไม่มี error)
 - ได้อัปเดตโมเดลทั้งในฝั่ง API/DTOs และโมเดลฝั่ง React ทั้งสองหน้าจอ (Detail & Report) ให้ Sync กันอย่างสมบูรณ์แบบ
+
+## Reviewer Sign-off (Claude Code — 2026-07-06)
+
+ตรวจ diff + รัน verification ซ้ำเอง + deploy — **ผ่าน อนุมัติปิดงาน**
+
+- **Backend:** query เดียวไม่มี N+1, กรอง `IsDeleted` ทั้ง member และ group, division isolation ตรงกับ `LearnerGroupService.GetAllAsync` เป๊ะ, เรียงชื่อ A→Z, additive field ไม่กระทบ consumer เดิม (Detail page sync type แล้วด้วย) ✅
+- **Frontend:** การ์ด By Learner Group + Ungrouped ท้ายสุด + Group filter (All/กลุ่ม/Ungrouped) + search จับชื่อกลุ่ม + CSV column + `isFiltered`/`visibleRows` ครบ, ใช้ `Card`/`formatPercent` ตาม conventions ✅
+- **Verify ซ้ำเอง:** eslint clean, vite build ผ่าน, dotnet test 118/118, MVC admin build 0 errors ✅
+- **Deploy + E2E:** QA + PROD (API stamp `20260706120855`/`20260706121657`, React robocopy OK, admin stamp `20260706121204`/`20260706122023`) — `dashboard/274` ตอบ `learnerGroups` แล้วทั้งสอง env ✅
+- **ข้อสังเกต (ไม่ blocking):** ทั้ง QA และ PROD DB ยังไม่มี learner group เลย (`LearnerGroups` = 0) → ตอนนี้ทุกคนขึ้น "Ungrouped" ตามสเปก — การ์ดจะมีประโยชน์เต็มที่เมื่อเริ่มสร้างกลุ่มและใส่สมาชิก

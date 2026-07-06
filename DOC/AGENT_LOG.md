@@ -14,6 +14,17 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-06 12:25] Claude Code — Review PLAN-052 ผ่าน + fix MVC _ReportLayout + deploy QA/PROD ครบ 3 แอป
+- ทำอะไร:
+  - **Review PLAN-052:** ตรวจ diff ทั้ง backend/frontend — query เดียวไม่มี N+1, division isolation ตรง `LearnerGroupService`, UI ครบตามสเปก; รัน verification ซ้ำเอง (eslint clean, vite build, dotnet test 118/118) → อนุมัติ + ลง Reviewer Sign-off ในแผน
+  - **Fix bug ผู้ใช้รายงาน:** `/iLearn/admin/Assignments/Report/AS-...` พัง `window.getAdminLearnerStatusMap is not a function` — root cause: `_ReportLayout.cshtml` ไม่เคยโหลด `admin-view-utils.js` (พังตั้งแต่ commit `2a4fd64` 30-Apr กระทบ 3 หน้า popup report: Assignments/Categories/Learners) → เพิ่ม script tag 1 บรรทัดก่อน `@RenderSection("Scripts")`
+  - **Deploy:** QA (API `_deploy_20260706120855`, admin-react robocopy, admin `_admin_deploy_20260706121204`) + PROD (API `_deploy_20260706121657` health check ผ่าน, admin-react, admin `_admin_deploy_20260706122023`)
+  - **Verify หลัง deploy:** ทั้งสอง env — URL ครบชุด 200 (+PROD `/student` ยัง 301), `dashboard/274` ตอบ `learnerGroups` แล้ว, หน้า MVC report มี script tag แล้ว, PLAN-051 ไม่ regress (QA ไม่มี Production.json + env=Staging ถูก inject ใหม่โดย script; PROD มี Production.json ครบ + ไม่มี env override)
+  - หมายเหตุ: QA/PROD DB ยังไม่มี learner group (0 กลุ่ม) — report จะแสดง "Ungrouped" ทั้งหมดจนกว่าจะเริ่มสร้างกลุ่ม
+- ไฟล์หลักที่แตะ: `iLearn.Admin/Views/Shared/_ReportLayout.cshtml` (+1 บรรทัด), `DOC/PLANS/PLAN-052-...md` (Sign-off) — commits: `98ecb40` (PLAN-052), `6dc459b` (MVC fix)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีเพิ่มจากที่ PLAN-052 ระบุ (`learnerGroups: string[]` additive)
+- Verified: eslint + vite build + dotnet test 118/118 + MVC admin build 0 errors + post-deploy HTTP/API checks ทั้ง QA/PROD ตามด้านบน
+
 ## [2026-07-06 12:05] Antigravity — PLAN-052 DONE: เปลี่ยนสรุป "By Department" เป็น "By Learner Group"
 - ทำอะไร: 
   - Backend: เพิ่ม `LearnerGroups: List<string>` ใน `LearnerProgressDto` และ inject `IGenericRepository<LearnerGroupMember>` ใน `AssignmentService` จากนั้นใน `BuildAssignmentDashboardAsync` ทำการคิวรีข้อมูลกลุ่มของ uniqueLearnerCodes (คิวรีเดียว) พร้อมกรอง soft delete และ division isolation แล้วนำมาแมปลงใน DTO (เรียงลำดับ A-Z)
