@@ -1281,7 +1281,7 @@ else
         // ========== Load Catalog ==========
         function loadAllCourses() {
             $("#catalogLayout").show();
-            showSkeletonCards('#catalogCourseList', 4, 'col-md-6 col-lg-4 col-xl-3');
+            showSkeletonList('#catalogCourseList', 6);
             $.ajax({
                 url: courseCatalogUrl,
                 method: 'GET',
@@ -1540,7 +1540,7 @@ else
                             '<div class="skeleton skeleton-thumb--sm"></div>' +
                             '<div class="skeleton-body--sm">' +
                                 '<div class="skeleton skeleton-title"></div>' +
-                                '<div class="skeleton skeleton-bar short"></div>' +
+                                '<div class="skeleton skeleton-bar short" style="height:8px;margin-bottom:8px;"></div>' +
                                 '<div class="skeleton skeleton-progress--sm"></div>' +
                                 '<div class="skeleton skeleton-btn--sm"></div>' +
                             '</div>' +
@@ -1548,6 +1548,23 @@ else
                     '</div>';
             }
             $el.html(html);
+        }
+
+        function showSkeletonList(selector, count) {
+            count = count || 6;
+            var html = '<div class="catalog-list-container">';
+            for (var i = 0; i < count; i++) {
+                html +=
+                    '<div class="catalog-list-item" style="pointer-events:none;">' +
+                        '<div class="skeleton" style="width:70px;height:26px;border-radius:4px;flex-shrink:0;"></div>' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div class="skeleton" style="height:14px;width:' + (50 + Math.floor(Math.random() * 35)) + '%;border-radius:4px;"></div>' +
+                        '</div>' +
+                        '<div class="skeleton" style="width:90px;height:32px;border-radius:4px;flex-shrink:0;"></div>' +
+                    '</div>';
+            }
+            html += '</div>';
+            $(selector).html(html);
         }
     </script>
 }
