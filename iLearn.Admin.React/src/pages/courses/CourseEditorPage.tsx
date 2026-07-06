@@ -8,8 +8,7 @@ import {
   Save, 
   Search, 
   Upload, 
-  X,
-  Loader2 
+  X
 } from 'lucide-react'
 
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -837,10 +836,7 @@ export function CourseEditorPage() {
           
           {saving && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
-              <div className="flex flex-col items-center gap-2.5 select-none">
-                <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
-                <span className="text-xs text-slate-500 font-bold tracking-wide uppercase animate-pulse">Saving...</span>
-              </div>
+              <LoadingState size="section" label="Saving..." />
             </div>
           )}
         </div>

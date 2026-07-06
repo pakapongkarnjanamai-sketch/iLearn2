@@ -16,7 +16,6 @@ import {
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { StatusText } from '../../components/ui/StatusText'
 import { Card } from '../../components/ui/Card'
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
@@ -689,19 +688,7 @@ export function AssignmentDetailPage() {
                   {formatPercent(assignment.completionRate)}
                 </Fact>
                 <Fact label="Status">
-                  <StatusText
-                    tone={
-                      assignmentStatus === 'Completed'
-                        ? 'success'
-                        : assignmentStatus === 'Upcoming'
-                        ? 'warning'
-                        : assignmentStatus === 'Overdue'
-                        ? 'danger'
-                        : 'neutral'
-                    }
-                  >
-                    {assignmentStatus}
-                  </StatusText>
+                  <StatusBadge>{assignmentStatus}</StatusBadge>
                 </Fact>
                 <Fact label="Start Date" valueClassName="font-semibold">
                   {formatDate(assignment.startDate)}

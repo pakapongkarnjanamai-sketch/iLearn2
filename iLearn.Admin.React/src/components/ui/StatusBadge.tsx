@@ -17,7 +17,10 @@ export function statusTone(status: string | null | undefined): StatusTone {
     case 'Expired':
       return 'danger'
     case 'Upcoming':
+    case 'Due Soon':
       return 'warning'
+    case 'Unassigned':
+      return 'neutral'
     default:
       return 'neutral'
   }

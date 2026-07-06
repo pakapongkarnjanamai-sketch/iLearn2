@@ -5,6 +5,7 @@ import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { learnerStatusLabel } from '../../lib/learnerStatus'
 
 type GanttTask = {
   id: number
@@ -19,13 +20,7 @@ type GanttTask = {
 }
 
 const STATUS_FILTERS = ['All', 'InProgress', 'Upcoming', 'Completed', 'Expired'] as const
-const STATUS_LABELS: Record<(typeof STATUS_FILTERS)[number], string> = {
-  All: 'All',
-  InProgress: 'In Progress',
-  Upcoming: 'Upcoming',
-  Completed: 'Completed',
-  Expired: 'Expired',
-}
+
 
 const DAY_PX = 18
 const ROW_PX = 32
@@ -141,7 +136,7 @@ export function AssignmentGanttPage() {
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
-              {STATUS_LABELS[s]} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
+              {s === 'All' ? 'All' : learnerStatusLabel(s)} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
             </button>
           ))}
         </div>

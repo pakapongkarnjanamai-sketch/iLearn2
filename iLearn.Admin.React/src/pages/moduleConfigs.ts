@@ -152,16 +152,7 @@ export const adminListConfigs = {
       { dataField: 'learnerCode', caption: 'Learner', width: 140 },
       { dataField: 'courseCode', caption: 'Course Code', minWidth: 180 },
       { dataField: 'courseTitle', caption: 'Course Title', minWidth: 260 },
-      {
-        dataField: 'isCompleted',
-        caption: 'Status',
-        width: 130,
-        alignment: 'center',
-        cellRender: ({ data }: any) => {
-          if (data?.isCompleted) return 'Completed'
-          return Number(data?.progress || 0) > 0 ? 'In Progress' : 'Not Started'
-        },
-      },
+      { dataField: 'isCompleted', caption: 'Status', width: 130, alignment: 'center' },
       { dataField: 'progress', caption: 'Progress %', dataType: 'number', width: 110, alignment: 'right' },
       { dataField: 'dueDate', caption: 'Due Date', dataType: 'date', width: 140 },
       { dataField: 'createdAt', caption: 'Created', dataType: 'datetime', width: 180 },

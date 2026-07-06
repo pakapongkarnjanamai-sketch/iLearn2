@@ -278,9 +278,9 @@ export function UserEditorPage() {
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {pendingRoleIds.map((roleId) => (
-                <span key={roleId} className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
+                <Badge key={roleId} variant="outline" tone="info">
                   {rolesMap.get(roleId) || `Role ${roleId}`}
-                </span>
+                </Badge>
               ))}
             </div>
           )}
@@ -297,9 +297,9 @@ export function UserEditorPage() {
                   <div className="font-bold text-emerald-600 mb-1">To Be Added:</div>
                   <div className="flex flex-wrap gap-1.5">
                     {addedRoles.map((name) => (
-                      <span key={name} className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                      <Badge key={name} variant="outline" tone="success">
                         + {name}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>

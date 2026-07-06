@@ -34,6 +34,7 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
+import { learnerStatusLabel } from '../../lib/learnerStatus'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
@@ -693,7 +694,7 @@ export function CourseDetailPage() {
                                   <div className="mt-0.5">Due: {formatDate(l.dueDate)}</div>
                                 </td>
                                 <td className="p-3">
-                                  <StatusBadge>{l.status}</StatusBadge>
+                                  <StatusBadge>{learnerStatusLabel(l.status)}</StatusBadge>
                                 </td>
                               </tr>
                             )
@@ -762,7 +763,7 @@ export function CourseDetailPage() {
                               <td className="p-3 text-slate-400 text-xs">{formatDate(a.startDate)}</td>
                               <td className="p-3 text-slate-400 text-xs">{formatDate(a.dueDate)}</td>
                               <td className="p-3">
-                                <StatusBadge>{a.status}</StatusBadge>
+                                <StatusBadge>{learnerStatusLabel(a.status)}</StatusBadge>
                               </td>
                               <td className="p-3">
                                 <div className="flex flex-col font-bold text-xs text-slate-600">

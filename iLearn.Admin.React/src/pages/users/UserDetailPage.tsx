@@ -12,6 +12,7 @@ import {
 } from '../../components/ui/detail'
 import { Card } from '../../components/ui/Card'
 import { StatusText } from '../../components/ui/StatusText'
+import { Badge } from '../../components/ui/Badge'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -178,16 +179,13 @@ export function UserDetailPage() {
                 <span className="text-xs text-slate-400 font-semibold italic">No roles assigned</span>
               ) : (
                 roles.map((r, i) => (
-                  <span
+                  <Badge
                     key={i}
-                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${
-                      r === 'SuperAdmin'
-                        ? 'bg-purple-100 text-purple-700 border-purple-200'
-                        : 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                    }`}
+                    variant="outline"
+                    tone={r === 'SuperAdmin' ? 'success' : 'info'}
                   >
                     {r}
-                  </span>
+                  </Badge>
                 ))
               )}
             </div>

@@ -60,6 +60,17 @@ export function EntityListPage({ config }: EntityListPageProps) {
           }
         }
       }
+      if (col.dataField === 'isCompleted' && config.controller === 'EnrollmentsCRUD') {
+        return {
+          ...col,
+          cellRender: ({ data }: any) => {
+            const status = data?.isCompleted
+              ? 'Completed'
+              : Number(data?.progress || 0) > 0 ? 'InProgress' : 'NotStarted'
+            return <StatusBadge size="xxs">{learnerStatusLabel(status)}</StatusBadge>
+          }
+        }
+      }
       if (col.dataField === 'courseNames') {
         return {
           ...col,

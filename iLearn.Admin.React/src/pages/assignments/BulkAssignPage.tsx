@@ -5,7 +5,6 @@ import {
   Check, 
   X,
   Plus,
-  Loader2,
   Search
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -591,7 +590,7 @@ export function BulkAssignPage() {
       {validating && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-9999 animate-fade-in select-none">
           <div className="bg-white p-5 rounded-lg border border-slate-100 flex flex-col items-center gap-3 shadow-lg max-w-xs">
-            <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+            <LoadingState size="section" className="h-auto py-2" />
             <div className="text-center">
               <p className="text-xs font-bold text-slate-800">Analyzing Syllabus Scope</p>
               <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-relaxed">

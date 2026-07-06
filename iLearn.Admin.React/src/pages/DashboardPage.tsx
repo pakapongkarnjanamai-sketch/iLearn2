@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
 import { LoadingState } from '../components/ui/LoadingState'
-import { StatusText } from '../components/ui/StatusText'
+import { StatusBadge } from '../components/ui/StatusBadge'
 import { useSession } from '../lib/sessionContext'
 import { toast } from '../lib/toast'
 import { formatDateTime, formatNumber, formatPercent } from '../lib/format'
@@ -43,14 +43,7 @@ import {
   TaskStatusPie,
 } from './dashboard/DashboardCharts'
 
-const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {
-  Completed: 'success',
-  Active: 'neutral',
-  'Due Soon': 'warning',
-  Overdue: 'danger',
-  Upcoming: 'neutral',
-  Unassigned: 'neutral',
-}
+
 
 const formatDateShort = (value: string | null) => {
   if (!value) return '—'
@@ -407,7 +400,7 @@ export function DashboardPage() {
                       )}
                     </Td>
                     <Td>
-                      <StatusText tone={STATUS_TONE[a.status] ?? 'neutral'}>{a.status}</StatusText>
+                      <StatusBadge>{a.status}</StatusBadge>
                     </Td>
                     <Td align="right">
                       <span className="tabular-nums font-bold text-slate-700">

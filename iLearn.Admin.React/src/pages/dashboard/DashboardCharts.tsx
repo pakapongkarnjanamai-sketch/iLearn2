@@ -10,8 +10,10 @@ import {
   YAxis,
 } from 'recharts'
 import type { CategoryMixPoint, LearningActivityPoint, TaskStatusPoint } from './dashboardApi'
+import { formatPercent } from '../../lib/format'
 
 const BRAND = '#4f46e5'
+// Colors matching statusTone(): Completed=success (emerald), In Progress/Active/Enrolling=info (indigo), Not Started/Unassigned=neutral (slate), Overdue/Expired=danger (red)
 const STATUS_COLORS: Record<string, string> = {
   Completed: '#059669',
   'In Progress': '#4f46e5',
@@ -128,7 +130,8 @@ export function TaskStatusLegend({ data }: { data: TaskStatusPoint[] }) {
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
       {(data ?? []).map((d) => {
-        const pct = total > 0 ? Math.round((d.count / total) * 100) : 0
+        const pctVal = total > 0 ? (d.count / total) * 100 : 0
+        const pctStr = formatPercent(pctVal)
         return (
           <li key={d.status} className="flex items-center gap-1.5">
             <span
@@ -137,7 +140,7 @@ export function TaskStatusLegend({ data }: { data: TaskStatusPoint[] }) {
             />
             <span className="text-slate-600">{d.status}</span>
             <span className="font-bold text-slate-800 tabular-nums">{d.count}</span>
-            <span className="text-slate-400 tabular-nums">({pct}%)</span>
+            <span className="text-slate-400 tabular-nums">({pctStr})</span>
           </li>
         )
       })}
