@@ -376,6 +376,8 @@ iLearn.Admin/wwwroot/**
 !iLearn.Admin/wwwroot/js/site.js
 iLearn.API/wwwroot/**
 iLearn.User/wwwroot/**
+!iLearn.User/wwwroot/css/
+!iLearn.User/wwwroot/css/user-theme.css
 
 # Backup / scratch files
 *.bak

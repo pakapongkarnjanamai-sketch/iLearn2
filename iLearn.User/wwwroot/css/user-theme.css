@@ -1,0 +1,609 @@
+:root {
+    /* colors */
+    --brand-color: #027d83;
+    --brand-dark: #004d40;
+    --brand-light: #e0f2f1;
+    --brand-lighter: #f0f9f9;
+    --secondary-bg: #f4f6f8;      /* พื้นหลังหน้าเดียวกันทุกหน้า */
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+
+    /* DevExtreme CSS Variables */
+    --dx-color-primary: var(--brand-color) !important;
+    --dx-color-link: var(--brand-color) !important;
+    --dx-component-color-bg: #fff !important;
+    --dx-color-text: #333 !important;
+    --dx-color-border: #ddd !important;
+
+    /* spacing scale — ทุก padding/margin/gap ต้องใช้ตัวใดตัวหนึ่ง */
+    --space-1: 0.25rem;  /* 4px  */
+    --space-2: 0.5rem;   /* 8px  */
+    --space-3: 0.75rem;  /* 12px */
+    --space-4: 1rem;     /* 16px */
+    --space-5: 1.5rem;   /* 24px */
+    --space-6: 2rem;     /* 32px */
+
+    /* radius scale */
+    --radius-sm: 6px;    /* ปุ่มเล็ก/list item */
+    --radius-md: 8px;    /* card/ปุ่มหลัก */
+    --radius-lg: 12px;   /* modal */
+    --radius-pill: 999px;
+
+    /* type scale (จำกัดขั้น) */
+    --text-xs: 0.75rem;
+    --text-sm: 0.85rem;
+    --text-base: 0.95rem;
+    --text-md: 1.05rem;
+    --text-lg: 1.25rem;
+}
+
+body {
+    font-family: 'Sarabun', sans-serif;
+    background-color: var(--secondary-bg);
+}
+
+/* ==========================================================================
+   BOOTSTRAP OVERRIDES (ทับค่าสีเดิมของ Bootstrap)
+   ========================================================================== */
+
+/* Links */
+a {
+    color: var(--brand-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--brand-dark);
+    text-decoration: none;
+}
+
+/* Bootstrap Buttons (.btn-primary) */
+.btn-primary {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:not(:disabled):not(.disabled):active {
+    background-color: var(--brand-dark) !important;
+    border-color: var(--brand-dark) !important;
+    color: #fff !important;
+}
+
+.btn-primary:focus,
+.btn-primary.focus {
+    box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.5) !important;
+}
+
+/* Bootstrap Outline Buttons (.btn-outline-primary) */
+.btn-outline-primary {
+    color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+/* Bootstrap Backgrounds & Text */
+.bg-primary {
+    background-color: var(--brand-color) !important;
+}
+
+.bg-primary-dark {
+    background-color: var(--brand-dark) !important;
+}
+
+.bg-primary-light {
+    background-color: var(--brand-light) !important;
+}
+
+.text-primary {
+    color: var(--brand-color) !important;
+}
+
+.border-primary {
+    border-color: var(--brand-color) !important;
+}
+
+/* Form Inputs Focus State (เปลี่ยนแสงฟุ้งสีฟ้าเป็นสีธีม) */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--brand-color);
+    box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
+}
+
+.form-check-input:focus {
+    border-color: var(--brand-color);
+    box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.25);
+}
+
+/* Custom Switch */
+.form-switch .form-check-input:checked {
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
+}
+
+/* Pagination */
+.page-link {
+    color: var(--brand-color);
+}
+
+.page-link:hover {
+    color: var(--brand-dark);
+    background-color: var(--brand-light);
+    border-color: var(--brand-color);
+}
+
+.page-item.active .page-link {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+/* Alerts */
+.alert-primary {
+    background-color: var(--brand-light);
+    border-color: var(--brand-color);
+    color: var(--brand-dark);
+}
+
+/* Badges */
+.badge.bg-primary {
+    background-color: var(--brand-color) !important;
+}
+
+/* Progress Bar */
+.progress-bar {
+    background-color: var(--brand-color);
+}
+
+/* Nav Tabs */
+.nav-tabs .nav-link.active {
+    color: var(--brand-color);
+    border-color: #dee2e6 #dee2e6 #fff;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: #e9ecef #e9ecef var(--brand-color);
+}
+
+/* Nav Pills */
+.nav-pills .nav-link.active {
+    background-color: var(--brand-color);
+}
+
+/* Dropdown */
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: var(--brand-color);
+}
+
+/* List Group */
+.list-group-item.active {
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
+}
+
+/* Spinner */
+.spinner-border.text-primary,
+.spinner-grow.text-primary {
+    color: var(--brand-color) !important;
+}
+
+/* ==========================================================================
+   DEVEXTREME OVERRIDES (ทับค่าสีเดิมของ DevExtreme)
+   ========================================================================== */
+
+.dx-button-mode-contained.dx-button-default {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-button-mode-contained.dx-button-default.dx-state-hover,
+.dx-button-mode-contained.dx-button-default.dx-state-active {
+    background-color: var(--brand-dark) !important;
+    border-color: var(--brand-dark) !important;
+}
+
+.dx-button-mode-contained.dx-button-default.dx-state-focused {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+/* Outlined Button */
+.dx-button-mode-outlined.dx-button-default {
+    color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+.dx-button-mode-outlined.dx-button-default.dx-state-hover {
+    background-color: var(--brand-light) !important;
+}
+
+/* Text Button */
+.dx-button-mode-text.dx-button-default {
+    color: var(--brand-color) !important;
+}
+
+.dx-button-mode-text.dx-button-default.dx-state-hover {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-texteditor.dx-state-focused,
+.dx-texteditor.dx-state-active {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-texteditor.dx-state-focused .dx-texteditor-label,
+.dx-texteditor.dx-state-active .dx-texteditor-label {
+    color: var(--brand-color) !important;
+}
+
+.dx-texteditor.dx-state-hover {
+    border-color: var(--brand-color) !important;
+}
+
+/* SelectBox, TagBox, Lookup */
+.dx-selectbox.dx-state-focused,
+.dx-tagbox.dx-state-focused,
+.dx-lookup.dx-state-focused {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-list-item.dx-state-focused,
+.dx-list-item.dx-state-hover {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-list-item-selected {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+/* DateBox, Calendar */
+.dx-datebox.dx-state-focused {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-calendar-cell.dx-calendar-selected-date {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-calendar-cell.dx-calendar-today {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-calendar-cell.dx-state-hover {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-checkbox-checked .dx-checkbox-icon {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-checkbox.dx-state-hover .dx-checkbox-icon {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-radiobutton-icon-checked .dx-radiobutton-icon-dot {
+    background-color: var(--brand-color) !important;
+}
+
+.dx-radiobutton-icon-checked {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-radiobutton.dx-state-hover .dx-radiobutton-icon {
+    border-color: var(--brand-color) !important;
+}
+
+.dx-tab.dx-tab-selected {
+    color: var(--brand-color) !important;
+    font-weight: 600;
+}
+
+.dx-tab.dx-tab-selected::after {
+    background-color: var(--brand-color) !important;
+    border-bottom: 2px solid var(--brand-color) !important;
+}
+
+.dx-tab.dx-state-hover {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-loadindicator-segment {
+    background-color: var(--brand-color) !important;
+}
+
+.dx-loadpanel-content .dx-loadindicator-segment {
+    background-color: var(--brand-color) !important;
+}
+
+.dx-link {
+    color: var(--brand-color) !important;
+}
+
+.dx-link:hover {
+    color: var(--brand-dark) !important;
+}
+
+.dx-switch-on-value .dx-switch-handle::before {
+    background-color: var(--brand-color) !important;
+}
+
+.dx-switch-on-value .dx-switch-container {
+    background-color: var(--brand-light) !important;
+    border-color: var(--brand-color) !important;
+}
+
+.dx-progressbar-range,
+.dx-slider-range.dx-slider-range-visible,
+.dx-slider-handle {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+/* Accordion */
+.dx-accordion-item.dx-state-focused .dx-accordion-item-title {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-accordion-item-opened > .dx-accordion-item-title {
+    color: var(--brand-color) !important;
+}
+
+/* TreeView */
+.dx-treeview-item.dx-state-selected > .dx-treeview-item-content {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-treeview-item.dx-state-hover > .dx-treeview-item-content {
+    background-color: var(--brand-light) !important;
+}
+
+/* Popup & Toast */
+.dx-popup-title {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-toast-success {
+    background-color: var(--brand-color) !important;
+}
+
+/* Menu */
+.dx-menu-item.dx-state-focused,
+.dx-menu-item.dx-state-hover {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-menu-item-selected {
+    color: var(--brand-color) !important;
+}
+
+/* Context Menu */
+.dx-context-menu .dx-menu-item-selected {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+/* Filter Builder */
+.dx-filterbuilder .dx-filterbuilder-action-icon {
+    color: var(--brand-color) !important;
+}
+
+/* Scheduler */
+.dx-scheduler-appointment {
+    background-color: var(--brand-color) !important;
+}
+
+.dx-scheduler-date-table-cell.dx-state-focused {
+    background-color: var(--brand-light) !important;
+}
+
+/* Chart */
+.dx-chart-series {
+    fill: var(--brand-color) !important;
+    stroke: var(--brand-color) !important;
+}
+
+/* File Uploader */
+.dx-fileuploader-upload-button {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+}
+
+/* Validation */
+.dx-invalid.dx-texteditor.dx-state-focused {
+    border-color: var(--danger-color) !important;
+}
+
+.dx-valid.dx-texteditor.dx-state-focused {
+    border-color: var(--brand-color) !important;
+}
+
+/* Scrollbar */
+.dx-scrollable-scroll {
+    background-color: rgba(2, 125, 131, 0.3) !important;
+}
+
+.dx-scrollable-scroll:hover {
+    background-color: rgba(2, 125, 131, 0.5) !important;
+}
+
+/* DataGrid */
+.dx-datagrid-headers .dx-header-row > td {
+    border-bottom: 2px solid var(--brand-color) !important;
+    color: var(--brand-color) !important;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.dx-datagrid-rowsview .dx-selection.dx-row:not(.dx-row-focused) > td {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-datagrid-rowsview .dx-row-focused > td {
+    background-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-datagrid-rowsview .dx-row.dx-data-row.dx-state-hover:not(.dx-selection):not(.dx-row-focused) > td {
+    background-color: var(--brand-lighter) !important;
+}
+
+.dx-datagrid-edit-form {
+    border-color: var(--brand-color) !important;
+}
+
+/* Pager */
+.dx-pager .dx-page-sizes .dx-selection,
+.dx-pager .dx-pages .dx-selection {
+    background-color: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: #fff !important;
+}
+
+.dx-pager .dx-page:not(.dx-selection):hover {
+    background-color: var(--brand-light) !important;
+}
+
+.dx-pager .dx-page-size:not(.dx-selection):hover {
+    background-color: var(--brand-light) !important;
+}
+
+/* --- Navbar --- */
+.navbar-custom {
+    background-color: var(--brand-color);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    color: white !important;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-nav .nav-link {
+    color: rgba(255,255,255,0.85) !important;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+}
+
+.navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
+    color: white !important;
+    background-color: rgba(255,255,255,0.1);
+    opacity: 1;
+}
+
+/* --- Footer --- */
+.footer {
+    background-color: white;
+    border-top: 1px solid #e9ecef;
+    color: #6c757d;
+    padding: 1.5rem 0;
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   SKELETON LOADER (iLearn.User)
+   ========================================================================== */
+@keyframes shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position:  600px 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #e8eaed 25%, #f4f4f5 50%, #e8eaed 75%);
+    background-size: 600px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 4px;
+}
+
+.skeleton-card {
+    background: white;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    border: 1px solid #f0f0f0;
+}
+
+.skeleton-thumb  { height: 130px; }
+.skeleton-body   { padding: var(--space-3) var(--space-4); }
+.skeleton-title  { height: 14px; margin-bottom: var(--space-2); }
+.skeleton-title.short, .skeleton-bar.short { width: 60%; }
+.skeleton-bar    { height: 10px; margin-bottom: 6px; }
+.skeleton-btn    { height: 34px; border-radius: var(--radius-md); margin-top: var(--space-3); }
+
+/* Skeleton modifiers for compact carousel skeleton */
+.skeleton-thumb--sm {
+    height: 70px;
+}
+
+.skeleton-body--sm {
+    padding: var(--space-2) var(--space-3);
+}
+
+.skeleton-progress--sm {
+    height: 5px;
+    margin-bottom: var(--space-1);
+}
+
+.skeleton-btn--sm {
+    height: 28px;
+    border-radius: var(--radius-md);
+    margin-top: var(--space-2);
+}
+
+/* Custom utility classes using brand colors */
+.hover-brand:hover {
+    color: var(--brand-color) !important;
+}
+
+.border-brand {
+    border-color: var(--brand-color) !important;
+}
+
+.border-brand-dark {
+    border-color: var(--brand-dark) !important;
+}
+
+.shadow-brand {
+    box-shadow: 0 0.5rem 1rem rgba(2, 125, 131, 0.15) !important;
+}
+
+.shadow-brand-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(2, 125, 131, 0.075) !important;
+}
+
+.shadow-brand-lg {
+    box-shadow: 0 1rem 3rem rgba(2, 125, 131, 0.175) !important;
+}

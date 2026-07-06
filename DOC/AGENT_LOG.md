@@ -14,6 +14,44 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-06 15:35] Antigravity — PLAN-054 Rework DONE: Address Reviewer Feedbacks (R1-R6)
+- ทำอะไร: ปรับปรุงแก้ไขงานตาม feedback ของ Reviewer (Claude Code):
+  - แก้ไข `.gitignore` เพื่อลบการ ignore `user-theme.css` และโฟลเดอร์ css (R1)
+  - ลบ body background override block ออกจากหน้าแดชบอร์ด (`MyLearning/Index.cshtml`) ให้สอดคล้องตามแผนข้อ B1 (R2)
+  - ย้าย inline style ของ `#readOnlyBadge` ใน `Player.cshtml` ไปเป็น class `.read-only-badge` ใน style block (R3)
+  - ย้าย inline style ของไอคอนและข้อความใน logout dialog message ของแดชบอร์ดไปเป็น classes ใน style block (R4)
+  - เพิ่มคลาส `.skeleton-bar.short` ใน `user-theme.css` และใช้แทน inline style `width: 60%;` ใน Index.cshtml (R5)
+  - แก้ไข `.course-count` border-radius ใน category sidebar ของแดชบอร์ดเป็น `--radius-pill` (R6)
+- ไฟล์หลักที่แตะ: `.gitignore`, `iLearn.User/wwwroot/css/user-theme.css`, `iLearn.User/Views/MyLearning/Index.cshtml`, `iLearn.User/Views/MyLearning/Player.cshtml`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` สำเร็จสมบูรณ์ (0 errors / 0 warnings)
+
+
+## [2026-07-06 —] Claude Code — Review PLAN-054: REWORK — งานดีแต่มี blocker 2 จุด (รีวิว ไม่แก้โค้ด)
+- ทำอะไร: ตรวจ diff ทั้ง 4 view + `user-theme.css` เต็มไฟล์ + รัน `dotnet build iLearn.User` ซ้ำเอง (ผ่าน 0/0) — scope A/C/D/E/F ทำครบถูกต้อง, เนื้อหา theme-overrides.css ยกเข้า user-theme.css ไม่ตกหล่น — **แต่พบ blocker:** (R1) `.gitignore:378` `iLearn.User/wwwroot/**` ทำให้ `user-theme.css` ไม่ถูก track — clone ใหม่จะได้เว็บไร้สไตล์ ต้องเพิ่ม negation แบบ iLearn.Admin (`!iLearn.User/wwwroot/css/` + `!.../user-theme.css`); (R2) ข้อ B1 ไม่ได้ทำ — `MyLearning/Index.cshtml:15-17` ยังมี body bg override `#f8f9fa`; + minor R3-R6 (inline style ตกค้าง `readOnlyBadge`, logout dialog, skeleton width, `.course-count` radius) → เปลี่ยนสถานะแผนเป็น REWORK พร้อม Reviewer Sign-off ระบุวิธีแก้ครบ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-054-user-mvc-ui-spacing-standardization.md` (Status → REWORK + Reviewer Sign-off)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: dotnet build iLearn.User ผ่าน (0 warnings/0 errors); grep inline style + git check-ignore ยืนยัน finding ทุกข้อ
+
+## [2026-07-06 15:25] Antigravity — PLAN-054 DONE: UI Spacing Standardization in iLearn.User
+- ทำอะไร: ปรับปรุงโครงสร้าง CSS และจัดมาตรฐาน Spacing และ Layout ของ iLearn.User ตาม PLAN-054:
+  - สร้างไฟล์รวมศูนย์ดีไซน์โทเค็น `wwwroot/css/user-theme.css` และลบไฟล์ไม่ได้ใช้ `site.css` และ `theme-overrides.css`
+  - แก้ไข `_DevExtremeLayout.cshtml` ให้เชื่อมโยง `user-theme.css` และปรับ footer ให้ใช้ปีปัจจุบันแบบ dynamic
+  - ปรับปรุงหน้าล็อกอิน (`Home/Index.cshtml`) ให้รองรับขนาดจอ responsive และปรับแต่ง paddings/margins/radiuses ตาม design tokens
+  - ปรับปรุงหน้าแดชบอร์ด (`MyLearning/Index.cshtml`) และหน้าเรียน (`MyLearning/Player.cshtml`) เพื่อกำจัด inline styles แดชบอร์ดแบ็กกราวนด์ และ spacing/margins ที่ไม่ตรงระบบออก ย้ายไปสไตล์ลิสท์ส่วนกลางหรือเพิ่ม modifier classes แทน
+  - แก้ไข JS template skeleton loaders ในแดชบอร์ดให้ดึง modifier classes แทน inline styling
+  - แก้ไข keyframe CSS Razor compile error ใน Player.cshtml (ใช้ escape `@@keyframes`)
+- ไฟล์หลักที่แตะ: `iLearn.User/wwwroot/css/user-theme.css`, `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `iLearn.User/Views/Home/Index.cshtml`, `iLearn.User/Views/MyLearning/Index.cshtml`, `iLearn.User/Views/MyLearning/Player.cshtml`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (Presentation/CSS adjustments)
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` ผ่าน 100% สำเร็จ (0 warnings / 0 errors)
+
+
+## [2026-07-06 —] Claude Code — Audit UI/spacing iLearn.User + เขียน PLAN-054 (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ขอตรวจ UI + จัด spacing ใน `iLearn.User` ให้มีมาตรฐาน → audit ครบ 4 view (Login, MyLearning/Index, Player, Error) + layout + CSS พบ: (1) ไม่มี spacing scale — Index ใช้ rem ค่า ad-hoc (0.05/0.65/0.67rem), Player ใช้ px ล้วน, Login ใช้ px; (2) `wwwroot/css/site.css` + `theme-overrides.css` เป็นไฟล์ตาย (ไม่ถูก link จาก view ใดเลย) ขณะที่ layout มี inline `<style>` ซ้ำเนื้อหา theme-overrides เกือบทั้งไฟล์; (3) inline style ในมาร์กอัป/JS template หลายจุด; (4) bug `.login-container { width:100%; width:500px }` + padding 60px ล้นจอมือถือ; (5) `.summary-card` 600px ตายตัว; (6) พื้นหลัง body ไม่ตรงกันข้ามหน้า (#f4f6f8 vs #f8f9fa) → เขียน PLAN-054 กำหนด design tokens (`--space-1..6`, `--radius-*`, type scale) ใน `user-theme.css` ไฟล์เดียว + รายการแก้ A–F ระบุไฟล์:บรรทัด
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-054-user-mvc-ui-spacing-standardization.md` (ใหม่, READY, Assigned: Gemini)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (CSS/มาร์กอัป presentation เท่านั้น; ห้ามแตะ DOM id/class ที่ JS อ้างอิง)
+- Verified: n/a (planning) — ทุก finding อ้างไฟล์:บรรทัดจากการอ่านโค้ดจริง + grep ยืนยันไฟล์ CSS ตาย
+
 ## [2026-07-06 12:45] Antigravity — PLAN-053 DONE: UI Consistency Audit
 - ทำอะไร: ทำตามแผนปรับปรุงความสม่ำเสมอของ UI (Status Badge, Loaders, Badges, number formatting) ใน React admin shell ทั้งหมด:
   - เพิ่มเคส `'Due Soon'` (warning) และ `'Unassigned'` (neutral) ใน `StatusBadge.tsx` ของระบบส่วนกลาง

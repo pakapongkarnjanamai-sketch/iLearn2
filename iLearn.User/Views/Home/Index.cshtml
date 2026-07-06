@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Login";
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
 }
@@ -12,7 +12,6 @@
 
         /* ✅ ใช้สีพื้นหลังเดียวกับ Dashboard แทน Gradient */
         body {
-            background-color: #f4f6f8 !important;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -22,21 +21,21 @@
         /* Login Card - ทำให้เหมือน Card ใน Dashboard */
         .login-container {
             width: 100%;
-            width: 500px;
-            padding: 60px;
+            max-width: 500px;
+            padding: var(--space-5);
         }
 
         .login-card {
             background: white;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            padding: 40px;
+            padding: var(--space-6);
             border: 1px solid #e9ecef;
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: var(--space-5);
         }
 
         .login-icon {
@@ -49,7 +48,7 @@
             justify-content: center;
             color: white;
             font-size: 2.5rem;
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
             box-shadow: 0 8px 20px rgba(2, 125, 131, 0.2);
         }
 
@@ -68,9 +67,9 @@
         .employee-preview {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border-radius: var(--radius-sm);
+            padding: var(--space-4);
+            margin-bottom: var(--space-5);
             text-align: center;
         }
 
@@ -79,7 +78,7 @@
             background-color: var(--brand-color) !important;
             border: none !important;
             font-weight: 600;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             height: 50px;
             transition: all 0.3s;
         }
