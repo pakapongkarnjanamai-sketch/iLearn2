@@ -14,6 +14,20 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-06 12:05] Antigravity — PLAN-052 DONE: เปลี่ยนสรุป "By Department" เป็น "By Learner Group"
+- ทำอะไร: 
+  - Backend: เพิ่ม `LearnerGroups: List<string>` ใน `LearnerProgressDto` และ inject `IGenericRepository<LearnerGroupMember>` ใน `AssignmentService` จากนั้นใน `BuildAssignmentDashboardAsync` ทำการคิวรีข้อมูลกลุ่มของ uniqueLearnerCodes (คิวรีเดียว) พร้อมกรอง soft delete และ division isolation แล้วนำมาแมปลงใน DTO (เรียงลำดับ A-Z)
+  - Frontend: อัปเดต `LearnerRow` model type และแทนที่ `departmentSummaries` ด้วย `groupSummaries` เพื่อคำนวณการจัดกลุ่มตาม Learner Group (นับคนซ้ำในหลายกลุ่ม และแสดงกลุ่ม "Ungrouped" ไว้ท้ายสุด); เปลี่ยนการ์ด By Department เป็น By Learner Group UI; เพิ่ม select filter dropdown สำหรับ Group; ปรับปรุง Search ให้สามารถค้นหาด้วยชื่อกลุ่มได้; ปรับปรุง CSV Export ให้มีคอลัมน์ Learner Groups และอัปเดต model ใน Detail Page ให้ตรงกัน
+- ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/AssignmentDashboardDto.cs`, `iLearn.Application/Services/AssignmentService.cs`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`
+- Contract ที่เปลี่ยน (API shape / props / DB): DTO `LearnerProgressDto` เพิ่มฟิลด์ `learnerGroups: string[]`
+- Verified: .NET unit tests: 118 passed / 0 failed; React `npm run lint` and `npm run build` ผ่าน 100%
+
+## [2026-07-06 —] Claude Code — เขียน PLAN-052 report: By Department → By Learner Group (วางแผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้แจ้งการ์ด "By Department" บน `assignments/:id/report` ไม่ได้ใช้ (ดูจาก learner groups เป็นหลัก) → วิเคราะห์: dashboard endpoint ยังไม่มีข้อมูลกลุ่มต่อ learner (มีแค่ LearnerGroupId ระดับ assignment ซึ่งไม่พอ — learner เพิ่มทีหลัง/อยู่หลายกลุ่มได้) → แผน: เพิ่ม `LearnerProgressDto.LearnerGroups: List<string>` (query เดียว join LearnerGroupMembers→LearnerGroup, division isolation ตาม LearnerGroupService) + frontend แทนการ์ดด้วย By Learner Group + Group filter dropdown + คอลัมน์ CSV
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-052-assignment-report-by-learner-group.md` (ใหม่, READY, Assigned: Gemini)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน — แผนระบุ contract change ล่วงหน้า: `LearnerProgressDto` เพิ่ม field `learnerGroups: string[]` แบบ additive)
+- Verified: n/a (planning) — อ่าน AssignmentReportPage.tsx, AssignmentService.BuildAssignmentDashboardAsync, AssignmentDashboardDto, LearnerGroup/LearnerGroupMember entities ก่อนสรุป
+
 ## [2026-07-06 —] Claude Code — Review PLAN-051: ผ่าน อนุมัติปิดงาน (รีวิว ไม่แก้โค้ด)
 - ทำอะไร: ตรวจอิสระซ้ำทุกข้อของ PLAN-051 — git diff deploy scripts (exclude ครบ 2 ขา, env inject ครบขา deploy+rollback, PROD wrapper ไม่ถูกแตะ), ตรวจไฟล์จริงบน QA/PROD ผ่าน UNC (Production.json หายครบ 3 จุด, env=Staging ครบ 3 web.config, redirect web.config ถูกต้อง), HTTP probe ใหม่ 9/9 ผ่าน (QA admin 200, PROD /student 301→/iLearn), QA/PROD stats ต่างกันแล้ว (แยก DB สำเร็จ), grep ยืนยันไม่มีโค้ดอิงชื่อ env → เพิ่ม Reviewer Sign-off ในไฟล์แผน พร้อมข้อสังเกตเก็บกวาด 2 ข้อ (stamp folder เก่าบน QA ยังมี Production.json ข้างใน — inert; PROD \student เหลือไฟล์ค้าง — ไม่มีผล)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-051-qa-env-contamination-and-prod-student-500.md` (เพิ่ม Reviewer Sign-off)

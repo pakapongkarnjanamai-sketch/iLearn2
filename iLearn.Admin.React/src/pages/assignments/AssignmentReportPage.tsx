@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { BookOpen, Building2, ChevronDown, Download, FileBarChart, Printer } from 'lucide-react'
+import { BookOpen, ChevronDown, Download, FileBarChart, Printer, Users } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { DetailCard, DetailLayout, DetailSubSection, Fact, FactGrid } from '../../components/ui/detail'
@@ -24,6 +24,7 @@ type LearnerRow = {
   learnerName?: string | null
   division?: string | null
   department?: string | null
+  learnerGroups?: string[] | null
   assignmentRuleId?: number | null
   courseCode?: string | null
   courseTitle?: string | null
@@ -60,8 +61,8 @@ type AssignmentDashboard = {
   learners: LearnerRow[]
 }
 
-type DepartmentSummary = {
-  department: string
+type GroupSummary = {
+  groupName: string
   learnerCount: number
   enrollments: number
   completed: number
@@ -78,6 +79,7 @@ export function AssignmentReportPage() {
   const [data, setData] = useState<AssignmentDashboard | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('All')
   const [courseFilter, setCourseFilter] = useState<'All' | number>('All')
+  const [groupFilter, setGroupFilter] = useState<string>('All')
   const [search, setSearch] = useState('')
   const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
@@ -106,7 +108,18 @@ export function AssignmentReportPage() {
 
   useEffect(() => {
     setVisibleRows(DETAIL_TABLE_CHUNK_SIZE)
-  }, [statusFilter, courseFilter, search])
+  }, [statusFilter, courseFilter, groupFilter, search])
+
+  const groupOptions = useMemo(() => {
+    if (!data) return []
+    const names = new Set<string>()
+    data.learners.forEach((row) => {
+      row.learnerGroups?.forEach((g) => {
+        if (g.trim()) names.add(g.trim())
+      })
+    })
+    return Array.from(names).sort()
+  }, [data])
 
   const filtered = useMemo(() => {
     if (!data) return []
@@ -114,17 +127,26 @@ export function AssignmentReportPage() {
     return data.learners.filter((row) => {
       if (statusFilter !== 'All' && row.status !== statusFilter) return false
       if (courseFilter !== 'All' && row.assignmentRuleId !== courseFilter) return false
+      if (groupFilter !== 'All') {
+        if (groupFilter === 'Ungrouped') {
+          if (row.learnerGroups && row.learnerGroups.length > 0) return false
+        } else {
+          if (!row.learnerGroups || !row.learnerGroups.includes(groupFilter)) return false
+        }
+      }
       if (!q) return true
+      const matchGroups = row.learnerGroups?.some((g) => g.toLowerCase().includes(q)) ?? false
       return (
         row.learnerCode.toLowerCase().includes(q) ||
         (row.learnerName ?? '').toLowerCase().includes(q) ||
         (row.division ?? '').toLowerCase().includes(q) ||
         (row.department ?? '').toLowerCase().includes(q) ||
         (row.courseCode ?? '').toLowerCase().includes(q) ||
-        (row.courseTitle ?? '').toLowerCase().includes(q)
+        (row.courseTitle ?? '').toLowerCase().includes(q) ||
+        matchGroups
       )
     })
-  }, [data, statusFilter, courseFilter, search])
+  }, [data, statusFilter, courseFilter, groupFilter, search])
 
   const overdueLearnerCount = useMemo(() => {
     if (!data) return 0
@@ -133,24 +155,37 @@ export function AssignmentReportPage() {
     ).size
   }, [data])
 
-  const departmentSummaries = useMemo<DepartmentSummary[]>(() => {
+  const groupSummaries = useMemo<GroupSummary[]>(() => {
     if (!data) return []
     const groups = new Map<string, LearnerRow[]>()
     data.learners.forEach((row) => {
-      const key = row.department?.trim() || 'Unspecified'
-      const list = groups.get(key)
-      if (list) {
-        list.push(row)
+      const learnerGroups = row.learnerGroups
+      if (!learnerGroups || learnerGroups.length === 0) {
+        const key = 'Ungrouped'
+        const list = groups.get(key)
+        if (list) {
+          list.push(row)
+        } else {
+          groups.set(key, [row])
+        }
       } else {
-        groups.set(key, [row])
+        learnerGroups.forEach((gName) => {
+          const key = gName.trim() || 'Ungrouped'
+          const list = groups.get(key)
+          if (list) {
+            list.push(row)
+          } else {
+            groups.set(key, [row])
+          }
+        })
       }
     })
 
     return Array.from(groups.entries())
-      .map(([department, rows]) => {
+      .map(([groupName, rows]) => {
         const completed = rows.filter((row) => row.isCompleted).length
         return {
-          department,
+          groupName,
           learnerCount: new Set(rows.map((row) => row.learnerCode)).size,
           enrollments: rows.length,
           completed,
@@ -159,9 +194,9 @@ export function AssignmentReportPage() {
         }
       })
       .sort((a, b) => {
-        if (a.department === 'Unspecified') return 1
-        if (b.department === 'Unspecified') return -1
-        return a.department.localeCompare(b.department)
+        if (a.groupName === 'Ungrouped') return 1
+        if (b.groupName === 'Ungrouped') return -1
+        return a.groupName.localeCompare(b.groupName)
       })
   }, [data])
 
@@ -175,6 +210,7 @@ export function AssignmentReportPage() {
       'Name',
       'Division',
       'Department',
+      'Learner Groups',
       'Course Code',
       'Course Title',
       'Status',
@@ -188,6 +224,7 @@ export function AssignmentReportPage() {
       l.learnerName ?? l.learnerCode,
       l.division ?? '',
       l.department ?? '',
+      l.learnerGroups ? l.learnerGroups.join('; ') : '',
       l.courseCode ?? '',
       l.courseTitle ?? '',
       learnerStatusLabel(l.status),
@@ -232,7 +269,7 @@ export function AssignmentReportPage() {
   }
 
   const visible = filtered.slice(0, visibleRows)
-  const isFiltered = statusFilter !== 'All' || courseFilter !== 'All' || search.trim() !== ''
+  const isFiltered = statusFilter !== 'All' || courseFilter !== 'All' || groupFilter !== 'All' || search.trim() !== ''
 
   return (
     <div className="space-y-6">
@@ -318,14 +355,14 @@ export function AssignmentReportPage() {
             )}
           </DetailCard>
 
-          {/* Department breakdown */}
-          {departmentSummaries.length > 0 && (
-            <Card icon={Building2} title="By Department">
+          {/* Learner Group breakdown */}
+          {groupSummaries.length > 0 && (
+            <Card icon={Users} title="By Learner Group">
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                      <th className="p-3 pl-5">Department</th>
+                      <th className="p-3 pl-5">Learner Group</th>
                       <th className="p-3 text-center">Learners</th>
                       <th className="p-3 text-center">Enrollments</th>
                       <th className="p-3 text-center">Completed</th>
@@ -334,9 +371,9 @@ export function AssignmentReportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {departmentSummaries.map((row) => (
-                      <tr key={row.department} className="hover:bg-slate-50/50 transition duration-100">
-                        <td className="p-3 pl-5 font-semibold text-slate-800 text-xs">{row.department}</td>
+                    {groupSummaries.map((row) => (
+                      <tr key={row.groupName} className="hover:bg-slate-50/50 transition duration-100">
+                        <td className="p-3 pl-5 font-semibold text-slate-800 text-xs">{row.groupName}</td>
                         <td className="p-3 text-center text-xs">{row.learnerCount}</td>
                         <td className="p-3 text-center text-xs">{row.enrollments}</td>
                         <td className="p-3 text-center text-xs">{row.completed}</td>
@@ -366,7 +403,7 @@ export function AssignmentReportPage() {
               <ListToolbar
                 searchValue={search}
                 onSearchChange={setSearch}
-                searchPlaceholder="Search code, name, department, course..."
+                searchPlaceholder="Search code, name, group, department, course..."
                 toolbarContent={
                   <div className="flex flex-wrap items-center gap-1.5">
                     {STATUS_FILTERS.map((s) => (
@@ -403,6 +440,23 @@ export function AssignmentReportPage() {
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                       </div>
                     )}
+
+                    <div className="relative shrink-0">
+                      <select
+                        value={groupFilter}
+                        onChange={(e) => setGroupFilter(e.target.value)}
+                        className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-600 hover:border-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      >
+                        <option value="All">All Groups</option>
+                        {groupOptions.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                        <option value="Ungrouped">Ungrouped</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    </div>
                   </div>
                 }
               />

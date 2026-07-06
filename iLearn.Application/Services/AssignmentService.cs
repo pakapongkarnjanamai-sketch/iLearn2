@@ -18,6 +18,7 @@ namespace iLearn.Application.Services
         private readonly ILearnerApiService _learnerApiService;
         private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly ICourseAssignmentService _courseAssignmentService;
+        private readonly IGenericRepository<LearnerGroupMember> _learnerGroupMemberRepo;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -29,6 +30,7 @@ namespace iLearn.Application.Services
             ILearnerApiService learnerApiService,
             IAssignmentBatchService assignmentBatchService,
             ICourseAssignmentService courseAssignmentService,
+            IGenericRepository<LearnerGroupMember> learnerGroupMemberRepo,
             IDateTime dateTime,
             IUnitOfWork unitOfWork)
         {
@@ -39,6 +41,7 @@ namespace iLearn.Application.Services
             _learnerApiService = learnerApiService;
             _assignmentBatchService = assignmentBatchService;
             _courseAssignmentService = courseAssignmentService;
+            _learnerGroupMemberRepo = learnerGroupMemberRepo;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
         }
@@ -916,6 +919,32 @@ namespace iLearn.Application.Services
                 ? new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
                 : await _learnerApiService.GetLearnersByCodesAsync(uniqueLearnerCodes);
 
+            var groupsByCode = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            if (uniqueLearnerCodes.Count > 0)
+            {
+                var memberQuery = _learnerGroupMemberRepo.GetQuery()
+                    .AsNoTracking()
+                    .Where(m => uniqueLearnerCodes.Contains(m.LearnerCode) && !m.IsDeleted);
+
+                if (divisionId.HasValue)
+                {
+                    memberQuery = memberQuery.Where(m => m.LearnerGroup != null && m.LearnerGroup.DivisionId == divisionId.Value);
+                }
+
+                var groupMembers = await memberQuery
+                    .Where(m => m.LearnerGroup != null && !m.LearnerGroup.IsDeleted)
+                    .Select(m => new { m.LearnerCode, GroupName = m.LearnerGroup.Name })
+                    .ToListAsync(cancellationToken);
+
+                groupsByCode = groupMembers
+                    .GroupBy(m => m.LearnerCode, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => x.GroupName).OrderBy(name => name).ToList(),
+                        StringComparer.OrdinalIgnoreCase
+                    );
+            }
+
             var learnersByCode = learnerRows
                 .GroupBy(row => row.LearnerCode)
                 .Select(group => new
@@ -979,12 +1008,14 @@ namespace iLearn.Application.Services
                     var status = AssignmentStatusKeys.GetScheduledLearnerStatus(
                         row.IsCompleted, row.Progress, row.StartDate, row.DueDate, now);
                     var learnerInfo = learnerNames.GetValueOrDefault(row.LearnerCode);
+                    var learnerGroups = groupsByCode.GetValueOrDefault(row.LearnerCode) ?? new List<string>();
                     return new LearnerProgressDto
                     {
                         LearnerCode = row.LearnerCode,
                         LearnerName = learnerInfo?.Name ?? row.LearnerCode,
                         Division = learnerInfo?.Division,
                         Department = learnerInfo?.Department,
+                        LearnerGroups = learnerGroups,
                         AssignmentRuleId = row.AssignmentId,
                         CourseCode = course?.Code ?? "-",
                         CourseTitle = course?.Title ?? "Unknown Course",

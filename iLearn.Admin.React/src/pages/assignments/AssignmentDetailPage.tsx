@@ -62,6 +62,7 @@ type AssignmentDetail = {
     learnerName?: string | null
     division?: string | null
     department?: string | null
+    learnerGroups?: string[] | null
     assignmentRuleId?: number | null
     courseCode?: string | null
     courseTitle?: string | null

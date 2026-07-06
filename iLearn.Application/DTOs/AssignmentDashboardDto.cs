@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using iLearn.Application.Common;
 
@@ -59,5 +59,6 @@ namespace iLearn.Application.DTOs
         public DateTime? CompletedDate { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
+        public List<string> LearnerGroups { get; set; } = new();
     }
 }
