@@ -823,7 +823,7 @@ else
                         </button>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-4" id="myCoursesStatsCol">
                     <div class="row g-3">
                         <div class="col-6">
                             <div class="stat-box text-center">
@@ -845,7 +845,7 @@ else
 
     <div class="container pb-4">
 
-        <div class="mb-4">
+        <div class="mb-4" id="myCoursesSection" style="display:none;">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div>
                     <h5 class="fw-bold mb-1">
@@ -885,9 +885,6 @@ else
                     </h5>
                 </div>
                 <div class="catalog-toolbar">
-                    <div class="catalog-type-filter-wrap" aria-label="ตัวกรองประเภทหลักสูตร">
-                        <ul class="nav nav-pills" id="catalog-type-filter"></ul>
-                    </div>
                     <div class="catalog-actions">
                         <div id="searchBoxContainer"></div>
                         <div class="catalog-view-toggle">
@@ -911,7 +908,12 @@ else
                     <div id="categoryMenu"></div>
                 </div>
 
-                <div class="catalog-content" id="catalogContent"></div>
+                <div class="catalog-content" id="catalogContent">
+                    <div class="catalog-type-filter-wrap mb-3" aria-label="ตัวกรองประเภทหลักสูตร">
+                        <ul class="nav nav-pills" id="catalog-type-filter"></ul>
+                    </div>
+                    <div id="catalogCourseList"></div>
+                </div>
             </div>
         </div>
 
@@ -1018,9 +1020,12 @@ else
                     if (res.success && res.data && res.data.length > 0) {
                         myCoursesData = res.data;
                         updateStats(res.data);
+                        updateMyCoursesVisibility();
                         renderCurrentMyCourses();
                     } else {
-                        renderEmptyState('#myCoursesContainer', 'คุณยังไม่มีคอร์สที่ได้รับมอบหมาย');
+                        myCoursesData = [];
+                        $('#myCoursesSection').hide();
+                        $('#myCoursesStatsCol').hide();
                         $("#statEnrolled, #statCompleted").text("0");
                     }
                 },
@@ -1166,6 +1171,36 @@ else
             renderCurrentMyCourses();
         }
 
+        // ========== Visibility: hide section/tabs with no data ==========
+        function updateMyCoursesVisibility() {
+            const hasProgress = myCoursesData.some(e => !e.isCompleted);
+            const hasCompleted = myCoursesData.some(e => !!e.isCompleted);
+
+            // Show/hide the whole section
+            if (!hasProgress && !hasCompleted) {
+                $('#myCoursesSection').hide();
+                $('#myCoursesStatsCol').hide();
+                return;
+            }
+            $('#myCoursesSection').show();
+            $('#myCoursesStatsCol').show();
+
+            // Show/hide individual tab pills
+            const $progressTab = $('#pills-tab .nav-link[data-filter="progress"]').closest('.nav-item');
+            const $completedTab = $('#pills-tab .nav-link[data-filter="completed"]').closest('.nav-item');
+            $progressTab.toggle(hasProgress);
+            $completedTab.toggle(hasCompleted);
+
+            // Auto-select a visible tab if current is hidden
+            if (currentFilter === 'progress' && !hasProgress) {
+                currentFilter = 'completed';
+            } else if (currentFilter === 'completed' && !hasCompleted) {
+                currentFilter = 'progress';
+            }
+            $('#pills-tab .nav-link').removeClass('active');
+            $(`#pills-tab .nav-link[data-filter="${currentFilter}"]`).addClass('active');
+        }
+
         // ========== Filter My Courses ==========
         function filterMyCourses(type) {
             currentFilter = type;
@@ -1246,7 +1281,7 @@ else
         // ========== Load Catalog ==========
         function loadAllCourses() {
             $("#catalogLayout").show();
-            showSkeletonCards('#catalogContent', 4, 'col-md-6 col-lg-4 col-xl-3');
+            showSkeletonCards('#catalogCourseList', 4, 'col-md-6 col-lg-4 col-xl-3');
             $.ajax({
                 url: courseCatalogUrl,
                 method: 'GET',
@@ -1263,14 +1298,14 @@ else
                         renderCatalogContent('all');
                     } else {
                         renderTypeFilterPills(selectedCategoryId);
-                        renderEmptyState('#catalogContent', 'ยังไม่มีหลักสูตรในขณะนี้');
+                        renderEmptyState('#catalogCourseList', 'ยังไม่มีหลักสูตรในขณะนี้');
                     }
                 },
                 error: function(xhr) {
                     if (handleLearnerSessionExpired(xhr)) return;
 
                     renderTypeFilterPills(selectedCategoryId);
-                    renderEmptyState('#catalogContent', 'ไม่สามารถโหลดข้อมูลหลักสูตรได้');
+                    renderEmptyState('#catalogCourseList', 'ไม่สามารถโหลดข้อมูลหลักสูตรได้');
                     showToast("ไม่สามารถโหลดข้อมูลหลักสูตรได้", "error");
                 }
             });
@@ -1354,8 +1389,8 @@ else
 
         // ========== Render Catalog Content ==========
         function renderCatalogContent(categoryId) {
-            const $content = $("#catalogContent");
-            $content.empty();
+            const $courseList = $("#catalogCourseList");
+            $courseList.empty();
             renderTypeFilterPills(categoryId);
 
             let coursesToShow = getCatalogBaseCourses(categoryId);
@@ -1366,7 +1401,7 @@ else
             }
 
             if (coursesToShow.length === 0) {
-                renderEmptyState('#catalogContent', 'ไม่พบหลักสูตรในหมวดหมู่นี้');
+                renderEmptyState('#catalogCourseList', 'ไม่พบหลักสูตรในหมวดหมู่นี้');
                 return;
             }
 
@@ -1375,13 +1410,13 @@ else
                 coursesToShow.forEach(course => {
                     $list.append(renderCatalogListItem(course));
                 });
-                $content.append($list);
+                $courseList.append($list);
             } else {
                 const $grid = $('<div class="row g-3"></div>');
                 coursesToShow.forEach(course => {
                     $grid.append(renderCatalogCard(course));
                 });
-                $content.append($grid);
+                $courseList.append($grid);
             }
         }
 
