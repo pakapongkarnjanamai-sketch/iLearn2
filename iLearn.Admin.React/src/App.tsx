@@ -16,6 +16,7 @@ import { VersionFormPage } from './pages/courses/VersionFormPage'
 import { LearnerGroupListPage } from './pages/learner-groups/LearnerGroupListPage'
 import { LearnerGroupDetailPage } from './pages/learner-groups/LearnerGroupDetailPage'
 import { LearnerGroupEditorPage } from './pages/learner-groups/LearnerGroupEditorPage'
+import { LearnerListPage } from './pages/learners/LearnerListPage'
 import { LearnerProfilePage } from './pages/learners/LearnerProfilePage'
 import { AssignmentDetailPage } from './pages/assignments/AssignmentDetailPage'
 import { AssignmentReportPage } from './pages/assignments/AssignmentReportPage'
@@ -83,7 +84,7 @@ export function App() {
         <Route path="student-groups/*" element={<LegacyStudentGroupsRedirect />} />
 
         {/* Learners */}
-        <Route path="learners" element={<EntityListPage config={adminListConfigs.learners} />} />
+        <Route path="learners" element={<LearnerListPage />} />
         <Route path="learners/:id/profile" element={<Remount><LearnerProfilePage /></Remount>} />
 
         {/* Operations */}

@@ -123,7 +123,7 @@ export function AssignmentGanttPage() {
         </AppButton>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col pt-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
         <div className="flex flex-wrap items-center gap-2">
           {STATUS_FILTERS.map((s) => (
             <button
@@ -149,7 +149,7 @@ export function AssignmentGanttPage() {
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white">
-            <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2.5">
+            <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
               <span className="text-xs font-semibold text-slate-500">
                 Showing <strong className="text-slate-800">{filtered.length}</strong> of {tasks.length} batches
               </span>

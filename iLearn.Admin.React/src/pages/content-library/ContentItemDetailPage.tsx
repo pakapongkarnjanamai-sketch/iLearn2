@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  BookOpen,
   Download,
   Edit3,
   ExternalLink,
@@ -25,6 +26,16 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatBytes, formatDateTime, formatNumber } from '../../lib/format'
 
+// Mirrors ContentItemCourseReferenceDto (iLearn.Application/DTOs/ContentItemDto.cs)
+type CourseReference = {
+  courseId: number
+  courseTitle: string
+  courseCode: string
+  courseVersionId: number
+  versionNumber: number
+}
+
+// Mirrors ContentItemDto (iLearn.Application/DTOs/ContentItemDto.cs)
 type ContentItemDetail = {
   id: number
   name: string
@@ -36,6 +47,7 @@ type ContentItemDetail = {
   fileStorageId?: number | null
   fileLength?: number | null
   courseIdsCount?: number
+  courseContentItems?: CourseReference[]
   createdAt?: string
   updatedAt?: string
 }
@@ -220,6 +232,7 @@ export function ContentItemDetailPage() {
           </ControlsSidebar>
         }
       >
+        <main className="space-y-6">
         <Card icon={Layers} title="Overview" bodyClassName="p-5 space-y-5">
           <FactGrid>
             <Fact label="Status">
@@ -266,6 +279,34 @@ export function ContentItemDetailPage() {
             </Fact>
           </FactGrid>
         </Card>
+
+        {(item.courseContentItems?.length ?? 0) > 0 && (
+          <Card icon={BookOpen} title="Related Courses" bodyClassName="p-0">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-[10px] font-extrabold uppercase text-slate-400">
+                  <th className="px-5 py-2.5 text-left">Course</th>
+                  <th className="px-5 py-2.5 text-left">Code</th>
+                  <th className="px-5 py-2.5 text-right">Version</th>
+                </tr>
+              </thead>
+              <tbody>
+                {item.courseContentItems!.map((ref) => (
+                  <tr key={`${ref.courseId}-${ref.courseVersionId}`} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                    <td className="px-5 py-2.5">
+                      <Link to={`/courses/${ref.courseId}`} className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium">
+                        {ref.courseTitle}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-2.5 font-mono text-slate-500">{ref.courseCode}</td>
+                    <td className="px-5 py-2.5 text-right text-slate-600">v{ref.versionNumber}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+        </main>
       </DetailLayout>
 
       {confirmDialog}
