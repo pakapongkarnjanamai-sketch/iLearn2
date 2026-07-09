@@ -14,6 +14,59 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 11:20] GPT (Copilot) — ตรวจงาน PLAN-055/056 + deploy PLAN-057 ขึ้น QA+PROD
+- ทำอะไร: รีวิว PLAN-055 (single-division mode) และ PLAN-056 (category description) — ผ่านทุกจุด ไม่มี issue; deploy ตาม PLAN-057: gen idempotent SQL script + targeted script (full idempotent มีปัญหา CREATE VIEW parse error), QA: DB มี migration แล้ว (Antigravity ทำตอน dev) + deploy API stamp `_deploy_20260709110854` + admin-react, smoke 200 pass; PROD: backup DB (586146 pages) + run targeted migration script + deploy API stamp `_deploy_20260709111723` + admin-react, smoke 200 pass; ทั้ง QA/PROD ยืนยัน CategoriesCRUD/Get คืน `description` field
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-057-deploy-category-description-qa-prod.md` (status→DONE + Implementer Notes), `DOC/AGENT_LOG.md`, `artifacts/migrations/idempotent-to-AddDescriptionToCategory.sql` (ใหม่), `artifacts/migrations/prod-AddDescriptionToCategory.sql` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): PROD DB เพิ่มคอลัมน์ `Categories.Description nvarchar(500) NULL` + migration history record
+- Verified: QA smoke 200 (DB 17ms), PROD smoke 200 (DB 23ms), CategoriesCRUD response มี description ทั้ง QA/PROD, deploy HealthChecked=True + AutoRolledBack=False ทั้ง QA/PROD
+- ทำอะไร: 
+  - เพิ่มฟิลด์ `Description` (nullable) ใน `Category` entity
+  - สร้าง EF Core migration และอัปเดตลง dev database `iLearnDB_New` บน server `10.10.143.37`
+  - เจนเนอเรต SQL script แบบ idempotent เก็บไว้ที่ `artifacts/migration-AddDescriptionToCategory.sql`
+  - ปรับปรุง `CategoriesCRUDController.cs` (Get/GetPaged/GetDashboard) ให้ส่งออกฟิลด์ `Description` ใน response
+  - ปรับปรุง React types และ modals (Create, Edit) ใน `CourseListPage.tsx` ให้สนับสนุนการจัดการ Description
+  - ปรับปรุง Master Data Categories Grid (เพิ่ม Description column & searchExpr) ใน `moduleConfigs.ts`
+  - ปรับปรุง `MasterDataDetailPage.tsx` ให้แสดง/แก้ไข Description ได้ และแก้ compile error type ของ config
+- ไฟล์หลักที่แตะ: `iLearn.Domain/Entities/Category.cs`, `iLearn.API/Controllers/Base/CategoriesCRUDController.cs`, `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `iLearn.Admin.React/src/pages/moduleConfigs.ts`, `iLearn.Admin.React/src/pages/master-data/MasterDataDetailPage.tsx`, `DOC/PLANS/PLAN-056-category-description-field.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): คอลัมน์ `Description` (nvarchar(500) NULL) เพิ่มบน DB table `Categories`, เพิ่ม properties ใน API response json
+- Verified: `npm run lint` และ `npm run build` ผ่านใน frontend; รัน xUnit `dotnet test` (118/118 tests passed) backend ผ่านทั้งหมด
+
+## [2026-07-09 10:50] Antigravity — ทำตาม PLAN-055: Courses Explorer Skip Single Division
+- ทำอะไร: 
+  - แก้ไขสิทธิ์เข้าถึง endpoint ของ Divisions จาก `admin/DivisionsCRUD/Get` เป็น `GET api/Divisions` (AdminOnly) เพื่อป้องกันข้อผิดพลาด 403 Forbidden สำหรับ Division Admin
+  - ตรวจสอบโหมด Single-Division (มี division เดียว) โดยผู้ใช้จะเห็น Category folders ที่หน้าแรกโดยตรง (ข้ามชั้น Division folder)
+  - ปรับปรุง `getParentPath` และ `buildBreadcrumbs` เพื่อข้ามชั้น Division folder ในโหมด Single-Division
+  - ปรับปรุงการกดเปิดโฟลเดอร์ `handleOpenItem` และหัวโฟลเดอร์ `currentFolderName`
+  - ปรับปุ่มสร้าง Category (New Category) ให้แสดงสำหรับเจ้าหน้าที่ Division Admin เมื่ออยู่ในโหมด Single-Division จากหน้าแรกได้ และปรับปรุงฟอร์ม Dropdown/Submit ใน Modal ให้ไม่ต้องเลือก Division อีก
+  - ปรับปุ่ม Actions แก้ไข/ลบ Category ในตาราง explorer ให้แสดงที่หน้ารายการ Category (ระดับ root) ในโหมด Single-Division
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `DOC/PLANS/PLAN-055-courses-explorer-skip-single-division.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ฝั่ง React มีการเปลี่ยน endpoint ที่เรียกตามแผน โดยโครงสร้าง shape และ type ของ API ตรงตาม DTO อยู่แล้ว)
+- Verified: `npm run lint` และ `npm run build` ผ่านใน frontend; รัน xUnit `dotnet test` (118/118 tests passed) backend ผ่านทั้งหมด
+
+## [2026-07-09 —] Claude Code — Review PLAN-055/056/057: PASS ทั้งสามแผน → VERIFIED + commit
+- ทำอะไร: รีวิว diff เต็มของงาน Gemini (PLAN-055 single-division explorer, PLAN-056 Category.Description) และหลักฐาน deploy ของ GPT (PLAN-057 QA+PROD) — ทุก scope item ครบตามแผน, branch ใหม่ทั้งหมด gate ด้วย `singleDivision !== null` (โหมดหลาย division ไม่กระทบ), Edit Category ส่ง `description: null` ตอนเคลียร์ถูกต้อง, migration additive อย่างเดียว; reviewer รัน verification ซ้ำเอง: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` 118/118 ผ่าน → เปลี่ยนสถานะสามแผนเป็น VERIFIED พร้อม Reviewer Sign-off แล้ว commit งานทั้งหมด
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-055/056/057*.md` (status+sign-off), commit รวมงาน implementer ทั้งหมด
+- Contract ที่เปลี่ยน (API shape / props / DB): ตามที่ implementer ทำ — DB: คอลัมน์ `Categories.Description nvarchar(500) NULL` (apply แล้วทั้ง dev/QA/PROD); API: response CategoriesCRUD Get/GetPaged/GetDashboard มี field `description` (additive); React: CourseListPage เปลี่ยนไปโหลด divisions จาก `GET api/Divisions`
+- Verified: npm run lint + npm run build ผ่าน, dotnet test 118/118 ผ่าน (รันโดย reviewer)
+
+## [2026-07-09 —] Claude Code — เขียน PLAN-057: runbook ให้ GPT deploy PLAN-055/056 + EF migration ขึ้น QA/PROD (แผน ไม่แก้โค้ด)
+- ทำอะไร: สร้าง `DOC/PLANS/PLAN-057-deploy-category-description-qa-prod.md` (READY, Assigned: GPT/Copilot, prerequisite: PLAN-055+056 DONE) — หลักการ: ลำดับ DB ก่อน app (migration เป็น additive nullable), ใช้ `dotnet ef migrations script --idempotent` ไฟล์เดียวรันทั้ง QA/PROD ผ่าน sqlcmd (ไม่ยิง `database update` ตรง), deploy เฉพาะ iLearn.API + admin-react, มี GATE บังคับรอผู้ใช้ยืนยันก่อนแตะ PROD, PROD ต้อง backup DB ก่อน + ตรวจ connection string จริงบน server (PLAN-048 เคยย้าย DB — และ `deploy-api-prod.ps1` ไม่ exclude `appsettings.Production.json` จะ sync ทับจาก repo ถ้าค่าไม่ตรงต้องหยุดถาม)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-057-deploy-category-description-qa-prod.md` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: — (เอกสารอย่างเดียว)
+
+## [2026-07-09 —] Claude Code — เขียน PLAN-056: เพิ่มฟิลด์ Description ให้ Category (แผน ไม่แก้โค้ด)
+- ทำอะไร: สร้าง `DOC/PLANS/PLAN-056-category-description-field.md` (READY, Assigned: Gemini, **ต้องทำหลัง PLAN-055 เพราะแตะ `CourseListPage.tsx` จุดเดียวกัน**) — เพิ่ม `Category.Description` (nullable, StringLength 500) + EF migration `AddDescriptionToCategory` (repo ไม่มี auto-migrate → ต้อง gen SQL script ให้ QA/PROD), เติม field ใน projections ของ `CategoriesCRUDController` (Get/GetPaged/GetDashboard — Post/Put ใช้ PopulateObject รองรับเอง), ฝั่ง React: explorer แสดง description จริงแทน placeholder, modal Create/Edit Category มีช่อง description (Edit ต้องส่ง null ตอนเคลียร์ ไม่งั้น PopulateObject ไม่ลบค่าเดิม), grid+detail ของ Master Data Categories แบบ opt-in flag `hasDescription` (ไม่กระทบ Divisions/CourseTypes/Roles)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-056-category-description-field.md` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีในตอนนี้ (แผนจะเพิ่ม field แบบ additive: DB column ใหม่ + field ใหม่ใน response ของ CategoriesCRUD)
+- Verified: — (เอกสารอย่างเดียว)
+
+## [2026-07-09 —] Claude Code — เขียน PLAN-055: Courses explorer ข้าม division level เมื่อเห็นแค่ 1 division (แผน ไม่แก้โค้ด)
+- ทำอะไร: วิเคราะห์คำขอผู้ใช้ (ผู้ใช้สิทธิ์ division เดียวไม่ควรต้องคลิกผ่าน Division folder ชั้นเดียว) → สร้าง `DOC/PLANS/PLAN-055-courses-explorer-skip-single-division.md` (READY, Assigned: Gemini) — ระหว่างวิเคราะห์พบ bug แฝง: `CourseListPage` โหลด divisions จาก `admin/DivisionsCRUD/Get` ซึ่งเป็น SuperAdminOnly → admin ธรรมดาโดน 403 ทั้งหน้า; แผนสั่งเปลี่ยนไปใช้ `GET api/Divisions` (AdminOnly + data-isolated) พร้อม logic single-division mode (root แสดง category folders, breadcrumb/back ข้ามชั้น division, New Category auto-ผูก division)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-055-courses-explorer-skip-single-division.md` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนระบุให้ React เปลี่ยน endpoint ที่เรียก — type ต้องอัปเดต Mirrors เป็น DivisionDto)
+- Verified: — (เอกสารอย่างเดียว)
+
 ## [2026-07-09 09:35] Claude Code — เร่งความเร็ว deploy scripts (robocopy /MT + ย่อ offline window)
 - ทำอะไร: ผู้ใช้รายงาน deploy ช้ามาก → ปรับ `tools/deploy-side-by-side.ps1` (core ที่ทุก wrapper QA/PROD ใช้):
   1. เปลี่ยนการ copy ขึ้น UNC จาก `Copy-Item` ทีละไฟล์ → helper `Invoke-Robocopy` (`/MT:16` multithread, exit code ≥8 = throw) ทั้ง stamp-folder copy และ wwwroot sync (wwwroot ได้ incremental ฟรี — robocopy ข้ามไฟล์ที่เหมือนเดิม)

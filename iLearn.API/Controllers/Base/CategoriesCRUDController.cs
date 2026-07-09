@@ -68,7 +68,8 @@ namespace iLearn.API.Controllers.Base
                 c.DivisionId,
                 divisionName = c.Division != null ? c.Division.Name : null,
                 c.IsActive,
-                c.CreatedAt
+                c.CreatedAt,
+                c.Description
             });
 
             var loadResult = DataSourceLoader.Load(projected, loadOptions);
@@ -83,6 +84,7 @@ namespace iLearn.API.Controllers.Base
                     c.divisionName,
                     c.IsActive,
                     c.CreatedAt,
+                    c.Description,
                     courseCount = courseCounts.GetValueOrDefault((int)c.Id, 0)
                 }).ToList();
 
@@ -140,6 +142,7 @@ namespace iLearn.API.Controllers.Base
                     c.DivisionId,
                     divisionName = c.Division != null ? c.Division.Name : null,
                     c.IsActive,
+                    c.Description,
                     courseCount = c.Courses.Count()
                 })
                 .ToListAsync();
@@ -259,7 +262,8 @@ namespace iLearn.API.Controllers.Base
                         category.DivisionId,
                         divisionName = category.Division?.Name,
                         category.CreatedAt,
-                        category.CreatedBy
+                        category.CreatedBy,
+                        category.Description
                     },
                     courses = coursesWithStats,
                     stats = new

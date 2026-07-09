@@ -15,7 +15,7 @@ import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { Card } from '../../components/ui/Card'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDateTime } from '../../lib/format'
-import { adminListConfigs } from '../moduleConfigs'
+import { adminListConfigs, type AdminListConfig } from '../moduleConfigs'
 import { createAdminDataSource } from '../../lib/createDataSource'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
@@ -38,7 +38,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   const [activeValues, setActiveValues] = useState<any>({ isActive: true })
 
   // Map the route ':type' parameter to the corresponding configuration
-  const config = useMemo(() => {
+  const config = useMemo<AdminListConfig | null>(() => {
     if (type === 'divisions') return adminListConfigs.masterDataDivisions
     if (type === 'categories') return adminListConfigs.masterDataCategories
     if (type === 'course-types') return adminListConfigs.masterDataCourseTypes
@@ -241,6 +241,23 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                       Active Status
                     </label>
                   </div>
+
+                  {config.hasDescription && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="description-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
+                        Description
+                      </label>
+                      <textarea
+                        id="description-field"
+                        value={activeValues.description || ''}
+                        onChange={(e) => handleFieldChange('description', e.target.value)}
+                        placeholder={`Enter description...`}
+                        maxLength={500}
+                        rows={3}
+                        className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150 custom-scrollbar resize-y font-semibold"
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 // Read-only Details View
@@ -252,6 +269,15 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                   >
                     {item?.name || '—'}
                   </Fact>
+
+                  {config.hasDescription && (
+                    <Fact
+                      label="Description"
+                      colSpan="full"
+                    >
+                      {item?.description || '—'}
+                    </Fact>
+                  )}
 
                   <Fact
                     label="Status"

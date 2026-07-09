@@ -22,6 +22,7 @@ export type AdminListConfig = {
   basePath?: string
   /** Column fields used for text search */
   searchExpr?: string[]
+  hasDescription?: boolean
 }
 
 export const adminListConfigs = {
@@ -183,9 +184,11 @@ export const adminListConfigs = {
     key: 'id',
     gridTitle: 'Course Categories',
     gridNote: 'Taxonomy categories used for grouping courses in the catalog.',
-    searchExpr: ['name'],
+    hasDescription: true,
+    searchExpr: ['name', 'description'],
     columns: [
       { dataField: 'name', caption: 'Category Name', minWidth: 260 },
+      { dataField: 'description', caption: 'Description', minWidth: 220 },
       { dataField: 'divisionName', caption: 'Division', width: 150 },
       { dataField: 'courseCount', caption: 'Courses', dataType: 'number', width: 100, alignment: 'center' },
       { dataField: 'isActive', caption: 'Active', dataType: 'boolean', width: 100, alignment: 'center' },

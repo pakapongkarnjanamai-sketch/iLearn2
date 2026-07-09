@@ -34,9 +34,11 @@ type ApiEnvelope<T> = {
   totalCount?: number
 }
 
+// Mirrors DivisionDto (iLearn.Application/DTOs/DivisionDto.cs) via GET api/Divisions
 type DivisionLookup = {
   id: number
   name: string
+  isActive?: boolean
 }
 
 // Mirrors Category (iLearn.Domain.Entities.Category)
@@ -45,6 +47,7 @@ type CategoryLookup = {
   name: string
   divisionId: number
   courseCount?: number
+  description?: string | null
 }
 
 // Mirrors CourseDto (iLearn.Application/DTOs/CourseDto.cs)
@@ -107,11 +110,13 @@ export function CourseListPage() {
   // Category CRUD modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryDescription, setNewCategoryDescription] = useState('')
   const [newCategoryDivisionId, setNewCategoryDivisionId] = useState<number | ''>('')
   const [submittingCreate, setSubmittingCreate] = useState(false)
 
   const [editingCategory, setEditingCategory] = useState<CategoryLookup | null>(null)
   const [editCategoryName, setEditCategoryName] = useState('')
+  const [editCategoryDescription, setEditCategoryDescription] = useState('')
   const [submittingRename, setSubmittingRename] = useState(false)
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
@@ -121,6 +126,10 @@ export function CourseListPage() {
 
   const [loading, setLoading] = useState(true)
   const [selectedTypeKey, setSelectedTypeKey] = useState('all')
+
+  const singleDivision = useMemo(() => {
+    return divisions.length === 1 ? (divisions[0] ?? null) : null
+  }, [divisions])
 
   const divisionsById = useMemo(() => {
     const map = new Map<number, DivisionLookup>()
@@ -195,6 +204,13 @@ export function CourseListPage() {
       return params
     },
     getParentPath: currentPath => {
+      if (singleDivision !== null) {
+        if (currentPath.categoryId !== null || currentPath.divisionId !== null) {
+          return { divisionId: null, categoryId: null }
+        }
+        return null
+      }
+
       if (currentPath.categoryId !== null) {
         if (currentPath.categoryId === 0) {
           return { divisionId: 0, categoryId: null }
@@ -228,6 +244,13 @@ export function CourseListPage() {
 
         const category = categoriesById.get(currentPath.categoryId)
         if (category) {
+          if (singleDivision !== null) {
+            return [
+              ...rootCrumbs,
+              { to: `/courses?categoryId=${category.id}`, label: category.name }
+            ]
+          }
+
           const division = divisionsById.get(category.divisionId)
           const crumbs = [...rootCrumbs]
           if (division) {
@@ -286,7 +309,7 @@ export function CourseListPage() {
       const [activeResp, inactiveResp, divisionsResp, categoriesResp, typesResp] = await Promise.all([
         fetchWithAccessControl<ApiEnvelope<CourseDto[]>>('Courses?isActive=true'),
         fetchWithAccessControl<ApiEnvelope<CourseDto[]>>('Courses?isActive=false'),
-        fetchWithAccessControl<{ data?: DivisionLookup[] } | DivisionLookup[]>('admin/DivisionsCRUD/Get'),
+        fetchWithAccessControl<DivisionLookup[]>('Divisions'),
         fetchWithAccessControl<{ data?: CategoryLookup[] } | CategoryLookup[]>('admin/CategoriesCRUD/Get'),
         fetchWithAccessControl<CourseTypeLookup[]>('Courses/course-types-lookup'),
       ])
@@ -320,6 +343,7 @@ export function CourseListPage() {
 
   const openCreateCategoryModal = useCallback(() => {
     setNewCategoryName('')
+    setNewCategoryDescription('')
     setNewCategoryDivisionId('')
     setIsCreateModalOpen(true)
   }, [])
@@ -327,6 +351,7 @@ export function CourseListPage() {
   const openRenameCategoryModal = useCallback((category: CategoryLookup) => {
     setEditingCategory(category)
     setEditCategoryName(category.name)
+    setEditCategoryDescription(category.description || '')
   }, [])
 
   const handleCreateCategory = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
@@ -339,7 +364,9 @@ export function CourseListPage() {
 
     const divisionIdVal = currentDivisionId !== null && currentDivisionId > 0
       ? currentDivisionId
-      : (newCategoryDivisionId !== '' ? Number(newCategoryDivisionId) : null)
+      : (singleDivision !== null
+        ? singleDivision.id
+        : (newCategoryDivisionId !== '' ? Number(newCategoryDivisionId) : null))
 
     if (!divisionIdVal) {
       toast.error('Division is required')
@@ -349,7 +376,12 @@ export function CourseListPage() {
     setSubmittingCreate(true)
     try {
       const fd = new FormData()
-      fd.append('values', JSON.stringify({ name: nameVal, divisionId: divisionIdVal, isActive: true }))
+      fd.append('values', JSON.stringify({ 
+        name: nameVal, 
+        divisionId: divisionIdVal, 
+        isActive: true,
+        description: newCategoryDescription.trim() || null
+      }))
 
       await fetchWithAccessControl('admin/CategoriesCRUD/Post', {
         method: 'POST',
@@ -359,6 +391,7 @@ export function CourseListPage() {
       toast.success(`Category "${nameVal}" created successfully`)
       setIsCreateModalOpen(false)
       setNewCategoryName('')
+      setNewCategoryDescription('')
       setNewCategoryDivisionId('')
       await loadData()
     } catch (error) {
@@ -367,7 +400,7 @@ export function CourseListPage() {
     } finally {
       setSubmittingCreate(false)
     }
-  }, [newCategoryName, currentDivisionId, newCategoryDivisionId, loadData])
+  }, [newCategoryName, newCategoryDescription, currentDivisionId, newCategoryDivisionId, loadData, singleDivision])
 
   const handleRenameCategory = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -383,24 +416,28 @@ export function CourseListPage() {
     try {
       const fd = new FormData()
       fd.append('key', String(editingCategory.id))
-      fd.append('values', JSON.stringify({ name: nameVal }))
+      fd.append('values', JSON.stringify({ 
+        name: nameVal,
+        description: editCategoryDescription.trim() || null
+      }))
 
       await fetchWithAccessControl('admin/CategoriesCRUD/Put', {
         method: 'PUT',
         body: fd
       })
 
-      toast.success(`Category renamed to "${nameVal}"`)
+      toast.success(`Category changes saved successfully`)
       setEditingCategory(null)
       setEditCategoryName('')
+      setEditCategoryDescription('')
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error('Failed to rename category')
+      toast.error('Failed to save category changes')
     } finally {
       setSubmittingRename(false)
     }
-  }, [editingCategory, editCategoryName, loadData])
+  }, [editingCategory, editCategoryName, editCategoryDescription, loadData])
 
   const handleDeleteCategory = useCallback(async (category: CategoryLookup) => {
     const coursesCount = coursesByCategory.get(category.id)?.length ?? 0
@@ -438,6 +475,12 @@ export function CourseListPage() {
     if (item.isFolder) {
       if (currentDivisionId !== null) {
         navigateToPath({ divisionId: currentDivisionId, categoryId: item.id })
+      } else if (singleDivision !== null) {
+        if (item.id === 0) {
+          navigateToPath({ divisionId: 0, categoryId: 0 })
+        } else {
+          navigateToPath({ divisionId: singleDivision.id, categoryId: item.id })
+        }
       } else {
         navigateToPath({ divisionId: item.id, categoryId: null })
       }
@@ -445,7 +488,7 @@ export function CourseListPage() {
     }
 
     navigate(`/courses/${item.id}`)
-  }, [currentDivisionId, navigate, navigateToPath])
+  }, [currentDivisionId, singleDivision, navigate, navigateToPath])
 
   const currentFolderName = useMemo(() => {
     if (currentCategoryId !== null) {
@@ -456,8 +499,11 @@ export function CourseListPage() {
       if (currentDivisionId === 0) return 'Uncategorized Division'
       return divisionsById.get(currentDivisionId)?.name ?? 'Courses Explorer'
     }
+    if (singleDivision !== null) {
+      return singleDivision.name
+    }
     return 'Courses Explorer'
-  }, [categoriesById, divisionsById, currentCategoryId, currentDivisionId])
+  }, [categoriesById, divisionsById, currentCategoryId, currentDivisionId, singleDivision])
 
   const currentItems = useMemo<ExplorerItem[]>(() => {
     if (currentCategoryId !== null) {
@@ -504,7 +550,7 @@ export function CourseListPage() {
         return {
           id: cat.id,
           name: cat.name,
-          description: 'Category folder under division',
+          description: cat.description || 'Category folder',
           isFolder: true,
           countText: `${count} courses`,
           original: cat
@@ -512,6 +558,36 @@ export function CourseListPage() {
       })
 
       return items
+    }
+
+    if (singleDivision !== null) {
+      const childCategories = categoriesByDivision.get(singleDivision.id) ?? []
+      const list: ExplorerItem[] = childCategories.map(cat => {
+        const count = coursesByCategory.get(cat.id)?.length ?? 0
+        return {
+          id: cat.id,
+          name: cat.name,
+          description: cat.description || 'Category folder',
+          isFolder: true,
+          countText: `${count} courses`,
+          original: cat
+        }
+      })
+
+      list.sort(sortByNameAsc)
+
+      if (uncategorizedCourses.length > 0) {
+        list.push({
+          id: 0,
+          name: 'Uncategorized',
+          description: 'Courses without division/category',
+          isFolder: true,
+          countText: '1 category',
+          original: { id: 0, name: 'Uncategorized' }
+        })
+      }
+
+      return list
     }
 
     // Root - Divisions
@@ -542,7 +618,7 @@ export function CourseListPage() {
     }
 
     return list
-  }, [currentCategoryId, currentDivisionId, divisions, categoriesByDivision, coursesByCategory, uncategorizedCourses, selectedTypeKey])
+  }, [currentCategoryId, currentDivisionId, divisions, categoriesByDivision, coursesByCategory, uncategorizedCourses, selectedTypeKey, singleDivision])
 
   const filteredItems = useMemo(() => {
     return filterBySearch(currentItems, (item, normalizedTerm) => {
@@ -632,7 +708,7 @@ export function CourseListPage() {
           >
             {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
           </button>
-          {currentDivisionId !== null && currentDivisionId > 0 && currentCategoryId === null && item.isFolder && item.id > 0 && (
+          {currentCategoryId === null && item.isFolder && item.id > 0 && ((currentDivisionId !== null && currentDivisionId > 0) || singleDivision !== null) && (
             <>
               <button
                 type="button"
@@ -655,7 +731,7 @@ export function CourseListPage() {
         </div>
       ),
     },
-  ], [currentCategoryId, currentDivisionId, handleDeleteCategory, handleOpenItem, openRenameCategoryModal])
+  ], [currentCategoryId, currentDivisionId, handleDeleteCategory, handleOpenItem, openRenameCategoryModal, singleDivision])
 
   return (
     <>
@@ -669,7 +745,7 @@ export function CourseListPage() {
                 Back
               </AppButton>
             )}
-            {currentCategoryId === null && (currentDivisionId !== null ? currentDivisionId > 0 : isSuperAdmin) && (
+            {currentCategoryId === null && (currentDivisionId !== null ? currentDivisionId > 0 : (isSuperAdmin || singleDivision !== null)) && (
               <AppButton variant="secondary" icon={FolderPlus} onClick={openCreateCategoryModal}>
                 New Category
               </AppButton>
@@ -757,7 +833,7 @@ export function CourseListPage() {
             </div>
 
             <div className="px-6 py-4 space-y-3">
-              {isSuperAdmin && currentDivisionId === null && (
+              {isSuperAdmin && currentDivisionId === null && !singleDivision && (
                 <div className="space-y-1">
                   <label htmlFor="newCategoryDivisionId" className="wiz-label">Division (แผนก) <span className="text-red-500">*</span></label>
                   <select
@@ -788,6 +864,19 @@ export function CourseListPage() {
                   placeholder="e.g. Technical Skills"
                 />
               </div>
+
+              <div className="space-y-1">
+                <label htmlFor="categoryDescription" className="wiz-label">Description (คำอธิบาย)</label>
+                <textarea
+                  id="categoryDescription"
+                  value={newCategoryDescription}
+                  onChange={event => setNewCategoryDescription(event.target.value)}
+                  placeholder="e.g. Courses related to technical skills and engineering..."
+                  maxLength={500}
+                  rows={3}
+                  className="wiz-input resize-y font-semibold"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
@@ -802,7 +891,7 @@ export function CourseListPage() {
                 type="submit"
                 variant="primary"
                 loading={submittingCreate}
-                disabled={submittingCreate || !newCategoryName.trim() || (isSuperAdmin && currentDivisionId === null && !newCategoryDivisionId)}
+                disabled={submittingCreate || !newCategoryName.trim() || (isSuperAdmin && currentDivisionId === null && !singleDivision && !newCategoryDivisionId)}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
                 Create Category
@@ -815,12 +904,12 @@ export function CourseListPage() {
         onClose={() => setEditingCategory(null)}
         as="form"
         onSubmit={handleRenameCategory}
-        ariaLabel="Rename Category"
+        ariaLabel="Edit Category"
       >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Rename Category</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Edit Category</h3>
               </div>
               <button
                 type="button"
@@ -844,6 +933,19 @@ export function CourseListPage() {
                   placeholder="e.g. Technical Skills"
                 />
               </div>
+
+              <div className="space-y-1">
+                <label htmlFor="editCategoryDescription" className="wiz-label">Description (คำอธิบาย)</label>
+                <textarea
+                  id="editCategoryDescription"
+                  value={editCategoryDescription}
+                  onChange={event => setEditCategoryDescription(event.target.value)}
+                  placeholder="e.g. Courses related to technical skills and engineering..."
+                  maxLength={500}
+                  rows={3}
+                  className="wiz-input resize-y font-semibold"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
@@ -861,7 +963,7 @@ export function CourseListPage() {
                 disabled={submittingRename || !editCategoryName.trim()}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                Rename Category
+                Save Changes
               </AppButton>
             </div>
       </Modal>
