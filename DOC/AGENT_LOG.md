@@ -43,6 +43,22 @@ Format ต่อ entry:
 - Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ฝั่ง React มีการเปลี่ยน endpoint ที่เรียกตามแผน โดยโครงสร้าง shape และ type ของ API ตรงตาม DTO อยู่แล้ว)
 - Verified: `npm run lint` และ `npm run build` ผ่านใน frontend; รัน xUnit `dotnet test` (118/118 tests passed) backend ผ่านทั้งหมด
 
+## [2026-07-09 —] Claude Code — lookup ข้อมูล EmployeeHub จริง + เขียน PLAN-061 กติกา division (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้อธิบายกติกา division ใหม่ (NLC = ทั้ง company NLC, อื่น ๆ = division ใต้ NTC) → Claude lookup จริง 3 แหล่ง: EmployeeHub (`http://10.10.143.39/Tools/EmployeeHub/Service`) companies=`NLC,NTC,VDS`, divisions 18 ค่า (ไม่มี NLC, ปนค่าลาว AD/PD/AD Division/PD Division); upstream เดิม GetDistinctDivisions 15 ค่า (NLC + 14 NTC); iLearnDB QA `Divisions`=`CSD,NLC,PD1,PD2,PD3,Test` และ `Assignments.Division` = NULL ทั้งตาราง → สรุปเป็น `PLAN-061` (กติกา: NLC→filter `Company=="NLC"`, อื่น→`Division==ค่า` ไม่กรอง company ครอบ NTC+VDS; รายการ divisions = `["NLC"] ∪ distinct(Division where Company!="NLC")` คำนวณจาก cache ห้ามใช้ `/api/lookups/divisions` ตรง) — ปรับ spec S3 ของ PLAN-058 + ตัด scope PLAN-059 เหลือ 4 ข้อ + list ประเด็นฝั่ง EmployeeHub ให้ผู้ใช้แก้ (org 650 กำพร้า, `?company=` ไม่ทำงาน, auth)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-061-employeehub-division-semantics.md` (ใหม่), เพิ่ม cross-ref ใน PLAN-058/059
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสาร)
+- Verified: — (lookup อ่านอย่างเดียว; ไม่แตะ DB/โค้ด)
+- Update (ผู้ใช้ให้ URL): QA base `http://10.10.143.39/Tools/EmployeeHub/Service`, PROD base `http://AP-NTC2137-PRWB/Tools/EmployeeHub/Service` (ตัด `/scalar`, เป็น http, PROD อยู่บนเว็บ PROD ตัวเดียวกับ iLearn.API) → ใส่ค่าใน PLAN-058 S1 + PLAN-061; **ยืนยัน validation:** กติกา reproduce รายการ division เดิม 15 ค่าเป๊ะ (14 non-NLC ตรง upstream 100% + NLC)
+
+## [2026-07-09 —] Claude Code — เขียนชุดแผนย้ายฐานข้อมูลพนักงานไป EmployeeHub (PLAN-058/059/060 — แผน ไม่แก้โค้ด)
+- ทำอะไร: ตามคำสั่งผู้ใช้ (เริ่มจากปิด gap) — สำรวจแล้วพบว่า employee data ไหลผ่าน `ILearnerApiService` จุดเดียว (upstream: EmployeeServiceV2 Student/StudentLookup + Employee.Service GetAllCSV ซึ่ง **PROD ชี้ QA host อยู่**) → สร้าง 3 แผน:
+  - `PLAN-058` (READY, Gemini): `EmployeeHubClient` + `EmployeeHubLearnerApiService` implement interface เดิมหลัง feature flag `Provider` (default Legacy) — ปิด gap DevExtreme grid (DataSourceLoader บน directory cache 30 นาที), gap Position (map = Grade), gap config PROD (เพิ่ม EmployeeServiceSettings ใน Production.json); ห้ามแตะ React/interface/DTO เดิม
+  - `PLAN-059` (READY, GPT): audit เทียบชื่อ Division/Department/Section 3 แหล่ง (iLearnDB: `Divisions.Name` + `Assignments.Division` string legacy + snapshot ↔ upstream เดิม ↔ EmployeeHub NameAbbr) — read-only, จบที่รายงาน+ข้อเสนอ remap ให้ผู้ใช้ตัดสิน
+  - `PLAN-060` (DRAFT, GPT): cutover flip flag QA→GATE→PROD, rollback = flip กลับ; prerequisites รวมเรื่อง auth ของ EmployeeHub (ตอนนี้ API เปิดหมด) ที่ผู้ใช้ต้องเคาะก่อน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-058/059/060-employeehub-*.md` (ใหม่ 3 ไฟล์)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีในตอนนี้ (ทุกแผนบังคับ preserve contract เดิม)
+- Verified: — (เอกสารอย่างเดียว)
+
 ## [2026-07-09 —] Claude Code — follow-up จากรีวิว: GetPaged ค้น description ได้ + track .claude/launch.json
 - ทำอะไร: ผู้ใช้สั่งเก็บงาน 2 จุดจากหมายเหตุรีวิว PLAN-056: (1) `CategoriesCRUDController.GetPaged` เพิ่มเงื่อนไข search ให้ครอบ `Description` (null-safe, pattern เดียวกับ Division.Name เดิม); (2) commit `.claude/launch.json` (dev server config สำหรับ preview) และเพิ่ม `.claude/settings.local.json` ลง `.gitignore` (เป็น config เฉพาะเครื่องตาม convention ของ Claude Code ไม่ควร track)
 - ไฟล์หลักที่แตะ: `iLearn.API/Controllers/Base/CategoriesCRUDController.cs`, `.gitignore`, `.claude/launch.json` (ใหม่)
