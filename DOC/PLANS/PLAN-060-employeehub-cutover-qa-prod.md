@@ -1,6 +1,6 @@
 # PLAN-060: Cutover ไป EmployeeHub บน QA → PROD (flip provider flag)
 
-- **Status:** DRAFT — ห้ามเริ่มจนกว่า PLAN-058 = VERIFIED, PLAN-059 มี Findings และผู้ใช้เคาะเรื่อง remap + auth ของ EmployeeHub แล้ว (Claude จะปรับเป็น READY เอง)
+- **Status:** READY — prerequisite ครบทั้งหมด (PLAN-058/059 VERIFIED, ผู้ใช้เคาะ R1/R2 + auth แล้ว 2026-07-09); GPT รับไป cutover ตาม Phase 0→3 ได้ แต่ **Phase 2 GATE ต้องรอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD**
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** Medium
@@ -13,10 +13,15 @@
 
 1. ✅ **PLAN-058 VERIFIED** (2026-07-09) — โค้ดมี provider switch, default Legacy; ยังต้อง deploy ขึ้น env เป้าหมายก่อน flip
 2. ✅ **PLAN-059 VERIFIED** (2026-07-09) — audit ยืนยันไม่มี division ต้อง remap; เหลือแค่ data-cleanup 2 จุด (R1/R2) ที่ย้ายมาเป็น Phase 0 ด้านล่าง (ผู้ใช้เคาะแล้ว)
-3. ⏳ **ผู้ใช้ตัดสินใจเรื่อง auth/การป้องกัน EmployeeHub** (ตอนนี้ API เปิดหมดรวม ops endpoints — อย่างน้อยควรมี network/IIS-level control ก่อนให้ production พึ่ง) — **ยังค้าง = ตัว block หลักที่เหลือ**; URL ต่อ env ยืนยันแล้ว (PLAN-061)
-4. EmployeeHub sync pipeline เดินปกติ (เช็ค `GET /api/sync/runs?take=5` — run ล่าสุด Succeeded ไม่เก่าเกิน 2 วัน)
+3. ✅ **Auth — ผู้ใช้ตัดสินใจแล้ว (2026-07-09): risk-acceptance "trusted internal network"** — คง EmployeeHub เปิดตามเดิม (ไม่มี app auth / ไม่มี IP allow-list) โดยพึ่งว่าเป็นเน็ตเวิร์กภายในที่ปลอดภัย ให้ทุกเครื่องเข้าถึงได้ไม่มี friction → iLearn ไม่ต้องแก้โค้ด (`EmployeeHubClient`/health ไม่ต้องส่ง credential/key); **cutover ไม่ถูก block ด้วยเรื่อง auth** — ดู "Residual risk (ยอมรับแล้ว)" ด้านล่าง
+4. EmployeeHub sync pipeline เดินปกติ (เช็ค `GET /api/sync/runs?take=5` — run ล่าสุด Succeeded ไม่เก่าเกิน 2 วัน) — **เช็คตอนเริ่ม Phase 1**
 
-> สถานะ prerequisite: #1,#2 ✅ + ผู้ใช้เคาะ R1/R2 แล้ว — **เหลือ #3 (auth) เป็น blocker เดียว** ก่อนปรับ PLAN-060 เป็น READY
+> สถานะ prerequisite: **ครบทั้งหมด** — PLAN-060 = READY
+
+### Residual risk (ผู้ใช้ยอมรับแล้ว — ไม่ block, บันทึกไว้เพื่อความโปร่งใส)
+- ops endpoints (`POST /api/sync/run`, `POST /api/sync/backfill-terminations`) + `/scalar` `/swagger` เปิดให้ทุกเครื่อง/ทุกคนในอินทราเน็ต — ใครในเน็ตเวิร์กก็ trigger sync/backfill หรือเปิดดู PII ผ่าน explorer ได้
+- iLearn ใช้เฉพาะ consume (อ่าน) จึงไม่ได้เพิ่มความเสี่ยงนี้; ความเสี่ยงมีอยู่ก่อน iLearn cutover แล้ว
+- **hardening ทางเลือกในอนาคต (ไม่กระทบ consumer ใด ๆ):** firewall/IIS rule กันเฉพาะ `/api/sync/*` ให้เรียกได้จาก host ของ scheduler + localhost, และปิด `/scalar` `/swagger` บน PROD — เปิดเป็นแผนแยกได้เมื่อพร้อม
 
 ## Scope (โครง — เติมรายละเอียดตอนปรับเป็น READY)
 

@@ -14,6 +14,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 —] Claude Code — ร่างตัวเลือก auth EmployeeHub + ผู้ใช้เคาะ → PLAN-060 READY
+- ทำอะไร: ร่าง 4 ตัวเลือก auth EmployeeHub (IIS IP allow-list / API key เฉพาะ ops / API key ทุก endpoint / Windows Auth) เทียบ trade-off + iLearn impact จาก skill (auth ตอนนี้ = เปิดหมด, X-Api-Key ถูกถอดแล้ว; ops=sync/backfill, consume=employees/lookups/org ที่ iLearn ใช้อ่านอย่างเดียว, PROD EmployeeHub อยู่เครื่องเดียวกับ iLearn.API). **ผู้ใช้เลือก: risk-acceptance "trusted internal network"** — คงเปิดตามเดิม ไม่ใส่ auth/allow-list พึ่งเน็ตเวิร์กภายใน → iLearn ไม่ต้องแก้โค้ด. บันทึก residual risk (ops+scalar/swagger เปิดทั้งอินทราเน็ต, hardening เฉพาะ /api/sync/* เป็นทางเลือกอนาคต). prerequisite PLAN-060 ครบทั้งหมด → **Status DRAFT→READY** (Phase 2 GATE ยังต้องรอผู้ใช้ยืนยันก่อนแตะ PROD)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-060-*.md` (Status→READY + prereq #3 resolved + Residual risk), `DOC/PLANS/PLAN-061-*.md` (auth item resolved), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสาร/decision)
+- Verified: — (เอกสาร); ถึง GPT: PLAN-060 READY แล้ว รับไป cutover ได้ตาม Phase 0(data cleanup R1/R2)→1(QA)→2(GATE รอผู้ใช้)→3(PROD)
+
 ## [2026-07-09 —] Claude Code — รีวิว PLAN-059 audit ผ่าน (+ เสริมหลักฐาน schema)
 - ทำอะไร: ตรวจ audit ของ GPT — verified Finding 1 จาก entity จริง (`EnrollmentAssignment` snapshot = scalar เท่านั้น ไม่มี name ฝัง), Finding 4 สอดคล้อง PLAN-061 (Assignments.Division NULL); **เสริม:** ตรวจ schema พบ iLearn ไม่มี entity Department/Section master-data เลย และ LearnerGroup/Assignment scope ด้วย DivisionId(FK)+EmployeeCodes/members เท่านั้น → ที่เดียวที่ persist ชื่อ division เป็น string คือ Divisions.Name + Assignment.Division(NULL) ⇒ EmployeeHub canonicalize dept/section ทำข้อมูล iLearn เพี้ยนไม่ได้ (ปิดประเด็น A4). การจำแนก 15+1 ค่าตรง PLAN-061 เป๊ะ. Findings 2/3 (FK counts, QA↔PROD drift) เป็น query read-only ที่ reviewer รันซ้ำเองไม่ได้แต่ consistent. → PLAN-059 VERIFIED, ไม่มี mapping blocker; เหลือ decision R2 (PD3) ที่ผู้ใช้ต้องเคาะก่อน PLAN-060 READY, และแนะนำ R1 (soft-delete Test บน PROD) ผูกเป็น step ใน PLAN-060 pre-cutover แทน admin รัน ad-hoc
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-059-*.md` (+ Reviewer Sign-off), `DOC/AGENT_LOG.md`

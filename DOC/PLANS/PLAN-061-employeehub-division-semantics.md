@@ -69,7 +69,7 @@
 1. **ซ่อม org structure บริษัท 650:** company root `650000...` ไม่มีพนักงาน (มี `AD Division`/`PD Division` เปล่า) และมี orphan roots prefix 650 (~31 คน เช่น `Camera Assembly-OFFICE STAFF`) — org-chain/approval ของคนกลุ่มนี้ใช้ไม่ได้; ไม่ block iLearn (กติกา NLC ใช้ Company จึงครอบคนกลุ่มนี้อยู่แล้ว) แต่ควรซ่อม
 2. `?company=` บน `/api/lookups/divisions` ยังถูกเมิน — ถ้าทำให้ทำงานจะเป็นประโยชน์กับผู้บริโภคbroader (iLearn ไม่รอ)
 3. (ทางเลือก) เพิ่ม param `division` บน `GET /api/employees` — iLearn ไม่จำเป็น (ใช้ cache) แต่ลด full-directory pull สำหรับ consumer อื่น
-4. **Auth ก่อน PROD cutover** (prerequisite ของ PLAN-060 อยู่แล้ว) — ตอนนี้เปิดหมดรวม ops endpoints
+4. ~~**Auth ก่อน PROD cutover**~~ **✅ ตัดสินแล้ว (2026-07-09): risk-acceptance "trusted internal network"** — คงเปิดตามเดิม ไม่ใส่ auth/allow-list พึ่งเน็ตเวิร์กภายใน; iLearn ไม่ต้องแก้โค้ด. Residual risk (ops endpoints + scalar/swagger เปิดทั้งอินทราเน็ต) ยอมรับแล้ว — hardening เฉพาะ `/api/sync/*` เป็นทางเลือกอนาคต ดู PLAN-060 "Residual risk"
 
 ## Acceptance
 
