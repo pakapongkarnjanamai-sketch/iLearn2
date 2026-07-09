@@ -14,6 +14,18 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 —] Claude Code — รีวิว PLAN-059 audit ผ่าน (+ เสริมหลักฐาน schema)
+- ทำอะไร: ตรวจ audit ของ GPT — verified Finding 1 จาก entity จริง (`EnrollmentAssignment` snapshot = scalar เท่านั้น ไม่มี name ฝัง), Finding 4 สอดคล้อง PLAN-061 (Assignments.Division NULL); **เสริม:** ตรวจ schema พบ iLearn ไม่มี entity Department/Section master-data เลย และ LearnerGroup/Assignment scope ด้วย DivisionId(FK)+EmployeeCodes/members เท่านั้น → ที่เดียวที่ persist ชื่อ division เป็น string คือ Divisions.Name + Assignment.Division(NULL) ⇒ EmployeeHub canonicalize dept/section ทำข้อมูล iLearn เพี้ยนไม่ได้ (ปิดประเด็น A4). การจำแนก 15+1 ค่าตรง PLAN-061 เป๊ะ. Findings 2/3 (FK counts, QA↔PROD drift) เป็น query read-only ที่ reviewer รันซ้ำเองไม่ได้แต่ consistent. → PLAN-059 VERIFIED, ไม่มี mapping blocker; เหลือ decision R2 (PD3) ที่ผู้ใช้ต้องเคาะก่อน PLAN-060 READY, และแนะนำ R1 (soft-delete Test บน PROD) ผูกเป็น step ใน PLAN-060 pre-cutover แทน admin รัน ad-hoc
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-059-*.md` (+ Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (review เอกสาร)
+- Verified: — (audit read-only; reviewer ตรวจ entity/schema เพิ่มเพื่อ confirm Finding 1 + ปิด A4)
+
+## [2026-07-09 17:30] GPT (Copilot) — PLAN-059 Division mapping audit (4 ข้อที่เหลือจาก PLAN-061)
+- ทำอะไร: ตรวจ 4 จุดตามที่ PLAN-061 ระบุ: (1) EnrollmentAssignment ไม่มี JSON snapshot — snapshot เป็น scalar (bool/datetime/float) ไม่มี division/section ฝัง → ไม่ต้อง migrate; (2) Division `Test` (Id=6) มี FK=0 ทุกตาราง ทั้ง QA+PROD ปลอดภัยลบ; (3) QA vs PROD drift: PD3+Test soft-deleted บน QA แต่ยัง active บน PROD — PD3 ต้องให้ผู้ใช้ตัดสิน (เป็น division จริงของ NTC+VDS); (4) `Assignments.Division` (legacy string) = NULL ทั้งหมดทั้ง QA+PROD → ไม่มี data ต้อง migrate; เขียนตารางเทียบ 3 แหล่ง × ทุกค่าครบ พร้อมข้อเสนอ 4 ข้อ (R1-R4)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-059-employeehub-division-mapping-audit.md` (Status READY→DONE + Findings), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (read-only audit)
+- Verified: ไม่มีโค้ดเปลี่ยน — query results ใน findings เป็นหลักฐาน
+
 ## [2026-07-09 —] Claude Code — รีวิว PLAN-058 FIX-1 (รอบ 2) ผ่าน + commit ทั้งชุด
 - ทำอะไร: ตรวจการแก้ FIX-1 ของ Antigravity — lookup 4 method กรอง filter บน employee cache ก่อน distinct → cascade scope ถูก ไม่โยน 500, คืน bare `List<LookupNameDto>` ตรง React (`Array.isArray`+`.name`); `ParseLoadOptions` เพิ่ม `.Replace('+',' ')` ก่อน unescape ตรวจแล้วปลอดภัย (React ใช้ encodeURIComponent, `+` จริงมาเป็น `%2B` ไม่โดนแตะ) ไม่ทำ grid path เพี้ยน; test 2 ตัวใหม่ assert scoped+non-empty พิสูจน์ cast `filteredObj.data as IEnumerable<EmployeeDto>` ทำงาน runtime. **reviewer รัน verification เอง**: `dotnet build iLearn.Tests` 0 errors + `dotnet test` 128/128 passed → PLAN-058 Status DONE→**VERIFIED**, commit ทั้งชุด (client + service + tests + config + DI + health + controller + plans/log)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-058-*.md` (Status→VERIFIED + Reviewer Findings รอบ 2), `DOC/AGENT_LOG.md`; commit รวมงาน implement ของ Antigravity ทั้งหมด (`EmployeeHubClient.cs`, `EmployeeHubLearnerApiService.cs`, `EmployeeHubLearnerApiServiceTests.cs` + ไฟล์แก้)

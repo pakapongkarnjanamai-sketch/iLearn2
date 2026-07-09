@@ -1,6 +1,6 @@
 # PLAN-059: Audit + mapping ชื่อ Division/Department/Section ระหว่าง iLearnDB กับ EmployeeHub
 
-- **Status:** READY
+- **Status:** VERIFIED (reviewer sign-off ท้ายไฟล์) — audit ผ่าน, ไม่มี mapping blocker; เหลือ decision R2 (PD3) ที่ผู้ใช้ต้องเคาะก่อน PLAN-060 READY
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -51,4 +51,140 @@
 
 ## Implementer Notes / Findings
 
-(เติมผล audit ที่นี่)
+> Audit ดำเนินการโดย GPT (GitHub Copilot) — 2026-07-09
+> ใช้หลักฐานจาก PLAN-061 สำหรับ A1/A2/A4 (ข้ามตามคำสั่ง) และ query ตรง QA+PROD สำหรับ A3/A5
+
+---
+
+### Finding 1 — EnrollmentAssignment Snapshot ไม่มี division/section ฝัง
+
+`EnrollmentAssignments` **ไม่มี JSON snapshot column** เลย  
+Snapshot fields ทั้งหมดเป็น scalar:
+
+| Column | Type | Purpose |
+|---|---|---|
+| `SnapshotCompleted` | `bit` | ว่า enrollment เคย complete หรือยัง ณ ขณะ reassign |
+| `SnapshotCompletedDate` | `datetime2?` | วันที่ complete |
+| `SnapshotProgress` | `float` | % progress ณ ขณะ snapshot |
+
+**ไม่มี division / department / section / learner name ฝังใน snapshot** → ไม่มี data ที่ต้อง remap จาก cutover EmployeeHub  
+**ความเสี่ยง: ศูนย์** — ไม่ต้องทำอะไร
+
+---
+
+### Finding 2 — Division `Test` (Id=6) ปลอดภัยลบได้
+
+**QA:** `IsActive=1, IsDeleted=1` (soft-deleted แล้ว)  
+**PROD:** `IsActive=1, IsDeleted=0` (**ยังไม่ได้ soft-delete**)
+
+FK references ทั้ง QA และ PROD = **ศูนย์ทุกตาราง:**
+
+| Table | QA refs | PROD refs |
+|---|---|---|
+| Assignments | 0 | 0 |
+| Categories | 0 | 0 |
+| LearnerGroups | 0 | 0 |
+| LearnerGroupCategories | 0 | 0 |
+| Roles | 0 | 0 |
+| AdminActivities | 0 | 0 |
+
+**ข้อเสนอ:** soft-delete บน PROD ให้ตรงกับ QA (หรือ hard-delete ก็ปลอดภัย เพราะ FK=0)
+
+```sql
+-- PROD: soft-delete Test division
+UPDATE Divisions SET IsDeleted = 1, DeletedAt = GETDATE(), DeletedBy = 'admin-audit'
+WHERE Id = 6 AND Name = 'Test';
+```
+
+**ความเสี่ยง: ต่ำมาก** — ไม่มี FK ใด ๆ ที่จะพัง, ไม่กระทบ audit/history
+
+---
+
+### Finding 3 — QA vs PROD Divisions Comparison
+
+| Id | Name | QA IsActive | QA IsDeleted | PROD IsActive | PROD IsDeleted | Drift |
+|---|---|---|---|---|---|---|
+| 1 | PD1 | 1 | 0 | 1 | 0 | ✅ ตรงกัน |
+| 2 | PD2 | 1 | 0 | 1 | 0 | ✅ ตรงกัน |
+| 3 | CSD | 1 | 0 | 1 | 0 | ✅ ตรงกัน |
+| 4 | PD3 | 1 | **1** | 1 | **0** | ⚠️ QA soft-deleted, PROD active |
+| 5 | NLC | 1 | 0 | 1 | 0 | ✅ ตรงกัน |
+| 6 | Test | 1 | **1** | 1 | **0** | ⚠️ QA soft-deleted, PROD active |
+
+**Drift 2 แถว:**
+
+1. **PD3 (Id=4):** ชื่อ `PD3` เป็นชื่อ division จริงใน EmployeeHub (ใช้โดยพนักงาน NTC+VDS) — FK=0 ทั้ง QA/PROD แต่ **ควรพิจารณาว่าจะเปิดใช้งานหรือไม่** เพราะ:
+   - ถ้าองค์กรมี learner ใน PD3 จริง → ต้อง **un-delete บน QA** (`IsDeleted=0`) เพื่อให้ admin จัดกลุ่ม/assign ได้
+   - ถ้า PD3 ถูก soft-delete บน QA โดยเจตนา (เช่น PD3 ถูกรวมกับ PD อื่น) → soft-delete บน PROD ด้วยเพื่อให้ตรงกัน
+   - **ต้องให้ผู้ใช้ตัดสิน** — ข้อมูลจากระบบอย่างเดียวไม่พอ
+
+2. **Test (Id=6):** ดูหัวข้อ Finding 2 — ปลอดภัยลบ/soft-delete ได้ทั้ง PROD
+
+---
+
+### Finding 4 — `Assignments.Division` (legacy string column) ว่างเปล่า
+
+```
+QA:   SELECT DISTINCT Division FROM Assignments WHERE Division IS NOT NULL → (0 rows)
+PROD: SELECT DISTINCT Division FROM Assignments WHERE Division IS NOT NULL → (0 rows)
+```
+
+คอลัมน์นี้ NULL ทั้งตาราง ทั้ง QA และ PROD → **ไม่มีข้อมูล legacy ที่ต้อง migrate**
+
+---
+
+### Finding 5 — ตารางเทียบ 3 แหล่ง (สรุปจาก PLAN-061 + A3 query)
+
+PLAN-061 ได้ทำ full lookup 3 แหล่งไว้แล้ว สรุปการจำแนกทุกค่า:
+
+| ค่า | iLearnDB (Divisions.Name) | Upstream เดิม (GetDistinctDivisions) | EmployeeHub (derived) | สถานะ |
+|---|---|---|---|---|
+| PD1 | ✅ Id=1, active | ✅ | ✅ (NTC division) | **ตรง** |
+| PD2 | ✅ Id=2, active | ✅ | ✅ (NTC division) | **ตรง** |
+| CSD | ✅ Id=3, active | ✅ | ✅ (NTC division) | **ตรง** |
+| PD3 | ✅ Id=4, QA deleted | ✅ | ✅ (NTC+VDS division) | **ต่าง state — ดู Finding 3** |
+| NLC | ✅ Id=5, active | ✅ | ✅ (Company filter) | **ตรง** (กติกาพิเศษ: filter by Company ไม่ใช่ Division) |
+| Test | ✅ Id=6, QA deleted | ❌ ไม่มี | ❌ ไม่มี | **Test data — ลบได้** |
+| ECD | ❌ ไม่มีใน iLearn | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| ELD | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| FAD | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| MED | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| PCD | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| PD4 | ❌ | ✅ | ✅ (NTC+VDS) | **ไม่ได้ใช้ — ปลอดภัย** |
+| PNP | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| QAD | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| DP-CGA | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+| DP-SHD | ❌ | ✅ | ✅ (NTC) | **ไม่ได้ใช้ — ปลอดภัย** |
+
+> Division ที่ upstream/EmployeeHub มีแต่ iLearn ไม่มี (10 ค่า) = division ที่ยังไม่เคยสร้างเป็น master data ใน iLearn ซึ่งปกติดี — admin สร้างเพิ่มได้ตามต้องการ
+
+---
+
+### สรุปข้อเสนอ
+
+| # | รายการ | Action | ความเสี่ยง | ใครตัดสิน |
+|---|---|---|---|---|
+| R1 | Soft-delete `Test` (Id=6) บน PROD | `UPDATE Divisions SET IsDeleted=1 WHERE Id=6` | ต่ำมาก (FK=0) | Admin ดำเนินการได้เลย |
+| R2 | ตัดสิน PD3 (Id=4): un-delete บน QA หรือ soft-delete บน PROD | ดู Finding 3 | ต่ำ (FK=0) แต่กระทบ assign scope | **ผู้ใช้ตัดสิน** |
+| R3 | ไม่ต้อง remap `Assignments.Division` | ไม่ต้องทำ (NULL ทั้งหมด) | ศูนย์ | — |
+| R4 | ไม่ต้อง migrate EnrollmentAssignment snapshot | ไม่ต้องทำ (ไม่มี division data) | ศูนย์ | — |
+
+**ไม่มีค่า division ใน iLearnDB ที่ขัดกับกติกา EmployeeHub ใน PLAN-061** — cutover สามารถดำเนินการได้โดยไม่ต้อง remap master data (ยกเว้นจุด R1/R2 ข้างบนซึ่งเป็นเรื่อง cleanup ไม่ใช่ mapping)
+
+---
+
+## Reviewer Sign-off (Claude Code, 2026-07-09) — ✅ ผ่าน
+
+Audit ครบถ้วน สรุปถูกต้อง ตรวจซ้ำแล้ว:
+- **Finding 1 verified จาก entity จริง** — [`EnrollmentAssignment.cs:28-30`](../../iLearn.Domain/Entities/EnrollmentAssignment.cs) มีแค่ `SnapshotCompleted`(bool)/`SnapshotCompletedDate`/`SnapshotProgress`(double) ไม่มี name string ฝัง ✓
+- **Finding 4 สอดคล้อง** หลักฐานเดิม (PLAN-061: `Assignments.Division` NULL ทั้งตาราง) ✓
+- **เสริมหลักฐานที่ทำให้ข้อสรุป "ไม่ต้อง remap" แข็งขึ้น (reviewer ตรวจ schema เพิ่ม):** iLearn **ไม่มี entity `Department`/`Section` master-data เลย** และ [`LearnerGroup`](../../iLearn.Domain/Entities/LearnerGroup.cs) / [`Assignment`](../../iLearn.Domain/Entities/Assignment.cs) scope ด้วย `DivisionId` (FK) + `EmployeeCodes`/explicit members เท่านั้น → **ที่เดียวที่เก็บ "ชื่อ" division เป็น string คือ `Divisions.Name` (master data) กับ `Assignment.Division` (NULL)** ส่วน department/section เป็น attribute ของพนักงานที่ดึงสด runtime → EmployeeHub canonicalize (`SA Dept.`→`SA`) **ทำข้อมูล iLearn เพี้ยนไม่ได้** เพราะไม่เคย persist ชื่อพวกนี้ (ปิดประเด็น A4 ที่แผนเดิมกังวล)
+- **การจำแนก division 15+1 ค่า ตรงกับ PLAN-061 เป๊ะ** (14 non-NLC + NLC + Test) — internal consistency ผ่าน
+- Findings 2/3 (FK counts, QA↔PROD drift) เป็นผล query read-only ที่ reviewer ไม่มี DB access รันซ้ำเอง แต่ internally consistent + สมเหตุสมผล; GPT แยก "ทำได้เลย" (R1/R3/R4) กับ "ผู้ใช้ตัดสิน" (R2) ถูกต้อง
+
+### ข้อสังเกต reviewer (ไม่ block)
+1. **Acceptance #1 (raw files ใน `artifacts/employeehub-audit/`)** — ไม่ได้สร้าง เพราะ A1/A2/A4 ถูก supersede ด้วย PLAN-061 (evidence inline พอ); แต่ผล A3 (FK counts, QA/PROD compare) อยู่ในตารางเท่านั้น ไม่มี raw dump — ยอมรับได้สำหรับ audit ขนาดนี้
+2. **R1 (soft-delete `Test` บน PROD)** — ปลอดภัยจริง (FK=0) แต่เป็น **write บน PROD DB** ไม่ควรให้ admin รัน ad-hoc; แนะนำผูกเป็น step หนึ่งใน **PLAN-060 pre-cutover** (มี rollback/gate อยู่แล้ว) พร้อมกับผล R2
+3. **R2 (PD3)** เป็น prerequisite ของ PLAN-060 (ต้องได้คำตอบผู้ใช้ก่อน cutover) — reviewer ยกไปถามผู้ใช้ต่อ
+
+**สรุป:** PLAN-059 = DONE/VERIFIED; ไม่มี mapping blocker สำหรับ cutover เหลือแค่ **decision R2 (PD3)** ที่ผู้ใช้ต้องเคาะ แล้ว PLAN-060 ถึงจะขยับเป็น READY ได้
