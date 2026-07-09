@@ -40,6 +40,7 @@ if ($PSCmdlet.ShouldProcess($DeployRoot, "Copy static files from $resolvedDistPa
         $resolvedDistPath,
         $DeployRoot,
         '/E',
+        '/MT:16',
         '/R:2',
         '/W:2',
         '/NFL',

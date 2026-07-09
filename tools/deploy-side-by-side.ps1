@@ -229,6 +229,44 @@ function Invoke-AppPoolAction {
     return Invoke-Command @remoteParams
 }
 
+function Invoke-Robocopy {
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination,
+        [string[]]$ExcludeFiles = @()
+    )
+
+    # Multithreaded copy is the whole point: Copy-Item moves one file at a time over SMB,
+    # which made deploys crawl. Robocopy also skips files that are already identical at the
+    # destination, so re-syncs (wwwroot, configs) only transfer what changed.
+    $robocopyArgs = @(
+        $Source, $Destination,
+        '/E', '/MT:16', '/R:2', '/W:2',
+        '/NFL', '/NDL', '/NJH', '/NJS', '/NP'
+    )
+    if ($ExcludeFiles.Count -gt 0) {
+        $robocopyArgs += '/XF'
+        $robocopyArgs += $ExcludeFiles
+    }
+
+    & robocopy @robocopyArgs | Out-Null
+    $exitCode = $LASTEXITCODE
+    # Robocopy exit codes 0-7 are success variants; >= 8 means at least one copy failure.
+    if ($exitCode -ge 8) {
+        throw "robocopy failed ($Source -> $Destination) with exit code $exitCode"
+    }
+}
+
+function Write-PhaseDuration {
+    param(
+        [Parameter(Mandatory)][string]$Phase,
+        [Parameter(Mandatory)][System.Diagnostics.Stopwatch]$Stopwatch
+    )
+
+    Write-Host ("{0} took {1:n1}s" -f $Phase, $Stopwatch.Elapsed.TotalSeconds) -ForegroundColor DarkGray
+    $Stopwatch.Restart()
+}
+
 function Test-DeploymentHealth {
     param(
         [Parameter(Mandatory)][string]$Url,
@@ -345,6 +383,8 @@ $deploymentFailed = $false
 $autoRolledBack = $false
 $removedCount = 0
 
+$phaseTimer = [System.Diagnostics.Stopwatch]::StartNew()
+
 # ── Publish ──────────────────────────────────────────────────────────────────
 if (-not $SkipPublish) {
     if ($PSCmdlet.ShouldProcess($resolvedPublishOutput, "Refresh publish output for $resolvedProjectPath")) {
@@ -359,6 +399,7 @@ if (-not $SkipPublish) {
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet publish failed for $resolvedProjectPath"
         }
+        Write-PhaseDuration -Phase 'Publish' -Stopwatch $phaseTimer
     }
 }
 
@@ -368,6 +409,17 @@ if (-not (Test-Path -LiteralPath $resolvedPublishOutput)) {
     } else {
         throw "Publish output not found: $resolvedPublishOutput"
     }
+}
+
+# ── Copy the new build to its side-by-side folder (app still ONLINE) ────────
+# Nothing serves from the stamp folder until the web.config flip below, so the slow
+# bulk copy runs while the site keeps serving traffic — the offline window only has
+# to cover the root config/wwwroot sync and the flip itself.
+Write-Host "Copying publish output to $deployPath"
+if ($PSCmdlet.ShouldProcess($deployPath, "Copy publish output from $resolvedPublishOutput")) {
+    New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
+    Invoke-Robocopy -Source $resolvedPublishOutput -Destination $deployPath -ExcludeFiles $ExcludeConfigFiles
+    Write-PhaseDuration -Phase 'Stamp-folder copy' -Stopwatch $phaseTimer
 }
 
 # ── Take the app offline (drain) ─────────────────────────────────────────────
@@ -393,20 +445,6 @@ elseif ($OfflineStrategy -eq 'AppOffline') {
 }
 
 try {
-    Write-Host "Copying publish output to $deployPath"
-    if ($PSCmdlet.ShouldProcess($deployPath, "Copy publish output from $resolvedPublishOutput")) {
-        New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
-
-        $publishEntries = Get-ChildItem -LiteralPath $resolvedPublishOutput -Force
-        foreach ($publishEntry in $publishEntries) {
-            if ($ExcludeConfigFiles.Count -gt 0 -and -not $publishEntry.PSIsContainer -and $ExcludeConfigFiles -contains $publishEntry.Name) {
-                Write-Verbose "Skipping excluded config file (stamp copy): $($publishEntry.Name)"
-                continue
-            }
-            Copy-Item -LiteralPath $publishEntry.FullName -Destination $deployPath -Recurse -Force
-        }
-    }
-
     # Sync root-level appsettings (ContentRoot for a side-by-side DLL resolves to the app root,
     # not the _deploy_* folder, so config + static assets must live at the root).
     # Back up the existing root config first so a clobber of manual prod overrides is recoverable.
@@ -432,11 +470,8 @@ try {
         $rootWwwrootPath = Join-Path $DeployRoot 'wwwroot'
         if ($PSCmdlet.ShouldProcess($rootWwwrootPath, "Sync static web assets from $publishedWwwrootPath")) {
             New-Item -ItemType Directory -Path $rootWwwrootPath -Force | Out-Null
-
-            $publishedWwwrootEntries = Get-ChildItem -LiteralPath $publishedWwwrootPath -Force
-            foreach ($publishedWwwrootEntry in $publishedWwwrootEntries) {
-                Copy-Item -LiteralPath $publishedWwwrootEntry.FullName -Destination $rootWwwrootPath -Recurse -Force
-            }
+            # Incremental: robocopy only transfers files that differ from the destination.
+            Invoke-Robocopy -Source $publishedWwwrootPath -Destination $rootWwwrootPath
         }
     }
 
@@ -451,7 +486,33 @@ try {
         Set-AspNetCoreEnvironment -WebConfigPath $webConfigPath -EnvironmentName $SetEnvironmentName
     }
 
+    # Bring the app back online BEFORE the health check so the new build can answer.
+    if ($appOfflineCreated -and (Test-Path -LiteralPath $appOfflinePath)) {
+        if ($PSCmdlet.ShouldProcess($appOfflinePath, "Remove app_offline.htm (bring app online)")) {
+            Remove-Item -LiteralPath $appOfflinePath -Force
+            $broughtOnline = $true
+        }
+    }
+    if ($stoppedAppPool) {
+        if ($PSCmdlet.ShouldProcess($AppPoolName, "Start app pool on $IisHost")) {
+            $startResult = Invoke-AppPoolAction -PoolName $AppPoolName -TargetHost $IisHost -Action 'Start' -Credential $IisCredential
+            Write-Host $startResult -ForegroundColor DarkGray
+            $startedAppPool = $true
+        }
+    }
+    Write-PhaseDuration -Phase 'Offline window (config sync + flip)' -Stopwatch $phaseTimer
+
+    # ── Post-deploy health check (optional) → auto-rollback on failure ──
+    if ($HealthCheckUrl -and -not $WhatIfPreference) {
+        Write-Host "Running post-deploy health check: $HealthCheckUrl"
+        if (-not (Test-DeploymentHealth -Url $HealthCheckUrl -Retries $HealthCheckRetries -DelaySeconds $HealthCheckDelaySeconds)) {
+            throw "Health check failed for $HealthCheckUrl after deploy."
+        }
+    }
+
     # --- Cleanup old deploy folders, keeping the $KeepDeployments most recent ---
+    # Runs LAST (after the app is back online and healthy): deleting a big folder tree
+    # over SMB is slow, and rollback targets must survive until the new build is proven.
     $allDeployDirs = @(Get-ChildItem -LiteralPath $DeployRoot -Directory -Filter "$DeployFolderPrefix*" |
         Sort-Object Name -Descending)
 
@@ -482,29 +543,6 @@ try {
         }
         if ($removedCount -gt 0) {
             Write-Host "Cleaned up $removedCount stale deploy folder(s), kept $KeepDeployments most recent." -ForegroundColor DarkGray
-        }
-    }
-
-    # Bring the app back online BEFORE the health check so the new build can answer.
-    if ($appOfflineCreated -and (Test-Path -LiteralPath $appOfflinePath)) {
-        if ($PSCmdlet.ShouldProcess($appOfflinePath, "Remove app_offline.htm (bring app online)")) {
-            Remove-Item -LiteralPath $appOfflinePath -Force
-            $broughtOnline = $true
-        }
-    }
-    if ($stoppedAppPool) {
-        if ($PSCmdlet.ShouldProcess($AppPoolName, "Start app pool on $IisHost")) {
-            $startResult = Invoke-AppPoolAction -PoolName $AppPoolName -TargetHost $IisHost -Action 'Start' -Credential $IisCredential
-            Write-Host $startResult -ForegroundColor DarkGray
-            $startedAppPool = $true
-        }
-    }
-
-    # ── Post-deploy health check (optional) → auto-rollback on failure ──
-    if ($HealthCheckUrl -and -not $WhatIfPreference) {
-        Write-Host "Running post-deploy health check: $HealthCheckUrl"
-        if (-not (Test-DeploymentHealth -Url $HealthCheckUrl -Retries $HealthCheckRetries -DelaySeconds $HealthCheckDelaySeconds)) {
-            throw "Health check failed for $HealthCheckUrl after deploy."
         }
     }
 }

@@ -14,6 +14,17 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 09:35] Claude Code — เร่งความเร็ว deploy scripts (robocopy /MT + ย่อ offline window)
+- ทำอะไร: ผู้ใช้รายงาน deploy ช้ามาก → ปรับ `tools/deploy-side-by-side.ps1` (core ที่ทุก wrapper QA/PROD ใช้):
+  1. เปลี่ยนการ copy ขึ้น UNC จาก `Copy-Item` ทีละไฟล์ → helper `Invoke-Robocopy` (`/MT:16` multithread, exit code ≥8 = throw) ทั้ง stamp-folder copy และ wwwroot sync (wwwroot ได้ incremental ฟรี — robocopy ข้ามไฟล์ที่เหมือนเดิม)
+  2. ย้าย stamp-folder copy (ก้อนใหญ่สุด) มาก่อน take-offline — โฟลเดอร์ side-by-side ยังไม่ถูกใช้จนกว่าจะ flip web.config ดังนั้น copy ระหว่างเว็บยังออนไลน์ได้ → offline window เหลือแค่ config sync + flip (จากเดิมเว็บดับตลอดช่วง copy หลายนาที)
+  3. ย้าย stale-folder cleanup (ลบ tree ใหญ่ผ่าน SMB ช้า) ไปท้ายสุดหลัง app online + health check ผ่าน — rollback target ไม่ถูกลบก่อนพิสูจน์ build ใหม่
+  4. เพิ่ม phase timing log (`Publish took Xs`, `Stamp-folder copy took Xs`, `Offline window took Xs`) ไว้วินิจฉัยรอบหน้า
+  - `tools/deploy-admin-react.ps1`: เพิ่ม `/MT:16` ให้ robocopy เดิม
+- ไฟล์หลักที่แตะ: `tools/deploy-side-by-side.ps1`, `tools/deploy-admin-react.ps1`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (พฤติกรรม deploy เหมือนเดิม: side-by-side + flip + auto-rollback + ExcludeConfigFiles ครบ)
+- Verified: PowerShell parser ผ่านทั้ง 2 ไฟล์; `deploy-user.ps1 -SkipPublish -WhatIf` ยืนยันลำดับใหม่ (copy → offline → sync/flip → online → cleanup); หมายเหตุ: QA fix HostUnc (`dde61d5` โดยผู้ใช้) ขึ้นแล้ว smoke `/iLearn/health/smoke?courseId=e57bcaf3-...` = 200 pass ครบทุก check
+
 ## [2026-07-09 09:00] Claude Code — commit d68c69f + deploy QA ครบ 3 แอป; smoke test เจอ root cause ของ Courses 404
 - ทำอะไร: commit งาน health check (`d68c69f`) แล้ว deploy QA: API `_deploy_20260709084721`, User `_user_deploy_20260709085208`, admin-react (robocopy exit 3 = OK) — จากนั้นเรียก smoke จริงบน QA:
   - `GET /iLearn/Service/api/health/smoke` = **200 pass** (DB 37ms + course file share reachable จากโปรเซส API)
