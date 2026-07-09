@@ -14,6 +14,14 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 09:00] Claude Code — commit d68c69f + deploy QA ครบ 3 แอป; smoke test เจอ root cause ของ Courses 404
+- ทำอะไร: commit งาน health check (`d68c69f`) แล้ว deploy QA: API `_deploy_20260709084721`, User `_user_deploy_20260709085208`, admin-react (robocopy exit 3 = OK) — จากนั้นเรียก smoke จริงบน QA:
+  - `GET /iLearn/Service/api/health/smoke` = **200 pass** (DB 37ms + course file share reachable จากโปรเซส API)
+  - `GET /iLearn/health/smoke?courseId=e57bcaf3-...` = **503 fail**: `courseContentFolder` — `\\10.10.143.39\wwwroot\iLearnNew\Courses` **ไม่ reachable จากโปรเซส iLearn.User และ static middleware ไม่ถูก mount ตอน startup** → นี่คือสาเหตุที่ `/iLearn/Courses/{id}/res/index.html` 404; API pass แต่ User fail กับ UNC เดียวกัน ⇒ น่าจะเป็นสิทธิ์ของ app pool identity `iLearn.User` บน share (หรือ delegation) — แก้ที่ server config แล้ว restart app pool `iLearn.User` จากนั้น re-run smoke ยืนยัน
+- ไฟล์หลักที่แตะ: ไม่มี (commit + deploy + diagnose)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: smoke endpoints ตอบจริงบน QA ตามด้านบน; deploy script HealthChecked=True ทั้ง API/User, AutoRolledBack=False
+
 ## [2026-07-09 08:35] Claude Code — เพิ่มหน้า Health Check ใน admin-react
 - ทำอะไร: ต่อยอด smoke endpoints (entry ก่อนหน้า) — เพิ่มหน้า `/health-check` (Super Admin section) แสดงผล smoke test ของ iLearn.API และ Learner Site (iLearn.User) เป็นการ์ดต่อ service: overall Badge (Operational/Degraded/Unreachable), รายการ checks (Pass/Fail + detail + durationMs), ปุ่ม Re-run, ช่องกรอก Course ID (optional) เพื่อตรวจ `res/index.html` ของ course บน learner site — page ดึง `FileSettings.HostUrl` จาก `admin/SystemConfig` เพื่อหา base URL ของ learner site; parse JSON body ทั้งกรณี 200 และ 503 (endpoint ตั้งใจคืน 503 พร้อม checks); fetch fail (CORS ตอน dev / service down) แสดงเป็น Unreachable ไม่ crash
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/system-config/HealthCheckPage.tsx` (ใหม่), `src/App.tsx` (route + RequireRole superAdminOnly), `src/config/navigation.ts` (nav item Health Check, icon Activity), `src/components/layout/Breadcrumbs.tsx` (SEGMENT_MAP)
