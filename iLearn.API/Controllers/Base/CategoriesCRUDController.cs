@@ -115,6 +115,7 @@ namespace iLearn.API.Controllers.Base
                 var term = p.Search.Trim().ToLower();
                 query = query.Where(c =>
                     c.Name.ToLower().Contains(term) ||
+                    (c.Description != null && c.Description.ToLower().Contains(term)) ||
                     (c.Division != null && c.Division.Name.ToLower().Contains(term)));
             }
 

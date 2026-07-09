@@ -43,6 +43,12 @@ Format ต่อ entry:
 - Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ฝั่ง React มีการเปลี่ยน endpoint ที่เรียกตามแผน โดยโครงสร้าง shape และ type ของ API ตรงตาม DTO อยู่แล้ว)
 - Verified: `npm run lint` และ `npm run build` ผ่านใน frontend; รัน xUnit `dotnet test` (118/118 tests passed) backend ผ่านทั้งหมด
 
+## [2026-07-09 —] Claude Code — follow-up จากรีวิว: GetPaged ค้น description ได้ + track .claude/launch.json
+- ทำอะไร: ผู้ใช้สั่งเก็บงาน 2 จุดจากหมายเหตุรีวิว PLAN-056: (1) `CategoriesCRUDController.GetPaged` เพิ่มเงื่อนไข search ให้ครอบ `Description` (null-safe, pattern เดียวกับ Division.Name เดิม); (2) commit `.claude/launch.json` (dev server config สำหรับ preview) และเพิ่ม `.claude/settings.local.json` ลง `.gitignore` (เป็น config เฉพาะเครื่องตาม convention ของ Claude Code ไม่ควร track)
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/Base/CategoriesCRUDController.cs`, `.gitignore`, `.claude/launch.json` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (พฤติกรรม search ของ `GetPaged` กว้างขึ้นเท่านั้น — shape เดิม); หมายเหตุ: การแก้นี้ยังไม่ถูก deploy — จะติดไปกับรอบ deploy API ถัดไป
+- Verified: dotnet build + dotnet test 118/118 ผ่าน
+
 ## [2026-07-09 —] Claude Code — Review PLAN-055/056/057: PASS ทั้งสามแผน → VERIFIED + commit
 - ทำอะไร: รีวิว diff เต็มของงาน Gemini (PLAN-055 single-division explorer, PLAN-056 Category.Description) และหลักฐาน deploy ของ GPT (PLAN-057 QA+PROD) — ทุก scope item ครบตามแผน, branch ใหม่ทั้งหมด gate ด้วย `singleDivision !== null` (โหมดหลาย division ไม่กระทบ), Edit Category ส่ง `description: null` ตอนเคลียร์ถูกต้อง, migration additive อย่างเดียว; reviewer รัน verification ซ้ำเอง: `npm run lint` ผ่าน, `npm run build` ผ่าน, `dotnet test` 118/118 ผ่าน → เปลี่ยนสถานะสามแผนเป็น VERIFIED พร้อม Reviewer Sign-off แล้ว commit งานทั้งหมด
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-055/056/057*.md` (status+sign-off), commit รวมงาน implementer ทั้งหมด

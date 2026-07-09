@@ -387,3 +387,6 @@ iLearn.User/wwwroot/**
 # ignore any NEW source files added to that project. Re-include the project dir here;
 # real *.user files inside it are still ignored by the `*.user` rule.
 !/iLearn.User/
+
+# Claude Code local (per-machine) config
+.claude/settings.local.json
