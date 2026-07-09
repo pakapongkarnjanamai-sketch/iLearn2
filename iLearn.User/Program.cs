@@ -164,6 +164,9 @@ static class CourseStaticFileApplicationBuilderExtensions
             ? settings.FileUnc
             : Path.Combine(app.Environment.ContentRootPath, courseFolder);
 
+        iLearn.User.Services.CourseContentStatus.PhysicalPath = coursePhysicalPath;
+        iLearn.User.Services.CourseContentStatus.RequestPath = $"/{courseFolder.Replace('\\', '/')}";
+
         if (!Directory.Exists(coursePhysicalPath))
         {
             app.Logger.LogWarning(
@@ -171,6 +174,8 @@ static class CourseStaticFileApplicationBuilderExtensions
                 coursePhysicalPath);
             return app;
         }
+
+        iLearn.User.Services.CourseContentStatus.MountedAtStartup = true;
 
         return app.UseStaticFiles(new StaticFileOptions
         {

@@ -14,6 +14,7 @@ const SEGMENT_MAP: Record<string, string> = {
   'student-group-categories': 'Learner Group Categories',
   'learner-group-categories': 'Learner Group Categories',
   'system-config': 'System Config',
+  'health-check': 'Health Check',
   'new': 'Create',
   'edit': 'Modify',
   'version': 'Version',

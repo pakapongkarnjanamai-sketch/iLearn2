@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookOpen,
   ClipboardList,
   Database,
@@ -82,6 +83,7 @@ export const navigationSections: NavigationSection[] = [
       },
       { label: 'Admin Users', path: '/users', icon: UserCog, superAdminOnly: true },
       { label: 'System Config', path: '/system-config', icon: Settings, superAdminOnly: true },
+      { label: 'Health Check', path: '/health-check', icon: Activity, superAdminOnly: true },
     ],
   },
 ]

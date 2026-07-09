@@ -8,6 +8,7 @@ import { EntityListPage } from './pages/EntityListPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { adminListConfigs } from './pages/moduleConfigs'
 import { SystemConfigPage } from './pages/system-config/SystemConfigPage'
+import { HealthCheckPage } from './pages/system-config/HealthCheckPage'
 import { CourseListPage } from './pages/courses/CourseListPage'
 import { CourseDetailPage } from './pages/courses/CourseDetailPage'
 import { CourseEditorPage } from './pages/courses/CourseEditorPage'
@@ -232,6 +233,14 @@ export function App() {
           element={
             <RequireRole superAdminOnly>
               <SystemConfigPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="health-check"
+          element={
+            <RequireRole superAdminOnly>
+              <HealthCheckPage />
             </RequireRole>
           }
         />

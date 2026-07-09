@@ -14,6 +14,21 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 08:35] Claude Code — เพิ่มหน้า Health Check ใน admin-react
+- ทำอะไร: ต่อยอด smoke endpoints (entry ก่อนหน้า) — เพิ่มหน้า `/health-check` (Super Admin section) แสดงผล smoke test ของ iLearn.API และ Learner Site (iLearn.User) เป็นการ์ดต่อ service: overall Badge (Operational/Degraded/Unreachable), รายการ checks (Pass/Fail + detail + durationMs), ปุ่ม Re-run, ช่องกรอก Course ID (optional) เพื่อตรวจ `res/index.html` ของ course บน learner site — page ดึง `FileSettings.HostUrl` จาก `admin/SystemConfig` เพื่อหา base URL ของ learner site; parse JSON body ทั้งกรณี 200 และ 503 (endpoint ตั้งใจคืน 503 พร้อม checks); fetch fail (CORS ตอน dev / service down) แสดงเป็น Unreachable ไม่ crash
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/system-config/HealthCheckPage.tsx` (ใหม่), `src/App.tsx` (route + RequireRole superAdminOnly), `src/config/navigation.ts` (nav item Health Check, icon Activity), `src/components/layout/Breadcrumbs.tsx` (SEGMENT_MAP)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (React อ่าน shape จาก HealthController ทั้งสองตัว + fileSettings.hostUrl ของ SystemConfig — มีคอมเมนต์ Mirrors ครบ)
+- Verified: npm run lint + npm run build ผ่าน; ทดสอบจริงผ่าน vite dev + API local (Development env) — หน้าแสดง Database Pass 27ms, Course file share Fail (UNC ไม่ถึงจากเครื่อง dev), Learner Site Unreachable พร้อมเหตุผล ตามคาดทุกเคส
+
+## [2026-07-09 08:05] Claude Code — เพิ่ม smoke test / health endpoints (iLearn.API + iLearn.User)
+- ทำอะไร: ผู้ใช้ตั้ง goal ให้มี endpoint ตรวจความพร้อมระบบ (case จริง: `/iLearn/Courses/{id}/res/index.html` บน QA ใช้ไม่ได้) →
+  - **iLearn.API** ใหม่ `Controllers/HealthController.cs` (`[AllowAnonymous]`): `GET /api/health/live` (liveness สำหรับ deploy script `-HealthCheckUrl`), `GET /api/health` หรือ `/api/health/smoke` ตรวจ database (`CanConnectAsync`) + course file share (`Directory.Exists(FileSettings.FileUnc)`) — 200 เมื่อผ่านหมด / 503 เมื่อ fail พร้อม JSON `checks[]` (name/status/detail/durationMs)
+  - **iLearn.User** ใหม่ `Controllers/HealthController.cs` + `Services/CourseContentStatus.cs`: `GET /health/live`, `GET /health` หรือ `/health/smoke[?courseId=<guid>]` ตรวจ (1) โฟลเดอร์ Courses (UNC) เข้าถึงได้ + **แยกเคส middleware ไม่ถูก mount ตอน startup** (root-cause ที่เป็นไปได้ของ URL ที่พัง — `UseCourseStaticFiles` เดิม skip เงียบ ๆ ถ้าโฟลเดอร์หายตอน boot และไม่ mount จนกว่าจะ restart), (2) ไฟล์ `{courseId}/res/index.html` มีจริง, (3) API ปลายทางตอบ `health/live`
+  - แก้ `iLearn.User/Program.cs` (`UseCourseStaticFiles`) ให้บันทึกสถานะ mount ลง `CourseContentStatus` (static) — ไม่เปลี่ยนพฤติกรรม serve เดิม
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/HealthController.cs` (ใหม่), `iLearn.User/Controllers/HealthController.cs` (ใหม่), `iLearn.User/Services/CourseContentStatus.cs` (ใหม่), `iLearn.User/Program.cs`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม endpoint ใหม่ anonymous 4 ตัว (shape ด้านบน) — ไม่มีการแก้ endpoint เดิม
+- Verified: dotnet build iLearn.API + iLearn.User (0 errors), dotnet test 118/118 ผ่าน, รันจริงทั้งสองแอปบนเครื่อง dev — `/api/health/live`=200, `/api/health/smoke`=503 (DB pass, file share fail ตาม config dev), `/health/smoke?courseId=e57bcaf3-...`=503 รายงานไฟล์ course หายถูกต้อง
+
 ## [2026-07-06 15:35] Antigravity — PLAN-054 Rework DONE: Address Reviewer Feedbacks (R1-R6)
 - ทำอะไร: ปรับปรุงแก้ไขงานตาม feedback ของ Reviewer (Claude Code):
   - แก้ไข `.gitignore` เพื่อลบการ ignore `user-theme.css` และโฟลเดอร์ css (R1)
