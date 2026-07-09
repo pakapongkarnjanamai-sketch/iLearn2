@@ -14,6 +14,46 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 —] Claude Code — รีวิว PLAN-058 FIX-1 (รอบ 2) ผ่าน + commit ทั้งชุด
+- ทำอะไร: ตรวจการแก้ FIX-1 ของ Antigravity — lookup 4 method กรอง filter บน employee cache ก่อน distinct → cascade scope ถูก ไม่โยน 500, คืน bare `List<LookupNameDto>` ตรง React (`Array.isArray`+`.name`); `ParseLoadOptions` เพิ่ม `.Replace('+',' ')` ก่อน unescape ตรวจแล้วปลอดภัย (React ใช้ encodeURIComponent, `+` จริงมาเป็น `%2B` ไม่โดนแตะ) ไม่ทำ grid path เพี้ยน; test 2 ตัวใหม่ assert scoped+non-empty พิสูจน์ cast `filteredObj.data as IEnumerable<EmployeeDto>` ทำงาน runtime. **reviewer รัน verification เอง**: `dotnet build iLearn.Tests` 0 errors + `dotnet test` 128/128 passed → PLAN-058 Status DONE→**VERIFIED**, commit ทั้งชุด (client + service + tests + config + DI + health + controller + plans/log)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-058-*.md` (Status→VERIFIED + Reviewer Findings รอบ 2), `DOC/AGENT_LOG.md`; commit รวมงาน implement ของ Antigravity ทั้งหมด (`EmployeeHubClient.cs`, `EmployeeHubLearnerApiService.cs`, `EmployeeHubLearnerApiServiceTests.cs` + ไฟล์แก้)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีของใหม่จาก reviewer; ยืนยัน contract ฝั่ง React เดิมถูก preserve (lookups = bare array, grid = data/totalCount, default Legacy ทุก env)
+- Verified: `dotnet build iLearn.Tests -o` 0 errors; `dotnet test` 128/128 passed (รวม 2 test cascade ใหม่)
+
+## [2026-07-09 16:00] Antigravity — แก้ไขจุดบกพร่อง PLAN-058 (รอบ 2): Cascade Department/Section ล้มเหลว
+- ทำอะไร:
+  - แก้ไข `GetDivisionsAsync`, `GetSectionsAsync`, `GetDepartmentsAsync`, และ `GetPositionsAsync` ใน `EmployeeHubLearnerApiService.cs` ให้ทำงานบนโครงสร้างเดียวกัน:
+    - กรองข้อมูลบน employee cache ด้วย filter ที่ส่งมาจาก React ก่อนทำการ distinct เพื่อแก้ไขอาการโยน exception 500
+    - คืนค่าเป็น bare `List<LookupNameDto>` โดยตรง (ไม่ห่อใน `LoadResult`) เพื่อให้สอดคล้องกับพฤติกรรมของ frontend React ที่ใช้ `Array.isArray(res)` เช็คอาร์เรย์เปล่า
+  - ปรับปรุงการถอดรหัส query string ใน `ParseLoadOptions` ให้แปลงเครื่องหมายบวก (`+`) เป็นเว้นวรรค (space) อย่างถูกต้องเพื่อรองรับ nested filters
+  - เพิ่ม Unit Tests ใน `EmployeeHubLearnerApiServiceTests.cs` (เพิ่ม 2 เทสกรณี `GetDepartmentsAsync` และ `GetSectionsAsync` ที่รับ filter)
+- ไฟล์หลักที่แตะ: `iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs`, `iLearn.Tests/EmployeeHubLearnerApiServiceTests.cs`
+- Contract ที่เปลี่ยน (API shape / props / DB): ปรับปรุงโครงสร้างคืนค่าของ lookup endpoints 4 ตัวจาก `{ data: [...] }` กลับมาเป็น bare JSON array `[...]` เพื่อความสอดคล้องกับ React frontend (เหมือนของ Legacy)
+- Verified: รัน xUnit `dotnet test` (128/128 tests passed) ผ่านสำเร็จ 100% และรัน React build ผ่านสมบูรณ์แบบ
+
+## [2026-07-09 —] Claude Code — รีวิว PLAN-058 (รอบ 1): พบ blocking cascade Department/Section → NEEDS-FIX
+- ทำอะไร: รีวิว implement PLAN-058 ของ Antigravity เทียบ interface/DTO/controller เดิม + consumer React จริง (`LearnerListPage.tsx`, `LearnerDirectorySelector.tsx`) — สรุป: โครงถูกเกือบหมด **Legacy regression ศูนย์ (Acceptance #1 ผ่าน)** แต่เจอ **blocking 1 จุด (Acceptance #2 ไม่ผ่าน)**: `GetDepartmentsAsync`/`GetSectionsAsync` distinct→project เป็น `LookupNameDto{Name}` ก่อน แล้วเอา `DataSourceLoader.Load` มากรองด้วย filter ที่อ้าง field `Division`/`Department` ซึ่ง LookupNameDto ไม่มี → โยน exception 500 (ไม่มี try/catch) → Department/Section dropdown ว่าง/toast error ทั้งหน้า Learners + Bulk Assign; และ distinct ไม่ scope ตาม parent ที่เลือก (ของเดิม upstream scope ให้). แนวแก้: กรอง filter บน employee cache (มี Division/Department/Section ครบ) ก่อน แล้วค่อย distinct field เป้าหมาย คืน bare List<LookupNameDto> + เพิ่ม test cascade (ปิด coverage gap — 126 tests เดิมไม่มี case lookup+filter). จุดอื่นตรวจแล้วถูก: DxGrid (row DTO มี field ครบ filter จึงไม่พัง), camelCase nid/eId, division semantics PLAN-061, perf enrichment (claims cache 10 นาที), gap 3 Production.json, DI switch/health/default Legacy
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-058-employeehub-provider-foundation.md` (Status DONE→NEEDS-FIX + เพิ่ม "Reviewer Findings รอบ 1" พร้อม FIX-1 + code sketch)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว/เอกสาร) — **แต่ชี้ว่า implement รอบแรกทำ contract lookups เพี้ยนตอน Provider=EmployeeHub, ต้องแก้ตาม FIX-1**
+- Verified: — (review อ่านโค้ด ไม่รัน; finding เป็น runtime path ที่ unit test เดิมไม่ครอบ จึง 126/126 ผ่านได้ทั้งที่บั๊กอยู่)
+- ถึง Gemini: รับ PLAN-058 FIX-1 ไปแก้ต่อ (แก้ 2 method + เพิ่ม test) แล้วอัปเดต Status กลับ เมื่อ verify Acceptance #2 ผ่าน
+
+## [2026-07-09 15:30] Antigravity — ทำตาม PLAN-058: EmployeeHub Provider — client + translation layer
+- ทำอะไร: 
+  - เพิ่ม config ของสลับ Provider ใน `EmployeeServiceSettings` (Legacy / EmployeeHub) ครบทุก environment (`appsettings*.json`)
+  - แก้ไข gap 3: ปรับแก้ URL ของพนักงาน PRWB และ BaseEmployeeCsvUrl ใน `appsettings.Production.json` ให้ชี้เซิร์ฟเวอร์ PROD (`AP-NTC2137-PRWB`) ทั้งหมดแทนที่จะหลุดไปใช้ QA
+  - สร้าง `EmployeeHubClient` สำหรับยิง API ของ EmployeeHub และสร้าง DTO schemas (EmployeeDto, EmployeeHubPagedResult, FindByNidsResultDto)
+  - สร้าง `EmployeeHubLearnerApiService` เพื่อรับข้อมูลจาก `EmployeeHubClient` แล้วจัด format/map ข้อมูลให้เป็น shape เดิมของ `ILearnerApiService`
+  - ทำ Directory Cache ใน memory (IMemoryCache TTL 30 นาที) เพื่อดึงพนักงาน active ทั้งหมด
+  - ย้าย `LearnersGridResponse` และ `LearnerGridRowDto` ไปที่ `ExternalLearnerDto.cs` ของ Application layer เพื่อเลี่ยง circular reference
+  - ปรับการกรอง division rules: `'NLC'` ค้นหาจาก `Company == "NLC"` และค่าอื่นค้นหาตามชื่อ `Division` แบบ case-insensitive
+  - ปรับปรุง distinct lookups ของ divisions, departments, sections, และ positions ให้หาค่า distinct จาก directory cache ทั้งหมดแทนการยิง direct lookups
+  - ปรับปรุง `HealthController.cs` ให้มี check `employeeDirectory`
+  - เพิ่ม Unit Tests ใน `EmployeeHubLearnerApiServiceTests.cs` (6 test cases ครอบคลุม caching, mapping, nids chunking, grid parsing, lookups)
+- ไฟล์หลักที่แตะ: `iLearn.Application/Common/EmployeeServiceSettings.cs`, `iLearn.Application/DTOs/ExternalLearnerDto.cs`, `iLearn.API/appsettings.json`, `iLearn.API/appsettings.Development.json`, `iLearn.API/appsettings.Production.json`, `iLearn.Infrastructure/Services/EmployeeHubClient.cs`, `iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs`, `iLearn.Infrastructure/DependencyInjection.cs`, `iLearn.API/Controllers/HealthController.cs`, `iLearn.API/Controllers/LearnersController.cs`, `iLearn.Tests/EmployeeHubLearnerApiServiceTests.cs`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม config settings, API internals switchable via flag.
+- Verified: `npm run lint` และ `npm run build` ผ่านใน frontend; รัน xUnit `dotnet test` (126/126 tests passed) ผ่านทั้งหมด
+
 ## [2026-07-09 11:20] GPT (Copilot) — ตรวจงาน PLAN-055/056 + deploy PLAN-057 ขึ้น QA+PROD
 - ทำอะไร: รีวิว PLAN-055 (single-division mode) และ PLAN-056 (category description) — ผ่านทุกจุด ไม่มี issue; deploy ตาม PLAN-057: gen idempotent SQL script + targeted script (full idempotent มีปัญหา CREATE VIEW parse error), QA: DB มี migration แล้ว (Antigravity ทำตอน dev) + deploy API stamp `_deploy_20260709110854` + admin-react, smoke 200 pass; PROD: backup DB (586146 pages) + run targeted migration script + deploy API stamp `_deploy_20260709111723` + admin-react, smoke 200 pass; ทั้ง QA/PROD ยืนยัน CategoriesCRUD/Get คืน `description` field
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-057-deploy-category-description-qa-prod.md` (status→DONE + Implementer Notes), `DOC/AGENT_LOG.md`, `artifacts/migrations/idempotent-to-AddDescriptionToCategory.sql` (ใหม่), `artifacts/migrations/prod-AddDescriptionToCategory.sql` (ใหม่)

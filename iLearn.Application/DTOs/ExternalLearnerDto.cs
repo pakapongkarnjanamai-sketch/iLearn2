@@ -1,4 +1,4 @@
-﻿namespace iLearn.Application.DTOs
+namespace iLearn.Application.DTOs
 {
     public class AllLearnersApiResponse
     {
@@ -86,5 +86,29 @@
         public DateTime? CreatedDate { get; set; }
         public string ModifiedBy { get; set; }
         public DateTime? ModifiedDate { get; set; }
+    }
+
+    public class LearnersGridResponse
+    {
+        public List<LearnerGridRowDto> Data { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    public class LearnerGridRowDto
+    {
+        public int Id { get; set; }
+        public string EId { get; set; } = string.Empty;
+        public string NID { get; set; } = string.Empty;
+        public string EnglishFirstName { get; set; } = string.Empty;
+        public string EnglishLastName { get; set; } = string.Empty;
+        public string Division { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string Position { get; set; } = string.Empty;
+    }
+
+    public class LookupNameDto
+    {
+        public string Name { get; set; } = string.Empty;
     }
 }

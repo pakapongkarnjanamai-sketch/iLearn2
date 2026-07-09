@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http;
 using iLearn.Application.Common;
 using iLearn.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -19,11 +20,19 @@ namespace iLearn.API.Controllers
     {
         private readonly AppDbContext _db;
         private readonly FileSettings _fileSettings;
+        private readonly EmployeeServiceSettings _employeeSettings;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public HealthController(AppDbContext db, IOptions<FileSettings> fileSettings)
+        public HealthController(
+            AppDbContext db,
+            IOptions<FileSettings> fileSettings,
+            IOptions<EmployeeServiceSettings> employeeSettings,
+            IHttpClientFactory httpClientFactory)
         {
             _db = db;
             _fileSettings = fileSettings.Value;
+            _employeeSettings = employeeSettings.Value;
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>Liveness — โปรเซสยังรับ request ได้ (ใช้กับ -HealthCheckUrl ของ deploy script)</summary>
@@ -60,6 +69,52 @@ namespace iLearn.API.Controllers
                 return Task.FromResult(Directory.Exists(path)
                     ? (true, "Course file share reachable")
                     : (false, $"Course file share not reachable: {path}"));
+            });
+
+            healthy &= await RunCheckAsync(checks, "employeeDirectory", async () =>
+            {
+                var provider = _employeeSettings.Provider;
+                var client = _httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(5);
+
+                if (string.Equals(provider, "EmployeeHub", StringComparison.OrdinalIgnoreCase))
+                {
+                    var url = _employeeSettings.EmployeeHubBaseUrl;
+                    if (string.IsNullOrWhiteSpace(url))
+                        return (false, "EmployeeHub URL is not configured");
+
+                    var targetUrl = url.EndsWith("/") ? $"{url}health" : $"{url}/health";
+                    var response = await client.GetAsync(targetUrl, cancellationToken);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                        return (true, $"EmployeeHub (Healthy) - {content.Trim()}");
+                    }
+                    else
+                    {
+                        return (false, $"EmployeeHub returned status {(int)response.StatusCode} for health check");
+                    }
+                }
+                else
+                {
+                    var url = _employeeSettings.BaseLearnerLookupUrl;
+                    if (string.IsNullOrWhiteSpace(url))
+                        return (false, "Legacy base learner lookup URL is not configured");
+
+                    var response = await client.GetAsync(url, cancellationToken);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return (true, "Legacy Employee Service reachable");
+                    }
+                    else
+                    {
+                        return (response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed || 
+                                response.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
+                                response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                            ? (true, $"Legacy Employee Service reachable ({(int)response.StatusCode})")
+                            : (false, $"Legacy Employee Service returned status {(int)response.StatusCode}");
+                    }
+                }
             });
 
             var payload = new

@@ -1,6 +1,6 @@
 # PLAN-058: EmployeeHub Provider — client + translation layer หลัง `ILearnerApiService` (feature-flag, ยังไม่เปิดใช้)
 
-- **Status:** READY
+- **Status:** VERIFIED — implement รอบแรก + FIX-1 (รอบ 2) เสร็จ, reviewer ตรวจซ้ำ + รัน `dotnet test` 128/128 ผ่าน (ดู "Reviewer Findings รอบ 2" ท้ายไฟล์); default ยัง Legacy ทุก env → cutover จริงคือ PLAN-060
 - **Assigned:** Gemini (Antigravity)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -78,4 +78,79 @@ Remove-Item -Recurse -Force artifacts\verify-test
 
 ## Implementer Notes
 
-(เติมหลังทำเสร็จ)
+- ขยาย `EmployeeServiceSettings` และตั้งค่า config สลับ Provider (Legacy/EmployeeHub) ใน `appsettings*.json` ครบทุก env
+- สำหรับ Production แก้ไขค่า `BaseEmployeeCsvUrl` และ API URLs ให้ชี้เซิร์ฟเวอร์ PROD (`AP-NTC2137-PRWB`) ทั้งหมดเพื่อปิด gap 3
+- สร้าง `EmployeeHubClient` สำหรับยิงหา EmployeeHub (GET paged active, GET code, POST find-by-nids, GET health)
+- สร้าง `EmployeeHubLearnerApiService` เพื่อรับข้อมูลจาก `EmployeeHubClient` แล้ว translate/map ข้อมูลให้เป็น shape เดิมของ `ILearnerApiService`
+  - ทำ Directory Cache เก็บข้อมูลพนักงาน active ทั้งหมดใน memory (IMemoryCache TTL 30 นาที)
+  - นำ `DataSourceLoader.Load` มารันบน cache ใน memory เพื่อประมวลผล filter/sort/paging/search สำหรับ DevExtreme Grid
+  - ย้ายการประกาศ `LearnersGridResponse` และ `LearnerGridRowDto` ไปที่ `ExternalLearnerDto.cs` ของ Application layer เพื่อแก้ปัญหา cross-assembly reference ระหว่าง Infrastructure และ API
+  - จัดการ mapping `Position = Grade` และ rules แปลง Division ตามที่ระบุใน PLAN-061
+  - ย้ายการคำนวณ distinct divisions/departments/sections/positions ไปทำบน directory cache ทั้งหมดและครอบด้วย `DataSourceLoader`
+- เพิ่ม smoke test check สำหรับ `employeeDirectory` ตรวจจับสถานะของ Provider ที่ทำงานอยู่ (EmployeeHub/Legacy)
+- เพิ่ม Unit Tests ใน `EmployeeHubLearnerApiServiceTests.cs` ตรวจสอบความถูกต้องของการดึง/เซต cache, mapping properties, batch chunking, division logic, และ DevExtreme query parsing โดย mock HttpMessageHandler
+- ทดสอบ build และ test suite ทั้งหมด (126 tests) ผ่านฉลุย 100%
+
+## Reviewer Findings (รอบ 1 — Claude Code, 2026-07-09)
+
+รีวิวเทียบ interface/DTO/controller เดิม + consumer ฝั่ง React จริง สรุป: โครงถูกเกือบทั้งหมด **regression ศูนย์ฝั่ง Legacy (Acceptance #1 ผ่าน)** แต่มี **blocking 1 จุดที่ทำให้ Acceptance #2 ยังไม่ผ่าน** — ต้องแก้ก่อนปิดงาน
+
+### 🔴 FIX-1 (blocking) — cascade Department/Section พังเมื่อ Provider=EmployeeHub
+
+**อาการ:** `GetDepartmentsAsync` / `GetSectionsAsync` ([EmployeeHubLearnerApiService.cs:238–266](../../iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs)) คำนวณ distinct → project เป็น `LookupNameDto { Name }` **ก่อน** แล้วค่อยเอา `DataSourceLoader.Load(items, loadOptions)` มากรอง แต่ `loadOptions` มี filter ที่อ้าง field `Division`/`Department` ซึ่ง `LookupNameDto` ไม่มี
+
+**ทำไมพัง:** consumer ทั้งสองส่ง filter บน field ที่ไม่มีใน `LookupNameDto`:
+- `LearnerListPage.tsx:38` → `GetDepartments?filter=["Division","=",div]`
+- `LearnerDirectorySelector.tsx:97,122` → `GetSections?filter=[["Division","=",..],"and",["Department","=",..]]`
+
+DataSourceLoader สร้าง filter expression บน property ที่ไม่มี → **โยน exception → HTTP 500** (สอง method นี้ไม่มี try/catch, controller เช็คแค่ null); React `.catch` กลืน error → **Department/Section dropdown ว่างหรือ toast error** ทั้งหน้า Learners และ Bulk Assign directory selector และต่อให้ไม่ error, distinct ก็คำนวณจาก**ทั้ง directory** ไม่ได้ scope ตาม division/department ที่เลือก (ของเดิม upstream `GetDistinct*?filter=...` scope ให้) → cascade เพี้ยน
+
+**วิธีแก้ (ทำแบบนี้):** กรอง filter บน **employee cache** (ซึ่งมี `Division`/`Department`/`Section` ครบ) **ก่อน** แล้วค่อย distinct field เป้าหมาย → คืน bare `List<LookupNameDto>` เหมือน consumer คาด (`Array.isArray(res)` + อ่าน `.name`):
+```csharp
+var emps = await GetActiveEmployeesCachedAsync();
+var lo = ParseLoadOptions(queryString);
+// กรอง employees ด้วย filter เดิม (DataSourceLoader จัดการ filter ซ้อน "and" ให้เอง;
+// field "Division"/"Department" ที่ React ส่งมาเป็น PascalCase ตรงกับ property ของ EmployeeDto)
+var filteredObj = DataSourceLoader.Load(emps, new DataSourceLoadOptions { Filter = lo.Filter });
+var filtered = ((IEnumerable<EmployeeDto>)filteredObj) // filter-only → คืน bare enumerable
+    ?? Enumerable.Empty<EmployeeDto>();
+var departments = filtered
+    .Where(e => !string.IsNullOrWhiteSpace(e.Department))
+    .Select(e => e.Department!)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .OrderBy(d => d)
+    .Select(d => new LookupNameDto { Name = d })
+    .ToList();
+return departments; // bare array — ไม่ต้อง DataSourceLoader.Load ซ้ำ
+```
+- ทำเหมือนกันกับ `GetSectionsAsync` (target field = Section)
+- `GetDivisionsAsync` / `GetPositionsAsync` **ไม่ต้องแก้** — consumer ไม่ส่ง filter มา (แต่ถ้าจะกันเหนียว ให้ pattern เดียวกันได้)
+- **เพิ่ม test** (ปิด coverage gap): `GetDepartments` + filter `["Division","=","CSD"]` → คืนเฉพาะ department ของคน division CSD; `GetSections` + filter ซ้อน Division+Department → scope ถูก
+
+### ✅ จุดที่ตรวจแล้วถูก (อย่าแก้)
+- **DxGrid** ([:172](../../iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs)) ถูก — map เป็น `LearnerGridRowDto` ที่มี field ครบ, controller `Get()` deserialize→re-serialize normalize ทั้ง old/new เหมือนกัน, `MapFilterFieldNames`/`InjectDivisionFilter` ตรง property (นี่คือเหตุผลที่ grid ไม่พังแต่ lookup พัง — row DTO มี field ที่ filter อ้าง แต่ `LookupNameDto` ไม่มี)
+- camelCase `nid`/`eId` ถูก (CamelCase policy แปลง `NID`→`nid`, `EId`→`eId`)
+- Division semantics ตรง PLAN-061 เป๊ะ (NLC=Company, อื่น=Division case-insensitive, union)
+- lookup shape (bare array + `.name`), perf enrichment (claims cache 10 นาที → find-by-nids เรียกเฉพาะ cache-miss ไม่ regression), gap 3 (Production.json ครบ), DI switch + health check + default Legacy — ผ่านหมด
+
+### Implementer Notes (รอบ 2 — แก้ไขจุดบกพร่องตาม Reviewer Findings)
+- ปรับปรุงการทำงานของ lookup methods ทั้ง 4 ตัว (`GetDivisionsAsync`, `GetSectionsAsync`, `GetDepartmentsAsync`, `GetPositionsAsync`) ให้ทำงานบนโครงสร้างเดียวกัน:
+  - ใช้ `DataSourceLoader.Load` กรองข้อมูลบน employee directory cache ด้วย filter ที่ส่งมาจาก React ก่อนทำการ distinct เพื่อให้ cascade scope ทำงานได้ถูกต้องไม่โยน exception (HTTP 500)
+  - คืนผลลัพธ์เป็น bare array/list ของ `LookupNameDto` โดยไม่ครอบด้วย `LoadResult` ซ้ำ เพื่อให้ตรงตามที่ React คาดหวังในการทำ `Array.isArray(res)`
+  - ปรับปรุงตัวถอดรหัส query parameter ใน `ParseLoadOptions` ให้แปลงเครื่องหมายบวก (`+`) เป็นเว้นวรรค (space) อย่างถูกต้อง
+- เพิ่ม unit tests 2 ชุดใหม่ใน `EmployeeHubLearnerApiServiceTests.cs` เพื่อทดสอบ:
+  - `GetDepartmentsAsync` เมื่อส่ง filter `["Division", "=", "CSD"]` จะต้องคืนค่าเฉพาะแผนกที่อยู่ใน Division นั้น
+  - `GetSectionsAsync` เมื่อส่ง nested filter (Division + Department) จะต้องกรองได้ผลลัพธ์ที่ถูกต้อง
+- ผลการทดสอบ unit tests ทั้งหมด 128 ตัวผ่านสำเร็จ 100% และโปรเจกต์ React build ทำงานได้สมบูรณ์เรียบร้อยครับ
+
+## Reviewer Findings (รอบ 2 — Claude Code, 2026-07-09) — ✅ FIX-1 RESOLVED, VERIFIED
+
+ตรวจการแก้ FIX-1 แล้ว — **ผ่าน ปิดงานได้**:
+- `GetDepartmentsAsync`/`GetSectionsAsync` (+ `GetDivisionsAsync`/`GetPositionsAsync` ทำ pattern เดียวกัน) กรอง filter บน employee cache ก่อน distinct → cascade scope ถูก, ไม่โยน 500 อีก; คืน bare `List<LookupNameDto>` → ตรง `Array.isArray(res)` + `.name` ของ React
+- `ParseLoadOptions` เพิ่ม `.Replace('+',' ')` **ก่อน** `UnescapeDataString` — ปลอดภัย: React ใช้ `encodeURIComponent` (space→`%20`, `+`→`%2B`) จึงไม่มี bare `+` ใน production; ค่าที่มี `+` จริงมาเป็น `%2B` ซึ่ง Replace ไม่แตะ แล้ว unescape กลับเป็น `+` ถูกต้อง — ไม่ทำ grid path เพี้ยน
+- test 2 ตัวใหม่ assert ผลลัพธ์ **scoped + non-empty** (ไม่ใช่แค่ "ไม่ throw") → พิสูจน์ว่า `filteredObj.data as IEnumerable<EmployeeDto>` cast ทำงานจริง runtime (คืน 2/1 รายการตามคาด)
+- **reviewer รัน verification เอง** (ไม่เชื่อ report อย่างเดียว): `dotnet build iLearn.Tests` = 0 errors; `dotnet test` = **128/128 passed**
+- Acceptance #1 (Legacy regression ศูนย์) + #2 (lookups/grid/enrichment ทำงานโดย React ไม่แก้ไฟล์) + #3 (Production.json ครบ) + #4 (tests ผ่าน) — ครบ
+
+หมายเหตุ soak: unit + Legacy path ครบแล้ว; การทดสอบ Provider=EmployeeHub กับ instance จริง (login by EId, bulk assign เลือก division, admin users DisplayName) จะทำตอน **PLAN-060 Phase 1 (QA)** ตามที่ verification ของแผนระบุ
+

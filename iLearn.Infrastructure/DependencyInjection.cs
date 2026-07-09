@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
@@ -8,6 +8,8 @@ using iLearn.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace iLearn.Infrastructure
 {
@@ -46,7 +48,31 @@ namespace iLearn.Infrastructure
             services.AddSingleton<IMaintenanceStatusService, MaintenanceStatusService>();
 
             // ── External HTTP Services ──
-            services.AddHttpClient<ILearnerApiService, LearnerApiService>();
+            var employeeSettings = configuration.GetSection("EmployeeServiceSettings");
+            var provider = employeeSettings["Provider"];
+
+            if (string.Equals(provider, "EmployeeHub", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("[iLearn API Startup] Employee Service Provider is configured to 'EmployeeHub'. Registering EmployeeHubClient and EmployeeHubLearnerApiService.");
+
+                services.AddHttpClient<EmployeeHubClient>((serviceProvider, client) =>
+                {
+                    var baseUrl = employeeSettings["EmployeeHubBaseUrl"] ?? string.Empty;
+                    if (!baseUrl.EndsWith("/"))
+                    {
+                        baseUrl += "/";
+                    }
+                    client.BaseAddress = new Uri(baseUrl);
+                });
+
+                services.AddScoped<ILearnerApiService, EmployeeHubLearnerApiService>();
+            }
+            else
+            {
+                Console.WriteLine("[iLearn API Startup] Employee Service Provider is configured to 'Legacy'. Registering LearnerApiService.");
+
+                services.AddHttpClient<ILearnerApiService, LearnerApiService>();
+            }
 
             return services;
         }
