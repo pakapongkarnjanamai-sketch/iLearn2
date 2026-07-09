@@ -165,7 +165,7 @@ PLAN-061 ได้ทำ full lookup 3 แหล่งไว้แล้ว ส�
 | # | รายการ | Action | ความเสี่ยง | ใครตัดสิน |
 |---|---|---|---|---|
 | R1 | Soft-delete `Test` (Id=6) บน PROD | `UPDATE Divisions SET IsDeleted=1 WHERE Id=6` | ต่ำมาก (FK=0) | Admin ดำเนินการได้เลย |
-| R2 | ตัดสิน PD3 (Id=4): un-delete บน QA หรือ soft-delete บน PROD | ดู Finding 3 | ต่ำ (FK=0) แต่กระทบ assign scope | **ผู้ใช้ตัดสิน** |
+| R2 | ~~ตัดสิน PD3 (Id=4)~~ **✅ ผู้ใช้เคาะ 2026-07-09: เปิดใช้ PD3 → un-delete บน QA (`IsDeleted=0`) ให้ตรง PROD** — PD3 เป็น division จริงของ NTC+VDS, ทั้งสอง env active | `UPDATE Divisions SET IsDeleted=0, DeletedAt=NULL, DeletedBy=NULL WHERE Id=4 AND Name='PD3'` (บน QA) | ต่ำ (FK=0) | **ตัดสินแล้ว → ทำใน PLAN-060 pre-cutover** |
 | R3 | ไม่ต้อง remap `Assignments.Division` | ไม่ต้องทำ (NULL ทั้งหมด) | ศูนย์ | — |
 | R4 | ไม่ต้อง migrate EnrollmentAssignment snapshot | ไม่ต้องทำ (ไม่มี division data) | ศูนย์ | — |
 

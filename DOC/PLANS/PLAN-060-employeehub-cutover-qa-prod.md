@@ -11,12 +11,30 @@
 
 ## Prerequisites
 
-1. PLAN-058 VERIFIED และ deploy ขึ้น env เป้าหมายแล้ว (โค้ดมี provider switch แต่ยังเป็น Legacy)
-2. ผล audit PLAN-059 ถูก resolve — data remap (ถ้ามี) ทำเสร็จเป็นแผนแยกก่อน cutover
-3. **ผู้ใช้ตัดสินใจเรื่อง auth/การป้องกัน EmployeeHub แล้ว** (ตอนนี้ API เปิดหมดรวม ops endpoints — อย่างน้อยควรมี network/IIS-level control ก่อนให้ production พึ่ง) + ยืนยัน URL ของ EmployeeHub ต่อ env
+1. ✅ **PLAN-058 VERIFIED** (2026-07-09) — โค้ดมี provider switch, default Legacy; ยังต้อง deploy ขึ้น env เป้าหมายก่อน flip
+2. ✅ **PLAN-059 VERIFIED** (2026-07-09) — audit ยืนยันไม่มี division ต้อง remap; เหลือแค่ data-cleanup 2 จุด (R1/R2) ที่ย้ายมาเป็น Phase 0 ด้านล่าง (ผู้ใช้เคาะแล้ว)
+3. ⏳ **ผู้ใช้ตัดสินใจเรื่อง auth/การป้องกัน EmployeeHub** (ตอนนี้ API เปิดหมดรวม ops endpoints — อย่างน้อยควรมี network/IIS-level control ก่อนให้ production พึ่ง) — **ยังค้าง = ตัว block หลักที่เหลือ**; URL ต่อ env ยืนยันแล้ว (PLAN-061)
 4. EmployeeHub sync pipeline เดินปกติ (เช็ค `GET /api/sync/runs?take=5` — run ล่าสุด Succeeded ไม่เก่าเกิน 2 วัน)
 
+> สถานะ prerequisite: #1,#2 ✅ + ผู้ใช้เคาะ R1/R2 แล้ว — **เหลือ #3 (auth) เป็น blocker เดียว** ก่อนปรับ PLAN-060 เป็น READY
+
 ## Scope (โครง — เติมรายละเอียดตอนปรับเป็น READY)
+
+### Phase 0 — Data cleanup ก่อน flip (จาก PLAN-059 R1/R2 — ผู้ใช้เคาะแล้ว 2026-07-09)
+ทำก่อน flip provider; เป็น write เล็ก ๆ FK=0 ทั้งคู่ ไม่ต้อง backup แต่ให้ verify count ก่อน/หลัง
+- [ ] **R2 — un-delete PD3 บน QA** (ผู้ใช้เลือก "เปิดใช้ PD3" ให้ตรง PROD): 
+  ```sql
+  -- QA เท่านั้น (PROD PD3 active อยู่แล้ว)
+  UPDATE Divisions SET IsDeleted = 0, DeletedAt = NULL, DeletedBy = NULL
+  WHERE Id = 4 AND Name = 'PD3' AND IsDeleted = 1;   -- คาดกระทบ 1 แถว
+  ```
+- [ ] **R1 — soft-delete `Test` (Id=6) บน PROD** ให้ตรง QA (FK=0):
+  ```sql
+  -- PROD เท่านั้น (QA soft-deleted อยู่แล้ว)
+  UPDATE Divisions SET IsDeleted = 1, DeletedAt = GETDATE(), DeletedBy = 'plan060-cutover'
+  WHERE Id = 6 AND Name = 'Test' AND IsDeleted = 0;   -- คาดกระทบ 1 แถว
+  ```
+- [ ] verify หลังทำ: `SELECT Id,Name,IsActive,IsDeleted FROM Divisions ORDER BY Id` บนทั้ง 2 env ต้องได้ชุดเดียวกัน (PD1,PD2,CSD,PD3 active; NLC active; Test deleted)
 
 ### Phase 1 — QA
 - [ ] แก้ `EmployeeServiceSettings.Provider` เป็น `EmployeeHub` (QA config) → deploy API → smoke:
