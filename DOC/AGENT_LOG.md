@@ -12,12 +12,35 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-10 16:45] GitHub Copilot (Claude Opus 4.6) — รีวิว PLAN-072 ผ่าน (VERIFIED) + commit
+- ทำอะไร: รีวิว Sidebar accordion implementation — grid-rows transition, aria-expanded/controls, auto-expand logic, mobile behavior, role filtering ถูกต้องตาม plan; commit `49458fe` (6 files: Sidebar.tsx + PLAN-072/073 docs + CLAUDE.md/README.md button docs fix)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-072-sidebar-accordion-dropdown.md` (→VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` + `npm run build` ผ่าน
+
+## [2026-07-10 16:22] Antigravity — ปรับปรุง Sidebar submenu ให้เป็น Accordion/Dropdown (PLAN-072 DONE)
+- ทำอะไร: แปลง parent menu ที่มีลูกย่อย (เช่น Master Data) ให้ทำงานเป็น Accordion/Dropdown:
+  1. เพิ่ม state `expanded` และ `useEffect` เพื่อควบคุมการเปิด-ปิดและการ auto-expand จาก active pathname
+  2. แปลง parent item เป็น `<button>` (แทน `<NavLink>`) ป้องกันการ navigate ทับซ้อน และไม่ทริกเกอร์ `onNavigate` บน mobile layout ตอนกดเปิดเมนู
+  3. เพิ่มสัญลักษณ์ไอคอน `ChevronDown` ให้หมุนได้ด้วย transition
+  4. ทำแอนิเมชันเปิดปิดด้วย Tailwind transition `grid-rows-[0fr]` ↔ `grid-rows-[1fr]` และ styling ไฮไลต์หัวข้อเมื่อมีลูกทำงานอยู่
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/layout/Sidebar.tsx`, `DOC/PLANS/PLAN-072-sidebar-accordion-dropdown.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ผ่านฉลุย, `npm run build` สำเร็จ, และ backend unit test suite (`dotnet test`) 136/136 รายการผ่านเรียบร้อย
+
+## [2026-07-10 —] Claude Code — แผน UI 2 เรื่อง: sidebar accordion + แยกสี QA/PROD → PLAN-072/073 (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ขอ (1) sidebar submenu เป็น dropdown มาตรฐาน Tailwind (2) QA เป็นสีตรงข้าม+ไอคอนต่างจาก PROD ทั้ง React+MVC. สำรวจ: `Sidebar.tsx:74-120` children (Master Data ตัวเดียว) auto-show ตอน route active ไม่มี chevron/toggle → **PLAN-072**: disclosure accordion (chevron + grid-rows transition + aria-expanded; parent-with-children → ปุ่ม toggle ล้วน ไม่ navigate เพราะ path ซ้ำลูกตัวแรก; auto-expand เมื่อลูก active; mobile กด parent ไม่ปิด drawer). **ข้อค้นพบสำคัญ**: QA/PROD ใช้ build artifact เดียวกัน (`deploy-admin-react.ps1` QA / `-prod.ps1` PROD เรียก `build-admin-react-prod.ps1` ตัวเดียว → `.env.production` ชุดเดียว) ⇒ แยกสีด้วย **runtime hostname detection** (`*qawb*`→QA, `*prwb*`→PROD, localhost→DEV) ไม่แตะ pipeline → **PLAN-073**: PROD เดิมเป๊ะ; QA/DEV โทน amber (ตรงข้าม indigo + convention QA) เฉพาะจุด brand/signal — React: appConfig.environmentName + brand tile amber + Badge QA/DEV + header accent + `favicon-qa.svg` + title suffix (runtime swap); MVC: `_DevExtremeLayout.cshtml` เงื่อนไข `Request.Host` + `.navbar-qa` override + favicon-qa + badge
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-072-sidebar-accordion-dropdown.md` + `PLAN-073-environment-theming-qa-vs-prod.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน; 073 จะเพิ่ม `appConfig.environmentName/isProd` + env optional `VITE_ILEARN_ADMIN_ENVIRONMENT` ตอน implement)
+- Verified: — (สำรวจ Sidebar/appConfig/env/deploy scripts/_DevExtremeLayout/favicon จริงทั้งหมด)
+- ถึง Gemini: รับ PLAN-072 → PLAN-073 ตามลำดับ (คนละไฟล์เกือบทั้งหมด — 072 แตะ Sidebar.tsx, 073 แตะ Sidebar.tsx ด้วย (brand tile) → ทำทีละแผน commit แยก)
+
 ## [2026-07-10 —] Claude Code — รีวิว PLAN-070 + PLAN-071 ผ่าน (VERIFIED) — icon + segmented consolidation
 - ทำอะไร: Copilot ทำ **070 (icon-only) + 071 (segmented) รวมกันในทีเดียว** (working tree เดียว, ไฟล์เดียวกันมีทั้งสอง) → รีวิวรวม. **070 IconButton:** ตรวจ diff AssignmentDetailPage+CourseListPage ละเอียด — row actions + close X แปลงถูก tone (`red→danger`/`indigo→primary`/`slate→neutral`), title/onClick/disabled คงเดิม, presentation-only. **⚠️ จุด minor:** `CourseDetailPage:603-609` ปุ่ม emerald "Set active version" ไม่ถูก migrate (IconButton ไม่มี tone success) — แนะนำ follow-up เพิ่ม tone `success` แล้ว migrate จุดเดียวนี้; `<Link>` :611 เว้นถูกต้อง. **071 SegmentedToggle (B1):** เพิ่ม `variant='filter'` (active `bg-indigo-600`), migrate 7 จุด (segment 4 + filter 3), `options`/`value`/`onChange` คง state เดิม, **`bg-blue-600` src/pages = 0** (reviewer ยืนยัน). reviewer รันเอง: `npm run lint` clean + `npm run build` เขียว. → 070 & 071 DONE→**VERIFIED**
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-070-*.md` + `PLAN-071-*.md` (→VERIFIED + sign-off), `DOC/AGENT_LOG.md`
 - Contract ที่เปลี่ยน (API shape / props / DB): `SegmentedToggle` เพิ่ม prop `variant?: 'segment'|'filter'`; ปุ่ม icon/toggle ทั่ว pages ใช้ primitive กลาง
 - Verified: `npm run lint` + `npm run build` ผ่าน; `bg-blue-600` src/pages=0; icon-only leftover เหลือ 1 (emerald, minor) + 1 `<Link>` (นอก scope)
-- คงเหลือ: (1) emerald "Set active version" migrate (follow-up สั้น ถ้าต้องการ) (2) commit — 070+071 พันกัน = ก้อนเดียว; **ยังไม่ commit** (รอผู้ใช้)
+- ปิดงาน: (1) ผู้ใช้เลือก "แก้ก่อน commit" → Claude Code เพิ่ม tone `success` (emerald) ให้ IconButton + migrate ปุ่ม "Set active version" (`CourseDetailPage:603`) → icon-only ครบ (เหลือแค่ `<Link>` นอก scope); lint+build เขียว (2) **commit `cb48982`** (18 ไฟล์ = 070+071 + emerald fix + 2 plan docs) — 070+071 พันกันจึงเป็นก้อนเดียว
 
 ## [2026-07-10] GitHub Copilot (Claude Opus 4.6) — PLAN-071 DONE (segmented toggles + filter chips → SegmentedToggle)
 - ทำอะไร: migrate segmented toggle ทุกจุดตาม PLAN-071 ครบ 7 ไฟล์ (approach B1: extended `SegmentedToggle` with `variant='filter'`). Section A — 4 two-option toggles (BulkAssign mode, picker/bulk tabs ×3) แปลงเป็น `<SegmentedToggle>`. Section B — 3 filter-chip rows (AssignmentDetail learner status, AssignmentReport status, CourseList type) แปลงเป็น `<SegmentedToggle variant="filter">` กำจัด `bg-blue-600` ใน src/pages ได้ครบ

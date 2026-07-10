@@ -33,7 +33,7 @@ repo นี้มี AI agent มากกว่าหนึ่งตัวท�
 
 ## กติกาสำคัญฝั่ง React (สรุปจาก README)
 
-- ใช้ shared components ใน `src/components/ui` เสมอ: `Card`, `LoadingState`, `NotFoundState`, `Badge` (+wrapper `StatusBadge`/`StatusText`/`ReadinessBadge`), `SectionHeader`, `ListToolbar`, `ProgressBar`, `ControlsSidebar`/`ControlAction`, `useConfirm` (ห้าม `window.confirm`), `AppButton` (ใช้ prop `loading` แทนเขียนสปินเนอร์เอง), `AppTable`
+- ใช้ shared components ใน `src/components/ui` เสมอ: `Card`, `LoadingState`, `NotFoundState`, `Badge` (+wrapper `StatusBadge`/`StatusText`/`ReadinessBadge`), `SectionHeader`, `ListToolbar`, `ProgressBar`, `ControlsSidebar`/`ControlAction`, `useConfirm` (ห้าม `window.confirm`), `AppButton`/`IconButton`/`SegmentedToggle` (3 button primitives — ห้าม hand-roll `<button>` เอง; `AppButton` ปุ่มข้อความ variant/size + prop `loading`, `IconButton` ปุ่มไอคอนล้วน tone + `title` บังคับ, `SegmentedToggle` toggle/filter chips), `AppTable`
 - เนื้อหาหลักทุกหน้าต้องอยู่ในการ์ด — ใช้ `<Card>` (อย่าเขียน `<section className="rounded-lg border border-slate-200 bg-white ...">` เอง)
 - ป้ายสถานะ/ชนิด/ตัวเลขทั้งหมดใช้ `Badge` (tone × variant soft/outline/tag) — ห้าม hardcode `<span>` pill เอง
 - วันที่/ตัวเลข format ผ่าน `src/lib/format.ts` เท่านั้น: `formatDate`/`formatDateTime`, `formatNumber`, `formatPercent`, `formatBytes` (ห้าม `toLocaleString`/`toFixed`/`Math.round(.../1024)` inline; ห้ามใส่ comma กับ ID/version/index)

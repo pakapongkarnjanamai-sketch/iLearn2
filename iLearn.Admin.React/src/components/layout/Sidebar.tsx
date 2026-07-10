@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { ChevronDown } from 'lucide-react'
 import { appConfig } from '../../config/appConfig'
 import { navigationSections, type NavigationItem, type NavigationSection } from '../../config/navigation'
 import { useSession } from '../../lib/sessionContext'
@@ -33,6 +35,51 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
         (child.path !== '/' && location.pathname.startsWith(child.path + '/')),
     )
   }
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    navigationSections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.children?.length) {
+          const hasActiveChild = item.children.some(
+            (child) =>
+              location.pathname === child.path ||
+              (child.path !== '/' && location.pathname.startsWith(child.path + '/')),
+          )
+          if (hasActiveChild) {
+            initial[item.path || item.label] = true
+          }
+        }
+      })
+    })
+    return initial
+  })
+
+  useEffect(() => {
+    setExpanded((prev) => {
+      const next = { ...prev }
+      let changed = false
+
+      navigationSections.forEach((section) => {
+        section.items.forEach((item) => {
+          if (item.children?.length) {
+            const hasActiveChild = item.children.some(
+              (child) =>
+                location.pathname === child.path ||
+                (child.path !== '/' && location.pathname.startsWith(child.path + '/')),
+            )
+            const key = item.path || item.label
+            if (hasActiveChild && !next[key]) {
+              next[key] = true
+              changed = true
+            }
+          }
+        })
+      })
+
+      return changed ? next : prev
+    })
+  }, [location.pathname])
 
   return (
     <aside
@@ -75,7 +122,70 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
               {section.items.map((item) => {
                 const Icon = item.icon
                 const visibleChildren = item.children?.filter(isVisible) ?? []
-                const showChildren = visibleChildren.length > 0 && isParentActive(item)
+                const hasChildren = visibleChildren.length > 0
+
+                if (hasChildren) {
+                  const isAct = isParentActive(item)
+                  const isExpanded = !!expanded[item.path || item.label]
+
+                  return (
+                    <div key={item.path}>
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={`submenu-${item.label.replace(/\s+/g, '-').toLowerCase()}`}
+                        className={`flex w-full items-center gap-2.5 min-h-[34px] rounded-md px-2.5 text-[13.5px] font-medium [&_svg]:w-[16px] [&_svg]:h-[16px] text-left focus-visible:outline-none transition-colors duration-150 cursor-pointer ${
+                          isAct
+                            ? 'bg-slate-800/60 text-white font-semibold [&_svg]:text-slate-300'
+                            : 'text-blue-100 [&_svg]:text-slate-400 hover:bg-[#18304d] hover:text-white focus-visible:bg-[#18304d] focus-visible:text-white'
+                        }`}
+                        onClick={() => {
+                          setExpanded((prev) => ({
+                            ...prev,
+                            [item.path || item.label]: !prev[item.path || item.label],
+                          }))
+                        }}
+                      >
+                        <Icon aria-hidden="true" />
+                        <span className="flex-1">{item.label}</span>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
+                            isExpanded ? 'rotate-180 text-white' : ''
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <div
+                        id={`submenu-${item.label.replace(/\s+/g, '-').toLowerCase()}`}
+                        className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${
+                          isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                        }`}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="ml-7 mt-0.5 mb-1 flex flex-col gap-px border-l border-slate-700/40 pl-2">
+                            {visibleChildren.map((child) => (
+                              <NavLink
+                                key={child.path}
+                                to={child.path}
+                                end={child.path === item.path}
+                                className={({ isActive }) =>
+                                  `block rounded px-2 py-1 text-xs font-semibold transition-colors ${
+                                    isActive
+                                      ? 'bg-slate-700/40 text-white'
+                                      : 'text-slate-300 hover:bg-slate-700/20 hover:text-white'
+                                  }`
+                                }
+                                onClick={onNavigate}
+                              >
+                                {child.label}
+                              </NavLink>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
 
                 return (
                   <div key={item.path}>
@@ -94,27 +204,6 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                       <Icon aria-hidden="true" />
                       <span>{item.label}</span>
                     </NavLink>
-                    {showChildren && (
-                      <div className="ml-7 mt-0.5 mb-1 flex flex-col gap-px border-l border-slate-700/40 pl-2">
-                        {visibleChildren.map((child) => (
-                          <NavLink
-                            key={child.path}
-                            to={child.path}
-                            end={child.path === item.path}
-                            className={({ isActive }) =>
-                              `block rounded px-2 py-1 text-xs font-semibold transition-colors ${
-                                isActive
-                                  ? 'bg-slate-700/40 text-white'
-                                  : 'text-slate-300 hover:bg-slate-700/20 hover:text-white'
-                              }`
-                            }
-                            onClick={onNavigate}
-                          >
-                            {child.label}
-                          </NavLink>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )
               })}
