@@ -45,7 +45,7 @@ type CategoryLookup = {
   createdAt?: string
 }
 
-// Mirrors division lookup row from admin/DivisionsCRUD/Get
+// Mirrors division lookup row from api/Divisions/lookup
 type DivisionLookup = {
   id: number
   name: string
@@ -246,7 +246,7 @@ export function LearnerGroupListPage() {
     try {
       const [categoryResp, divisionResp, groupResp] = await Promise.all([
         fetchWithAccessControl<ApiEnvelope<CategoryLookup[]>>('LearnerGroupCategories'),
-        fetchWithAccessControl<{ data?: DivisionLookup[] } | DivisionLookup[]>('admin/DivisionsCRUD/Get'),
+        fetchWithAccessControl<{ data?: DivisionLookup[] } | DivisionLookup[]>('Divisions/lookup'),
         fetchWithAccessControl<ApiEnvelope<GroupDto[]>>('LearnerGroups'),
       ])
 

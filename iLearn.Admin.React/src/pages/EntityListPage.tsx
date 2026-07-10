@@ -12,6 +12,7 @@ import { createRestDataSource } from '../lib/createRestDataSource'
 import { fetchWithAccessControl } from '../lib/apiClient'
 import { toast } from '../lib/toast'
 import type { AdminListConfig } from './moduleConfigs'
+import { useSession } from '../lib/sessionContext'
 
 type EntityListPageProps = {
   config: AdminListConfig
@@ -19,12 +20,13 @@ type EntityListPageProps = {
 
 export function EntityListPage({ config }: EntityListPageProps) {
   const navigate = useNavigate()
+  const { isSuperAdmin } = useSession()
   
   const [divisions, setDivisions] = useState<any[]>([])
 
   useEffect(() => {
     if (config.controller === 'AssignmentsCRUD') {
-      fetchWithAccessControl<any>('admin/DivisionsCRUD/Get')
+      fetchWithAccessControl<any>('Divisions/lookup')
         .then(res => {
           if (res && Array.isArray(res.data)) {
             setDivisions(res.data)
@@ -209,7 +211,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
         </>
       )}
 
-      {config.controller === 'ContentItemsCRUD' && (
+      {config.controller === 'ContentItemsCRUD' && isSuperAdmin && (
         <Link to="/content-library/new">
           <AppButton variant="primary" icon={Plus}>
             Upload SCORM

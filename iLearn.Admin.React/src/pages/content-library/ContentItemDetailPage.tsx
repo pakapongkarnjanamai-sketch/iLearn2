@@ -25,6 +25,7 @@ import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatBytes, formatDateTime, formatNumber } from '../../lib/format'
+import { useSession } from '../../lib/sessionContext'
 
 // Mirrors ContentItemCourseReferenceDto (iLearn.Application/DTOs/ContentItemDto.cs)
 type CourseReference = {
@@ -63,6 +64,7 @@ export function ContentItemDetailPage() {
   const navigate = useNavigate()
   const { confirm, confirmDialog } = useConfirm()
   const { setLabel } = useBreadcrumbs()
+  const { isSuperAdmin } = useSession()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [item, setItem] = useState<ContentItemDetail | null>(null)
@@ -184,9 +186,11 @@ export function ContentItemDetailPage() {
       <DetailLayout
         sidebar={
           <ControlsSidebar>
-            <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>
-              Edit Metadata
-            </ControlAction>
+            {isSuperAdmin && (
+              <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>
+                Edit Metadata
+              </ControlAction>
+            )}
             <ControlAction
               icon={ExternalLink}
               disabled={!item.isActive || !item.url || busy}
@@ -201,13 +205,15 @@ export function ContentItemDetailPage() {
             >
               Open SCORM Player
             </ControlAction>
-            <ControlAction
-              icon={item.isActive ? PowerOff : Power}
-              disabled={busy}
-              onClick={item.isActive ? handleUnpublish : handlePublish}
-            >
-              {item.isActive ? 'Unpublish' : 'Publish'}
-            </ControlAction>
+            {isSuperAdmin && (
+              <ControlAction
+                icon={item.isActive ? PowerOff : Power}
+                disabled={busy}
+                onClick={item.isActive ? handleUnpublish : handlePublish}
+              >
+                {item.isActive ? 'Unpublish' : 'Publish'}
+              </ControlAction>
+            )}
             <ControlAction
               icon={Download}
               disabled={!item.fileStorageId}
@@ -220,15 +226,17 @@ export function ContentItemDetailPage() {
             >
               Download ZIP
             </ControlAction>
-            <ControlAction
-              icon={Trash2}
-              disabled={item.isActive || busy}
-              onClick={handleDelete}
-              variant="danger"
-              title={item.isActive ? 'Unpublish before deleting' : undefined}
-            >
-              Delete
-            </ControlAction>
+            {isSuperAdmin && (
+              <ControlAction
+                icon={Trash2}
+                disabled={item.isActive || busy}
+                onClick={handleDelete}
+                variant="danger"
+                title={item.isActive ? 'Unpublish before deleting' : undefined}
+              >
+                Delete
+              </ControlAction>
+            )}
           </ControlsSidebar>
         }
       >

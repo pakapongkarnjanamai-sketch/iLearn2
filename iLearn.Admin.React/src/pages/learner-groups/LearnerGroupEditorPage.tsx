@@ -177,24 +177,26 @@ export function LearnerGroupEditorPage() {
 
   const loadDivisions = useCallback(async () => {
     try {
-      const response = await fetchWithAccessControl<{ data?: DivisionLookup[] } | DivisionLookup[]>('admin/DivisionsCRUD/Get')
-      setDivisions(unwrapList(response))
+      const response = await fetchWithAccessControl<{ data?: DivisionLookup[] } | DivisionLookup[]>('Divisions/lookup')
+      const list = unwrapList(response)
+      setDivisions(list)
+      if (!isSuperAdmin && list.length === 1) {
+        setFormData(prev => ({ ...prev, divisionId: list[0]?.id ?? null }))
+      }
     } catch (error) {
       console.error(error)
       toast.error('Failed to load divisions')
     }
-  }, [])
+  }, [isSuperAdmin])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadCategories()
-      if (isSuperAdmin) {
-        void loadDivisions()
-      }
+      void loadDivisions()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [loadCategories, loadDivisions, isSuperAdmin])
+  }, [loadCategories, loadDivisions])
 
   useEffect(() => {
     if (didApplyQueryCategory) return
@@ -310,7 +312,7 @@ export function LearnerGroupEditorPage() {
   const renderInformationStep = () => (
     <div className="space-y-4">
 
-      {isSuperAdmin && (
+      {(isSuperAdmin || divisions.length > 0) && (
         <div className="space-y-1.5">
           <label htmlFor="divisionId" className="wiz-label">
             Division (แผนก)
@@ -320,7 +322,8 @@ export function LearnerGroupEditorPage() {
             name="divisionId"
             value={formData.divisionId || ''}
             onChange={handleChange}
-            className="wiz-input max-w-lg"
+            disabled={!isSuperAdmin}
+            className="wiz-input max-w-lg disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200"
           >
             <option value="">Global / ไม่ระบุแผนก</option>
             {divisions.map(div => (

@@ -25,6 +25,7 @@ namespace iLearn.API.Controllers.Base
         int TotalServerFiles,
         long TotalServerSize);
 
+    [Authorize(Policy = "AdminOnly")]
     public class ContentItemsCRUDController : GenericController<ContentItem>
     {
         private readonly IGenericRepository<CourseContentItem> _courseContentItemRepo;
@@ -268,6 +269,14 @@ namespace iLearn.API.Controllers.Base
             return summary;
         }
 
+        [HttpPost("Post")]
+        [Authorize(Policy = "SuperAdminOnly")]
+        public override async Task<IActionResult> Post([FromForm] string values)
+        {
+            return await base.Post(values);
+        }
+
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPut("Put")]
         public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
         {
@@ -323,6 +332,7 @@ namespace iLearn.API.Controllers.Base
             return Ok(contentItem);
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("Delete")]
         public override async Task<IActionResult> Delete([FromForm] int key)
         {

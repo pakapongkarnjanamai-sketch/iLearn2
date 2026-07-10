@@ -16,7 +16,6 @@ using System.Diagnostics;
 
 namespace iLearn.API.Controllers
 {
-    [Authorize(Policy = "SuperAdminOnly")]
     [Route("api/[controller]")]
     [ApiController]
     public class ContentItemsController : ControllerBase
@@ -53,6 +52,7 @@ namespace iLearn.API.Controllers
             _courseContentItemRepo = courseContentItemRepo;
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -60,6 +60,7 @@ namespace iLearn.API.Controllers
             return Ok(contentItems.Select(r => r.ToDto()));
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("paged")]
         public async Task<IActionResult> GetPaged([FromQuery] PaginationParams p)
         {
@@ -174,6 +175,7 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = dtos, totalCount });
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -182,6 +184,7 @@ namespace iLearn.API.Controllers
             return Ok(contentItem.ToDto());
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("{id}/content")]
         public async Task<IActionResult> GetContent(int id)
         {
@@ -210,6 +213,7 @@ namespace iLearn.API.Controllers
             return File(fileStorage.Data, "application/octet-stream", safeFileName);
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(ScormPackageLimits.MaxRequestEnvelopeBytes)]
@@ -264,6 +268,7 @@ namespace iLearn.API.Controllers
             return Ok(savedContentItem.ToDto());
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("SetPublic")]
         public async Task<IActionResult> SetPublic([FromQuery] int key)
         {
@@ -302,6 +307,7 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("Unpublish")]
         public async Task<IActionResult> Unpublish([FromQuery] int key)
         {
@@ -327,6 +333,7 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -359,6 +366,7 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// Analyze contentItems for optimization — find unused published and unpublished-but-needed contentItems.
         /// </summary>
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpGet("Admin/OptimizeAnalysis")]
         public async Task<IActionResult> OptimizeAnalysis(CancellationToken cancellationToken)
         {
@@ -460,6 +468,7 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// Batch unpublish contentItems by IDs — removes extracted files from server.
         /// </summary>
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("Admin/BatchUnpublish")]
         public async Task<IActionResult> BatchUnpublish([FromBody] List<int> ids)
         {
@@ -522,6 +531,7 @@ namespace iLearn.API.Controllers
             });
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("Admin/PreviewBatchUnpublish")]
         public async Task<IActionResult> PreviewBatchUnpublish([FromBody] List<int> ids)
         {
@@ -536,6 +546,7 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// Batch publish contentItems by IDs — extracts SCORM packages to server.
         /// </summary>
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("Admin/BatchPublish")]
         public async Task<IActionResult> BatchPublish([FromBody] List<int> ids)
         {
@@ -584,6 +595,7 @@ namespace iLearn.API.Controllers
             return Ok(new { success, failed, errors, message = $"Published {success} content item(s). {failed} failed." });
         }
 
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("Admin/BatchPublishStream")]
         public async Task BatchPublishStream([FromBody] List<int> ids, CancellationToken cancellationToken)
         {
@@ -814,8 +826,8 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// 🔓 [ADMIN] SetPublic ทีละไฟล์แบบ Streaming (ไม่ต้องรอให้เสร็จทั้งหมด)
         /// </summary>
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("Admin/BulkSetPublic")]
-        //[Authorize(Roles = "Admin")]
         public async Task BulkSetPublicStreaming(CancellationToken cancellationToken)
         {
             // SSE response. Use ContentType for the media type and Append for
@@ -1029,8 +1041,8 @@ namespace iLearn.API.Controllers
         /// <summary>
         /// 🗑️ [ADMIN] ลบไฟล์ทั้งหมดที่ SetPublic แล้ว (ย้ายกลับเป็น Inactive)
         /// </summary>
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("Admin/BulkDeletePublished")]
-        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> BulkDeletePublished([FromQuery] bool confirmDelete = false)
         {
             var stopwatch = Stopwatch.StartNew();

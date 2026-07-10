@@ -14,6 +14,66 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-10 —] Claude Code — รีวิว PLAN-066 ผ่าน (VERIFIED) — แยก policy ContentItems อ่าน/จัดการ
+- ทำอะไร: ตรวจงาน Gemini (PLAN-066) เน้น security. **Backend:** `ContentItemsController` ถอด class-level SuperAdminOnly → grep ยืนยัน **ทั้ง 15 action มี `[Authorize]` ครบ ไม่มีตัวหลุด fallback** (read 4=AdminOnly, write 11=SuperAdminOnly ตรง matrix); `ContentItemsCRUDController` class=AdminOnly + Post(override)/Put/Delete=SuperAdminOnly (ปิดช่อง authenticated-only เดิม; AND semantics → write=SuperAdmin ถูกต้อง). **Frontend:** guard route editor (`new`/`:id/edit`) superAdminOnly; Upload gate isSuperAdmin; grid actionButtons เหลือ Open Details; DetailPage ซ่อน Edit/Publish/Unpublish/Delete; **Open SCORM/Download ยิง `{id}/content`=GetContent(AdminOnly) จึงคงให้ Admin ได้ไม่ 403**. ไม่ regress learner (player คนละ endpoint; เดิม SuperAdmin อยู่แล้ว แค่ขยายเป็น Admin). **reviewer รันเอง:** `dotnet build` 0 error + `dotnet test` **136/136**; `npm run lint` clean + `npm run build` เขียว. → PLAN-066 DONE→**VERIFIED**
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-066-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): authz policy — `api/ContentItems` read=AdminOnly/write=SuperAdminOnly; `api/admin/ContentItemsCRUD` read=AdminOnly/write=SuperAdminOnly (เดิม open-authenticated)
+- Verified: `dotnet build`+`dotnet test` 136/136; `npm run lint`+`npm run build` ผ่าน; policy coverage grep ครบ 15/15
+- คงเหลือ: QA smoke ต้อง redeploy API+React (ทดสอบ f6515: preview ได้/ปุ่มจัดการหาย/SetPublic→403); **ยังไม่ commit** (065+066 พันกัน + BulkAssign* นอก scope — รอผู้ใช้เคาะ)
+
+## [2026-07-10 —] Claude Code — รีวิว PLAN-065 ผ่าน (VERIFIED) — division lookup สลับไป AdminOnly endpoint
+- ทำอะไร: ตรวจงาน Gemini (PLAN-065) — endpoint swap `admin/DivisionsCRUD/Get`→`Divisions/lookup` ครบ 4 จุด (EntityListPage:27, LearnerGroupListPage:249 + คอมเมนต์, LearnerGroupEditorPage, LearnerGroupCategoryEditorPage), grep ยืนยันไม่เหลือ lookup ผ่าน CRUD. Gemini ทำเกินแผนแบบยอมรับได้: dropdown division `disabled={!isSuperAdmin}` + auto-select แผนกเดียวสำหรับ non-super (create เท่านั้น) — Admin เห็นแผนกตัวเอง read-only. ตรวจ control flow CategoryEditor: not-found `return` ก่อนโหลด division, auto-select เฉพาะ `!isEditMode`, edit โหลด division โชว์ค่าเดิม — sound. **reviewer รันเอง:** `npm run lint` clean + `npm run build` (tsc+vite) สำเร็จ (ทรีรวม 066 ก็เขียว); ยิง QA `GET Service/api/Divisions/lookup` → 200 shape `{data:[{id,name,isActive}]}` มี NLC id5. → PLAN-065 DONE→**VERIFIED**. **ยังไม่ commit** (065 พันกับ 066 ใน EntityListPage.tsx + ไฟล์ค้างนอก scope BulkAssign*); QA e2e smoke ด้วย f6515 ต้อง redeploy React bundle ก่อน (งาน deploy)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-065-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend สลับ endpoint; ไม่แตะ backend)
+- Verified: `npm run lint` + `npm run build` ผ่าน; QA `Divisions/lookup` 200 + shape ถูก
+- หมายเหตุ: PLAN-066 Gemini mark DONE แล้ว — โค้ดเข้าทรีแล้ว รอรีวิว (ยังไม่ตรวจ; ต้อง dotnet build/test + verify policy matrix + QA smoke)
+
+## [2026-07-10 10:41] Antigravity (Gemini) — PLAN-066 Content Library read/write authorization policies DONE
+- ทำอะไร: แยกและปรับปรุงการตรวจสอบสิทธิ์การเข้าใช้งาน Content Library ของ Admin และ SuperAdmin:
+  1. Backend (`ContentItemsController` และ `ContentItemsCRUDController`): ปลดล็อกสิทธิ์ระดับ class-level ออก และเพิ่ม Authorize policy เป็นราย Method โดยอนุญาตสิทธิ์อ่าน (Get/GetPaged/GetById/GetContent) ให้ระดับ **AdminOnly** เพื่อให้ Admin (รวม NLC) เข้าถึงและ preview เนื้อหา SCORM ได้สำเร็จ ส่วนการแก้ไข/จัดการ (Upload/Publish/Delete/Bulk) ยังคงควบคุมความปลอดภัยในระดับ **SuperAdminOnly**
+  2. Overrode Action `Post`, `Put`, และ `Delete` ใน `ContentItemsCRUDController` ตกแต่งด้วย `[Authorize(Policy = "SuperAdminOnly")]` เพื่อปิดช่องว่างที่ก่อนหน้านี้เปิดเป็นสาธารณะ
+  3. Frontend React (`App.tsx`, `EntityListPage.tsx`, `ContentItemDetailPage.tsx`): ครอบสิทธิ์หน้าแก้ไข/สร้าง (`/content-library/new`, `/:id/edit`) ด้วย `<RequireRole superAdminOnly>`, ซ่อนปุ่มสร้าง/อัปโหลด, และปุ่มจัดทำ/ลบ (Publish/Unpublish/Delete/Edit) จากหน้าจอผู้ใช้อื่นที่ไม่ใช่ SuperAdmin ทั้งหมด
+- ไฟล์หลักที่แตะ: `ContentItemsController.cs`, `ContentItemsCRUDController.cs`, `App.tsx`, `EntityListPage.tsx`, `ContentItemDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ปรับ Authorization policy บน API endpoints และเพิ่ม override endpoint Post
+- Verified: `npm run lint` และ `npm run build` ใน `iLearn.Admin.React` ผ่านฉลุย, รัน unit tests (`iLearn.Tests`) 136/136 ผ่านทั้งหมด
+
+## [2026-07-10 10:37] Antigravity (Gemini) — PLAN-065 React division lookup endpoint switch DONE
+- ทำอะไร: เปลี่ยน endpoint สำหรับดึงข้อมูล division lookup ใน React frontend จาก 'admin/DivisionsCRUD/Get' (SuperAdminOnly) เป็น 'Divisions/lookup' (AdminOnly) จำนวน 4 หน้า เพื่อป้องกันปัญหา 403 Forbidden สำหรับ user กลุ่ม Admin/NLC:
+  1. หน้า Assignments (`EntityListPage.tsx`)
+  2. หน้า Learner Group list / explorer (`LearnerGroupListPage.tsx`)
+  3. หน้า Create Learner Group (`LearnerGroupEditorPage.tsx`) - ถอด guard isSuperAdmin ในการโหลด division ออก และแสดง dropdown ให้ Admin แบบ disabled และ auto-select division อัตโนมัติหากมีเพียง 1 รายการ
+  4. หน้า Create/Edit Learner Group Category (`LearnerGroupCategoryEditorPage.tsx`) - ถอด guard isSuperAdmin ออก, แสดง dropdown ให้ Admin แบบ disabled, และ auto-select สำหรับหมวดหมู่ใหม่หากมี 1 รายการ
+- ไฟล์หลักที่แตะ: `EntityListPage.tsx`, `LearnerGroupListPage.tsx`, `LearnerGroupEditorPage.tsx`, `LearnerGroupCategoryEditorPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (สลับ client-side query endpoint ไปหา API ที่มีอยู่แล้ว)
+- Verified: `npm run lint` และ `npm run build` ใน `iLearn.Admin.React` ผ่านฉลุย, รัน unit tests (`iLearn.Tests`) 136/136 ผ่านทั้งหมด
+
+## [2026-07-10 —] Claude Code — proactive scan 403 ทั้งระบบ (SuperAdminOnly × React) → PLAN-066 (Content Library)
+- ทำอะไร: สแกนทุก endpoint SuperAdminOnly (RouteSnapshot + grep) × ทุกจุดที่ React เรียก + ตรวจ route guard (`RequireRole superAdminOnly`) และ sidebar filtering. ผล: **guard ถูกต้องแล้ว** สำหรับ Users/SystemConfig/HealthCheck/Enrollments(grid)/LearningLogs/MasterData(Divisions/Categories/CourseTypes/Roles/LGCat) — Admin ไปไม่ถึง (defense-in-depth). **พบ finding ใหม่:** `ContentItemsController` (`api/ContentItems`) เป็น SuperAdminOnly ทั้ง class แต่ Content Library อยู่ใน sidebar "Operations" (Admin เห็น) + route `content-library/*` ไม่ถูก guard → Admin 403 ที่ list + preview; ซ้ำ `ContentItems/{id}/content` ยังถูกเรียกจาก `VersionDetailPage` (โซน Courses) → preview SCORM 403. เพิ่มเติม `ContentItemsCRUDController` ไม่มี `[Authorize]` เลย (เปิดถึงแค่ authenticated — ต่ำกว่า Admin). Courses/BulkAssign = AdminOnly (ปลอดภัย). **ผู้ใช้ตัดสินใจ:** Admin อ่าน/preview ได้, จัดการคง SuperAdmin → เขียน `PLAN-066`: แยก policy ContentItems (read=AdminOnly / write=SuperAdmin, ระบุครบทุก action กัน fallback downgrade) + ตั้ง ContentItemsCRUD (read AdminOnly/write SuperAdmin) + FE ซ่อนปุ่มจัดการ + guard route editor. **ข้อสังเกตแยก (privilege gap ทิศตรงข้าม):** CourseListPage ให้ Admin เรียก CategoriesCRUD Post/Put/Delete ได้ (ข้าม division) — ควรรีวิวต่างหาก
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-066-*.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (วินิจฉัย/แผน; PLAN-066 จะเปลี่ยน authz policy ตอน implement)
+- Verified: อ่าน source ยืนยัน class-level SuperAdminOnly + route unguarded + endpoint ที่ VersionDetailPage เรียก (static)
+- ถึง Gemini: คิว PLAN-065 → PLAN-066
+
+## [2026-07-10 —] Claude Code — ปัญหา 403 DivisionsCRUD เป็นเชิงระบบหลายหน้า → PLAN-065 (supersede PLAN-064)
+- ทำอะไร: ผู้ใช้พบ 403 เดียวกันที่ `learner-groups` ด้วย → grep ทั่ว `iLearn.Admin.React/src` พบเรียก `admin/DivisionsCRUD/Get` (SuperAdminOnly) เป็น division lookup 4 จุด: **ไม่มีเงื่อนไข (พังจริง)** = `EntityListPage.tsx:27` (Assignments) + `LearnerGroupListPage.tsx:249` (explorer); **gate ด้วย isSuperAdmin แล้ว (ไม่ 403 แต่ Admin เห็น dropdown ว่าง)** = `LearnerGroupEditorPage.tsx:180` + `LearnerGroupCategoryEditorPage.tsx:88`. อีกจุด `UserEditorPage.tsx:28` เรียก `RolesCRUD/Get` — นอก scope เพราะ `UsersCRUDController` SuperAdminOnly ทั้งก้อน (Users เป็น SuperAdmin-only โดยตั้งใจ). ทางแก้: สลับไป `Divisions/lookup` (AdminOnly + division-isolation + shape `{data}` ตรง = drop-in). → เขียน `PLAN-065` รวมทุกจุด (A ต้องแก้ / B แนะนำถอด guard), mark `PLAN-064` SUPERSEDED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-065-*.md` (ใหม่), `DOC/PLANS/PLAN-064-*.md` (→SUPERSEDED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (วินิจฉัย/แผน)
+- Verified: reproduce บน QA (403 ที่ assignments + learner-groups ตรง policy SuperAdminOnly); read-only
+- ถึง Gemini: ทำ PLAN-065 แทน 064
+
+## [2026-07-10 —] Claude Code — วินิจฉัย 2 ปัญหา role f6515 (SuperAdmin→NLC) บน QA → PLAN-064 (แผน ไม่แก้โค้ด)
+- ทำอะไร: (1) ผู้ใช้เปลี่ยน role f6515 (PEERAPORN) SuperAdmin→NLC แต่ client ยังเห็นเป็น SuperAdmin — query QA DB พบ **ยังถือ 2 role พร้อมกัน**: RoleId7 SuperAdmin(RoleType=1) + RoleId10 NLC(RoleType=0,Div=5) ⇒ middleware loop ใส่ role claim จาก `RoleType.ToString()` ทุกตัว → ยังมี "SuperAdmin" claim → `IsSuperAdmin=true`. ไม่ใช่บั๊ก/cache เป็น data (role เดิมไม่ถูกถอด). ผู้ใช้ถอด SuperAdmin ออกแล้ว → client เป็น NLC สำเร็จ. (2) หลังเป็น NLC หน้า `admin-react/assignments` ยิง `admin/DivisionsCRUD/Get` (SuperAdminOnly) โหลด division lookup → **403**. Root cause: `EntityListPage.tsx:27` เลือก endpoint ผิดสิทธิ์ (ควรใช้ `Divisions/lookup` = AdminOnly + มี division-isolation). บั๊กเดิมซ่อนเพราะทดสอบด้วย SuperAdmin ตลอด กระทบ admin ที่ไม่ใช่ SuperAdmin ทุกคน → เขียน `PLAN-064` (READY, Gemini): แก้ 1 บรรทัดใน EntityListPage
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-064-assignments-division-lookup-superadmin-403.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (วินิจฉัย/แผน; DB change ผู้ใช้ทำเองผ่าน UI)
+- Verified: reproduce จริงบน QA — query DB ยืนยัน 2 role; 403 ตรงกับ policy SuperAdminOnly ของ DivisionsCRUDController (read-only)
+- ถึง Gemini: รับ PLAN-064 ได้เลย (High, แก้ไฟล์เดียว)
+
+## [2026-07-10 09:15] GPT (Copilot) — PLAN-060 Phase 3 DONE: deploy PROD + smoke 7/7 pass
+- ทำอะไร: deploy PROD (`deploy-api-prod.ps1`) stamp `20260710091210`; smoke 7/7 ผ่าน (health EmployeeHub Healthy 80ms, grid 8,055, NLC filter 1,230, NLC profile OK, section filter with spaces=2, cascade 15 divs/9 NLC depts, Session/Me OK); PLAN-060 marked DONE
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-060-*.md` (Phase 3 checkboxes + Implementer Notes + Status→DONE)
+- Contract ที่เปลี่ยน (API shape / props / DB): PROD now using EmployeeHub provider (Production.json Provider=EmployeeHub deployed)
+- Verified: PROD smoke 7/7 passed; rollback path documented (web.config switch to `_deploy_20260709111723`)
+
 ## [2026-07-10 —] Claude Code — PLAN-060 Phase 2 GATE PASSED (ผู้ใช้อนุมัติ PROD) + flip PROD config ใน source
 - ทำอะไร: ผู้ใช้ยืนยัน soak QA ผ่าน + อนุมัติขึ้น PROD → บันทึก Phase 2 GATE = PASSED; flip `appsettings.Production.json` Provider `Legacy`→`EmployeeHub` ใน source แล้ว commit (EmployeeHubBaseUrl PROD ชี้ `http://AP-NTC2137-PRWB/...` ถูกอยู่แล้ว) → **ส่งต่อ GPT ทำ Phase 3: deploy PROD (env=Production อ่าน Production.json) + เช็ค sync pipeline prereq #4 + smoke ชุดเดียวกับ QA (รวมเคส NLC=PLAN-062 + filter ช่องว่าง=PLAN-063) + rollback = flip กลับ Legacy**; Claude ไม่ deploy เอง (เป็นงาน implementer). **ไม่รวม 2 ไฟล์ UI นอก scope** (`BulkAssignPage.tsx`/`BulkAssign.cshtml` เปลี่ยน label Learner Group→Group) เข้า commit นี้ — ยังไม่ยืนยันที่มา รอผู้ใช้เคาะ commit/revert
 - ไฟล์หลักที่แตะ: `iLearn.API/appsettings.Production.json` (Provider→EmployeeHub), `DOC/PLANS/PLAN-060-*.md` (GATE PASSED + Phase 3 checklist), `DOC/AGENT_LOG.md`

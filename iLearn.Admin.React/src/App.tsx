@@ -67,9 +67,23 @@ export function App() {
 
         {/* Content Library */}
         <Route path="content-library" element={<EntityListPage config={adminListConfigs.contentLibrary} />} />
-        <Route path="content-library/new" element={<Remount><ContentItemEditorPage /></Remount>} />
+        <Route
+          path="content-library/new"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount><ContentItemEditorPage /></Remount>
+            </RequireRole>
+          }
+        />
         <Route path="content-library/:id" element={<Remount><ContentItemDetailPage /></Remount>} />
-        <Route path="content-library/:id/edit" element={<Remount><ContentItemEditorPage /></Remount>} />
+        <Route
+          path="content-library/:id/edit"
+          element={
+            <RequireRole superAdminOnly>
+              <Remount><ContentItemEditorPage /></Remount>
+            </RequireRole>
+          }
+        />
 
         {/* Assignments */}
         <Route path="assignments" element={<EntityListPage config={adminListConfigs.assignments} />} />

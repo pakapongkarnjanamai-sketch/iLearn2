@@ -81,21 +81,6 @@ export function LearnerGroupCategoryEditorPage() {
         const list = unwrapCategories(result)
         setCategories(list)
 
-        if (isSuperAdmin) {
-          try {
-            const divResult = await fetchWithAccessControl<
-              DivisionLookup[] | { data?: DivisionLookup[] }
-            >('admin/DivisionsCRUD/Get')
-            if (!cancelled) {
-              const divList = Array.isArray(divResult) ? divResult : divResult.data ?? []
-              setDivisions(divList)
-            }
-          } catch (err) {
-            console.error('Failed to load divisions', err)
-            toast.error('Failed to load divisions')
-          }
-        }
-
         if (isEditMode && editId != null) {
           const target = list.find((item) => item.id === editId)
           if (!target) {
@@ -109,10 +94,25 @@ export function LearnerGroupCategoryEditorPage() {
             parentId: target.parentId ?? '',
             divisionId: target.divisionId ?? null,
           })
-          return
+        } else {
+          setForm(EMPTY_FORM)
         }
 
-        setForm(EMPTY_FORM)
+        try {
+          const divResult = await fetchWithAccessControl<
+            DivisionLookup[] | { data?: DivisionLookup[] }
+          >('Divisions/lookup')
+          if (!cancelled) {
+            const divList = Array.isArray(divResult) ? divResult : divResult.data ?? []
+            setDivisions(divList)
+            if (!isSuperAdmin && divList.length === 1 && !isEditMode) {
+              setForm((prev) => ({ ...prev, divisionId: divList[0]?.id ?? null }))
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load divisions', err)
+          toast.error('Failed to load divisions')
+        }
       } catch {
         toast.error('Failed to load categories')
         if (!cancelled && isEditMode) {
@@ -205,7 +205,7 @@ export function LearnerGroupCategoryEditorPage() {
 
   const renderDetailsStep = () => (
     <div className="space-y-4">
-      {isSuperAdmin && (
+      {(isSuperAdmin || divisions.length > 0) && (
         <div className="space-y-1.5">
           <label htmlFor="divisionId" className="wiz-label">
             Division (แผนก)
@@ -219,7 +219,7 @@ export function LearnerGroupCategoryEditorPage() {
                 divisionId: event.target.value === '' ? null : Number(event.target.value),
               }))
             }
-            disabled={selectedParent !== null}
+            disabled={selectedParent !== null || !isSuperAdmin}
             className="wiz-input disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200"
           >
             <option value="">Global / ไม่ระบุแผนก</option>
