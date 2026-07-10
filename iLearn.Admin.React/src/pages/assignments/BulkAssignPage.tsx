@@ -10,6 +10,7 @@ import {
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
@@ -566,14 +567,14 @@ export function BulkAssignPage() {
           <span className="block text-xs text-slate-400 font-sans uppercase font-bold mb-1">Assignment Batch No.</span>
           <span className="font-bold text-indigo-500 text-sm">{assignmentNo}</span>
         </div>
-        <button
-          type="button"
+        <AppButton
+          variant="secondary"
+          icon={ArrowLeft}
           onClick={() => navigate('/assignments')}
-          className="inline-flex items-center gap-1.75 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-900 hover:border-slate-300 hover:bg-slate-50 cursor-pointer mt-6 text-xs font-bold shadow-3xs"
+          className="mt-6"
         >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Back to Assignment Registry</span>
-        </button>
+          Back to Assignment Registry
+        </AppButton>
       </div>
     )
   }

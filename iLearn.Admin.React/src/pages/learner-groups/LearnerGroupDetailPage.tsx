@@ -292,23 +292,21 @@ export function LearnerGroupDetailPage() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
+              <AppButton
+                variant="ghost"
                 onClick={() => setIsExplorerOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </AppButton>
+              <AppButton
+                variant="primary"
                 onClick={() => {
                   setEditCategoryId(tempCategoryId)
                   setIsExplorerOpen(false)
                 }}
-                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition shadow-3xs cursor-pointer"
               >
                 Confirm Selection
-              </button>
+              </AppButton>
             </div>
           </div>
         </div>
@@ -753,21 +751,19 @@ export function LearnerGroupDetailPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-              <button
-                type="button"
+              <AppButton
+                variant="ghost"
                 onClick={() => { setManagerMode('none'); setRemovePreview(null); }}
-                className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </AppButton>
+              <AppButton
+                variant="danger"
+                icon={Check}
                 onClick={handleConfirmRemove}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs font-sans"
               >
-                <Check className="h-4 w-4" />
-                <span>Confirm Removal</span>
-              </button>
+                Confirm Removal
+              </AppButton>
             </div>
 
           </div>
@@ -957,19 +953,20 @@ export function LearnerGroupDetailPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button
+                    <AppButton
+                      variant="ghost"
                       onClick={() => { setManagerMode('none'); setPendingAddLearners([]); }}
-                      className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-bold transition cursor-pointer"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </AppButton>
+                    <AppButton
+                      variant="primary"
                       onClick={handlePreviewAdd}
-                      disabled={loadingPreview || pendingAddLearners.length === 0}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold transition disabled:opacity-55 cursor-pointer shadow-xs"
+                      loading={loadingPreview}
+                      disabled={pendingAddLearners.length === 0}
                     >
-                      {loadingPreview ? 'Analyzing Impact...' : 'Analyze & Preview'}
-                    </button>
+                      Analyze & Preview
+                    </AppButton>
                   </div>
                 </>
               ) : (
@@ -1039,17 +1036,16 @@ export function LearnerGroupDetailPage() {
                     </span>
                   </div>
 
-                  <button
-                    type="button"
+                  <AppButton
+                    variant="secondary"
+                    icon={FolderOpen}
                     onClick={() => {
                       setTempCategoryId(editCategoryId || 0)
                       setIsExplorerOpen(true)
                     }}
-                    className="px-3 py-2 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 text-slate-600 font-bold rounded-md flex items-center justify-center gap-1.5 transition text-xs shrink-0 cursor-pointer"
                   >
-                    <FolderOpen className="h-4 w-4 text-indigo-500" />
-                    <span>Select Folder...</span>
-                  </button>
+                    Select Folder...
+                  </AppButton>
                 </div>
               </div>
 
@@ -1069,14 +1065,13 @@ export function LearnerGroupDetailPage() {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
+                <AppButton
+                  variant="ghost"
                   onClick={() => setIsEditingProperties(false)}
                   disabled={savingProperties}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 font-bold rounded-md text-xs transition cursor-pointer"
                 >
                   Cancel
-                </button>
+                </AppButton>
                 <AppButton
                   type="submit"
                   variant="primary"

@@ -13,6 +13,7 @@ import { useSession } from '../../lib/sessionContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { AppButton } from '../../components/ui/AppButton'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -360,17 +361,16 @@ export function LearnerGroupEditorPage() {
             </span>
           </div>
 
-          <button
-            type="button"
+          <AppButton
+            variant="secondary"
+            icon={FolderOpen}
             onClick={() => {
               setTempCategoryId(formData.categoryId || 0)
               setIsExplorerOpen(true)
             }}
-            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 text-slate-600 font-bold rounded-md flex items-center justify-center gap-1.5 transition text-xs shrink-0 cursor-pointer"
           >
-            <FolderOpen className="h-4 w-4 text-indigo-500" />
-            <span>Select Category Folder...</span>
-          </button>
+            Select Category Folder...
+          </AppButton>
         </div>
       </div>
 
@@ -434,15 +434,16 @@ export function LearnerGroupEditorPage() {
                 placeholder="Paste employee EIds separated by comma, space, or new line (e.g. N130812, N142715)"
                 className="wiz-input resize-y font-mono bg-slate-50/10"
               />
-              <button
-                type="button"
+              <AppButton
+                variant="primary"
+                size="sm"
+                icon={Plus}
                 onClick={addMemberCodes}
                 disabled={!memberInput.trim()}
-                className="inline-flex items-center gap-1.75 rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700 cursor-pointer self-start text-xs font-extrabold shadow-3xs disabled:opacity-55"
+                className="self-start"
               >
-                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Import Codes</span>
-              </button>
+                Import Codes
+              </AppButton>
             </div>
 
             {/* List of currently selected ones for preview */}
@@ -575,23 +576,21 @@ export function LearnerGroupEditorPage() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
+              <AppButton
+                variant="ghost"
                 onClick={() => setIsExplorerOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </AppButton>
+              <AppButton
+                variant="primary"
                 onClick={() => {
                   setFormData(prev => ({ ...prev, categoryId: tempCategoryId }))
                   setIsExplorerOpen(false)
                 }}
-                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition shadow-3xs cursor-pointer"
               >
                 Confirm Selection
-              </button>
+              </AppButton>
             </div>
           </div>
         </div>

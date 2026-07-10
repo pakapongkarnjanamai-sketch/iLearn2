@@ -11,6 +11,7 @@ type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: AppButtonIcon
   variant?: AppButtonVariant
   loading?: boolean
+  size?: 'sm' | 'md'
 }
 
 const variantStyles: Record<AppButtonVariant, string> = {
@@ -18,6 +19,11 @@ const variantStyles: Record<AppButtonVariant, string> = {
   secondary: 'border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50',
   danger: 'bg-red-600 text-white hover:bg-red-700',
   ghost: 'border-transparent bg-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50',
+}
+
+const sizeStyles: Record<'sm' | 'md', string> = {
+  md: 'min-h-[34px] px-3 text-xs sm:text-[13px]',
+  sm: 'min-h-[28px] px-2.5 text-xs',
 }
 
 const renderIcon = (icon: AppButtonIcon | undefined) => {
@@ -43,6 +49,7 @@ export function AppButton({
   icon,
   variant = 'secondary',
   loading = false,
+  size = 'md',
   className = '',
   type = 'button',
   disabled,
@@ -57,7 +64,7 @@ export function AppButton({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading ? true : undefined}
-      className={`inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-md border border-transparent px-3 text-xs sm:text-[13px] font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&_svg]:h-4 [&_svg]:w-4 ${variantStyles[variant]} ${className}`.trim()}
+      className={`inline-flex items-center justify-center gap-[7px] rounded-md border border-transparent font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&_svg]:h-4 [&_svg]:w-4 ${sizeStyles[size]} ${variantStyles[variant]} ${className}`.trim()}
       {...props}
     >
       {iconSlot ? <span className="inline-flex items-center justify-center">{iconSlot}</span> : null}

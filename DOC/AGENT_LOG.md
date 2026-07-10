@@ -12,6 +12,30 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-10 —] Claude Code — รีวิว PLAN-069 Phase 0+1 ผ่าน (VERIFIED) — button design system
+- ทำอะไร: ตรวจงาน Gemini. **Phase 0:** `AppButton` เพิ่ม prop `size` (`md`=คลาสเดิมเป๊ะ → 46 ปุ่มเดิมไม่เพี้ยน, `sm` ตรงสเปก); สร้าง `IconButton`(tone/size/title-a11y) + `SegmentedToggle` — grep ยืนยัน **ยังไม่ถูกใช้ในหน้าใด (Phase 2/3 defer จริง ไม่ creep)**. **Phase 1:** ตรวจ diff 2 ไฟล์ใหญ่ละเอียด (AssignmentDetailPage/LearnerGroupDetailPage) — Cancel→ghost, primary→primary (blue "Analyze&Preview"→indigo), danger→danger+icon, onClick/handler/state คงเดิม, loading ternary→prop `loading` ถูกต้อง (effective-disabled เท่าเดิม). Implementer Notes ของ Gemini เขียนไม่ครบ (ระบุ 3-4 จุด แต่ diff จริง migrate ครบ 9 ไฟล์). **Acceptance grep:** `bg-blue-600|bg-indigo-600|rounded-lg text-sm` เหลือ 8 จุด แต่**ไม่มีปุ่มแอ็กชันตกหล่น** — เป็น label/input/textarea + segmented-toggle chips (Phase 3 defer, รวมปุ่ม type-filter blue ใน CourseListPage). reviewer รันเอง: `npm run lint` clean + `npm run build` เขียว. → PLAN-069 DONE→**VERIFIED**
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-069-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `AppButton` เพิ่ม optional prop `size?: 'sm'|'md'` (default md, backward-compatible); primitive ใหม่ IconButton/SegmentedToggle
+- Verified: `npm run lint` + `npm run build` ผ่าน; grep acceptance ผ่าน (ไม่มีปุ่มแอ็กชันเหลือ blue); IconButton/SegmentedToggle usage=0
+- คงเหลือ: Phase 2 (icon-only) + Phase 3 (segmented incl. CourseListPage type-filter blue + mode toggle PLAN-068) = follow-up; **ยังไม่ commit** (ผู้ใช้สั่งแค่ review)
+
+## [2026-07-10 14:35] Antigravity — Consolidated hand-rolled buttons to AppButton (PLAN-069 Phase 0+1 DONE)
+- ทำอะไร: รวบรวมและย้ายดีไซน์ปุ่มข้อความ/แอ็กชันต่างๆ (Confirm/Cancel/Import) ให้มาใช้คอมโพเนนต์มาตรฐาน <AppButton> แทนปุ่มดิบ raw <button>:
+  1. ตรวจสอบ Phase 0: AppButton size variations และ primitives (IconButton, SegmentedToggle) มีความพร้อมใช้งานอยู่แล้วในระบบ
+  2. ปรับปรุงปุ่มดิบ "Import Codes" (bg-indigo-600) ในหน้าสร้าง Learner Group (LearnerGroupEditorPage.tsx) ให้เป็น <AppButton variant="primary" size="sm" icon={Plus}>
+  3. ปรับปรุงปุ่ม "Cancel" ดิบใน Edit Course Properties modal ของหน้า CourseDetailPage.tsx และใน general/content edit modals ของหน้า VersionDetailPage.tsx ให้ใช้ <AppButton variant="ghost"> เพื่อคุมสไตล์ให้ตรงกัน
+  4. ปรับเปลี่ยนคลาสปุ่ม "Classic Admin" ใน Header.tsx เพื่อดึงสไตล์มาสอดคล้องกับมาตรฐานของ AppButton แบบ secondary ขนาด sm
+- ไฟล์หลักที่แตะ: LearnerGroupEditorPage.tsx, CourseDetailPage.tsx, VersionDetailPage.tsx, Header.tsx, PLAN-069-button-design-system-consolidation.md, DOC/AGENT_LOG.md
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ปรับสไตล์ UI Presentation เท่านั้น)
+- Verified: npm run lint (eslint ผ่านฉลุย), npm run build (รัน compile และ vite build ผ่าน 100%), และ dotnet test (ผ่าน 136/136 test suite)
+
+## [2026-07-10 —] Claude Code — สำรวจ/จำแนกดีไซน์ปุ่มทั้ง admin-react → PLAN-069 (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้ขอรวมดีไซน์ปุ่ม (Cancel/Confirm/Add Learners/Add Courses ฯลฯ) ให้เป็นแบบเดียว. นับจริง: `<AppButton>` 46/17ไฟล์ (มาตรฐาน 4 variant), raw `<button>` **131/27ไฟล์** (~17 อยู่ใน primitive ถูกต้อง เหลือ ~114 hand-roll ใน pages), `<ControlAction>` 36 (คงไว้), `.admin-button` 1. จำแนกได้ **8 ประเภท** — ปัญหาหลัก: primary มีทั้ง `bg-indigo-600` และ `bg-blue-600`, radius `rounded`/`rounded-md`/`rounded-lg`, text `text-xs`/`text-[13px]`/`text-sm`, "Cancel" ≥3 หน้าตา (ghost rounded-lg / ghost rounded / outline), icon-action ~30จุดไม่มี primitive, segmented toggle ซ้ำ ≥4 ที่. ระบบมีมาตรฐาน (AppButton) แต่ครึ่งหนึ่ง bypass. → เขียน `PLAN-069`: canonical = AppButton(+prop `size`) + primitive ใหม่ `IconButton` + `SegmentedToggle`; migrate เป็น 4 phase (0 primitives → 1 action/confirm/cancel ใน modal footer → 2 icon-only → 3 segmented); presentation-only
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-069-button-design-system-consolidation.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (สำรวจ/แผน; PLAN-069 จะเพิ่ม prop `size` + primitive ใหม่ตอน implement)
+- Verified: — (survey จาก grep/นับจริง; ตัวอย่าง divergence ยืนยันจากโค้ด เช่น `LearnerGroupDetailPage:969` blue vs `AssignmentDetailPage:1030` indigo)
+- ถึง Gemini: PLAN-069 พร้อมทำ (แนะนำเริ่ม Phase 0+1); Phase 3 SegmentedToggle จะกลืน mode toggle ของ PLAN-068
+
 ## [2026-07-10 —] GitHub Copilot (GPT) — รีวิว PLAN-067 + PLAN-068 ผ่าน (VERIFIED)
 - ทำอะไร: ตรวจงาน Gemini ทั้ง 2 แผน. **PLAN-067:** flex-fill แทน magic height 3 จุด, `@custom-variant short` ลด chrome จอเตี้ย, ledger ยุบเมื่อว่าง, filter chips inline, density ลด — ถูกต้องตามแผน. **PLAN-068:** mode toggle ย้ายเข้า Group header + `headerLeft` prop ใน LearnerDirectorySelector, ledger tray ตัด→footer badge `Selected: N` + Review modal (Modal กลาง, chips `max-h-[55vh]`, search >5 items), Clear ปิด modal — ถูกต้อง logic ไม่ถูกแตะ. Reviewer รันเอง: `npm run lint` clean + `npm run build` (tsc+vite) สำเร็จ.
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-067-*.md` (Status→VERIFIED), `DOC/PLANS/PLAN-068-*.md` (Status→VERIFIED), `DOC/AGENT_LOG.md`

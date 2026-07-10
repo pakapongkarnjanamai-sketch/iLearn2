@@ -645,13 +645,12 @@ export function VersionDetailPage() {
             </div>
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
+              <AppButton
+                variant="ghost"
                 onClick={() => setShowGeneralEditModal(false)}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
               >
                 Cancel
-              </button>
+              </AppButton>
               <AppButton
                 type="submit"
                 variant="primary"
@@ -808,13 +807,12 @@ export function VersionDetailPage() {
             </div>
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
+              <AppButton
+                variant="ghost"
                 onClick={closeContentEditModal}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
               >
                 Cancel
-              </button>
+              </AppButton>
               <AppButton
                 type="submit"
                 variant="primary"

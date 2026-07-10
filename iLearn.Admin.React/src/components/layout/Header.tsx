@@ -40,7 +40,7 @@ export function Header({ currentUser, sessionState: _sessionState, onMenuClick }
         {appConfig.legacyAdminUrl && (
           <a
             href={appConfig.legacyAdminUrl}
-            className="admin-button inline-flex items-center gap-1.5 text-xxs font-extrabold text-slate-500 border border-slate-200 bg-white hover:bg-slate-50 rounded-md px-2.5 py-1.5 no-underline"
+            className="admin-button inline-flex items-center justify-center gap-[7px] rounded-md border border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50 font-semibold min-h-[28px] px-2.5 text-xs no-underline [&_svg]:h-4 [&_svg]:w-4"
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
             Classic Admin

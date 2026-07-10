@@ -1013,24 +1013,23 @@ export function AssignmentDetailPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-              <button
-                type="button"
+              <AppButton
+                variant="ghost"
                 onClick={() => setShowDueDateModal(false)}
-                className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
-                disabled={extendingDate || !newDueDateInput}
+              </AppButton>
+              <AppButton
+                variant="primary"
+                loading={extendingDate}
+                disabled={!newDueDateInput}
                 onClick={async () => {
                   await handleExtendDueDate()
                   setShowDueDateModal(false)
                 }}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
-                {extendingDate ? 'Extending...' : 'Confirm'}
-              </button>
+                Confirm
+              </AppButton>
             </div>
           </div>
         </div>
@@ -1109,13 +1108,12 @@ export function AssignmentDetailPage() {
                 {pendingCourseIds.length} course(s) selected
               </span>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
+                <AppButton
+                  variant="ghost"
                   onClick={() => setAddingCourses(false)}
-                  className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                 >
                   Cancel
-                </button>
+                </AppButton>
                 <AppButton
                   variant="primary"
                   icon={Plus}
@@ -1270,19 +1268,20 @@ export function AssignmentDetailPage() {
 
             {/* Modal Footer */}
             <div className="shrink-0 border-t border-slate-100 pt-4 flex justify-end gap-2 select-none">
-              <button
+              <AppButton
+                variant="ghost"
                 onClick={closeAddLearnersModal}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-bold transition cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </AppButton>
+              <AppButton
+                variant="primary"
                 onClick={handleAddLearners}
-                disabled={savingLearners || pendingAddLearners.length === 0}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold transition disabled:opacity-55 cursor-pointer shadow-xs flex items-center gap-1.5"
+                loading={savingLearners}
+                disabled={pendingAddLearners.length === 0}
               >
-                {savingLearners ? 'Saving...' : 'Add Learners'}
-              </button>
+                Add Learners
+              </AppButton>
             </div>
           </div>
         </div>

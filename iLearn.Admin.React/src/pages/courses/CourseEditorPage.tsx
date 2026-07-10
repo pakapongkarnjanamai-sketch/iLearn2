@@ -843,14 +843,13 @@ export function CourseEditorPage() {
 
         {/* Navigation Buttons Pinned Footer */}
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
-          <button
-            type="button"
+          <AppButton
+            variant="secondary"
+            icon={X}
             onClick={() => navigate(`/courses/${id}`)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 cursor-pointer text-xs font-bold shadow-3xs"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
-            <span>Cancel</span>
-          </button>
+            Cancel
+          </AppButton>
 
           <AppButton
             type="submit"
