@@ -1,6 +1,6 @@
 # PLAN-060: Cutover ไป EmployeeHub บน QA → PROD (flip provider flag)
 
-- **Status:** IN-PROGRESS (soak) — Phase 0+1 done; [PLAN-062](PLAN-062-employeehub-nlc-normalization.md) **VERIFIED + redeploy stamp `20260710080811` + NLC re-smoke 4/4 ผ่าน (2026-07-10)** → เงื่อนไข GATE ข้อ (1) ครบแล้ว; เหลือ **soak QA 2-3 วันทำการ + ผู้ใช้ยืนยันเป็นข้อความ (GATE ข้อ 2) ก่อนแตะ PROD**
+- **Status:** IN-PROGRESS (soak) — Phase 0+1 done; [PLAN-062](PLAN-062-employeehub-nlc-normalization.md) VERIFIED + NLC re-smoke 4/4 ผ่าน; **soak finding #2 (2026-07-10): ผู้ใช้พบ filter Section/ค่ามีช่องว่างพัง → [PLAN-063](PLAN-063-learners-filter-plus-encoding.md) (ไม่ใช่ regression จาก cutover — Legacy ก็เป็น แต่ต้องแก้+redeploy ก่อน GATE)**; เหลือ PLAN-063 VERIFIED+deploy → soak ต่อ → ผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** Medium
@@ -49,8 +49,9 @@
   - ✅ Profile NLC employee (N130058): Division="NLC", Department="Camera Assembly"
   - ✅ Cascade GetDepartments(Division=NLC): 9 departments
   - ✅ Cascade GetSections(Division=NLC, Dept=Camera Assembly): 152 sections
+- [ ] **soak finding #2 → [PLAN-063](PLAN-063-learners-filter-plus-encoding.md) VERIFIED + redeploy + re-smoke filter ช่องว่าง** (ผู้ใช้พบ 2026-07-10: Section filter ได้ 0 แถว — `+` form-encoding ถูก corrupt ใน `LearnersController`)
 - [ ] soak QA อย่างน้อย 2-3 วันทำการ ผู้ใช้ยืนยัน
-### Phase 2 — GATE: (1) PLAN-062 VERIFIED + NLC re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
+### Phase 2 — GATE: (1) PLAN-062 ✅ + PLAN-063 VERIFIED/deployed + re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
 ### Phase 3 — PROD
 - [ ] backup ไม่จำเป็น (ไม่แตะ DB) แต่ต้องมี rollback ชัด: flip config กลับ `Legacy` + recycle app pool = กลับสถานะเดิมทันที (LearnerApiService เดิมยังอยู่ในโค้ด)
 - [ ] flip Provider บน PROD → deploy → smoke ชุดเดียวกับ QA

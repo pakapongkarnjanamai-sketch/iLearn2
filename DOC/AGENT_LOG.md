@@ -14,6 +14,13 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-10 —] Claude Code — วินิจฉัยบั๊กผู้ใช้รายงาน (Learners filter ช่องว่าง) → PLAN-063 (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้รายงานหน้า QA Learners เลือก Section แล้วได้ 0 แถวทั้งที่มีข้อมูล — Claude reproduce บน QA API ตรง: filter JSON เดียวกัน ช่องว่างแบบ `+` (ที่ browser ส่งจริง) → 0, แบบ `%20` → 2 ⇒ root cause: `LearnersController.MapFilterFieldNames`/`InjectDivisionFilter` ใช้ `Uri.UnescapeDataString` บน raw query (ไม่ถอด `+` เป็น space) แล้ว `EscapeDataString` กลับ → `+` กลายเป็น `%2B` → provider เทียบค่า `Corporate+Support+Division+(FM)` ไม่ match. กระทบทุกค่า filter ที่มีช่องว่าง (Section ทุกค่า, Dept `Camera Assembly`, search มีช่องว่าง); **ไม่ใช่ regression จาก cutover** (corrupt ก่อนถึง provider — Legacy โดนเหมือนกัน); ตรวจแล้ว pattern นี้มีแค่ 2 method นี้ทั้ง API. ยืนยันเพิ่ม: `GetDivisions` มี NLC ครบ 15 ค่า (ข้อสงสัย dropdown ไม่ใช่ปัญหา API). → เขียน `PLAN-063` (READY, Gemini): Replace('+',' ') ก่อน unescape ใน 2 method + internal/InternalsVisibleTo + tests 4 เคส (รวมเคส `%2B` literal กัน over-correction); PLAN-060 เพิ่มเงื่อนไข GATE
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-063-learners-filter-plus-encoding.md` (ใหม่), `DOC/PLANS/PLAN-060-*.md` (soak finding #2 + GATE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (วินิจฉัย/แผน)
+- Verified: reproduce จริงบน QA (`+`→0, `%20`→2) — read-only GET เท่านั้น
+- ถึง Gemini: รับ PLAN-063 ได้เลย (High); ถึง GPT: หลัง 063 VERIFIED → redeploy QA + re-smoke ตาม Handoff แล้วนับ soak ต่อ
+
 ## [2026-07-10 —] Claude Code — รีวิว PLAN-062 ผ่าน (VERIFIED) + รับรอง re-smoke PLAN-060 → เข้าช่วง soak
 - ทำอะไร: ตรวจงาน Gemini (PLAN-062) — `NormalizeDivision` null-safe/case-insensitive ครบ 3 ingress ตรงสเปก (cache build ใช้ `Select` ใต้ `AddRange` enumerate ทันที), ไม่แตะ out-of-scope; ไล่ edge: ไม่ double-count ใน `GetLearnersByDivisionsAsync` (if/else), ขอ `"PD"` ดิบไม่จับ NLC อีก (ถูกตาม PLAN-061), `GetDivisionsAsync` ใช้ Company จึงไม่มีค่าลาวโผล่; 4 tests assert normalize+scope จริง; config S3 ถูกหลัก layering. **reviewer รันเอง: build 0 errors + 132/132 passed**. ตรวจงาน GPT (re-smoke): **query EmployeeHub QA ตรง `company=NLC` total=1,230 ตรงกับ grid re-smoke เป๊ะ** ⇒ 1,244→1,230 คือ data movement ข้ามวัน (sync) ไม่ใช่ filter mismatch. → PLAN-062 DONE→**VERIFIED**; PLAN-060 GATE ข้อ (1) ครบ เหลือ soak 2-3 วัน + ผู้ใช้ยืนยัน (ข้อ 2) ก่อน Phase 3 PROD; commit ทั้งชุด
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-062-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/PLANS/PLAN-060-*.md` (Status→soak), `DOC/AGENT_LOG.md`; commit รวมโค้ด Gemini (`EmployeeHubLearnerApiService.cs`, tests, `appsettings.json`, `appsettings.Staging.json` ใหม่)
