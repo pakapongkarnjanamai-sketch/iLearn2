@@ -14,6 +14,13 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-10 —] Claude Code — PLAN-060 Phase 2 GATE PASSED (ผู้ใช้อนุมัติ PROD) + flip PROD config ใน source
+- ทำอะไร: ผู้ใช้ยืนยัน soak QA ผ่าน + อนุมัติขึ้น PROD → บันทึก Phase 2 GATE = PASSED; flip `appsettings.Production.json` Provider `Legacy`→`EmployeeHub` ใน source แล้ว commit (EmployeeHubBaseUrl PROD ชี้ `http://AP-NTC2137-PRWB/...` ถูกอยู่แล้ว) → **ส่งต่อ GPT ทำ Phase 3: deploy PROD (env=Production อ่าน Production.json) + เช็ค sync pipeline prereq #4 + smoke ชุดเดียวกับ QA (รวมเคส NLC=PLAN-062 + filter ช่องว่าง=PLAN-063) + rollback = flip กลับ Legacy**; Claude ไม่ deploy เอง (เป็นงาน implementer). **ไม่รวม 2 ไฟล์ UI นอก scope** (`BulkAssignPage.tsx`/`BulkAssign.cshtml` เปลี่ยน label Learner Group→Group) เข้า commit นี้ — ยังไม่ยืนยันที่มา รอผู้ใช้เคาะ commit/revert
+- ไฟล์หลักที่แตะ: `iLearn.API/appsettings.Production.json` (Provider→EmployeeHub), `DOC/PLANS/PLAN-060-*.md` (GATE PASSED + Phase 3 checklist), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): PROD จะสลับไป EmployeeHub provider เมื่อ GPT deploy (default env อื่นยัง Legacy; rollback = flip กลับ)
+- Verified: — (config + เอกสาร; การ verify จริงคือ smoke ตอน GPT deploy PROD)
+- ถึง GPT: PLAN-060 Phase 3 พร้อมทำ — source PROD=EmployeeHub แล้ว เหลือ deploy+smoke+ยืนยัน
+
 ## [2026-07-10 —] Claude Code — รีวิว PLAN-063 ผ่าน (VERIFIED) — filter ช่องว่างกลับมาใช้ได้บน QA
 - ทำอะไร: ตรวจงาน Gemini — `Replace('+',' ')` บน raw value ก่อน unescape ทั้ง `MapFilterFieldNames`/`InjectDivisionFilter` ถูกหลัก (`%2B` literal ไม่โดนแตะ), `internal static`+`InternalsVisibleTo` ตามแผน, test 4 เคสครบ (รวม `M1+`/`%2B` กัน over-correction + `%20` no-regression). **reviewer รันเอง**: build 0 errors + `dotnet test` 136/136; **ยิง request เดิมตัวที่ใช้วินิจฉัย** (section `Corporate+Support+...` แบบ `+` encoding) บน QA stamp `20260710084400` → totalCount=2 (ก่อนแก้=0) ✓ ตรง baseline `%20`. → PLAN-063 DONE→**VERIFIED**; commit เฉพาะไฟล์ในแผน — **พบไฟล์นอก scope ค้างใน tree** (`BulkAssignPage.tsx`+`BulkAssign.cshtml` เปลี่ยน label "Learner Group"→"Group", ไม่มี agent ไหนจดใน log) ไม่รวมเข้า commit รอผู้ใช้ยืนยันที่มา
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-063-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`; commit รวมโค้ด Gemini (`LearnersController.cs`, `iLearn.API.csproj`, `LearnersControllerTests.cs`) + PLAN-060 (บันทึก re-deploy #2 ของ GPT)

@@ -1,6 +1,6 @@
 # PLAN-060: Cutover ไป EmployeeHub บน QA → PROD (flip provider flag)
 
-- **Status:** IN-PROGRESS (soak) — Phase 0+1 done; PLAN-062 ✅ + PLAN-063 ✅ deployed + all re-smokes passed; **เหลือ soak 2-3 วันทำการ → ผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD**
+- **Status:** GATE PASSED → PROD PENDING DEPLOY — **ผู้ใช้ยืนยัน soak QA ผ่าน + อนุมัติขึ้น PROD (2026-07-10)**; Claude flip `appsettings.Production.json` Provider→EmployeeHub ใน source แล้ว (committed) → **เหลือ GPT ทำ Phase 3: deploy PROD + smoke ชุดเดียวกับ QA + ยืนยัน** (Claude ไม่ deploy เอง)
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** Medium
@@ -54,11 +54,13 @@
   - ✅ NLC/Camera Assembly (+ encoding): totalCount=826
   - ✅ NLC/Lens Assembly (+ encoding): totalCount=261
   - ✅ NLC division filter regression: totalCount=1,230 (ยังถูก)
-- [ ] soak QA อย่างน้อย 2-3 วันทำการ ผู้ใช้ยืนยัน
-### Phase 2 — GATE: (1) PLAN-062 ✅ + PLAN-063 ✅ + re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
-### Phase 3 — PROD
-- [ ] backup ไม่จำเป็น (ไม่แตะ DB) แต่ต้องมี rollback ชัด: flip config กลับ `Legacy` + recycle app pool = กลับสถานะเดิมทันที (LearnerApiService เดิมยังอยู่ในโค้ด)
-- [ ] flip Provider บน PROD → deploy → smoke ชุดเดียวกับ QA
+- [x] soak QA — **ผู้ใช้ยืนยันผ่าน (2026-07-10)**
+### Phase 2 — GATE: (1) PLAN-062 ✅ + PLAN-063 ✅ + re-smoke ผ่าน ✅ (2) **ผู้ใช้ยืนยันขึ้น PROD (2026-07-10) ✅** → GATE PASSED
+### Phase 3 — PROD (งาน GPT — Claude flip config ใน source แล้ว, ไม่ deploy เอง)
+- [x] flip `appsettings.Production.json` Provider `Legacy`→`EmployeeHub` ใน source (commit โดย Claude 2026-07-10) — `EmployeeHubBaseUrl` PROD = `http://AP-NTC2137-PRWB/Tools/EmployeeHub/Service` ชี้ถูกแล้ว
+- [ ] **GPT: deploy PROD** (`deploy-api.ps1` env=Production → อ่าน `appsettings.Production.json`) → **เช็ค prerequisite #4 ก่อน** (`GET /api/sync/runs?take=5` run ล่าสุด Succeeded ≤2 วัน)
+- [ ] **GPT: smoke PROD ชุดเดียวกับ QA** — health `employeeDirectory`, learner login by EId, Learners grid (filter Section มีช่องว่าง = PLAN-063), profile, Bulk Assign เลือก division, Admin Users DisplayName, **เคส NLC admin** (grid/profile/cascade = PLAN-062), เทียบจำนวน active รวม
+- [ ] **rollback ถ้าพลาด**: flip `Production.json` Provider กลับ `Legacy` + redeploy (หรือ web.config switch กลับ stamp เดิม) — `LearnerApiService` legacy ยังอยู่ในโค้ด
 ### Phase 4 — หลัง soak PROD (แผนแยกในอนาคต)
 - ถอด `LearnerApiService` legacy + `BaseEmployeeCsvUrl`/`BaseLearnerUrl` เดิม + ปิด EmployeeServiceV2 dependency — **อย่าทำในแผนนี้**
 
