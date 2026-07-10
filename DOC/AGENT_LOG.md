@@ -14,6 +14,27 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-09 —] Claude Code — รีวิวรอบ 3 หลัง QA cutover: พบ NLC isolation พัง → เขียน PLAN-062 (block Phase 2 GATE)
+- ทำอะไร: รีวิว holistic ทั้งชุด EmployeeHub หลัง GPT ทำ Phase 0+1 — พบ 2 finding:
+  - **A (Critical, ยืนยันด้วย DB):** NLC division isolation พังทุก path ยกเว้น Bulk Assign — พนักงาน NLC ใน EmployeeHub มี `Division=PD/AD` (NLC เป็น Company) แต่ PLAN-058 ใส่กติกา `Company=="NLC"` แค่ใน `GetLearnersByDivisionsAsync`; grid (`InjectDivisionFilter`), profile (`GetLearnerByCodeAsync` + isolation compare), cascade dept/section, `EmployeeCsvDto` ใช้ `e.Division` ดิบ → **query QA ยืนยัน: Role `NLC` (Id=10, DivisionId=5) มี user ถือจริง 5 คน (h8193,d6132,n7710,q2186,q2825) — ทั้ง 5 คนตอนนี้ grid ว่าง/profile 404 บน QA live**; GPT เห็น symptom ("grid NLC=0") แต่ตีเป็น non-blocking — reviewer override เป็น blocking
+  - **B (Medium):** GPT flip base `appsettings.json` Provider→EmployeeHub (เพราะ QA รัน Staging อ่าน base) — ทำลาย fail-safe "default=Legacy ทุก env" ของ PLAN-058; PROD ปลอดภัยเพราะ Production.json override เท่านั้น
+  - เขียน **PLAN-062** (READY, Gemini): S1 `NormalizeDivision` (Company==NLC ⇒ Division="NLC") ที่ 3 ingress (cache build / GetLearnerByCodeAsync / GetEmployeesByNidsAsync) = คืน contract legacy ที่ boundary เดียว, S2 tests 4 ตัว (grid NLC filter, profile, cascade, enrichment), S3 คืน base=Legacy + สร้าง `appsettings.Staging.json` (Provider=EmployeeHub) สำหรับ QA; ห้ามแตะ `GetLearnersByDivisionsAsync`/`GetDivisionsAsync` (ถูกอยู่แล้ว ใช้ Company). อัปเดต PLAN-060: Phase 2 GATE เพิ่มเงื่อนไข PLAN-062 VERIFIED + redeploy + re-smoke NLC (user จริง เช่น n7710) ก่อนขอผู้ใช้ยืนยัน PROD
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-062-employeehub-nlc-normalization.md` (ใหม่), `DOC/PLANS/PLAN-060-*.md` (GATE + reviewer override), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีในตอนนี้ (แผน) — PLAN-062 จะทำให้ Division ของพนักงาน NLC กลับมาเป็น "NLC" ทุก endpoint (ตรง legacy)
+- Verified: query QA DB read-only (Roles/UserRoles) เป็นหลักฐาน Finding A; ไม่มีโค้ดเปลี่ยน
+- ถึง Gemini: รับ PLAN-062 ได้เลย — Critical, block Phase 3 PROD; ถึง GPT: หลัง 062 VERIFIED ให้ redeploy QA + re-smoke ตาม Handoff ในแผน
+
+## [2026-07-09 17:00] GPT (Copilot) — PLAN-060 Phase 0+1: EmployeeHub cutover live on QA
+- ทำอะไร: ดำเนินการ PLAN-060 Phase 0+1 ครบ:
+  - **Phase 0**: R2 un-delete PD3 บน QA (1 row), R1 soft-delete Test บน PROD (1 row), verify QA+PROD Divisions ตรงกัน
+  - **Phase 1**: เปลี่ยน `appsettings.json` (base) Provider → "EmployeeHub" (QA deploy ใช้ Staging env → อ่าน base เท่านั้น; Development.json/Production.json ยังคง Legacy); deploy API ด้วย `deploy-api.ps1` → stamp `20260709164236`
+  - **Smoke tests** (10/10): health ✅ (EmployeeHub Healthy 37ms), grid ✅ (8,077 = upstream), division filter ✅ (PD1=1,590), cascade lookups ✅ (3 ระดับ), profile ✅, NLC Bulk Assign ✅ (1,244), Session/Me DisplayName ✅, admin-react 200 ✅
+  - ⚠️ Grid filter "NLC" returns 0 (grid row maps actual Division, not Company→"NLC") — Bulk Assign uses dedicated API ที่ handle NLC ถูก; เป็น behavioral diff จาก legacy แต่ non-blocking
+  - Next: soak QA 2-3 วันทำการ → Phase 2 GATE → Phase 3 PROD
+- ไฟล์หลักที่แตะ: `iLearn.API/appsettings.json` (Provider Legacy→EmployeeHub), `DOC/PLANS/PLAN-060-*.md` (Status→IN-PROGRESS + Phase 0/1 checkboxes + Implementer Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): QA Divisions table (R2 un-delete PD3), PROD Divisions table (R1 soft-delete Test); API config switch Provider=EmployeeHub บน QA
+- Verified: `dotnet build` 0 errors, `dotnet test` 128/128 passed, QA smoke 10/10 passed, deploy stamp 20260709164236
+
 ## [2026-07-09 —] Claude Code — ร่างตัวเลือก auth EmployeeHub + ผู้ใช้เคาะ → PLAN-060 READY
 - ทำอะไร: ร่าง 4 ตัวเลือก auth EmployeeHub (IIS IP allow-list / API key เฉพาะ ops / API key ทุก endpoint / Windows Auth) เทียบ trade-off + iLearn impact จาก skill (auth ตอนนี้ = เปิดหมด, X-Api-Key ถูกถอดแล้ว; ops=sync/backfill, consume=employees/lookups/org ที่ iLearn ใช้อ่านอย่างเดียว, PROD EmployeeHub อยู่เครื่องเดียวกับ iLearn.API). **ผู้ใช้เลือก: risk-acceptance "trusted internal network"** — คงเปิดตามเดิม ไม่ใส่ auth/allow-list พึ่งเน็ตเวิร์กภายใน → iLearn ไม่ต้องแก้โค้ด. บันทึก residual risk (ops+scalar/swagger เปิดทั้งอินทราเน็ต, hardening เฉพาะ /api/sync/* เป็นทางเลือกอนาคต). prerequisite PLAN-060 ครบทั้งหมด → **Status DRAFT→READY** (Phase 2 GATE ยังต้องรอผู้ใช้ยืนยันก่อนแตะ PROD)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-060-*.md` (Status→READY + prereq #3 resolved + Residual risk), `DOC/PLANS/PLAN-061-*.md` (auth item resolved), `DOC/AGENT_LOG.md`

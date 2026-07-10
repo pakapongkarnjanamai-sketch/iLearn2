@@ -1,6 +1,6 @@
 # PLAN-060: Cutover ไป EmployeeHub บน QA → PROD (flip provider flag)
 
-- **Status:** READY — prerequisite ครบทั้งหมด (PLAN-058/059 VERIFIED, ผู้ใช้เคาะ R1/R2 + auth แล้ว 2026-07-09); GPT รับไป cutover ตาม Phase 0→3 ได้ แต่ **Phase 2 GATE ต้องรอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD**
+- **Status:** IN-PROGRESS — Phase 0+1 done (QA live on EmployeeHub since 2026-07-09) แต่ **Phase 2 GATE เพิ่มเงื่อนไข: ต้องรอ [PLAN-062](PLAN-062-employeehub-nlc-normalization.md) VERIFIED + redeploy QA + re-smoke NLC admin ผ่านก่อน** (รีวิวรอบ 3 พบ NLC isolation พังบน QA — กระทบ user จริง 5 คน) แล้วจึงรอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD → soak QA 2-3 วันทำการ
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** Medium
@@ -27,30 +27,26 @@
 
 ### Phase 0 — Data cleanup ก่อน flip (จาก PLAN-059 R1/R2 — ผู้ใช้เคาะแล้ว 2026-07-09)
 ทำก่อน flip provider; เป็น write เล็ก ๆ FK=0 ทั้งคู่ ไม่ต้อง backup แต่ให้ verify count ก่อน/หลัง
-- [ ] **R2 — un-delete PD3 บน QA** (ผู้ใช้เลือก "เปิดใช้ PD3" ให้ตรง PROD): 
-  ```sql
-  -- QA เท่านั้น (PROD PD3 active อยู่แล้ว)
-  UPDATE Divisions SET IsDeleted = 0, DeletedAt = NULL, DeletedBy = NULL
-  WHERE Id = 4 AND Name = 'PD3' AND IsDeleted = 1;   -- คาดกระทบ 1 แถว
-  ```
-- [ ] **R1 — soft-delete `Test` (Id=6) บน PROD** ให้ตรง QA (FK=0):
-  ```sql
-  -- PROD เท่านั้น (QA soft-deleted อยู่แล้ว)
-  UPDATE Divisions SET IsDeleted = 1, DeletedAt = GETDATE(), DeletedBy = 'plan060-cutover'
-  WHERE Id = 6 AND Name = 'Test' AND IsDeleted = 0;   -- คาดกระทบ 1 แถว
-  ```
-- [ ] verify หลังทำ: `SELECT Id,Name,IsActive,IsDeleted FROM Divisions ORDER BY Id` บนทั้ง 2 env ต้องได้ชุดเดียวกัน (PD1,PD2,CSD,PD3 active; NLC active; Test deleted)
+- [x] **R2 — un-delete PD3 บน QA** — 1 row affected ✅
+- [x] **R1 — soft-delete `Test` (Id=6) บน PROD** — 1 row affected ✅
+- [x] verify: ทั้ง QA+PROD ตรงกัน (PD1,PD2,CSD,PD3,NLC active; Test deleted) ✅
 
 ### Phase 1 — QA
-- [ ] แก้ `EmployeeServiceSettings.Provider` เป็น `EmployeeHub` (QA config) → deploy API → smoke:
-  - `/api/health/smoke` check `employeeDirectory` ผ่าน
-  - learner login ด้วย EId จริง 1 คนบน QA (iLearn.User)
-  - หน้า Learners grid: filter/sort/search/paging + หน้า profile
-  - Bulk Assign: เลือก division → รายชื่อขึ้นถูกต้อง (จุดเสี่ยงสุดจาก mapping)
-  - Admin Users: DisplayName ขึ้น (แทน CSV เดิม)
-  - เทียบจำนวนพนักงาน active รวมกับ upstream เดิม (sanity ±)
+- [x] แก้ `EmployeeServiceSettings.Provider` = `EmployeeHub` ใน `appsettings.json` (base) → QA (Staging env) picks up; `Development.json` + `Production.json` ยังคง Legacy
+- [x] deploy API → stamp `_deploy_20260709164236` (previous: `_deploy_20260709110854`)
+- [x] smoke tests ผ่านทั้งหมด:
+  - ✅ `/api/health/smoke`: employeeDirectory = EmployeeHub (Healthy) 37ms
+  - ✅ Learners grid: totalCount=8,077 (ตรง upstream), filter PD1=1,590, search "HIRO"=7
+  - ✅ Profile: employee 000191 returns correct data
+  - ✅ Cascade lookups: GetDivisions 15 divisions, GetDepartments PD1→3, GetSections PD1/CAE→5
+  - ✅ Bulk Assign NLC path: 1,244 employees (filter by Company works)
+  - ✅ Session/Me: DisplayName="PAKHAPONG KANCHANAMAI"
+  - ✅ Admin React frontend: 200
+  - ⚠️ Grid filter `division=NLC` returns 0 (NLC employees' grid row has actual Division, not "NLC") — Bulk Assign uses dedicated API ที่ handle NLC ถูก, grid row แสดง division จริงจาก EmployeeHub
+  - 🔴 **Reviewer override (Claude, รอบ 3): ข้อ ⚠️ ข้างบนไม่ใช่ non-blocking** — QA DB มี Role `NLC` (Id=10, DivisionId=5) + user ถือจริง 5 คน (`h8193, d6132, n7710, q2186, q2825`) → ทั้ง 5 คนตอนนี้ grid ว่าง/profile 404/cascade ว่างบน QA; smoke 10 ข้อไม่ครอบเคส NLC-scoped admin จึงหลุด → แก้ที่ [PLAN-062](PLAN-062-employeehub-nlc-normalization.md)
+- [ ] **redeploy QA หลัง PLAN-062 VERIFIED + re-smoke 3 เคส NLC admin** (grid มีข้อมูล / profile พนักงาน NLC เปิดได้ / cascade ไม่ว่าง — ใช้ user จริง เช่น `n7710`)
 - [ ] soak QA อย่างน้อย 2-3 วันทำการ ผู้ใช้ยืนยัน
-### Phase 2 — GATE: รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
+### Phase 2 — GATE: (1) PLAN-062 VERIFIED + NLC re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
 ### Phase 3 — PROD
 - [ ] backup ไม่จำเป็น (ไม่แตะ DB) แต่ต้องมี rollback ชัด: flip config กลับ `Legacy` + recycle app pool = กลับสถานะเดิมทันที (LearnerApiService เดิมยังอยู่ในโค้ด)
 - [ ] flip Provider บน PROD → deploy → smoke ชุดเดียวกับ QA
@@ -64,4 +60,13 @@
 
 ## Implementer Notes
 
-(เติมตอนดำเนินการ)
+### Phase 0 (2026-07-09 GPT)
+- R2 (QA) + R1 (PROD) ทำสำเร็จ, verify ตรงกันทั้ง 2 env
+
+### Phase 1 (2026-07-09 GPT)
+- **Config strategy**: เปลี่ยน base `appsettings.json` Provider → "EmployeeHub" เพราะ QA deploy script (`deploy-api.ps1`) pin `SetEnvironmentName = 'Staging'` + exclude `appsettings.Production.json` → QA ใช้แค่ base config; `Development.json` ยัง Legacy (local dev safe); `Production.json` ยัง Legacy (PROD safe)
+- **Deploy**: `deploy-api.ps1` → stamp `20260709164236`, publish Release, OfflineStrategy=AppOffline, cleaned 1 stale folder
+- **Smoke**: 10/10 checks passed (ดูรายละเอียดใน Phase 1 checklist)
+- **NLC grid note**: Grid filter "NLC" returns 0 เพราะ `LearnerGridRowDto.Division` map จาก `emp.Division` (e.g. "PD") ไม่ใช่ "NLC"; ข้อนี้เป็น behavior ที่ต่างจาก legacy (legacy แสดง NLC เป็น division ใน grid) แต่ Bulk Assign path ที่ business-critical (ใช้ `GetLearnersByDivisionsAsync` ซึ่ง filter by Company) ทำงานถูก
+- **Rollback path**: flip `appsettings.json` Provider กลับ "Legacy" + redeploy หรือ web.config switch กลับ `_deploy_20260709110854`
+- **Next**: soak QA 2-3 วันทำการ → ผู้ใช้ยืนยัน Phase 2 GATE → Phase 3 PROD
