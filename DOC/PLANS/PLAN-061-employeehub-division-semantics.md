@@ -1,7 +1,7 @@
 # PLAN-061: Division semantics สำหรับ EmployeeHub migration — กติกา NLC = company, อื่น ๆ = division name
 
-- **Status:** READY (เอกสารกติกา + ปรับ spec ของ PLAN-058/059 — ไม่มีงานโค้ดของตัวเอง)
-- **Assigned:** — (เป็น addendum ที่ Gemini ต้องอ่านคู่กับ PLAN-058 และ GPT อ่านคู่กับ PLAN-059)
+- **Status:** REFERENCE — เอกสารกติกา (source of truth) ไม่มีงานโค้ดของตัวเอง **ไม่ต้องมีใครหยิบไปทำ**; PLAN-058/059 ที่อ้างเอกสารนี้ VERIFIED ครบแล้ว (2026-07-09) — ยังใช้อ้างอิงต่อโดย PLAN-060/062; หัวข้อ "ประเด็นฝั่ง EmployeeHub" เป็นของผู้ใช้ทำเองนอก repo (optional, ไม่ block)
+- **Assigned:** — (addendum: Gemini อ่านคู่กับ PLAN-058/062, GPT อ่านคู่กับ PLAN-059/060)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-09
 - **อ้างอิง:** [PLAN-058](PLAN-058-employeehub-provider-foundation.md), [PLAN-059](PLAN-059-employeehub-division-mapping-audit.md)
