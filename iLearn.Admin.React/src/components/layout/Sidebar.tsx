@@ -4,6 +4,8 @@ import { ChevronDown } from 'lucide-react'
 import { appConfig } from '../../config/appConfig'
 import { navigationSections, type NavigationItem, type NavigationSection } from '../../config/navigation'
 import { useSession } from '../../lib/sessionContext'
+import { Badge } from '../ui/Badge'
+
 
 type SidebarProps = {
   isOpen: boolean
@@ -96,12 +98,26 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
       aria-label="Admin navigation"
     >
       <div className="flex min-h-[56px] items-center gap-2.5 border-b border-[#1d3554] px-5">
-        <div className="grid h-[34px] w-[34px] place-items-center rounded-md bg-indigo-600 text-white text-[15px] font-bold" aria-hidden="true">
+        <div
+          className={`grid h-[34px] w-[34px] place-items-center rounded-md text-[15px] font-bold transition-colors ${
+            appConfig.isProd
+              ? 'bg-indigo-600 text-white'
+              : 'bg-amber-500 text-slate-900'
+          }`}
+          aria-hidden="true"
+        >
           iL
         </div>
         <div className="flex flex-col gap-px">
           <strong className="text-white text-[15px] font-bold">{appConfig.appName}</strong>
-          <span className="text-slate-400 text-xs">Enterprise LMS</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 text-xs">Enterprise LMS</span>
+            {!appConfig.isProd && (
+              <Badge tone="warning" size="xxs" variant="soft" className="font-extrabold px-1 py-0.5 leading-none">
+                {appConfig.environmentName}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 

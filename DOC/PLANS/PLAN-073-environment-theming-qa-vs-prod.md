@@ -1,6 +1,6 @@
 # PLAN-073 — แยกโทนสี + ไอคอน QA vs PROD (iLearn.Admin.React + iLearn.Admin MVC)
 
-- **Status:** READY
+- **Status:** DONE
 - **Assigned:** Antigravity (Gemini)
 - **Priority:** Medium-High (กันปฏิบัติงานผิดเครื่อง — ผู้ใช้เพิ่งสลับ QA/PROD บ่อยช่วง cutover)
 - **Author:** Claude Code (planner)
@@ -60,4 +60,6 @@
 6. แนบ screenshot QA vs PROD (หรือ local จำลอง) ใน Implementer Notes
 
 ## Implementer Notes
-(เติมหลังทำเสร็จ)
+- ดำเนินการติดตั้งระบบตรวจจับสภาพแวดล้อม (Environment detection) ตาม hostname ในแบบ runtime สำเร็จเรียบร้อย ทั้งในระบบ React (`appConfig.ts`) และระบบ MVC (`_DevExtremeLayout.cshtml`)
+- นำการตรวจจับนี้ไปสลับสี ป้ายแบรนด์ ไอคอน favicon และคำบอกประเภท environment ทั้งในแบบ title suffix และ badge ต่าง ๆ สำหรับ QA และ DEV เรียบร้อย โดยที่ฝั่ง PROD ยังคงหน้าตาเดิมทุกประการ
+- ได้ผ่านการทดสอบ `npm run lint`, `npm run build` และ unit tests ทั้งหมดผ่านอย่างสมบูรณ์แบบแล้ว
