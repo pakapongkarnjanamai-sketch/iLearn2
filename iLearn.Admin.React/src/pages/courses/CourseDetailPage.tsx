@@ -19,6 +19,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
+import { IconButton } from '../../components/ui/IconButton'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { CourseStatusText } from '../../components/ui/CourseStatusBadge'
 import { Modal } from '../../components/ui/Modal'
@@ -599,13 +600,13 @@ export function CourseDetailPage() {
                           <td className="p-3 text-center">
                             <div className="inline-flex items-center gap-2">
                               {!v.isActive && (
-                                <button
+                                <IconButton
                                   onClick={() => handleSetActiveVersion(v.id)}
-                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition cursor-pointer"
+                                  icon={Check}
                                   title="Set active version"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </button>
+                                  tone="success"
+                                  size="sm"
+                                />
                               )}
                               <Link
                                 to={`/courses/${id}/version/${v.id}`}
@@ -615,13 +616,13 @@ export function CourseDetailPage() {
                                 <Eye className="h-4 w-4" />
                               </Link>
                        
-                              <button
+                              <IconButton
                                 onClick={() => handleDeleteVersion(v.id)}
-                                className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                                icon={Trash2}
+                                tone="danger"
+                                size="sm"
                                 title="Delete version"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              />
                             </div>
                           </td>
                         </tr>
@@ -810,14 +811,15 @@ export function CourseDetailPage() {
         windowClassName="p-5 animate-scale-in"
         ariaLabel="Edit Course Properties"
       >
-            <button
+            <IconButton
               type="button"
               onClick={() => setShowEditPropertiesModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+              size="sm"
+              className="absolute top-4 right-4"
+            />
 
             <div className="mb-4 border-b border-slate-100 pb-3 pr-8 select-none">
               <h3 className="text-sm font-bold text-slate-800">Edit Course Properties</h3>

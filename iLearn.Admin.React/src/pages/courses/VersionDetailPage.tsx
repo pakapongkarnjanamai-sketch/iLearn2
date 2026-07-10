@@ -7,6 +7,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { getContentReadinessBadgeModel, ReadinessBadge } from '../../components/ui/ReadinessBadge'
@@ -606,14 +607,15 @@ export function VersionDetailPage() {
             onClick={event => event.stopPropagation()}
             onSubmit={handleGeneralSave}
           >
-            <button
+            <IconButton
               type="button"
               onClick={() => setShowGeneralEditModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+              size="sm"
+              className="absolute top-4 right-4"
+            />
 
             <div className="mb-4 border-b border-slate-100 pb-3 pr-8 select-none">
               <h3 className="text-sm font-bold text-slate-800">Edit Version General Info</h3>
@@ -672,14 +674,15 @@ export function VersionDetailPage() {
             onClick={event => event.stopPropagation()}
             onSubmit={handleContentSave}
           >
-            <button
+            <IconButton
               type="button"
               onClick={closeContentEditModal}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+              size="sm"
+              className="absolute top-4 right-4"
+            />
 
             <div className="mb-4 border-b border-slate-100 pb-3 pr-8 select-none">
               <h3 className="text-sm font-bold text-slate-800">Edit Content</h3>
@@ -769,32 +772,35 @@ export function VersionDetailPage() {
                             </td>
                             <td className="px-3 py-2">
                               <div className="flex justify-end gap-1">
-                                <button
+                                <IconButton
                                   type="button"
                                   onClick={() => moveContentInDraft(item.uid, -1)}
                                   disabled={index === 0}
-                                  className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  icon={ArrowUp}
+                                  tone="primary"
+                                  size="sm"
                                   aria-label="Move content up"
-                                >
-                                  <ArrowUp className="h-3.5 w-3.5" />
-                                </button>
-                                <button
+                                  title="Move content up"
+                                />
+                                <IconButton
                                   type="button"
                                   onClick={() => moveContentInDraft(item.uid, 1)}
                                   disabled={index === contentDraft.length - 1}
-                                  className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  icon={ArrowDown}
+                                  tone="primary"
+                                  size="sm"
                                   aria-label="Move content down"
-                                >
-                                  <ArrowDown className="h-3.5 w-3.5" />
-                                </button>
-                                <button
+                                  title="Move content down"
+                                />
+                                <IconButton
                                   type="button"
                                   onClick={() => removeContentFromDraft(item.uid)}
-                                  className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                  icon={X}
+                                  tone="danger"
+                                  size="sm"
                                   aria-label="Remove content"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
+                                  title="Remove content"
+                                />
                               </div>
                             </td>
                           </tr>
@@ -832,14 +838,15 @@ export function VersionDetailPage() {
             className="modal-window modal-window-lg p-5 relative animate-scale-in"
             onClick={event => event.stopPropagation()}
           >
-            <button
+            <IconButton
               type="button"
               onClick={() => setShowContentLibraryPopup(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+              size="sm"
+              className="absolute top-4 right-4 z-10"
+            />
 
             <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
               <BookOpen className="h-5 w-5 text-indigo-600" />

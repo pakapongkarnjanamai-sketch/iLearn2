@@ -11,6 +11,7 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
+import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
@@ -406,20 +407,15 @@ export function AssignmentReportPage() {
                 searchPlaceholder="Search code, name, group, department, course..."
                 toolbarContent={
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {STATUS_FILTERS.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setStatusFilter(s)}
-                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
-                          statusFilter === s
-                            ? 'border-indigo-500 bg-indigo-600 text-white shadow-3xs font-bold'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        {s === 'All' ? 'All' : learnerStatusLabel(s)}
-                      </button>
-                    ))}
+                    <SegmentedToggle
+                      variant="filter"
+                      options={STATUS_FILTERS.map(s => ({
+                        value: s,
+                        label: s === 'All' ? 'All' : learnerStatusLabel(s),
+                      }))}
+                      value={statusFilter}
+                      onChange={setStatusFilter}
+                    />
 
                     {data.courses.length > 1 && (
                       <div className="relative shrink-0">

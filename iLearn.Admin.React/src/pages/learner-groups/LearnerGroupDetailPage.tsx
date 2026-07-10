@@ -12,6 +12,8 @@ import {
   FolderOpen,
 } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
+import { IconButton } from '../../components/ui/IconButton'
+import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
@@ -258,13 +260,13 @@ export function LearnerGroupDetailPage() {
               <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Category Folder Explorer</h3>
             </div>
 
-            <button
+            <IconButton
               type="button"
               onClick={() => setIsExplorerOpen(false)}
-              className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+            />
           </div>
 
           <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 text-xxs font-semibold text-slate-400 uppercase select-none">
@@ -667,13 +669,13 @@ export function LearnerGroupDetailPage() {
                               {m.division || '-'} {m.department ? `/ ${m.department}` : ''}
                             </td>
                             <td className="p-3 text-center">
-                              <button
+                              <IconButton
                                 onClick={() => handleRemoveSingleMember(m.id)}
-                                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                icon={UserMinus}
+                                tone="danger"
+                                size="sm"
                                 title="Remove member"
-                              >
-                                <UserMinus className="h-3.5 w-3.5" />
-                              </button>
+                              />
                             </td>
                           </tr>
                         )
@@ -715,9 +717,12 @@ export function LearnerGroupDetailPage() {
                 <UserMinus className="h-5 w-5 text-red-500" />
                 <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Confirm Removal</h3>
               </div>
-              <button onClick={() => { setManagerMode('none'); setRemovePreview(null); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
-                <X className="h-5 w-5" />
-              </button>
+              <IconButton
+                onClick={() => { setManagerMode('none'); setRemovePreview(null); }}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
             </div>
 
             <div className="px-6 py-5 space-y-4">
@@ -783,35 +788,23 @@ export function LearnerGroupDetailPage() {
               </div>
               
               {!addPreview && (
-                <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setMemberAddTab('picker')}
-                    className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                      memberAddTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Directory Search
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMemberAddTab('bulk')}
-                    className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                      memberAddTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Bulk Import (EIds)
-                  </button>
-                </div>
+                <SegmentedToggle
+                  options={[
+                    { value: 'picker', label: 'Directory Search' },
+                    { value: 'bulk', label: 'Bulk Import (EIds)' },
+                  ]}
+                  value={memberAddTab}
+                  onChange={setMemberAddTab}
+                />
               )}
 
-              <button
+              <IconButton
                 onClick={() => { setManagerMode('none'); setAddPreview(null); setPendingAddLearners([]); }}
-                className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 p-1 transition cursor-pointer"
+                icon={X}
                 title="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                tone="neutral"
+                size="sm"
+              />
             </div>
 
             {/* Modal Body */}

@@ -12,6 +12,45 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-10 —] Claude Code — รีวิว PLAN-070 + PLAN-071 ผ่าน (VERIFIED) — icon + segmented consolidation
+- ทำอะไร: Copilot ทำ **070 (icon-only) + 071 (segmented) รวมกันในทีเดียว** (working tree เดียว, ไฟล์เดียวกันมีทั้งสอง) → รีวิวรวม. **070 IconButton:** ตรวจ diff AssignmentDetailPage+CourseListPage ละเอียด — row actions + close X แปลงถูก tone (`red→danger`/`indigo→primary`/`slate→neutral`), title/onClick/disabled คงเดิม, presentation-only. **⚠️ จุด minor:** `CourseDetailPage:603-609` ปุ่ม emerald "Set active version" ไม่ถูก migrate (IconButton ไม่มี tone success) — แนะนำ follow-up เพิ่ม tone `success` แล้ว migrate จุดเดียวนี้; `<Link>` :611 เว้นถูกต้อง. **071 SegmentedToggle (B1):** เพิ่ม `variant='filter'` (active `bg-indigo-600`), migrate 7 จุด (segment 4 + filter 3), `options`/`value`/`onChange` คง state เดิม, **`bg-blue-600` src/pages = 0** (reviewer ยืนยัน). reviewer รันเอง: `npm run lint` clean + `npm run build` เขียว. → 070 & 071 DONE→**VERIFIED**
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-070-*.md` + `PLAN-071-*.md` (→VERIFIED + sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `SegmentedToggle` เพิ่ม prop `variant?: 'segment'|'filter'`; ปุ่ม icon/toggle ทั่ว pages ใช้ primitive กลาง
+- Verified: `npm run lint` + `npm run build` ผ่าน; `bg-blue-600` src/pages=0; icon-only leftover เหลือ 1 (emerald, minor) + 1 `<Link>` (นอก scope)
+- คงเหลือ: (1) emerald "Set active version" migrate (follow-up สั้น ถ้าต้องการ) (2) commit — 070+071 พันกัน = ก้อนเดียว; **ยังไม่ commit** (รอผู้ใช้)
+
+## [2026-07-10] GitHub Copilot (Claude Opus 4.6) — PLAN-071 DONE (segmented toggles + filter chips → SegmentedToggle)
+- ทำอะไร: migrate segmented toggle ทุกจุดตาม PLAN-071 ครบ 7 ไฟล์ (approach B1: extended `SegmentedToggle` with `variant='filter'`). Section A — 4 two-option toggles (BulkAssign mode, picker/bulk tabs ×3) แปลงเป็น `<SegmentedToggle>`. Section B — 3 filter-chip rows (AssignmentDetail learner status, AssignmentReport status, CourseList type) แปลงเป็น `<SegmentedToggle variant="filter">` กำจัด `bg-blue-600` ใน src/pages ได้ครบ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/SegmentedToggle.tsx` (เพิ่ม `variant` prop), `src/pages/assignments/BulkAssignPage.tsx`, `AssignmentDetailPage.tsx`, `AssignmentReportPage.tsx`, `src/pages/courses/CourseListPage.tsx`, `src/pages/learner-groups/LearnerGroupEditorPage.tsx`, `LearnerGroupDetailPage.tsx`, `DOC/PLANS/PLAN-071-*.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `SegmentedToggle` เพิ่ม optional prop `variant?: 'segment' | 'filter'` (backward-compatible, default='segment')
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, `rg bg-blue-600 src/pages` = 0 (เกณฑ์บังคับ)
+
+## [2026-07-10 —] Claude Code — reassign PLAN-071 → GitHub Copilot (Claude Opus 4.6)
+- ทำอะไร: ผู้ใช้สั่งเปลี่ยน Assigned ของ PLAN-071 (Phase 3 segmented→SegmentedToggle) เป็น **GitHub Copilot (Claude Opus 4.6)** (จากเดิม GitHub Copilot (GPT)) — สถานะยัง READY. หมายเหตุ: PLAN-070 GPT mark DONE แล้ว รอ Claude Code รีวิว
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-071-*.md` (Assigned), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (coordination)
+- Verified: — (เปลี่ยน assignee เท่านั้น)
+
+## [2026-07-10] GitHub Copilot (GPT) — PLAN-070 DONE (icon-only buttons → IconButton)
+- ทำอะไร: migrate ปุ่ม icon-only ตาม PLAN-070 ครบ 12 ไฟล์ โดยแปลง row actions และ modal close (`X`) ไปใช้ `IconButton` พร้อม map tone ตามสีเดิม (`danger/primary/neutral`) และคง handler/state เดิมทั้งหมด (presentation-only). จุดหลัก: AssignmentDetail, CourseList, LearnerGroupList, LearnerGroupDetail, VersionDetail, CourseEditor, VersionForm, CourseDetail, BulkAssign, LearnerGroupCategories, ContentItemEditor, LearnerGroupEditor
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `BulkAssignPage.tsx`, `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `CourseEditorPage.tsx`, `CourseListPage.tsx`, `VersionDetailPage.tsx`, `VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `LearnerGroupEditorPage.tsx`, `LearnerGroupListPage.tsx`, `iLearn.Admin.React/src/pages/master-data/LearnerGroupCategoriesPage.tsx`, `DOC/PLANS/PLAN-070-button-consolidation-phase2-iconbutton.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI presentation-only)
+- Verified: `npm run lint` ผ่าน, `npm run build` ผ่าน, grep pattern เดิมของ icon-only ลดเหลือ 1 จุดที่เป็น `<Link>` (ไม่ใช่ `<button>`)
+
+## [2026-07-10 —] Claude Code — reassign PLAN-070 + PLAN-071 → GitHub Copilot (GPT)
+- ทำอะไร: ผู้ใช้สั่งเปลี่ยนผู้รับผิดชอบ PLAN-070 (Phase 2 icon-only→IconButton) และ PLAN-071 (Phase 3 segmented→SegmentedToggle) จาก Antigravity (Gemini) เป็น **GitHub Copilot (GPT)** — อัปเดตฟิลด์ Assigned ในหัวแผนทั้งสอง (สถานะยัง READY)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-070-*.md`, `PLAN-071-*.md` (Assigned→GPT), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (coordination)
+- Verified: — (เปลี่ยน assignee เท่านั้น)
+- ถึง GPT: รับ PLAN-070 กับ 071 ได้เลย (READY) — primitive `IconButton`/`SegmentedToggle` พร้อมจาก PLAN-069 (`9c4ae6d`); 071 มีจุดตัดสินใจ B1/B2 เรื่อง filter chips + เกณฑ์บังคับ `bg-blue-600` ใน src/pages = 0. ถึง Gemini: 2 แผนนี้ไม่ใช่ของคุณแล้ว
+
+## [2026-07-10 —] Claude Code — commit PLAN-069 (9c4ae6d) + เตรียมแผน Phase 2/3 (PLAN-070/071)
+- ทำอะไร: commit งาน PLAN-069 Phase 0+1 (15 ไฟล์, `9c4ae6d`) หลังตรวจ diff ทุกไฟล์เป็น button-migration ล้วน (working tree เป็น 069 ล้วน — 067/068 commit ไปแล้วที่ `70c2bf8`). แล้ว enumerate งานที่เหลือด้วย grep → เขียน 2 แผน: **PLAN-070** (Phase 2: icon-only → `IconButton`, ~39 จุด/12 ไฟล์, close-X + row remove/reset/edit, map tone danger/primary/neutral, presentation-only); **PLAN-071** (Phase 3: segmented → `SegmentedToggle` — 2-option tabs 4 จุด [BulkAssign mode, picker/bulk tabs ×3] + filter-chip rows 3 จุด [AssignmentDetail/AssignmentReport status, CourseList type]; เกณฑ์บังคับ: `bg-blue-600` ใน src/pages = 0 หลังงาน). primitive ทั้งสองพร้อมจาก 069 แล้ว
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-070-*.md` + `PLAN-071-*.md` (ใหม่), `DOC/AGENT_LOG.md`; commit `9c4ae6d` (โค้ด 069)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (commit ของ 069 มี `AppButton.size` แล้ว; 070/071 เป็นแผน)
+- Verified: `9c4ae6d` committed สำเร็จ 15 ไฟล์; แผน 070/071 enumerate จาก grep จริง
+- ถึง Gemini: PLAN-070 กับ 071 ทำแยกกันได้ (คนละ primitive/surface) — 071 มีจุดตัดสินใจ B1/B2 เรื่อง filter chips
+
 ## [2026-07-10 —] Claude Code — รีวิว PLAN-069 Phase 0+1 ผ่าน (VERIFIED) — button design system
 - ทำอะไร: ตรวจงาน Gemini. **Phase 0:** `AppButton` เพิ่ม prop `size` (`md`=คลาสเดิมเป๊ะ → 46 ปุ่มเดิมไม่เพี้ยน, `sm` ตรงสเปก); สร้าง `IconButton`(tone/size/title-a11y) + `SegmentedToggle` — grep ยืนยัน **ยังไม่ถูกใช้ในหน้าใด (Phase 2/3 defer จริง ไม่ creep)**. **Phase 1:** ตรวจ diff 2 ไฟล์ใหญ่ละเอียด (AssignmentDetailPage/LearnerGroupDetailPage) — Cancel→ghost, primary→primary (blue "Analyze&Preview"→indigo), danger→danger+icon, onClick/handler/state คงเดิม, loading ternary→prop `loading` ถูกต้อง (effective-disabled เท่าเดิม). Implementer Notes ของ Gemini เขียนไม่ครบ (ระบุ 3-4 จุด แต่ diff จริง migrate ครบ 9 ไฟล์). **Acceptance grep:** `bg-blue-600|bg-indigo-600|rounded-lg text-sm` เหลือ 8 จุด แต่**ไม่มีปุ่มแอ็กชันตกหล่น** — เป็น label/input/textarea + segmented-toggle chips (Phase 3 defer, รวมปุ่ม type-filter blue ใน CourseListPage). reviewer รันเอง: `npm run lint` clean + `npm run build` เขียว. → PLAN-069 DONE→**VERIFIED**
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-069-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`

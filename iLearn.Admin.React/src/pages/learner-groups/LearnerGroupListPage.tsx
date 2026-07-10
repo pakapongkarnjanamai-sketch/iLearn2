@@ -16,6 +16,7 @@ import {
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { IconButton } from '../../components/ui/IconButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
@@ -608,43 +609,43 @@ export function LearnerGroupListPage() {
       render: item => (
         <div className="flex items-center justify-center gap-1.5" onClick={event => event.stopPropagation()}>
           {item.isFolder ? (
-            <button
+            <IconButton
               type="button"
               onClick={() => void handleDeleteFolder(item.original as CategoryLookup)}
-              className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+              icon={Trash2}
+              tone="danger"
+              size="sm"
               title="Delete Folder"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            />
           ) : (
             <>
-              <button
+              <IconButton
                 type="button"
                 onClick={() => handleOpenMove(item.original as GroupDto)}
-                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                icon={ArrowRightLeft}
+                tone="primary"
+                size="sm"
                 title="Move Group"
-              >
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-              </button>
-              <button
+              />
+              <IconButton
                 type="button"
                 onClick={() => void handleDeleteGroup(item.original as GroupDto)}
-                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                icon={Trash2}
+                tone="danger"
+                size="sm"
                 title="Delete Group"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              />
             </>
           )}
 
-          <button
+          <IconButton
             type="button"
             onClick={() => handleOpenItem(item)}
-            className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-md transition cursor-pointer"
+            icon={item.isFolder ? ArrowUpRight : Info}
+            tone="neutral"
+            size="sm"
             title={item.isFolder ? 'Open Folder' : 'Open Group Details'}
-          >
-            {item.isFolder ? <ArrowUpRight className="h-3.5 w-3.5" /> : <Info className="h-3.5 w-3.5" />}
-          </button>
+          />
         </div>
       ),
     },
@@ -706,13 +707,13 @@ export function LearnerGroupListPage() {
                 <FolderPlus className="h-5 w-5 text-indigo-500" />
                 <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Create Folder</h3>
               </div>
-              <button
+              <IconButton
                 type="button"
                 onClick={() => setIsNewFolderOpen(false)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
             </div>
 
             <div className="px-6 py-4 space-y-3">
@@ -794,13 +795,13 @@ export function LearnerGroupListPage() {
                 <ArrowRightLeft className="h-5 w-5 text-indigo-500" />
                 <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Move Learner Group</h3>
               </div>
-              <button
+              <IconButton
                 type="button"
                 onClick={() => setMovingGroup(null)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
             </div>
 
             <div className="px-6 py-3 border-b border-slate-100 bg-indigo-50/40 text-xs font-semibold text-slate-600">

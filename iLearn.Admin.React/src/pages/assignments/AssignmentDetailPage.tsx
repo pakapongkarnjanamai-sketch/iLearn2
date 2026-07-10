@@ -22,7 +22,9 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { AppButton } from '../../components/ui/AppButton'
+import { IconButton } from '../../components/ui/IconButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
+import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
@@ -732,13 +734,13 @@ export function AssignmentDetailPage() {
                       <span className="text-xxs font-bold text-slate-500">
                         {c.completedLearners} / {c.totalLearners} completed
                       </span>
-                      <button
+                      <IconButton
                         onClick={() => handleRemoveCourse(c.assignmentRuleId)}
-                        className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                        icon={Trash2}
+                        tone="danger"
+                        size="sm"
                         title="Remove course from assignment"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      />
                     </div>
                   </li>
                 ))}
@@ -772,22 +774,16 @@ export function AssignmentDetailPage() {
                   onSearchChange={setLearnerSearch}
                   searchPlaceholder="Search code, name, division, department..."
                   toolbarContent={
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {(['All', ...LEARNER_STATUS_KEYS] as const).map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setLearnerStatusFilter(s)}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
-                            learnerStatusFilter === s
-                              ? 'border-indigo-500 bg-indigo-600 text-white shadow-3xs font-bold'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          {s === 'All' ? 'All' : learnerStatusLabel(s)}
-                        </button>
-                      ))}
-                    </div>
+                    <SegmentedToggle
+                      variant="filter"
+                      options={[
+                        { value: 'All', label: 'All' },
+                        ...LEARNER_STATUS_KEYS.map(s => ({ value: s, label: learnerStatusLabel(s) })),
+                      ]}
+                      value={learnerStatusFilter}
+                      onChange={setLearnerStatusFilter}
+                      className="flex-wrap"
+                    />
                   }
                 />
               </div>
@@ -899,13 +895,13 @@ export function AssignmentDetailPage() {
                                       <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-16" />
                                       <StatusBadge size="xxs">{learnerStatusLabel(c.status)}</StatusBadge>
                                       {typeof c.assignmentRuleId === 'number' && (
-                                        <button
+                                        <IconButton
                                           onClick={() => handleResetLearnerCourse(l.learnerCode, c.assignmentRuleId as number, c.courseTitle || c.courseCode || '')}
-                                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                                          icon={RotateCcw}
+                                          tone="neutral"
+                                          size="sm"
                                           title="Reset this course only"
-                                        >
-                                          <RotateCcw className="h-3 w-3" />
-                                        </button>
+                                        />
                                       )}
                                     </div>
                                   </div>
@@ -925,20 +921,20 @@ export function AssignmentDetailPage() {
                           </td>
                           <td className="p-3 text-center align-top">
                             <div className="inline-flex items-center gap-1.5">
-                              <button
+                              <IconButton
                                 onClick={() => handleResetLearner(l.learnerCode)}
-                                className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
+                                icon={RotateCcw}
+                                tone="primary"
+                                size="sm"
                                 title="Reset all courses for this learner"
-                              >
-                                <RotateCcw className="h-3.5 w-3.5" />
-                              </button>
-                              <button
+                              />
+                              <IconButton
                                 onClick={() => handleRemoveLearner(l.learnerCode)}
-                                className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                icon={Trash2}
+                                tone="danger"
+                                size="sm"
                                 title="Remove learner from batch"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              />
                             </div>
                           </td>
                         </tr>
@@ -989,9 +985,12 @@ export function AssignmentDetailPage() {
                 <CalendarClock className="h-5 w-5 text-indigo-600" />
                 <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Extend Due Date</h3>
               </div>
-              <button onClick={() => setShowDueDateModal(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
-                <X className="h-5 w-5" />
-              </button>
+              <IconButton
+                onClick={() => setShowDueDateModal(false)}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
             </div>
 
             <div className="px-6 py-5 space-y-4">
@@ -1044,9 +1043,12 @@ export function AssignmentDetailPage() {
                 <BookPlus className="h-5 w-5 text-indigo-600" />
                 <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Add Courses to Batch</h3>
               </div>
-              <button onClick={() => setAddingCourses(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer">
-                <X className="h-5 w-5" />
-              </button>
+              <IconButton
+                onClick={() => setAddingCourses(false)}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
             </div>
 
             <div className="px-6 py-3 border-b border-slate-100 shrink-0">
@@ -1142,33 +1144,23 @@ export function AssignmentDetailPage() {
               </div>
 
               <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setMemberAddTab('picker')}
-                  className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                    memberAddTab === 'picker' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Directory Search
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMemberAddTab('bulk')}
-                  className={`px-3 py-1 text-center text-xs font-bold rounded transition cursor-pointer ${
-                    memberAddTab === 'bulk' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Bulk Import (EIds)
-                </button>
+                <SegmentedToggle
+                  options={[
+                    { value: 'picker', label: 'Directory Search' },
+                    { value: 'bulk', label: 'Bulk Import (EIds)' },
+                  ]}
+                  value={memberAddTab}
+                  onChange={setMemberAddTab}
+                />
               </div>
 
-              <button
+              <IconButton
                 onClick={closeAddLearnersModal}
-                className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 p-1 transition cursor-pointer"
+                icon={X}
                 title="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                tone="neutral"
+                size="sm"
+              />
             </div>
 
             {/* Modal Body */}

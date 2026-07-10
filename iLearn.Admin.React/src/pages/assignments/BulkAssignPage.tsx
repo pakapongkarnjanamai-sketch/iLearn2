@@ -12,7 +12,9 @@ import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
+import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 
 type LookupCourse = {
@@ -242,26 +244,14 @@ export function BulkAssignPage() {
   }
 
   const renderModeToggle = () => (
-    <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg select-none shrink-0 border border-slate-200/40">
-      <button
-        type="button"
-        onClick={() => setTargetMode('group')}
-        className={`py-1 px-2.5 text-center text-[11px] font-extrabold rounded-md transition cursor-pointer ${
-          targetMode === 'group' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
-        }`}
-      >
-        Group
-      </button>
-      <button
-        type="button"
-        onClick={() => setTargetMode('custom')}
-        className={`py-1 px-2.5 text-center text-[11px] font-extrabold rounded-md transition cursor-pointer ${
-          targetMode === 'custom' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
-        }`}
-      >
-        Individual
-      </button>
-    </div>
+    <SegmentedToggle
+      options={[
+        { value: 'group', label: 'Group' },
+        { value: 'custom', label: 'Individual' },
+      ]}
+      value={targetMode}
+      onChange={setTargetMode}
+    />
   )
 
   const renderChooseCoursesStep = () => (
@@ -343,14 +333,14 @@ export function BulkAssignPage() {
                     <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
                     <span className="text-slate-400 font-mono text-xs mt-0.5 font-bold">{c.code}</span>
                   </div>
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => handleToggleCourse(c.id)}
-                    className="h-5 w-5 shrink-0 text-red-500 hover:bg-rose-50 rounded-md flex items-center justify-center transition cursor-pointer"
-                    aria-label="Remove course"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                    icon={X}
+                    tone="danger"
+                    size="sm"
+                    title="Remove course"
+                  />
                 </div>
               ))
             )}

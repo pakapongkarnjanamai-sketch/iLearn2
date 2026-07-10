@@ -8,6 +8,7 @@ import {
 import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
+import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ReadinessBadge } from '../../components/ui/ReadinessBadge'
 import { formatBytes } from '../../lib/format'
@@ -219,14 +220,15 @@ export function ContentItemEditorPage() {
                   <ReadinessBadge ready tone="info" label="Ready" />
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => setFile(null)}
-                    className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                    icon={X}
+                    tone="danger"
+                    size="sm"
                     aria-label="Remove content"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                    title="Remove content"
+                  />
                 </td>
               </tr>
             </tbody>

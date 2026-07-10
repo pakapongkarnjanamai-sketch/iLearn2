@@ -14,6 +14,8 @@ import { LearnerDirectorySelector, type LearnerSelection } from '../../component
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { AppButton } from '../../components/ui/AppButton'
+import { IconButton } from '../../components/ui/IconButton'
+import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -394,26 +396,14 @@ export function LearnerGroupEditorPage() {
   const renderMembersStep = () => (
     <div className="flex flex-col gap-3 flex-1 min-h-0 w-full">
       <div className="flex justify-end select-none shrink-0">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg text-xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('picker')}
-            className={`px-2.5 py-1 text-center font-extrabold rounded-md transition cursor-pointer ${
-              activeTab === 'picker' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Directory Search
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('bulk')}
-            className={`px-2.5 py-1 text-center font-extrabold rounded-md transition cursor-pointer ${
-              activeTab === 'bulk' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Bulk Import (EIds)
-          </button>
-        </div>
+        <SegmentedToggle
+          options={[
+            { value: 'picker', label: 'Directory Search' },
+            { value: 'bulk', label: 'Bulk Import (EIds)' },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col">
@@ -542,13 +532,13 @@ export function LearnerGroupEditorPage() {
               <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Category Folder Explorer</h3>
             </div>
 
-            <button
+            <IconButton
               type="button"
               onClick={() => setIsExplorerOpen(false)}
-              className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-1.5 rounded-full transition cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+            />
           </div>
 
           <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 text-xxs font-semibold text-slate-400 uppercase select-none">

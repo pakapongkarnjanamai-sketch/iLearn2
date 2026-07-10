@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Edit3, Trash2, FolderTree } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
+import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -141,23 +142,23 @@ export function LearnerGroupCategoriesPage() {
                         <td className="px-3 py-2.5 text-center font-mono">{c.learnerGroupCount}</td>
                         <td className="px-3 py-2.5">
                           <div className="flex items-center justify-end gap-1">
-                            <button
+                            <IconButton
                               type="button"
                               title="Edit"
                               onClick={() => navigate(`/master-data/learner-group-categories/${c.id}/edit`)}
-                              className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer"
-                            >
-                              <Edit3 className="h-3.5 w-3.5" />
-                            </button>
-                            <button
+                              icon={Edit3}
+                              tone="primary"
+                              size="sm"
+                            />
+                            <IconButton
                               type="button"
                               title="Delete"
                               onClick={() => handleDelete(c)}
                               disabled={busy || c.hasChildren || c.learnerGroupCount > 0}
-                              className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                              icon={Trash2}
+                              tone="danger"
+                              size="sm"
+                            />
                           </div>
                         </td>
                       </tr>

@@ -2,7 +2,7 @@ import { createElement, isValidElement } from 'react'
 import type { ButtonHTMLAttributes, ElementType, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
-type IconButtonTone = 'neutral' | 'primary' | 'danger'
+type IconButtonTone = 'neutral' | 'primary' | 'danger' | 'success'
 type IconButtonSize = 'sm' | 'md' | 'lg'
 
 type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -16,6 +16,7 @@ const toneStyles: Record<IconButtonTone, string> = {
   neutral: 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/80 active:bg-slate-200/50',
   primary: 'text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 active:bg-indigo-100/50',
   danger: 'text-red-500 hover:text-red-700 hover:bg-red-50 active:bg-red-100/50',
+  success: 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100/50',
 }
 
 const sizeStyles: Record<IconButtonSize, string> = {

@@ -15,6 +15,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { Badge } from '../../components/ui/Badge'
+import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { getContentReadinessBadgeModel, ReadinessBadge } from '../../components/ui/ReadinessBadge'
 
@@ -438,15 +439,32 @@ export function VersionFormPage() {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
-                      <button type="button" onClick={() => moveContentItem(item.uid, -1)} disabled={index === 0} className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Move content up">
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button type="button" onClick={() => moveContentItem(item.uid, 1)} disabled={index === contentItems.length - 1} className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Move content down">
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                      <button type="button" onClick={() => removeContentItem(item.uid)} className="p-1 text-red-500 hover:bg-rose-50 rounded-md transition cursor-pointer" aria-label="Remove content">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                      <IconButton
+                        type="button"
+                        onClick={() => moveContentItem(item.uid, -1)}
+                        disabled={index === 0}
+                        icon={ArrowUp}
+                        tone="primary"
+                        size="sm"
+                        title="Move content up"
+                      />
+                      <IconButton
+                        type="button"
+                        onClick={() => moveContentItem(item.uid, 1)}
+                        disabled={index === contentItems.length - 1}
+                        icon={ArrowDown}
+                        tone="primary"
+                        size="sm"
+                        title="Move content down"
+                      />
+                      <IconButton
+                        type="button"
+                        onClick={() => removeContentItem(item.uid)}
+                        icon={X}
+                        tone="danger"
+                        size="sm"
+                        title="Remove content"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -607,14 +625,15 @@ export function VersionFormPage() {
             className="modal-window modal-window-lg p-5 relative animate-scale-in"
             onClick={e => e.stopPropagation()}
           >
-            <button
+            <IconButton
               type="button"
               onClick={() => setShowLibraryPopup(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer z-10"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              title="Close"
+              tone="neutral"
+              size="sm"
+              className="absolute top-4 right-4 z-10"
+            />
 
             <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
               <BookOpen className="h-5 w-5 text-indigo-600" />
