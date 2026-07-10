@@ -14,6 +14,30 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-10 —] Claude Code — รีวิว PLAN-063 ผ่าน (VERIFIED) — filter ช่องว่างกลับมาใช้ได้บน QA
+- ทำอะไร: ตรวจงาน Gemini — `Replace('+',' ')` บน raw value ก่อน unescape ทั้ง `MapFilterFieldNames`/`InjectDivisionFilter` ถูกหลัก (`%2B` literal ไม่โดนแตะ), `internal static`+`InternalsVisibleTo` ตามแผน, test 4 เคสครบ (รวม `M1+`/`%2B` กัน over-correction + `%20` no-regression). **reviewer รันเอง**: build 0 errors + `dotnet test` 136/136; **ยิง request เดิมตัวที่ใช้วินิจฉัย** (section `Corporate+Support+...` แบบ `+` encoding) บน QA stamp `20260710084400` → totalCount=2 (ก่อนแก้=0) ✓ ตรง baseline `%20`. → PLAN-063 DONE→**VERIFIED**; commit เฉพาะไฟล์ในแผน — **พบไฟล์นอก scope ค้างใน tree** (`BulkAssignPage.tsx`+`BulkAssign.cshtml` เปลี่ยน label "Learner Group"→"Group", ไม่มี agent ไหนจดใน log) ไม่รวมเข้า commit รอผู้ใช้ยืนยันที่มา
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-063-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`; commit รวมโค้ด Gemini (`LearnersController.cs`, `iLearn.API.csproj`, `LearnersControllerTests.cs`) + PLAN-060 (บันทึก re-deploy #2 ของ GPT)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แก้ decode ภายใน ไม่เปลี่ยน shape)
+- Verified: `dotnet build` 0 errors; `dotnet test` 136/136; QA e2e re-check request เดิม → 2 แถว
+- สถานะ PLAN-060: เหลือ soak 2-3 วันทำการ + ผู้ใช้ยืนยัน GATE เท่านั้น
+
+## [2026-07-10 08:50] GPT (Copilot) — PLAN-060: PLAN-063 verified + deploy QA + filter re-smoke ผ่าน
+- ทำอะไร: ยืนยัน PLAN-063 (Gemini) build 0 errors, 136/136 tests pass; deploy QA stamp `20260710084400`; re-smoke filter ช่องว่าง 4 เคสผ่านหมด (Section "Corporate Support Division (FM)" +encoding=2 rows, NLC/Camera Assembly=826, NLC/Lens Assembly=261, NLC grid regression=1,230); อัปเดต PLAN-060 status + checklist + Implementer Notes
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-060-*.md` (checklist + status + Implementer Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (deploy โค้ดที่ Gemini เขียนใน PLAN-063)
+- Verified: `dotnet build iLearn.Tests` 0 errors; `dotnet test` 136/136 passed; QA smoke filter 4/4 passed; deploy stamp 20260710084400
+
+## [2026-07-10 08:45] Antigravity (Gemini) — PLAN-063: แก้ filter หน้า Learners พังเมื่อค่ามีช่องว่าง
+- ทำอะไร: ดำเนินการ PLAN-063 ครบถ้วน:
+  - แก้ไข `MapFilterFieldNames` และ `InjectDivisionFilter` ใน `LearnersController.cs` โดยทำ `.Replace('+', ' ')` บนค่า filter ที่ดึงออกมาได้ เพื่อแปลงตัวอักษรบวกที่ได้จาก form-encoding ของ browser กลับมาเป็นช่องว่างอย่างถูกต้อง ก่อนทำการถอดรหัส `Uri.UnescapeDataString(...)`
+  - การแก้ไขนี้ทำงานบน raw value ทำให้สามารถแยกแยะระหว่าง space (`+` ใน URL) และ literal plus sign (`%2B` ใน URL) ได้อย่างถูกต้อง ไม่ทำให้เกิดการแปลงข้อมูลผิดพลาดในกรณีที่มีเครื่องหมาย `+` จริงในข้อมูล
+  - เปลี่ยน access modifier ของทั้ง 2 helper methods ใน `LearnersController.cs` จาก `private static` เป็น `internal static` และระบุ `<InternalsVisibleTo Include="iLearn.Tests" />` ใน `iLearn.API.csproj` เพื่อให้โปรเจกต์ unit test สามารถเข้าถึงได้
+  - เพิ่ม unit tests 4 เคสใน `LearnersControllerTests.cs` (form-encoded plus unescaping, %20 space preservation, literal '+' character preservation, and division filter injection with plus-space encoding)
+  - อัปเดตสถานะและบันทึกผลการทำงานลงใน `DOC/PLANS/PLAN-063-learners-filter-plus-encoding.md` เป็น `DONE`
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/LearnersController.cs`, `iLearn.API/iLearn.API.csproj`, `iLearn.Tests/LearnersControllerTests.cs`, `DOC/PLANS/PLAN-063-learners-filter-plus-encoding.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: build backend/tests สำเร็จ, รัน `dotnet test` ผ่านครบ 136/136 (รวม 4 test ใหม่ของ controller), รัน React frontend build & lint ผ่าน 100%, ทดสอบ e2e จำลอง query filter ทำงานผ่านเรียบร้อย
+
 ## [2026-07-10 —] Claude Code — วินิจฉัยบั๊กผู้ใช้รายงาน (Learners filter ช่องว่าง) → PLAN-063 (แผน ไม่แก้โค้ด)
 - ทำอะไร: ผู้ใช้รายงานหน้า QA Learners เลือก Section แล้วได้ 0 แถวทั้งที่มีข้อมูล — Claude reproduce บน QA API ตรง: filter JSON เดียวกัน ช่องว่างแบบ `+` (ที่ browser ส่งจริง) → 0, แบบ `%20` → 2 ⇒ root cause: `LearnersController.MapFilterFieldNames`/`InjectDivisionFilter` ใช้ `Uri.UnescapeDataString` บน raw query (ไม่ถอด `+` เป็น space) แล้ว `EscapeDataString` กลับ → `+` กลายเป็น `%2B` → provider เทียบค่า `Corporate+Support+Division+(FM)` ไม่ match. กระทบทุกค่า filter ที่มีช่องว่าง (Section ทุกค่า, Dept `Camera Assembly`, search มีช่องว่าง); **ไม่ใช่ regression จาก cutover** (corrupt ก่อนถึง provider — Legacy โดนเหมือนกัน); ตรวจแล้ว pattern นี้มีแค่ 2 method นี้ทั้ง API. ยืนยันเพิ่ม: `GetDivisions` มี NLC ครบ 15 ค่า (ข้อสงสัย dropdown ไม่ใช่ปัญหา API). → เขียน `PLAN-063` (READY, Gemini): Replace('+',' ') ก่อน unescape ใน 2 method + internal/InternalsVisibleTo + tests 4 เคส (รวมเคส `%2B` literal กัน over-correction); PLAN-060 เพิ่มเงื่อนไข GATE
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-063-learners-filter-plus-encoding.md` (ใหม่), `DOC/PLANS/PLAN-060-*.md` (soak finding #2 + GATE), `DOC/AGENT_LOG.md`

@@ -1,6 +1,6 @@
 # PLAN-063: แก้ filter หน้า Learners พังเมื่อค่ามีช่องว่าง — `+` (form-encoding) ถูก corrupt ใน LearnersController
 
-- **Status:** READY
+- **Status:** VERIFIED — reviewer ตรวจโค้ด + รัน 136/136 เอง + ยิง request เดิมที่เคยพังบน QA ซ้ำ ได้ 2 แถวตามคาด (ดู Reviewer Sign-off ท้ายไฟล์); deploy QA แล้ว stamp `20260710084400`
 - **Assigned:** Gemini (Antigravity)
 - **Reviewer:** Claude Code
 - **Priority:** High — ผู้ใช้เจอเองบน QA ระหว่าง soak ของ [PLAN-060](PLAN-060-employeehub-cutover-qa-prod.md) → เป็นเงื่อนไขเพิ่มของ Phase 2 GATE
@@ -33,12 +33,12 @@ filter JSON เดียวกัน `["section","=","Corporate Support Division
 
 ## Scope
 
-- [ ] **S1 — แก้ 2 จุดใน [`LearnersController.cs`](../../iLearn.API/Controllers/LearnersController.cs):** ใน `MapFilterFieldNames` (~บรรทัด 296) และ `InjectDivisionFilter` (~บรรทัด 326) เปลี่ยนบรรทัดดึงค่า filter เป็น:
+- [x] **S1 — แก้ 2 จุดใน [`LearnersController.cs`](../../iLearn.API/Controllers/LearnersController.cs):** ใน `MapFilterFieldNames` (~บรรทัด 296) และ `InjectDivisionFilter` (~บรรทัด 326) เปลี่ยนบรรทัดดึงค่า filter เป็น:
   ```csharp
   var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value.Replace('+', ' '));
   ```
   หลักการ: `Replace('+',' ')` ทำบน **raw encoded value** — `+` (form-encoded space) กลายเป็นช่องว่างจริง ส่วน `%2B` (เครื่องหมาย `+` literal ในข้อมูล) ไม่ถูก Replace แตะ และ decode ออกมาเป็น `+` ถูกต้อง → ตอน `EscapeDataString` ขาออก ช่องว่างเป็น `%20` ซึ่งปลอดภัยทั้ง provider EmployeeHub และ upstream Legacy (pattern เดียวกับที่ PLAN-058 FIX รอบ 2 ใช้ใน `ParseLoadOptions` แล้ว)
-- [ ] **S2 — Tests:** เปลี่ยน 2 method จาก `private static` เป็น `internal static` + เพิ่ม `InternalsVisibleTo` ให้ `iLearn.Tests` (Tests อ้าง `iLearn.API.csproj` อยู่แล้ว — ใส่ `[assembly: InternalsVisibleTo("iLearn.Tests")]` หรือ `<InternalsVisibleTo Include="iLearn.Tests" />` ใน csproj ตาม convention ที่สะดวก) แล้วเพิ่ม test อย่างน้อย 4 เคส:
+- [x] **S2 — Tests:** เปลี่ยน 2 method จาก `private static` เป็น `internal static` + เพิ่ม `InternalsVisibleTo` ให้ `iLearn.Tests` (Tests อ้าง `iLearn.API.csproj` อยู่แล้ว — ใส่ `[assembly: InternalsVisibleTo("iLearn.Tests")]` หรือ `<InternalsVisibleTo Include="iLearn.Tests" />` ใน csproj ตาม convention ที่สะดวก) แล้วเพิ่ม test อย่างน้อย 4 เคส:
   1. `MapFilterFieldNames` กับ filter ที่ encode ช่องว่างเป็น `+` (`section` → `Section`) → decode ค่าที่ map แล้วต้องได้ `Corporate Support Division (FM)` (ช่องว่างจริง ไม่มี `+`)
   2. `MapFilterFieldNames` กับ `%20` encoding เดิม → ยังถูกต้อง (ไม่ regress)
   3. ค่าที่มี `%2B` (เครื่องหมาย + จริงในข้อมูล เช่น grade `M1+`) → ยังเป็น `+` literal หลัง round-trip (กัน over-correction)
@@ -74,4 +74,21 @@ Remove-Item -Recurse -Force artifacts/verify-test
 
 ## Implementer Notes
 
-(เติมหลังทำเสร็จ)
+- **S1 & S2**: Updated `MapFilterFieldNames` and `InjectDivisionFilter` in `LearnersController.cs` to be `internal static` instead of `private static`. Added `<InternalsVisibleTo Include="iLearn.Tests" />` to `iLearn.API.csproj` so the test assembly can access them.
+- Implemented the `Replace('+', ' ')` logic on the raw encoded query string parameter value before `Uri.UnescapeDataString(...)` is called. This decodes form-encoded spaces correctly, avoids corrupting `%2B` (representing literal '+' sign), and outputs `%20` on re-escaping.
+- Added 4 unit tests in `LearnersControllerTests.cs` to cover:
+  1. Space encoding with form-encoded `+` (maps and decodes successfully to space).
+  2. Space encoding with `%20` (preserves spaces correctly, ensuring no regression).
+  3. Literal `+` characters encoded as `%2B` (preserved correctly as `+` literal).
+  4. Injecting division filter onto a query string containing form-encoded `+` (preserves spaces and appends the division filter with `"and"` correctly).
+- Ran all xUnit unit tests: **136/136 tests passed** successfully.
+- Verified frontend build & lint (both passed successfully).
+- **S3**: Verified e2e locally. The `+` characters in filter query strings are now correctly unescaped to spaces, enabling proper filtering of items with spaces in division, department, and section fields.
+
+## Reviewer Sign-off (Claude Code, 2026-07-10) — ✅ VERIFIED
+
+- **S1 ตรงสเปกเป๊ะ**: `Replace('+',' ')` บน raw encoded value ก่อน `UnescapeDataString` ทั้ง 2 method — `%2B` (plus literal) ไม่ถูกแตะ, form-encoded space ถูกคืนเป็นช่องว่างจริง; ไม่มีการแก้ logic/regex อื่น
+- **S2**: `internal static` + `<InternalsVisibleTo Include="iLearn.Tests" />` ตาม convention; test 4 เคสครบรวมเคสกัน over-correction (`M1+` → `%2B` ยังเป็น `+` literal) และเคส `%20` no-regression — **reviewer รันเอง: build 0 errors, `dotnet test` 136/136 passed**
+- **พิสูจน์ e2e บน QA build ที่ deploy จริง** (stamp `20260710084400`): reviewer ยิง **request เดิมตัวเดียวกับตอนวินิจฉัย** (filter section `Corporate+Support+Division+(FM)` แบบ `+` encoding) → **totalCount = 2** (ก่อนแก้ = 0) — ตรงกับ `%20` baseline ✓; re-smoke ของ GPT (Camera Assembly=826, Lens Assembly=261, NLC=1,230) สอดคล้อง
+- Acceptance 1-3 ผ่านครบ — **ผู้ใช้ทดสอบผ่าน UI ได้เลย** (เลือก Section ตามภาพที่รายงาน ต้องเห็น 2 แถว)
+- หมายเหตุ: พบไฟล์นอก scope ใน working tree (`BulkAssignPage.tsx`, `BulkAssign.cshtml` — เปลี่ยน label "Learner Group"→"Group") ไม่ใช่ของแผนนี้และไม่มีใน AGENT_LOG ของ agent ใด — reviewer ไม่รวมเข้า commit นี้ รอผู้ใช้ยืนยันที่มา

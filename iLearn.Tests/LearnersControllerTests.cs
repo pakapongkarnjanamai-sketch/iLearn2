@@ -197,5 +197,79 @@ namespace iLearn.Tests
             public Task<Dictionary<string, ExternalLearnerDto>> GetLearnersByCodesAsync(IEnumerable<string> codes) => throw new NotImplementedException();
             public Task<Dictionary<string, EmployeeCsvDto>> GetEmployeesByNidsAsync(IEnumerable<string> nids) => throw new NotImplementedException();
         }
+
+        [Fact]
+        public void MapFilterFieldNames_FormEncodedPlus_DecodesToSpaceAndMapsField()
+        {
+            // query: filter=["section","=","Corporate+Support+Division+(FM)"]
+            var queryString = "?filter=%5B%22section%22%2C%22%3D%22%2C%22Corporate+Support+Division+%28FM%29%22%5D";
+            
+            var result = LearnersController.MapFilterFieldNames(queryString);
+            
+            var match = System.Text.RegularExpressions.Regex.Match(result, @"filter=([^&]*)");
+            Assert.True(match.Success);
+            var decoded = Uri.UnescapeDataString(match.Groups[1].Value);
+            
+            // Expected: ["Section","=","Corporate Support Division (FM)"]
+            Assert.Contains("\"Section\"", decoded);
+            Assert.Contains("Corporate Support Division (FM)", decoded);
+            Assert.DoesNotContain("+", decoded);
+        }
+
+        [Fact]
+        public void MapFilterFieldNames_Percent20EncodedSpace_KeepsSpacesAndMapsField()
+        {
+            // query: filter=["section","=","Corporate%20Support%20Division%20(FM)"]
+            var queryString = "?filter=%5B%22section%22%2C%22%3D%22%2C%22Corporate%20Support%20Division%20%28FM%29%22%5D";
+            
+            var result = LearnersController.MapFilterFieldNames(queryString);
+            
+            var match = System.Text.RegularExpressions.Regex.Match(result, @"filter=([^&]*)");
+            Assert.True(match.Success);
+            var decoded = Uri.UnescapeDataString(match.Groups[1].Value);
+            
+            // Expected: ["Section","=","Corporate Support Division (FM)"]
+            Assert.Contains("\"Section\"", decoded);
+            Assert.Contains("Corporate Support Division (FM)", decoded);
+        }
+
+        [Fact]
+        public void MapFilterFieldNames_Percent2BEncodedPlus_PreservesPlusLiteral()
+        {
+            // query: filter=["position","=","M1+"]
+            // %2B is the encoding for +
+            var queryString = "?filter=%5B%22position%22%2C%22%3D%22%2C%22M1%2B%22%5D";
+            
+            var result = LearnersController.MapFilterFieldNames(queryString);
+            
+            var match = System.Text.RegularExpressions.Regex.Match(result, @"filter=([^&]*)");
+            Assert.True(match.Success);
+            var decoded = Uri.UnescapeDataString(match.Groups[1].Value);
+            
+            // Expected: ["Position","=","M1+"]
+            Assert.Contains("\"Position\"", decoded);
+            Assert.Contains("M1+", decoded);
+        }
+
+        [Fact]
+        public void InjectDivisionFilter_WithExistingFormEncodedPlusFilter_InjectsAndPreservesSpaces()
+        {
+            // query: filter=["section","=","Corporate+Support+Division+(FM)"]
+            var queryString = "?filter=%5B%22section%22%2C%22%3D%22%2C%22Corporate+Support+Division+%28FM%29%22%5D";
+            
+            var result = LearnersController.InjectDivisionFilter(queryString, "NLC");
+            
+            var match = System.Text.RegularExpressions.Regex.Match(result, @"filter=([^&]*)");
+            Assert.True(match.Success);
+            var decoded = Uri.UnescapeDataString(match.Groups[1].Value);
+            
+            // Expected combined filter: [["section","=","Corporate Support Division (FM)"],"and",["Division","=","NLC"]]
+            Assert.Contains("\"section\"", decoded);
+            Assert.Contains("Corporate Support Division (FM)", decoded);
+            Assert.Contains("\"Division\"", decoded);
+            Assert.Contains("\"NLC\"", decoded);
+            Assert.Contains("\"and\"", decoded);
+            Assert.DoesNotContain("+", decoded);
+        }
     }
 }

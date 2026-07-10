@@ -1,6 +1,6 @@
 # PLAN-060: Cutover ไป EmployeeHub บน QA → PROD (flip provider flag)
 
-- **Status:** IN-PROGRESS (soak) — Phase 0+1 done; [PLAN-062](PLAN-062-employeehub-nlc-normalization.md) VERIFIED + NLC re-smoke 4/4 ผ่าน; **soak finding #2 (2026-07-10): ผู้ใช้พบ filter Section/ค่ามีช่องว่างพัง → [PLAN-063](PLAN-063-learners-filter-plus-encoding.md) (ไม่ใช่ regression จาก cutover — Legacy ก็เป็น แต่ต้องแก้+redeploy ก่อน GATE)**; เหลือ PLAN-063 VERIFIED+deploy → soak ต่อ → ผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
+- **Status:** IN-PROGRESS (soak) — Phase 0+1 done; PLAN-062 ✅ + PLAN-063 ✅ deployed + all re-smokes passed; **เหลือ soak 2-3 วันทำการ → ผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD**
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** Medium
@@ -49,9 +49,13 @@
   - ✅ Profile NLC employee (N130058): Division="NLC", Department="Camera Assembly"
   - ✅ Cascade GetDepartments(Division=NLC): 9 departments
   - ✅ Cascade GetSections(Division=NLC, Dept=Camera Assembly): 152 sections
-- [ ] **soak finding #2 → [PLAN-063](PLAN-063-learners-filter-plus-encoding.md) VERIFIED + redeploy + re-smoke filter ช่องว่าง** (ผู้ใช้พบ 2026-07-10: Section filter ได้ 0 แถว — `+` form-encoding ถูก corrupt ใน `LearnersController`)
+- [x] **soak finding #2 → [PLAN-063](PLAN-063-learners-filter-plus-encoding.md) VERIFIED + redeploy + re-smoke filter ช่องว่าง** — deploy stamp `20260710084400` + re-smoke ผ่าน:
+  - ✅ Section `Corporate Support Division (FM)` (+ encoding): totalCount=2 (was 0 before fix)
+  - ✅ NLC/Camera Assembly (+ encoding): totalCount=826
+  - ✅ NLC/Lens Assembly (+ encoding): totalCount=261
+  - ✅ NLC division filter regression: totalCount=1,230 (ยังถูก)
 - [ ] soak QA อย่างน้อย 2-3 วันทำการ ผู้ใช้ยืนยัน
-### Phase 2 — GATE: (1) PLAN-062 ✅ + PLAN-063 VERIFIED/deployed + re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
+### Phase 2 — GATE: (1) PLAN-062 ✅ + PLAN-063 ✅ + re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
 ### Phase 3 — PROD
 - [ ] backup ไม่จำเป็น (ไม่แตะ DB) แต่ต้องมี rollback ชัด: flip config กลับ `Legacy` + recycle app pool = กลับสถานะเดิมทันที (LearnerApiService เดิมยังอยู่ในโค้ด)
 - [ ] flip Provider บน PROD → deploy → smoke ชุดเดียวกับ QA
@@ -86,3 +90,14 @@
   - Cascade sections(Division=NLC, Camera Assembly): 152 sections returned
 - **Rollback path**: web.config switch back to `_deploy_20260709164236` or flip Staging.json Provider→Legacy
 - **Next**: soak QA (NLC isolation fixed) → ผู้ใช้ยืนยัน Phase 2 GATE → Phase 3 PROD
+
+### Phase 1 re-deploy #2 (2026-07-10 GPT — post PLAN-063)
+- **PLAN-063 verified**: 136/136 tests pass (132 + 4 new filter encoding tests); `+` form-encoding decode fixed in `MapFilterFieldNames` and `InjectDivisionFilter`
+- **Deploy**: `deploy-api.ps1` → stamp `20260710084400` (previous: `20260710080811`)
+- **Filter re-smoke (all pass)**:
+  - Section `Corporate Support Division (FM)` with `+` encoding: totalCount=2 (was 0 before)
+  - NLC/Camera Assembly with `+` encoding: totalCount=826
+  - NLC/Lens Assembly with `+` encoding: totalCount=261
+  - NLC grid regression check: totalCount=1,230 (unchanged)
+- **Rollback path**: web.config switch to `_deploy_20260710080811`
+- **Next**: soak QA 2-3 วันทำการ → ผู้ใช้ยืนยัน → Phase 3 PROD

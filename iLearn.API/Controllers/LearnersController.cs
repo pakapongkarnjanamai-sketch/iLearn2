@@ -280,7 +280,7 @@ namespace iLearn.API.Controllers
             { "position", "Position" }
         };
 
-        private static string MapFilterFieldNames(string queryString)
+        internal static string MapFilterFieldNames(string queryString)
         {
             if (string.IsNullOrEmpty(queryString))
             {
@@ -293,7 +293,7 @@ namespace iLearn.API.Controllers
                 return queryString;
             }
 
-            var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value);
+            var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value.Replace('+', ' '));
 
             // Matches field name when it is the first element of an array: ["field",
             // Lookbehind matches "[" then optional whitespace and quote.
@@ -314,7 +314,7 @@ namespace iLearn.API.Controllers
         /// Injects a DevExtreme-compatible Division filter into the proxy query string
         /// so that non-SuperAdmin users only see employees within their own division.
         /// </summary>
-        private static string InjectDivisionFilter(string queryString, string divisionName)
+        internal static string InjectDivisionFilter(string queryString, string divisionName)
         {
             var divFilter = System.Text.Json.JsonSerializer.Serialize(
                 new object[] { "Division", "=", divisionName }
@@ -323,7 +323,7 @@ namespace iLearn.API.Controllers
             var filterMatch = Regex.Match(queryString, @"([?&])filter=([^&]*)");
             if (filterMatch.Success)
             {
-                var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value);
+                var existingFilter = Uri.UnescapeDataString(filterMatch.Groups[2].Value.Replace('+', ' '));
                 var combined = $"[{existingFilter},\"and\",{divFilter}]";
                 return queryString.Replace(filterMatch.Value,
                     $"{filterMatch.Groups[1].Value}filter={Uri.EscapeDataString(combined)}");
