@@ -77,6 +77,39 @@ const resolveSignalRBaseUrl = () => {
   return configured
 }
 
+const resolveEnvironment = (): { name: 'QA' | 'PROD' | 'DEV'; isProd: boolean } => {
+  const envOverride = getEnv('VITE_ILEARN_ADMIN_ENVIRONMENT')
+  if (envOverride === 'PROD') {
+    return { name: 'PROD', isProd: true }
+  }
+  if (envOverride === 'QA') {
+    return { name: 'QA', isProd: false }
+  }
+  if (envOverride === 'DEV') {
+    return { name: 'DEV', isProd: false }
+  }
+
+  if (typeof window === 'undefined') {
+    return { name: 'DEV', isProd: false }
+  }
+
+  const hostname = window.location.hostname.toLowerCase()
+  if (hostname.includes('prwb')) {
+    return { name: 'PROD', isProd: true }
+  }
+  if (hostname.includes('qawb')) {
+    return { name: 'QA', isProd: false }
+  }
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('127.')) {
+    return { name: 'DEV', isProd: false }
+  }
+
+  // Fail-safe: if not matching PROD hostname, assume QA
+  return { name: 'QA', isProd: false }
+}
+
+const resolvedEnv = resolveEnvironment()
+
 export const appConfig = {
   appName: getEnv('VITE_ILEARN_ADMIN_APP_NAME', 'VITE_APP_NAME') || 'iLearn Admin',
   appBasePath: normalizeBasePath(
@@ -95,4 +128,6 @@ export const appConfig = {
     const match = base.match(/\/admin-react\/?$/i)
     return match ? base.replace(/\/admin-react\/?$/i, '/admin') : ''
   })(),
+  environmentName: resolvedEnv.name,
+  isProd: resolvedEnv.isProd,
 } as const

@@ -12,6 +12,22 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-10 17:00] GitHub Copilot (Claude Opus 4.6) — รีวิว PLAN-073 ผ่าน (VERIFIED) + deploy QA/PROD
+- ทำอะไร: รีวิว environment theming — runtime hostname detection, amber branding non-PROD, favicon swap, MVC navbar-qa override, PROD pixel-perfect guard ถูกต้องตาม plan; amend commit `3ad3671` → VERIFIED
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-073-environment-theming-qa-vs-prod.md` (→VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` + `npm run build` ผ่าน
+
+## [2026-07-10 16:34] Antigravity — แยกโทนสีและแบรนด์สำหรับ QA vs PROD (PLAN-073 DONE)
+- ทำอะไร: แยกโทนสีและภาพสัญลักษณ์สำหรับ QA และ PROD ทั้งในฝั่ง React และ MVC:
+  1. เพิ่ม runtime environment detection ด้วย `window.location.hostname` และ `Request.Host` (รองรับการตั้ง override ผ่าน `VITE_ILEARN_ADMIN_ENVIRONMENT`)
+  2. ปรับ Sidebar และ Header ของฝั่ง React ให้เปลี่ยนสีแบรนด์เป็นโทนสีส้ม/เหลือง (amber-500) และเพิ่ม badge / solid accent line ที่ด้านล่าง header
+  3. สลับ favicon dynamically เป็น `favicon-qa.svg` และต่อท้าย title เป็น `(QA)` หรือ `(DEV)`
+  4. ฝั่ง MVC ปรับแต่ง layouts ให้แสดง badge, สลับ favicon และอัปเดตสี navbar เป็นสีส้ม (amber-700) เมื่ออยู่บน environment อื่นนอกจาก PROD
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/config/appConfig.ts`, `Sidebar.tsx`, `Header.tsx`, `main.tsx`, `_DevExtremeLayout.cshtml`, `admin-minimal.css`, `public/favicon-qa.svg`, `wwwroot/favicon-qa.svg`, `DOC/PLANS/PLAN-073-environment-theming-qa-vs-prod.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `appConfig.environmentName` และ `appConfig.isProd`
+- Verified: `npm run lint` / `npm run build` ผ่านสมบูรณ์, `dotnet build iLearn.Admin` ทำงานได้, และ backend tests 136/136 รายการผ่านเรียบร้อย
+
 ## [2026-07-10 16:45] GitHub Copilot (Claude Opus 4.6) — รีวิว PLAN-072 ผ่าน (VERIFIED) + commit
 - ทำอะไร: รีวิว Sidebar accordion implementation — grid-rows transition, aria-expanded/controls, auto-expand logic, mobile behavior, role filtering ถูกต้องตาม plan; commit `49458fe` (6 files: Sidebar.tsx + PLAN-072/073 docs + CLAUDE.md/README.md button docs fix)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-072-sidebar-accordion-dropdown.md` (→VERIFIED), `DOC/AGENT_LOG.md`

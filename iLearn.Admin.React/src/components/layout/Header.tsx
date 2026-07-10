@@ -27,7 +27,10 @@ export function Header({ currentUser, sessionState: _sessionState, onMenuClick }
   const divisionName = currentUser?.divisionName ?? 'Admin console'
 
   return (
-    <header className="sticky top-0 z-10 flex min-h-[56px] items-center justify-between gap-4 border-b border-slate-200 bg-white/96 px-5 print:hidden">
+    <header className="relative sticky top-0 z-10 flex min-h-[56px] items-center justify-between gap-4 border-b border-slate-200 bg-white/96 px-5 print:hidden">
+      {!appConfig.isProd && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
+      )}
       <div className="flex min-w-0 items-center gap-2.5">
         <button type="button" className="inline-grid h-[34px] w-[34px] place-items-center rounded-md border border-slate-200 bg-white text-slate-500 cursor-pointer [&_svg]:w-[17px] [&_svg]:h-[17px] mr-2" onClick={onMenuClick} aria-label="Toggle navigation">
           <Menu aria-hidden="true" />
