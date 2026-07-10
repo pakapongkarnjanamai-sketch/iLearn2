@@ -32,6 +32,14 @@ namespace iLearn.Infrastructure.Services
             _logger = logger;
         }
 
+        private static EmployeeDto NormalizeDivision(EmployeeDto e)
+        {
+            if (e == null) return null!;
+            if (string.Equals(e.Company, "NLC", StringComparison.OrdinalIgnoreCase))
+                e.Division = "NLC";
+            return e;
+        }
+
         private async Task<List<EmployeeDto>> GetActiveEmployeesCachedAsync()
         {
             if (_cache.TryGetValue(EmployeeHubCacheKey, out List<EmployeeDto>? cachedEmployees) && cachedEmployees != null)
@@ -46,7 +54,7 @@ namespace iLearn.Infrastructure.Services
                 if (result?.Items == null)
                     break;
 
-                employees.AddRange(result.Items);
+                employees.AddRange(result.Items.Select(NormalizeDivision));
                 if (result.Items.Count < pageSize || employees.Count >= result.Total)
                     break;
 
@@ -87,6 +95,8 @@ namespace iLearn.Infrastructure.Services
         {
             var emp = await _client.GetEmployeeByCodeAsync(Code);
             if (emp == null) return null!;
+
+            emp = NormalizeDivision(emp);
 
             return new ExternalLearnerDto
             {
@@ -325,7 +335,7 @@ namespace iLearn.Infrastructure.Services
                     var result = await _client.FindByNidsAsync(batch);
                     if (result?.Items != null)
                     {
-                        employees.AddRange(result.Items);
+                        employees.AddRange(result.Items.Select(NormalizeDivision));
                     }
                 }
 

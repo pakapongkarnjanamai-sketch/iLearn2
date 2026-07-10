@@ -378,5 +378,149 @@ namespace iLearn.Tests
             Assert.Single(list);
             Assert.Equal("CSD Sec A", list[0].Name);
         }
+
+        [Fact]
+        public async Task GetLearnersDxGridAsync_WithNlcDivisionFilter_ReturnsOnlyNlcEmployeesAndDivisionAsNlc()
+        {
+            // Arrange
+            _httpHandler.SendAsyncHandler = (req) =>
+            {
+                var response = new EmployeeHubPagedResult<EmployeeDto>
+                {
+                    Items = new List<EmployeeDto>
+                    {
+                        new EmployeeDto { EmpCode = "001", Company = "NLC", Division = "PD", FirstNameEn = "John", LastNameEn = "Doe" },
+                        new EmployeeDto { EmpCode = "002", Company = "NTC", Division = "CSD", FirstNameEn = "Jane", LastNameEn = "Doe" },
+                        new EmployeeDto { EmpCode = "003", Company = "NLC", Division = "AD", FirstNameEn = "Jack", LastNameEn = "Smith" }
+                    },
+                    Total = 3,
+                    Page = 1,
+                    PageSize = 200
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(response)
+                });
+            };
+
+            // Act: filter on Division == NLC
+            var queryString = "?requireTotalCount=true&filter=%5B%22Division%22%2C%22%3D%22%2C%22NLC%22%5D";
+            var resultJson = await _service.GetLearnersDxGridAsync(queryString);
+
+            // Deserialize to check shape
+            var doc = JsonDocument.Parse(resultJson);
+            var root = doc.RootElement;
+            var data = root.GetProperty("data");
+            var totalCount = root.GetProperty("totalCount").GetInt32();
+
+            // Assert
+            Assert.Equal(2, totalCount); // 001 and 003 are NLC because their Company is NLC and normalized
+            Assert.Equal(2, data.GetArrayLength());
+            Assert.Equal("001", data[0].GetProperty("eId").GetString());
+            Assert.Equal("NLC", data[0].GetProperty("division").GetString());
+            Assert.Equal("003", data[1].GetProperty("eId").GetString());
+            Assert.Equal("NLC", data[1].GetProperty("division").GetString());
+        }
+
+        [Fact]
+        public async Task GetLearnerByCodeAsync_ForNlcEmployee_NormalizesDivisionToNlc()
+        {
+            // Arrange
+            _httpHandler.SendAsyncHandler = (req) =>
+            {
+                var emp = new EmployeeDto
+                {
+                    EmpCode = "E01",
+                    FullNameEn = "Hida Motohisa",
+                    Company = "NLC",
+                    Division = "PD",
+                    Section = "Corporate",
+                    Department = "CSD Dept",
+                    Grade = "M1M"
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(emp)
+                });
+            };
+
+            // Act
+            var result = await _service.GetLearnerByCodeAsync("E01");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("E01", result.Code);
+            Assert.Equal("NLC", result.Division); // normalized from PD to NLC
+        }
+
+        [Fact]
+        public async Task GetDepartmentsAsync_WithNlcDivisionFilter_ReturnsNlcDepartments()
+        {
+            // Arrange
+            _httpHandler.SendAsyncHandler = (req) =>
+            {
+                var response = new EmployeeHubPagedResult<EmployeeDto>
+                {
+                    Items = new List<EmployeeDto>
+                    {
+                        new EmployeeDto { EmpCode = "1", Company = "NLC", Division = "PD", Department = "NLC Dept A" },
+                        new EmployeeDto { EmpCode = "2", Company = "NTC", Division = "CSD", Department = "CSD QA Dept" },
+                        new EmployeeDto { EmpCode = "3", Company = "NLC", Division = "AD", Department = "NLC Dept B" }
+                    },
+                    Total = 3,
+                    Page = 1,
+                    PageSize = 200
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(response)
+                });
+            };
+
+            // Act: filter for Division = NLC
+            var result = await _service.GetDepartmentsAsync("?filter=%5B%22Division%22%2C%22%3D%22%2C%22NLC%22%5D");
+            var list = ((IEnumerable<LookupNameDto>)result).ToList();
+
+            // Assert: expect NLC Dept A and NLC Dept B (sorted)
+            Assert.Equal(2, list.Count);
+            Assert.Equal("NLC Dept A", list[0].Name);
+            Assert.Equal("NLC Dept B", list[1].Name);
+        }
+
+        [Fact]
+        public async Task GetEmployeesByNidsAsync_ForNlcEmployee_NormalizesDivisionToNlc()
+        {
+            // Arrange
+            _httpHandler.SendAsyncHandler = (req) =>
+            {
+                var response = new FindByNidsResultDto
+                {
+                    Count = 1,
+                    Items = new List<EmployeeDto>
+                    {
+                        new EmployeeDto
+                        {
+                            EmpCode = "E01",
+                            Nid = "NID01",
+                            Company = "NLC",
+                            Division = "PD",
+                            FirstNameEn = "John",
+                            LastNameEn = "Doe"
+                        }
+                    }
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(response)
+                });
+            };
+
+            // Act
+            var result = await _service.GetEmployeesByNidsAsync(new[] { "NID01" });
+
+            // Assert
+            Assert.True(result.ContainsKey("NID01"));
+            Assert.Equal("NLC", result["NID01"].Division); // normalized from PD to NLC
+        }
     }
 }

@@ -1,6 +1,6 @@
 # PLAN-062: Normalize NLC division ใน EmployeeHub provider + คืน config default = Legacy
 
-- **Status:** READY
+- **Status:** VERIFIED — reviewer ตรวจโค้ด + รัน 132/132 เอง + ยืนยันตัวเลข NLC กับ EmployeeHub ตรง (ดู Reviewer Sign-off ท้ายไฟล์); deploy ขึ้น QA แล้ว stamp `20260710080811`, NLC re-smoke 4/4 ผ่าน
 - **Assigned:** Gemini (Antigravity)
 - **Reviewer:** Claude Code
 - **Priority:** **Critical — block PLAN-060 Phase 2 GATE** (ห้ามแตะ PROD จนแผนนี้ VERIFIED + re-smoke NLC บน QA ผ่าน)
@@ -26,7 +26,7 @@
 
 ## Scope
 
-- [ ] **S1 — Normalize helper ใน `EmployeeHubLearnerApiService`:**
+- [x] **S1 — Normalize helper ใน `EmployeeHubLearnerApiService`:**
   ```csharp
   private static EmployeeDto NormalizeDivision(EmployeeDto e)
   {
@@ -39,13 +39,13 @@
   1. `GetActiveEmployeesCachedAsync` — normalize ทุก item ตอนสะสมหน้าเข้า list ก่อน cache → grid, `/all`, by-codes, by-divisions, lookups ทั้งหมดได้ผลอัตโนมัติ (รวมถึง filter `["Division","=","NLC"]` ที่ DataSourceLoader รันบน cache)
   2. `GetLearnerByCodeAsync` — normalize ตัวที่ fetch สด (แก้ profile isolation)
   3. `GetEmployeesByNidsAsync` — normalize items จาก find-by-nids (แก้ `EmployeeCsvDto.Division`)
-- [ ] **S2 — Tests ใหม่ (อย่างน้อย 4):**
+- [x] **S2 — Tests ใหม่ (อย่างน้อย 4):**
   1. `GetLearnersDxGridAsync` + filter `["Division","=","NLC"]` (shape เดียวกับที่ `InjectDivisionFilter` สร้าง) → ได้เฉพาะพนักงาน `Company=="NLC"` และ row โชว์ division `NLC`
   2. `GetLearnerByCodeAsync` พนักงาน NLC → `result.Division == "NLC"`
   3. `GetDepartmentsAsync` + filter `["Division","=","NLC"]` → ได้ departments ของพนักงาน NLC (ไม่ว่าง)
   4. `GetEmployeesByNidsAsync` พนักงาน NLC → `EmployeeCsvDto.Division == "NLC"`
   - test เดิม 128 ตัวต้องเขียวหมด (หมายเหตุ: `GetDivisionsAsync_AppliesDistinctCompanySemantics` ใช้ NLC/`PD_LA` — ยังผ่านเพราะ `Where(Company != "NLC")` กรองด้วย Company ไม่ใช่ Division)
-- [ ] **S3 — คืน config default = Legacy (Finding B):**
+- [x] **S3 — คืน config default = Legacy (Finding B):**
   1. `appsettings.json` (base): `"Provider": "EmployeeHub"` → กลับเป็น `"Legacy"` (fail-safe default ตามหลักการ PLAN-058)
   2. สร้าง **`iLearn.API/appsettings.Staging.json`** ใหม่ (QA รัน `ASPNETCORE_ENVIRONMENT=Staging` — ยืนยันจาก log GPT) — override เฉพาะ key ที่ต่าง:
      ```json
@@ -94,4 +94,21 @@ Remove-Item -Recurse -Force artifacts/verify-test
 
 ## Implementer Notes
 
-(เติมหลังทำเสร็จ)
+- **S1 & S2**: Added `NormalizeDivision` private static helper inside `EmployeeHubLearnerApiService` and called it at `GetActiveEmployeesCachedAsync`, `GetLearnerByCodeAsync`, and `GetEmployeesByNidsAsync`.
+- Added 4 unit tests in `EmployeeHubLearnerApiServiceTests.cs` covering:
+  1. Grid filter with Division="NLC" (returns NLC employees and division name normalized to "NLC").
+  2. Single learner by code for NLC employee (returns "NLC" division).
+  3. Department cascade filter with Division="NLC" (returns correct departments for NLC).
+  4. Find by NIDs for NLC employee (returns "NLC" division in the result dictionary).
+  All 132 tests passed successfully.
+- **S3**: Reverted default `"Provider"` key in `appsettings.json` to `"Legacy"`. Created a new `appsettings.Staging.json` override targeting `"Provider": "EmployeeHub"`. Verified that the project copies this Staging config into build outputs.
+- Ran `npm run lint` and `npm run build` on the React admin shell successfully.
+
+## Reviewer Sign-off (Claude Code, 2026-07-10) — ✅ VERIFIED
+
+- **S1 ตรงสเปกเป๊ะ**: `NormalizeDivision` (null-safe, case-insensitive) ถูกเรียกครบ 3 ingress — cache build (`Select` ภายใต้ `AddRange` = enumerate ทันที ไม่มี lazy-mutation gotcha), `GetLearnerByCodeAsync`, `GetEmployeesByNidsAsync`; ไม่แตะ `GetLearnersByDivisionsAsync`/`GetDivisionsAsync`/DTO mirror ตาม out-of-scope
+- **ไล่ edge แล้วไม่มีผลข้างเคียง**: `GetLearnersByDivisionsAsync` เป็น if/else (ไม่ double-count เมื่อขอ NLC+อื่นพร้อมกัน); ขอ division `"PD"` ดิบจะไม่จับพนักงาน NLC อีกต่อไป (ถูกต้องตาม PLAN-061 — `PD` ไม่เคยอยู่ในรายการ division ของ iLearn); `GetDivisionsAsync` กรองด้วย `Company` จึงไม่โผล่ค่าซ้ำ/ค่าลาว
+- **S2**: 4 tests assert ค่า normalize + scope จริง (ไม่ใช่แค่ไม่ throw) — **reviewer รันเอง: build 0 errors, `dotnet test` 132/132 passed**
+- **S3**: base/Development/Production = Legacy ครบ, `Staging.json` override key เดียวถูกหลัก layering
+- **ปริศนาตัวเลข NLC เคลียร์**: reviewer query EmployeeHub QA ตรง — `company=NLC` total = **1,230** ตรงกับ grid re-smoke ของ GPT เป๊ะ ⇒ 1,244 (9 ก.ค.) → 1,230 (10 ก.ค.) คือ data movement ข้ามวันจาก sync ไม่ใช่ filter mismatch; grid path กับ Bulk Assign path เห็นประชากรเดียวกัน
+- Acceptance 1-4 ผ่านครบ; Handoff (redeploy + NLC re-smoke) GPT ทำแล้ว stamp `20260710080811` — 4/4 ผ่าน

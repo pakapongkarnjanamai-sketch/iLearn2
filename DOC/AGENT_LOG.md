@@ -14,6 +14,28 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-10 —] Claude Code — รีวิว PLAN-062 ผ่าน (VERIFIED) + รับรอง re-smoke PLAN-060 → เข้าช่วง soak
+- ทำอะไร: ตรวจงาน Gemini (PLAN-062) — `NormalizeDivision` null-safe/case-insensitive ครบ 3 ingress ตรงสเปก (cache build ใช้ `Select` ใต้ `AddRange` enumerate ทันที), ไม่แตะ out-of-scope; ไล่ edge: ไม่ double-count ใน `GetLearnersByDivisionsAsync` (if/else), ขอ `"PD"` ดิบไม่จับ NLC อีก (ถูกตาม PLAN-061), `GetDivisionsAsync` ใช้ Company จึงไม่มีค่าลาวโผล่; 4 tests assert normalize+scope จริง; config S3 ถูกหลัก layering. **reviewer รันเอง: build 0 errors + 132/132 passed**. ตรวจงาน GPT (re-smoke): **query EmployeeHub QA ตรง `company=NLC` total=1,230 ตรงกับ grid re-smoke เป๊ะ** ⇒ 1,244→1,230 คือ data movement ข้ามวัน (sync) ไม่ใช่ filter mismatch. → PLAN-062 DONE→**VERIFIED**; PLAN-060 GATE ข้อ (1) ครบ เหลือ soak 2-3 วัน + ผู้ใช้ยืนยัน (ข้อ 2) ก่อน Phase 3 PROD; commit ทั้งชุด
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-062-*.md` (Status→VERIFIED + Reviewer Sign-off), `DOC/PLANS/PLAN-060-*.md` (Status→soak), `DOC/AGENT_LOG.md`; commit รวมโค้ด Gemini (`EmployeeHubLearnerApiService.cs`, tests, `appsettings.json`, `appsettings.Staging.json` ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): พนักงาน NLC กลับมามี `Division="NLC"` ทุก endpoint ของ provider EmployeeHub (คืน contract legacy — ตาม PLAN-062)
+- Verified: `dotnet build` 0 errors; `dotnet test` 132/132; `GET /api/employees?company=NLC` total=1,230 ยืนยัน re-smoke
+
+## [2026-07-10 08:10] GPT (Copilot) — PLAN-060 Phase 1 re-deploy: PLAN-062 verified + NLC re-smoke ผ่าน
+- ทำอะไร: ยืนยัน PLAN-062 (Gemini) ทำครบแล้ว (NormalizeDivision 3 ingress, 4 tests, config reverted); build 0 errors, 132/132 tests pass; deploy QA stamp `20260710080811`; re-smoke NLC admin 4 เคสผ่านหมด (grid 1,230 rows Division="NLC", profile 200 OK, cascade dept 9, cascade sections 152)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-060-*.md` (Phase 1 re-deploy checkboxes + Implementer Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (deploy โค้ดที่ Gemini เขียนใน PLAN-062 + ไม่มีไฟล์ใหม่จาก GPT)
+- Verified: `dotnet build iLearn.Tests -o artifacts/verify-062` 0 errors; `dotnet test` 132/132 passed; QA smoke NLC 4/4 passed; deploy stamp 20260710080811
+
+## [2026-07-10 08:10] Antigravity (Gemini) — PLAN-062: Normalize NLC division ใน EmployeeHub + คืน config default=Legacy
+- ทำอะไร: ดำเนินการ PLAN-062 ครบถ้วน:
+  - เพิ่ม `NormalizeDivision` helper ใน `EmployeeHubLearnerApiService.cs` และเรียกใช้ที่ ingress ทั้ง 3 จุด (`GetActiveEmployeesCachedAsync`, `GetLearnerByCodeAsync`, `GetEmployeesByNidsAsync`) เพื่อให้พนักงาน NLC มี division เป็น `"NLC"` สอดคล้องกันทั้งหมด
+  - เพิ่ม unit tests 4 เคสใน `EmployeeHubLearnerApiServiceTests.cs` (grid filter NLC, profile, cascade departments, find by NIDs) ครอบคลุมพฤติกรรม normalization
+  - คืนค่า default `"Provider"` ใน base `appsettings.json` กลับมาเป็น `"Legacy"` (fail-safe) และสร้าง `appsettings.Staging.json` เพื่อ opt-in `"Provider": "EmployeeHub"` สำหรับ QA/Staging
+  - อัปเดตสถานะและจดบันทึกผลการทำงานลงใน `DOC/PLANS/PLAN-062-employeehub-nlc-normalization.md` เป็น `DONE`
+- ไฟล์หลักที่แตะ: `iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs`, `iLearn.Tests/EmployeeHubLearnerApiServiceTests.cs`, `iLearn.API/appsettings.json`, `iLearn.API/appsettings.Staging.json`, `DOC/PLANS/PLAN-062-employeehub-nlc-normalization.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (คืนพฤติกรรม Legacy สำหรับพนักงาน NLC ใน EmployeeHub provider, default provider กลับเป็น Legacy)
+- Verified: build backend/tests สำเร็จ, รัน `dotnet test` ผ่านครบ 132/132 (รวม 4 test ใหม่), รัน React frontend build & lint ผ่าน 100%
+
 ## [2026-07-09 —] Claude Code — รีวิวรอบ 3 หลัง QA cutover: พบ NLC isolation พัง → เขียน PLAN-062 (block Phase 2 GATE)
 - ทำอะไร: รีวิว holistic ทั้งชุด EmployeeHub หลัง GPT ทำ Phase 0+1 — พบ 2 finding:
   - **A (Critical, ยืนยันด้วย DB):** NLC division isolation พังทุก path ยกเว้น Bulk Assign — พนักงาน NLC ใน EmployeeHub มี `Division=PD/AD` (NLC เป็น Company) แต่ PLAN-058 ใส่กติกา `Company=="NLC"` แค่ใน `GetLearnersByDivisionsAsync`; grid (`InjectDivisionFilter`), profile (`GetLearnerByCodeAsync` + isolation compare), cascade dept/section, `EmployeeCsvDto` ใช้ `e.Division` ดิบ → **query QA ยืนยัน: Role `NLC` (Id=10, DivisionId=5) มี user ถือจริง 5 คน (h8193,d6132,n7710,q2186,q2825) — ทั้ง 5 คนตอนนี้ grid ว่าง/profile 404 บน QA live**; GPT เห็น symptom ("grid NLC=0") แต่ตีเป็น non-blocking — reviewer override เป็น blocking

@@ -1,6 +1,6 @@
 # PLAN-060: Cutover ไป EmployeeHub บน QA → PROD (flip provider flag)
 
-- **Status:** IN-PROGRESS — Phase 0+1 done (QA live on EmployeeHub since 2026-07-09) แต่ **Phase 2 GATE เพิ่มเงื่อนไข: ต้องรอ [PLAN-062](PLAN-062-employeehub-nlc-normalization.md) VERIFIED + redeploy QA + re-smoke NLC admin ผ่านก่อน** (รีวิวรอบ 3 พบ NLC isolation พังบน QA — กระทบ user จริง 5 คน) แล้วจึงรอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD → soak QA 2-3 วันทำการ
+- **Status:** IN-PROGRESS (soak) — Phase 0+1 done; [PLAN-062](PLAN-062-employeehub-nlc-normalization.md) **VERIFIED + redeploy stamp `20260710080811` + NLC re-smoke 4/4 ผ่าน (2026-07-10)** → เงื่อนไข GATE ข้อ (1) ครบแล้ว; เหลือ **soak QA 2-3 วันทำการ + ผู้ใช้ยืนยันเป็นข้อความ (GATE ข้อ 2) ก่อนแตะ PROD**
 - **Assigned:** GPT (GitHub Copilot)
 - **Reviewer:** Claude Code
 - **Priority:** Medium
@@ -44,7 +44,11 @@
   - ✅ Admin React frontend: 200
   - ⚠️ Grid filter `division=NLC` returns 0 (NLC employees' grid row has actual Division, not "NLC") — Bulk Assign uses dedicated API ที่ handle NLC ถูก, grid row แสดง division จริงจาก EmployeeHub
   - 🔴 **Reviewer override (Claude, รอบ 3): ข้อ ⚠️ ข้างบนไม่ใช่ non-blocking** — QA DB มี Role `NLC` (Id=10, DivisionId=5) + user ถือจริง 5 คน (`h8193, d6132, n7710, q2186, q2825`) → ทั้ง 5 คนตอนนี้ grid ว่าง/profile 404/cascade ว่างบน QA; smoke 10 ข้อไม่ครอบเคส NLC-scoped admin จึงหลุด → แก้ที่ [PLAN-062](PLAN-062-employeehub-nlc-normalization.md)
-- [ ] **redeploy QA หลัง PLAN-062 VERIFIED + re-smoke 3 เคส NLC admin** (grid มีข้อมูล / profile พนักงาน NLC เปิดได้ / cascade ไม่ว่าง — ใช้ user จริง เช่น `n7710`)
+- [x] **redeploy QA หลัง PLAN-062 VERIFIED + re-smoke 3 เคส NLC admin** — deploy stamp `20260710080811` + re-smoke ผ่านทั้ง 3 เคส:
+  - ✅ Grid filter `Division=NLC`: totalCount=1,230 (rows แสดง division="NLC")
+  - ✅ Profile NLC employee (N130058): Division="NLC", Department="Camera Assembly"
+  - ✅ Cascade GetDepartments(Division=NLC): 9 departments
+  - ✅ Cascade GetSections(Division=NLC, Dept=Camera Assembly): 152 sections
 - [ ] soak QA อย่างน้อย 2-3 วันทำการ ผู้ใช้ยืนยัน
 ### Phase 2 — GATE: (1) PLAN-062 VERIFIED + NLC re-smoke ผ่าน (2) รอผู้ใช้ยืนยันเป็นข้อความก่อนแตะ PROD
 ### Phase 3 — PROD
@@ -70,3 +74,14 @@
 - **NLC grid note**: Grid filter "NLC" returns 0 เพราะ `LearnerGridRowDto.Division` map จาก `emp.Division` (e.g. "PD") ไม่ใช่ "NLC"; ข้อนี้เป็น behavior ที่ต่างจาก legacy (legacy แสดง NLC เป็น division ใน grid) แต่ Bulk Assign path ที่ business-critical (ใช้ `GetLearnersByDivisionsAsync` ซึ่ง filter by Company) ทำงานถูก
 - **Rollback path**: flip `appsettings.json` Provider กลับ "Legacy" + redeploy หรือ web.config switch กลับ `_deploy_20260709110854`
 - **Next**: soak QA 2-3 วันทำการ → ผู้ใช้ยืนยัน Phase 2 GATE → Phase 3 PROD
+
+### Phase 1 re-deploy (2026-07-10 GPT — post PLAN-062)
+- **PLAN-062 verified**: 132/132 tests pass (128 original + 4 new NLC normalization tests); `NormalizeDivision` applied at all 3 ingress points; base config reverted to Legacy; `appsettings.Staging.json` overrides to EmployeeHub for QA
+- **Deploy**: `deploy-api.ps1` → stamp `20260710080811` (previous: `20260709164236`)
+- **NLC re-smoke (all pass)**:
+  - Grid filter `Division=NLC`: totalCount=1,230 — rows show `division="NLC"` correctly
+  - Profile `N130058` (NLC employee): 200 OK, `division="NLC"`, `department="Camera Assembly"`
+  - Cascade departments(Division=NLC): 9 departments returned
+  - Cascade sections(Division=NLC, Camera Assembly): 152 sections returned
+- **Rollback path**: web.config switch back to `_deploy_20260709164236` or flip Staging.json Provider→Legacy
+- **Next**: soak QA (NLC isolation fixed) → ผู้ใช้ยืนยัน Phase 2 GATE → Phase 3 PROD
