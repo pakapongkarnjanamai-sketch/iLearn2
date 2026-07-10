@@ -9,7 +9,7 @@ type DataGridSurfaceProps = {
 
 export function DataGridSurface({ title, note, actions, children }: DataGridSurfaceProps) {
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white px-6 pt-5 pb-5 shadow-xs">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white px-6 pt-5 pb-5 short:px-4 short:pt-3 short:pb-3 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white pb-3.5">
         <div className="min-w-0">
           <h2 className="text-sm font-bold">{title}</h2>

@@ -240,8 +240,31 @@ export function BulkAssignPage() {
     return true
   }
 
+  const renderModeToggle = () => (
+    <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg select-none shrink-0 border border-slate-200/40">
+      <button
+        type="button"
+        onClick={() => setTargetMode('group')}
+        className={`py-1 px-2.5 text-center text-[11px] font-extrabold rounded-md transition cursor-pointer ${
+          targetMode === 'group' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        Group
+      </button>
+      <button
+        type="button"
+        onClick={() => setTargetMode('custom')}
+        className={`py-1 px-2.5 text-center text-[11px] font-extrabold rounded-md transition cursor-pointer ${
+          targetMode === 'custom' ? 'bg-white text-indigo-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        Individual
+      </button>
+    </div>
+  )
+
   const renderChooseCoursesStep = () => (
-    <div className="flex flex-col gap-4 h-[calc(100vh-265px)] min-h-[360px]">
+    <div className="flex flex-col gap-4 flex-1 min-h-0">
       
       <div className="flex-1 flex flex-col sm:flex-row gap-3 min-h-0">
         {/* Left Column: Available Catalog */}
@@ -337,35 +360,16 @@ export function BulkAssignPage() {
   )
 
   const renderTargetScopeStep = () => (
-    <div className="flex flex-col gap-4 h-[calc(100vh-265px)] min-h-[360px]">
-
-      {/* Mode toggle */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg max-w-xs select-none shrink-0">
-        <button
-          type="button"
-          onClick={() => setTargetMode('group')}
-          className={`flex-1 py-2 px-3 text-center text-sm font-bold rounded-md transition cursor-pointer ${
-            targetMode === 'group' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Learner Group
-        </button>
-        <button
-          type="button"
-          onClick={() => setTargetMode('custom')}
-          className={`flex-1 py-2 px-3 text-center text-sm font-bold rounded-md transition cursor-pointer ${
-            targetMode === 'custom' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Individual Learners
-        </button>
-      </div>
+    <div className="flex flex-col gap-4 flex-1 min-h-0">
 
       {/* Dual-panel content */}
       {targetMode === 'group' ? (
         <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
           <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-bold text-xs text-slate-500 uppercase tracking-wide">Available Learner Groups</span>
+            <div className="flex items-center gap-3">
+              {renderModeToggle()}
+              <span className="font-bold text-xs text-slate-500 uppercase tracking-wide">Available Learner Groups</span>
+            </div>
             <Badge tone="neutral">{groups.length}</Badge>
           </div>
 
@@ -416,7 +420,11 @@ export function BulkAssignPage() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0">
-          <LearnerDirectorySelector selectedLearners={selectedLearners} onChange={setSelectedLearners} />
+          <LearnerDirectorySelector
+            selectedLearners={selectedLearners}
+            onChange={setSelectedLearners}
+            headerLeft={renderModeToggle()}
+          />
         </div>
       )}
     </div>

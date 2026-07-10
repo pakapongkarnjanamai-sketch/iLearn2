@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { ChevronDown, Filter, RotateCcw, Search, X } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
+import { Modal } from '../ui/Modal'
 
 export type LearnerSelection = {
   code: string // EId / Employee Code
@@ -15,6 +17,7 @@ export type LearnerSelection = {
 type LearnerDirectorySelectorProps = {
   selectedLearners: LearnerSelection[]
   onChange: (selected: LearnerSelection[]) => void
+  headerLeft?: ReactNode
 }
 
 function getInitials(name: string) {
@@ -30,7 +33,13 @@ function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase()
 }
 
-export function LearnerDirectorySelector({ selectedLearners, onChange }: LearnerDirectorySelectorProps) {
+export function LearnerDirectorySelector({ 
+  selectedLearners, 
+  onChange,
+  headerLeft
+}: LearnerDirectorySelectorProps) {
+  const [ledgerOpen, setLedgerOpen] = useState(false)
+
   // Cascading dropdowns options
   const [divisions, setDivisions] = useState<string[]>([])
   const [departments, setDepartments] = useState<string[]>([])
@@ -357,6 +366,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
   const handleClearAll = () => {
     onChange([])
     setSelectedSearch('')
+    setLedgerOpen(false)
   }
 
   return (
@@ -366,7 +376,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
       <div className="flex gap-4 min-h-0 flex-1 items-stretch w-full min-w-0">
         
         {/* Left Column: FILTERS Cascading panel */}
-        <div className="w-60 shrink-0 bg-white border border-slate-200 rounded-lg p-4 flex flex-col gap-3.5 text-xs font-semibold shadow-2xs">
+        <div className="w-60 max-[1440px]:w-52 shrink-0 bg-white border border-slate-200 rounded-lg p-4 flex flex-col gap-3.5 text-xs font-semibold shadow-2xs">
           <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2 mb-0.5">
             <Filter className="h-4 w-4 text-indigo-500" />
             <span className="text-slate-800 font-extrabold uppercase tracking-wider text-xxs">Filters</span>
@@ -451,12 +461,70 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
         {/* Right Column: Interactive Table Grid with Unified Search Bar */}
         <div className="flex-1 min-w-0 flex flex-col border border-slate-200 rounded-lg bg-white overflow-hidden min-h-0 shadow-2xs">
           
-          <div className="px-4 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0 select-none">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">Learner Directory</span>
-              <span className="bg-indigo-50 text-blue-700 border border-indigo-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs">
-                {totalCount} learner(s)
-              </span>
+          <div className="px-4 py-3 short:py-2 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0 select-none">
+            <div className="flex flex-wrap items-center gap-3">
+              {headerLeft}
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">Learner Directory</span>
+                <span className="bg-indigo-50 text-blue-700 border border-indigo-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs shrink-0">
+                  {totalCount} learner(s)
+                </span>
+              </div>
+
+              {/* Active-filter chips inline */}
+              {(selectedDiv || selectedDept || selectedSec || selectedPos) && (
+                <div className="flex flex-wrap items-center gap-1.5 ml-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Filters:</span>
+                  {selectedDiv && (
+                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                      <span>Div: {selectedDiv}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedDiv(''); setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
+                        className="hover:text-red-500 transition cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedDept && (
+                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                      <span>Dept: {selectedDept}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
+                        className="hover:text-red-500 transition cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedSec && (
+                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                      <span>Sec: {selectedSec}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedSec(''); setPageIndex(0) }}
+                        className="hover:text-red-500 transition cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedPos && (
+                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                      <span>Pos: {selectedPos}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedPos(''); setPageIndex(0) }}
+                        className="hover:text-red-500 transition cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Premium Global Search Box */}
@@ -480,60 +548,6 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
               )}
             </div>
           </div>
-
-          {(selectedDiv || selectedDept || selectedSec || selectedPos) && (
-            <div className="px-4 py-2 bg-slate-50/50 border-b border-slate-100 flex flex-wrap items-center gap-1.5 shrink-0 select-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Active Filters:</span>
-              {selectedDiv && (
-                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                  <span>Div: {selectedDiv}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedDiv(''); setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
-                    className="hover:text-red-500 transition"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              )}
-              {selectedDept && (
-                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                  <span>Dept: {selectedDept}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
-                    className="hover:text-red-500 transition"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              )}
-              {selectedSec && (
-                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                  <span>Sec: {selectedSec}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedSec(''); setPageIndex(0) }}
-                    className="hover:text-red-500 transition"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              )}
-              {selectedPos && (
-                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                  <span>Pos: {selectedPos}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedPos(''); setPageIndex(0) }}
-                    className="hover:text-red-500 transition"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              )}
-            </div>
-          )}
 
           {isPageAllSelected && totalCount > learners.length && (
             <div className="px-4 py-2 bg-indigo-50 text-indigo-700 border-b border-indigo-100 flex items-center justify-between text-xs shrink-0 select-none animate-fade-in">
@@ -564,7 +578,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
             <table className="min-w-full table-fixed divide-y divide-slate-100 text-left text-xs font-semibold text-slate-700">
               <thead className="bg-slate-50/80 backdrop-blur-xs sticky top-0 z-10 border-b border-slate-200 shadow-3xs">
                 <tr className="text-xxs font-extrabold text-slate-500 uppercase tracking-wider border-b border-slate-200 select-none">
-                  <th className="p-3 w-12 text-center">
+                  <th className="px-3 py-2 short:py-1.5 w-12 text-center">
                     <input
                       type="checkbox"
                       checked={isPageAllSelected}
@@ -572,11 +586,11 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                       className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
                     />
                   </th>
-                  <th className="p-3 w-28">ID (EId)</th>
-                  <th className="p-3">Learner Name</th>
-                  <th className="p-3 w-36">Position</th>
-                  <th className="p-3 w-32">Dept.</th>
-                  <th className="p-3 w-36">Section</th>
+                  <th className="px-3 py-2 short:py-1.5 w-28">ID (EId)</th>
+                  <th className="px-3 py-2 short:py-1.5">Learner Name</th>
+                  <th className="px-3 py-2 short:py-1.5 w-36">Position</th>
+                  <th className="px-3 py-2 short:py-1.5 w-32">Dept.</th>
+                  <th className="px-3 py-2 short:py-1.5 w-36">Section</th>
                 </tr>
               </thead>
               
@@ -597,7 +611,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                           isChecked ? 'bg-indigo-50/30' : ''
                         }`}
                       >
-                        <td className="p-3 w-12 text-center" onClick={e => e.stopPropagation()}>
+                        <td className="px-3 py-2 short:py-1.5 w-12 text-center" onClick={e => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -605,18 +619,18 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
                             className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer transition"
                           />
                         </td>
-                        <td className="p-3 w-28 font-mono font-bold text-slate-800 truncate">{l.code}</td>
-                        <td className="p-3 font-semibold text-slate-900 truncate">
+                        <td className="px-3 py-2 short:py-1.5 w-28 font-mono font-bold text-slate-800 truncate">{l.code}</td>
+                        <td className="px-3 py-2 short:py-1.5 font-semibold text-slate-900 truncate">
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-xxs font-extrabold uppercase shrink-0 shadow-3xs select-none">
+                            <div className="h-7 w-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-xxs font-extrabold uppercase shrink-0 shadow-3xs select-none">
                               {getInitials(l.name)}
                             </div>
                             <span className="truncate">{l.name || '—'}</span>
                           </div>
                         </td>
-                        <td className="p-3 w-36 text-slate-500 font-semibold text-xs truncate">{l.position || '—'}</td>
-                        <td className="p-3 w-32 text-slate-500 font-semibold text-xs truncate">{l.department || '—'}</td>
-                        <td className="p-3 w-36 text-slate-400 font-semibold text-xs truncate">{l.section || '—'}</td>
+                        <td className="px-3 py-2 short:py-1.5 w-36 text-slate-500 font-semibold text-xs truncate">{l.position || '—'}</td>
+                        <td className="px-3 py-2 short:py-1.5 w-32 text-slate-500 font-semibold text-xs truncate">{l.department || '—'}</td>
+                        <td className="px-3 py-2 short:py-1.5 w-36 text-slate-400 font-semibold text-xs truncate">{l.section || '—'}</td>
                       </tr>
                     )
                   })}
@@ -625,7 +639,7 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
           </div>
 
           {/* Grid pagination footer */}
-          <footer className="p-3.5 border-t border-slate-100 bg-slate-50/60 flex justify-between items-center text-slate-500 text-xs font-semibold select-none shrink-0">
+          <footer className="p-2.5 short:p-2 border-t border-slate-100 bg-slate-50/60 flex justify-between items-center text-slate-500 text-xs font-semibold select-none shrink-0">
             <div>
               {totalCount > 0 ? (
                 <span>
@@ -642,70 +656,104 @@ export function LearnerDirectorySelector({ selectedLearners, onChange }: Learner
               )}
             </div>
             
-            {loading && learners.length > 0 && (
-              <div className="text-indigo-600 text-xxs font-bold uppercase tracking-wider animate-pulse">
-                Loading more...
+            <div className="flex items-center gap-3.5 select-none">
+              {loading && learners.length > 0 && (
+                <span className="text-indigo-600 text-xxs font-bold uppercase tracking-wider animate-pulse mr-1">
+                  Loading more...
+                </span>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs shrink-0">
+                  Selected: {selectedLearners.length}
+                </span>
+                
+                {selectedLearners.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setLedgerOpen(true)}
+                      className="text-indigo-600 hover:text-indigo-800 font-extrabold cursor-pointer text-xxs uppercase tracking-wider transition border border-indigo-200 hover:border-indigo-300 px-2 py-0.5 rounded bg-white shadow-3xs"
+                    >
+                      Review
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearAll}
+                      className="text-red-500 hover:text-red-700 font-extrabold cursor-pointer text-xxs uppercase tracking-wider transition border border-red-200 hover:border-red-300 px-2 py-0.5 rounded bg-white shadow-3xs"
+                    >
+                      Clear
+                    </button>
+                  </>
+                )}
               </div>
-            )}
+            </div>
           </footer>
 
         </div>
       </div>
 
-      {/* Tray Area: SELECTED blue chips list and eraser */}
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 flex flex-col gap-2 select-none shrink-0 shadow-2xs">
-        <div className="flex justify-between items-center text-slate-500 text-xxs font-extrabold uppercase tracking-wider">
-          <span>Selected Learners Ledger ({selectedLearners.length})</span>
-          {selectedLearners.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className="text-red-500 hover:text-red-700 font-extrabold transition cursor-pointer flex items-center gap-1"
-            >
-              <span>Clear Selection</span>
-            </button>
-          )}
-        </div>
-
-        {selectedLearners.length > 5 && (
-          <div className="relative max-w-xs mb-1 mt-0.5">
-            <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search selected..."
-              value={selectedSearch}
-              onChange={e => setSelectedSearch(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-1 border border-slate-200 rounded text-xxs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
-            />
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto custom-scrollbar">
-          {selectedLearners.length === 0 ? (
-            <span className="text-slate-400 text-xs font-semibold py-1">No learners selected yet. Click row checkboxes above.</span>
-          ) : filteredChips.length === 0 ? (
-            <span className="text-slate-400 text-xs font-semibold py-1">No selected items match "{selectedSearch}"</span>
-          ) : (
-            filteredChips.map(learner => (
-              <span
-                key={learner.code}
-                className="inline-flex items-center gap-1.5 bg-indigo-50 text-blue-700 border border-blue-200 px-3 py-1 text-xs font-semibold rounded-full hover:bg-blue-100/70 transition shadow-3xs"
+      <Modal
+        open={ledgerOpen}
+        onClose={() => setLedgerOpen(false)}
+        size="lg"
+        title={`Selected Learners (${selectedLearners.length})`}
+      >
+        <div className="p-6 flex flex-col gap-4 select-none">
+          <div className="flex justify-between items-center shrink-0">
+            <span className="text-xs font-semibold text-slate-500">
+              Review and manage your current selections below.
+            </span>
+            {selectedLearners.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="text-red-500 hover:text-red-700 font-extrabold transition cursor-pointer flex items-center gap-1 text-xs"
               >
-                <span>{learner.name === learner.code ? learner.code : `${learner.name} (${learner.code})`}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveChip(learner.code)}
-                  className="text-blue-500 hover:text-blue-700 focus:outline-none flex items-center justify-center rounded-full hover:bg-blue-200/40 p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))
+                <span>Clear Selection</span>
+              </button>
+            )}
+          </div>
+
+          {selectedLearners.length > 5 && (
+            <div className="relative w-full max-w-sm shrink-0">
+              <Search className="absolute left-3 top-2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search selected learners..."
+                value={selectedSearch}
+                onChange={e => setSelectedSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              />
+            </div>
           )}
+
+          <div className="flex flex-wrap gap-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
+            {filteredChips.length === 0 ? (
+              <span className="text-slate-400 text-xs font-semibold py-4 w-full text-center">
+                {selectedSearch ? `No selected items match "${selectedSearch}"` : 'No learners selected.'}
+              </span>
+            ) : (
+              filteredChips.map(learner => (
+                <span
+                  key={learner.code}
+                  className="inline-flex items-center gap-1.5 bg-indigo-50 text-blue-700 border border-blue-200 px-3 py-1 text-xs font-semibold rounded-full hover:bg-blue-100/70 transition shadow-3xs"
+                >
+                  <span>{learner.name === learner.code ? learner.code : `${learner.name} (${learner.code})`}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveChip(learner.code)}
+                    className="text-blue-500 hover:text-blue-700 focus:outline-none flex items-center justify-center rounded-full hover:bg-blue-200/40 p-0.5 cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      </Modal>
 
     </div>
   )
 }
-

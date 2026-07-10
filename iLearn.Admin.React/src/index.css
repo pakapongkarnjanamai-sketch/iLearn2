@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant short (@media (max-height: 800px));
+
+
 @theme {
   --text-xxs: 10px;
   --text-xxs--line-height: 14px;

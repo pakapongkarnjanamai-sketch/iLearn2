@@ -94,7 +94,7 @@ export function AppWizard({
       <form onSubmit={handleSubmitForm} className="flex min-h-0 flex-1 flex-col">
 
         {/* ── Wizard Top Bar ── */}
-        <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-4 shrink-0">
+        <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-4 short:py-2 shrink-0">
           {/* Left: title cluster */}
           <div className="min-w-0">
             {eyebrow && (
@@ -149,7 +149,7 @@ export function AppWizard({
 
         {/* ── Step content ── */}
         <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60 border-b border-slate-100">
-          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
+          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6 short:px-4 short:py-3">
             <div className="w-full h-full flex flex-col">
               {steps[currentStep - 1]?.render()}
             </div>
@@ -166,7 +166,7 @@ export function AppWizard({
         </div>
 
         {/* ── Pinned footer ── */}
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-4 shrink-0">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-4 short:py-2 shrink-0">
           {/* Left: step indicator */}
           <span className="text-xs font-semibold text-slate-400">
             Step {currentStep} of {steps.length}

@@ -12,7 +12,39 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
----
+## [2026-07-10 —] GitHub Copilot (GPT) — รีวิว PLAN-067 + PLAN-068 ผ่าน (VERIFIED)
+- ทำอะไร: ตรวจงาน Gemini ทั้ง 2 แผน. **PLAN-067:** flex-fill แทน magic height 3 จุด, `@custom-variant short` ลด chrome จอเตี้ย, ledger ยุบเมื่อว่าง, filter chips inline, density ลด — ถูกต้องตามแผน. **PLAN-068:** mode toggle ย้ายเข้า Group header + `headerLeft` prop ใน LearnerDirectorySelector, ledger tray ตัด→footer badge `Selected: N` + Review modal (Modal กลาง, chips `max-h-[55vh]`, search >5 items), Clear ปิด modal — ถูกต้อง logic ไม่ถูกแตะ. Reviewer รันเอง: `npm run lint` clean + `npm run build` (tsc+vite) สำเร็จ.
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-067-*.md` (Status→VERIFIED), `DOC/PLANS/PLAN-068-*.md` (Status→VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิวเท่านั้น)
+- Verified: `npm run lint` + `npm run build` ผ่าน
+
+## [2026-07-10 13:39] Antigravity — ย้าย target scope mode toggle และSelected Learners Ledger เป็น modal (PLAN-068 DONE)
+- ทำอะไร: ต่อยอดระบบคืนพื้นที่แนวตั้งบนโน้ตบุ๊ก:
+  1. ย้ายแถบการเลือกโหมด (Mode Toggle) จากกล่องลอยแยกไปแสดงผลด้านซ้ายสุดในหัวข้อ Workspace หลัก (สอด inline ในหัวตารางของ Group panel ใน BulkAssignPage.tsx และส่งผ่านพารามิเตอร์ `headerLeft` ในหน้าตาราง Directory ของ LearnerDirectorySelector.tsx) ช่วยคืนพื้นที่ ~52px
+  2. ยกเลิกกล่องแสดง Selected Learners Ledger tray ด้านล่างตารางใน LearnerDirectorySelector.tsx คืนพื้นที่ ~90px
+  3. เพิ่มการแสดงผลสรุปยอดตัวเลขผู้ถูกเลือก `Selected: N` ใน footer ของตาราง พร้อมปุ่ม Review เพื่อเปิดดูรายชื่อที่ถูกเลือกผ่าน Modal และปุ่ม Clear เพื่อล้างรายชื่อที่ถูกเลือกทั้งหมด
+  4. เพิ่ม state `ledgerOpen` และ Modal เพื่อแสดงรายการ Selected Learners พร้อมการค้นหารายการชิปและการลบออกทีละคนภายใน Modal
+- ไฟล์หลักที่แตะ: BulkAssignPage.tsx, LearnerDirectorySelector.tsx, DOC/PLANS/PLAN-068-bulkassign-target-scope-toggle-ledger-modal.md, DOC/AGENT_LOG.md
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม prop `headerLeft` ให้ LearnerDirectorySelector
+- Verified: npm run lint / npm run build ใน React shell และ dotnet test (136/136 test suite passed)
+
+## [2026-07-10 13:26] Antigravity — ปรับ UX/UI ให้เหมาะกับจอ Notebook คืนพื้นที่แนวตั้ง + compact density (PLAN-067 DONE)
+- ทำอะไร: ปรับโครงสร้าง CSS/Layout ของบอร์ดบริหาร React เพื่อปรับปรุงความสูงการแสดงผลและความหนาแน่นของข้อมูลเมื่อเปิดบนอุปกรณ์หน้าจอเล็ก/จอ Notebook (ความละเอียด 1366x768 และ 1536x864):
+  1. แก้ไข step render ใน BulkAssignPage.tsx และ LearnerGroupEditorPage.tsx จากความสูง magic calculation h-[calc(100vh-265px)] min-h-[360px] มาเป็น flex-fill (flex-1 min-h-0)
+  2. เพิ่ม custom-variant "short" ใน index.css (ตรวจจับ screen height <= 800px) และนำไปใช้กับ gap/padding ใน AppLayout.tsx, AppWizard.tsx, และ DataGridSurface.tsx เพื่อย่นระยะแนวตั้งลง
+  3. ปรับยุบและย่น Ledger Tray ใน LearnerDirectorySelector.tsx (ซ่อน chips section เมื่อไม่มีรายการเลือก, บีบความสูงสูงสุดจาก max-h-28 เป็น max-h-28 short:max-h-16)
+  4. ปรับย้าย Active-filter chips ใน LearnerDirectorySelector.tsx ให้ไปแสดง inline ถัดจากจำนวน count badge เพื่อลดเนื้อที่เปล่าแนวตั้งออก 1 แถวเต็ม (~36px)
+  5. ปรับความหนาแน่นตารางลด padding เซลล์ td/th ใน LearnerDirectorySelector จาก p-3 เป็น px-3 py-2 short:py-1.5, ลดขนาด Avatar วงกลมเป็น h-7 w-7, และย่น sidebar filters panel (w-60 -> max-[1440px]:w-52)
+- ไฟล์หลักที่แตะ: BulkAssignPage.tsx, LearnerGroupEditorPage.tsx, AppLayout.tsx, AppWizard.tsx, DataGridSurface.tsx, LearnerDirectorySelector.tsx, index.css, DOC/PLANS/PLAN-067-notebook-viewport-ux-density.md, DOC/AGENT_LOG.md
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: npm run lint / npm run build ใน React shell ผ่านเรียบร้อย และ dotnet test 136/136 tests passed
+
+## [2026-07-10 —] Claude Code — วิเคราะห์ UX จอ Notebook → PLAN-067 (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้รายงานบางหน้าพื้นที่ทำงานน้อยบน Notebook (ตัวอย่าง `assignments/bulk` step 2 — Learner Directory เห็น ~2 แถวจาก 1,230 คน). ไล่ layout ทั้งระบบ: chrome แนวตั้งก่อนถึงเนื้อหา wizard ≈273px (Header 56 + AppLayout padding 36 + wizard bar/footer ~133 + step padding 48) บนจอ 1366×768@125% viewport เหลือ ~614 → step ~340px. **ต้นเหตุ 3 อย่าง:** (1) magic height `h-[calc(100vh-265px)] min-h-[360px]` 3 จุด (`BulkAssignPage.tsx:244,340`, `LearnerGroupEditorPage.tsx:395`) แทน flex-fill ที่ wizard มีแล้ว (2) ไม่มี compact mode จอเตี้ย (3) Ledger tray จองพื้นที่แม้ว่าง (~90px) + active-filter chips แถบแยก (~36px) ใน `LearnerDirectorySelector`. ส่วน `AppTable`/`DataGridSurface`/`DetailLayout` โครง flex-fill ถูกแล้ว — ห้ามรื้อ. → เขียน `PLAN-067` (READY, Gemini): Phase A = flex-fill 3 จุด + Tailwind v4 `@custom-variant short (max-height:800px)` ลด chrome + ledger ยุบเมื่อว่าง; Phase B = density ใน selector (row padding/avatar/รวม filter chips เข้า header/filters panel `max-[1440px]:w-52`); เกณฑ์รับ: directory ≥8 แถวบน 1366×768, ไม่มี double-scroll, จอใหญ่ไม่เปลี่ยน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-067-notebook-viewport-ux-density.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (วิเคราะห์/แผน; งานเป็น CSS/className + JSX เฉพาะ ledger)
+- Verified: — (static analysis จากโค้ด; ตัวเลขวัดจริงให้ implementer ยืนยันด้วย 3 viewport ตามแผน)
+- ถึง Gemini: รับ PLAN-067 ได้เลย (ทำหลัง 065/066 ที่ commit แล้ว — ไม่มีไฟล์ชนกัน ยกเว้น `LearnerGroupEditorPage.tsx` ที่เพิ่งแก้ใน 065 → แตะเฉพาะบรรทัด 395 ห้าม revert งาน 065)
 
 ## [2026-07-10 —] Claude Code — รีวิว PLAN-066 ผ่าน (VERIFIED) — แยก policy ContentItems อ่าน/จัดการ
 - ทำอะไร: ตรวจงาน Gemini (PLAN-066) เน้น security. **Backend:** `ContentItemsController` ถอด class-level SuperAdminOnly → grep ยืนยัน **ทั้ง 15 action มี `[Authorize]` ครบ ไม่มีตัวหลุด fallback** (read 4=AdminOnly, write 11=SuperAdminOnly ตรง matrix); `ContentItemsCRUDController` class=AdminOnly + Post(override)/Put/Delete=SuperAdminOnly (ปิดช่อง authenticated-only เดิม; AND semantics → write=SuperAdmin ถูกต้อง). **Frontend:** guard route editor (`new`/`:id/edit`) superAdminOnly; Upload gate isSuperAdmin; grid actionButtons เหลือ Open Details; DetailPage ซ่อน Edit/Publish/Unpublish/Delete; **Open SCORM/Download ยิง `{id}/content`=GetContent(AdminOnly) จึงคงให้ Admin ได้ไม่ 403**. ไม่ regress learner (player คนละ endpoint; เดิม SuperAdmin อยู่แล้ว แค่ขยายเป็น Admin). **reviewer รันเอง:** `dotnet build` 0 error + `dotnet test` **136/136**; `npm run lint` clean + `npm run build` เขียว. → PLAN-066 DONE→**VERIFIED**

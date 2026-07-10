@@ -1017,7 +1017,7 @@
                     ? (selectedGroupName || 'No group selected')
                     : (targetCount > 0 ? `${window.formatAdminCountLabel(targetCount, 'learner')} selected` : 'No target selected');
 
-                $("#snapshot-target-mode").text(isGroupMode ? 'Learner Group' : 'Individual learners');
+                $("#snapshot-target-mode").text(isGroupMode ? 'Group' : 'Individual');
                 $("#snapshot-target-count").text(window.formatAdminCountLabel(targetCount, isGroupMode ? 'member' : 'learner'));
                 $("#snapshot-target-name").text(targetName);
             }
@@ -1048,7 +1048,7 @@
                     description: payload.description || "",
                     startDate: fmtDate(payload.startDate),
                     dueDate: fmtDate(payload.dueDate),
-                    targetMode: payload.groupId ? "Learner Group" : "Individual Learners",
+                    targetMode: payload.groupId ? "Group" : "Individual",
                     target: payload.groupId
                         ? (selectedGroupName || "Selected group")
                         : window.formatAdminCountLabel(resolvedCount, "learner")
