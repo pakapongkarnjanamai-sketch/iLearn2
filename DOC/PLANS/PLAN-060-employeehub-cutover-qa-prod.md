@@ -58,9 +58,16 @@
 ### Phase 2 — GATE: (1) PLAN-062 ✅ + PLAN-063 ✅ + re-smoke ผ่าน ✅ (2) **ผู้ใช้ยืนยันขึ้น PROD (2026-07-10) ✅** → GATE PASSED
 ### Phase 3 — PROD (งาน GPT — Claude flip config ใน source แล้ว, ไม่ deploy เอง)
 - [x] flip `appsettings.Production.json` Provider `Legacy`→`EmployeeHub` ใน source (commit โดย Claude 2026-07-10) — `EmployeeHubBaseUrl` PROD = `http://AP-NTC2137-PRWB/Tools/EmployeeHub/Service` ชี้ถูกแล้ว
-- [ ] **GPT: deploy PROD** (`deploy-api.ps1` env=Production → อ่าน `appsettings.Production.json`) → **เช็ค prerequisite #4 ก่อน** (`GET /api/sync/runs?take=5` run ล่าสุด Succeeded ≤2 วัน)
-- [ ] **GPT: smoke PROD ชุดเดียวกับ QA** — health `employeeDirectory`, learner login by EId, Learners grid (filter Section มีช่องว่าง = PLAN-063), profile, Bulk Assign เลือก division, Admin Users DisplayName, **เคส NLC admin** (grid/profile/cascade = PLAN-062), เทียบจำนวน active รวม
-- [ ] **rollback ถ้าพลาด**: flip `Production.json` Provider กลับ `Legacy` + redeploy (หรือ web.config switch กลับ stamp เดิม) — `LearnerApiService` legacy ยังอยู่ในโค้ด
+- [x] **GPT: deploy PROD** → stamp `20260710091210` (previous: `20260709111723`), health check OK
+- [x] **GPT: smoke PROD** — 7/7 passed:
+  - ✅ Health: employeeDirectory = EmployeeHub (Healthy) 80ms
+  - ✅ Learners grid: totalCount=8,055
+  - ✅ NLC grid filter: totalCount=1,230, Division="NLC" ✓
+  - ✅ NLC profile (N130058): Division="NLC", Department="Camera Assembly"
+  - ✅ Section filter with spaces (+encoding): "Corporate Support Division (FM)" = 2
+  - ✅ Cascade: 15 divisions, NLC departments=9
+  - ✅ Session/Me: DisplayName="PAKHAPONG KANCHANAMAI"
+- **rollback ถ้าพบปัญหา**: web.config switch กลับ stamp `_deploy_20260709111723` หรือ flip `Production.json` Provider→`Legacy` + redeploy — `LearnerApiService` legacy ยังอยู่ในโค้ด
 ### Phase 4 — หลัง soak PROD (แผนแยกในอนาคต)
 - ถอด `LearnerApiService` legacy + `BaseEmployeeCsvUrl`/`BaseLearnerUrl` เดิม + ปิด EmployeeServiceV2 dependency — **อย่าทำในแผนนี้**
 
@@ -103,3 +110,18 @@
   - NLC grid regression check: totalCount=1,230 (unchanged)
 - **Rollback path**: web.config switch to `_deploy_20260710080811`
 - **Next**: soak QA 2-3 วันทำการ → ผู้ใช้ยืนยัน → Phase 3 PROD
+
+### Phase 3 — PROD (2026-07-10 GPT)
+- **ผู้ใช้ยืนยัน** "ทำการ deploy QA + PROD" — Phase 2 GATE passed
+- `appsettings.Production.json` Provider ถูก flip เป็น `EmployeeHub` แล้ว (โดย Claude); PROD `EmployeeHubBaseUrl` = `http://AP-NTC2137-PRWB/Tools/EmployeeHub/Service`
+- **Deploy**: `deploy-api-prod.ps1` → stamp `20260710091210` (previous: `20260709111723`), HealthCheck OK (401 = app running)
+- **PROD smoke (7/7 pass)**:
+  - Health: EmployeeHub (Healthy) 80ms
+  - Learners grid: totalCount=8,055
+  - NLC grid filter: totalCount=1,230, Division="NLC"
+  - NLC profile (N130058): Division="NLC", Department="Camera Assembly"
+  - Section filter with spaces: "Corporate Support Division (FM)" = 2
+  - Cascade: 15 divisions, NLC=9 departments
+  - Session/Me: DisplayName="PAKHAPONG KANCHANAMAI"
+- **Rollback path**: web.config switch to `_deploy_20260709111723` (instant) หรือ flip `Production.json` Provider→`Legacy` + redeploy
+- **PLAN-060 = DONE** ✅
