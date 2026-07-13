@@ -689,7 +689,15 @@
                         url: baseUrl + '/' + endpoint + (queryText || ''),
                         method: 'GET',
                         xhrFields: { withCredentials: true }
-                    }).then(function (res) { return res.data || res; });
+                    }).then(function (res) {
+                        // Normalize ให้มี Name เสมอ — provider Legacy ส่ง "Name" (PascalCase) แต่ EmployeeHub ส่ง "name" (camelCase)
+                        var items = (res && res.data) ? res.data : res;
+                        return (items || []).map(function (x) {
+                            if (x == null) { return { Name: '' }; }
+                            if (typeof x === 'string') { return { Name: x }; }
+                            return { Name: x.Name !== undefined ? x.Name : (x.name || '') };
+                        });
+                    });
                 }
             });
         }

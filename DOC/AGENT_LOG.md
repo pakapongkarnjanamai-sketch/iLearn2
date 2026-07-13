@@ -12,6 +12,43 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-13 —] GitHub Copilot (Claude Opus 4.6) — Deploy PLAN-075 to PROD + verify
+- ทำอะไร: Deploy `iLearn.Admin` ขึ้น PROD ด้วย `tools/deploy-admin-prod.ps1` (stamp `20260713091430`, health check OK). ตรวจสอบ: JS ทั้ง 2 ไฟล์ (`admin-view-utils.js`, `admin-layout.js`) served via HTTP มี fix `x.Name !== undefined`; API endpoints คืน camelCase ถูกต้อง — `GetDivisions` 15 items, `GetDepartments(CSD)` 8 items, `GetPositions` 23 items; `LearnerGroups/Editor` page 200. Plan → VERIFIED.
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-075-*.md` (→VERIFIED), `DOC/AGENT_LOG.md`; deployed to `\\ap-ntc2137-prwb\wwwroot\iLearn\admin\_admin_deploy_20260713091430\`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: deploy health check 200; HTTP GET admin-view-utils.js + admin-layout.js = fix present; GetDivisions/Departments/Positions endpoints all 200 with correct camelCase data; Editor page 200
+
+## [2026-07-13 —] Claude Code — รีวิว PLAN-074 ผ่าน (VERIFIED) — student legacy URL redirect
+- ทำอะไร: ตรวจอิสระงาน Copilot ทุกข้อ — probe anonymous ใหม่: PROD Student/student/Student/MyLearning → 301 ถูกปลายทาง ไม่มี 401, follow → 200; QA Student → 301 + root anonymous 200 (B4); regression admin 6 URL = 200 ครบ; UNC: โฟลเดอร์ student ทั้งสองเครื่องเหลือ web.config เดียว; ทดสอบเบราว์เซอร์จริง (in-app browser) → `/iLearn/Student` จบที่ `/iLearn` ไม่มี auth dialog. Root cause correction ของ implementer (ANCM in-process ดัก request → ต้องแยก IIS app บน DefaultAppPool) ตรวจแล้วสมเหตุสมผล ไม่ชน 500.35. → PLAN-074 DONE→**VERIFIED** + จดข้อสังเกต ops: redirect พึ่ง DefaultAppPool
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-074-*.md` (→VERIFIED + Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: HTTP probe ครบชุด (anonymous + credentials) + UNC + browser test ผ่านทั้งหมด
+
+## [2026-07-13 —] Claude Code — PLAN-075 DONE: normalize lookup casing ใน MVC makeLookup 6 สำเนา (ผู้ใช้สั่งให้ทำเอง)
+- ทำอะไร: แก้ตามสเปก PLAN-075 ครบ 6 จุด — `.then` ใน `makeLookup` normalize item ให้มี `Name` เสมอ (ทนทั้ง `Name` PascalCase จาก Legacy และ `name` camelCase จาก EmployeeHub): `admin-view-utils.js` (ตัวหลัก initAdminLearnerOrgFilters), `admin-layout.js`, inline fallback ใน `LearnerGroups/Editor.cshtml` + `AddMembers.cshtml` + `Assignments/Detail.cshtml` + `BulkAssign.cshtml`. ไม่แตะ backend/React/applyFilters — presentation mapping ล้วน
+- ไฟล์หลักที่แตะ: `iLearn.Admin/wwwroot/js/admin-view-utils.js`, `admin-layout.js`, `iLearn.Admin/Views/LearnerGroups/Editor.cshtml`, `AddMembers.cshtml`, `iLearn.Admin/Views/Assignments/Detail.cshtml`, `BulkAssign.cshtml`, `DOC/PLANS/PLAN-075-*.md` (→DONE + Implementer Notes)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ฝั่งอ่านทนสอง casing; wire ยัง camelCase ตาม convention)
+- Verified: `node --check` 2 ไฟล์ js ผ่าน; unit test logic normalize 5 กรณี (รวม payload camelCase จริงจาก PROD) ผ่านหมด; `dotnet build iLearn.Admin -o artifacts\verify-admin` 0 errors; **รอ deploy PROD (`tools/deploy-admin-prod.ps1`) แล้วทดสอบหน้า New Learner Group จริงเป็นขั้นสุดท้าย**
+
+## [2026-07-13 —] Claude Code — วินิจฉัย MVC filter (Division/Dept/Section) ว่างบน PROD → PLAN-075 (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้แจ้ง dropdown filter หน้า New Learner Group (MVC) ว่างเปล่า สงสัยข้อมูลพนักงาน. Probe จริง: `Learners/GetDivisions` บน PROD = 200 **ข้อมูลครบ 15 divisions แต่ key เป็น camelCase `{"name":...}`** ขณะ MVC bind `displayExpr/valueExpr/key="Name"` (PascalCase) → render ว่าง. Root cause: **flip PROD → provider EmployeeHub (10-Jul, `336d3a1`)** เปลี่ยน contract บน wire — Legacy เป็น pass-through PascalCase จาก server เดิม, EmployeeHub คืน `LookupNameDto` → API serialize camelCase. QA ไม่เจอเพราะยัง Legacy; React รอด (`x.Name || x.name` defensive) แต่ `LearnerListPage.tsx` อ่าน `d.name` strict → **ห้ามแก้ backend เป็น PascalCase**. Server-side filter รับได้ทั้งสอง casing (probe `Learners/Get` filter Division/division → totalCount=215 เท่ากัน) → แก้เฉพาะ dropdown binding. → เขียน **PLAN-075**: normalize ใน `makeLookup` ฝั่ง MVC 6 สำเนา (admin-view-utils.js เป็นตัวหลัก + admin-layout.js + inline fallback 4 views) ให้ทนทั้ง `Name`/`name`. มอบ Antigravity (Gemini)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-075-mvc-learner-lookup-casing-employeehub.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน; ตัวแก้จะไม่แตะ contract — MVC ฝั่งอ่านทนสอง casing)
+- Verified: — (probe HTTP จริงบน PROD ประกอบแผน: GetDivisions/GetDepartments/GetPositions/Get + เทียบ casing)
+- ถึง Gemini: รับ PLAN-075 ได้เลย (READY) — แก้เฉพาะ `.then` ใน makeLookup ตามสเปก ห้ามแตะ backend/React
+
+## [2026-07-13 —] GitHub Copilot (Claude Opus 4.6) — PLAN-074 DONE: ปลด Windows auth prompt ที่ `/iLearn/Student` ทั้ง PROD + QA
+- ทำอะไร: แก้ปัญหา anonymous request ไป `/iLearn/Student` ได้ 401 แทน 301 redirect ทั้ง PROD (`ap-ntc2137-prwb`) และ QA (`ap-ntc2138-qawb`). Root cause จริง ≠ auth config ค้างในแผนเดิม — เป็น **ANCM inprocess hosting** ที่ดักทุก request ใน `/iLearn` app ก่อน httpRedirect module ทำงาน. Fix: สร้าง IIS application `/iLearn/student` แยกออกจาก ANCM scope (DefaultAppPool) + ตั้ง anonymous auth ใช้ app pool identity (IUSR ไม่อยู่ใน ACL = 401.3) + ปิด Windows auth. QA: สร้างโฟลเดอร์ + web.config redirect + IIS app ใหม่ + เปิด anonymous ที่ root `/iLearn` ให้ตรง PROD (decision #1 อนุมัติ). ลบไฟล์เก่าบน PROD (appsettings*.json + wwwroot/)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-074-student-legacy-url-redirect-auth-prompt.md` (→DONE), `DOC/AGENT_LOG.md`; IIS config บน PROD+QA: applicationHost.config, student web.config, IIS application definitions
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (IIS infra ล้วน)
+- Verified: Anonymous probe ทุก URL ผ่าน — PROD: 301 Student→/iLearn, 301 Student/MyLearning→/iLearn/MyLearning, 200 /iLearn; QA: 301 Student→/iLearn, 200 /iLearn; Regression: admin/, admin-react/, Service/api/admin/session/me ทั้ง PROD+QA = 200 ครบ
+
+## [2026-07-13 —] Claude Code — วินิจฉัย Windows auth prompt ที่ PROD `/iLearn/Student` → PLAN-074 (แผน ไม่แก้โค้ด)
+- ทำอะไร: ผู้ใช้แจ้ง popup Windows Security ตอนเปิด `https://ap-ntc2137-prwb/iLearn/Student`. Probe จริง (2026-07-13): PROD `/iLearn/Student` anonymous = **401 Negotiate,NTLM** / with creds = 301 → `/iLearn`; root `/iLearn` anonymous = 200 → root cause: **auth config `<location Default Web Site/iLearn/student>` ค้างใน applicationHost.config หลัง PLAN-051 B1 ลบ IIS app** (การลบ app ไม่ลบ location config) — verify รอบ PLAN-051 ใช้ `-UseDefaultCredentials` เลย mask 401 ไว้. QA แย่กว่า: `/iLearn/Student` with creds = **404** (ไม่มี redirect — 051 B ทำเฉพาะ PROD) + root `/iLearn` anonymous = 401 (ต่างจาก PROD). → เขียน **PLAN-074**: Part A ปลด auth ค้างบน PROD (Clear-WebConfiguration ที่ location), Part B วาง redirect + เปิด anonymous บน QA (decision #1). มอบ GitHub Copilot (ถือ WinRM credential Z001927)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-074-student-legacy-url-redirect-auth-prompt.md` (ใหม่), `DOC/AGENT_LOG.md` (+ resolve conflict markers ค้างจาก merge — คง entry รีวิว 073 ของ Copilot ฝั่ง HEAD), `DOC/PLANS/PLAN-073-*.md` (resolve conflict — คง Status VERIFIED)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน infra/IIS ล้วน)
+- Verified: — (probe HTTP จริงทั้ง PROD/QA ประกอบแผน; ไม่มีโค้ดต้อง build)
+
 ## [2026-07-10 17:00] GitHub Copilot (Claude Opus 4.6) — รีวิว PLAN-073 ผ่าน (VERIFIED) + deploy QA/PROD
 - ทำอะไร: รีวิว environment theming — runtime hostname detection, amber branding non-PROD, favicon swap, MVC navbar-qa override, PROD pixel-perfect guard ถูกต้องตาม plan; amend commit `3ad3671` → VERIFIED
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-073-environment-theming-qa-vs-prod.md` (→VERIFIED), `DOC/AGENT_LOG.md`
