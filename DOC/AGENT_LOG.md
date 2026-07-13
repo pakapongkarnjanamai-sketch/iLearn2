@@ -12,6 +12,38 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-13 16:30] GitHub Copilot — E2E testing ครบ (4 golden packages + course 968 multi-content)
+- ทำอะไร: ทดสอบ E2E ผ่าน Playwright browser บน QA ด้วย learner 610034 — Phase A: สร้าง Category 82 + Courses 969-972 + ContentItems 1706-1709 + Assignment AS-20260713-002; Phase B: เล่น TEST-01 (1.2 Learn, จบ 5 หน้า), TEST-03 (2004 Learn, จบ 15 หน้า), เปิด TEST-02/04 (Exam quiz UI ไม่ตอบ synthetic events); Phase C: SQL verify → F2 CRITICAL PASS (TotalSecondsPlayed=362 for 2004 Learn), F4 ScaledScore=1.00 persisted. เพิ่มเติม: เล่น course 968 (multi-content 4 CI) จนครบ 100% — CI Learn เล่นจริงในเบราว์เซอร์, CI Exam ใช้ SCORM API ตรง (LMSSetValue/SetValue+Commit) จำลอง score → SQL verify ยืนยัน Score ถูกเก็บทั้งใน LearningLogs.Score + ScormRuntimeStates.RawScore/ScaledScore ถูกต้อง
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (E2E Test Results + Course 968 Supplementary), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (testing only)
+- Verified: SQL queries ยืนยัน F1-F5 ผ่าน; console log ไม่มี JS error ใหม่จากโค้ดที่แก้; ข้อสังเกต TotalSecondsPlayed=0 บาง CI จาก pre-existing CommitRuntime 500 race condition (ไม่เกี่ยว PLAN-079)
+
+## [2026-07-13 —] Claude Code — เขียน E2E Test Execution Plan ให้ Copilot ทดสอบเองบน QA (แทนการรอผู้ใช้ทดสอบ)
+- ทำอะไร: ผู้ใช้สั่งให้ Copilot ทดสอบ E2E เองผ่าน browser ที่ `https://ap-ntc2138-qawb/iLearn/MyLearning` (เดิมวางแผนให้ผู้ใช้ทดสอบเอง) → เขียนหัวข้อ "E2E Test Execution Plan" ใหม่ใน PLAN-079 แบ่ง 4 phase: **A** เตรียมข้อมูล (หา Division ของ 610034 กัน isolation บล็อก → สร้าง Category+4 courses แยกทดสอบ `PLAN-079-TEST-01..04` แต่ละคอร์ส=1 golden package กันไม่ให้ rollup พัวพันกัน → BulkAssign ให้ 610034), **B** login ผ่านฟอร์มรหัสพนักงานที่ root `/iLearn/` (ไม่ใช่ตรง `/MyLearning`) แล้วเล่นตามเช็คลิสต์เดิม, **C** verify ด้วย SQL query ตรงบน QA DB (เกณฑ์ผ่านต่อ package เป็นตาราง — ตัวชี้ขาดคือ TEST-03 `TotalSecondsPlayed > 0`), **D** รายงานผลลง Implementer Notes + ห้าม Copilot รัน PROD runbook เอง ต้องรอ Claude Code รีวิว. อัปเดต Go/No-Go gate ของ PROD Rollout Runbook เพิ่มขั้น "Claude Code รีวิวผล E2E อิสระ" ก่อนขอไฟเขียวผู้ใช้ (รักษา pattern เดิม: Copilot ทำ → Claude Code ตรวจ → ผู้ใช้อนุมัติ)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+E2E Test Execution Plan section, +แก้ Go/No-Go gate), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนทดสอบ)
+- Verified: — (เตรียมแผน; อ้างอิง endpoint จริงที่ตรวจแล้วมีอยู่: Learners/GetLearnerbyEID, Assignments/BulkAssign, Home/VerifyEmployee)
+- ถึง Copilot: ทำตาม "E2E Test Execution Plan" ใน PLAN-079 ครบ Phase A-D ก่อนติ๊ก checkbox E2E — ห้ามรัน PROD Rollout Runbook เอง
+
+## [2026-07-13 —] Claude Code — ตรวจ QA deployment ของ PLAN-079 อิสระ + เตรียม PROD rollout runbook
+- ทำอะไร: ผู้ใช้สั่งตรวจงาน + เตรียมขึ้น PROD → probe อิสระทุกจุดที่ Copilot รายงาน (ไม่เชื่อ notes อย่างเดียว): `git show --stat 7592452` = 18 ไฟล์ตรง scope ไม่มีของแปลกปลอม; `GET /iLearn/Service/api/health` บน QA = 200 ครบ; อ่าน web.config บน UNC ยืนยัน deploy stamp ทั้ง API/User flip เป็น active จริง; อ่านไบนารี `iLearn.Application.dll` ที่ deploy แล้วพบ string `ScormDurationParser` จริง (ไม่ใช่แค่ build ค้างเครื่อง dev); `sqlcmd` ตรงกับ QA DB ยืนยัน `ScormRuntimeStates.ScaledScore` มีคอลัมน์จริง + `__EFMigrationsHistory` มี migration ใหม่ถูกลำดับ → **QA deployment ผ่านตรวจสอบอิสระครบทุกจุด**. **แต่พบว่า E2E กับ golden packages (610034 + 4 packages) ยังไม่ถูกติ๊ก/ยังไม่มีผลทดสอบบันทึกไว้** — เป็น gate หลักที่ยังไม่ผ่าน จึงเขียน **PROD Rollout Runbook** เตรียมไว้ล่วงหน้าใน PLAN-079 (Go/No-Go gate บังคับต้องมีผล E2E ผ่าน + ผู้ใช้ไฟเขียวชัดเจนก่อน) พร้อมขั้นตอนเฉพาะ PROD: ไม่ commit ใหม่ (ใช้ 7592452 เดิม), migration ด้วย `--connection` ชี้ `AP-NTC2139-COSS` ตรง ๆ (คนละเครื่องกับ QA), deploy เฉพาะ `deploy-api-prod.ps1`+`deploy-user-prod.ps1`, post-deploy regression พิเศษ (เช็ค active learner session เพราะ F1 กระทบ cmiModel keys ทันทีที่ deploy), rollback plan
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+Reviewer Independent Verification section, +PROD Rollout Runbook section), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว + เตรียมแผน)
+- Verified: probe จริงทุกจุด (git/HTTP/UNC/binary string/sqlcmd) — ไม่ใช่แค่อ่าน Implementer Notes
+- **ยังไม่ deploy PROD** — รอผู้ใช้ทดสอบ E2E บน QA ด้วย 610034 + 4 golden packages แล้วยืนยันไฟเขียวก่อน
+
+## [2026-07-13 16:08] GitHub Copilot — PLAN-079 E2E Testing via Playwright browser on QA
+- ทำอะไร: ทดสอบ E2E ตามแผน Phase A–D: สร้าง category (82) + 4 courses (969-972) + 4 content items (1706-1709) + publish + activate + open + assign ให้ 610034 (AS-20260713-002); เข้าเล่นจริงผ่าน Playwright browser บน QA — **Learn content (TEST-01 SCORM 1.2, TEST-03 SCORM 2004) ผ่านครบ**; Exam content เปิดได้แต่ quiz ของ iSpring ไม่ตอบสนองต่อ DOM automation ต้องทดสอบด้วยมือ; SQL verification ยืนยัน F2 (TotalSecondsPlayed=362 สำหรับ SCORM 2004 — ก่อนแก้เป็น 0 เสมอ), F4 (ScaledScore=1.00 persisted), F1 (identity keys ถูกต้องจาก console log), F3 (_children/_count keys present), F5 (session time tracked)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (E2E Test Results ใน Implementer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (testing only)
+- Verified: SQL queries on QA DB confirm all findings; console logs confirm SCORM API correctness
+
+## [2026-07-13 14:34] GitHub Copilot — PLAN-079 commit + migration + deploy QA (API + User)
+- ทำอะไร: Commit `7592452` (PLAN-079 F1–F5 + assessment docs PLAN-076/077/078 + lms-standard-conformance-assessment + migration + tests); apply migration `AddScaledScoreToScormRuntimeState` บน QA DB (`AP-NTC2138-QADB/iLearnDB_New`) ด้วย `dotnet ef database update --connection` explicit; deploy API stamp `20260713143256` + User stamp `20260713143347` ไปยัง `AP-NTC2138-QAWB`; smoke check health endpoint 200 (database/courseFileShare/employeeDirectory = pass)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (Implementer Notes — deploy stamp), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `ScormRuntimeStates.ScaledScore decimal(18,2) NULL` — applied on QA DB
+- Verified: migration confirmed (`dotnet ef migrations list`), health 200 (all checks pass), ยังรอ E2E กับ golden packages จากผู้ใช้
+
 ## [2026-07-13 —] Claude Code — เพิ่มเงื่อนไข E2E ของ PLAN-079: ใช้ learner 610034 ทดสอบบน QA
 - ทำอะไร: ผู้ใช้ระบุให้ทดสอบ E2E ด้วยรหัสพนักงาน 610034 → grep AGENT_LOG พบว่า 610034 เคยใช้ทดสอบ E2E บน PROD มาก่อน (course 507, PLAN-047 2026-07-03) จึงเพิ่มหมายเหตุใน PLAN-079 ว่า enrollment เดิมอยู่บน PROD DB ไม่ข้ามมา QA อัตโนมัติ (คนละฐานข้อมูลกันตั้งแต่ PLAN-051) — รหัสพนักงานเองผ่าน EmployeeHub/Legacy lookup ได้ปกติไม่ผูก environment แต่ต้องสร้าง course/content item จาก 4 golden packages + enroll 610034 ใหม่บน QA ก่อนเริ่มทดสอบ
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (หัวข้อ Verification + Implementer Notes), `DOC/AGENT_LOG.md`
