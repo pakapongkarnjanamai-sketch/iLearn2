@@ -35,6 +35,8 @@ namespace iLearn.Domain.Entities
 
         public decimal? RawScore { get; set; }
 
+        public decimal? ScaledScore { get; set; }
+
         [StringLength(64)]
         public string? SessionTime { get; set; }
 

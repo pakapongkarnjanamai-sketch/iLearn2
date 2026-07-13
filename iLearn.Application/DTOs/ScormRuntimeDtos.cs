@@ -13,6 +13,7 @@ namespace iLearn.Application.DTOs
         public string? CompletionStatus { get; set; }
         public string? SuccessStatus { get; set; }
         public decimal? RawScore { get; set; }
+        public decimal? ScaledScore { get; set; }
         public string? SessionTime { get; set; }
         public string? TotalTime { get; set; }
         public string? Entry { get; set; }
@@ -39,6 +40,7 @@ namespace iLearn.Application.DTOs
         public string? CompletionStatus { get; set; }
         public string? SuccessStatus { get; set; }
         public decimal? RawScore { get; set; }
+        public decimal? ScaledScore { get; set; }
         public string? SessionTime { get; set; }
         public string? TotalTime { get; set; }
         public string? Entry { get; set; }

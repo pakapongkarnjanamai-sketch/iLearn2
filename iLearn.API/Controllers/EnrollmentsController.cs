@@ -295,6 +295,7 @@ namespace iLearn.API.Controllers
                         IsCompleted = isDone,
                         Score = ResolvePlayerContentItemScore(log, runtimeState),
                         Time = ResolvePlayerContentItemTime(log, runtimeState),
+                        TotalSecondsPlayed = log?.TotalSecondsPlayed ?? 0,
                         RuntimeState = runtimeState
                     };
                 })

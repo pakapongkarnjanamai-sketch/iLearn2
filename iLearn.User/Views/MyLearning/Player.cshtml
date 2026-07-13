@@ -4,6 +4,7 @@
     Layout = "~/Views/Shared/_DevExtremeLayout.cshtml";
     var courseId = ViewBag.CourseId ?? 0;
     var learnerCode = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var learnerName = User.FindFirst(ClaimTypes.Name)?.Value ?? learnerCode;
 }
 
 @section Styles {
@@ -692,6 +693,7 @@
         // ========================================
         const COURSE_ID = "@courseId"; // ใช้ Course ID แทน
         const currentLearnerCode = '@learnerCode';
+        const currentLearnerName = '@learnerName';
         const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
         const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
@@ -756,6 +758,22 @@
             }
 
             return rawVersion;
+        }
+
+        function computeTotalTime(contentItem, runtimeState) {
+            // F5: Use TotalSecondsPlayed from server (LMS-maintained accumulation) as authoritative source.
+            // Fallback to runtimeState.totalTime for legacy data where TotalSecondsPlayed is 0.
+            const totalSecondsPlayed = contentItem?.totalSecondsPlayed || 0;
+            const runtimeTotalTime = runtimeState.totalTime || contentItem?.clientTime || contentItem?.time || "00:00:00";
+            const runtimeTotalSeconds = parseClockTimeToSeconds(runtimeTotalTime);
+            const scormVersion = resolveContentItemScormVersion(contentItem);
+
+            // total_time must never decrease
+            const effectiveSeconds = Math.max(totalSecondsPlayed, runtimeTotalSeconds);
+            if (effectiveSeconds > 0) {
+                return formatSecondsToScormDuration(effectiveSeconds, scormVersion);
+            }
+            return runtimeTotalTime;
         }
 
         function deriveLessonStatus(contentItem) {
@@ -830,12 +848,51 @@
                 return 0;
             }
 
-            const parts = normalizedValue.split(':').map(Number);
+            // ISO8601 duration (SCORM 2004): P[nD]T[nH][nM][n(.n)S]
+            const iso8601Regex = /^P(?:(\d+)D)?T?(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/i;
+            const isoMatch = normalizedValue.match(iso8601Regex);
+            if (isoMatch) {
+                const days = parseFloat(isoMatch[1] || '0');
+                const hours = parseFloat(isoMatch[2] || '0');
+                const minutes = parseFloat(isoMatch[3] || '0');
+                const seconds = parseFloat(isoMatch[4] || '0');
+                return Math.round((days * 86400) + (hours * 3600) + (minutes * 60) + seconds);
+            }
+
+            // SCORM 1.2 timespan: HHHH:MM:SS or HHHH:MM:SS.cc
+            const dotIndex = normalizedValue.indexOf('.');
+            const mainPart = dotIndex >= 0 ? normalizedValue.substring(0, dotIndex) : normalizedValue;
+            let fractionalSeconds = 0;
+            if (dotIndex >= 0 && dotIndex < normalizedValue.length - 1) {
+                fractionalSeconds = parseFloat('0.' + normalizedValue.substring(dotIndex + 1)) || 0;
+            }
+
+            const parts = mainPart.split(':').map(Number);
             if (parts.length !== 3 || parts.some(part => !Number.isFinite(part))) {
                 return 0;
             }
 
-            return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+            return Math.round((parts[0] * 3600) + (parts[1] * 60) + parts[2] + fractionalSeconds);
+        }
+
+        function formatSecondsToScormDuration(totalSeconds, scormVersion) {
+            const secs = Math.max(0, Math.round(totalSeconds));
+            const isScorm12 = String(scormVersion || '').indexOf('1.2') >= 0 || scormVersion === '1.2';
+            if (isScorm12) {
+                const h = Math.floor(secs / 3600);
+                const m = Math.floor((secs % 3600) / 60);
+                const s = secs % 60;
+                return String(h).padStart(4, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            } else {
+                const h = Math.floor(secs / 3600);
+                const m = Math.floor((secs % 3600) / 60);
+                const s = secs % 60;
+                let result = 'PT';
+                if (h > 0) result += h + 'H';
+                if (m > 0) result += m + 'M';
+                if (s > 0 || (h === 0 && m === 0)) result += s + 'S';
+                return result;
+            }
         }
 
         function setCourseStatusDisplay(label, variant = "muted") {
@@ -896,17 +953,22 @@
             const completionStatus = deriveCompletionStatus(contentItem, lessonStatus);
             const successStatus = deriveSuccessStatus(contentItem, lessonStatus);
             const rawScore = runtimeState.rawScore ?? contentItem?.clientScore ?? contentItem?.score ?? "";
-            const totalTime = runtimeState.totalTime || contentItem?.clientTime || contentItem?.time || "00:00:00";
+            const scaledScore = runtimeState.scaledScore ?? "";
+            const totalTime = computeTotalTime(contentItem, runtimeState);
             const entry = runtimeState.entry || ((lessonLocation || suspendData) ? "resume" : "ab-initio");
             const exitValue = runtimeState.exit || "";
             const progressMeasure = (contentItem?.clientProgress || 0) > 0 ? String((contentItem.clientProgress / 100).toFixed(2)) : "0";
 
             cmiModel = {
-                // Learner Info
-                "cmi.core.learner_id": currentLearnerCode,
-                "cmi.core.learner_name": currentLearnerCode,
+                // Learner Info — SCORM 1.2 keys
+                "cmi.core.student_id": currentLearnerCode,
+                "cmi.core.student_name": currentLearnerName,
+                // Learner Info — SCORM 2004 keys
                 "cmi.learner_id": currentLearnerCode,
-                "cmi.learner_name": currentLearnerCode,
+                "cmi.learner_name": currentLearnerName,
+                // Legacy non-spec keys (kept for backward compat)
+                "cmi.core.learner_id": currentLearnerCode,
+                "cmi.core.learner_name": currentLearnerName,
 
                 // Status
                 "cmi.core.lesson_status": lessonStatus,
@@ -918,6 +980,7 @@
                 "cmi.core.score.min": "",
                 "cmi.core.score.max": "",
                 "cmi.score.raw": rawScore === null || rawScore === undefined ? "" : String(rawScore),
+                "cmi.score.scaled": scaledScore === null || scaledScore === undefined ? "" : String(scaledScore),
 
                 // Suspend Data
                 "cmi.suspend_data": suspendData,
@@ -942,7 +1005,24 @@
                 "cmi.credit": "credit",
                 "cmi.core.lesson_mode": "normal",
                 "cmi.mode": "normal",
-                "cmi.interactions._count": "0"
+
+                // Counts
+                "cmi.interactions._count": "0",
+                "cmi.objectives._count": "0",
+
+                // SCORM 1.2 _children
+                "cmi.core._children": "student_id,student_name,lesson_location,credit,lesson_status,entry,score,total_time,lesson_mode,exit,session_time",
+                "cmi.core.score._children": "raw,min,max",
+                "cmi.objectives._children": "id,score,status",
+                "cmi.student_data._children": "mastery_score,max_time_allowed,time_limit_action",
+                "cmi.interactions._children": "id,objectives,time,type,correct_responses,weighting,student_response,result,latency",
+
+                // SCORM 2004
+                "cmi._version": "1.0",
+                "cmi.score._children": "scaled,raw,min,max",
+                "cmi.comments_from_learner._children": "comment,location,timestamp",
+                "cmi.comments_from_learner._count": "0",
+                "cmi.comments_from_lms._count": "0"
             };
             console.log("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"], "entry:", entry, "location:", lessonLocation);
         }
@@ -950,12 +1030,14 @@
         function setCmiModelValue(elementName, value) {
             cmiModel[elementName] = value;
 
-            const interactionMatch = /^cmi\.interactions\.(\d+)\./.exec(elementName);
-            if (interactionMatch) {
-                const nextCount = Number(interactionMatch[1]) + 1;
-                const currentCount = parseInt(cmiModel["cmi.interactions._count"] || "0", 10) || 0;
+            const collectionMatch = /^cmi\.(interactions|objectives)\.(\d+)\./.exec(elementName);
+            if (collectionMatch) {
+                const collectionName = collectionMatch[1];
+                const nextCount = Number(collectionMatch[2]) + 1;
+                const countKey = `cmi.${collectionName}._count`;
+                const currentCount = parseInt(cmiModel[countKey] || "0", 10) || 0;
                 if (nextCount > currentCount) {
-                    cmiModel["cmi.interactions._count"] = String(nextCount);
+                    cmiModel[countKey] = String(nextCount);
                 }
             }
         }
@@ -1024,6 +1106,10 @@
             const parsedRawScore = rawScoreValue === "" || rawScoreValue === null || rawScoreValue === undefined
                 ? null
                 : (parseFloat(rawScoreValue) || 0);
+            const scaledScoreValue = cmiModel["cmi.score.scaled"] || runtimeState.scaledScore;
+            const parsedScaledScore = scaledScoreValue === "" || scaledScoreValue === null || scaledScoreValue === undefined
+                ? null
+                : parseFloat(scaledScoreValue);
             let totalTime = getPreferredCmiModelValue(contentItem, "cmi.core.total_time", "cmi.total_time", runtimeState.totalTime || contentItem.clientTime || "00:00:00");
 
             let sessionTime = runtimeState.sessionTime || null;
@@ -1062,6 +1148,7 @@
                 completionStatus: completionStatus,
                 successStatus: successStatus,
                 rawScore: parsedRawScore,
+                scaledScore: parsedScaledScore,
                 sessionTime: sessionTime,
                 totalTime: totalTime,
                 entry: cmiModel["cmi.entry"] || cmiModel["cmi.core.entry"] || runtimeState.entry || ((lessonLocation || (cmiModel["cmi.suspend_data"] || runtimeState.suspendData)) ? "resume" : "ab-initio"),
@@ -1092,6 +1179,7 @@
                         CompletionStatus: runtimeState.completionStatus,
                         SuccessStatus: runtimeState.successStatus,
                         RawScore: runtimeState.rawScore,
+                        ScaledScore: runtimeState.scaledScore,
                         SessionTime: options.includeSessionTime ? runtimeState.sessionTime : null,
                         TotalTime: runtimeState.totalTime,
                         Entry: runtimeState.entry,

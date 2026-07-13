@@ -266,12 +266,7 @@ namespace iLearn.API.Controllers
 
         private int ParseSessionTime(string? timeStr)
         {
-            if (string.IsNullOrEmpty(timeStr)) return 0;
-            if (TimeSpan.TryParse(timeStr, out var ts))
-            {
-                return (int)ts.TotalSeconds;
-            }
-            return 0;
+            return ScormDurationParser.ToSeconds(timeStr);
         }
 
         private bool TryResolveTrustedLearnerLearnerCode(out string learnerCode, out IActionResult errorResult)
@@ -456,7 +451,11 @@ namespace iLearn.API.Controllers
                 contentItem.ContentItemId,
                 resolvedStatus,
                 ScormContentStatusPolicy.ResolveCompletionProgress(resolvedStatus),
-                contentItem.RawScore.HasValue ? (int)Math.Round(contentItem.RawScore.Value, MidpointRounding.AwayFromZero) : null,
+                contentItem.RawScore.HasValue
+                    ? (int)Math.Round(contentItem.RawScore.Value, MidpointRounding.AwayFromZero)
+                    : (contentItem.ScaledScore.HasValue
+                        ? (int)Math.Round(contentItem.ScaledScore.Value * 100, MidpointRounding.AwayFromZero)
+                        : null),
                 contentItem.SessionTime);
         }
 

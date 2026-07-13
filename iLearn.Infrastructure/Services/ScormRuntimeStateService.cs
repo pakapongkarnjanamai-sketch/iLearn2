@@ -128,6 +128,14 @@ namespace iLearn.Infrastructure.Services
                 state.CompletionStatus,
                 state.SuccessStatus,
                 isPlaceholderProgressCommit);
+
+            state.ScaledScore = PreferRawScore(
+                contentItem.ScaledScore,
+                state.ScaledScore,
+                state.LessonStatus,
+                state.CompletionStatus,
+                state.SuccessStatus,
+                isPlaceholderProgressCommit);
         }
 
         private static ScormRuntimeStateDto MapToDto(ScormRuntimeState state)
@@ -143,6 +151,7 @@ namespace iLearn.Infrastructure.Services
                 CompletionStatus = state.CompletionStatus,
                 SuccessStatus = state.SuccessStatus,
                 RawScore = state.RawScore,
+                ScaledScore = state.ScaledScore,
                 SessionTime = state.SessionTime,
                 TotalTime = state.TotalTime,
                 Entry = state.Entry,

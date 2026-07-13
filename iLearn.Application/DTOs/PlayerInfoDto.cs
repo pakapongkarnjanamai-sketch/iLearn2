@@ -32,6 +32,7 @@
         public bool IsCompleted { get; set; }
         public decimal? Score { get; set; }
         public string? Time { get; set; }
+        public int TotalSecondsPlayed { get; set; }
         public ScormRuntimeStateDto? RuntimeState { get; set; }
     }
 }
