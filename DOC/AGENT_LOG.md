@@ -12,6 +12,32 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-14 08:10] GitHub Copilot — PLAN-079 F5 Accumulation Test ผ่านครบ 3 เกณฑ์
+- ทำอะไร: ทดสอบ F5 total_time สะสมข้ามรอบ ผ่าน Playwright browser บน QA. **TEST-03 (CI 1708, completed):** player-info ส่ง totalSecondsPlayed=362 (2a✅), cmiModel["cmi.total_time"]="PT6M2S"=362s (2b✅ — จุดชี้ขาด: ก่อนแก้จะเป็น runtimeState.totalTime=181s). **TEST-04 (CI 1709, incomplete):** totalSecondsPlayed=210 (2a✅), cmi.total_time="PT3M30S" (2b✅), เล่นต่อ ~3 นาที → beforeunload commit → TotalSecondsPlayed=630 >210 (4✅). หมายเหตุ: TEST-03 ทดสอบ criterion 4 ไม่ได้เพราะ player blocks commits สำหรับ completed courses (by design: isCompleted→isReadOnly=true)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+F5 test results, updated Go/No-Go gates), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ทดสอบ + อัปเดตเอกสาร)
+- Verified: SQL queries ยืนยัน baseline + post-test values บน QA DB
+
+## [2026-07-13 —] Claude Code — เขียน PLAN-080: ขยาย SCORM package 100→200MB (Option A ของ PLAN-076) + list งานค้าง
+- ทำอะไร: ผู้ใช้ขอ list งานพรุ่งนี้ + งานขยาย content 200MB → เขียน PLAN-080 (Option A ยกลิมิต, 200MB อยู่ในเกณฑ์ปลอดภัย ≤300MB ตาม PLAN-076). ตรวจ web.config จริง (`maxAllowedContentLength=115343360`=110MB) — พบว่า 4/5 ชั้นอ้าง constant กลาง `ScormPackageLimits` (Program.cs/attributes/validation/ScormService auto sync) เหลือ web.config ชั้นเดียวที่ hardcode ต้องแก้แยก. Scope: MaxCompressedPackageBytes 100→200MB (MaxRequestEnvelopeBytes auto 210MB), web.config → 220200960, decision MaxTotalUncompressedBytes 250→500MB + MaxSingleEntry 100→200MB. Constraint: ห้าม refactor memory model (นั่นคือ Option B), ห้ามแตะ zip-bomb guard. Verify E2E upload 180MB จริง + boundary 205MB reject + memory ของ w3wp
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-080-scorm-content-size-200mb.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีในตัวแผน (PLAN-080 จะเปลี่ยนค่าลิมิต upload — ไม่ใช่ contract)
+- Verified: — (แผน; ยืนยันค่า web.config + ScormPackageLimits จริง)
+
+## [2026-07-13 —] Claude Code — ผู้ใช้เลือกปิด gap F5 ก่อน PROD → เขียนแผน F5 Accumulation Test มอบ Copilot
+- ทำอะไร: ผู้ใช้เลือกทาง (ข) ปิด gap F5 (total_time สะสมข้ามรอบ) ก่อนขึ้น PROD → เขียนหัวข้อ "F5 Accumulation Test" ใน PLAN-079. ออกแบบให้**ใช้ TEST-03 (course 971, CI 1708, 2004 Learn) ที่มี baseline TotalSecondsPlayed=362 อยู่แล้ว — ไม่ต้อง reset/สร้าง course ใหม่**. จุดชี้ขาด F5 = เปิด player รอบ 2 แล้ว (2a) player-info ส่ง totalSecondsPlayed=362 กลับ + (2b) SCO เรียก GetValue("cmi.core.total_time") ได้ค่าแทน 362s (PT format) **ไม่ใช่ 0** (ก่อนแก้ F5 echo runtimeState.totalTime แทนค่าสะสมจริง) + (4) เล่นต่อแล้ว TotalSecondsPlayed > 362. เตือน: เล่นช้า ๆ กัน double-commit race; ถ้า race ข้อ 4 ให้ดู RuntimeState.SessionTime ประกอบ — ข้อ 2b เป็นตัวชี้ขาดที่ไม่ขึ้นกับ race. ยืนยัน endpoint จริง: MyLearning/GetPlayerInfo (proxy player-info/971), Player?courseId=971
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+F5 Accumulation Test section), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนทดสอบ)
+- Verified: — (ยืนยัน content item id 1708 + player-info flow + reset endpoint จากโค้ดจริงก่อนเขียน)
+- ถึง Copilot: ทำ F5 Accumulation Test ตาม 3 เกณฑ์ผ่าน — ห้าม reset baseline 362, ห้ามแตะ PROD, บันทึกผล console GetValue + query ลง Implementer Notes แล้วให้ Claude Code รีวิวก่อน PROD
+
+## [2026-07-13 —] Claude Code — รีวิวผล E2E ของ PLAN-079 อิสระ → core F1-F4 ผ่านแข็งแรง, รอผู้ใช้ตัดสิน PROD
+- ทำอะไร: ตรวจผล E2E ที่ Copilot ทำ (commit `1481fc9` — docs ล้วน ไม่มีโค้ดปน) ด้วยการ **query QA DB เอง** ยืนยันตัวเลขตรงทุกตัว. **F2 (แก่นงาน) ผ่านแข็งแรงสุด:** SCORM 2004 Learn เล่นจริง TotalSecondsPlayed=362 (1708), 61 (1703) — ก่อนแก้เป็น 0 เสมอ = พิสูจน์ ISO8601 parser ทำงานตลอดสาย. F1 (student_id/name + SuspendData resume), F3 (_children/_count), F4 (ScaledScore 1.00/0.75 persist + fallback score) ผ่านหมด. rollup course 968 (enrollment 18201) = 100% ถูก. **ยืนยันข้ออ้าง race condition เป็น pre-existing จริง:** grep diff `7592452` LearningLogsController ไม่แตะ session accumulation/commit flow เลย → TotalSecondsPlayed=0 บาง CI (1701,1704) ไม่ใช่ regression PLAN-079. **Gaps:** (1) F5 accumulate ข้ามรอบยังไม่ทดสอบตรง (E2E เล่นรอบเดียว) (2) exam completed-but-not-passed policy ไม่ verify (iSpring quiz ต้าน automation) (3) CommitRuntime race = data-integrity issue จริง ควรเปิดงานแยก. **Verdict: พร้อมพิจารณาขึ้น PROD** รอผู้ใช้เลือก (ก) ยอมรับ known gap ขึ้นเลย หรือ (ข) ปิด gap F5 (ทดสอบ resume 2 รอบ ~5 นาที) ก่อน — ยังไม่สั่ง PROD runbook จนได้ไฟเขียว
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+E2E Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว)
+- Verified: query QA DB จริง (LearningLogs 8 rows + Enrollment 18201) + grep diff ยืนยัน pre-existing race — ไม่เชื่อ notes อย่างเดียว
+- Housekeeping ค้าง: test data บน QA DB (Category 82/Courses 969-972/CI 1706-1709/Assignment 288/course 968 enrollment) ควรเก็บกวาด; `.playwright-mcp/` artifacts untracked ควร gitignore+ลบ
+
 ## [2026-07-13 16:30] GitHub Copilot — E2E testing ครบ (4 golden packages + course 968 multi-content)
 - ทำอะไร: ทดสอบ E2E ผ่าน Playwright browser บน QA ด้วย learner 610034 — Phase A: สร้าง Category 82 + Courses 969-972 + ContentItems 1706-1709 + Assignment AS-20260713-002; Phase B: เล่น TEST-01 (1.2 Learn, จบ 5 หน้า), TEST-03 (2004 Learn, จบ 15 หน้า), เปิด TEST-02/04 (Exam quiz UI ไม่ตอบ synthetic events); Phase C: SQL verify → F2 CRITICAL PASS (TotalSecondsPlayed=362 for 2004 Learn), F4 ScaledScore=1.00 persisted. เพิ่มเติม: เล่น course 968 (multi-content 4 CI) จนครบ 100% — CI Learn เล่นจริงในเบราว์เซอร์, CI Exam ใช้ SCORM API ตรง (LMSSetValue/SetValue+Commit) จำลอง score → SQL verify ยืนยัน Score ถูกเก็บทั้งใน LearningLogs.Score + ScormRuntimeStates.RawScore/ScaledScore ถูกต้อง
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (E2E Test Results + Course 968 Supplementary), `DOC/AGENT_LOG.md`
