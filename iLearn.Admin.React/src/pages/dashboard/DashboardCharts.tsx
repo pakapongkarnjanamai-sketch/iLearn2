@@ -11,26 +11,7 @@ import {
 } from 'recharts'
 import type { CategoryMixPoint, LearningActivityPoint, TaskStatusPoint } from './dashboardApi'
 import { formatPercent } from '../../lib/format'
-
-const BRAND = '#4f46e5'
-// Colors matching statusTone(): Completed=success (emerald), In Progress/Active/Enrolling=info (indigo), Not Started/Unassigned=neutral (slate), Overdue/Expired=danger (red)
-const STATUS_COLORS: Record<string, string> = {
-  Completed: '#059669',
-  'In Progress': '#4f46e5',
-  'Not Started': '#94a3b8',
-  Overdue: '#dc2626',
-}
-
-const tooltipStyle = {
-  background: '#0f172a',
-  border: 'none',
-  borderRadius: 6,
-  color: '#fff',
-  fontSize: 12,
-  padding: '6px 10px',
-}
-
-const axisStyle = { fontSize: 11, fill: '#64748b' }
+import { BRAND, STATUS_COLORS, tooltipStyle, axisStyle } from '../../lib/chartTheme'
 
 export function LearningActivityChart({ data }: { data: LearningActivityPoint[] }) {
   if (!data || data.length === 0) {

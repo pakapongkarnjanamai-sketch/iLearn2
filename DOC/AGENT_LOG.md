@@ -12,6 +12,44 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-14 —] Claude Code — รีวิว PLAN-082 อิสระ → ผ่าน (โค้ด) รอ manual click-through
+- ทำอะไร: ตรวจ diff เต็ม 4 ไฟล์ (chartTheme.ts ใหม่, AssignmentReportCharts.tsx ใหม่, AssignmentReportPage.tsx, DashboardCharts.tsx) อิสระ — ตรงสเปคแผนทุกข้อ: สี Upcoming amber ตรง statusTone, StatusDonut/CourseCompletionBars โครงตรงต้นแบบเดิม+click-to-filter toggle-reset ถูกต้อง, chip cloud ถูกลบแทนด้วย stat tiles+กราฟ, print-only fallback ครบ, DashboardCharts diff แค่สลับเป็น import ค่าเดิมไม่กระทบ behavior. เช็ค `AssignmentDetailPage.tsx` ที่โผล่ใน git status ว่าเป็น diff ค้างจาก PLAN-081 (ยังไม่ commit) ไม่ใช่การละเมิด scope. รันเอง `npm run lint` (0 warnings) + `npm run build` (0 errors) อิสระ. Live click-through ทำไม่ได้อีกรอบ — backend `https://localhost:7128` ไม่ได้รันในสภาพแวดล้อมนี้ (เหมือน PLAN-081) จึงยังไม่เห็นกราฟจริง/ทดสอบคลิกกรองด้วยตา. สถานะ PLAN-082 = DONE→VERIFIED (โค้ด) พร้อม gap note ให้ผู้ใช้ทดสอบมือปิดท้าย
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-082-*.md` (+Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว)
+- Verified: git diff อิสระ + npm lint/build อิสระ; live click-through ทำไม่ได้ (backend ไม่รัน)
+
+## [2026-07-14 —] GitHub Copilot — PLAN-082 DONE: Report Summary ยกเครื่อง — stat tiles + donut + bar per-course (click-to-filter)
+- ทำอะไร: Implement PLAN-082 — ยกเครื่อง Report Summary ของหน้า `/assignments/{id}/report`. ลบ FactGrid 9 ช่อง + chip cloud คอร์ส, แทนที่ด้วย: (1) stat tiles 4 ใบ (Learners/Completed/Overdue/Courses), (2) StatusDonut แสดงสัดส่วน 5 สถานะ enrollment + center Completion % + legend + click-to-filter, (3) CourseCompletionBars แนวนอน sorted แย่สุดบนสุด + click-to-filter, (4) print fallback text-only. สร้าง `chartTheme.ts` shared constants + refactor `DashboardCharts.tsx` import
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/chartTheme.ts` (ใหม่), `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx` (ใหม่), `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/dashboard/DashboardCharts.tsx`, `DOC/PLANS/PLAN-082-*.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend-only, ใช้ DTO เดิม)
+- Verified: npm run lint ผ่าน, npm run build (tsc -b + vite build) ผ่าน 0 errors
+
+## [2026-07-14 —] Claude Code — เขียน PLAN-082: ยกเครื่อง Report Summary หน้า assignment report เป็น stat tiles + donut + bar per-course
+- ทำอะไร: ผู้ใช้บอก Report Summary หน้า `/assignments/{id}/report` ดูยาก อยากได้ pie chart/กราฟ → เสนอ 4 ไอเดีย ผู้ใช้เลือกครบ → เขียน PLAN-082 มอบ Copilot. สเปค: (1) `StatusDonut` นับ `data.learners` ระดับ enrollment 5 สถานะ (เพิ่มสี Upcoming amber `#d97706` sync กับ statusTone) กลาง donut = Completion % (2) `CourseCompletionBars` horizontal เรียงแย่สุดก่อน แทน chip cloud เดิม (ลบทิ้ง) (3) click-to-filter ผูก `setStatusFilter`/`setCourseFilter` เดิม + toggle-reset + เน้นตัวที่เลือก (4) layout ใหม่ stat tiles 4 ใบ + กราฟคู่ 2 คอลัมน์. ไฟล์ใหม่ `AssignmentReportCharts.tsx` + แนะนำ extract `src/lib/chartTheme.ts` จาก DashboardCharts (ห้ามเปลี่ยน behavior Dashboard). Frontend-only ห้ามแตะ backend. มีข้อกำหนด print fallback (`print:hidden` + print-only FactGrid) ถ้า ResponsiveContainer พังตอน print
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-082-assignment-report-summary-charts.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน; งานเป็น frontend-only)
+- Verified: — (แผน; ยืนยัน DTO/state/pattern กราฟจาก AssignmentReportPage.tsx + DashboardCharts.tsx + StatusBadge.tsx จริงก่อนเขียน)
+- ถึง Copilot: ทำตาม Scope PLAN-082 — verification checklist 7 ข้อในแผน (รวมเช็ค Dashboard ไม่พังถ้าย้าย const + print) แล้วเปลี่ยนสถานะ DONE + Implementer Notes
+
+## [2026-07-14 —] Claude Code — รีวิว PLAN-081 อิสระ → ผ่าน (โค้ด) รอ manual click-through
+- ทำอะไร: ตรวจ diff เต็มของ `AssignmentDetailPage.tsx` ที่ Copilot ทำ อิสระ (git diff) — ตรงสเปคแผนทุกข้อ: `expandedCodes` state+reset, collapsed/expanded cell, ปุ่ม reset รายคอร์สไม่หาย, Expand/Collapse all ทำงานกับ `filteredLearners`, `Badge`/`AppButton` prop ตรงกับ component จริง (เช็ค `Badge.tsx`). รันเอง `npm run lint` (0 warnings) + `npm run build` (tsc+vite ผ่าน 0 errors) อิสระ ไม่เชื่อ notes อย่างเดียว. พยายาม live click-through ผ่าน browser preview แต่ backend `https://localhost:7128` (Windows-auth ต้องรันผ่าน VS) ไม่ได้รันอยู่ → `ERR_CONNECTION_REFUSED` ทำ manual test 5 ข้อในแผนไม่ได้รอบนี้. Minor non-blocking: ปุ่ม Expand/Collapse all คำนวณ filter ซ้ำ 3 ครั้ง/render (list เล็ก ไม่กระทบ). สถานะ PLAN-081 = DONE→VERIFIED (โค้ด) พร้อม gap note ให้ผู้ใช้ทดสอบมือปิดท้าย
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-081-*.md` (+Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว)
+- Verified: git diff อิสระ + npm lint/build อิสระ; live click-through ทำไม่ได้ (backend ไม่รัน)
+
+## [2026-07-14 —] GitHub Copilot — PLAN-081 DONE: ซ่อนคอลัมน์ Assigned Courses & Progress (collapse/expand) ในแท็บ Learners
+- ทำอะไร: Implement PLAN-081 — เพิ่ม collapse/expand per-row สำหรับคอลัมน์ Assigned Courses & Progress ในตาราง Learners หน้า `/assignments/{id}`. Default หุบ (แสดง Badge จำนวนคอร์ส + ปุ่ม "Show courses"), กดกางแสดงรายการคอร์สเต็ม (ProgressBar/StatusBadge/reset รายคอร์ส). เพิ่มปุ่ม Expand all / Collapse all ที่ ListToolbar ถัดจาก SegmentedToggle
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-081-*.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (presentation-only)
+- Verified: npm run lint ผ่าน, npm run build (tsc -b + vite build) ผ่าน 0 errors
+
+## [2026-07-14 —] Claude Code — เขียน PLAN-081: ซ่อนคอลัมน์ Assigned Courses & Progress (collapse/expand) ในแท็บ Learners หน้า assignment detail
+- ทำอะไร: ผู้ใช้ขอซ่อนส่วน Assigned Courses & Progress ในตาราง Learners ของ `/assignments/{id}` (default หุบ กดค่อยแสดง เพื่อประหยัดพื้นที่) → วิเคราะห์ `AssignmentDetailPage.tsx` แล้วเขียน PLAN-081 มอบ Copilot. สเปค: state `expandedCodes` per-row (reset ตาม `[id]` ไม่ reset ตอน filter), collapsed cell = Badge จำนวนคอร์ส + AppButton "Show courses"/ChevronDown, expanded = รายการคอร์สเดิมครบ (ปุ่ม reset รายคอร์ส `handleResetLearnerCourse` ฝังในส่วนที่ซ่อน — ห้ามหาย), ปุ่ม Expand all/Collapse all ที่ toolbar ทำงานกับ filteredLearners. Presentation-only ไม่มี contract เปลี่ยน — ห้ามแตะแท็บ Courses/modals/AppTable refactor
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-081-assignment-detail-collapse-learner-courses.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน; งานเป็น UI-only)
+- Verified: — (แผน; ยืนยันตำแหน่งโค้ด/ปุ่ม reset รายคอร์สจากไฟล์จริงก่อนเขียน)
+- ถึง Copilot: ทำตาม Scope PLAN-081 — แก้ไฟล์เดียว `AssignmentDetailPage.tsx`, รัน npm lint+build + ทดสอบมือ 5 ข้อในแผน แล้วเปลี่ยนสถานะ DONE + Implementer Notes
+
 ## [2026-07-14 —] Claude Code — รีวิว PLAN-080 ผ่าน + เจอ/แก้ stale UI text 5 จุด (reviewer fix)
 - ทำอะไร: ตรวจงาน Copilot อิสระ — diff ทั้ง 3 ไฟล์ตรงสเปคแผน (constants 200/210auto/200/500, web.config `220200960`=210×1024² เลขถูก, test 175MB×3=525>500 semantics ถูก — แต่ละ entry <200 single limit ยังทดสอบ total limit ตัวเดิม); รันซ้ำเอง: tests **178/178**, grep ไม่มี hardcode เก่า (104857600/115343360/262144000) ใน code/config, `dotnet publish` artifact มี limit ใหม่+aspNetCore ครบ (บทเรียน PLAN-041). **Reviewer finding + แก้เอง:** help text ฝั่ง UI ยังบอก "100 MB / 250 MB expanded" อยู่ **5 จุด** — React `ContentItemEditorPage.tsx:177` + MVC `ContentItems/Index.cshtml:123`, `Courses/VersionForm.cshtml:108`, `Courses/Editor.cshtml:125,188` → อัปเดตเป็น 200/500 ครบ; verify `npm run lint`+`npm run build` ผ่าน, `dotnet build iLearn.Admin` ผ่าน. **ผลต่อ deploy scope: ต้อง deploy admin-react + admin (MVC) เพิ่มจาก API**. สถานะ PLAN-080 = DONE (code ครบ) รอ decision #3 (QA ก่อน หรือ QA+PROD) + E2E upload 150–200MB/boundary 205MB/memory check หลัง deploy
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin/Views/ContentItems/Index.cshtml`, `iLearn.Admin/Views/Courses/VersionForm.cshtml`, `iLearn.Admin/Views/Courses/Editor.cshtml` (×2 จุด), `DOC/PLANS/PLAN-080-*.md` (+Reviewer Sign-off), `DOC/AGENT_LOG.md`

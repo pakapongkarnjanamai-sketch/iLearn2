@@ -11,11 +11,14 @@ import {
   CalendarClock,
   Search,
   X,
-  Plus
+  Plus,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
@@ -156,6 +159,9 @@ export function AssignmentDetailPage() {
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set())
   const [bulkWorking, setBulkWorking] = useState<'reset' | 'remove' | null>(null)
 
+  // Collapse/expand per learner row in Learners tab
+  const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set())
+
   const groupedLearners = useMemo<GroupedLearner[]>(() => {
     if (!assignment?.learners) return []
 
@@ -228,6 +234,7 @@ export function AssignmentDetailPage() {
     setVisibleCourseRows(DETAIL_TABLE_CHUNK_SIZE)
     setVisibleLearnerRows(DETAIL_TABLE_CHUNK_SIZE)
     setSelectedCodes(new Set())
+    setExpandedCodes(new Set())
   }, [id])
 
   useEffect(() => {
@@ -774,16 +781,40 @@ export function AssignmentDetailPage() {
                   onSearchChange={setLearnerSearch}
                   searchPlaceholder="Search code, name, division, department..."
                   toolbarContent={
-                    <SegmentedToggle
-                      variant="filter"
-                      options={[
-                        { value: 'All', label: 'All' },
-                        ...LEARNER_STATUS_KEYS.map(s => ({ value: s, label: learnerStatusLabel(s) })),
-                      ]}
-                      value={learnerStatusFilter}
-                      onChange={setLearnerStatusFilter}
-                      className="flex-wrap"
-                    />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <SegmentedToggle
+                        variant="filter"
+                        options={[
+                          { value: 'All', label: 'All' },
+                          ...LEARNER_STATUS_KEYS.map(s => ({ value: s, label: learnerStatusLabel(s) })),
+                        ]}
+                        value={learnerStatusFilter}
+                        onChange={setLearnerStatusFilter}
+                        className="flex-wrap"
+                      />
+                      {filteredLearners.some(l => l.courses.length > 0) && (
+                        <AppButton
+                          variant="ghost"
+                          icon={filteredLearners.filter(l => l.courses.length > 0).every(l => expandedCodes.has(l.learnerCode)) ? ChevronUp : ChevronDown}
+                          onClick={() => {
+                            const expandable = filteredLearners.filter(l => l.courses.length > 0)
+                            const allExpanded = expandable.every(l => expandedCodes.has(l.learnerCode))
+                            if (allExpanded) {
+                              setExpandedCodes(new Set())
+                            } else {
+                              setExpandedCodes(prev => {
+                                const next = new Set(prev)
+                                expandable.forEach(l => next.add(l.learnerCode))
+                                return next
+                              })
+                            }
+                          }}
+                          className="px-2 py-1 text-xxs font-bold"
+                        >
+                          {filteredLearners.filter(l => l.courses.length > 0).every(l => expandedCodes.has(l.learnerCode)) ? 'Collapse all' : 'Expand all'}
+                        </AppButton>
+                      )}
+                    </div>
                   }
                 />
               </div>
@@ -882,30 +913,54 @@ export function AssignmentDetailPage() {
                             <div className="flex flex-col gap-3">
                               {l.courses.length === 0 ? (
                                 <span className="text-slate-400 text-xs italic">No courses assigned</span>
+                              ) : !expandedCodes.has(l.learnerCode) ? (
+                                <div className="flex items-center gap-2">
+                                  <Badge tone="neutral" variant="soft" size="xxs">{l.courses.length} courses</Badge>
+                                  <AppButton
+                                    variant="ghost"
+                                    icon={ChevronDown}
+                                    onClick={() => setExpandedCodes(prev => { const next = new Set(prev); next.add(l.learnerCode); return next })}
+                                    className="px-2 py-0.5 text-xxs font-bold"
+                                  >
+                                    Show courses
+                                  </AppButton>
+                                </div>
                               ) : (
-                                l.courses.map((c) => (
-                                  <div key={c.assignmentRuleId ?? c.courseCode ?? ''} className="flex items-center justify-between gap-6 border-b border-slate-100/50 last:border-0 pb-1.5 last:pb-0">
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                      <span className="font-semibold text-slate-700 text-xs truncate" title={c.courseTitle || ''}>
-                                        {c.courseTitle}
-                                      </span>
-                                      <span className="font-mono text-slate-400 text-xxs mt-0.5">{c.courseCode}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                      <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-16" />
-                                      <StatusBadge size="xxs">{learnerStatusLabel(c.status)}</StatusBadge>
-                                      {typeof c.assignmentRuleId === 'number' && (
-                                        <IconButton
-                                          onClick={() => handleResetLearnerCourse(l.learnerCode, c.assignmentRuleId as number, c.courseTitle || c.courseCode || '')}
-                                          icon={RotateCcw}
-                                          tone="neutral"
-                                          size="sm"
-                                          title="Reset this course only"
-                                        />
-                                      )}
-                                    </div>
+                                <>
+                                  <div className="flex items-center">
+                                    <AppButton
+                                      variant="ghost"
+                                      icon={ChevronUp}
+                                      onClick={() => setExpandedCodes(prev => { const next = new Set(prev); next.delete(l.learnerCode); return next })}
+                                      className="px-2 py-0.5 text-xxs font-bold"
+                                    >
+                                      Hide courses
+                                    </AppButton>
                                   </div>
-                                ))
+                                  {l.courses.map((c) => (
+                                    <div key={c.assignmentRuleId ?? c.courseCode ?? ''} className="flex items-center justify-between gap-6 border-b border-slate-100/50 last:border-0 pb-1.5 last:pb-0">
+                                      <div className="flex flex-col min-w-0 flex-1">
+                                        <span className="font-semibold text-slate-700 text-xs truncate" title={c.courseTitle || ''}>
+                                          {c.courseTitle}
+                                        </span>
+                                        <span className="font-mono text-slate-400 text-xxs mt-0.5">{c.courseCode}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3 shrink-0">
+                                        <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-16" />
+                                        <StatusBadge size="xxs">{learnerStatusLabel(c.status)}</StatusBadge>
+                                        {typeof c.assignmentRuleId === 'number' && (
+                                          <IconButton
+                                            onClick={() => handleResetLearnerCourse(l.learnerCode, c.assignmentRuleId as number, c.courseTitle || c.courseCode || '')}
+                                            icon={RotateCcw}
+                                            tone="neutral"
+                                            size="sm"
+                                            title="Reset this course only"
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </>
                               )}
                             </div>
                           </td>

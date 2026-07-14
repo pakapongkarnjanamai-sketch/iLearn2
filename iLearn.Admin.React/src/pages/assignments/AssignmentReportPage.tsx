@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { BookOpen, ChevronDown, Download, FileBarChart, Printer, Users } from 'lucide-react'
+import { ChevronDown, Download, Printer, Users } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
-import { DetailCard, DetailLayout, DetailSubSection, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailCard, DetailLayout, DetailSubSection } from '../../components/ui/detail'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { SectionHeader } from '../../components/ui/SectionHeader'
@@ -18,6 +18,7 @@ import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
 import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
 
 // Mirrors LearnerProgressDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
 type LearnerRow = {
@@ -154,6 +155,16 @@ export function AssignmentReportPage() {
     return new Set(
       data.learners.filter((row) => row.status === 'Overdue').map((row) => row.learnerCode),
     ).size
+  }, [data])
+
+  const statusChartData = useMemo(() => {
+    if (!data) return []
+    return buildStatusData(data.learners)
+  }, [data])
+
+  const courseBarData = useMemo(() => {
+    if (!data) return []
+    return buildCourseBarData(data.courses)
   }, [data])
 
   const groupSummaries = useMemo<GroupSummary[]>(() => {
@@ -297,63 +308,71 @@ export function AssignmentReportPage() {
         <div className="space-y-6">
           {/* Summary stats */}
           <DetailCard>
-            <SectionHeader icon={FileBarChart}>Report Summary</SectionHeader>
-            <FactGrid cols={3} className="pt-2">
-              <Fact label="Assignment No." colSpan="full" valueClassName="font-mono font-bold text-slate-900 text-lg">
-                {data.assignmentNo || `Assignment ${id}`}
-              </Fact>
-              <Fact label="Total Learners" valueClassName="font-bold text-slate-800 text-lg">
-                {data.totalEmployees}
-              </Fact>
-              <Fact label="Completed" valueClassName="font-bold text-slate-800 text-lg">
-                {data.chartData.completed}
-              </Fact>
-              <Fact label="Completion" valueClassName="font-bold text-slate-800 text-lg">
-                {formatPercent(data.completionRate)}
-              </Fact>
-              <Fact label="Not Started">
-                <span className="font-bold text-slate-800 text-lg">{data.chartData.notStarted}</span>
-              </Fact>
-              <Fact label="Overdue Learners">
-                <span className={`font-bold text-lg ${overdueLearnerCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>
-                  {overdueLearnerCount}
-                </span>
-              </Fact>
-              <Fact label="Courses" valueClassName="font-bold text-slate-800 text-lg">
-                {data.totalCourses}
-              </Fact>
-              <Fact label="Start Date" valueClassName="font-semibold text-slate-700">
-                {data.startDate ? formatDate(data.startDate) : '—'}
-              </Fact>
-              <Fact label="Due Date" valueClassName="font-semibold text-slate-700">
-                {data.dueDate ? formatDate(data.dueDate) : '—'}
-              </Fact>
-            </FactGrid>
+            <SectionHeader>Report Summary</SectionHeader>
 
-            {/* Courses summary */}
-            {data.courses.length > 0 && (
-              <DetailSubSection title="Courses">
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {data.courses.map((c) => (
-                    <div
-                      key={c.assignmentRuleId}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs shadow-3xs"
-                    >
-                      <BookOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                      <div className="flex flex-col text-left">
-                        <span className={`font-semibold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                          {c.courseTitle}
-                          {c.isCourseDeleted && <span className="ml-1 text-[10px] font-medium no-underline text-slate-400">(deleted)</span>}
-                        </span>
-                        <span className="font-mono text-[10px] text-slate-400 leading-none mt-0.5">
-                          {c.courseCode} · <span className="font-sans font-medium text-indigo-600">{c.completedLearners}/{c.totalLearners} Completed</span>
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+            {/* Header row: Assignment No + date range */}
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-2 px-1">
+              <span className="font-mono font-bold text-slate-900 text-lg">{data.assignmentNo || `Assignment ${id}`}</span>
+              {(data.startDate || data.dueDate) && (
+                <span className="text-xs text-slate-500">
+                  {data.startDate ? formatDate(data.startDate) : '—'} → {data.dueDate ? formatDate(data.dueDate) : '—'}
+                </span>
+              )}
+            </div>
+
+            {/* Stat tiles */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 px-1">
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Learners</div>
+                <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.totalEmployees}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Completed</div>
+                <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.chartData.completed}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Overdue</div>
+                <div className={`text-lg font-bold tabular-nums mt-0.5 ${overdueLearnerCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>{overdueLearnerCount}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Courses</div>
+                <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.totalCourses}</div>
+              </div>
+            </div>
+
+            {/* Print-only fallback: full stats without charts */}
+            <div className="hidden print:block pt-3 px-1">
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div><span className="font-bold text-slate-500">Not Started:</span> {data.chartData.notStarted}</div>
+                <div><span className="font-bold text-slate-500">In Progress:</span> {data.chartData.inProgress}</div>
+                <div><span className="font-bold text-slate-500">Completion:</span> {formatPercent(data.completionRate)}</div>
+              </div>
+            </div>
+
+            {/* Charts: donut + bars */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 print:hidden">
+              <div>
+                <DetailSubSection title="Status Overview">
+                  <StatusDonut
+                    data={statusChartData}
+                    completionRate={data.completionRate}
+                    activeStatus={statusFilter}
+                    onSelectStatus={(key) => setStatusFilter(key)}
+                  />
+                </DetailSubSection>
+              </div>
+              {data.courses.length > 0 && (
+                <div>
+                  <DetailSubSection title="Completion by Course">
+                    <CourseCompletionBars
+                      data={courseBarData}
+                      activeCourse={courseFilter}
+                      onSelectCourse={(ruleId) => setCourseFilter(ruleId)}
+                    />
+                  </DetailSubSection>
                 </div>
-              </DetailSubSection>
-            )}
+              )}
+            </div>
           </DetailCard>
 
           {/* Learner Group breakdown */}
