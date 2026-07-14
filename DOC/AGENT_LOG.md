@@ -12,6 +12,12 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-14 08:20] GitHub Copilot — PLAN-079 PROD Rollout สำเร็จ — F1-F5 ขึ้น production
+- ทำอะไร: Deploy PLAN-079 (SCORM Conformance Phase 1 fixes F1-F5) ขึ้น PROD ตาม PROD Rollout Runbook. (1) Apply migration `AddScaledScoreToScormRuntimeState` บน AP-NTC2139-COSS ✅ (2) Deploy API stamp `20260714081754` ✅ (3) Deploy User stamp `20260714081914` ✅ (4) Smoke: health=200 (db/fileShare/employeeDir), learner=200, admin-react=200 ✅. Previous stamps: API=20260710160310, User=20260710160529
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+PROD Rollout Execution section), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): DB: เพิ่ม `ScormRuntimeStates.ScaledScore decimal(18,2) NULL` บน PROD
+- Verified: Health 200 ทุก check, learner/admin-react load OK, migration column exists
+
 ## [2026-07-14 08:10] GitHub Copilot — PLAN-079 F5 Accumulation Test ผ่านครบ 3 เกณฑ์
 - ทำอะไร: ทดสอบ F5 total_time สะสมข้ามรอบ ผ่าน Playwright browser บน QA. **TEST-03 (CI 1708, completed):** player-info ส่ง totalSecondsPlayed=362 (2a✅), cmiModel["cmi.total_time"]="PT6M2S"=362s (2b✅ — จุดชี้ขาด: ก่อนแก้จะเป็น runtimeState.totalTime=181s). **TEST-04 (CI 1709, incomplete):** totalSecondsPlayed=210 (2a✅), cmi.total_time="PT3M30S" (2b✅), เล่นต่อ ~3 นาที → beforeunload commit → TotalSecondsPlayed=630 >210 (4✅). หมายเหตุ: TEST-03 ทดสอบ criterion 4 ไม่ได้เพราะ player blocks commits สำหรับ completed courses (by design: isCompleted→isReadOnly=true)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+F5 test results, updated Go/No-Go gates), `DOC/AGENT_LOG.md`

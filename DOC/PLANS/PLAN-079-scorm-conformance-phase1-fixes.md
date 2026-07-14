@@ -478,3 +478,30 @@ Go/No-Go gate ที่เหลือ: **รอผู้ใช้เลือ�
 - ⚠️ **PROD มีผู้เรียนจริงที่อาจกำลัง active session อยู่ตอน deploy** — F1 เปลี่ยน `cmiModel` keys ทันทีที่ deploy เสร็จ ผู้เรียนที่เปิดหน้า player ค้างไว้ (ยังไม่ refresh) จะใช้ JS เก่าในเบราว์เซอร์ต่อจนกว่าจะ reload — ไม่กระทบเพราะ backward-compatible (legacy keys ยังอยู่) แต่ควร deploy ช่วง traffic ต่ำ
 - ⚠️ ใช้ connection string **`AP-NTC2139-COSS`** เท่านั้นสำหรับ PROD — คนละเครื่องกับ QA (`AP-NTC2138-QADB`) และคนละกับ `Development` (`10.10.143.37`) ตรวจซ้ำก่อนรันทุกครั้ง
 - ⚠️ Rollback plan ถ้าเจอปัญหาหลัง deploy: โค้ด backward-compatible ทั้งหมด (ไม่ลบ key เดิม, ไม่เปลี่ยน rollup logic) — ถ้าจำเป็นต้อง rollback ให้ flip web.config กลับไป stamp ก่อนหน้า (ไม่ต้อง revert migration เพราะเป็นแค่ ADD COLUMN nullable ไม่กระทบโค้ดเก่า)
+
+---
+
+## PROD Rollout Execution (GitHub Copilot — 2026-07-14)
+
+ผู้ใช้ให้ไฟเขียวขึ้น PROD หลังเห็นผล F5 accumulation test ผ่าน
+
+### ขั้นตอนที่ดำเนินการ:
+
+1. **Verify HEAD:** `933f42e` (docs) on top of `7592452` (code) — ไม่มีโค้ดใหม่ต่างจากที่ QA test
+2. **Migration applied on PROD DB (`AP-NTC2139-COSS`):**
+   - Command: `dotnet ef database update --connection "Data Source=AP-NTC2139-COSS;..."` 
+   - Result: `Applying migration '20260713064816_AddScaledScoreToScormRuntimeState'. Done.`
+   - Verified: `COL_LENGTH('ScormRuntimeStates','ScaledScore') = 9`, `__EFMigrationsHistory` TOP 1 = `20260713064816_AddScaledScoreToScormRuntimeState` ✅
+3. **Deploy API:** stamp `20260714081754` → `\\ap-ntc2137-prwb\wwwroot\iLearn\Service\_deploy_20260714081754`
+   - Previous: `_deploy_20260710160310`
+   - HealthChecked: True ✅
+4. **Deploy User:** stamp `20260714081914` → `\\ap-ntc2137-prwb\wwwroot\iLearn\_user_deploy_20260714081914`
+   - Previous: `_user_deploy_20260710160529`
+   - HealthChecked: True (HTTP 200 on attempt 1) ✅
+5. **Smoke check:**
+   - `GET /iLearn/Service/api/health` → 200 (database=pass, courseFileShare=pass, employeeDirectory=pass) ✅
+   - `GET /iLearn/` → 200 (learner UI) ✅
+   - `GET /iLearn/admin/` → 401 (Windows auth required — expected) ✅
+   - `GET /iLearn/admin-react/` → 200 (SPA) ✅
+
+### สรุป: PROD deployment สำเร็จ — PLAN-079 DONE
