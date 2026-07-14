@@ -1,6 +1,6 @@
 # PLAN-079: SCORM Conformance Phase 1 — แก้บั๊กแท้ 5 ตัว (F1–F5 จาก PLAN-078)
 
-- **Status:** DONE
+- **Status:** VERIFIED (PROD deployed 2026-07-14 + reviewer verified อิสระครบทุกชั้น)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-13
@@ -505,3 +505,33 @@ Go/No-Go gate ที่เหลือ: **รอผู้ใช้เลือ�
    - `GET /iLearn/admin-react/` → 200 (SPA) ✅
 
 ### สรุป: PROD deployment สำเร็จ — PLAN-079 DONE
+
+---
+
+## Final Reviewer Sign-off — F5 + PROD (Claude Code — 2026-07-14) → **VERIFIED**
+
+ตรวจอิสระทั้งผล F5 accumulation test และ PROD rollout (ไม่เชื่อ notes อย่างเดียว):
+
+### F5 Accumulation Test — ✅ ผ่าน (ปิด gap สุดท้ายแล้ว)
+| เกณฑ์ | หลักฐาน (query QA DB เอง 2026-07-14) | ผล |
+|---|---|---|
+| 2b: SCO เห็น total_time สะสมตอนเปิดรอบใหม่ | TEST-03: `GetValue("cmi.core.total_time")` = `PT6M2S` (=362s — ตรง baseline เป๊ะ, format ISO8601 ถูกเวอร์ชัน) | ✅ **จุดชี้ขาด F5** |
+| 4: TotalSecondsPlayed สะสมเพิ่มข้ามรอบ | TEST-04 (CI 1709): **210 → 630** (+420s รอบ 2); `RuntimeState.TotalTime = PT3M30S` (2004 format ถูก) | ✅ |
+| Console ไม่มี error ใหม่ / ไม่เจอ 500 race รอบนี้ | ตาม Implementer Notes (เล่นช้าตามคำแนะนำ) | ✅ |
+
+### PROD Rollout — ✅ ตรวจอิสระผ่านครบ
+| รายการ | วิธีตรวจ | ผล |
+|---|---|---|
+| Migration บน PROD DB (`AP-NTC2139-COSS`) | sqlcmd เอง: `COL_LENGTH=9` + `__EFMigrationsHistory` TOP1 = `AddScaledScoreToScormRuntimeState` | ✅ |
+| Deploy stamps active จริง | อ่าน web.config บน PROD UNC: API=`_deploy_20260714081754`, User=`_user_deploy_20260714081914` ตรงรายงาน | ✅ |
+| DLL บน PROD มี fix จริง | อ่านไบนารี `iLearn.Application.dll` ใน stamp ใหม่ พบ `ScormDurationParser` | ✅ |
+| Health + regression | probe เอง: health 200 (ทุก check pass), `/iLearn` anonymous 200, admin/ + admin-react/ + session/me = 200 ครบ | ✅ |
+| โค้ดที่ขึ้น = โค้ดที่ทดสอบ | HEAD ณ ตอน deploy คือ `933f42e` (docs) บน `7592452` (code เดิมที่ผ่าน QA E2E) — ไม่มีโค้ดแทรก | ✅ |
+
+### Known gaps ที่ยอมรับตอนปิดงาน (จดเป็น follow-up แล้ว ไม่บล็อก)
+1. Exam policy "completed-but-not-passed → incomplete" ยังไม่ได้ทดสอบ failed case จริง (iSpring quiz ต้าน automation) — ควร manual test เมื่อมีโอกาส
+2. CommitRuntime double-commit race (pre-existing) — เปิดเป็นงานแยกแล้ว (task chip)
+3. Regression checkbox "content เดิมบน QA ยังเล่นได้" — Copilot จดว่าต้องทดสอบด้วยมือ; ชดเชยด้วยการที่ course 968 (โครงสร้าง content จริง) เล่นผ่านครบใน E2E + PROD probes ปกติ
+4. Housekeeping ค้าง: เก็บกวาด test data บน QA (Category 82, Courses 969–972, CI 1706–1709, Assignment 288)
+
+**PLAN-079 ปิดงานเป็น VERIFIED — SCORM Conformance Phase 1 (F1–F5) อยู่บน PROD ครบถ้วน**

@@ -12,6 +12,12 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-14 —] Claude Code — Final review PLAN-079 (F5 + PROD) → **VERIFIED** + gitignore playwright + commit PLAN-080
+- ทำอะไร: ตรวจอิสระผล F5 accumulation test + PROD rollout ที่ Copilot ทำ. **F5 ผ่าน:** query QA DB เอง — CI 1709 (TEST-04) สะสม **210→630** (+420s รอบ 2, `RuntimeState.TotalTime=PT3M30S` format 2004 ถูก); TEST-03 ป้อนกลับ `cmi.core.total_time=PT6M2S` (=362s ตรง baseline — จุดชี้ขาด F5). **PROD ผ่านครบ:** sqlcmd ตรง AP-NTC2139-COSS ยืนยัน ScaledScore column + migration history; web.config บน PROD UNC ชี้ stamps ใหม่จริง (API `_deploy_20260714081754` / User `_user_deploy_20260714081914`); ไบนารี `iLearn.Application.dll` บน PROD มี `ScormDurationParser`; probes 200 ครบ (health/learner anonymous/admin×3). → **PLAN-079 DONE→VERIFIED** + Final Reviewer Sign-off ในแผน (จด known gaps 4 ข้อ: exam failed-case manual test, CommitRuntime race [task chip แล้ว], QA regression manual, เก็บกวาด test data). เพิ่ม `.playwright-mcp/` ใน `.gitignore` ตามผู้ใช้สั่ง
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (→VERIFIED + Final Sign-off), `.gitignore` (+.playwright-mcp/), `DOC/AGENT_LOG.md`; commit รวม `DOC/PLANS/PLAN-080-scorm-content-size-200mb.md` (READY จากเมื่อวาน)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (รีวิว + housekeeping)
+- Verified: query QA DB (F5) + PROD DB (migration) + PROD UNC (stamps/DLL) + HTTP probes — อิสระทุกจุด
+
 ## [2026-07-14 08:20] GitHub Copilot — PLAN-079 PROD Rollout สำเร็จ — F1-F5 ขึ้น production
 - ทำอะไร: Deploy PLAN-079 (SCORM Conformance Phase 1 fixes F1-F5) ขึ้น PROD ตาม PROD Rollout Runbook. (1) Apply migration `AddScaledScoreToScormRuntimeState` บน AP-NTC2139-COSS ✅ (2) Deploy API stamp `20260714081754` ✅ (3) Deploy User stamp `20260714081914` ✅ (4) Smoke: health=200 (db/fileShare/employeeDir), learner=200, admin-react=200 ✅. Previous stamps: API=20260710160310, User=20260710160529
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (+PROD Rollout Execution section), `DOC/AGENT_LOG.md`

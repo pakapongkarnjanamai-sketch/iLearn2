@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Playwright MCP browser-testing artifacts (page snapshots/screenshots from agent E2E sessions)
+.playwright-mcp/
+
 # User-specific files
 *.rsuser
 *.suo
