@@ -174,7 +174,7 @@ export function ContentItemEditorPage() {
         <label className="flex flex-col items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/20 px-4 py-8 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition cursor-pointer select-none">
           <Upload className="h-6 w-6 text-indigo-500 animate-pulse" />
           <span>Select SCORM ZIP Package</span>
-          <span className="text-[11px] font-semibold text-slate-400">Supports SCORM 1.2 & 2004 (Max 100MB or 1,000 internal directory entries)</span>
+          <span className="text-[11px] font-semibold text-slate-400">Supports SCORM 1.2 & 2004 (Max 200MB or 1,000 internal directory entries)</span>
           <input
             type="file"
             accept=".zip,application/zip"

@@ -1,7 +1,7 @@
 # PLAN-080: ขยายลิมิตขนาด SCORM package 100MB → 200MB (Option A ของ PLAN-076)
 
-- **Status:** READY
-- **Assigned:** — (รอผู้ใช้เลือก implementer — Gemini หรือ Copilot)
+- **Status:** DONE
+- **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-13
 - **อ้างอิง:** [PLAN-076](PLAN-076-large-scorm-file-support-assessment.md) (Option A — ยกลิมิต, ปลอดภัย ≤~300MB), [PLAN-041](PLAN-041-scorm-upload-413-hosting-limit.md) + [PLAN-042](PLAN-042-scorm-upload-envelope-limit-separation.md) (ต้นแบบการแก้ลิมิต — บทเรียน: ต้องแก้ครบทุกชั้น)
@@ -76,13 +76,33 @@ public const long MaxTotalUncompressedBytes = 500L * 1024 * 1024;             //
 
 ## Verify
 
-- [ ] `dotnet build iLearn.Tests` + `dotnet test` ผ่าน (ตรวจว่าไม่มี test ที่ hardcode คาดหวัง 100MB/250MB แล้วแตก — ถ้ามีต้องอัปเดต test ให้อ้าง constant)
-- [ ] grep ยืนยันไม่มีที่ไหน hardcode `104857600` (100MB) / `115343360` (110MB) / `262144000` (250MB) หลงเหลือนอก `ScormPackageLimits` + web.config
-- [ ] `dotnet publish` แล้วตรวจ `web.config` artifact มี `maxAllowedContentLength="220200960"` + `<aspNetCore>` ครบ
-- [ ] **E2E บน QA:** upload SCORM package จริงขนาด **150–200MB** (สร้าง/หาไฟล์ทดสอบ — iSpring publish คอร์สที่มีวิดีโอให้ได้ ~180MB) ผ่าน Admin → version ถูกสร้าง, แตกไฟล์สำเร็จ, learner เล่นได้
-- [ ] ทดสอบ boundary: upload ไฟล์ ~205MB (เกิน 200MB) → ต้องถูกปฏิเสธด้วย error ที่อ่านเข้าใจ (ไม่ใช่ 500/timeout เงียบ ๆ)
-- [ ] ตรวจ memory ของ w3wp ระหว่าง upload 200MB (perfmon/Task Manager) — ยืนยันไม่ OOM/recycle
+- [x] `dotnet build iLearn.Tests` + `dotnet test` ผ่าน — updated test `RejectsArchiveThatExpandsBeyondAllowedSize` (90MB×3→175MB×3 = 525MB > 500MB) — 178 tests pass
+- [x] grep ยืนยันไม่มีที่ไหน hardcode `104857600` (100MB) / `115343360` (110MB) / `262144000` (250MB) หลงเหลือนอก `ScormPackageLimits` + web.config (เหลือเฉพาะ DOC/PLANS เอกสาร)
+- [x] `dotnet publish` แล้วตรวจ `web.config` artifact มี `maxAllowedContentLength="220200960"` + `<aspNetCore>` ครบ
+- [ ] **E2E บน QA:** upload SCORM package จริงขนาด **150–200MB** — รอ deploy ขึ้น QA
+- [ ] ทดสอบ boundary: upload ไฟล์ ~205MB (เกิน 200MB) → ต้องถูกปฏิเสธ — รอ deploy ขึ้น QA
+- [ ] ตรวจ memory ของ w3wp ระหว่าง upload 200MB — รอ deploy ขึ้น QA
 
 ## Implementer Notes
 
-_(implementer เติมหลังทำ)_
+- **Test update:** `ScormServiceTests.ExtractAndParseScormAsync_RejectsArchiveThatExpandsBeyondAllowedSize` ใช้ 90MB×3=270MB (>250MB เดิม) ไม่เกิน 500MB ใหม่ → ปรับเป็น 175MB×3=525MB (>500MB)
+- ไม่มีความเบี่ยงเบนจากแผน — แก้ค่า constant + web.config ตรงตาม Scope ทั้ง 2 จุด
+- E2E test + memory check รอ deploy ขึ้น QA
+
+## Reviewer Sign-off — Code Review (Claude Code — 2026-07-14)
+
+**Code review: ผ่าน** — ตรวจ diff ทั้ง 3 ไฟล์ + รัน verification ซ้ำอิสระ:
+
+- **Constants:** 200MB / envelope auto 210MB / single-entry 200MB / total 500MB — ตรงสเปคแผนเป๊ะ (ใช้ default ของ decision #1/#2) ✅
+- **web.config:** `220200960` = 210×1024² ตรวจเลขแล้วถูกต้อง + คอมเมนต์อัปเดต ✅
+- **Test update ถูก semantics:** 175MB×3 = 525MB > 500MB (ยังทดสอบ *total* limit) และแต่ละ entry 175MB < 200MB single-entry limit — ไม่เผลอเปลี่ยนไปทดสอบผิดตัว ✅
+- **Independent verification:** tests **178/178 ผ่าน** (รันเอง); grep ไม่มี hardcode ค่าเก่า (104857600/115343360/262144000) หลงเหลือใน code/config; `dotnet publish` artifact มี `maxAllowedContentLength="220200960"` + `<aspNetCore>` ครบ (บทเรียน PLAN-041 — ตรวจเอง) ✅
+
+### Reviewer finding (แก้แล้วโดย reviewer ระหว่างรีวิว)
+**ข้อความ help text ฝั่ง UI ยังบอกลิมิตเก่า 5 จุด** (ไม่มี client-side validation บล็อกจริง — เป็น text ล้วน แต่ทำให้ admin เข้าใจผิดว่ายัง 100MB):
+- `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx:177` — "Max 100MB" → **200MB**
+- `iLearn.Admin/Views/ContentItems/Index.cshtml:123`, `Views/Courses/VersionForm.cshtml:108`, `Views/Courses/Editor.cshtml:125,188` — "100 MB ZIP … 250 MB expanded" → **"200 MB ZIP … 500 MB expanded"**
+- Verify หลังแก้: `npm run lint` + `npm run build` (React) ผ่าน, `dotnet build iLearn.Admin` ผ่าน ✅
+- **ผลต่อ deploy scope:** จากเดิม API อย่างเดียว → ต้อง deploy **admin-react + admin (MVC)** ด้วย (text ใหม่)
+
+### สถานะ: DONE (code review ผ่าน + UI text ครบ) — รอ decision #3 (deploy QA ก่อน หรือ QA+PROD) + E2E upload จริงก่อน VERIFIED

@@ -12,6 +12,18 @@ Format ต่อ entry:
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
 
+## [2026-07-14 —] Claude Code — รีวิว PLAN-080 ผ่าน + เจอ/แก้ stale UI text 5 จุด (reviewer fix)
+- ทำอะไร: ตรวจงาน Copilot อิสระ — diff ทั้ง 3 ไฟล์ตรงสเปคแผน (constants 200/210auto/200/500, web.config `220200960`=210×1024² เลขถูก, test 175MB×3=525>500 semantics ถูก — แต่ละ entry <200 single limit ยังทดสอบ total limit ตัวเดิม); รันซ้ำเอง: tests **178/178**, grep ไม่มี hardcode เก่า (104857600/115343360/262144000) ใน code/config, `dotnet publish` artifact มี limit ใหม่+aspNetCore ครบ (บทเรียน PLAN-041). **Reviewer finding + แก้เอง:** help text ฝั่ง UI ยังบอก "100 MB / 250 MB expanded" อยู่ **5 จุด** — React `ContentItemEditorPage.tsx:177` + MVC `ContentItems/Index.cshtml:123`, `Courses/VersionForm.cshtml:108`, `Courses/Editor.cshtml:125,188` → อัปเดตเป็น 200/500 ครบ; verify `npm run lint`+`npm run build` ผ่าน, `dotnet build iLearn.Admin` ผ่าน. **ผลต่อ deploy scope: ต้อง deploy admin-react + admin (MVC) เพิ่มจาก API**. สถานะ PLAN-080 = DONE (code ครบ) รอ decision #3 (QA ก่อน หรือ QA+PROD) + E2E upload 150–200MB/boundary 205MB/memory check หลัง deploy
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/content-library/ContentItemEditorPage.tsx`, `iLearn.Admin/Views/ContentItems/Index.cshtml`, `iLearn.Admin/Views/Courses/VersionForm.cshtml`, `iLearn.Admin/Views/Courses/Editor.cshtml` (×2 จุด), `DOC/PLANS/PLAN-080-*.md` (+Reviewer Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI text + docs)
+- Verified: npm lint+build ผ่าน, dotnet build iLearn.Admin ผ่าน, dotnet test 178/178 (อิสระ), publish artifact ตรวจเอง
+
+## [2026-07-14 —] GitHub Copilot — PLAN-080 DONE: ขยาย SCORM limit 100→200MB
+- ทำอะไร: Implement PLAN-080 Option A — ยก ScormPackageLimits constants (MaxCompressedPackageBytes 100→200MB, MaxSingleEntryUncompressedBytes 100→200MB, MaxTotalUncompressedBytes 250→500MB, MaxRequestEnvelopeBytes auto 210MB) + web.config maxAllowedContentLength 115343360→220200960. อัปเดต test `RejectsArchiveThatExpandsBeyondAllowedSize` (90MB×3→175MB×3 = 525MB > 500MB)
+- ไฟล์หลักที่แตะ: `iLearn.Application/Common/ScormPackageLimits.cs`, `iLearn.API/web.config`, `iLearn.Tests/ScormServiceTests.cs`, `DOC/PLANS/PLAN-080-*.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เปลี่ยนค่าลิมิต upload ไม่กระทบ API contract)
+- Verified: dotnet build 0 errors, dotnet test 178/178 passed, dotnet publish web.config มี `220200960` + `<aspNetCore>` ครบ, grep ยืนยันไม่มี hardcode เก่าหลงใน source
+
 ## [2026-07-14 —] Claude Code — Final review PLAN-079 (F5 + PROD) → **VERIFIED** + gitignore playwright + commit PLAN-080
 - ทำอะไร: ตรวจอิสระผล F5 accumulation test + PROD rollout ที่ Copilot ทำ. **F5 ผ่าน:** query QA DB เอง — CI 1709 (TEST-04) สะสม **210→630** (+420s รอบ 2, `RuntimeState.TotalTime=PT3M30S` format 2004 ถูก); TEST-03 ป้อนกลับ `cmi.core.total_time=PT6M2S` (=362s ตรง baseline — จุดชี้ขาด F5). **PROD ผ่านครบ:** sqlcmd ตรง AP-NTC2139-COSS ยืนยัน ScaledScore column + migration history; web.config บน PROD UNC ชี้ stamps ใหม่จริง (API `_deploy_20260714081754` / User `_user_deploy_20260714081914`); ไบนารี `iLearn.Application.dll` บน PROD มี `ScormDurationParser`; probes 200 ครบ (health/learner anonymous/admin×3). → **PLAN-079 DONE→VERIFIED** + Final Reviewer Sign-off ในแผน (จด known gaps 4 ข้อ: exam failed-case manual test, CommitRuntime race [task chip แล้ว], QA regression manual, เก็บกวาด test data). เพิ่ม `.playwright-mcp/` ใน `.gitignore` ตามผู้ใช้สั่ง
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-079-*.md` (→VERIFIED + Final Sign-off), `.gitignore` (+.playwright-mcp/), `DOC/AGENT_LOG.md`; commit รวม `DOC/PLANS/PLAN-080-scorm-content-size-200mb.md` (READY จากเมื่อวาน)
