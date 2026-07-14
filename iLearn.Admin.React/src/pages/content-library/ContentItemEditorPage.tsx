@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Upload,
   Check,
   X
 } from 'lucide-react'
-import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
+import { fetchWithAccessControl, uploadWithProgress, type UploadProgress } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppWizard, type WizardStep } from '../../components/ui/AppWizard'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ReadinessBadge } from '../../components/ui/ReadinessBadge'
 import { formatBytes } from '../../lib/format'
+import { UploadProgressOverlay } from '../../components/shared/UploadProgressOverlay'
 
 const TYPE_OPTIONS = [
   { value: 1, label: 'Learn — instructional content' },
@@ -31,8 +32,10 @@ export function ContentItemEditorPage() {
   const [loading, setLoading] = useState(!isCreate)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const [form, setForm] = useState<ContentItemForm>({ name: '', typeId: 1 })
   const [file, setFile] = useState<File | null>(null)
+  const abortUploadRef = useRef<(() => void) | null>(null)
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1)
@@ -64,31 +67,42 @@ export function ContentItemEditorPage() {
       return
     }
     setUploading(true)
+    setUploadProgress({
+      phase: 'uploading',
+      loadedBytes: 0,
+      totalBytes: file.size,
+      percent: 0,
+    })
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const created = await fetch(
-        buildApiUrl(`ContentItems/upload?typeId=${form.typeId}`),
-        { method: 'POST', credentials: 'include', body: fd },
-      )
-      if (!created.ok) {
-        let errorMsg = 'Upload failed'
-        try {
-          const errData = await created.json()
-          errorMsg = errData.message || errData.error || errorMsg
-        } catch {
-          errorMsg = (await created.text()) || errorMsg
+      
+      const { promise, abort } = uploadWithProgress<{ id: number }>(
+        `ContentItems/upload?typeId=${form.typeId}`,
+        fd,
+        {
+          method: 'POST',
+          onProgress: (p) => {
+            setUploadProgress(p)
+          },
         }
-        throw new Error(errorMsg)
-      }
-      const result = (await created.json()) as { id: number }
+      )
+      abortUploadRef.current = abort
+
+      const result = await promise
       toast.success('SCORM package uploaded')
       navigate(`/content-library/${result.id}`)
-    } catch (err) {
-      console.error(err)
-      toast.error((err as Error).message || 'Upload failed')
+    } catch (err: any) {
+      if (err.isAborted) {
+        toast.info('Upload cancelled')
+      } else {
+        console.error(err)
+        toast.error(err.message || 'Upload failed')
+      }
     } finally {
       setUploading(false)
+      setUploadProgress(null)
+      abortUploadRef.current = null
     }
   }
 
@@ -174,7 +188,7 @@ export function ContentItemEditorPage() {
         <label className="flex flex-col items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/20 px-4 py-8 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition cursor-pointer select-none">
           <Upload className="h-6 w-6 text-indigo-500 animate-pulse" />
           <span>Select SCORM ZIP Package</span>
-          <span className="text-[11px] font-semibold text-slate-400">Supports SCORM 1.2 & 2004 (Max 200MB or 1,000 internal directory entries)</span>
+          <span className="text-[11px] font-semibold text-slate-400">Supports SCORM 1.2 & 2004 (Max 1 GB, extracted up to 2.5 GB, or 1,000 internal directory entries)</span>
           <input
             type="file"
             accept=".zip,application/zip"
@@ -292,18 +306,34 @@ export function ContentItemEditorPage() {
   }
 
   return (
-    <AppWizard
-      title={isCreate ? 'Upload SCORM Package' : 'Edit SCORM Package'}
-      description={isCreate ? 'Upload a SCORM package (.zip).' : 'Update SCORM package details.'}
-      eyebrow="Content Library"
-      steps={steps}
-      currentStep={currentStep}
-      onStepChange={setCurrentStep}
-      onCancel={() => navigate(isCreate ? '/content-library' : `/content-library/${id}`)}
-      onSubmit={isCreate ? handleUpload : handleSave}
-      submitLabel={isCreate ? 'Upload Package' : 'Save Changes'}
-      isSubmitting={saving || uploading}
-      submitIcon={isCreate ? <Upload className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
-    />
+    <>
+      <AppWizard
+        title={isCreate ? 'Upload SCORM Package' : 'Edit SCORM Package'}
+        description={isCreate ? 'Upload a SCORM package (.zip).' : 'Update SCORM package details.'}
+        eyebrow="Content Library"
+        steps={steps}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+        onCancel={() => navigate(isCreate ? '/content-library' : `/content-library/${id}`)}
+        onSubmit={isCreate ? handleUpload : handleSave}
+        submitLabel={isCreate ? 'Upload Package' : 'Save Changes'}
+        isSubmitting={saving || uploading}
+        submitIcon={isCreate ? <Upload className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+      />
+      {uploading && uploadProgress && (
+        <UploadProgressOverlay
+          phase={uploadProgress.phase}
+          loadedBytes={uploadProgress.loadedBytes}
+          totalBytes={uploadProgress.totalBytes}
+          percent={uploadProgress.percent}
+          fileName={file?.name || ''}
+          onCancel={() => {
+            if (abortUploadRef.current) {
+              abortUploadRef.current()
+            }
+          }}
+        />
+      )}
+    </>
   )
 }

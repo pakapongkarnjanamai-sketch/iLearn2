@@ -174,10 +174,25 @@ namespace iLearn.Tests
                 });
             }
 
+            public Task<ScormManifestDto> ExtractAndParseScormFromFileAsync(string zipFilePath, string folderName)
+            {
+                return Task.FromResult(new ScormManifestDto
+                {
+                    FolderName = "published-folder",
+                    LaunchHref = "launch/index.html",
+                    SchemaVersion = "SCORM 2004"
+                });
+            }
+
+            public Task<string> SavePackageToArchiveAsync(Stream stream, string archiveFileName) => Task.FromResult($"Courses/_archives/{archiveFileName}");
+
             public void DeleteScormFolder(string folderName)
             {
                 DeletedFolders.Add(folderName);
             }
+
+            public void DeleteArchiveFile(string storagePath) { }
+            public string GetArchiveFullPath(string relativePath) => relativePath;
 
             public (int FileCount, long TotalSize) GetFolderInfo(string folderName) => (0, 0);
 

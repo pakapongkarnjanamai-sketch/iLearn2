@@ -152,9 +152,9 @@ namespace iLearn.Tests
             var packageBytes = CreateZip(
                 new ZipEntrySpec("imsmanifest.xml", TextContent: CreateManifest("launch/index.html")),
                 new ZipEntrySpec("launch/index.html", TextContent: "ok"),
-                new ZipEntrySpec("assets/chunk-1.bin", RepeatedByteCount: 175L * 1024 * 1024),
-                new ZipEntrySpec("assets/chunk-2.bin", RepeatedByteCount: 175L * 1024 * 1024),
-                new ZipEntrySpec("assets/chunk-3.bin", RepeatedByteCount: 175L * 1024 * 1024));
+                new ZipEntrySpec("assets/chunk-1.bin", RepeatedByteCount: 900L * 1024 * 1024),
+                new ZipEntrySpec("assets/chunk-2.bin", RepeatedByteCount: 900L * 1024 * 1024),
+                new ZipEntrySpec("assets/chunk-3.bin", RepeatedByteCount: 900L * 1024 * 1024));
 
             await Assert.ThrowsAsync<InvalidScormPackageException>(() =>
                 _service.ExtractAndParseScormAsync(packageBytes, "package-f"));

@@ -1,6 +1,6 @@
 # PLAN-076: ประเมินการรองรับ SCORM ไฟล์ใหญ่ (>1GB) — สถาปัตยกรรม, ข้อจำกัด, ตัวเลือก, ข้อเสนอ
 
-- **Status:** ON HOLD — รอผู้ใช้ตัดสินใจ (2026-07-13 ผู้ใช้ขอยังไม่เลือกทาง; สนใจแนว "แบ่งเป็นตอนสั้น ๆ" — ดู §3.1 ด้านล่าง). ยังไม่แตกเป็นแผน implement
+- **Status:** DECIDED — ผู้ใช้เลือก (2026-07-14): รองรับ **1GB** → ใช้ **Option B** ตาม §5 — แตกเป็นแผน implement แล้วที่ [PLAN-084](PLAN-084-scorm-1gb-streaming-storage.md) (streaming + StoragePath) + [PLAN-083](PLAN-083-qa-413-requestlimits-sync.md) (pipeline sync requestLimits ที่พบว่าขาดระหว่าง diagnose)
 - **Assigned:** — (ยังไม่มอบ implementer — เป็นการประเมิน/ตัดสินใจ)
 - **Author:** Claude Code (planner)
 - **Reviewer:** —

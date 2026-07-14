@@ -353,7 +353,14 @@ namespace iLearn.Application.Services
 
             // Hard-delete FileStorage — ลบ binary data จริง ไม่มี FK จากที่ไหนอ้างอิงมา
             foreach (var f in fileStoragesToHardDel)
+            {
+                // Delete archive file from disk (best-effort — file leftover is acceptable)
+                if (!string.IsNullOrWhiteSpace(f.StoragePath))
+                {
+                    _scormService.DeleteArchiveFile(f.StoragePath);
+                }
                 await _fileStorageRepository.HardDeleteAsync(f);
+            }
 
             // Soft-delete Course หลัก (Enrollment + LearningLog ยังอยู่ครบ)
             await _courseRepo.DeleteAsync(course);

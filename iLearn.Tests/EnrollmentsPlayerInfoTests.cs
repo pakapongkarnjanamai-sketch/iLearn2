@@ -545,7 +545,11 @@ namespace iLearn.Tests
         private sealed class FakeScormService : IScormService
         {
             public Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName) => throw new NotSupportedException();
+            public Task<ScormManifestDto> ExtractAndParseScormFromFileAsync(string zipFilePath, string folderName) => throw new NotSupportedException();
+            public Task<string> SavePackageToArchiveAsync(Stream stream, string archiveFileName) => throw new NotSupportedException();
             public void DeleteScormFolder(string folderName) => throw new NotSupportedException();
+            public void DeleteArchiveFile(string storagePath) => throw new NotSupportedException();
+            public string GetArchiveFullPath(string relativePath) => throw new NotSupportedException();
             public string GetScormUrl(string folderName, string launchHref) => $"https://files.example.local/course/{folderName}/{launchHref}";
             public (int FileCount, long TotalSize) GetFolderInfo(string folderName) => (0, 0);
         }

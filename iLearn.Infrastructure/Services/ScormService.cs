@@ -135,6 +135,123 @@ namespace iLearn.Infrastructure.Services
             };
         }
 
+        public async Task<ScormManifestDto> ExtractAndParseScormFromFileAsync(string zipFilePath, string folderName)
+        {
+            if (string.IsNullOrWhiteSpace(zipFilePath) || !File.Exists(zipFilePath))
+                throw new ArgumentException("ZIP file path is invalid or file does not exist.");
+
+            var fileLength = new FileInfo(zipFilePath).Length;
+            if (fileLength > ScormPackageLimits.MaxCompressedPackageBytes)
+            {
+                throw new InvalidScormPackageException("SCORM package exceeds the maximum allowed upload size.");
+            }
+
+            var safeFolderName = NormalizeRelativePathOrThrow(folderName, "SCORM folder");
+            var destinationPath = GetSafePathUnderRoot(_settings.FileUnc, safeFolderName);
+
+            if (Directory.Exists(destinationPath))
+            {
+                Directory.Delete(destinationPath, true);
+            }
+            Directory.CreateDirectory(destinationPath);
+
+            string manifestRelativePath;
+
+            if (!IsValidZipFile(zipFilePath))
+            {
+                throw new InvalidScormPackageException("Uploaded file is not a valid ZIP archive.");
+            }
+
+            manifestRelativePath = FindManifestPath(zipFilePath);
+
+            EnsureArchiveEntriesStayUnderPackageRoot(zipFilePath);
+            ZipFile.ExtractToDirectory(zipFilePath, destinationPath);
+
+            var manifestPath = GetSafePathUnderRoot(destinationPath, manifestRelativePath);
+            var manifestInfo = ValidateAndParseManifest(manifestPath);
+            var launchHref = CombineManifestRelativeLaunchPath(manifestRelativePath, manifestInfo.LaunchHref);
+
+            return new ScormManifestDto
+            {
+                LaunchHref = launchHref,
+                SchemaVersion = manifestInfo.SchemaVersion,
+                FolderName = safeFolderName,
+                FullUrl = CombineUrlSegments(_settings.FileUrl, safeFolderName, launchHref)
+            };
+        }
+
+        public void DeleteArchiveFile(string storagePath)
+        {
+            if (string.IsNullOrWhiteSpace(storagePath)) return;
+
+            try
+            {
+                var fullPath = GetArchiveFullPath(storagePath);
+                if (File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not delete archive file '{storagePath}': {ex.Message}");
+            }
+        }
+
+        public string GetArchiveFullPath(string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+                throw new ArgumentException("Relative path is empty.");
+
+            var hostUnc = _settings.HostUnc?.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                          ?? string.Empty;
+            var fullPath = Path.GetFullPath(Path.Combine(hostUnc, relativePath));
+
+            // Path-traversal guard: full path must stay under HostUnc
+            if (!fullPath.StartsWith(hostUnc, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Archive path escapes storage root: {relativePath}");
+            }
+
+            return fullPath;
+        }
+
+        public async Task<string> SavePackageToArchiveAsync(Stream stream, string archiveFileName)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (string.IsNullOrWhiteSpace(archiveFileName))
+                throw new ArgumentException("Archive file name is required.");
+
+            // Build paths: {HostUnc}\{CourseFolder}\_archives\{archiveFileName}
+            var archivesDir = Path.Combine(_settings.FileUnc, "_archives");
+            Directory.CreateDirectory(archivesDir);
+
+            var finalPath = Path.Combine(archivesDir, archiveFileName);
+            var tempPath = finalPath + ".tmp";
+
+            try
+            {
+                // Stream to temp file first to avoid partial files on failure
+                await using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920))
+                {
+                    await stream.CopyToAsync(fs);
+                }
+
+                // Atomic move (same volume)
+                File.Move(tempPath, finalPath, overwrite: true);
+            }
+            catch
+            {
+                // Clean up temp file on failure
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+                throw;
+            }
+
+            // Return relative path from HostUnc
+            var courseFolder = (_settings.CourseFolder ?? "Courses").Trim().Trim('/', '\\');
+            return Path.Combine(courseFolder, "_archives", archiveFileName);
+        }
+
         /// <summary>
         /// ?????????????????? ZIP ??????????
         /// </summary>

@@ -109,6 +109,10 @@ namespace iLearn.Infrastructure.Persistence
                 .WithOne() // หรือ WithMany ถ้าไฟล์เดียวใช้หลาย ContentItem
                 .HasForeignKey<ContentItem>(r => r.FileStorageId);
 
+            modelBuilder.Entity<FileStorage>()
+                .Property(f => f.StoragePath)
+                .HasMaxLength(500);
+
             modelBuilder.Entity<ScormRuntimeState>()
                 .HasOne(state => state.Enrollment)
                 .WithMany()

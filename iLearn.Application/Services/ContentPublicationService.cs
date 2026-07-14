@@ -36,7 +36,13 @@ namespace iLearn.Application.Services
             }
 
             var fileStorage = await _fileRepo.GetByIdAsync(contentItem.FileStorageId ?? 0);
-            if (fileStorage?.Data == null)
+            if (fileStorage == null)
+            {
+                throw new KeyNotFoundException("Associated file not found.");
+            }
+
+            bool hasStoragePath = !string.IsNullOrWhiteSpace(fileStorage.StoragePath);
+            if (!hasStoragePath && fileStorage.Data == null)
             {
                 throw new KeyNotFoundException("Associated file not found.");
             }
@@ -48,7 +54,16 @@ namespace iLearn.Application.Services
 
                 try
                 {
-                    var scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data, folderName);
+                    ScormManifestDto scormInfo;
+                    if (hasStoragePath)
+                    {
+                        var archivePath = _scormService.GetArchiveFullPath(fileStorage.StoragePath!);
+                        scormInfo = await _scormService.ExtractAndParseScormFromFileAsync(archivePath, folderName);
+                    }
+                    else
+                    {
+                        scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data!, folderName);
+                    }
                     contentItem.LaunchHref = scormInfo.LaunchHref;
                     contentItem.SchemaVersion = scormInfo.SchemaVersion;
                     contentItem.URL = scormInfo.FolderName;

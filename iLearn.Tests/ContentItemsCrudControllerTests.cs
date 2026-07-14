@@ -80,11 +80,15 @@ namespace iLearn.Tests
         private sealed class FakeScormService : IScormService
         {
             public Task<ScormManifestDto> ExtractAndParseScormAsync(byte[] fileContent, string folderName) => throw new NotSupportedException();
+            public Task<ScormManifestDto> ExtractAndParseScormFromFileAsync(string zipFilePath, string folderName) => throw new NotSupportedException();
+            public Task<string> SavePackageToArchiveAsync(Stream stream, string archiveFileName) => Task.FromResult($"Courses/_archives/{archiveFileName}");
 
             public void DeleteScormFolder(string folderName)
             {
             }
 
+            public void DeleteArchiveFile(string storagePath) { }
+            public string GetArchiveFullPath(string relativePath) => relativePath;
             public string GetScormUrl(string folderName, string launchHref) => $"{folderName}/{launchHref}";
 
             public (int FileCount, long TotalSize) GetFolderInfo(string folderName) => (0, 0);

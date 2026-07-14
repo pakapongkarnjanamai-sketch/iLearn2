@@ -730,7 +730,14 @@ namespace iLearn.Application.Services
             }
 
             var fileStorage = await _fileStorageRepository.GetByIdAsync(contentItem.FileStorageId.Value);
-            if (fileStorage?.Data == null || fileStorage.Data.Length == 0)
+            if (fileStorage == null)
+            {
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "original SCORM package is missing");
+            }
+
+            // Determine source: prefer StoragePath (disk), fallback to Data (legacy DB blob)
+            bool useStoragePath = !string.IsNullOrWhiteSpace(fileStorage.StoragePath);
+            if (!useStoragePath && (fileStorage.Data == null || fileStorage.Data.Length == 0))
             {
                 return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "original SCORM package is missing");
             }
@@ -739,9 +746,18 @@ namespace iLearn.Application.Services
 
             try
             {
-                var scormInfo = await _scormService.ExtractAndParseScormAsync(
-                    fileStorage.Data,
-                    Guid.NewGuid().ToString());
+                var folderName = Guid.NewGuid().ToString();
+                ScormManifestDto scormInfo;
+
+                if (useStoragePath)
+                {
+                    var archiveFullPath = _scormService.GetArchiveFullPath(fileStorage.StoragePath!);
+                    scormInfo = await _scormService.ExtractAndParseScormFromFileAsync(archiveFullPath, folderName);
+                }
+                else
+                {
+                    scormInfo = await _scormService.ExtractAndParseScormAsync(fileStorage.Data!, folderName);
+                }
 
                 contentItem.LaunchHref = scormInfo.LaunchHref;
                 contentItem.SchemaVersion = scormInfo.SchemaVersion;
@@ -780,19 +796,24 @@ namespace iLearn.Application.Services
             ScormUploadValidation.EnsureValidScormPackageUpload(file);
 
             var safeFileName = ScormUploadValidation.NormalizeUploadedFileName(file.FileName);
+            var archiveGuid = Guid.NewGuid().ToString();
+            var archiveFileName = $"{archiveGuid}.zip";
+
+            // Stream file directly to disk archive (no memory buffer)
+            string storagePath;
+            using (var stream = file.OpenReadStream())
+            {
+                storagePath = await _scormService.SavePackageToArchiveAsync(stream, archiveFileName);
+            }
 
             var fileStorage = new FileStorage
             {
                 Name = safeFileName,
                 ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/zip" : file.ContentType,
-                Length = file.Length
+                Length = file.Length,
+                StoragePath = storagePath,
+                Data = null
             };
-
-            using (var ms = new MemoryStream())
-            {
-                await file.CopyToAsync(ms);
-                fileStorage.Data = ms.ToArray();
-            }
 
             var savedFile = await _fileStorageRepository.AddAsync(fileStorage);
 
@@ -801,7 +822,8 @@ namespace iLearn.Application.Services
                 Name = safeFileName,
                 TypeId = typeId,
                 IsActive = false,
-                FileStorageId = savedFile.Id
+                FileStorageId = savedFile.Id,
+                CachedFileLength = file.Length
             };
 
             var savedContentItem = await _contentItemRepository.AddAsync(contentItem);
@@ -809,9 +831,10 @@ namespace iLearn.Application.Services
             try
             {
                 string folderName = Guid.NewGuid().ToString();
+                var archiveFullPath = _scormService.GetArchiveFullPath(storagePath);
 
-                var scormInfo = await _scormService.ExtractAndParseScormAsync(
-                    fileStorage.Data,
+                var scormInfo = await _scormService.ExtractAndParseScormFromFileAsync(
+                    archiveFullPath,
                     folderName
                 );
 
@@ -824,8 +847,21 @@ namespace iLearn.Application.Services
             }
             catch (InvalidScormPackageException)
             {
-                savedContentItem.IsActive = false;
-                await _contentItemRepository.UpdateAsync(savedContentItem);
+                // Upload failed validation — roll back everything we created so no orphaned
+                // archive file (up to 1 GB) or dangling DB rows are left behind. The archive
+                // was written to disk before extraction, and both rows were already committed
+                // (AddAsync saves immediately), so we must clean them up explicitly.
+                _scormService.DeleteArchiveFile(storagePath);
+                try
+                {
+                    await _contentItemRepository.HardDeleteAsync(savedContentItem);
+                    await _fileStorageRepository.HardDeleteAsync(savedFile);
+                }
+                catch (Exception cleanupEx)
+                {
+                    // Don't let a cleanup failure mask the original InvalidScormPackageException.
+                    Console.WriteLine($"Warning: cleanup after failed SCORM upload incomplete: {cleanupEx.Message}");
+                }
                 throw;
             }
 

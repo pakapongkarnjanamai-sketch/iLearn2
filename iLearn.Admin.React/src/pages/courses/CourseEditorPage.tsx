@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { 
   ArrowDown, 
@@ -11,7 +11,8 @@ import {
   X
 } from 'lucide-react'
 
-import { fetchWithAccessControl } from '../../lib/apiClient'
+import { fetchWithAccessControl, uploadWithProgress, type UploadProgress } from '../../lib/apiClient'
+import { UploadProgressOverlay } from '../../components/shared/UploadProgressOverlay'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
@@ -155,6 +156,8 @@ export function CourseEditorPage() {
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+  const abortUploadRef = useRef<(() => void) | null>(null)
   const [currentStep, setCurrentStep] = useState(1)
   const [activeEditTab, setActiveEditTab] = useState<'properties' | 'content'>('properties')
   const [showLibraryPopup, setShowLibraryPopup] = useState(false)
@@ -433,10 +436,51 @@ export function CourseEditorPage() {
     const endpoint = versionId ? `Courses/versions/${versionId}` : `Courses/${courseId}/versions`
     const method = versionId ? 'PUT' : 'POST'
 
-    await fetchWithAccessControl<CourseApiResponse>(endpoint, {
-      method,
-      body: buildVersionFormData(courseId)
-    })
+    const hasFileUpload = contentItems.some(i => i.source === 'upload' && i.file)
+
+    if (hasFileUpload) {
+      const totalSize = contentItems
+        .filter(i => i.source === 'upload' && i.file)
+        .reduce((acc, curr) => acc + (curr.file?.size || 0), 0)
+
+      setUploadProgress({
+        phase: 'uploading',
+        loadedBytes: 0,
+        totalBytes: totalSize,
+        percent: 0,
+      })
+
+      const fd = buildVersionFormData(courseId)
+
+      const { promise, abort } = uploadWithProgress<CourseApiResponse>(
+        endpoint,
+        fd,
+        {
+          method,
+          onProgress: (p) => {
+            setUploadProgress(p)
+          },
+        }
+      )
+      abortUploadRef.current = abort
+
+      try {
+        await promise
+      } catch (err: any) {
+        if (err.isAborted) {
+          toast.info('Upload cancelled')
+        }
+        throw err
+      } finally {
+        setUploadProgress(null)
+        abortUploadRef.current = null
+      }
+    } else {
+      await fetchWithAccessControl<CourseApiResponse>(endpoint, {
+        method,
+        body: buildVersionFormData(courseId)
+      })
+    }
   }
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -454,7 +498,11 @@ export function CourseEditorPage() {
       navigate(`/courses/${courseId}`)
     } catch (err: unknown) {
       console.error(err)
-      toast.error(getApiErrorText(err, 'Failed to save course data'))
+      if (err instanceof Error && (err as any).isAborted) {
+        // Do not toast error since we already toasted 'Upload cancelled'
+      } else {
+        toast.error(getApiErrorText(err, 'Failed to save course data'))
+      }
     } finally {
       setSaving(false)
     }
@@ -819,136 +867,151 @@ export function CourseEditorPage() {
   }
 
   return (
-    <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        {/* Header with Title and Tabs */}
-        <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Course Catalog
+    <>
+      <div className="wizard-surface flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-slate-200/80 rounded-xl shadow-xs">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          {/* Header with Title and Tabs */}
+          <div className="flex flex-col gap-3 bg-white px-6 pt-5 pb-3 border-b border-slate-200 shrink-0 select-none">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Course Catalog
+                </div>
+                <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
+                  Edit Course
+                </h1>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
+                  Update course details and content settings.
+                </p>
               </div>
-              <h1 className="text-base font-extrabold text-slate-800 tracking-tight leading-tight">
-                Edit Course
-              </h1>
-              <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-normal">
-                Update course details and content settings.
-              </p>
+            </div>
+
+            <DetailTabs
+              tabs={editTabs}
+              active={activeEditTab}
+              onChange={setActiveEditTab}
+              variant="compact"
+            />
+          </div>
+
+          {/* Content Panel Zone */}
+          <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
+            <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
+              <div className="w-full h-full flex flex-col">
+                {activeEditTab === 'properties' ? renderInformationStep() : renderContentStep()}
+              </div>
+            </div>
+            
+            {/* Sticky Actions Footer */}
+            <div className="flex items-center justify-between gap-3 bg-white border-t border-slate-200 px-6 py-4 shrink-0">
+              <AppButton
+                type="button"
+                variant="secondary"
+                onClick={() => navigate(`/courses/${id}`)}
+              >
+                Cancel
+              </AppButton>
+
+              <AppButton
+                type="submit"
+                variant="primary"
+                icon={Save}
+                loading={saving}
+                className="px-4 py-2 text-xs font-bold shadow-3xs"
+              >
+                Save Changes
+              </AppButton>
             </div>
           </div>
 
-          <DetailTabs
-            tabs={editTabs}
-            active={activeEditTab}
-            onChange={setActiveEditTab}
-            variant="compact"
-          />
-        </div>
+          {/* Backdrop-blurred Library Picker Modal Overlay */}
+          {showLibraryPopup && (
+            <div
+              className="modal-overlay"
+              onClick={() => setShowLibraryPopup(false)}
+            >
+              <div
+                className="modal-window modal-window-lg p-5 relative animate-scale-in"
+                onClick={e => e.stopPropagation()}
+              >
+                <IconButton
+                  type="button"
+                  onClick={() => setShowLibraryPopup(false)}
+                  icon={X}
+                  title="Close"
+                  tone="neutral"
+                  size="sm"
+                  className="absolute top-4 right-4 z-10"
+                />
 
-        {/* Content Panel Zone */}
-        <div className="min-h-0 flex-1 flex flex-col relative bg-slate-50/60">
-          <div className="overflow-y-auto custom-scrollbar flex-1 px-6 py-6">
-            <div className="w-full h-full flex flex-col">
-              {activeEditTab === 'properties' ? renderInformationStep() : renderContentStep()}
-            </div>
-          </div>
-          
-          {saving && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-xs flex items-center justify-center z-50 rounded-lg animate-fade-in">
-              <LoadingState size="section" label="Saving..." />
+                <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
+                  <BookOpen className="h-5 w-5 text-indigo-600" />
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Select Existing Content</h3>
+                    <p className="text-xs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
+                  </div>
+                </div>
+
+                <div className="mb-3.5 flex items-center gap-2 border border-slate-200 bg-white px-2.5 py-1.5 rounded text-xs select-none">
+                  <Search className="h-4 w-4 text-slate-400" />
+                  <input
+                    value={contentSearch}
+                    onChange={event => setContentSearch(event.target.value)}
+                    placeholder="Search Content Library..."
+                    className="min-w-0 flex-1 border-0 bg-transparent text-xs text-slate-800 outline-none"
+                  />
+                </div>
+
+                <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto border border-slate-200 rounded custom-scrollbar select-none">
+                  {visibleContentLibrary.length === 0 ? (
+                    <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">No content found matching search</div>
+                  ) : visibleContentLibrary.map(item => {
+                    const readiness = getContentReadiness(createLibrarySelection(item))
+                    return (
+                      <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
+                        <div className="min-w-0">
+                          <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
+                            <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                            <ReadinessBadge size="xxs" label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => addExistingContent(item)}
+                          className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
+                          aria-label="Add content"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           )}
-        </div>
-
-        {/* Navigation Buttons Pinned Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
-          <AppButton
-            variant="secondary"
-            icon={X}
-            onClick={() => navigate(`/courses/${id}`)}
-          >
-            Cancel
-          </AppButton>
-
-          <AppButton
-            type="submit"
-            variant="primary"
-            icon={Save}
-            loading={saving}
-            className="px-4 py-2 text-xs font-bold shadow-3xs"
-          >
-            Save Changes
-          </AppButton>
-        </div>
-      </form>
-
-      {/* Backdrop-blurred Library Picker Modal Overlay */}
-      {showLibraryPopup && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowLibraryPopup(false)}
-        >
-          <div
-            className="modal-window modal-window-lg p-5 relative animate-scale-in"
-            onClick={e => e.stopPropagation()}
-          >
-            <IconButton
-              type="button"
-              onClick={() => setShowLibraryPopup(false)}
-              icon={X}
-              title="Close"
-              tone="neutral"
-              size="sm"
-              className="absolute top-4 right-4 z-10"
-            />
-
-            <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
-              <BookOpen className="h-5 w-5 text-indigo-600" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-800">Select Existing Content</h3>
-                <p className="text-xs font-semibold text-slate-400">Choose from SCORM packages in the Content Library</p>
-              </div>
-            </div>
-
-            <div className="mb-3.5 flex items-center gap-2 border border-slate-200 bg-white px-2.5 py-1.5 rounded text-xs select-none">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input
-                value={contentSearch}
-                onChange={event => setContentSearch(event.target.value)}
-                placeholder="Search Content Library..."
-                className="min-w-0 flex-1 border-0 bg-transparent text-xs text-slate-800 outline-none"
-              />
-            </div>
-
-            <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto border border-slate-200 rounded custom-scrollbar select-none">
-              {visibleContentLibrary.length === 0 ? (
-                <div className="px-3 py-8 text-center text-xs font-semibold text-slate-400">No content found matching search</div>
-              ) : visibleContentLibrary.map(item => {
-                const readiness = getContentReadiness(createLibrarySelection(item))
-                return (
-                  <div key={item.id} className="flex items-center justify-between gap-3 bg-white px-3 py-2 hover:bg-slate-50/50 transition">
-                    <div className="min-w-0">
-                      <div className="truncate font-bold text-slate-800 text-sm">{item.name}</div>
-                      <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 font-semibold">
-                        <span>{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
-                        <ReadinessBadge size="xxs" label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addExistingContent(item)}
-                      className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
-                      aria-label="Add content"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
+        </form>
+      </div>
+      {uploadProgress && (
+        <UploadProgressOverlay
+          phase={uploadProgress.phase}
+          loadedBytes={uploadProgress.loadedBytes}
+          totalBytes={uploadProgress.totalBytes}
+          percent={uploadProgress.percent}
+          fileName={
+            contentItems
+              .filter(i => i.source === 'upload' && i.file)
+              .map(i => i.file!.name)
+              .join(', ') || 'SCORM Package'
+          }
+          onCancel={() => {
+            if (abortUploadRef.current) {
+              abortUploadRef.current()
+            }
+          }}
+        />
       )}
-    </div>
+    </>
   )
 }

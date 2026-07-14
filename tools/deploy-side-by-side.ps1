@@ -167,6 +167,68 @@ function Set-AspNetCoreEnvironment {
     $doc.Save($WebConfigPath)
 }
 
+function Sync-RequestLimits {
+    <#
+    .SYNOPSIS
+    Copies maxAllowedContentLength from a source web.config (artifact) into the server's
+    active web.config. Creates the <security>/<requestFiltering>/<requestLimits> nodes if
+    they don't exist. No-op if the source web.config has no requestLimits.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$SourceWebConfig,
+        [Parameter(Mandatory)][string]$TargetWebConfig
+    )
+
+    if (-not (Test-Path -LiteralPath $SourceWebConfig)) {
+        Write-Verbose "Sync-RequestLimits: source not found, skipping: $SourceWebConfig"
+        return
+    }
+
+    [xml]$srcDoc = Get-Content -LiteralPath $SourceWebConfig
+    $srcNode = $srcDoc.SelectSingleNode('//requestLimits[@maxAllowedContentLength]')
+    if ($null -eq $srcNode) {
+        Write-Verbose "Sync-RequestLimits: source has no requestLimits, skipping."
+        return
+    }
+
+    $maxLen = $srcNode.GetAttribute('maxAllowedContentLength')
+    Write-Host "Syncing requestLimits maxAllowedContentLength=$maxLen from artifact" -ForegroundColor DarkGray
+
+    [xml]$tgtDoc = Get-Content -LiteralPath $TargetWebConfig
+
+    # Find the <system.webServer> that contains <aspNetCore> (handles both <location> wrapper and flat)
+    $aspNetCoreNode = $tgtDoc.SelectSingleNode('//aspNetCore')
+    if ($null -eq $aspNetCoreNode) {
+        Write-Warning "Sync-RequestLimits: no aspNetCore node in target, skipping."
+        return
+    }
+    $webServerNode = $aspNetCoreNode.ParentNode  # <system.webServer>
+
+    # Find or create <security>
+    $securityNode = $webServerNode['security']
+    if ($null -eq $securityNode) {
+        $securityNode = $tgtDoc.CreateElement('security')
+        [void]$webServerNode.AppendChild($securityNode)
+    }
+
+    # Find or create <requestFiltering>
+    $filteringNode = $securityNode['requestFiltering']
+    if ($null -eq $filteringNode) {
+        $filteringNode = $tgtDoc.CreateElement('requestFiltering')
+        [void]$securityNode.AppendChild($filteringNode)
+    }
+
+    # Find or create <requestLimits>
+    $limitsNode = $filteringNode['requestLimits']
+    if ($null -eq $limitsNode) {
+        $limitsNode = $tgtDoc.CreateElement('requestLimits')
+        [void]$filteringNode.AppendChild($limitsNode)
+    }
+
+    $limitsNode.SetAttribute('maxAllowedContentLength', $maxLen)
+    $tgtDoc.Save($TargetWebConfig)
+}
+
 function Get-DeployFolderFromArguments {
     param([string]$Arguments)
 
@@ -355,6 +417,12 @@ if ($Rollback) {
         Set-AspNetCoreEnvironment -WebConfigPath $webConfigPath -EnvironmentName $SetEnvironmentName
     }
 
+    # Sync requestLimits from the rollback target's web.config into the server root.
+    $rollbackStampWebConfig = Join-Path $target.FullName 'web.config'
+    if ($PSCmdlet.ShouldProcess($webConfigPath, "Sync requestLimits from $($target.Name)")) {
+        Sync-RequestLimits -SourceWebConfig $rollbackStampWebConfig -TargetWebConfig $webConfigPath
+    }
+
     [pscustomobject]@{
         Action             = 'Rollback'
         DeployRoot         = $DeployRoot
@@ -484,6 +552,13 @@ try {
     # appsettings.Production.json load even if the file somehow lands on the server).
     if ($SetEnvironmentName -and $PSCmdlet.ShouldProcess($webConfigPath, "Set ASPNETCORE_ENVIRONMENT to $SetEnvironmentName")) {
         Set-AspNetCoreEnvironment -WebConfigPath $webConfigPath -EnvironmentName $SetEnvironmentName
+    }
+
+    # Sync requestLimits (e.g. maxAllowedContentLength for large SCORM uploads) from the
+    # newly deployed stamp folder's web.config into the server's active root web.config.
+    $stampWebConfig = Join-Path $deployPath 'web.config'
+    if ($PSCmdlet.ShouldProcess($webConfigPath, "Sync requestLimits from $deployFolderName")) {
+        Sync-RequestLimits -SourceWebConfig $stampWebConfig -TargetWebConfig $webConfigPath
     }
 
     # Bring the app back online BEFORE the health check so the new build can answer.

@@ -200,7 +200,7 @@ namespace iLearn.API.Controllers
             }
 
             var fileStorage = await _fileRepo.GetByIdAsync(contentItem.FileStorageId ?? 0);
-            if (fileStorage == null || fileStorage.Data == null)
+            if (fileStorage == null)
                 return NotFound("File content missing");
 
             var safeFileName = ScormUploadValidation.NormalizeUploadedFileName(fileStorage.Name);
@@ -210,6 +210,21 @@ namespace iLearn.API.Controllers
             }
 
             Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+            // Prefer disk file (StoragePath), fallback to legacy DB blob
+            if (!string.IsNullOrWhiteSpace(fileStorage.StoragePath))
+            {
+                var fullPath = _scormService.GetArchiveFullPath(fileStorage.StoragePath);
+                if (!System.IO.File.Exists(fullPath))
+                    return NotFound("Archive file not found on disk");
+
+                var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return File(stream, "application/octet-stream", safeFileName);
+            }
+
+            if (fileStorage.Data == null)
+                return NotFound("File content missing");
+
             return File(fileStorage.Data, "application/octet-stream", safeFileName);
         }
 
@@ -237,19 +252,24 @@ namespace iLearn.API.Controllers
             }
 
             var safeFileName = ScormUploadValidation.NormalizeUploadedFileName(file.FileName);
+            var archiveGuid = Guid.NewGuid().ToString();
+            var archiveFileName = $"{archiveGuid}.zip";
+
+            // Stream file directly to disk archive (no memory buffer)
+            string storagePath;
+            using (var stream = file.OpenReadStream())
+            {
+                storagePath = await _scormService.SavePackageToArchiveAsync(stream, archiveFileName);
+            }
 
             var fileStorage = new FileStorage
             {
                 Name = safeFileName,
                 ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/zip" : file.ContentType,
-                Length = file.Length
+                Length = file.Length,
+                StoragePath = storagePath,
+                Data = null
             };
-
-            using (var ms = new MemoryStream())
-            {
-                await file.CopyToAsync(ms);
-                fileStorage.Data = ms.ToArray();
-            }
 
             var savedFile = await _fileRepo.AddAsync(fileStorage);
 
@@ -259,7 +279,7 @@ namespace iLearn.API.Controllers
                 TypeId = typeId,
                 IsActive = false,
                 FileStorageId = savedFile.Id,
-                CachedFileLength = savedFile.Length
+                CachedFileLength = file.Length
             };
 
             var savedContentItem = await _contentItemRepo.AddAsync(contentItem);
@@ -887,7 +907,8 @@ namespace iLearn.API.Controllers
                         // โหลด FileStorage เฉพาะตอนต้องใช้
                         var fileStorage = await _fileRepo.GetByIdAsync(contentItem.FileStorageId ?? 0);
 
-                        if (fileStorage == null || fileStorage.Data == null)
+                        bool hasStoragePath = fileStorage != null && !string.IsNullOrWhiteSpace(fileStorage.StoragePath);
+                        if (fileStorage == null || (!hasStoragePath && fileStorage.Data == null))
                         {
                             itemResult.Success = false;
                             itemResult.ErrorMessage = "ไม่พบไฟล์ที่เชื่อมโยง";
@@ -916,10 +937,19 @@ namespace iLearn.API.Controllers
 
                             try
                             {
-                                var scormInfo = await _scormService.ExtractAndParseScormAsync(
-                                    fileStorage.Data,
-                                    folderName
-                                );
+                                ScormManifestDto scormInfo;
+                                if (hasStoragePath)
+                                {
+                                    var archivePath = _scormService.GetArchiveFullPath(fileStorage.StoragePath!);
+                                    scormInfo = await _scormService.ExtractAndParseScormFromFileAsync(archivePath, folderName);
+                                }
+                                else
+                                {
+                                    scormInfo = await _scormService.ExtractAndParseScormAsync(
+                                        fileStorage.Data!,
+                                        folderName
+                                    );
+                                }
 
                                 contentItem.LaunchHref = scormInfo.LaunchHref;
                                 contentItem.SchemaVersion = scormInfo.SchemaVersion;
