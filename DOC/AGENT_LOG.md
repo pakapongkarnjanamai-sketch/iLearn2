@@ -15,6 +15,12 @@
 - Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend-only, consume types ตาม contract C# PLAN-088 ตรง 100%)
 - Verified: npm run lint ผ่าน (0 errors, 0 warnings), npm run build ผ่าน 100%
 
+## [2026-07-14 —] Claude Code — เพิ่มกติกาถาวรใน CLAUDE.md จาก bug จริง 6 ข้อ (กันพลาดซ้ำทุก agent)
+- ทำอะไร: ผู้ใช้ตั้งข้อสังเกตว่า implementer ผิดพลาดบ่อย → ผมไล่ finding ทั้งหมดที่รีวิวมาในรอบนี้แล้วพบว่า **สิ่งที่แผนระบุชัด (contract freeze) ทำถูก 100% ทุกครั้งทั้ง Gemini และ Copilot ส่วนที่พลาดคือสิ่งที่ไม่มีใครเขียนกติกาไว้** ⇒ แปลง finding ที่เกิดจริงเป็นกติกาถาวรแทน. เพิ่มหัวข้อใหม่ **"กติกาสำคัญฝั่ง Backend (.NET)"** (เดิม CLAUDE.md มีแต่ฝั่ง React ทั้งที่ finding ระดับ MEDIUM ทั้งหมดเกิดฝั่ง backend): IDateTime ห้าม UtcNow ดิบ (PLAN-088), effective dates ห้ามอ่าน Enrollment.DueDate ดิบ (PLAN-086), cleanup ไฟล์+row ใน catch (PLAN-084), side-effect ห้ามทำ request หลักล้ม, migration ต้องอยู่ `Infrastructure/Migrations/`, SignalR UserIdProvider ต้อง normalize ตรง UserId ไม่งั้น push เงียบหาย. + เพิ่ม **z-index ladder** ในหัวข้อ React (content 10 / Header 15 / overlay 20 / sidebar 30 / modal 50-60 / upload 9999) พร้อมคำเตือน stacking context ของ sticky/fixed container (PLAN-089)
+- ไฟล์หลักที่แตะ: `CLAUDE.md` (+9 บรรทัด: 64→73 — คุมให้สั้นเพราะ agent ต้องอ่านทุกครั้ง), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (เอกสาร)
+- Verified: — (เอกสาร; ทุกข้ออ้างอิง PLAN ที่เจอ bug จริง ตรวจสอบย้อนได้)
+
 ## [2026-07-14 —] Claude Code — hotfix: notification dropdown ถูกบังหลัง grid (Header stacking context)
 - ทำอะไร: ผู้ใช้รายงานจาก QA ว่าเปิด bell แล้ว dropdown แสดง**อยู่หลัง grid/card**. **Root cause:** `Header` เป็น `sticky top-0 z-10` ⇒ สร้าง **stacking context** ที่ z=10 ⇒ `z-50` ของ dropdown มีผลแค่ภายใน context ของ Header เท่านั้น; เทียบกับของนอก Header ทั้ง header = z-10 ซึ่ง**เท่ากับ** sticky thead/sticky column/card ทั่วแอป (ทุกที่ z-10) → content ที่อยู่หลังใน DOM ชนะ ทับ dropdown. **แก้:** `Header` z-10 → **z-15** (สูงกว่า content z-10 แต่ยังต่ำกว่า overlay z-20 / sidebar z-30 / modal z-50-9999 → พฤติกรรมเดิมของ overlay/sidebar/modal ไม่เปลี่ยน). สำรวจ z ทั้งระบบก่อนเลือกเลข
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/layout/Header.tsx` (1 class + คอมเมนต์อธิบายลำดับ z), `DOC/PLANS/PLAN-089-*.md`, `DOC/AGENT_LOG.md`

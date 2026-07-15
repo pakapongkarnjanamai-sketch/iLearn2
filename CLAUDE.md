@@ -38,9 +38,19 @@ repo นี้มี AI agent มากกว่าหนึ่งตัวท�
 - ป้ายสถานะ/ชนิด/ตัวเลขทั้งหมดใช้ `Badge` (tone × variant soft/outline/tag) — ห้าม hardcode `<span>` pill เอง
 - วันที่/ตัวเลข format ผ่าน `src/lib/format.ts` เท่านั้น: `formatDate`/`formatDateTime`, `formatNumber`, `formatPercent`, `formatBytes` (ห้าม `toLocaleString`/`toFixed`/`Math.round(.../1024)` inline; ห้ามใส่ comma กับ ID/version/index)
 - ตารางรายละเอียดยาว ๆ แบ่งหน้าด้วย `DETAIL_TABLE_CHUNK_SIZE` จาก `src/lib/tableStandards.ts` (Showing X of Y + Load more)
+- **z-index ladder ของแอป** (ห้ามตั้งเลขมั่ว): content/sticky thead/sticky column = `z-10` · Header = `z-15` · sidebar overlay = `z-20` · Sidebar = `z-30` · modal = `z-50`/`z-60` · upload overlay = `z-9999` — **dropdown/popover ที่อยู่ใน container `sticky`/`fixed` ถูกจำกัดด้วย stacking context ของ container นั้น** (z ของลูกไม่มีผลข้าม context) ⇒ ต้องเทียบ z ของ **container** กับ content เสมอ ไม่ใช่แค่ของตัว dropdown (PLAN-089: bell dropdown ถูก grid ทับ เพราะ Header เป็น z-10 เท่ากับ card)
 - **API Contract Sync:** ทุก response type ต้องลอกจาก C# DTO/controller จริง พร้อมคอมเมนต์ `// Mirrors <DtoName> (<path>)` — แก้ DTO ฝั่ง backend ต้อง grep endpoint ใน `src/` แล้วแก้ type ฝั่ง React ในงานเดียวกัน
 - **Route remount:** route detail/editor ทุกตัวใน `App.tsx` ต้องครอบ `<Remount>` (กัน state ค้างข้าม route เพราะ React reuse component instance) — list page ใช้ `key={config.controller}` บน `AppTable`
 - Learners rows เป็น **camelCase** (`nid`, `eId`) — backend deserialize เป็น typed DTO แล้ว
+
+## กติกาสำคัญฝั่ง Backend (.NET) — ทุกข้อมาจาก bug จริงที่เคยหลุดรีวิว อย่าพลาดซ้ำ
+
+- **เวลา:** ห้ามใช้ `DateTime.Now`/`DateTime.UtcNow` ดิบกับค่าที่เขียนลง DB — ใช้ `IDateTime.Now` เสมอ (`DateTimeService.Now = UtcNow.AddHours(7)` = เวลาไทย และ `SaveChanges` ก็เซ็ต `CreatedAt`/`CreatedBy` จากตัวนี้) — ผสมกันแล้วคอลัมน์ในแถวเดียวกันเพี้ยน 7 ชม. (PLAN-088: `ReadAt` น้อยกว่า `CreatedAt` = เหมือนอ่านก่อนถูกสร้าง)
+- **วันครบกำหนดของ learner:** `ExtendDueDateAsync` อัปเดตแค่ `Assignment.DueDate` + `EnrollmentAssignment.DueDate` — **ไม่เคยแตะ `Enrollment.DueDate`** ⇒ รายงาน/สถานะทุกที่ต้องใช้ **effective dates** (มี active link → `Min(link.StartDate)`/`Max(link.DueDate)`, ไม่มี link → fallback คอลัมน์ enrollment) ตาม `GetEffectiveSchedule` (EnrollmentsController) หรือ `BuildVisibleEnrollmentRowsQuery` (ReportService) — อ่านคอลัมน์ดิบ = ตัวเลขขัดกับหน้า assignment (PLAN-086)
+- **งานที่เขียนไฟล์ถาวรก่อน validate** (เช่น SCORM archive) ต้องลบไฟล์ + row ที่เพิ่งสร้างใน `catch` — ไม่งั้นไฟล์ค้างบน disk ทุกครั้งที่ upload พัง (PLAN-084: leak ได้ถึง 1GB/ครั้ง)
+- **Side-effect เสริม** (notification / activity log) ต้องห่อ try/catch + log เอง **ห้ามให้มันพังแล้วทำ request หลักล้ม** และห้ามเปลี่ยน HTTP status/body เดิมของ endpoint ที่ไป hook
+- **Migration:** ต้องอยู่ `iLearn.Infrastructure/Migrations/` + namespace `iLearn.Infrastructure.Migrations` เท่านั้น (ที่เดียวกับ `AppDbContextModelSnapshot`) — วางที่อื่น EF ยัง scan เจอ (ไม่พัง runtime) แต่ไฟล์จะกระจายคนละที่ (PLAN-088)
+- **SignalR per-user push:** `Clients.User(id)` ใช้ค่าจาก `NidUserIdProvider` ซึ่งต้อง normalize **ให้ตรงกับ `ICurrentUserService.UserId` เป๊ะ** (Nid ล้วน ไม่มี domain prefix) — ถ้าไม่ตรง push จะ**เงียบหายโดยไม่มี error** หาบั๊กยากมาก (PLAN-088)
 
 ## คำสั่งตรวจสอบ (รันก่อนปิดงานเสมอ)
 
