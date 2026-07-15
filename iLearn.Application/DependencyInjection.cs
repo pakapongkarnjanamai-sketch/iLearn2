@@ -19,6 +19,7 @@ namespace iLearn.Application
             services.AddScoped<ILearnerGroupService, LearnerGroupService>();
             services.AddScoped<ILearnerGroupCategoryService, LearnerGroupCategoryService>();
             services.AddScoped<IEnrollmentService, EnrollmentService>();
+            services.AddScoped<IReportService, ReportService>();
 
             // Lazy<T> support to break circular dependencies
             services.AddTransient(typeof(Lazy<>), typeof(LazyServiceFactory<>));

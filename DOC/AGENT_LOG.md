@@ -2,6 +2,21 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-14 —] Claude Code — แก้ findings PLAN-086/087 (ผู้ใช้สั่งแก้เอง) + commit Report Hub P1
+- ทำอะไร: **086 Finding 1+2:** `ReportService.cs` เพิ่ม `VisibleEnrollmentPredicate` + `BuildVisibleEnrollmentRowsQuery` — projection กลาง effective-schedule (active links → Min(StartDate)/Max(DueDate), fallback enrollment columns; ซ่อน enrollment ที่ assignment ถูกลบหมด) semantics ตรง `GetEffectiveSchedule` ฝั่ง learner; compliance/transcript/course-summary ใช้ projection นี้, activity เพิ่ม visibility filter → ตัวเลข overdue ไม่ขัดหน้า assignment หลัง Extend Due Date อีกต่อไป. เพิ่ม regression tests 2 ตัว (extended-learner-not-overdue, deleted-assignment-excluded). **087 Finding:** `formatNumber` รับ `fractionDigits?` (reuse fixed-digits formatter เดิม) + แก้ `.toFixed(1)` 2 จุดใน ActivityReportPage
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/ReportService.cs`, `iLearn.Tests/ReportServiceTests.cs`, `iLearn.Admin.React/src/lib/format.ts`, `src/pages/reports/ActivityReportPage.tsx`, plan docs 086/087 (→VERIFIED FIXED)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (DTO shape เดิมทุกตัว — เปลี่ยนเฉพาะแหล่งคำนวณ date ภายใน; `formatNumber` เพิ่ม optional param backward-compatible)
+- Verified: `dotnet build` 0 errors + `dotnet test` **187 passed** (ยืนยัน warnings เป็น nullable เดิมไม่ใช่ไฟล์ report); `npm run lint`+`build` 0 errors
+- ⚠️ คงค้าง: smoke ทุก Reports endpoint บน SQL Server จริง (QA) — โดยเฉพาะ course-summary GroupBy-over-projection (unit test เป็น LINQ-to-objects พิสูจน์ SQL translation ไม่ได้) + manual click-through หน้า /reports
+
+## [2026-07-14 —] Claude Code — รีวิว PLAN-086/087 (Report Hub P1) → 087 ผ่าน, 086 มี Finding MEDIUM-HIGH เรื่องแหล่ง DueDate
+- ทำอะไร: ตรวจ diff เต็มทั้งสองแผน + verify อิสระ (dotnet build 0 warn + test **185 passed** รวม 7 ReportServiceTests ใหม่; npm lint+build 0 err). **Contract freeze ทำงานจริง** — ReportDtos.cs ↔ reportTypes.ts ตรงทุก field ทั้ง 8 types, ไฟล์ไม่ทับกัน (C# vs React) ตามที่ออกแบบ. **086:** performance ครบกติกา (projection/bulk lookup ครั้งเดียว/GroupBy SQL/ไม่มี FileStorage), AdminOnly policy มีจริง, division scoping ตรง precedent — **แต่พบ Finding 1 (MEDIUM-HIGH):** overdue ทุกรายงานใช้ `Enrollment.DueDate` ดิบ ขณะที่ `ExtendDueDateAsync` (ทั้ง AssignmentService + AssignmentDashboardService) อัปเดตเฉพาะ rule+link ไม่แตะ Enrollment.DueDate → หลัง extend รายงานจะนับ learner เป็น Overdue ขัดกับหน้า assignment (อ่าน link) และ learner side (`GetEffectiveSchedule` ใช้ Max(link.DueDate)); ต้องแก้ให้ใช้ effective dates ตาม GetEffectiveSchedule semantics ก่อนเปิดใช้จริง. Finding 2 (minor): enrollment ที่ assignment ถูกลบหมด learner side ซ่อนแต่รายงานนับ. **087:** UI conventions ครบ, csvExport BOM ถูก, routes/Remount/nav ครบ — Finding minor เดียว: `toFixed(1)` inline 2 บรรทัดใน ActivityReportPage (ขัดกติกา format.ts)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-086/087-*.md` (+Reviewer Sign-off; 086→REVIEWED รอแก้, 087→VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: git diff อิสระทุกไฟล์ + dotnet build/test + npm lint/build อิสระ; live click-through ยังทำไม่ได้ (ต้อง API รัน + Windows auth)
+- ถึง Copilot: แก้ Finding 1 ใน ReportService (effective dates จาก AssignmentLinks ตาม `GetEffectiveSchedule` — ดูรายละเอียดใน Sign-off 086) + พิจารณา Finding 2 ในคราวเดียว
+- ถึง Gemini: แก้ `toFixed(1)` → `formatNumber(...,1)` 2 จุดใน ActivityReportPage.tsx (บรรทัด ~67, ~191)
+
 Format ต่อ entry:
 
 ```
@@ -11,6 +26,19 @@ Format ต่อ entry:
 - Contract ที่เปลี่ยน (API shape / props / DB): ... (หรือ "ไม่มี")
 - Verified: lint/build/test อะไรผ่านบ้าง
 ```
+
+## [2026-07-15 08:40] Antigravity — PLAN-087 DONE: Report Hub Phase 1 — Frontend (หน้า /reports + 4 หน้ารายงาน + CSV util กลาง)
+- ทำอะไร: (1) สร้าง utility `exportRowsAsCsv` ใน `csvExport.ts` ที่ฝัง UTF-8 BOM สำหรับภาษาไทยและ Excel support พร้อมเปลี่ยนหน้า `AssignmentReportPage.tsx` ให้ใช้ตัวนี้; (2) เพิ่ม `formatDuration` ใน `format.ts` แปลงวินาทีเป็นชม./นาที; (3) เพิ่ม `reportTypes.ts` ลอก type ตรงจาก contract PLAN-086 §1; (4) ผูกเส้นทาง routes ( landing page + 4 หน้ารายงาน) ด้วย `<Remount>` ใน `App.tsx` + เพิ่มปุ่ม quick link บน `DashboardPage.tsx` + เมนู Reports (icon `FileBarChart`) ใน `navigation.ts`; (5) พัฒนาหน้า UI ครบถ้วน ได้แก่ `ReportHubPage.tsx`, `ComplianceReportPage.tsx` (แสดง KPI, division bar chart, ตาราง Division/Department toggling, รายการ overdue), `TranscriptReportPage.tsx` (ค้นหารหัสพนักงานและรองรับ layout สั่งพิมพ์ print layout), `CourseSummaryReportPage.tsx` (ตารางสรุปคอร์ส รองรับ client sorting/filtering), `ActivityReportPage.tsx` (กราฟ Recharts 2 ตัว completions/active learners และตารางรายเดือน)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/csvExport.ts` (ใหม่), `iLearn.Admin.React/src/lib/format.ts`, `iLearn.Admin.React/src/pages/reports/reportTypes.ts` (ใหม่), `iLearn.Admin.React/src/config/navigation.ts`, `iLearn.Admin.React/src/App.tsx`, `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/ReportHubPage.tsx` (ใหม่), `iLearn.Admin.React/src/pages/reports/ComplianceReportPage.tsx` (ใหม่), `iLearn.Admin.React/src/pages/reports/TranscriptReportPage.tsx` (ใหม่), `iLearn.Admin.React/src/pages/reports/CourseSummaryReportPage.tsx` (ใหม่), `iLearn.Admin.React/src/pages/reports/ActivityReportPage.tsx` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend-only, consume aggregate DTOs จาก PLAN-086 ตรง 100%)
+- Verified: npm run lint ผ่านฉลุย (0 errors, 0 warnings); npm run build ผ่าน 100%; dotnet test artifacts/verify-test/iLearn.Tests.dll ผ่านครบ 185 tests (0 failed)
+
+## [2026-07-15 10:00] GitHub Copilot — PLAN-086 DONE: Report Hub Phase 1 Backend (ReportsController + 4 aggregate endpoints)
+- ทำอะไร: สร้าง Report Hub backend ครบ 4 endpoints — (1) `GET api/Reports/compliance` org-wide compliance+overdue with ByDivision/ByDepartment grouping; (2) `GET api/Reports/transcript/{learnerCode}` full learner transcript; (3) `GET api/Reports/course-summary` per-course aggregate stats; (4) `GET api/Reports/activity?months=12` monthly training activity. Division scoping ผ่าน EnrollmentAssignment→Assignment.DivisionId. Learner info via `GetLearnersByCodesAsync` bulk once per request. Status uses `AssignmentStatusKeys.GetScheduledLearnerStatus`. Unit tests 7 ตัว (async queryable infrastructure included)
+- ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/ReportDtos.cs` (ใหม่), `iLearn.Application/Interfaces/Services/IReportService.cs` (ใหม่), `iLearn.Application/Services/ReportService.cs` (ใหม่), `iLearn.API/Controllers/ReportsController.cs` (ใหม่), `iLearn.Application/DependencyInjection.cs` (+1 line), `iLearn.Tests/ReportServiceTests.cs` (ใหม่)
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม 4 endpoints ใหม่ตาม frozen contract ใน PLAN-086 §1 — shape ตรง 100% ไม่มีการเบี่ยง; DB: ไม่เปลี่ยน
+- Verified: dotnet build 0 errors, dotnet test 185 passed 0 failed (7 new ReportServiceTests)
+- ถึง Gemini: PLAN-087 frontend types ลอกจาก PLAN-086 §1 ได้ตรง — contract ไม่ถูกเปลี่ยน
 
 ## [2026-07-14 14:00] GitHub Copilot — PLAN-084 DONE: SCORM 1GB streaming upload + disk storage (FileStorage.StoragePath)
 - ทำอะไร: ยกลิมิต SCORM เป็น 1GB + เปลี่ยนจาก MemoryStream→byte[]→DB เป็น stream-to-disk. (1) `ScormPackageLimits` 1GB/1034MB/1GB/2.5GB; (2) `web.config` maxAllowedContentLength=1084227584; (3) Migration เพิ่ม `StoragePath nvarchar(500) NULL` ให้ `FileStorages`; (4) `IScormService` + `ScormService` +4 methods: `SavePackageToArchiveAsync` (stream→temp→move), `ExtractAndParseScormFromFileAsync` (extract จาก path), `DeleteArchiveFile`, `GetArchiveFullPath` (path-traversal guard); (5) `ProcessNewContentItemAsync` + `ContentItemsController.Upload` เปลี่ยนเป็น streaming, Data=null; (6) `TryPrepareContentItemForActivationAsync` + `ContentPublicationService` + bulk re-extract: StoragePath/Data fallback; (7) Download endpoint: FileStream ถ้า StoragePath มี; (8) `CourseService` hard-delete: ลบ archive file ด้วย; (9) Test fix 5 FakeScormService + adjust size test
@@ -30,6 +58,14 @@ Format ต่อ entry:
 - ไฟล์หลักที่แตะ: `tools/deploy-side-by-side.ps1`, server `\\AP-NTC2138-QAWB\...\web.config` (QA), `\\ap-ntc2137-prwb\...\web.config` (PROD), `DOC/PLANS/PLAN-083-*.md`
 - Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (IIS config + deploy script only)
 - Verified: QA health 200 OK, PROD app responding (employeeDirectory timeout pre-existing), dry-run `-WhatIf` shows Sync-RequestLimits in pipeline
+
+## [2026-07-14 —] Claude Code — เขียน PLAN-086/087: Report Hub Phase 1 (backend + frontend คู่ขนาน)
+- ทำอะไร: ผู้ใช้ขอแผนพัฒนา Report Hub → สำรวจพบว่าปัจจุบันเป็นแค่ grid ลิงก์บน Dashboard, รายงานจริงมีแค่ AssignmentReportPage, backend มี aggregate endpoint เดียว. เสนอ 4 รายงาน + hub + CSV util กลาง — ผู้ใช้เลือกครบทั้ง 4 + แบ่ง 2 implementer. เขียน 2 แผน: **PLAN-086 (Copilot, backend)** ReportsController + ReportService + ReportDtos.cs (Compliance org-wide / Transcript / Course Summary / Activity รายเดือน) พร้อม **API contract freeze** (DTO shape เต็มในแผน), กติกา performance (EF GroupBy ใน SQL, GetLearnersByCodesAsync bulk ครั้งเดียว, ห้าม N+1/FileStorage), division scoping ตาม AssignmentsController, unit tests. **PLAN-087 (Gemini, frontend)** src/lib/csvExport.ts (extract จาก AssignmentReportPage + BOM), /reports hub + 4 หน้ารายงาน, sidebar + routes Remount, mirror types จาก contract 086 เท่านั้น. ทั้งสองแผนกันชนไฟล์กันเด็ดขาด (C# vs React)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-086-report-hub-backend.md` + `PLAN-087-report-hub-frontend.md` (ใหม่ READY×2), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มีในตัวแผน (086 จะเพิ่ม endpoints/DTOs ใหม่ตาม contract ในแผน — ไม่แตะของเดิม)
+- Verified: — (แผน; ยืนยัน data source จริงก่อน spec: ILearnerApiService.GetLearnersByCodesAsync bulk+cache24h, Enrollment/LearningLog fields, GetScheduledLearnerStatus pattern, wrapper {success,data})
+- ถึง Copilot: ทำ PLAN-086 — **contract §1 frozen** ถ้าจำเป็นต้องเบี่ยง shape ให้อัปเดต §1 ของทั้ง 086+087 + ลง AGENT_LOG ก่อน Gemini ปิดงาน
+- ถึง Gemini: ทำ PLAN-087 คู่ขนานได้เลย — type ลอกจาก 086 §1 เท่านั้น ห้ามเดา; ห้ามแตะไฟล์ C#
 
 ## [2026-07-14 —] Claude Code — แก้ findings จากรีวิว PLAN-084/085 (ผู้ใช้สั่งแก้เอง) + commit
 - ทำอะไร: ผู้ใช้อนุมัติให้แก้โค้ดเอง. **Finding 1 (MEDIUM orphaned archive):** `CourseVersionService.ProcessNewContentItemAsync` catch block — เดิม set IsActive=false ทิ้ง row + archive (สูงสุด 1GB) ค้าง disk; แก้เป็น rollback สมบูรณ์: `DeleteArchiveFile(storagePath)` + `HardDeleteAsync` ทั้ง ContentItem + FileStorage row (wrap try/catch กัน cleanup error บดบัง InvalidScormPackageException เดิม). **Finding 2 (help text):** `ContentItemEditorPage.tsx:191` 200MB→"Max 1 GB, extracted up to 2.5 GB" (084 DONE แล้ว). **Finding 3 (test 2.7GB):** ไม่แก้ — การทดสอบ MaxTotalUncompressedBytes 2.5GB จำเป็นต้อง gen >2.5GB โดยธรรมชาติ ลดไม่ได้จริง. **.gitignore:** เพิ่ม `SampleSCORM/USECASE/KSN.zip` (50MB test artifact ไม่ควรเข้า repo)

@@ -535,6 +535,11 @@ export function DashboardPage() {
               icon={CalendarRange}
               title="Bulk Assign"
             />
+            <ReportLink
+              to="/reports"
+              icon={FileBarChart}
+              title="Report Hub"
+            />
           </div>
         </div>
         <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">

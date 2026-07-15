@@ -3,6 +3,7 @@ import {
   BookOpen,
   ClipboardList,
   Database,
+  FileBarChart,
   FileText,
   Home,
   Library,
@@ -60,6 +61,7 @@ export const navigationSections: NavigationSection[] = [
     items: [
       { label: 'Content Library', path: '/content-library', icon: Library },
       { label: 'Learners', path: '/learners', icon: UserRound },
+      { label: 'Reports', path: '/reports', icon: FileBarChart },
     ],
   },
   {

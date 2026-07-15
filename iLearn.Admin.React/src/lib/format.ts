@@ -52,12 +52,16 @@ export const formatDateTime = (value: Date | string | null | undefined) => {
   return dateTimeFormatter.format(new Date(value))
 }
 
-export const formatNumber = (value: number | null | undefined) => {
+export const formatNumber = (value: number | null | undefined, fractionDigits?: number) => {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return '-'
   }
 
-  return numberFormatter.format(value)
+  if (fractionDigits === undefined) {
+    return numberFormatter.format(value)
+  }
+
+  return getFixedDigitsNumberFormatter(fractionDigits).format(value)
 }
 
 export const formatPercent = (value: number | null | undefined, fractionDigits = 0) => {
@@ -86,3 +90,16 @@ export const formatBytes = (bytes: number | null | undefined) => {
 
   return `${sizeText} ${byteUnits[unitIndex]}`
 }
+
+export const formatDuration = (totalSeconds: number | null | undefined): string => {
+  if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return '—'
+  }
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+
+  if (hours === 0 && minutes === 0) return '—'
+  if (hours === 0) return `${minutes}m`
+  return `${hours}h ${minutes}m`
+}
+

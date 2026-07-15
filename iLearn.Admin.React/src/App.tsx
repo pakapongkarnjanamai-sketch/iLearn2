@@ -31,6 +31,11 @@ import { MasterDataDetailPage } from './pages/master-data/MasterDataDetailPage'
 import { AdminUsersPage } from './pages/users/AdminUsersPage'
 import { UserEditorPage } from './pages/users/UserEditorPage'
 import { UserDetailPage } from './pages/users/UserDetailPage'
+import { ReportHubPage } from './pages/reports/ReportHubPage'
+import { ComplianceReportPage } from './pages/reports/ComplianceReportPage'
+import { TranscriptReportPage } from './pages/reports/TranscriptReportPage'
+import { CourseSummaryReportPage } from './pages/reports/CourseSummaryReportPage'
+import { ActivityReportPage } from './pages/reports/ActivityReportPage'
 
 function LegacyStudentGroupsRedirect() {
   const location = useLocation()
@@ -101,6 +106,13 @@ export function App() {
         {/* Learners */}
         <Route path="learners" element={<LearnerListPage />} />
         <Route path="learners/:id/profile" element={<Remount><LearnerProfilePage /></Remount>} />
+
+        {/* Reports */}
+        <Route path="reports" element={<Remount><ReportHubPage /></Remount>} />
+        <Route path="reports/compliance" element={<Remount><ComplianceReportPage /></Remount>} />
+        <Route path="reports/transcript" element={<Remount><TranscriptReportPage /></Remount>} />
+        <Route path="reports/courses" element={<Remount><CourseSummaryReportPage /></Remount>} />
+        <Route path="reports/activity" element={<Remount><ActivityReportPage /></Remount>} />
 
         {/* Operations */}
         <Route

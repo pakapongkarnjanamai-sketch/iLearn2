@@ -13,6 +13,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
+import { exportRowsAsCsv } from '../../lib/csvExport'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
@@ -245,18 +246,9 @@ export function AssignmentReportPage() {
       l.dueDate ? formatDate(l.dueDate) : '',
       l.completedDate ? formatDate(l.completedDate) : '',
     ])
-    const csv = [header, ...body]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    // The first blob part is a literal (invisible) U+FEFF BOM char — required so Excel decodes Thai names as UTF-8
-    const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    a.href = url
-    a.download = `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const filename = `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}.csv`
+    exportRowsAsCsv(filename, header, body)
   }
 
   const handlePrint = () => {
