@@ -27,8 +27,11 @@ export function Header({ currentUser, sessionState: _sessionState, onMenuClick }
   const displayName = currentUser?.displayName ?? 'Loading user'
   const divisionName = currentUser?.divisionName ?? 'Admin console'
 
+  // z-15 keeps the header above page content (sticky table headers and sticky columns all use
+  // z-10) so the notification dropdown — stacked inside this header's context — is not painted
+  // behind them; still below the sidebar overlay (z-20), sidebar (z-30) and modals (z-50+).
   return (
-    <header className="relative sticky top-0 z-10 flex min-h-[56px] items-center justify-between gap-4 border-b border-slate-200 bg-white/96 px-5 print:hidden">
+    <header className="relative sticky top-0 z-15 flex min-h-[56px] items-center justify-between gap-4 border-b border-slate-200 bg-white/96 px-5 print:hidden">
       {!appConfig.isProd && (
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
       )}

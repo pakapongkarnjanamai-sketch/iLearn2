@@ -1,6 +1,6 @@
 # PLAN-089: Notifications Phase 1 — Frontend (bell dropdown + unread badge + realtime)
 
-- **Status:** DONE → VERIFIED — Finding 1+2+3 FIXED (Claude Code 2026-07-14: ลบ style ซ้ำ, dedupe badge ด้วย ref, type HubConnection)
+- **Status:** DONE → VERIFIED — Finding 1+2+3 FIXED + post-release fix z-index dropdown (Claude Code 2026-07-14)
 - **Assigned:** Antigravity (Gemini)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-14
@@ -144,3 +144,12 @@ npm run build
   - หมายเหตุ: ตอนแรกผมลองเซ็ต flag ภายใน `setItems(prev => ...)` แล้วอ่านค่าถัดจากนั้น ซึ่ง**ผิด** — React เรียก updater ตอน re-render (async) flag จึงยังเป็น false เสมอ ⇒ ต้อง gate ด้วย ref ที่อ่าน/เขียนแบบ synchronous เท่านั้น
 - **Finding 3 FIXED:** `useRef<any>` → `useRef<HubConnection | null>` (import type จาก `@microsoft/signalr`)
 - Verified: `npm run lint` + `npm run build` 0 errors
+
+## Post-release Fix — dropdown ถูกบังหลัง content (Claude Code, 2026-07-14)
+
+> ผู้ใช้รายงานจาก QA: เปิด bell แล้ว dropdown **แสดงอยู่หลัง grid/card** ของหน้า
+
+- **Root cause:** `Header` เป็น `sticky top-0 z-10` ⇒ ตัวมันเอง **สร้าง stacking context** ที่ z=10. `z-50` ของ dropdown จึงมีผลแค่ *ภายใน* context ของ Header เท่านั้น — เมื่อเทียบกับ element นอก Header, ทั้ง Header คือ z=10 ซึ่ง **เท่ากับ** sticky table header/sticky column/card ในหน้า (ทุกที่ใช้ z-10 เหมือนกัน) ⇒ content ที่อยู่หลัง Header ใน DOM จึงชนะและวาดทับ dropdown
+- **แก้:** `Header` `z-10` → **`z-15`** — สูงกว่า content (z-10) แต่ยังต่ำกว่า sidebar overlay (z-20), sidebar (z-30) และ modal ทุกตัว (z-50/z-60/z-9999) ⇒ พฤติกรรมเดิมของ overlay/sidebar/modal ไม่เปลี่ยน (ยังทับ Header ได้ตามเดิม)
+- **ยืนยันในเบราว์เซอร์จริง** (จำลอง stacking เดียวกัน + `elementFromPoint` ที่จุดทับ): ก่อนแก้ (z-10) element บนสุด = `card` (bug reproduce ได้), หลังแก้ (z-15) = `drop` ✅; และยืนยัน Tailwind generate `z-index:15` จริงใน CSS output
+- **บทเรียนสำหรับรีวิวรอบหน้า:** ตอนรีวิวผมเช็คแค่ว่า `z-50` ของ dropdown generate เป็น CSS จริงไหม แต่ **ไม่ได้ไล่ stacking context ของ ancestor** — z-index ของลูกไม่มีความหมายข้าม context ของพ่อ ⇒ เวลาเจอ dropdown/popover ที่อยู่ใน sticky/fixed container ต้องเช็ค z ของ container เทียบกับ content เสมอ
