@@ -25,19 +25,22 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IGenericRepository<CourseType> _courseTypeRepo;
         private readonly ICurrentUserService _currentUser;
+        private readonly INotificationService _notificationService;
 
         public CoursesController(
             ICourseService courseService,
             ICourseVersionService versionService,
             IGenericRepository<Course> courseRepo,
             IGenericRepository<CourseType> courseTypeRepo,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            INotificationService notificationService)
         {
             _courseService = courseService;
             _versionService = versionService;
             _courseRepo = courseRepo;
             _courseTypeRepo = courseTypeRepo;
             _currentUser = currentUser;
+            _notificationService = notificationService;
         }
 
         [HttpGet("lookup")]
@@ -370,6 +373,17 @@ namespace iLearn.API.Controllers
                 var files = Request.Form.Files.ToList();
 
                 var version = await _versionService.CreateVersionAsync(courseId, model, files);
+
+                await _notificationService.NotifyAsync(
+                    _currentUser.UserId,
+                    NotificationTypes.ScormUploadSucceeded,
+                    NotificationLevels.Success,
+                    "อัปโหลด SCORM สำเร็จ",
+                    message: $"เวอร์ชัน {version.VersionNumber} ของคอร์ส #{courseId}",
+                    linkPath: $"/courses/{courseId}",
+                    entityType: "CourseVersion",
+                    entityId: version.Id);
+
                 return CreatedAtAction(nameof(GetVersion), new { versionId = version.Id },
                     new ApiResponse<CourseVersionDto>
                     {
@@ -388,6 +402,16 @@ namespace iLearn.API.Controllers
             }
             catch (InvalidScormPackageException ex)
             {
+                await _notificationService.NotifyAsync(
+                    _currentUser.UserId,
+                    NotificationTypes.ScormUploadFailed,
+                    NotificationLevels.Error,
+                    "อัปโหลด SCORM ล้มเหลว",
+                    message: ex.Message,
+                    linkPath: $"/courses/{courseId}",
+                    entityType: "Course",
+                    entityId: courseId);
+
                 return BadRequest(new ApiResponse<CourseVersionDto>
                 {
                     Success = false,
@@ -426,6 +450,17 @@ namespace iLearn.API.Controllers
             {
                 var files = Request.Form.Files.ToList();
                 var version = await _versionService.UpdateVersionAsync(versionId, model, files);
+
+                await _notificationService.NotifyAsync(
+                    _currentUser.UserId,
+                    NotificationTypes.ScormUploadSucceeded,
+                    NotificationLevels.Success,
+                    "อัปโหลด SCORM สำเร็จ",
+                    message: $"อัปเดตเวอร์ชัน {version.VersionNumber} สำเร็จ",
+                    linkPath: $"/courses/{version.CourseId}",
+                    entityType: "CourseVersion",
+                    entityId: version.Id);
+
                 return Ok(new ApiResponse<CourseVersionDto>
                 {
                     Success = true,
@@ -443,6 +478,15 @@ namespace iLearn.API.Controllers
             }
             catch (InvalidScormPackageException ex)
             {
+                await _notificationService.NotifyAsync(
+                    _currentUser.UserId,
+                    NotificationTypes.ScormUploadFailed,
+                    NotificationLevels.Error,
+                    "อัปโหลด SCORM ล้มเหลว",
+                    message: ex.Message,
+                    entityType: "CourseVersion",
+                    entityId: versionId);
+
                 return BadRequest(new ApiResponse<CourseVersionDto>
                 {
                     Success = false,

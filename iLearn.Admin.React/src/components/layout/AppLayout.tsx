@@ -4,6 +4,7 @@ import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { SessionProvider, useSession } from '../../lib/sessionContext'
 import { BreadcrumbProvider } from '../../lib/breadcrumbContext'
+import { NotificationProvider } from '../../lib/notificationContext'
 
 function AppLayoutInner() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth > 1120)
@@ -53,9 +54,11 @@ function AppLayoutInner() {
 export function AppLayout() {
   return (
     <SessionProvider>
-      <BreadcrumbProvider>
-        <AppLayoutInner />
-      </BreadcrumbProvider>
+      <NotificationProvider>
+        <BreadcrumbProvider>
+          <AppLayoutInner />
+        </BreadcrumbProvider>
+      </NotificationProvider>
     </SessionProvider>
   )
 }

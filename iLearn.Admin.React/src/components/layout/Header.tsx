@@ -1,7 +1,8 @@
-import { ArrowLeftRight, Bell, Menu } from 'lucide-react'
+import { ArrowLeftRight, Menu } from 'lucide-react'
 import type { CurrentAdminUser } from '../../lib/auth'
 import { appConfig } from '../../config/appConfig'
 import { Breadcrumbs } from './Breadcrumbs'
+import { NotificationBell } from './NotificationBell'
 
 type HeaderProps = {
   currentUser: CurrentAdminUser | null
@@ -49,9 +50,7 @@ export function Header({ currentUser, sessionState: _sessionState, onMenuClick }
             Classic Admin
           </a>
         )}
-        <button type="button" className="inline-grid h-[34px] w-[34px] place-items-center rounded-md border border-slate-200 bg-white text-slate-500 cursor-pointer [&_svg]:w-[17px] [&_svg]:h-[17px]" aria-label="Notifications">
-          <Bell aria-hidden="true" />
-        </button>
+        <NotificationBell />
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="grid h-8 w-8 place-items-center rounded-full bg-indigo-100 text-indigo-600 font-bold" aria-hidden="true">
             {getInitials(displayName)}

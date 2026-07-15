@@ -33,6 +33,8 @@ namespace iLearn.API.Controllers
         private readonly IMemoryCache _cache;
         private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
         private readonly IScormRuntimeStateService _scormRuntimeStateService;
+        private readonly INotificationService _notificationService;
+        private readonly ICurrentUserService _currentUser;
 
         public EnrollmentsController(
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -44,7 +46,9 @@ namespace iLearn.API.Controllers
             IDateTime dateTime,
             IMemoryCache cache,
             ILearnerProxyIdentityResolver learnerProxyIdentityResolver,
-            IScormRuntimeStateService scormRuntimeStateService)
+            IScormRuntimeStateService scormRuntimeStateService,
+            INotificationService notificationService,
+            ICurrentUserService currentUser)
         {
             _enrollmentRepo = enrollmentRepo;
             _courseRepo = courseRepo;
@@ -56,6 +60,8 @@ namespace iLearn.API.Controllers
             _cache = cache;
             _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
             _scormRuntimeStateService = scormRuntimeStateService;
+            _notificationService = notificationService;
+            _currentUser = currentUser;
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -486,6 +492,17 @@ namespace iLearn.API.Controllers
             }
 
             AdminSummaryStatsCache.InvalidateEnrollments(_cache);
+
+            await _notificationService.NotifyAsync(
+                _currentUser.UserId,
+                NotificationTypes.BulkAssignCompleted,
+                NotificationLevels.Success,
+                "มอบหมายคอร์สสำเร็จ",
+                message: $"มอบหมาย {dto.CourseIds?.Count ?? 0} คอร์สให้ผู้เรียน (เลขที่ {result.AssignmentNo})",
+                linkPath: $"/assignments/{result.AssignmentId}",
+                entityType: "Assignment",
+                entityId: result.AssignmentId);
+
             return Ok(new
             {
                 message = "Courses assigned successfully!",

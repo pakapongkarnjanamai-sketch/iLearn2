@@ -103,3 +103,36 @@ export const formatDuration = (totalSeconds: number | null | undefined): string 
   return `${hours}h ${minutes}m`
 }
 
+export const formatRelativeTime = (value: Date | string | null | undefined): string => {
+  if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSecs = Math.floor(diffMs / 1000)
+
+  if (diffSecs < 60) {
+    return 'เมื่อครู่'
+  }
+
+  const diffMins = Math.floor(diffSecs / 60)
+  if (diffMins < 60) {
+    return `${diffMins} นาทีที่แล้ว`
+  }
+
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) {
+    return `${diffHours} ชั่วโมงที่แล้ว`
+  }
+
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) {
+    return `${diffDays} วันที่แล้ว`
+  }
+
+  return formatDateTime(value)
+}
+
+

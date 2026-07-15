@@ -448,7 +448,9 @@ namespace iLearn.Tests
                 new FakeDateTime(Now),
                 new MemoryCache(new MemoryCacheOptions()),
                 new FakeLearnerProxyIdentityResolver(),
-                runtimeStateService);
+                runtimeStateService,
+                new NullNotificationService(),
+                new FakeCurrentUserService());
 
             controller.ControllerContext = new ControllerContext
             {
@@ -643,6 +645,15 @@ namespace iLearn.Tests
             public Task<EnrollmentDto?> GetByIdAsync(int enrollmentId) => Task.FromResult<EnrollmentDto?>(null);
             public Task<EnrollmentDto?> UpdateCompletionAsync(int enrollmentId, bool isComplete) => Task.FromResult<EnrollmentDto?>(null);
             public Task<BulkAssignResultDto> BulkAssignAsync(BulkAssignDto dto) => Task.FromResult(new BulkAssignResultDto { Success = true });
+        }
+
+        private sealed class NullNotificationService : INotificationService
+        {
+            public Task NotifyAsync(string recipientUserId, string type, string level, string title, string? message = null, string? linkPath = null, string? entityType = null, int? entityId = null) => Task.CompletedTask;
+            public Task<Application.DTOs.NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take) => Task.FromResult(new Application.DTOs.NotificationListDto());
+            public Task<int> GetUnreadCountAsync(string userId) => Task.FromResult(0);
+            public Task<int> MarkReadAsync(string userId, int notificationId) => Task.FromResult(0);
+            public Task<int> MarkAllReadAsync(string userId) => Task.FromResult(0);
         }
     }
 }

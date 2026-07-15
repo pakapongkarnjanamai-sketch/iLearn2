@@ -83,7 +83,9 @@ namespace iLearn.Tests
                 new FakeMaintenanceStatusService(),
                 new FakeAdminActivityService(),
                 new MemoryCache(new MemoryCacheOptions()),
-                new InMemoryGenericRepository<CourseContentItem>([]));
+                new InMemoryGenericRepository<CourseContentItem>([]),
+                new NullNotificationService(),
+                new FakeCurrentUserService());
         }
 
         private sealed class FakeContentPublicationService : IContentPublicationService
@@ -172,6 +174,25 @@ namespace iLearn.Tests
                 }
                 return Task.FromResult(query.Select(selector.Compile()));
             }
+        }
+
+        private sealed class NullNotificationService : INotificationService
+        {
+            public Task NotifyAsync(string recipientUserId, string type, string level, string title, string? message = null, string? linkPath = null, string? entityType = null, int? entityId = null) => Task.CompletedTask;
+            public Task<Application.DTOs.NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take) => Task.FromResult(new Application.DTOs.NotificationListDto());
+            public Task<int> GetUnreadCountAsync(string userId) => Task.FromResult(0);
+            public Task<int> MarkReadAsync(string userId, int notificationId) => Task.FromResult(0);
+            public Task<int> MarkAllReadAsync(string userId) => Task.FromResult(0);
+        }
+
+        private sealed class FakeCurrentUserService : ICurrentUserService
+        {
+            public string UserId => "testuser";
+            public string FullName => "TEST\\testuser";
+            public bool IsAuthenticated => true;
+            public int? DivisionId => null;
+            public string? DivisionName => null;
+            public bool IsSuperAdmin => true;
         }
     }
 }

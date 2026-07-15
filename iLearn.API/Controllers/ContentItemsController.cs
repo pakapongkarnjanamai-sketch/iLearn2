@@ -24,11 +24,13 @@ namespace iLearn.API.Controllers
         private readonly IGenericRepository<FileStorage> _fileRepo;
         private readonly IContentPublicationService _contentPublicationService;
         private readonly IScormService _scormService;
-        private readonly ILogger<ContentItemsController> _logger; // ✅ เพิ่ม Logger
+        private readonly ILogger<ContentItemsController> _logger;
         private readonly IMaintenanceStatusService _maintenanceStatusService;
         private readonly IAdminActivityService _adminActivityService;
         private readonly IMemoryCache _cache;
         private readonly IGenericRepository<CourseContentItem> _courseContentItemRepo;
+        private readonly INotificationService _notificationService;
+        private readonly ICurrentUserService _currentUser;
 
         public ContentItemsController(
             IGenericRepository<ContentItem> contentItemRepo,
@@ -39,17 +41,21 @@ namespace iLearn.API.Controllers
             IMaintenanceStatusService maintenanceStatusService,
             IAdminActivityService adminActivityService,
             IMemoryCache cache,
-            IGenericRepository<CourseContentItem> courseContentItemRepo) // ✅ เพิ่ม Logger ใน DI
+            IGenericRepository<CourseContentItem> courseContentItemRepo,
+            INotificationService notificationService,
+            ICurrentUserService currentUser)
         {
             _contentItemRepo = contentItemRepo;
             _fileRepo = fileRepo;
             _contentPublicationService = contentPublicationService;
             _scormService = scormService;
-            _logger = logger; // ✅ กำหนดค่า Logger
+            _logger = logger;
             _maintenanceStatusService = maintenanceStatusService;
             _adminActivityService = adminActivityService;
             _cache = cache;
             _courseContentItemRepo = courseContentItemRepo;
+            _notificationService = notificationService;
+            _currentUser = currentUser;
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -302,6 +308,17 @@ namespace iLearn.API.Controllers
                     entityId: contentItem.Id,
                     title: $"Published content item {contentItem.Name}",
                     description: $"Published content item '{contentItem.Name}'.");
+
+                await _notificationService.NotifyAsync(
+                    _currentUser.UserId,
+                    NotificationTypes.ContentPublishSucceeded,
+                    NotificationLevels.Success,
+                    "เผยแพร่เนื้อหาสำเร็จ",
+                    message: contentItem.Name,
+                    linkPath: $"/content-library/{contentItem.Id}",
+                    entityType: "ContentItem",
+                    entityId: contentItem.Id);
+
                 return Ok(contentItem);
             }
             catch (KeyNotFoundException ex)
@@ -310,6 +327,15 @@ namespace iLearn.API.Controllers
             }
             catch (InvalidScormPackageException ex)
             {
+                await _notificationService.NotifyAsync(
+                    _currentUser.UserId,
+                    NotificationTypes.ContentPublishFailed,
+                    NotificationLevels.Error,
+                    "เผยแพร่เนื้อหาล้มเหลว",
+                    message: ex.Message,
+                    entityType: "ContentItem",
+                    entityId: key);
+
                 return BadRequest(new
                 {
                     error = "Invalid SCORM Package",
@@ -611,6 +637,15 @@ namespace iLearn.API.Controllers
             {
                 ContentItemStatsCache.Invalidate(_cache);
             }
+
+            var level = failed == 0 ? NotificationLevels.Success : NotificationLevels.Info;
+            await _notificationService.NotifyAsync(
+                _currentUser.UserId,
+                NotificationTypes.BatchPublishCompleted,
+                level,
+                "เผยแพร่แบบกลุ่มเสร็จสิ้น",
+                message: $"สำเร็จ {success} รายการ, ล้มเหลว {failed} รายการ",
+                entityType: "ContentItem");
 
             return Ok(new { success, failed, errors, message = $"Published {success} content item(s). {failed} failed." });
         }

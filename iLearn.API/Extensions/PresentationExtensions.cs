@@ -1,6 +1,7 @@
 using iLearn.API.Hubs;
 using iLearn.API.Services;
 using iLearn.Application.Interfaces.Services;
+using Microsoft.AspNetCore.SignalR;
 
 namespace iLearn.API.Extensions
 {
@@ -24,6 +25,8 @@ namespace iLearn.API.Extensions
 
             services.AddSignalR();
             services.AddSingleton<IAdminActivityRealtimeNotifier, SignalRAdminActivityNotifier>();
+            services.AddSingleton<IUserIdProvider, NidUserIdProvider>();
+            services.AddScoped<INotificationService, NotificationService>();
 
             return services;
         }

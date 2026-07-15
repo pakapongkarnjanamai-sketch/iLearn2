@@ -52,6 +52,9 @@ namespace iLearn.Infrastructure.Persistence
         // ── ตารางกลาง Enrollment <-> Assignment ──
         public DbSet<EnrollmentAssignment> EnrollmentAssignments { get; set; }
 
+        // ── Notifications ──
+        public DbSet<Notification> Notifications { get; set; }
+
         // ── Normalized Assignment → Course detail ──
         public DbSet<AssignmentCourse> AssignmentCourses { get; set; }
 
@@ -276,6 +279,22 @@ namespace iLearn.Infrastructure.Persistence
                 new CourseType { Id = 1, Name = "Special", Description = "วิชาเฉพาะทาง (Rule-based)", IsActive = true, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
                 new CourseType { Id = 2, Name = "General", Description = "วิชาทั่วไป (Auto-assign)", IsActive = true, CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
             );
+
+            // ── Notification ──
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.Property(n => n.RecipientUserId).IsRequired().HasMaxLength(100);
+                entity.Property(n => n.Type).IsRequired().HasMaxLength(50);
+                entity.Property(n => n.Level).IsRequired().HasMaxLength(50);
+                entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
+                entity.Property(n => n.Message).HasMaxLength(1000);
+                entity.Property(n => n.LinkPath).HasMaxLength(300);
+                entity.Property(n => n.EntityType).HasMaxLength(100);
+
+                entity.HasIndex(n => new { n.RecipientUserId, n.IsRead, n.CreatedAt })
+                    .IsDescending(false, false, true)
+                    .HasDatabaseName("IX_Notifications_Recipient_Read_CreatedDesc");
+            });
         }
 
         public override int SaveChanges()
