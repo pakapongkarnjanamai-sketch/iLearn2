@@ -228,7 +228,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="border-t border-[#1d3554] px-5 py-3 text-slate-400 text-xs">React console running side by side</div>
+      <div className="border-t border-[#1d3554] px-5 py-3 text-slate-400 text-xs">iLearn admin</div>
     </aside>
   )
 }
