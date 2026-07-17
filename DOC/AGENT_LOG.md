@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-17] GitHub Copilot — PLAN-093 QA rollout: migrations, API/React deploy, smoke complete with SignalR follow-up
+- ทำอะไร: Gate 0 ผ่านจาก commit `5d88312` แล้ว apply QA migrations `AddNotifications` + `SoftDeleteFilteredUniqueIndexes` ก่อน deploy; verify ไม่มี Pending และ read-back filtered unique indexes ทั้ง 3. Deploy API side-by-side stamp `_deploy_20260717100037` (Staging, 1 GB request limit) + health ผ่านครบ database/file share/EmployeeHub. Deploy React QA; พบ release env ปิด SignalR อยู่ จึงเปลี่ยน `VITE_ILEARN_ADMIN_ENABLE_SIGNALR=true` และเพิ่ม Dashboard badge `Live`/`Polling` จาก `isConnected`, rebuild/deploy ใหม่. QA browser ยืนยัน bundle flag true, hub negotiate 200 เพียงหนึ่ง connection, Dashboard `Live`, bell/dropdown/notifications routes, Report Hub 4 หน้า, และ `POST Assignments/306/courses` add `Software back up (Re.3)` สำเร็จ (ไม่มี 500).
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/.env.production`, `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `DOC/PLANS/PLAN-091-notifications-p2-frontend.md`, `DOC/PLANS/PLAN-093-qa-prod-rollout-migrate-deploy.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี; DB migration ของ PLAN-092/088 ถูก apply บน QA แล้ว
+- Verified: EF list ไม่มี Pending; SQL filtered index predicates ถูก; API health 200 pass 3 checks; Notifications paging contract 200 + `totalCount`; report aggregate endpoints/UI 200; `npm run lint` + build ผ่าน; browser console 0 error
+- คงค้าง: QA smoke ที่ต้องมี sandbox/บัญชี admin ที่สอง (50 MB/1 GB upload, per-user notification, deterministic digest idempotency) และ **ห้าม PROD** จนผู้ใช้ยืนยันผล QA ใน chat + follow-up SignalR config/UI ได้ review/commit
+
 ## [2026-07-17] GitHub Copilot — PLAN-091 reviewer finding fixed: retain pre-connection hub subscriptions
 - ทำอะไร: แก้ finding MEDIUM-HIGH ของ reviewer ใน `NotificationProvider.subscribeHubEvent` ซึ่งก่อนหน้านี้ no-op เมื่อ Dashboard mount ก่อน provider สร้าง SignalR connection. เพิ่ม ref-backed `Map<event, Set<handler>>`; subscribe ลงทะเบียนก่อนและ bind ทันทีเมื่อมี connection, provider replay handler ทั้ง registry ทุกครั้งที่สร้าง central connection ใหม่, unsubscribe ถอนทั้ง registry และ connection ปัจจุบัน. Dashboard realtime จึงไม่หายจาก child-first effect order และยังคงมี SignalR connection เส้นเดียว.
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/notificationContext.tsx`, `DOC/PLANS/PLAN-091-notifications-p2-frontend.md`, `DOC/AGENT_LOG.md`

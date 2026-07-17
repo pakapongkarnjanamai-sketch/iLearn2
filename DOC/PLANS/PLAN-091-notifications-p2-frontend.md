@@ -1,6 +1,6 @@
 # PLAN-091: Notifications Phase 2 — Frontend (หน้า /notifications เต็ม + รวม SignalR connection เดียว)
 
-- **Status:** DONE → VERIFIED — Finding 1 FIXED + re-review ผ่าน (Claude Code 2026-07-17) — Gate 0 เปิด
+- **Status:** VERIFIED — QA follow-up deployed (SignalR enablement + Live indicator); review and commit required before PROD
 - **Assigned:** Antigravity (Gemini)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-15
@@ -138,3 +138,11 @@ npm run build
 ## Re-review หลัง Fix (Claude Code, 2026-07-17)
 
 ตรวจ registry implementation แล้ว **ผ่าน**: `subscribeHubEvent` ลง `Map<event, Set<handler>>` ก่อน bind ✅ replay ทั้ง registry ตอน provider สร้าง connection (ครอบทั้ง child-first effect order และ connection recreation หลัง session เปลี่ยน) ✅ unsubscribe ถอดทั้ง registry และ connection ปัจจุบัน + เก็บกวาด Set ว่าง ✅ ไม่มีทาง double-bind บน connection เดียวกัน ✅ `npm run lint`+`build` + `dotnet test` 203 passed — **Gate 0 ของ PLAN-093 เปิดแล้ว**
+
+## QA Rollout Follow-up (GitHub Copilot, 2026-07-17)
+
+- พบระหว่าง smoke ว่า `.env.production` ยังตั้ง `VITE_ILEARN_ADMIN_ENABLE_SIGNALR=false`; แม้ provider/registry ถูกต้อง แต่ artifact release จะไม่เริ่ม hub connection จึงแก้เป็น `true`.
+- Dashboard ใช้ `isConnected` เพื่อควบคุม polling fallback อยู่แล้ว แต่ยังไม่แสดงสถานะตาม checklist; เพิ่ม shared `Badge` ใน Recent Admin Activity แสดง `Live` พร้อมจุดเขียวเมื่อ hub ต่อสำเร็จ และ `Polling` เมื่อไม่ต่อ.
+- QA build artifact ที่ deploy ยืนยัน flag `VITE_ILEARN_ADMIN_ENABLE_SIGNALR:true`; browser ทำ `POST /hubs/admin-activity/negotiate` ได้ 200 เพียงหนึ่งครั้ง, Dashboard แสดง `Live`, และไม่มี console error.
+- Verification: `npm run lint` + `npm run build` ผ่าน; QA static root/deep link และ `/notifications` ผ่าน.
+- ก่อน PROD: follow-up นี้ต้องได้รับ review และ commit พร้อม source ก่อนตามกติกา deploy/release.

@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
+import { Badge } from '../components/ui/Badge'
 import { LoadingState } from '../components/ui/LoadingState'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { useSession } from '../lib/sessionContext'
@@ -521,7 +522,21 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <SectionHeader title="Recent Admin Activity" subtitle={`${activities.length} item(s)`} />
+          <SectionHeader
+            title="Recent Admin Activity"
+            subtitle={`${activities.length} item(s)`}
+            trailing={
+              <Badge tone={isSignalRConnected ? 'success' : 'neutral'} variant="soft" size="xxs">
+                <span
+                  className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                    isSignalRConnected ? 'bg-emerald-500 shadow-[0_0_0_2px_rgb(209_250_229)]' : 'bg-slate-400'
+                  }`}
+                  aria-hidden="true"
+                />
+                {isSignalRConnected ? 'Live' : 'Polling'}
+              </Badge>
+            }
+          />
           {activities.length === 0 ? (
             <EmptyRow label="No recent activity." />
           ) : (

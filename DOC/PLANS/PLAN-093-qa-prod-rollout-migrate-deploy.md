@@ -1,6 +1,6 @@
 # PLAN-093: Rollout — รัน migration + deploy ขึ้น QA แล้วต่อ PROD (Notifications P1+P2, Report Hub, PLAN-092 index fix)
 
-- **Status:** READY (Phase 1 เริ่มได้เมื่อผ่าน Gate 0)
+- **Status:** QA DEPLOYED — awaiting QA sign-off and review/commit of the QA SignalR follow-up before PROD
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-17
@@ -9,9 +9,9 @@
 
 ---
 
-## Gate 0 — เงื่อนไขก่อนเริ่ม (ยังไม่ผ่าน ณ ตอนเขียนแผน)
+## Gate 0 — เงื่อนไขก่อนเริ่ม
 
-- [ ] **PLAN-090/091 ต้องผ่านรีวิว (Claude Code) และถูก commit เข้า master ก่อน** — ตอนนี้งานทั้งสองเสร็จแต่ยังอยู่ใน working tree ไม่ถูก commit ⇒ ถ้า deploy ตอนนี้จะได้ build ที่ไม่มี Notifications P2
+- [x] **PLAN-090/091 ผ่านรีวิว (Claude Code) และถูก commit เข้า master แล้ว** — commit `5d88312` ปลด Gate 0 และเริ่ม QA Phase 1 ได้
 - เริ่ม Phase 1 ได้เมื่อ: AGENT_LOG มี entry รีวิว 090/091 + `git log` มี commit งานทั้งสอง
 - Build ที่จะ deploy ครั้งนี้รวม (นับจาก build ปัจจุบันบนแต่ละ server): **QA** ได้ PLAN-090/091/092 (+sidebar 3ed57f7); **PROD** ได้ทั้งหมดตั้งแต่ PLAN-084 เป็นต้นมา (1GB SCORM, Report Hub 086/087, Notifications 088/089/090/091, index fix 092) — **PROD เป็น jump ใหญ่ ต้องผ่าน QA ก่อนเท่านั้น**
 
@@ -90,4 +90,26 @@ dotnet ef database update --project iLearn.Infrastructure --startup-project iLea
 
 ## Implementer Notes
 
-*(เติมหลังทำเสร็จ)*
+### QA execution — 2026-07-17
+
+- Gate 0 verified: `PLAN-091` re-review passed and release commit `5d88312` was on `master` before QA migration/deploy.
+- QA migrations applied before app deployment: `20260715024809_AddNotifications`, `20260717011356_SoftDeleteFilteredUniqueIndexes`; subsequent `dotnet ef migrations list` showed no Pending migrations.
+- Read-only SQL verification confirmed all three expected filtered indexes: `Assignments` filter includes `AssignmentNo IS NOT NULL AND CourseId IS NOT NULL AND IsDeleted = 0`; `AssignmentCourses` and `EnrollmentAssignments` each filter `IsDeleted = 0`.
+- API deployed side-by-side to QA stamp `_deploy_20260717100037`; health check returned HTTP 401 during deploy (valid Windows-auth liveness response). Post-deploy authenticated `/api/health` returned 200 with database, course-file-share, and EmployeeHub checks all passing. Root `web.config` points to the new stamp, uses `Staging`, and has `maxAllowedContentLength=1084227584`.
+- Admin React deployed to QA. During smoke, corrected release config `VITE_ILEARN_ADMIN_ENABLE_SIGNALR=true` and added the Dashboard `Live`/`Polling` indicator; rebuilt and redeployed React. QA served the updated `index-BWhG2qli.js` bundle with SignalR enabled.
+
+### QA smoke results
+
+1. PASS — Bell dropdown opens above Dashboard content, no 500; `/notifications` full page, All/Unread filtering, and empty state render correctly. Paging and mark-read mutation could not be exercised because this QA user has no notifications.
+2. PASS — `/assignments/306`: selected and re-added `Software back up (Re.3)` (`NTC-WI-PD2-039`) successfully. UI showed `Courses added successfully.` and batch now lists 2 courses; no 500.
+3. PASS — `/reports` hub plus Compliance, Course Summary, Activity, and Transcript pages render. Authenticated aggregate API endpoints returned 200, including the SQL-translation-sensitive course summary.
+4. PASS (connection portion) — fresh QA browser page made one `POST /hubs/admin-activity/negotiate` request (200), Dashboard shows `Live`, and console has zero errors. An `AdminActivityCreated` event was not independently injected while Dashboard was open.
+5. NOT RUN — 50 MB/1 GB SCORM upload and memory observation require a designated QA sandbox course/content package.
+6. NOT RUN — per-user targeting requires a second approved admin account and a notification-producing operation.
+7. NOT DETERMINISTIC — API deployment restart ran the digest hosted service; today has zero qualifying due-soon/overdue work and SQL count is zero, so no empty digest was created. Duplicate-after-restart cannot be demonstrated without qualifying QA data.
+
+### Before PROD
+
+- Wait for explicit user confirmation of QA results in chat (mandatory).
+- Review and commit the QA SignalR follow-up (`.env.production` plus Dashboard Live/Polling indicator) before building the PROD artifact.
+- Do not run the Phase 2 migration or deploy commands until both gates are satisfied.
