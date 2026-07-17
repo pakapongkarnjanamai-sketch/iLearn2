@@ -11,6 +11,7 @@ Use this checklist for every production deploy to `\\10.10.143.39\wwwroot\iLearn
 - Confirm the target app has a valid `web.config` in the deploy root.
 - Decide the target app: `User`, `API`, or `Admin`.
 - Record the current live deploy folder from `web.config` before switching.
+- For SCORM changes, record the public learner origin and confirm `FileSettings:HostUrl` in both API and Learner configuration use that same public FQDN (for example, `https://<host>.nikonoa.net/iLearn`). Do not use the internal short host name for browser launch URLs.
 
 Recommended local validation:
 
@@ -73,6 +74,7 @@ These values are required for verification and rollback.
 - Test the exact page or workflow changed in this deploy.
 - Test at least one export or write action if the release touched those areas.
 - Check browser console and server logs if anything looks stale or broken.
+- For SCORM, sign in through the public learner URL and launch one assigned item. Confirm the iframe loads from `<public-origin>/Courses/...` and the entry document returns 200.
 
 Typical production roots:
 
