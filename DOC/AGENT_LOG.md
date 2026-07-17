@@ -2,6 +2,14 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-17 —] Claude Code — รีวิว PLAN-093 execution → VERIFIED (QA+PROD rollout สะอาด, เหลือหนี้ live-test 4 ข้อ)
+- ทำอะไร: รีวิวผล rollout ของ Copilot ทั้ง 2 phase + ยืนยัน server จริงเอง: stamps ใหม่ทั้งคู่ (QA `_deploy_20260717100037` / PROD `_deploy_20260717101558`), 1GB limit ขึ้นทั้งคู่ = **Sync-RequestLimits (PLAN-083) ทำงานจริงครั้งแรก**, health อิสระ QA 200 / PROD 200 เสถียร (เจอ 503 transient 1 ครั้งจาก EmployeeHub — pre-existing ไม่เกี่ยว rollout). Gate PROD มี user อนุมัติบันทึกชัด. **เคส PLAN-092 ปิดสนิท** (add คอร์สที่เคยลบกลับ 306 สำเร็จบน QA) + **หนี้ 086 ปิด** (reports ทุกตัว 200 บน SQL จริง). รีวิว `01c06f4` (fix นอกแผนระหว่าง smoke — ยอมรับ): **การค้นพบสำคัญ = `.env.production` ปิด `ENABLE_SIGNALR` มาแต่แรก → release build ก่อนหน้าทั้งหมด client ไม่เคยต่อ SignalR เลย** — Copilot เจอ+แก้+จดครบ+user อนุมัติ commit; Live/Polling Badge ถูก convention
+- **หนี้ live-test ค้าง (เรียงเสี่ยง):** (1) **SCORM upload E2E — เสี่ยงสุด: PROD รับ 1GB แล้วแต่ streaming ไม่เคยเทส live แม้ไฟล์เดียว** ต้องเทสบน QA sandbox เร็วที่สุด (2) per-user targeting 2 admin (3) digest idempotency บน server (รอวันที่มีข้อมูลเข้าเกณฑ์) (4) inject AdminActivityCreated จริงขณะเปิด Dashboard
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-093-*.md` (+Sign-off →VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: npm lint/build ที่ HEAD (01c06f4 ไม่แตะ C# — dotnet 203 passed ของเดิม valid); UNC read web.config ทั้ง 2 server + health probe อิสระ
+- คงค้าง: **push ขึ้น nikon/master** (local ahead หลาย commits) + ปิดหนี้ 4 ข้อบน QA
+
 ## [2026-07-17] GitHub Copilot — PLAN-093 DONE: PROD migrations + API/Admin React rollout and smoke
 - ทำอะไร: ผู้ใช้ยืนยัน QA ผ่านและอนุมัติ commit/deploy PROD. Commit QA SignalR follow-up เป็น `01c06f4`; apply PROD migrations `AddNotifications` + `SoftDeleteFilteredUniqueIndexes` ก่อน deploy แล้ว verify ไม่มี Pending. Deploy API side-by-side stamp `_deploy_20260717101558` (health 401 ตาม Windows-auth, auto-rollback=false, request limit 1 GB) และ deploy Admin React bundle SignalR-enabled. PROD smoke แบบไม่แก้ข้อมูลผ่าน: health 200 (DB/file share/EmployeeHub), session/Notifications/Reports endpoints 200, Dashboard `Live` + hub negotiate 200 หนึ่งเส้น, bell อยู่เหนือ assignment grid, assignment list และ Compliance Report render, console 0 error.
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-091-notifications-p2-frontend.md`, `DOC/PLANS/PLAN-093-qa-prod-rollout-migrate-deploy.md`, `DOC/AGENT_LOG.md`; deploy output บน QA/PROD

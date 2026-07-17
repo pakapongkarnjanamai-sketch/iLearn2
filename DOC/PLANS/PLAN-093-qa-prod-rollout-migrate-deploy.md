@@ -1,6 +1,6 @@
 # PLAN-093: Rollout — รัน migration + deploy ขึ้น QA แล้วต่อ PROD (Notifications P1+P2, Report Hub, PLAN-092 index fix)
 
-- **Status:** DONE — QA and PROD rollout completed; production smoke passed
+- **Status:** DONE → VERIFIED (Claude Code 2026-07-17) — เหลือหนี้ live-test 4 ข้อใน Sign-off
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-17
@@ -116,3 +116,23 @@ dotnet ef database update --project iLearn.Infrastructure --startup-project iLea
 - Admin React rebuilt from the committed source and deployed. PROD serves `index-BWhG2qli.js` with `VITE_ILEARN_ADMIN_ENABLE_SIGNALR:true`.
 - Non-destructive PROD smoke passed: `/api/health` 200 with database/course-file-share/EmployeeHub all passing; session, Notifications, and report aggregate APIs returned 200; Compliance Report and Assignment list rendered in the browser; Dashboard showed `Live`; one hub negotiation returned 200; bell dropdown rendered above the assignment grid; browser console had no errors.
 - Intentionally not run on PROD: SCORM upload mutation/notification trigger. Those remain suitable for a designated sandbox only.
+
+## Reviewer Sign-off (Claude Code, 2026-07-17)
+
+ตรวจ execution notes + commits (`01c06f4`, `2afdd56`) + ยืนยันสถานะ server จริงด้วยตัวเอง (read-only):
+
+- **ลำดับถูกตามกติกา:** migrate ก่อน deploy ทั้ง 2 env, filtered indexes ยืนยันด้วย SQL read-only, ไม่มี Pending เหลือ ✅
+- **Server จริงตรงตามรายงาน:** QA stamp `_deploy_20260717100037` / PROD stamp `_deploy_20260717101558`, `maxAllowedContentLength=1084227584` (1GB) ทั้งคู่ — **Sync-RequestLimits ของ PLAN-083 ทำงานบน server จริงครั้งแรกสำเร็จ** ✅
+- **Gate PROD:** notes บันทึกชัดว่าผู้ใช้ยืนยันผล QA + อนุมัติ commit และ PROD rollout เอง — ไม่ใช่การข้าม gate ✅
+- **Health อิสระหลัง rollout:** QA 200 pass; PROD เจอ **503 transient 1 ครั้ง** (EmployeeHub — อาการ pre-existing เคยบันทึกใน PLAN-083) แล้วกลับ 200 pass เสถียร 3 รอบติด — ไม่ใช่ผลจาก rollout แต่ควรรู้ไว้ว่า monitoring อาจเห็น 503 แวบจาก dependency ภายนอก
+- **เคส PLAN-092 ปิดสนิท:** add "Software back up (Re.3)" กลับเข้า 306 สำเร็จบน QA จริง ✅ / **หนี้ 086 ปิด:** reports ทุก endpoint 200 บน SQL Server จริง รวม course-summary ✅
+- **`01c06f4` (แก้นอกแผนระหว่าง smoke — รีวิวแล้วยอมรับ):** การค้นพบสำคัญคือ `.env.production` ตั้ง `ENABLE_SIGNALR=false` มาแต่แรก ⇒ **release build ทุกตัวก่อนหน้านี้ปิด SignalR ฝั่ง client มาตลอด** (realtime ไม่เคยทำงานบน server — อธิบายย้อนหลังได้หมด) — fix ถูกจุด, Live/Polling Badge ใช้ shared component ถูก convention, จดใน notes ครบ + ผู้ใช้อนุมัติ commit
+
+### หนี้ live-test ที่ยังค้าง (เรียงตามความเสี่ยง — ควรปิดบน QA sandbox โดยเร็ว)
+
+1. **SCORM upload E2E (084/085) — ความเสี่ยงอันดับ 1**: PROD เปิดรับ 1GB แล้ว แต่ streaming path ไม่เคยถูกเทส live เลยแม้แต่ไฟล์เดียว (มีแต่ unit 203) — ต้องเทส 50MB + 1GB + watch memory บน QA sandbox course ก่อนมีผู้ใช้จริงอัปไฟล์ใหญ่
+2. per-user targeting (088): ต้องการ admin คนที่ 2 — โค้ด normalize ตรวจด้วยตาแล้วตรง แต่ push จริงยังไม่เคยพิสูจน์
+3. digest idempotency บน server จริง (090): วันนี้ไม่มีข้อมูลเข้าเกณฑ์จึงพิสูจน์ไม่ได้ — unit test ครอบอยู่; จะพิสูจน์เองวันแรกที่มี assignment ใกล้ครบกำหนด
+4. `AdminActivityCreated` ยังไม่ถูก inject จริงขณะเปิด Dashboard (091) — เทสง่าย: ให้อีกคน publish content ระหว่างเปิด Dashboard
+
+**สรุป: rollout ผ่านรีวิว — execution สะอาด มีวินัยตาม runbook, server จริงตรงรายงานทุกจุด. เหลือหนี้ live-test 4 ข้อ (ข้อ 1 สำคัญสุด) + commits ยังไม่ push ขึ้น nikon/master**
